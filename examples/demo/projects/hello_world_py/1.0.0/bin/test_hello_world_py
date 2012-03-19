@@ -1,0 +1,4 @@
+#!/usr/bin/env rezpy
+
+from hello_world.exclaim import *
+exclaim()

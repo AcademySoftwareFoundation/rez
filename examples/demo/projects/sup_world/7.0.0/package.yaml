@@ -1,0 +1,23 @@
+config_version : 0
+
+name: sup_world
+
+version: 7.0.0
+
+uuid: e766e4ea-f3a7-11e0-b61f-0023ae79d988
+
+authors:
+- snoop.dogg
+
+description: >
+ A C++ executable that links to a library that is part of this package, and a library
+ from a different package. Word.
+
+variants:
+- [ !OS!, !CXX! ]
+
+requires:
+- translate_lib-2.2
+
+commands:
+- export PATH=$PATH:!ROOT!/bin

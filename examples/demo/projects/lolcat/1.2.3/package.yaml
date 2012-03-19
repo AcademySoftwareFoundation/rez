@@ -1,0 +1,21 @@
+config_version : 0
+
+name: lolcat
+
+version: 1.2.3
+
+uuid: d874cac6-f170-11e0-a980-0023ae79d988
+
+authors:
+- allan.johns
+
+description: >
+ This is a C++ executable that shows how to use variants.
+
+variants:
+- [ !OS!, !CXX!, translate_lib-2.0 ]
+- [ !OS!, !CXX!, translate_lib-2.1 ]
+
+commands:
+- export PATH=$PATH:!ROOT!/bin
+

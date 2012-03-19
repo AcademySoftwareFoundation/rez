@@ -1,0 +1,4 @@
+#!/bin/bash
+
+export MAYA_LICENSE=complete
+maya

@@ -1,0 +1,16 @@
+config_version : 0
+
+name: buildTools_toupper
+
+version: 3.1
+
+uuid: 8cceda0c-f879-11e0-a84a-0023ae79d988
+
+authors:
+- allan.johns
+
+description: >
+ An example 'build tools' package that makes uppercase text files.
+
+commands:
+- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake

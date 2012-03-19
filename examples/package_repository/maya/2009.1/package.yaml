@@ -1,0 +1,25 @@
+config_version : 0
+
+version : 11.0.431
+
+variants:
+- [ Linux ]
+
+requires:
+- python-2.5
+
+help: firefox http://download.autodesk.com/global/docs/maya2012/en_us/index.html
+
+commands:
+- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake
+- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:!ROOT!/ext/lib
+- export PATH=$PATH:!ROOT!/bin:!ROOT!/ext/bin
+- export MAYA_LOCATION=!ROOT!/ext
+- export MAYA_LICENSE=unlimited
+- export LM_LICENSE_FILE=7111@mayalic01:7111@mayalic02
+- export MAYA_NO_PARALLEL_DRAW=1
+- export MAYA_MMSET_DEFAULT_XCURSOR=1
+- export MAYA_NO_TBB=1
+- export PYTHONPATH=$PYTHONPATH:/usr/autodesk/maya2009.SP1-x64/lib/python2.5/site-packages
+- export MAYA_DEBUG_ENABLE_CRASH_REPORTING=1
+- export AW_JPEG_Q_FACTOR=95

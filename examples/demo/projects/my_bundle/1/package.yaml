@@ -1,0 +1,17 @@
+config_version : 0
+
+name: my_bundle
+
+version: 1
+
+uuid: b53d8090-f3ad-11e0-a004-0023ae79d988
+
+authors:
+- allan.johns
+
+description: >
+ An example package that does nothing except include other packages
+
+requires:
+- hello_world_py-1.0
+- sup_world-7.0

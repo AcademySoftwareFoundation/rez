@@ -1,0 +1,12 @@
+config_version : 0
+
+variants:
+- [ Linux ]
+
+commands:
+- export QTDIR=!ROOT!/ext
+- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:!ROOT!/ext/lib
+- export QT_QMAKE_EXECUTABLE=!ROOT!/ext/bin/qmake
+- export QT4_QGLOBAL_FILE=!ROOT!/ext/include/Qt/qglobal.h
+- export PATH=!ROOT!/ext/bin:$PATH
+- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake

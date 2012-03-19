@@ -1,0 +1,106 @@
+#!/bin/bash
+
+#
+# rez-context-info
+#
+# A tool for reporting information on the current rez-configured environment.
+#
+
+. _set-rez-env
+
+echo
+echo "running rez-config v$REZ_VERSION"
+echo
+
+if [ ! "$REZ_CONTEXT_FILE" ]; then
+	echo "not in a resolved environment context."
+	exit 1
+fi
+
+echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME"):"
+echo $REZ_REQUEST | tr ' ' '\n'
+echo
+
+if [ "$REZ_SOURCE_TOOLCHAIN" != "" ]; then
+	echo
+	echo "YOU ARE IN A TOOLCHAIN OVERRIDE!"
+	echo "OVERRIDEN TOOLCHAIN: "$REZ_SOURCE_TOOLCHAIN
+	clistpath=`echo $REZ__AUTOTOOLCHAIN_ROOT | sed 's/_autotoolchain.*//'`"CMakeLists.txt"
+	echo "SEE: "$clistpath
+	echo
+fi
+
+tbl=''
+
+# This is for toolchains. A toolchains overwrites the env it is resolved into. When this happens,
+# the original context file is pointed at via this PARENT var. If it exists, we look into this
+# file to get the original resolve list (containing the chain itself).
+if [ "`/bin/cat $REZ_CONTEXT_FILE | grep -w '###TOOLCHAIN###'`" != "" ]; then
+	if [ "$REZ_PARENT_CONTEXT_FILE" != "" ]; then
+		resolve_line=`/bin/cat $REZ_PARENT_CONTEXT_FILE | grep '^export REZ_RESOLVE='`
+		if [ "$resolve_line" != "" ]; then
+			parent_resolve_pkgs=`echo $resolve_line | sed "s/'//g" | sed 's/[^=]*=//'`
+
+			tbl=$tbl'#resolved%toolchain:#'
+			for pkg in $parent_resolve_pkgs
+			do
+				upkg=`echo $pkg | sed 's/-.*//g' | /usr/bin/tr 'a-z' 'A-Z'`
+				root=`/bin/cat $REZ_PARENT_CONTEXT_FILE | grep '^export REZ_'"$upkg"'_ROOT=' | sed 's/[^=]*=//'`
+
+				if [ "`echo $root | grep $USER`" == "" ]; then
+					tbl="$tbl # $pkg $root"
+				else
+					tbl="$tbl # $pkg $root"" (local)"
+				fi
+			done
+
+			tbl=$tbl'#%#'
+		fi
+	fi
+fi
+
+REZ_RESOLVE=`echo $REZ_RESOLVE | /usr/bin/tr ' ' '\n' | sort | /usr/bin/tr '\n' ' '`
+
+tbl=$tbl'#resolved%packages:#'
+for pkg in $REZ_RESOLVE
+do
+	upkg=`echo $pkg | sed 's/-.*//g' | /usr/bin/tr 'a-z' 'A-Z'`
+	root=`eval 'echo $REZ_'"$upkg"'_ROOT'`
+
+	if [ "`echo $root | grep $USER`" == "" ]; then
+		tbl="$tbl # $pkg $root"
+	else
+		tbl="$tbl # $pkg $root"" (local)"
+	fi
+done
+
+echo $tbl | /usr/bin/tr '#' '\n' | column -t | /usr/bin/tr '%' ' '
+
+
+echo
+echo "number of failed attempts: "$REZ_FAILED_ATTEMPTS
+
+echo
+echo "context file:"
+echo $REZ_CONTEXT_FILE
+
+echo
+
+
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

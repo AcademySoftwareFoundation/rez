@@ -1,0 +1,222 @@
+#!/bin/bash
+
+#
+# rez-env
+#
+# A tool for invoking a shell based on a configuration request.
+#
+
+
+##############################################################################
+# parse args
+##############################################################################
+
+. _set-rez-env
+. optparse
+
+optparse_set_prefix	_rez_env_opt_
+
+optparse_add_flag 	quiet 				-q False 	'Quiet mode [default=%default].'
+optparse_add_flag 	build 				-b False 	'Include build-only package requirements [default=%default].'
+optparse_add_flag 	stdin 				-s False 	'Read commands from stdin, rather than starting an interactive shell [default=%default].'
+optparse_add_flag 	add_loose 			-a False 	'Add mode (loose). Packages will override or add to the existing request list [default=%default].'
+optparse_add_flag 	add_strict 			-t False 	'Add mode (strict). Packages will override or add to the existing request list [default=%default].'
+optparse_add_flag 	no_os 				-o False 	'Stop rez-env from implicitly requesting the operating system package [default=%default].'
+optparse_add_flag 	ignore_blacklist 	-u False 	'Include blacklisted packages [default=%default].'
+optparse_add_flag 	ignore_archiving 	-g False 	'Include archived packages [default=%default].'
+optparse_add_flag 	no_assume_dt 		-d False 	'Do not assume dependency transitivity [default=%default].'
+
+optparse_add_option 	mode 				-m latest 	'Set the package resolution mode [default=%default].'
+optparse_add_option 	prompt				-p '>' 		'Set a custom prompt.'
+optparse_add_option 	time				-i 0 		'Ignore packages newer than the given epoch time.'
+optparse_add_option 	rcfile 				-r '' 		'Source this file after the new shell is invoked.'
+optparse_add_option 	view_fail 			-f '-1' 	'View the dotgraph for the Nth failed config attempt.'
+
+optparse_set_usage "rez-env [options] pkg1 pkg2 ... pkgN"
+optparse_parseargs $*
+
+shift $parseargs_ntokens
+
+
+##############################################################################
+# determine package list
+##############################################################################
+
+# check for version pkg subtraction, eg: "^rv-3.10". This doesn't make sense - it only
+# makes sense to do an unversioned package subtraction, ie "^rv"
+versubpkgs=`echo $* | tr ' ' '\n' | grep '^\^' | grep '-' | tr '\n' ' '`
+if [ "$versubpkgs" != "" ]; then
+	echo "Error: Versioned package subtractions are not allowed: "$versubpkgs
+	exit 1
+fi
+
+pkg_list=
+print_pkgs=
+ctxt_pkg_list=
+
+if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" ]; then
+	ctxt_pkg_list=$REZ_REQUEST
+	print_pkgs=1
+elif [ "$_REZ_ENV_OPT_ADD_STRICT" == "True" ]; then
+	ctxt_pkg_list=$REZ_RESOLVE
+	print_pkgs=1
+fi
+
+if [ "$ctxt_pkg_list" == "" ]; then
+	pkg_list="$@"
+else
+	used_new_pkgs=
+
+	for ctxt_pkg in $ctxt_pkg_list
+	do
+		pkg_overridden=0
+		ctxt_pkg_nover=`echo $ctxt_pkg | sed 's/-.*$//g'`
+
+		for new_pkg in "$@"
+		do
+			new_pkg_nover=`echo $new_pkg | sed 's/-.*$//g' | sed 's/^\^//'`
+
+			if [ "$new_pkg_nover" == "$ctxt_pkg_nover" ]; then
+				new_pkg_sub=`echo $new_pkg | sed -n '/^\^/p'`
+				if [ "$new_pkg_sub" == "" ]; then
+					pkg_list=$pkg_list' '$new_pkg
+				fi
+				used_new_pkgs=$used_new_pkgs' '$new_pkg
+				pkg_overridden=1
+			fi
+		done
+
+		if [ $pkg_overridden -eq 0 ]; then
+			pkg_list=$pkg_list' '$ctxt_pkg
+		fi
+	done
+
+	for new_pkg in "$@"
+	do
+		new_pkg_sub=`echo $new_pkg | sed -n '/^\^/p'`
+		if [ "$new_pkg_sub" == "" ]; then
+			if [ "`echo $used_new_pkgs | grep -w $new_pkg`" == "" ]; then
+				pkg_list=$pkg_list' '$new_pkg
+			fi
+		fi
+	done
+fi
+
+if [ "$print_pkgs" != "" ] && [ "$_REZ_ENV_OPT_QUIET" != "True" ]; then
+	quotedpkgs=`echo $pkg_list | sed "s/ /' '/g"`
+	echo "request: '"$quotedpkgs"'"
+fi
+
+
+##############################################################################
+# call rez-config, and write env into bake file
+##############################################################################
+
+tmpf=`mktemp /tmp/.rez-context.XXXXXXXXXX`
+tmpf2=$tmpf".source"
+tmpf3=$tmpf".dot"
+
+if [ "$_REZ_ENV_OPT_BUILD" == "True" ]; then
+	buildreq_flag="--build-requires"
+fi
+
+if [ "$_REZ_ENV_OPT_NO_OS" == "True" ]; then
+	no_os_flag="--no-os"
+fi
+
+if [ "$_REZ_ENV_OPT_IGNORE_BLACKLIST" == "True" ]; then
+	use_blacklist_flag="--ignore-blacklist"
+fi
+
+if [ "$_REZ_ENV_OPT_IGNORE_ARCHIVING" == "True" ]; then
+	ignore_archiving_flag="--ignore-archiving"
+fi
+
+if [ "$_REZ_ENV_OPT_NO_ASSUME_DT" == "True" ]; then
+	dt_flag="--no-assume-dt"
+fi
+
+if [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
+	max_fails_flag="--max-fails="$_REZ_ENV_OPT_VIEW_FAIL
+fi
+
+rez-config --time=$_REZ_ENV_OPT_TIME --print-env --dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE \
+	$max_fails_flag $dt_flag $ignore_archiving_flag $use_blacklist_flag $buildreq_flag \
+	$no_os_flag $pkg_list > $tmpf
+ret=$?
+
+if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
+	rez-dot -c $tmpf3
+	rm -f $tmpf
+	rm -f $tmpf3
+	exit 1
+fi
+
+##############################################################################
+# spawn the new shell, sourcing the bake file
+##############################################################################
+
+if [ $ret -eq 0 ]; then
+
+	export REZ_CONTEXT_FILE=$tmpf
+	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT$_REZ_ENV_OPT_PROMPT"
+
+	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then
+		source $tmpf
+		if [ "$_REZ_ENV_OPT_RCFILE" == "" ]; then
+			if [ -f ~/.bashrc ]; then
+				source ~/.bashrc &> /dev/null
+			fi
+		else
+			source $_REZ_ENV_OPT_RCFILE
+			if [ $? -ne 0 ]; then
+				exit 1
+			fi
+		fi
+
+		# ensure that rez-config is available no matter what (eg .bashrc might not exist,
+		# rcfile might not source rez-config)
+		source $REZ_PATH/init.sh
+
+		bash -s
+		ret=$?
+	else
+		echo "source $tmpf" > $tmpf2
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
+			echo "source $_REZ_ENV_OPT_RCFILE" >> $tmpf2
+		fi
+
+		echo "source rez-env-bashrc" >> $tmpf2
+		if [ "$_REZ_ENV_OPT_QUIET" == "False" ]; then
+			echo "echo" >> $tmpf2
+			echo "echo You are now in a new environment." >> $tmpf2
+			echo "rez-context-info" >> $tmpf2
+		fi
+
+		bash --rcfile $tmpf2
+		ret=$?
+		rm -f $tmpf2
+	fi
+fi
+
+rm -f $tmpf
+rm -f $tmpf3
+
+exit $ret
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

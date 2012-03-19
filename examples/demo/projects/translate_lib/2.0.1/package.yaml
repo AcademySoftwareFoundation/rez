@@ -1,0 +1,20 @@
+config_version : 0
+
+name: translate_lib
+
+version: 2.0.1
+
+uuid: 38eda6e8-f162-11e0-9de0-0023ae79d988
+
+authors:
+- axl.rose
+
+description: >
+ A simple C++ library with minimal dependencies.
+
+variants:
+- [ !OS!, !CXX! ]
+
+commands:
+- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake
+- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:!ROOT!/lib

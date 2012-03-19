@@ -1,0 +1,49 @@
+#!/bin/bash
+
+. _set-rez-env
+
+#
+# If run from the working copy of an svn checkout, this utility will
+# print out all svn commit messages that have occurred since the last
+# released tag.
+#
+
+rev_url=`rez-svn-print-last-tag`
+result=$?
+
+if [ $result -eq 2 ]; then
+	exit 1
+elif [ $result -eq 3 ]; then
+	echo "Changelog since first branch revision:(NONE)"
+	svn log -r HEAD:1 --stop-on-copy
+	exit 0
+elif [ $result -eq 4 ]; then
+	exit 1
+elif [ $result -ne 0 ]; then
+	echo "Changelog since first revision, tag:(NONE)"
+	svn log -r HEAD:1 --stop-on-copy
+	exit 0
+fi
+
+rev=`echo $rev_url | awk '{print $1}'`
+url=`echo $rev_url | awk '{print $2}'`
+
+echo "Changelog since rev:"$rev" tag:"$url
+svn log -r HEAD:$rev
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

@@ -1,0 +1,11 @@
+config_version: 0
+
+variants:
+- [ Linux ]
+
+help: firefox http://www.boost.org/doc/libs/1_37_0
+
+commands:
+- export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:!ROOT!/ext/lib
+- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake
+- export BOOST_ROOT=!ROOT!/ext

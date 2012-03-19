@@ -1,0 +1,22 @@
+
+The directories in here are rez packages that expose some common third-party software to
+the rez system, so they can be used by your own packages.
+
+Each contains an 'ext' file somewhere. This should be changed into a symlink, pointing at
+the relevant software on your system. The intent is that rez does not influence where you
+actually have your 3rd party software installed... you might want this to be in a different
+place to your rez packages.
+
+Any 3rd party software that you need to add to rez but isn't here, should be reasonably
+trivial to add. You just have to make the relevant dirs, symlink and files by hand
+(package.yaml, and .cmake if it's a library). The user manual has instructions on how to
+do this.
+
+If you want to use any of these supplied packages, you just need to copy them into your
+nominated package deployment directory (whos path will be listed in REZ_PACKAGES_PATH, and 
+whos value was set by the "packages_path" entry in configure.sh), and then change 'ext' to 
+a symlink as mentioned above.
+
+Ideally sometime in the future there will be some kind of 'rez' file format, and a rez
+package installer utility, for interfacing 3rd party software with rez more easily.
+
