@@ -109,9 +109,16 @@ echo "commands:" 						>> $cppcomp_yaml
 echo '- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake'	>> $cppcomp_yaml
 
 cppcomp_cmake=$cppcomp_dir/$osname/cmake/$_REZ_CPP_COMPILER_NAME.cmake
-echo "INCLUDE(CMakeForceCompiler)"											> $cppcomp_cmake
-echo "CMAKE_FORCE_CXX_COMPILER($_REZ_CPP_COMPILER $_REZ_CPP_COMPILER_ID)"	>> $cppcomp_cmake
 
+c_binary=$_REZ_CPP_COMPILER 
+cpp_binary=$_REZ_CPP_COMPILER
+if [ "$_REZ_CPP_COMPILER_NAME" == "gcc" ]; then
+	cpp_binary=${cpp_binary/gcc/g++}
+fi
+
+echo "INCLUDE(CMakeForceCompiler)"										> $cppcomp_cmake
+echo "CMAKE_FORCE_C_COMPILER($c_binary $_REZ_CPP_COMPILER_ID)"			>> $cppcomp_cmake
+echo "CMAKE_FORCE_CXX_COMPILER($cpp_binary $_REZ_CPP_COMPILER_ID)"		>> $cppcomp_cmake
 
 # python
 #------------------

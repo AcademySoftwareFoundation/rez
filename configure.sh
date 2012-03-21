@@ -190,6 +190,11 @@ if [ "$cppcompiler_id" == "GNU" ]; then
 	if [ "$cppcomp_name" == "cpp" -o "$cppcomp_name" == "gpp" ]; then
 		cppcomp_name="gcc"
 	fi
+	# account for distributions that install various flavours of
+	# gcc, each with a differnet version string appended.
+	if [[ "$cppcomp_name" == gcc-* ]]; then
+		cppcomp_name="gcc"
+	fi
 fi
 
 echo "found cpp compiler: "$cppcompiler", id: "$cppcompiler_id
