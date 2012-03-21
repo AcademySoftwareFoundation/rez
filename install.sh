@@ -165,6 +165,16 @@ cat ./init.sh \
 	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
 	> $install_dir/init.sh
 
+# install init.csh
+#-----------------------------------------------------------------------------------------
+cat ./init.csh \
+	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+	| sed -e 's|!REZ_BASE_PATH!|'$1'|g' \
+	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
+	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
+	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
+	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
+	> $install_dir/init.csh
 
 # install bin/ files
 #-----------------------------------------------------------------------------------------
@@ -204,8 +214,13 @@ echo
 echo "rez install successful!"
 echo "Initial boostrap packages have been created in: "$_REZ_PACKAGES_PATH
 echo
-echo "to test, try running this:"
+echo "to test in bash, try running this:"
+echo
 echo "unset REZ_PACKAGES_PATH ; source $install_dir/init.sh ; rez run hello_world"
+echo
+echo "to test in csh, try running this:"
+echo
+echo "unsetenv REZ_PACKAGES_PATH; source $install_dir/init.csh; rez run hello_world"
 echo
 
 

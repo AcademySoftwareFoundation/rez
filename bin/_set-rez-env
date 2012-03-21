@@ -4,9 +4,9 @@
 
 unset LD_LIBRARY_PATH
 
-REZ_SYS_PATH=$REZ_PATH/../system/$(uname)/bin
+#REZ_SYS_PATH=$REZ_PATH/../system/$(uname)/bin
 # put this path at the top of PATH, so that we can find overrides (eg sed on osx) before others
-PATH=$REZ_SYS_PATH:/bin:/usr/bin
+#PATH=$REZ_SYS_PATH:/bin:/usr/bin
 PATH=$PATH:$REZ_PATH/bin
 export PATH=$PATH
 
