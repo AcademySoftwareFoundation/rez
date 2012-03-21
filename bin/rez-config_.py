@@ -158,14 +158,20 @@ filesys.enable_archiving(not opts.ignore_archiving)
 pkg_reqs = []
 
 if not opts.no_os:
-	import platform
-	osname = platform.system()
-	ospkg = ""
 
-	if osname == "Linux":
-		ospkg = "Linux"
-	elif osname == "Darwin":
-		ospkg = "Darwin"
+	osname = os.getenv("REZ_PLATFORM")
+	if osname:
+		ospkg = osname
+	else:
+
+		import platform
+		osname = platform.system()
+		ospkg = ""
+
+		if osname == "Linux":
+			ospkg = "Linux"
+		elif osname == "Darwin":
+			ospkg = "Darwin"
 
 	if ospkg == "":
 		sys.stderr.write("Warning: Unknown operating system '" + ospkg + "'\n")

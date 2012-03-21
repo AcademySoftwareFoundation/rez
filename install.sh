@@ -56,7 +56,7 @@ fi
 
 # operating system
 #------------------
-osname=`uname`
+osname=$_REZ_PLATFORM
 os_dir=$_REZ_PACKAGES_PATH/$osname
 rm -rf $os_dir
 mkdir -p $os_dir/cmake
@@ -158,6 +158,7 @@ echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
 #-----------------------------------------------------------------------------------------
 cat ./init.sh \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
 	| sed -e 's|!REZ_BASE_PATH!|'$1'|g' \
 	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
@@ -169,6 +170,7 @@ cat ./init.sh \
 #-----------------------------------------------------------------------------------------
 cat ./init.csh \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
 	| sed -e 's|!REZ_BASE_PATH!|'$1'|g' \
 	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \

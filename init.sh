@@ -6,6 +6,8 @@
 # rez version
 export REZ_VERSION=!REZ_VERSION!
 
+# rez OS
+export REZ_PLATFORM=!REZ_PLATFORM!
 
 # where rez is installed
 export REZ_PATH=!REZ_BASE_PATH!/!REZ_VERSION!
