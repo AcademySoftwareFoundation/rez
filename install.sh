@@ -214,7 +214,7 @@ done
 
 cp -rf ./cmake $install_dir
 cp -rf ./template $install_dir
-
+cp -f $_REZ_UUID_BINARY $install_dir/bin
 
 # finish up
 #-----------------------------------------------------------------------------------------

@@ -33,6 +33,7 @@ osname=`uname`
 cmake_binary=
 cpp_compiler_binary=
 python_binary=
+uuid_binary=
 
 # Path to python modules, if left blank rez will try to find them. A common mistake is to
 # include the trailing subdir (eg ../yaml), that's one dir too many
@@ -72,6 +73,9 @@ if [ "$cpp_compiler_binary" == "" ]; then
 fi
 if [ "$python_binary" == "" ]; then
 	python_binary=$REZCONFIG_PYTHON_BINARY
+fi
+if [ "$uuid_binary" == "" ]; then
+	uuid_binary=$REZCONFIG_UUID_BINARY
 fi
 if [ "$pyyaml_path" == "" ]; then
 	pyyaml_path=$REZCONFIG_PYYAML_PATH
@@ -236,6 +240,18 @@ if (( pynum < 25 )); then
 fi
 echo "python version: "$pyver
 
+# uuid
+#-----------------------------------------------------------------------------------------
+if [ "$uuid_binary" == "" ]; then uuid_binary=uuid; fi
+which $uuid_binary > /dev/null 2>&1
+if [ $? -eq 0 ]; then
+	uuid_binary=`which $uuid_binary`
+else
+	echo "rez.configure: $uuid_binary could not be located." 1>&2
+	echo "You need to edit configure.sh to tell rez where to find uuid, or set "'$'"REZCONFIG_UUID_BINARY" 1>&2
+	exit 1
+fi
+echo "found uuid binary: "$uuid_binary
 
 # pyyaml
 #-----------------------------------------------------------------------------------------
@@ -377,6 +393,7 @@ echo "export _REZ_CPP_COMPILER='"$cppcompiler"'"					>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_NAME='"$cppcomp_name"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_ID='"$cppcompiler_id"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_VER='"$cppcompiler_ver"'"			>> ./rez.configured
+echo "export _REZ_UUID_BINARY='"$uuid_binary"'"						>> ./rez.configured
 echo "export _REZ_PYTHON_BINARY='"$python_binary"'"					>> ./rez.configured
 echo "export _REZ_PYTHON_VER='"$pyver"'"							>> ./rez.configured
 echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 					>> ./rez.configured
