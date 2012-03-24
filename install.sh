@@ -99,6 +99,12 @@ cppcomp_dir=$_REZ_PACKAGES_PATH/$_REZ_CPP_COMPILER_NAME/$_REZ_CPP_COMPILER_VER
 rm -rf $cppcomp_dir
 mkdir -p $cppcomp_dir/$osname/cmake
 
+c_binary=$_REZ_CPP_COMPILER 
+cpp_binary=$_REZ_CPP_COMPILER
+if [ "$_REZ_CPP_COMPILER_NAME" == "gcc" ]; then
+	cpp_binary=${cpp_binary/gcc/g++}
+fi
+
 cppcomp_yaml=$cppcomp_dir/package.yaml
 echo "config_version : 0" 				> $cppcomp_yaml
 echo "name: $_REZ_CPP_COMPILER_NAME" 	>> $cppcomp_yaml
@@ -106,19 +112,8 @@ echo "version: "$_REZ_CPP_COMPILER_VER 	>> $cppcomp_yaml
 echo "variants:"						>> $cppcomp_yaml
 echo "- [ $osname ]"					>> $cppcomp_yaml
 echo "commands:" 						>> $cppcomp_yaml
-echo '- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake'	>> $cppcomp_yaml
-
-cppcomp_cmake=$cppcomp_dir/$osname/cmake/$_REZ_CPP_COMPILER_NAME.cmake
-
-c_binary=$_REZ_CPP_COMPILER 
-cpp_binary=$_REZ_CPP_COMPILER
-if [ "$_REZ_CPP_COMPILER_NAME" == "gcc" ]; then
-	cpp_binary=${cpp_binary/gcc/g++}
-fi
-
-echo "INCLUDE(CMakeForceCompiler)"										> $cppcomp_cmake
-echo "CMAKE_FORCE_C_COMPILER($c_binary $_REZ_CPP_COMPILER_ID)"			>> $cppcomp_cmake
-echo "CMAKE_FORCE_CXX_COMPILER($cpp_binary $_REZ_CPP_COMPILER_ID)"		>> $cppcomp_cmake
+echo "- export CC=$c_binary"			>> $cppcomp_yaml
+echo "- export CXX=$cpp_binary"			>> $cppcomp_yaml
 
 # python
 #------------------
