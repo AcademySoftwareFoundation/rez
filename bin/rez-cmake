@@ -111,8 +111,13 @@ fi
 # Add pass-through cmake arguments
 cmake_arguments=$cmakeargs" "$cmake_arguments
 
-# Dr. D custom module location
+# Rez custom module location
 cmake_arguments=" -DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH "$cmake_arguments
+
+# Fetch the initial cache if it's defined
+if [ "$CMAKE_INITIAL_CACHE" != "" ]; then
+	cmake_arguments=" -C $CMAKE_INITIAL_CACHE "$cmake_arguments
+fi
 
 # Append build directory [must be last append before command generation]
 cmake_arguments=$cmake_arguments" "$build_directory
