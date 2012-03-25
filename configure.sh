@@ -18,11 +18,11 @@
 
 # Path where you want to centrally deploy packages to (ie, a central location that all
 # users can see). For example, /someserver/rez/packages
-packages_path=/mnt/hgfs/Allan/projects/rez/packages
+packages_path=
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME. This must be different to packages_path.
-local_packages_path=/mnt/hgfs/Allan/projects/rez/local_packages
+local_packages_path=
 
 # The base system name, which most packages will rely on.  By default it is whatever
 # string is returned by uname(), but it can be customized to account for different types

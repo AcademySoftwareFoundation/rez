@@ -92,7 +92,6 @@ echo "- [ $osname ]"					>> $cmake_yaml
 echo "commands:" 						>> $cmake_yaml
 echo '- export PATH=$PATH:!ROOT!/bin'	>> $cmake_yaml
 
-
 # cpp compiler
 #------------------
 cppcomp_dir=$_REZ_PACKAGES_PATH/$_REZ_CPP_COMPILER_NAME/$_REZ_CPP_COMPILER_VER
@@ -155,7 +154,6 @@ echo "- [ $osname ]"					>> $pkg_yaml
 echo "commands:" 						>> $pkg_yaml
 echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
 
-
 # install init.sh
 #-----------------------------------------------------------------------------------------
 cat ./init.sh \
@@ -203,13 +201,10 @@ do
 	fi
 done
 
-
 # install remaining files
 #-----------------------------------------------------------------------------------------
-
 cp -rf ./cmake $install_dir
 cp -rf ./template $install_dir
-cp -f $_REZ_UUID_BINARY $install_dir/bin
 
 # finish up
 #-----------------------------------------------------------------------------------------
