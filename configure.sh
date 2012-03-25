@@ -22,7 +22,7 @@ packages_path=
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME. This must be different to packages_path.
-local_packages_path=
+local_packages_path='$HOME/packages'
 
 # The base system name, which most packages will rely on.  By default it is whatever
 # string is returned by uname(), but it can be customized to account for different types
