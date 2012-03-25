@@ -18,11 +18,11 @@
 
 # Path where you want to centrally deploy packages to (ie, a central location that all
 # users can see). For example, /someserver/rez/packages
-packages_path=
+packages_path=/mnt/hgfs/Allan/projects/rez/packages
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME. This must be different to packages_path.
-local_packages_path='$HOME/packages'
+local_packages_path=/mnt/hgfs/Allan/projects/rez/local_packages
 
 # The base system name, which most packages will rely on.  By default it is whatever
 # string is returned by uname(), but it can be customized to account for different types
@@ -33,7 +33,6 @@ osname=`uname`
 cmake_binary=
 cpp_compiler_binary=
 python_binary=
-uuid_binary=
 
 # Path to python modules, if left blank rez will try to find them. A common mistake is to
 # include the trailing subdir (eg ../yaml), that's one dir too many
@@ -73,9 +72,6 @@ if [ "$cpp_compiler_binary" == "" ]; then
 fi
 if [ "$python_binary" == "" ]; then
 	python_binary=$REZCONFIG_PYTHON_BINARY
-fi
-if [ "$uuid_binary" == "" ]; then
-	uuid_binary=$REZCONFIG_UUID_BINARY
 fi
 if [ "$pyyaml_path" == "" ]; then
 	pyyaml_path=$REZCONFIG_PYYAML_PATH
@@ -121,6 +117,7 @@ if [ "$packages_path" == "" ]; then
 	exit 1
 fi
 
+
 # os
 #-----------------------------------------------------------------------------------------
 if [ "$osname" == "" ]; then
@@ -128,6 +125,7 @@ if [ "$osname" == "" ]; then
 	echo "This is the name that identifies the system you are running on." 1>&2
 	exit 1
 fi
+
 
 # local packages path
 #-----------------------------------------------------------------------------------------
@@ -143,8 +141,26 @@ if [ "$packages_path" == "$local_packages_path" ]; then
 fi
 
 
+# distro
+#-----------------------------------------------------------------------------------------
+# todo generate the distro package
+echo
+echo 'detecting OS distribution...'
+distro=''
+distro_ver=''
+if [ "$osname" == "Linux" ]; then
+	distro=`lsb_release -i | awk '{print $NF}'`
+	distro_ver=`lsb_release -r | awk '{print $NF}'`
+fi
+if [ "$distro" != "" ]; then
+	echo "OS distribution is: "$distro" release "$distro_ver
+fi
+
+
 # cmake
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting cmake...'
 if [ "$cmake_binary" == "" ]; then cmake_binary=cmake; fi
 which $cmake_binary > /dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -167,6 +183,9 @@ fi
 
 # detect cpp compiler
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting cpp compiler...'
+# attempt to find compiler via cmake
 tmpf=./rez.cppcompiler
 echo 'include(CMakeDetermineCXXCompiler)'	> $tmpf
 echo 'MESSAGE(${CMAKE_CXX_COMPILER})'		>> $tmpf
@@ -174,17 +193,46 @@ cppcompiler=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | tai
 if [ $? -ne 0 ]; then
 	cppcompiler=''
 fi
-cppcompiler_id=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | head -n 1 | awk '{print $NF}'`
-if [ $? -ne 0 ]; then
-	echo "Couldn't detect compiler cmake id, assuming GNU..." 1>&2
-	cppcompiler_id='GNU'
+if [ "$cppcompiler" == "CMAKE_CXX_COMPILER-NOTFOUND" ]; then
+	cppcompiler=''
+fi
+
+# attempt to get compiler id via cmake
+cppcompiler_id=''
+if [ "$cppcompiler" != "" ]; then
+	cppcompiler_id=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | head -n 1 | awk '{print $NF}'`
+	if [ $? -ne 0 ]; then
+		cppcompiler_id=''
+	fi
 fi
 rm -f $tmpf
 rm -rf ./CMakeFiles
+
+# couldn't find cpp compiler via cmake, let's just look for the binary directly
 if [ "$cppcompiler" == "" ]; then
-	echo "Couldn't find cpp compiler." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find a cpp compiler, or set "'$'"REZCONFIG_CPP_COMPILER_BINARY" 1>&2
-	exit 1
+	echo "couldn't find cpp compiler via cmake!" 1>&2	
+	if [ "$cpp_compiler_binary" == "" ]; then
+		cpp_compiler_binary=gcc
+	fi
+	echo "looking for $cpp_compiler_binaryÉ" 1>&2
+	cppcompiler=`which $cpp_compiler_binary `
+	if [ $? -ne 0 ]; then
+		echo "$cpp_compiler_binary not found." 1>&2
+		cppcompiler=''
+	else
+		echo "found $cpp_compiler_binary."
+	fi
+fi
+
+if [ "$cppcompiler" == "" ]; then
+        echo "Couldn't find cpp compiler." 1>&2
+        echo "You need to edit configure.sh to tell rez where to find a cpp compiler, or set "'$'"REZCONFIG_CPP_COMPILER_BINARY" 1>&2
+        exit 1
+fi
+
+if [ "$cppcompiler_id" == "" ]; then
+	echo "couldn't detect compiler cmake id, assuming GNU..." 1>&2
+	cppcompiler_id='GNU'
 fi
 
 cppcomp_name=`basename $cppcompiler | tr '+' 'p'`
@@ -195,7 +243,7 @@ if [ "$cppcompiler_id" == "GNU" ]; then
 		cppcomp_name="gcc"
 	fi
 	# account for distributions that install various flavours of
-	# gcc, each with a differnet version string appended.
+	# gcc, each with a different version string appended.
 	if [[ "$cppcomp_name" == gcc-* ]]; then
 		cppcomp_name="gcc"
 	fi
@@ -220,6 +268,8 @@ echo "cpp compiler version: "$cppcompiler_ver
 
 # python
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting python...'
 if [ "$python_binary" == "" ]; then python_binary=python; fi
 which $python_binary > /dev/null 2>&1
 if [ $? -eq 0 ]; then
@@ -231,7 +281,7 @@ else
 fi
 echo "found python binary: "$python_binary
 
-pyver=`( $python_binary -V 2>&1 ) | awk '{print $NF}'`
+pyver=`( $python_binary -V 2>&1 | sed 's/\+//' ) | awk '{print $NF}'`
 pynum=`echo $pyver | sed 's/\.[^\.]*$//' | sed 's/\.//'`
 if (( pynum < 25 )); then
 	echo "python version "$pyver" is too old, you need 2.5 or greater." 1>&2
@@ -240,21 +290,11 @@ if (( pynum < 25 )); then
 fi
 echo "python version: "$pyver
 
-# uuid
-#-----------------------------------------------------------------------------------------
-if [ "$uuid_binary" == "" ]; then uuid_binary=uuid; fi
-which $uuid_binary > /dev/null 2>&1
-if [ $? -eq 0 ]; then
-	uuid_binary=`which $uuid_binary`
-else
-	echo "rez.configure: $uuid_binary could not be located." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find uuid, or set "'$'"REZCONFIG_UUID_BINARY" 1>&2
-	exit 1
-fi
-echo "found uuid binary: "$uuid_binary
 
 # pyyaml
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting pyyaml...'
 if [ "$pyyaml_path" == "" ]; then
 	$python_binary -c "import yaml" > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -281,11 +321,13 @@ else
 		exit 1
 	fi
 fi
-echo "found yaml at "$pyyaml_path
+echo "found pyyaml at "$pyyaml_path
 
 
 # pydot
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting pydot...'
 if [ "$pydot_path" == "" ]; then
 	$python_binary -c "import pydot" > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -317,6 +359,8 @@ echo "found pydot at "$pydot_path
 
 # pyparsing
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting pyparsing...'
 if [ "$pyparsing_path" == "" ]; then
 	$python_binary -c "import pyparsing" > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -348,6 +392,8 @@ echo "found pyparsing at "$pyparsing_path
 
 # pysvn
 #-----------------------------------------------------------------------------------------
+echo
+echo 'detecting pysvn...'
 if [ "$pysvn_path" == "" ]; then
 	$python_binary -c "import pysvn" > /dev/null 2>&1
 	if [ $? -eq 0 ]; then
@@ -384,24 +430,25 @@ fi
 
 # write configuration info
 #-----------------------------------------------------------------------------------------
-echo "# generated by configure.sh" 									> ./rez.configured
-echo "export _REZ_PACKAGES_PATH='"$packages_path"'"					>> ./rez.configured
-echo "export _REZ_LOCAL_PACKAGES_PATH='"$local_packages_path"'"		>> ./rez.configured
-echo "export _REZ_PLATFORM='"$osname"'"								>> ./rez.configured
-echo "export _REZ_CMAKE_BINARY='"$cmake_binary"'"					>> ./rez.configured
-echo "export _REZ_CPP_COMPILER='"$cppcompiler"'"					>> ./rez.configured
+echo "# generated by configure.sh" 						> ./rez.configured
+echo "export _REZ_PACKAGES_PATH='"$packages_path"'"				>> ./rez.configured
+echo "export _REZ_LOCAL_PACKAGES_PATH='"$local_packages_path"'"			>> ./rez.configured
+echo "export _REZ_PLATFORM='"$osname"'"						>> ./rez.configured
+echo "export _REZ_DISTRO='"$distro"'"						>> ./rez.configured
+echo "export _REZ_DISTRO_VER='"$distro_ver"'"					>> ./rez.configured
+echo "export _REZ_CMAKE_BINARY='"$cmake_binary"'"				>> ./rez.configured
+echo "export _REZ_CPP_COMPILER='"$cppcompiler"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_NAME='"$cppcomp_name"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_ID='"$cppcompiler_id"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_VER='"$cppcompiler_ver"'"			>> ./rez.configured
-echo "export _REZ_UUID_BINARY='"$uuid_binary"'"						>> ./rez.configured
-echo "export _REZ_PYTHON_BINARY='"$python_binary"'"					>> ./rez.configured
-echo "export _REZ_PYTHON_VER='"$pyver"'"							>> ./rez.configured
-echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 					>> ./rez.configured
-echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 					>> ./rez.configured
+echo "export _REZ_PYTHON_BINARY='"$python_binary"'"				>> ./rez.configured
+echo "export _REZ_PYTHON_VER='"$pyver"'"					>> ./rez.configured
+echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 				>> ./rez.configured
+echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 				>> ./rez.configured
 echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
-echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 					>> ./rez.configured
+echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				>> ./rez.configured
 echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 		>> ./rez.configured
-echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 	>> ./rez.configured
+echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 		>> ./rez.configured
 
 echo
 echo "rez.configured written."

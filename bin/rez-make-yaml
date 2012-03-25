@@ -19,7 +19,8 @@ echo "name: enter-package-name" >> $f
 echo >> $f
 echo "version: 0.0.0" >> $f
 echo >> $f
-echo "uuid: "`uuid` >> $f
+_uuid=`python -c 'import uuid ; print str(uuid.uuid4())'`
+echo "uuid: "$_uuid >> $f
 echo >> $f
 echo "authors:" >> $f
 echo "- $USER" >> $f
