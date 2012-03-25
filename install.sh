@@ -111,12 +111,11 @@ echo "version: "$_REZ_CPP_COMPILER_VER 	>> $cppcomp_yaml
 echo "variants:"						>> $cppcomp_yaml
 echo "- [ $osname ]"					>> $cppcomp_yaml
 echo "commands:" 						>> $cppcomp_yaml
-echo "- export CC=$c_binary"			>> $cppcomp_yaml
 echo "- export CXX=$cpp_binary"			>> $cppcomp_yaml
 
 # python
 #------------------
-py_ver=`( $_REZ_PYTHON_BINARY -V 2>&1 ) | awk '{print $NF}'`
+py_ver=$_REZ_PYTHON_VER
 py_dir=$_REZ_PACKAGES_PATH/python/$py_ver
 rm -rf $py_dir
 mkdir -p $py_dir/$osname/bin
@@ -128,10 +127,10 @@ py_yaml=$py_dir/package.yaml
 echo "config_version : 0" 				> $py_yaml
 echo "name: python" 					>> $py_yaml
 echo "version: "$py_ver 				>> $py_yaml
-echo "variants:"						>> $py_yaml
+echo "variants:"					>> $py_yaml
 echo "- [ $osname ]"					>> $py_yaml
-echo "commands:" 						>> $py_yaml
-echo '- export PATH=$PATH:!ROOT!/bin'	>> $py_yaml
+echo "commands:" 					>> $py_yaml
+echo '- export PATH=$PATH:!ROOT!/bin'			>> $py_yaml
 
 
 # example package
@@ -141,7 +140,7 @@ rm -rf $pkg_dir
 mkdir -p $pkg_dir/$osname/bin
 
 pkg_sh=$pkg_dir/$osname/bin/hello_world
-echo "#!/bin/bash"						> $pkg_sh
+echo "#!/bin/bash"					> $pkg_sh
 echo "rez-context-info"					>> $pkg_sh
 echo "echo 'Hello world!'"				>> $pkg_sh
 chmod 777 $pkg_sh

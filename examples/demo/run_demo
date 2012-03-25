@@ -28,9 +28,11 @@ absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
 cwd=`dirname $absfpath`
 cd $cwd
 
-pkgs_dir=$cwd/build/published_packages
 rm -rf $cwd/build
+pkgs_dir=$cwd/build/published_packages
+local_pkgs_dir=$cwd/build/local_packages
 mkdir -p $pkgs_dir
+mkdir -p $local_pkgs_dir
 
 
 ##########################################################################################
@@ -43,7 +45,8 @@ echo
 
 cd ../../
 rm -f ./rez.configured
-export REZCONFIG_PACKAGES_PATH=pkgs_dir
+export REZCONFIG_PACKAGES_PATH=$pkgs_dir
+export REZCONFIG_LOCAL_PACKAGES_PATH=$local_pkgs_dir
 ./configure.sh
 if [ ! -e ./rez.configured ]; then
 	echo
