@@ -1,3 +1,5 @@
+This is a fork of the original rez-config project on google code at http://code.google.com/p/rez-config/
+This fork was created on 5 April 2012 and is hosted on github at https://github.com/BlackGinger/bg_rez-config
 
 ##########################################################################################
 # INFO
@@ -10,10 +12,15 @@ env-var '$REZ_PACKAGES_PATH'. With rez you can request a set of packages, and it
 return you all the packages that you need, or an equivalent configured environment. Rez has
 a resolution algorithm that avoids package version clashes.
 
-Author:
+Original Author:
 Allan Johns, 2010
 nerdvegas@googlemail.com
 Dr D Studios, Sydney, Australia
+
+Forked and Modified by:
+Morné Chamberlain, 2012
+morne@blackginger.tv
+BlackGinger, Cape Town, South Africa
 
 Rez has been tested on Linux Centos5, and to a lesser extent on OSX. Rez is not supported
 on Windows (yet), but volunteers are welcome!
@@ -30,7 +37,6 @@ pyparsing (tested with 1.5.1)
 rez-release requires:
 svn (tested with svn client 1.6.6)
 pysvn (tested with 1.7.2)
-
 
 ##########################################################################################
 # INSTALLATION
