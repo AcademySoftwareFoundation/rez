@@ -1,0 +1,60 @@
+#!/bin/bash
+
+#
+# If run from the working copy of a git repo, this utility will
+# print the current git remote url. If not, it will print "(NONE)". In either
+# case the non-error code zero is returned.
+#
+# TODO remove this, put into rez-build
+
+call_git_command(){
+	GIT_RESULT=`("$@") 2> /dev/null`
+	if [ $? -ne 0 ]; then
+		echo "(NONE)"
+		exit 0
+	fi
+}
+call_git_command_no_exit(){
+	GIT_RESULT=`("$@") 2> /dev/null`
+}
+
+call_git_command git remote show
+TRACKING_REMOTE=$GIT_RESULT
+call_git_command git name-rev --name-only HEAD
+LOCAL_BRANCH=$GIT_RESULT
+call_git_command_no_exit git describe HEAD
+if [ $? -eq 0 ]; then
+	NEAREST_TAG=$GIT_RESULT
+else
+	NEAREST_TAG=
+fi
+call_git_command git config branch.$LOCAL_BRANCH.merge
+REMOTE_BRANCH=`echo $GIT_RESULT | sed 's/.*\/\([^/]\+\)$/\1/'`
+call_git_command git rev-parse HEAD
+COMMIT_SHA=$GIT_RESULT
+call_git_command git config remote.$TRACKING_REMOTE.url
+if [ -z "$NEAREST_TAG" ]; then
+	giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA"
+else
+	giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA#(refs/tags/$NEAREST_TAG)"
+fi
+echo $giturl
+
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

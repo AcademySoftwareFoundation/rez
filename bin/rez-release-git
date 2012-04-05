@@ -1,28 +1,16 @@
-#
-# this file is sourced by rez scripts to set an env to execute in
-#
+#!/bin/bash
 
-unset LD_LIBRARY_PATH
+. _set-rez-env
 
-#REZ_SYS_PATH=$REZ_PATH/../system/$(uname)/bin
-# put this path at the top of PATH, so that we can find overrides (eg sed on osx) before others
-#PATH=$REZ_SYS_PATH:/bin:/usr/bin
-PATH=$PATH:$REZ_PATH/bin
-export PATH=$PATH
+# we need to inform rez-cmake that we're running from rez-release, so it quietly
+# accepts that we're doing a central release without giving a warning
+export REZ_IN_REZ_RELEASE=1
 
-# pyyaml
-PYTHONPATH=!REZ_PYYAML_PATH!
-# pydot
-PYTHONPATH=$PYTHONPATH:!REZ_PYDOT_PATH!
-# pyparsing
-PYTHONPATH=$PYTHONPATH:!REZ_PYPARSING_PATH!
-# pysvn
-PYTHONPATH=$PYTHONPATH:!REZ_PYSVN_PATH!
-# gitpython
-PYTHONPATH=$PYTHONPATH:!REZ_GITPYTHON_PATH!
+# remove the local packages directory from the build, we never ever want to
+# release something centrally that is using local packages
+export REZ_PACKAGES_PATH=$REZ_RELEASE_PACKAGES_PATH
 
-export PYTHONPATH=$PYTHONPATH
-export CMAKE_MODULE_PATH=$REZ_PATH/cmake
+rez-release-git_.py "$@"
 
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
 #

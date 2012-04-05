@@ -38,6 +38,10 @@ rez-release requires:
 svn (tested with svn client 1.6.6)
 pysvn (tested with 1.7.2)
 
+rez-release-git requires:
+git (tested with 1.7.2.3)
+GitPython (tested with 0.3.2-RC1)
+
 ##########################################################################################
 # INSTALLATION
 ##########################################################################################

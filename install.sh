@@ -185,6 +185,7 @@ cat ./bin/_set-rez-env \
 	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
 	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
 	| sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
+	| sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
 	> $install_dir/bin/_set-rez-env
 
 binfiles=`ls ./bin | grep -v '_set-rez-env'`
@@ -241,8 +242,8 @@ echo
 
 
 
-
-
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

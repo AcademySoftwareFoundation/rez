@@ -18,7 +18,7 @@
 
 # Path where you want to centrally deploy packages to (ie, a central location that all
 # users can see). For example, /someserver/rez/packages
-packages_path=
+packages_path=/tools/rezpackages/packages
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME. This must be different to packages_path.
@@ -40,6 +40,7 @@ pyyaml_path=
 pydot_path=
 pyparsing_path=
 pysvn_path=
+gitpython_path=
 
 # Your preferred text editor for writing package release notes. You can change this at any
 # time by setting $REZ_RELEASE_EDITOR appropriately.
@@ -84,6 +85,9 @@ if [ "$pyparsing_path" == "" ]; then
 fi
 if [ "$pysvn_path" == "" ]; then
 	pysvn_path=$REZCONFIG_PYSVN_PATH
+fi
+if [ "$gitpython_path" == "" ]; then
+	gitpython_path=$REZCONFIG_GITPYTHON_PATH
 fi
 
 if [ "$rez_release_editor" == "" ]; then
@@ -214,7 +218,7 @@ if [ "$cppcompiler" == "" ]; then
 	if [ "$cpp_compiler_binary" == "" ]; then
 		cpp_compiler_binary=gcc
 	fi
-	echo "looking for $cpp_compiler_binaryÉ" 1>&2
+	echo "looking for $cpp_compiler_binaryï¿½" 1>&2
 	cppcompiler=`which $cpp_compiler_binary `
 	if [ $? -ne 0 ]; then
 		echo "$cpp_compiler_binary not found." 1>&2
@@ -427,6 +431,42 @@ else
 	echo "found pysvn at "$pysvn_path
 fi
 
+# gitpython
+#-----------------------------------------------------------------------------------------
+echo
+echo 'detecting gitpython...'
+if [ "$gitpython_path" == "" ]; then
+	$python_binary -c "import git" > /dev/null 2>&1
+	if [ $? -eq 0 ]; then
+		gitpython_path=`$python_binary -c \
+			"import os.path ; \
+			import git ; \
+			s = git.__file__.replace('/__init__.pyc','') ; \
+			s = git.__file__.replace('/__init__.pyo','') ; \
+			s = s.replace('/__init__.py','') ; \
+			print os.path.dirname(s)"`
+		if [ $? -ne 0 ]; then
+			gitpython_path=""
+		fi
+	fi
+fi
+if [ "$gitpython_path" == "" ]; then
+	echo "couldn't find gitpython python module" 1>&2
+	echo "You need to edit configure.sh to tell rez where to find gitpython, or set "'$'"REZCONFIG_GITPYTHON_PATH" 1>&2
+else
+	bash -c "export PYTHONPATH=$gitpython_path ; $python_binary -c 'import git' > /dev/null 2>&1"
+	if [ $? -ne 0 ]; then
+		echo "gitpython python module not found at "$gitpython_path 1>&2
+		gitpython_path=""
+	fi
+fi
+if [ "$gitpython_path" == "" ]; then
+	echo
+	echo "Installation can continue, but rez-release-git will not be available." 1>&2
+	echo "To enable rez-release-git later, just add the git python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
+else
+	echo "found gitpython at "$gitpython_path
+fi
 
 # write configuration info
 #-----------------------------------------------------------------------------------------
@@ -447,6 +487,7 @@ echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 				>> ./rez.configured
 echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 				>> ./rez.configured
 echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
 echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				>> ./rez.configured
+echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 				>> ./rez.configured
 echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 		>> ./rez.configured
 echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 		>> ./rez.configured
 
@@ -473,7 +514,8 @@ echo "Now run ./install.sh"
 
 
 
-
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

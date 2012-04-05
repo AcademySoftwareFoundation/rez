@@ -220,11 +220,16 @@ fi
 #-#################################################################################################
 # Iterate over variants
 #-#################################################################################################
-
-if [ "$SVNURL_METADATA" == "" ]; then
-	SVNURL_METADATA=`rez-svn-print-url`
+VCS='svn'
+if [ -d $PWD/.git ]; then
+  VCS='git'
+else
+  VCS='svn'
 fi
 
+if [ "$SVNURL_METADATA" == "" ]; then
+  SVNURL_METADATA=`rez-$VCS-print-url`
+fi
 
 BUILD_DIR_BASE=$PWD/build
 BUILD_DIR_ID=$BUILD_DIR_BASE/.rez-build
@@ -280,7 +285,7 @@ do
 	# store the changelog into a metafile (rez-release will specify one
 	# via the -c flag)
 	if [ "$CHANGELOG" == "" ]; then
-		rez-svn-changelog > $CHLOGF
+    rez-$VCS-changelog > $CHLOGF
 	else
 		cp $CHANGELOG $CHLOGF
 	fi
@@ -391,7 +396,8 @@ do
 done
 
 
-
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

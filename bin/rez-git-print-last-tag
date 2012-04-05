@@ -1,0 +1,98 @@
+#!!REZ_PYTHON_BINARY!
+
+#
+# If run from a git repo, this utility will
+# print the SHA hash and url of the last tagged release.
+# If there are no tags, it will exit with exit-code 1. If any other
+# error occurs, it will exit with exit-code 2 (for example, not in a
+# working git dir).
+#
+
+import sys
+import os
+
+try:
+	import git
+except:
+	sys.exit(1)
+
+import versions
+
+#----------------------------------------------------------------------------------------
+# check we're in an git repo
+#----------------------------------------------------------------------------------------
+
+try:
+	repo = git.Repo(os.getcwd())
+except git.exc.InvalidGitRepositoryError:
+	sys.exit(2)
+
+latest_ver = versions.Version("0")
+
+#----------------------------------------------------------------------------------------
+# find the git tags
+#----------------------------------------------------------------------------------------
+
+branch_name = repo.active_branch.name
+if branch_name != 'master':
+	try:
+		# create a Version instance from the branch we are on this makes sure it's
+		# a Well Formed Version, and also puts the base version in 'latest_ver'
+		latest_ver = versions.Version(branch_name)
+	except:
+		sys.exit(4)
+
+#----------------------------------------------------------------------------------------
+# read all the tags (if any) and find the most recent
+#----------------------------------------------------------------------------------------
+
+tags = repo.tags
+if len(tags) == 0:
+	sys.exit(1)
+
+found_tag = None
+for tag_entry in tags:
+	tag = tag_entry.name
+	if tag[0] == 'v':
+		# old launcher-style vXX_XX_XX
+		nums = tag[1:].split('_')
+		tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
+
+	try:
+		ver = versions.Version(tag)
+	except Exception:
+		continue
+
+	if ver.same_branch(latest_ver) and ver > latest_ver:
+		latest_ver = ver
+		found_tag = tag_entry
+
+if found_tag == None:
+	sys.exit(3)
+
+latest_tag_url = repo.remote().url
+latest_rev = found_tag.path
+
+print str(latest_rev) + " " + latest_tag_url
+
+
+
+
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

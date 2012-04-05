@@ -1,28 +1,35 @@
+#!/bin/bash
+
+. _set-rez-env
+
 #
-# this file is sourced by rez scripts to set an env to execute in
+# If run from the working copy of a git repo, this utility will
+# print out all git commit messages that have occurred since the last
+# released tag.
 #
 
-unset LD_LIBRARY_PATH
+rev_url=`rez-git-print-last-tag`
+result=$?
 
-#REZ_SYS_PATH=$REZ_PATH/../system/$(uname)/bin
-# put this path at the top of PATH, so that we can find overrides (eg sed on osx) before others
-#PATH=$REZ_SYS_PATH:/bin:/usr/bin
-PATH=$PATH:$REZ_PATH/bin
-export PATH=$PATH
+if [ $result -eq 2 ]; then
+	exit 1
+elif [ $result -eq 3 ]; then
+	echo "Changelog since first branch commit:(NONE)"
+	git log | cat
+	exit 0
+elif [ $result -eq 4 ]; then
+	exit 1
+elif [ $result -ne 0 ]; then
+	echo "Changelog since first revision, tag:(NONE)"
+	git log | cat
+	exit 0
+fi
 
-# pyyaml
-PYTHONPATH=!REZ_PYYAML_PATH!
-# pydot
-PYTHONPATH=$PYTHONPATH:!REZ_PYDOT_PATH!
-# pyparsing
-PYTHONPATH=$PYTHONPATH:!REZ_PYPARSING_PATH!
-# pysvn
-PYTHONPATH=$PYTHONPATH:!REZ_PYSVN_PATH!
-# gitpython
-PYTHONPATH=$PYTHONPATH:!REZ_GITPYTHON_PATH!
+rev=`echo $rev_url | awk '{print $1}'`
+url=`echo $rev_url | awk '{print $2}'`
 
-export PYTHONPATH=$PYTHONPATH
-export CMAKE_MODULE_PATH=$REZ_PATH/cmake
+echo "Changelog since tag: "$rev
+git log $rev.. | cat
 
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
 #
