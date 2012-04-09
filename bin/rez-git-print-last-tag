@@ -34,13 +34,13 @@ latest_ver = versions.Version("0")
 #----------------------------------------------------------------------------------------
 
 branch_name = repo.active_branch.name
-if branch_name != 'master':
-	try:
-		# create a Version instance from the branch we are on this makes sure it's
-		# a Well Formed Version, and also puts the base version in 'latest_ver'
-		latest_ver = versions.Version(branch_name)
-	except:
-		sys.exit(4)
+#if branch_name != 'master':
+#	try:
+#		# create a Version instance from the branch we are on this makes sure it's
+#		# a Well Formed Version, and also puts the base version in 'latest_ver'
+#		latest_ver = versions.Version(branch_name)
+#	except:
+#		sys.exit(4)
 
 #----------------------------------------------------------------------------------------
 # read all the tags (if any) and find the most recent
