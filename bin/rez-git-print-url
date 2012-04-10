@@ -18,10 +18,10 @@ call_git_command_no_exit(){
 	GIT_RESULT=`("$@") 2> /dev/null`
 }
 
-call_git_command git remote show
-TRACKING_REMOTE=$GIT_RESULT
 call_git_command git name-rev --name-only HEAD
 LOCAL_BRANCH=$GIT_RESULT
+call_git_command git config branch.$LOCAL_BRANCH.remote
+TRACKING_REMOTE=$GIT_RESULT
 call_git_command_no_exit git describe HEAD
 if [ $? -eq 0 ]; then
 	NEAREST_TAG=$GIT_RESULT

@@ -1,2 +1,3 @@
 *.pyc
 rez.configured
+use_configure.sh
