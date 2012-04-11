@@ -2,10 +2,15 @@
 
 #
 # If run from the working copy of a git repo, this utility will
-# print the current git remote url. If not, it will print "(NONE)". In either
-# case the non-error code zero is returned.
+# print the current git remote url. If not, it will print "(NONE)". 
+# If the there is no remote configured for the current branch, we follow
+# the convention of printing the url for the 'origin' remote. If no 'origin'
+# remote exists then we also print "(NONE)". In all
+# cases the non-error code zero is returned.
 #
 # TODO remove this, put into rez-build
+
+GIT_RESULT=
 
 call_git_command(){
 	GIT_RESULT=`("$@") 2> /dev/null`
@@ -18,27 +23,33 @@ call_git_command_no_exit(){
 	GIT_RESULT=`("$@") 2> /dev/null`
 }
 
-call_git_command git name-rev --name-only HEAD
-LOCAL_BRANCH=$GIT_RESULT
-call_git_command git config branch.$LOCAL_BRANCH.remote
-TRACKING_REMOTE=$GIT_RESULT
-call_git_command_no_exit git describe HEAD
-if [ $? -eq 0 ]; then
-	NEAREST_TAG=$GIT_RESULT
+call_git_command git branch
+LOCAL_BRANCH=`echo "$GIT_RESULT" | grep '*' | awk '{ print $2 }'`
+call_git_command_no_exit git config branch.$LOCAL_BRANCH.remote
+# if the error code is non-zero, check if the 'origin' remote exists
+if [ $? -ne 0 ]; then
+	call_git_command git config remote.origin.url
+	giturl="$GIT_RESULT#$LOCAL_BRANCH(local)"
 else
-	NEAREST_TAG=
+	TRACKING_REMOTE=$GIT_RESULT
+	call_git_command_no_exit git describe HEAD
+	if [ $? -eq 0 ]; then
+		NEAREST_TAG=$GIT_RESULT
+	else
+		NEAREST_TAG=
+	fi
+	call_git_command git config branch.$LOCAL_BRANCH.merge
+	REMOTE_BRANCH=`echo "$GIT_RESULT" | sed 's/.*\/\([^/]\+\)$/\1/'`
+	call_git_command git rev-parse HEAD
+	COMMIT_SHA=$GIT_RESULT
+	call_git_command git config remote.$TRACKING_REMOTE.url
+	if [ -z "$NEAREST_TAG" ]; then
+		giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA"
+	else
+		giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA#(refs/tags/$NEAREST_TAG)"
+	fi
 fi
-call_git_command git config branch.$LOCAL_BRANCH.merge
-REMOTE_BRANCH=`echo $GIT_RESULT | sed 's/.*\/\([^/]\+\)$/\1/'`
-call_git_command git rev-parse HEAD
-COMMIT_SHA=$GIT_RESULT
-call_git_command git config remote.$TRACKING_REMOTE.url
-if [ -z "$NEAREST_TAG" ]; then
-	giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA"
-else
-	giturl="$GIT_RESULT#$REMOTE_BRANCH#$COMMIT_SHA#(refs/tags/$NEAREST_TAG)"
-fi
-echo $giturl
+echo "$giturl"
 
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
 #
