@@ -327,14 +327,16 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 			pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -name '*.py' | xargs -n 1 dirname | sort | uniq`", shell=True)
 			pret.wait()
 
+	tmpf = base_dir + '/' + RELEASE_COMMIT_FILE
+	f = open(tmpf, 'w')
 	if (commit_message != None):
 		commit_message += '\n' + changeLog
+		f.write(commit_message)
+		f.close()
 	else:
 		# prompt for tag comment, automatically setting to the change-log
 		commit_message = "\n\n" + changeLog
 
-		tmpf = base_dir + '/' + RELEASE_COMMIT_FILE
-		f = open(tmpf, 'w')
 		f.write(commit_message)
 		f.close()
 
@@ -354,11 +356,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 					pret.wait()
 					sys.exit(1)
 
-			commit_message = new_commit_message
-
-		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
-		pret.wait()
-
 	print
 	print("---------------------------------------------------------")
 	print("rez-release: tagging...")
@@ -369,7 +366,11 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	# at this point all variants have built and installed successfully. Copy to the new tag
 	print("rez-release: creating project tag: " + tag_id + " and pushing to: " + remote.url + "...")
 
-	repo.create_tag(tag_id, message=commit_message)
+	repo.create_tag(tag_id, a=True, F=tmpf)
+	# delete the temp commit message file
+	pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+	pret.wait()
+
 	# git-push any changes to the remote
 	push_result = remote.push()
 	if len(push_result) == 0:
