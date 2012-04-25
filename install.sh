@@ -29,6 +29,12 @@ if [ -e ./rez.installed -a "$_REZ_ISDEMO" != "1" ]; then
     reinstall=1
 fi
 
+if [ ! -e ./rez.configured ]; then
+    echo "need to run configure.sh first." 1>&2
+    exit 1
+fi
+. ./rez.configured
+
 if [ $reinstall -eq 1 ]; then
     base_install_dir=`cat ./rez.installed`
     echo "Detected previous install base path: "$base_install_dir
@@ -38,12 +44,6 @@ if [ $reinstall -eq 1 ]; then
         exit 1
     fi
 else
-    if [ ! -e ./rez.configured ]; then
-        echo "need to run configure.sh first." 1>&2
-        exit 1
-    fi
-    . ./rez.configured
-
     if [ $# -ne 1 ]; then
         echo "usage: install.sh <rez_install_path>" 1>&2
         exit 1
@@ -186,7 +186,7 @@ fi
 cat ./init.sh \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
 	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$1'|g' \
+	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
 	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
@@ -198,7 +198,7 @@ cat ./init.sh \
 cat ./init.csh \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
 	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$1'|g' \
+	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
 	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
 	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
