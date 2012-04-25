@@ -1,8 +1,13 @@
 #
-# Current version of rez.
+# Current version of rez. To release new versions (ie if you're developing rez), change the
+# version number in this file, then run ./install.sh again, but with no arguments. See comments
+# at the top of ./install.sh for more details.
 #
 
 rez_version='1.0.0'
+
+
+
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -24,6 +24,8 @@ PYTHONPATH=$PYTHONPATH:!REZ_GITPYTHON_PATH!
 export PYTHONPATH=$PYTHONPATH
 export CMAKE_MODULE_PATH=$REZ_PATH/cmake
 
+
+
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
 #
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

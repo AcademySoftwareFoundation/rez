@@ -23,6 +23,8 @@
 # setup
 ##########################################################################################
 
+export _REZ_ISDEMO=1
+
 # cd into same dir as this script
 absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
 cwd=`dirname $absfpath`
@@ -56,7 +58,7 @@ fi
 
 # dupe rez into building bootstrap packages into local dir, rather than the dir specified
 # in configure.sh:packages_path
-cat ./rez.configured | grep -v '_REZ_PACKAGES_PATH' > ./rez.configured2
+cat ./rez.configured | grep -v '^_REZ_PACKAGES_PATH' > ./rez.configured2
 rm ./rez.configured
 mv ./rez.configured2 ./rez.configured
 echo "export _REZ_PACKAGES_PATH='"$pkgs_dir"'" >> ./rez.configured

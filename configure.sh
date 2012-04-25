@@ -11,7 +11,7 @@
 #
 
 # Configuration settings. Either set them by hand here, or set the relevant REZCONFIG_XXX
-# environment variables before invoking this script.
+# environment variables (see the following section) before invoking this script.
 ###---------------------------------------------------------------------------------------
 ### BEGIN EDITING HERE >>>
 ###---------------------------------------------------------------------------------------
@@ -24,10 +24,21 @@ packages_path=
 # needed to stop early substitution of $HOME. This must be different to packages_path.
 local_packages_path='$HOME/packages'
 
-# The base system name, which most packages will rely on.  By default it is whatever
-# string is returned by uname(), but it can be customized to account for different types
-# of Linux distributions
-osname=`uname`
+# The system shell that rez expects to be running in. If left blank rez will identify
+# Eg: bash, csh, tcsh
+rezshell=
+
+# The operating system. If left blank rez will identify
+osname=
+
+# The operating system distribution. If left blank rez will identify
+# Eg: Ubuntu-11.10
+distro=
+distro_version=
+
+# The system architecture. If left blank rez will identify
+# Eg: x86_64
+sysarch=
 
 # Binaries that rez needs, if left blank rez will try to find them
 cmake_binary=
@@ -62,8 +73,20 @@ fi
 if [ "$local_packages_path" == "" ]; then
 	local_packages_path=$REZCONFIG_LOCAL_PACKAGES_PATH
 fi
+if [ "$rezshell" == "" ]; then
+    rezshell=$REZCONFIG_SHELL
+fi
 if [ "$osname" == "" ]; then
 	osname=$REZCONFIG_PLATFORM
+fi
+if [ "$distro" == "" ]; then
+	distro=$REZCONFIG_DISTRO
+fi
+if [ "$distro_version" == "" ]; then
+	distro_version=$REZCONFIG_DISTRO_VERSION
+fi
+if [ "$sysarch" == "" ]; then
+	sysarch=$REZCONFIG_ARCH
 fi
 if [ "$cmake_binary" == "" ]; then
 	cmake_binary=$REZCONFIG_CMAKE_BINARY
@@ -122,15 +145,6 @@ if [ "$packages_path" == "" ]; then
 fi
 
 
-# os
-#-----------------------------------------------------------------------------------------
-if [ "$osname" == "" ]; then
-	echo "You need to set the default platform name in configure.sh, or set "'$'"REZCONFIG_PLATFORM" 1>&2
-	echo "This is the name that identifies the system you are running on." 1>&2
-	exit 1
-fi
-
-
 # local packages path
 #-----------------------------------------------------------------------------------------
 if [ "$local_packages_path" == "" ]; then
@@ -144,20 +158,92 @@ if [ "$packages_path" == "$local_packages_path" ]; then
 	exit 1
 fi
 
+or_set="either specify manually in configure.sh, or set "'$'
+
+nissues=0
+echoerr=
+echoreset=
+
+
+# os
+#-----------------------------------------------------------------------------------------
+if [ "$osname" == "" ]; then
+    echo
+    echo "Detecting operating system..."
+    osname=`uname`
+    if [ $? -ne 0 ]; then
+        echo "Could not identify operating system - $or_set""REZCONFIG_PLATFORM" 1>&2
+        exit 1
+    fi
+    if [ "$osname" == "Linux" ]; then
+        echoerr=$(tput bold)$(tput setaf 1)
+        echoreset=$(tput sgr0)
+    fi
+    echo "Operating system is: "$osname
+fi
+
+
+# shell
+#-----------------------------------------------------------------------------------------
+if [ "$rezshell" == "" ]; then
+    echo
+    echo "detecting shell..."
+    rezshell=`basename $SHELL`
+    if [ $? -ne 0 ]; then
+        echo $echoerr"Could not identify shell - $or_set""REZCONFIG_PLATFORM" 1>&2
+        echo "Assuming bash!"$echoreset 1>&2
+        rezshell=bash
+        nissues=$(( $nissues + 1 ))
+    fi
+    case "$rezshell" in
+    "bash") ;;
+    "csh")  ;;
+    "tcsh") ;;
+    *)      echo $echoerr"Unknown shell '"$rezshell"' - $or_set""REZCONFIG_SHELL" 1>&2
+            echo "Assuming bash!"$echoreset 1>&2
+            rezshell=bash
+            nissues=$(( $nissues + 1 ))
+            ;;
+    esac
+    echo "Shell is: "$rezshell
+fi
+
 
 # distro
 #-----------------------------------------------------------------------------------------
 # todo generate the distro package
-echo
-echo 'detecting OS distribution...'
-distro=''
-distro_ver=''
-if [ "$osname" == "Linux" ]; then
-	distro=`lsb_release -i | awk '{print $NF}'`
-	distro_ver=`lsb_release -r | awk '{print $NF}'`
+if [ "$distro" == "" ]; then
+    echo
+    echo 'detecting OS distribution...'
+    if [ "$osname" == "Linux" ]; then
+        distro=`lsb_release -i | awk '{print $NF}'`
+        if [ $? -ne 0 ]; then distro=; fi
+    fi
+    if [ "$distro" == "" ]; then
+        echo $echoerr"Could not identify OS distribution - $or_set""REZCONFIG_DISTRO" 1>&2
+        echo "Setting to DISTRO_UNKNOWN-0!"$echoreset 1>&2
+        distro=DISTRO_UNKNOWN
+        distro_version=0
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "OS distribution is: "$distro
+    fi
 fi
-if [ "$distro" != "" ]; then
-	echo "OS distribution is: "$distro" release "$distro_ver
+if [ "$distro_version" == "" ]; then
+    echo
+    echo 'detecting OS distribution version...'
+    if [ "$osname" == "Linux" ]; then
+        distro_version=`lsb_release -r | awk '{print $NF}'`
+        if [ $? -ne 0 ]; then distro_version=; fi
+    fi
+    if [ "$distro_version" == "" ]; then
+        echo $echoerr"Could not identify OS distribution version - $or_set""REZCONFIG_DISTRO_VERSION" 1>&2
+        echo "Setting to 0!"$echoreset 1>&2
+        distro_version=0
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "OS distribution version is: "$distro_version
+    fi
 fi
 
 
@@ -170,8 +256,7 @@ which $cmake_binary > /dev/null 2>&1
 if [ $? -eq 0 ]; then
 	cmake_binary=`which $cmake_binary`
 else
-	echo "rez.configure: $cmake_binary could not be located." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find cmake, or set "'$'"REZCONFIG_CMAKE_BINARY" 1>&2
+	echo "rez.configure: $cmake_binary could not be located - $orset""REZCONFIG_CMAKE_BINARY" 1>&2
 	exit 1
 fi
 echo "found cmake binary: "$cmake_binary
@@ -180,7 +265,7 @@ cmakever=`( $cmake_binary --version 2>&1 ) | awk '{print $NF}'`
 cmakenum=`echo $cmakever | sed 's/\.[^\.]*$//' | sed 's/\.//'`
 if (( cmakenum < 28 )); then
 	echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find a newer cmake, or set "'$'"REZCONFIG_CMAKE_BINARY" 1>&2
+	echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
 	exit 1
 fi
 
@@ -214,28 +299,31 @@ rm -rf ./CMakeFiles
 
 # couldn't find cpp compiler via cmake, let's just look for the binary directly
 if [ "$cppcompiler" == "" ]; then
-	echo "couldn't find cpp compiler via cmake!" 1>&2	
+	echo $echoerr"couldn't find cpp compiler via cmake!"$echoreset 1>&2
+	nissues=$(( $nissues + 1 ))
 	if [ "$cpp_compiler_binary" == "" ]; then
 		cpp_compiler_binary=gcc
 	fi
-	echo "looking for $cpp_compiler_binary�" 1>&2
-	cppcompiler=`which $cpp_compiler_binary `
+	echo "looking for $cpp_compiler_binary""..." 1>&2
+	cppcompiler=`which $cpp_compiler_binary`
 	if [ $? -ne 0 ]; then
-		echo "$cpp_compiler_binary not found." 1>&2
+		echo $echoerr"$cpp_compiler_binary not found."$echoreset 1>&2
+		nissues=$(( $nissues + 1 ))
 		cppcompiler=''
 	else
-		echo "found $cpp_compiler_binary."
+		echo "found $cpp_compiler_binary at $cppcompiler."
 	fi
 fi
 
 if [ "$cppcompiler" == "" ]; then
         echo "Couldn't find cpp compiler." 1>&2
-        echo "You need to edit configure.sh to tell rez where to find a cpp compiler, or set "'$'"REZCONFIG_CPP_COMPILER_BINARY" 1>&2
+        echo "You need to $orset""REZCONFIG_CPP_COMPILER_BINARY" 1>&2
         exit 1
 fi
 
 if [ "$cppcompiler_id" == "" ]; then
-	echo "couldn't detect compiler cmake id, assuming GNU..." 1>&2
+	echo $echoerr"couldn't detect compiler cmake id, assuming GNU..."$echoreset 1>&2
+	nissues=$(( $nissues + 1 ))
 	cppcompiler_id='GNU'
 fi
 
@@ -252,6 +340,12 @@ if [ "$cppcompiler_id" == "GNU" ]; then
 		cppcomp_name="gcc"
 	fi
 fi
+if [ "cppcomp_name" == "gcc" ]; then
+    tmp=${cppcompiler/gcc/g++}
+    if [ -e $tmp ]; then
+        cppcompiler=$tmp
+    fi
+fi
 
 echo "found cpp compiler: "$cppcompiler", id: "$cppcompiler_id
 
@@ -264,8 +358,9 @@ if [ "$cppcompiler_id" == "GNU" ]; then
 	fi
 fi
 if [ "$cppcompiler_ver" == "" ]; then
-	echo "Couldn't detect compiler version, assuming 1.0.1..." 1>&2
+	echo $echoerr"Couldn't detect compiler version, assuming 1.0.1..."$echoreset 1>&2
 	cppcompiler_ver='1.0.1'
+	nissues=$(( $nissues + 1 ))
 fi
 echo "cpp compiler version: "$cppcompiler_ver
 
@@ -280,7 +375,7 @@ if [ $? -eq 0 ]; then
 	python_binary=`which $python_binary`
 else
 	echo "rez.configure: $python_binary could not be located." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find python, or set "'$'"REZCONFIG_PYTHON_BINARY" 1>&2
+	echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
 	exit 1
 fi
 echo "found python binary: "$python_binary
@@ -289,7 +384,7 @@ pyver=`( $python_binary -V 2>&1 | sed 's/\+//' ) | awk '{print $NF}'`
 pynum=`echo $pyver | sed 's/\.[^\.]*$//' | sed 's/\.//'`
 if (( pynum < 25 )); then
 	echo "python version "$pyver" is too old, you need 2.5 or greater." 1>&2
-	echo "You need to edit configure.sh to tell rez where to find a newer python, or set "'$'"REZCONFIG_PYTHON_BINARY" 1>&2
+	echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
 	exit 1
 fi
 echo "python version: "$pyver
@@ -315,8 +410,7 @@ if [ "$pyyaml_path" == "" ]; then
 	fi
 fi
 if [ "$pyyaml_path" == "" ]; then
-	echo "couldn't find yaml python module" 1>&2
-	echo "You need to edit configure.sh to tell rez where to find pyyaml, or set "'$'"REZCONFIG_PYYAML_PATH" 1>&2
+	echo "couldn't find yaml python module - $orset""REZCONFIG_PYYAML_PATH" 1>&2
 	exit 1
 else
 	bash -c "export PYTHONPATH=$pyyaml_path ; $python_binary -c 'import yaml' > /dev/null 2>&1"
@@ -348,8 +442,7 @@ if [ "$pydot_path" == "" ]; then
 	fi
 fi
 if [ "$pydot_path" == "" ]; then
-	echo "couldn't find pydot python module" 1>&2
-	echo "You need to edit configure.sh to tell rez where to find pydot, or set "'$'"REZCONFIG_PYDOT_PATH" 1>&2
+	echo "couldn't find pydot python module - $orset""REZCONFIG_PYDOT_PATH" 1>&2
 	exit 1
 else
 	bash -c "export PYTHONPATH=$pydot_path ; $python_binary -c 'import pydot' > /dev/null 2>&1"
@@ -381,8 +474,7 @@ if [ "$pyparsing_path" == "" ]; then
 	fi
 fi
 if [ "$pyparsing_path" == "" ]; then
-	echo "couldn't find pyparsing python module" 1>&2
-	echo "You need to edit configure.sh to tell rez where to find pyparsing, or set "'$'"REZCONFIG_PYPARSING_PATH" 1>&2
+	echo "couldn't find pyparsing python module - $orset""REZCONFIG_PYPARSING_PATH" 1>&2
 	exit 1
 else
 	bash -c "export PYTHONPATH=$pyparsing_path ; $python_binary -c 'import pyparsing' > /dev/null 2>&1"
@@ -394,121 +486,112 @@ fi
 echo "found pyparsing at "$pyparsing_path
 
 
-# pysvn
-#-----------------------------------------------------------------------------------------
-echo
-echo 'detecting pysvn...'
-if [ "$pysvn_path" == "" ]; then
-	$python_binary -c "import pysvn" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		pysvn_path=`$python_binary -c \
-			"import os.path ; \
-			import pysvn ; \
-			s = pysvn.__file__.replace('/__init__.pyc','') ; \
-			s = pysvn.__file__.replace('/__init__.pyo','') ; \
-			s = s.replace('/__init__.py','') ; \
-			print os.path.dirname(s)"`
-		if [ $? -ne 0 ]; then
-			pysvn_path=""
-		fi
-	fi
-fi
-if [ "$pysvn_path" == "" ]; then
-	echo "couldn't find pysvn python module" 1>&2
-	echo "You need to edit configure.sh to tell rez where to find pysvn, or set "'$'"REZCONFIG_PYSVN_PATH" 1>&2
-else
-	bash -c "export PYTHONPATH=$pysvn_path ; $python_binary -c 'import pysvn' > /dev/null 2>&1"
-	if [ $? -ne 0 ]; then
-		echo "pysvn python module not found at "$pysvn_path 1>&2
-		pysvn_path=""
-	fi
-fi
-if [ "$pysvn_path" == "" ]; then
-	echo
-	echo "Installation can continue, but rez-release will not be available." 1>&2
-	echo "To enable rez-release later, just add the svn python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
-else
-	echo "found pysvn at "$pysvn_path
+if [ "$_REZ_ISDEMO" != "1" ]; then
+    # pysvn
+    #-----------------------------------------------------------------------------------------
+    echo
+    echo 'detecting pysvn...'
+    if [ "$pysvn_path" == "" ]; then
+        $python_binary -c "import pysvn" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            pysvn_path=`$python_binary -c \
+                "import os.path ; \
+                import pysvn ; \
+                s = pysvn.__file__.replace('/__init__.pyc','') ; \
+                s = pysvn.__file__.replace('/__init__.pyo','') ; \
+                s = s.replace('/__init__.py','') ; \
+                print os.path.dirname(s)"`
+            if [ $? -ne 0 ]; then
+                pysvn_path=""
+            fi
+        fi
+    fi
+    if [ "$pysvn_path" == "" ]; then
+        echo $echoerr"couldn't find pysvn python module - $orset""REZCONFIG_PYSVN_PATH"$echoreset 1>&2
+    else
+        bash -c "export PYTHONPATH=$pysvn_path ; $python_binary -c 'import pysvn' > /dev/null 2>&1"
+        if [ $? -ne 0 ]; then
+            echo $echoerr"pysvn python module not found at "${pysvn_path}$echoreset 1>&2
+            pysvn_path=""
+        fi
+    fi
+    if [ "$pysvn_path" == "" ]; then
+        echo "Installation can continue, but rez-release for svn will not be available." 1>&2
+        echo "To enable later, just add the svn python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "found pysvn at "$pysvn_path
+    fi
+
+    # gitpython
+    #-----------------------------------------------------------------------------------------
+    echo
+    echo 'detecting gitpython...'
+    if [ "$gitpython_path" == "" ]; then
+        $python_binary -c "import git" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            gitpython_path=`$python_binary -c \
+                "import os.path ; \
+                import git ; \
+                s = git.__file__.replace('/__init__.pyc','') ; \
+                s = git.__file__.replace('/__init__.pyo','') ; \
+                s = s.replace('/__init__.py','') ; \
+                print os.path.dirname(s)"`
+            if [ $? -ne 0 ]; then
+                gitpython_path=""
+            fi
+        fi
+    fi
+    if [ "$gitpython_path" == "" ]; then
+        echo $echoerr"couldn't find gitpython python module - $orset""REZCONFIG_GITPYTHON_PATH"$echoreset 1>&2
+    else
+        bash -c "export PYTHONPATH=$gitpython_path ; $python_binary -c 'import git' > /dev/null 2>&1"
+        if [ $? -ne 0 ]; then
+            echo $echoerr"gitpython python module not found at "${gitpython_path}$echoreset 1>&2
+            gitpython_path=""
+        fi
+    fi
+    if [ "$gitpython_path" == "" ]; then
+        echo "Installation can continue, but rez-release for git will not be available." 1>&2
+        echo "To enable later, just add the git python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "found gitpython at "$gitpython_path
+    fi
 fi
 
-# gitpython
-#-----------------------------------------------------------------------------------------
-echo
-echo 'detecting gitpython...'
-if [ "$gitpython_path" == "" ]; then
-	$python_binary -c "import git" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		gitpython_path=`$python_binary -c \
-			"import os.path ; \
-			import git ; \
-			s = git.__file__.replace('/__init__.pyc','') ; \
-			s = git.__file__.replace('/__init__.pyo','') ; \
-			s = s.replace('/__init__.py','') ; \
-			print os.path.dirname(s)"`
-		if [ $? -ne 0 ]; then
-			gitpython_path=""
-		fi
-	fi
-fi
-if [ "$gitpython_path" == "" ]; then
-	echo "couldn't find gitpython python module" 1>&2
-	echo "You need to edit configure.sh to tell rez where to find gitpython, or set "'$'"REZCONFIG_GITPYTHON_PATH" 1>&2
-else
-	bash -c "export PYTHONPATH=$gitpython_path ; $python_binary -c 'import git' > /dev/null 2>&1"
-	if [ $? -ne 0 ]; then
-		echo "gitpython python module not found at "$gitpython_path 1>&2
-		gitpython_path=""
-	fi
-fi
-if [ "$gitpython_path" == "" ]; then
-	echo
-	echo "Installation can continue, but rez-release-git will not be available." 1>&2
-	echo "To enable rez-release-git later, just add the git python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
-else
-	echo "found gitpython at "$gitpython_path
-fi
 
 # write configuration info
 #-----------------------------------------------------------------------------------------
-echo "# generated by configure.sh" 						> ./rez.configured
-echo "export _REZ_PACKAGES_PATH='"$packages_path"'"				>> ./rez.configured
-echo "export _REZ_LOCAL_PACKAGES_PATH='"$local_packages_path"'"			>> ./rez.configured
-echo "export _REZ_PLATFORM='"$osname"'"						>> ./rez.configured
-echo "export _REZ_DISTRO='"$distro"'"						>> ./rez.configured
-echo "export _REZ_DISTRO_VER='"$distro_ver"'"					>> ./rez.configured
-echo "export _REZ_CMAKE_BINARY='"$cmake_binary"'"				>> ./rez.configured
-echo "export _REZ_CPP_COMPILER='"$cppcompiler"'"				>> ./rez.configured
+echo "# generated by configure.sh" 						            > ./rez.configured
+echo "export _REZ_PACKAGES_PATH='"$packages_path"'"				    >> ./rez.configured
+echo "export _REZ_LOCAL_PACKAGES_PATH='"$local_packages_path"'"	    >> ./rez.configured
+echo "export _REZ_SHELL='"$rezshell"'"                              >> ./rez.configured
+echo "export _REZ_PLATFORM='"$osname"'"						        >> ./rez.configured
+echo "export _REZ_DISTRO='"$distro"'"						        >> ./rez.configured
+echo "export _REZ_DISTRO_VER='"$distro_version"'"					>> ./rez.configured
+echo "export _REZ_CMAKE_BINARY='"$cmake_binary"'"				    >> ./rez.configured
+echo "export _REZ_CPP_COMPILER='"$cppcompiler"'"				    >> ./rez.configured
 echo "export _REZ_CPP_COMPILER_NAME='"$cppcomp_name"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_ID='"$cppcompiler_id"'"				>> ./rez.configured
 echo "export _REZ_CPP_COMPILER_VER='"$cppcompiler_ver"'"			>> ./rez.configured
-echo "export _REZ_PYTHON_BINARY='"$python_binary"'"				>> ./rez.configured
-echo "export _REZ_PYTHON_VER='"$pyver"'"					>> ./rez.configured
-echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 				>> ./rez.configured
-echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 				>> ./rez.configured
+echo "export _REZ_PYTHON_BINARY='"$python_binary"'"				    >> ./rez.configured
+echo "export _REZ_PYTHON_VER='"$pyver"'"					        >> ./rez.configured
+echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 				    >> ./rez.configured
+echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 				    >> ./rez.configured
 echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
-echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				>> ./rez.configured
-echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 				>> ./rez.configured
-echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 		>> ./rez.configured
-echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 		>> ./rez.configured
+echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				    >> ./rez.configured
+echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 			>> ./rez.configured
+echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 	    >> ./rez.configured
+echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 	>> ./rez.configured
 
 echo
+if [ $nissues -ne 0 ]; then
+    echo $echoerr"There were $nissues issues, please review above. Note that installation has still succeeded."$echoreset
+fi
 echo "rez.configured written."
 echo "Now run ./install.sh"
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+echo
 
 
 

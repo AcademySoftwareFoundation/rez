@@ -1,5 +1,6 @@
 #!!REZ_PYTHON_BINARY!
 
+import os
 import sys
 import yaml
 import optparse
