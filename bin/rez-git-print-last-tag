@@ -55,8 +55,12 @@ for tag_entry in tags:
 	tag = tag_entry.name
 	if tag[0] == 'v':
 		# old launcher-style vXX_XX_XX
-		nums = tag[1:].split('_')
-		tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
+		try:
+			nums = tag[1:].split('_')
+			tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
+		except Exception:
+			# Not an old launcher-style version, ignore it
+			continue
 
 	try:
 		ver = versions.Version(tag)
