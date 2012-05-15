@@ -229,6 +229,9 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		# git checkout-index it
 		try:
 			repo.git.checkout_index(a=True, prefix=subdir)
+			# We might have submodules, so we have to recursively visit each submodule and do a checkout-index
+			# for that submodule as well
+			git_checkout_index_submodules(varname, repo.submodules, subdir)
 		except Exception, e:
 			raise RezReleaseError("rez-release: git checkout-index failed: " + str(e))
 
@@ -410,7 +413,24 @@ def git_ahead_of_remote(repo):
 	status_message = repo.git.status()
 	return re.search(r"# Your branch is ahead of '.+' by \d+ commit", status_message) != None
 
-
+def git_checkout_index_submodules(varname, submodules, subdir):
+	"""
+	Recursively runs checkout-index on each submodule and its submodules and so forth,
+	duplicating the submodule directory tree in subdir
+	varname - The name of the current variant
+	submodules - Iterable list of submodules
+	subdir - The target base directory that should contain each
+			 of the checkout-indexed submodules
+	"""
+	for submodule in submodules:
+		submodule_subdir = os.path.join(subdir, submodule.path) + os.sep
+		if not os.path.exists(submodule_subdir):
+			os.mkdir(submodule_subdir)
+		submodule_repo = git.Repo(submodule.abspath)
+		print("rez-release: git-exporting (checkout-index) clean copy of " + varname + " (submodule: " + submodule.path + ") to " + submodule_subdir + "...")
+		submodule_repo.git.checkout_index(a=True, prefix=submodule_subdir)
+		# Recurse
+		git_checkout_index_submodules(varname, submodule_repo.submodules, submodule_subdir)
 
 
 
