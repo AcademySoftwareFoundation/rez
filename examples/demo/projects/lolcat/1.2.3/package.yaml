@@ -16,6 +16,9 @@ variants:
 - [ !OS!, !CXX!, translate_lib-2.0 ]
 - [ !OS!, !CXX!, translate_lib-2.1 ]
 
+tools:
+- test_lolcat
+
 commands:
 - export PATH=$PATH:!ROOT!/bin
 

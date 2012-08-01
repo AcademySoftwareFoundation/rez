@@ -15,6 +15,9 @@ description: >
 requires:
 - python-!PYVER!
 
+tools:
+- test_hello_world_py
+
 commands:
 - export PYTHONPATH=$PYTHONPATH:!ROOT!/py
 - export PATH=$PATH:!ROOT!/bin

@@ -167,15 +167,14 @@ if [ $reinstall -eq 0 ]; then
 
     pkg_sh=$pkg_dir/$osname/bin/hello_world
     echo "#!/bin/bash"					> $pkg_sh
-    echo "rez-context-info"					>> $pkg_sh
     echo "echo 'Hello world!'"				>> $pkg_sh
     chmod 777 $pkg_sh
 
     pkg_yaml=$pkg_dir/package.yaml
     echo "config_version : 0" 				> $pkg_yaml
     echo "name: hello_world" 				>> $pkg_yaml
-    echo "variants:"						>> $pkg_yaml
-    echo "- [ $osname ]"					>> $pkg_yaml
+    echo "tools:"                           >> $pkg_yaml
+    echo "- hello_world"                    >> $pkg_yaml
     echo "commands:" 						>> $pkg_yaml
     echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
 fi

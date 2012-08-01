@@ -16,6 +16,9 @@ description: >
 variants:
 - [ !OS!, !CXX! ]
 
+tools:
+- test_hello_world_cpp
+
 commands:
 - export PATH=$PATH:!ROOT!/bin
 
