@@ -8,7 +8,7 @@
 cmds="config env build release info run context-info context-image config-list depends diff dot help which"
 
 cmd=$1
-if [ "$cmd" == "" -o "$cmd" == "-h" ]; then
+if [ "$cmd" == "" -o "$cmd" == "-h" -o "$cmd" == "--help" ]; then
 	echo "usage: rez <subcommand> <flags>"
 	echo
 	echo "available subcommands:"

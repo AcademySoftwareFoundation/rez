@@ -8,7 +8,7 @@ export REZ_IN_REZ_RELEASE=1
 
 # remove the local packages directory from the build, we never ever want to
 # release something centrally that is using local packages
-export REZ_PACKAGES_PATH=$REZ_RELEASE_PACKAGES_PATH
+export REZ_PACKAGES_PATH=`echo $REZ_PACKAGES_PATH | sed "s|$REZ_LOCAL_PACKAGES_PATH||"`
 
 rez-release-git_.py "$@"
 

@@ -2,7 +2,7 @@
 #
 # Installation script for rez.
 #
-# usage: install.sh <rez_install_path>
+# usage: install.sh [options] [install_path]
 # example: install.sh /centralsvr/software/ext/rez
 # Actual install path will be appended with the rez version.
 #
@@ -14,8 +14,15 @@
 # creating the bootstrap packages. To force a new full install, delete rez.installed, then install.
 #
 
-# setup
+# cmdlin
 #-----------------------------------------------------------------------------------------
+function usage {
+    echo "usage: install [options] [install_path]"
+    echo "install_path must be specified the first time, after this a ./rez.installed file is"
+    echo "created, which remembers where to install. To change install path, remove this file."
+    echo "options:"
+    echo "  -n: disable creation of bootstrap packages (default if rez.installed is present)"
+}
 
 # cd into same dir as this script
 absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
@@ -25,8 +32,12 @@ cd $cwd
 . ./version.sh
 
 reinstall=0
+create_bootstrap_pkgs=1
+
 if [ -e ./rez.installed -a "$_REZ_ISDEMO" != "1" ]; then
     reinstall=1
+    create_bootstrap_pkgs=0
+    base_install_dir=`cat ./rez.installed`
 fi
 
 if [ ! -e ./rez.configured ]; then
@@ -35,8 +46,27 @@ if [ ! -e ./rez.configured ]; then
 fi
 . ./rez.configured
 
+# parse options
+while getopts "n" opt; do
+    case $opt in
+    n)  create_bootstrap_pkgs=0
+        ;;
+    \?)
+        usage
+        exit 1
+    esac
+done
+
+shift $((OPTIND-1))
+if [ $reinstall -eq 0 -a $# -eq 0 ]; then
+    usage
+    exit 0
+fi
+
+
+# setup
+#-----------------------------------------------------------------------------------------
 if [ $reinstall -eq 1 ]; then
-    base_install_dir=`cat ./rez.installed`
     echo "Detected previous install base path: "$base_install_dir
     if [ $# -gt 0 ]; then
         echo "Please either don't specify an install path, or delete rez.installed first." 1>&2
@@ -69,7 +99,7 @@ else
 fi
 
 
-if [ $reinstall -eq 0 ]; then
+if [ $create_bootstrap_pkgs -eq 1 ]; then
     # create bootstrap packages
     #-----------------------------------------------------------------------------------------
     # todo move some of these into dedicated rez-find code, which will eventually deprecate the
