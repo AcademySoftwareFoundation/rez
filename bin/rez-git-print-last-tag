@@ -53,10 +53,6 @@ if len(tags) == 0:
 found_tag = None
 for tag_entry in tags:
 	tag = tag_entry.name
-	if tag[0] == 'v':
-		# old launcher-style vXX_XX_XX
-		nums = tag[1:].split('_')
-		tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
 
 	try:
 		ver = versions.Version(tag)
