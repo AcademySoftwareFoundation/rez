@@ -184,7 +184,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	pret.communicate()
 
 	# write the changelog to file, so that rez-build can install it as metadata
-	changelogFile = base_dir + '/changelog.txt'
+	changelogFile = os.getcwd() + '/build/rez-release-changelog.txt'
 	chlogf = open(changelogFile, 'w')
 	chlogf.write(changeLog)
 	chlogf.close()
@@ -241,6 +241,8 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		build_cmd = "rez-build" + \
 			" " + timearg + \
 			" " + vararg + \
+			" -s " + tag_url + \
+			" -c " + changelogFile + \
 			" -- -- -j" + str(njobs)
 
 		print

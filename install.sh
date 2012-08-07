@@ -214,6 +214,7 @@ fi
 # install init.sh
 #-----------------------------------------------------------------------------------------
 cat ./init.sh \
+    | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
 	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
 	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
@@ -226,6 +227,7 @@ cat ./init.sh \
 # install init.csh
 #-----------------------------------------------------------------------------------------
 cat ./init.csh \
+    | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
 	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
 	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
 	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
@@ -239,6 +241,7 @@ cat ./init.csh \
 #-----------------------------------------------------------------------------------------
 mkdir -p $install_dir/bin
 cat ./bin/_set-rez-env \
+    | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
 	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
 	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
 	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
@@ -261,6 +264,7 @@ done
 
 # install remaining files
 #-----------------------------------------------------------------------------------------
+cp -rf ./python $install_dir
 cp -rf ./cmake $install_dir
 cp -rf ./template $install_dir
 

@@ -179,7 +179,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	pret.communicate()
 
 	# write the changelog to file, so that rez-build can install it as metadata
-	changelogFile = base_dir + '/changelog.txt'
+	changelogFile = os.getcwd() + '/build/rez-release-changelog.txt'
 	chlogf = open(changelogFile, 'w')
 	chlogf.write(changeLog)
 	chlogf.close()
@@ -210,6 +210,9 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 
 	timearg = "-t " + str(build_time)
 
+	tag_url = repo.remote().url + "#" + repo.active_branch.tracking_branch().name.split("/")[-1] \
+		+ "#" + repo.head.reference.commit.hexsha + "#(refs/tags/" + tag_id + ")"
+
 	for variant in variants_:
 		if variant:
 			varnum += 1
@@ -239,6 +242,8 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		build_cmd = "rez-build" + \
 			" " + timearg + \
 			" " + vararg + \
+			" -s '" + tag_url + \
+			"' -c " + changelogFile + \
 			" -- -- -j" + str(njobs)
 
 		print
@@ -302,7 +307,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		# we use # instead of spaces in tag_url since rez-build doesn't like parameters with spaces in them,
 		# even if it is enclosed in quotes. The # should be changed to spaces once the issue in rez-build is
 		# resolved.
-		tag_url = repo.remote().url + "#" + repo.active_branch.tracking_branch().name.split("/")[-1] + "#" + repo.head.reference.commit.hexsha + "#(refs/tags/" + tag_id + ")"
 		pret = subprocess.Popen("cd " + subdir + " ; rez-build -n" + \
 			" " + timearg + \
 			" " + vararg + \

@@ -285,7 +285,7 @@ do
 	# store the changelog into a metafile (rez-release will specify one
 	# via the -c flag)
 	if [ "$CHANGELOG" == "" ]; then
-    rez-$VCS-changelog > $CHLOGF
+    	rez-$VCS-changelog > $CHLOGF
 	else
 		cp $CHANGELOG $CHLOGF
 	fi

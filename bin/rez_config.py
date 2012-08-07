@@ -248,6 +248,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 
 	# special case env-vars
 	env_cmds.append("export PATH=")
+	env_cmds.append("export PYTHONPATH=%s/python" % os.getenv("REZ_PATH"))
 	if not is_wrapper:
 		env_cmds.append("export REZ_WRAPPER_PATH=")
 
