@@ -28,7 +28,7 @@ local_packages_path='$HOME/packages'
 # Eg: bash, csh, tcsh
 rezshell=
 
-# The operating system. If left blank rez will identify
+# The operating system. If left blank rez will identify. Eg: linux, windows, osx
 osname=
 
 # The operating system distribution. If left blank rez will identify
@@ -55,17 +55,16 @@ gitpython_path=
 
 # Your preferred text editor for writing package release notes. You can change this at any
 # time by setting $REZ_RELEASE_EDITOR appropriately.
-rez_release_editor=kedit
+rez_release_editor=
 
 # Your preferred image viewer, for viewing resolve graphs. You can change this at any time
 # by setting $REZ_DOT_IMAGE_VIEWER appropriately.
-rez_dot_image_viewer=firefox
+rez_dot_image_viewer=
 
 ###---------------------------------------------------------------------------------------
 ### <<< END EDITING HERE
 ### DO NOT CHANGE ANYTHING PAST THIS LINE
 ###---------------------------------------------------------------------------------------
-
 
 if [ "$packages_path" == "" ]; then
 	packages_path=$REZCONFIG_PACKAGES_PATH
@@ -134,6 +133,20 @@ if [ "$1" == "--help" -o "$1" == "--h" -o "$1" == "-h" -o "$1" == "-?" -o "$1" =
 	echo "Then run configure.sh with no arguments." 1>&2
 	exit 0
 fi
+
+
+# functions
+#-----------------------------------------------------------------------------------------
+_find_program(){
+    for prog in $*
+    do
+        path=`which $prog 2> /dev/null`
+        if [ $? -eq 0 ]; then
+            echo $path
+            return
+        fi
+    done
+}
 
 
 # packages path
@@ -267,6 +280,16 @@ if (( cmakenum < 28 )); then
 	echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
 	echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
 	exit 1
+fi
+
+
+# runtime 3rd-party tools
+#-----------------------------------------------------------------------------------------
+if [ "$rez_release_editor" == "" ]; then
+    rez_release_editor=`_find_program kedit gedit nedit kate vim vi`
+fi
+if [ "$rez_dot_image_viewer" == "" ]; then
+    rez_dot_image_viewer=`_find_program eog kview xnview gthumb feh gqview geeqie firefox`
 fi
 
 

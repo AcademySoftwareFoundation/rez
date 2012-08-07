@@ -19,5 +19,8 @@ variants:
 requires:
 - translate_lib-2.2
 
+tools:
+- test_ghetto
+
 commands:
 - export PATH=$PATH:!ROOT!/bin

@@ -23,5 +23,8 @@ variants:
 requires:
 - translate_lib-2.0
 
+tools:
+- test_translated_hello_world
+
 commands:
 - export PATH=$PATH:!ROOT!/bin

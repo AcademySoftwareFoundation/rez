@@ -134,12 +134,13 @@ class ResolvedPackage:
 	"""
 	A resolved package
 	"""
-	def __init__(self, name, version, base, root, commands):
+	def __init__(self, name, version, base, root, commands, metadata):
 		self.name = name
 		self.version = version
 		self.base = base
 		self.root = root
 		self.commands = commands
+		self.metadata = metadata # original yaml data
 
 	def short_name(self):
 		if (len(self.version) == 0):
@@ -157,7 +158,7 @@ class ResolvedPackage:
 
 def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_fails = -1, \
 	time_epoch = 0, no_path_append = False, build_requires = False, assume_dt = False, \
-	is_wrapper = False):
+	is_wrapper = False, meta_vars = None):
 	"""
 	Given a list of packages, return:
 	(a) a list of ResolvedPackage objects, representing the resolved config;
@@ -179,6 +180,9 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	assume_dt: Assume dependency transitivity
 	is_wrapper: If this env is being resolved for a wrapper, then some very slight changes
 	are needed to a normal env, so that wrappers can see one another.
+	meta_vars: A list of 2-tuples. [0] is the name of a key; if that key is found in a package
+	yaml file, then its value will be baked into the env-var REZ_META_<KEY>. [1] is the
+	separator that wil be used, if the value in the yaml is a list.
 	"""
 	if (len(pkg_reqs) == 0):
 		return [], [], "digraph g{}", 0
@@ -258,14 +262,29 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	env_cmds.append("export REZ_RESOLVE='"+ str(" ").join(res_pkg_strs)+"'")
 
 	# packages: base/root/version, and commands
+	meta_envvars = {}
+
 	for pkg_res in pkg_res_list:
-		env_cmds.append("export REZ_" + pkg_res.name.upper() + "_VERSION=" + pkg_res.version)
-		env_cmds.append("export REZ_" + pkg_res.name.upper() + "_BASE=" + pkg_res.base)
-		env_cmds.append("export REZ_" + pkg_res.name.upper() + "_ROOT=" + pkg_res.root)
+		prefix = "REZ_" + pkg_res.name.upper()
+		env_cmds.append("export " + prefix + "_VERSION=" + pkg_res.version)
+		env_cmds.append("export " + prefix + "_BASE=" + pkg_res.base)
+		env_cmds.append("export " + prefix + "_ROOT=" + pkg_res.root)
+
+		for key,seperator in meta_vars:
+			if key in pkg_res.metadata.metadict:
+				val = pkg_res.metadata.metadict[key]
+				if type(val) == list:
+					val = seperator.join(val)
+				if key not in meta_envvars:
+					meta_envvars[key] = []
+				meta_envvars[key].append(pkg_res.name + ':' + val)
 
 		if pkg_res.commands:
 			for cmd in pkg_res.commands:
 				env_cmds.append([cmd, pkg_res.short_name()])
+
+	for k,v in meta_envvars.iteritems():
+		env_cmds.append("export REZ_META_" + k.upper() + "='" + str(' ').join(v) + "'")
 
 	# metadata env-vars (REZ_CONFIG_XXX)
 	if (resolve_mode == RESOLVE_MODE_LATEST):
@@ -1126,7 +1145,8 @@ class _Configuration:
 			pkg = self.pkgs[name]
 			if not pkg.is_anti():
 				resolved_cmds = pkg.get_resolved_commands()
-				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, pkg.root_path, resolved_cmds)
+				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, \
+                    pkg.root_path, resolved_cmds, pkg.metadata)
 				pkg_ress.append(pkg_res)
 
 		return pkg_ress
