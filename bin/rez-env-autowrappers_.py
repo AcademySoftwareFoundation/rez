@@ -89,7 +89,12 @@ def parse_pkg_args(s):
             label_str = curr_ss["prefix"] + pkg_fam + curr_ss["suffix"]
             curr_ss["label"] = label_str
 
-        subshells[curr_ss["label"]] = curr_ss
+        subshell_name = curr_ss["label"]
+        if subshell_name in subshells:
+            print >> sys.stderr, "Error: subshell '%s' is defined more than once!" % subshell_name
+            sys.exit(1)
+
+        subshells[subshell_name] = curr_ss
         curr_ss = None
 
     _pkg = pp.Regex("[a-zA-Z_0-9~<=\\.\\-\\!\\+]+").setParseAction(_parse_pkg)
