@@ -6,44 +6,52 @@
 # A tool for invoking a shell based on a configuration request.
 #
 
+. _set-rez-env
 
 ##############################################################################
 # parse args
 ##############################################################################
+IFS='
+'
 
-. _set-rez-env
-. optparse
+tmppy=`basename $0`'/rez_env_cmdlin.py'
+cmdlin=`!REZ_PYTHON_BINARY! $REZ_PATH/bin/rez_env_cmdlin.py $*`
+if [ $? -ne 0 ]; then
+	!REZ_PYTHON_BINARY! $REZ_PATH/bin/rez_env_cmdlin.py $*
+	exit $?
+fi
 
-optparse_set_prefix	_rez_env_opt_
+pkgs=
+for ln in $cmdlin
+do
+	ln=`echo $ln | tr -d '\n'`
+	if [ "$pkgs" == "" ]; then
+		pkgs=$ln
+	else
+		eval "$ln"
+	fi
+done
 
-optparse_add_flag 	quiet 				-q False 	'Quiet mode [default=%default].'
-optparse_add_flag 	build 				-b False 	'Include build-only package requirements [default=%default].'
-optparse_add_flag 	stdin 				-s False 	'Read commands from stdin, rather than starting an interactive shell [default=%default].'
-optparse_add_flag 	add_loose 			-a False 	'Add mode (loose). Packages will override or add to the existing request list [default=%default].'
-optparse_add_flag 	add_strict 			-t False 	'Add mode (strict). Packages will override or add to the existing request list [default=%default].'
-optparse_add_flag 	no_os 				-o False 	'Stop rez-env from implicitly requesting the operating system package [default=%default].'
-optparse_add_flag 	ignore_blacklist 	-u False 	'Include blacklisted packages [default=%default].'
-optparse_add_flag 	ignore_archiving 	-g False 	'Include archived packages [default=%default].'
-optparse_add_flag 	no_assume_dt 		-d False 	'Do not assume dependency transitivity [default=%default].'
-
-optparse_add_option 	mode 				-m latest 	'Set the package resolution mode [default=%default].'
-optparse_add_option 	prompt				-p '>' 		'Set a custom prompt.'
-optparse_add_option 	time				-i 0 		'Ignore packages newer than the given epoch time.'
-optparse_add_option 	rcfile 				-r '' 		'Source this file after the new shell is invoked.'
-optparse_add_option 	view_fail 			-f '-1' 	'View the dotgraph for the Nth failed config attempt.'
-
-optparse_set_usage "rez-env [options] pkg1 pkg2 ... pkgN"
-optparse_parseargs $*
-
-shift $parseargs_ntokens
+unset IFS
+#set -- $pkgs
 
 
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
 ##############################################################################
 if [ "`echo $* | grep '('`" != "" ]; then
-    rez-env-autowrappers $*
-    exit $?
+	tmpdir=`mktemp -d`
+    rez-env-autowrappers $tmpdir $*
+    if [ $? -ne 0 ]; then
+    	exit 1
+    fi
+
+    export REZ_RAW_REQUEST="$@"
+    export REZ_PACKAGES_PATH=$tmpdir:$REZ_PACKAGES_PATH
+    new_pkgs=`cat $tmpdir/packages.txt`
+    set -- $new_pkgs
+else
+	set -- $pkgs
 fi
 
 
@@ -167,6 +175,9 @@ fi
 
 if [ $ret -eq 0 ]; then
 
+	if [ "$REZ_RAW_REQUEST" == "" ]; then
+		export REZ_RAW_REQUEST="$@"
+	fi
 	export REZ_CONTEXT_FILE=$tmpf
 	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT$_REZ_ENV_OPT_PROMPT"
 

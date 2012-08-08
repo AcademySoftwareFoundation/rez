@@ -1,5 +1,6 @@
 #!/bin/bash
-
+#
+# TODO Deprecate once removed from rez-run.
 #
 # Disclaimer:
 # This source has been adapted from:

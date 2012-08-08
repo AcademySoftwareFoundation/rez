@@ -5,7 +5,7 @@ source $REZ_WRAPPER_CONTEXT
 source $REZ_PATH/init.sh
 
 if [ "${!#}" == "---i" ]; then
-	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT #CONTEXTNAME#>"
+	export REZ_ENV_PROMPT="${REZ_ENV_PROMPT}#CONTEXTNAME#>"
 	/bin/bash --rcfile $REZ_PATH/bin/rez-env-bashrc
 	exit $?
 elif [ "${!#}" == "---s" ]; then

@@ -27,59 +27,83 @@
 #
 
 import os
+import stat
 import os.path
 import sys
-import optparse
+import subprocess
 import tempfile
 import rez_config as rc
+import pyparsing as pp
+import rez_env_cmdlin as rec
 
 _g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
 _g_context_filename     = 'package.context'
+_g_packages_filename    = 'packages.txt'
 _g_dot_filename         = _g_context_filename + '.dot'
 _g_tools_filename       = _g_context_filename + '.tools'
 
 
 # split pkgs string into separate subshells
+base_pkgs = None
+subshells = None
+curr_ss = None
+
 def parse_pkg_args(s):
-    d = {}
+
+    global base_pkgs
+    global subshells
+    global curr_ss
     base_pkgs = []
-    subshell = None
-    toks = s.replace('(', '( ').replace(')', '  )').replace(':', ': ').split()
+    subshells = {}
+    curr_ss = None
 
-    for tok in toks:
-        if tok.endswith('('):
-            if subshell:
-                raise Exception('Syntax error')
-            subshell = {'pkgs':[]}
-            prefix = tok[:-1]
-            subshell['prefix'] = prefix
-        elif tok.startswith(')'):
-            if not subshell or not subshell['pkgs']:
-                raise Exception('Syntax error')
-            suffix = tok[1:]
-            subshell['suffix'] = suffix
-            if 'name' in subshell:
-                name = subshell['name']
-            else:
-                first_pkg_fam = subshell['pkgs'][0].split('-')[0]
-                name = subshell['prefix'] + first_pkg_fam + subshell['suffix']
-            base_name = name
-            i = 1
-            while name in d:
-                i = i + 1
-                name = base_name + str(i)
-            d[name] = subshell
-            subshell = None
+    def _parse_pkg(s, loc, toks):
+        global curr_ss
+        pkg_str = str('').join(toks)
+        if curr_ss is None:
+            base_pkgs.append(pkg_str)
         else:
-            if subshell:
-                if tok.endswith(':'):
-                    subshell['name'] = tok[:-1]
-                else:
-                    subshell['pkgs'].append(tok)
-            else:
-                base_pkgs.append(tok)
+            curr_ss["pkgs"].append(pkg_str)
 
-    return (base_pkgs, d)
+    def _parse_ss_label(s, loc, toks):
+        curr_ss["label"] = toks[0]
+
+    def _parse_ss_prefix(s, loc, toks):
+        global curr_ss
+        curr_ss = {
+            "pkgs": [],
+            "prefix": '',
+            "suffix": ''
+        }
+        prefix_str = toks[0][:-1]
+        if prefix_str:
+            curr_ss["prefix"] = prefix_str
+
+    def _parse_ss_suffix(s, loc, toks):
+        global curr_ss
+        suffix_str = toks[0][1:]
+        if suffix_str:
+            curr_ss["suffix"] = suffix_str
+        if "label" not in curr_ss:
+            pkg_fam = curr_ss["pkgs"][0].split('-')[0]
+            label_str = curr_ss["prefix"] + pkg_fam + curr_ss["suffix"]
+            curr_ss["label"] = label_str
+
+        subshells[curr_ss["label"]] = curr_ss
+        curr_ss = None
+
+    _pkg = pp.Regex("[a-zA-Z_0-9~<=\\.\\-\\!\\+]+").setParseAction(_parse_pkg)
+
+    _subshell_label = pp.Regex("[a-z_]+")
+    _subshell_label_decl = (_subshell_label + ':').setParseAction(_parse_ss_label)
+    _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
+    _subshell_prefix = (pp.Regex("[a-z_]+\\(") ^ '(').setParseAction(_parse_ss_prefix)
+    _subshell_suffix = (pp.Regex("\\)[a-z_]+") ^ ')').setParseAction(_parse_ss_suffix)
+    _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
+
+    _expr = pp.OneOrMore(_pkg ^ _subshell)
+    pr = _expr.parseString(s, parseAll=True)
+    return (base_pkgs, subshells)
 
 
 
@@ -87,46 +111,38 @@ def parse_pkg_args(s):
 if __name__ == '__main__':
 
     # parse args
-    usage = "usage: %prog [options] [[prefix](pkg1 pkg2 ... pkgN)[suffix]]+"
-    p = optparse.OptionParser(usage=usage)
+    p = rec.get_cmdlin_parser()
 
-    p.add_option("-q", "--quiet", dest="quiet", action="store_true", default=False, \
-        help="suppress unnecessary output [default = %default]")
-
-    (opts, args) = p.parse_args()
+    (opts, args) = p.parse_args(sys.argv[2:])
     pkgs_str = str(' ').join(args).strip()
     if not pkgs_str:
         p.parse_args(['-h'])
         sys.exit(1)
 
     base_pkgs, subshells = parse_pkg_args(pkgs_str)
+    all_pkgs = base_pkgs[:]
+
+    # create the local subshell packages
+    tmpdir = sys.argv[1]
     if not opts.quiet:
-        print 'master shell: ' + str(' ').join(base_pkgs)
-        for name,d in subshells.iteritems():
-            s = name
-            if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
-            if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
-            print s + ': ' + str(' ').join(d['pkgs'])
-
-
-    # create and save subshell pkgs using rez-config. Yes going via system call is hacky, but all
-    # this client-side code needs reworking anyway, if I ever get the time :/
-    subshell_pkgs = []
-
-    tmpdir = tempfile.mkdtemp(suffix='.rez')
-    if not opts.quiet:
-        print
         print 'Building into ' + tmpdir + '...'
+
+    f = open(_g_alias_context_filename, 'r')
+    wrapper_template_src = f.read()
+    f.close()
 
     for name,d in subshells.iteritems():
         if not opts.quiet:
-            print
-            print 'Building subshell ' + name + '...'
+            s = name
+            if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
+            if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
+            print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
 
-        pkgname = '__' + name
-        subshell_pkgs.append(pkgname)
+        # create the package.yaml
+        pkgname = '__wrapper_' + name
         pkgdir = os.path.join(tmpdir, pkgname)
         os.mkdir(pkgdir)
+        all_pkgs.append(pkgname)
 
         f = open(os.path.join(pkgdir, 'package.yaml'), 'w')
         f.write( \
@@ -137,38 +153,66 @@ if __name__ == '__main__':
             '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
         f.close()
 
+        # do the resolve, creates the context and dot files
+        # Invoking rez-config as a subproc sucks... but I'd have to reorganise a bunch of code to
+        # fix this. I'd rather just do it properly in certus (aka 2nd-gen rez).
         contextfile = os.path.join(pkgdir, _g_context_filename)
         dotfile = os.path.join(pkgdir, _g_dot_filename)
         pkgs_str = str(' ').join(d['pkgs'])
-        cmd = 'rez-config --print-env --wrapper --dot-file=%s --meta-info=tools %s > %s' % \
-            (dotfile, pkgs_str, contextfile)
-        errnum = os.system(cmd)
-        if errnum != 0:
-            sys.exit(errnum)
 
-        tools = open(toolsfile, 'r').read().strip().split('\n')
+        cmd = 'rez-config --print-env --wrapper --dot-file=%s --meta-info=tools' % dotfile
+
+        # forward opts onto rez-config invocation
+        if opts.quiet:              cmd += " --quiet"
+        if opts.build:              cmd += " --build-requires"
+        if opts.no_os:              cmd += " --no-os"
+        if opts.ignore_blacklist:   cmd += " --ignore-blacklist"
+        if opts.ignore_archiving:   cmd += " --ignore-archiving"
+        if opts.no_assume_dt:       cmd += " --no-assume-dt"
+        if opts.time:               cmd += " --time=" + str(opts.time)
+        cmd += " " + pkgs_str
+
+        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
+        commands,err_ = p.communicate()
+        if p.returncode != 0:
+            sys.exit(p.returncode)
+
+        commands = [x.strip() for x in commands.strip().split('\n')]
+        commands.append("export REZ_CONTEXT_FILE=%s" % contextfile)
+
+        f = open(contextfile, 'w')
+        f.write(str('\n').join(commands))
+        f.close()
+
+        # extract the tools from the context file, create the alias scripts
+        tools = []
+        f = open(contextfile, 'r')
+        lines = f.read().strip().split('\n')
+        for l in lines:
+            if l.startswith("export REZ_META_TOOLS="):
+                toks = l.strip().split("'")[1].split()
+                for tok in toks:
+                    toks2 = tok.split(':')
+                    aliases = toks2[1].split(',')
+                    tools.extend(aliases)
+                break
+
         for tool in tools:
-            alias = d['prefix'] + tool + d['suffix']
+            alias = d["prefix"] + tool + d["suffix"]
             aliasfile = os.path.join(pkgdir, alias)
-            cmd = \
-                'cat %s ' \
-                ' | sed -e "s/#CONTEXT#/%s/g"' \
-                ' -e "s/#CONTEXTNAME#/%s/g"' \
-                ' -e "s/#ALIAS#/%s/g" > %s' % \
-                (_g_alias_context_filename, _g_context_filename, name, tool, aliasfile)
+            src = wrapper_template_src.replace("#CONTEXT#", _g_context_filename)
+            src = src.replace("#CONTEXTNAME#", name)
+            src = src.replace("#ALIAS#", tool)
+            
+            f = open(aliasfile, 'w')
+            f.write(src)
+            f.close()
+            os.chmod(aliasfile, stat.S_IXUSR|stat.S_IXGRP|stat.S_IRUSR|stat.S_IRGRP)
 
-
-
-
-#		COMMAND cat $ENV{REZ_PATH}/template/wrapper.sh
-# | sed -e "s/#CONTEXT#/${instwrp_context_target}/g"
-# -e "s/#CONTEXTNAME#/${instwrp_context_name}/g"
-# -e "s/#ALIAS#/${alias}/g" > ${INSTWRP_dest_dir}/${wrapper_script}
-
-
-    # run rez-env, pick up local subshell packages
-
-
+    fpath = os.path.join(tmpdir, _g_packages_filename)
+    f = open(fpath, 'w')
+    f.write(str(' ').join(all_pkgs))
+    f.close()
 
 
 

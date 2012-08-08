@@ -208,8 +208,15 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 		config.add_package(rctxt, pkg_req)
 
 	for pkg_req in pkg_reqs:
-		config.add_dot_graph_verbatim('"' + pkg_req.short_name() +
-			'" [style=filled shape=box fillcolor="rosybrown1"] ;')
+		name = pkg_req.short_name()
+		if name.startswith("__wrapper_"):
+			name2 = name.replace("__wrapper_", "")
+			config.add_dot_graph_verbatim('"' + name +
+				'" [label="%s" style="filled" shape=folder fillcolor="rosybrown1"] ;' \
+				% (name2))
+		else:
+			config.add_dot_graph_verbatim('"' + name +
+				'" [style=filled shape=box fillcolor="rosybrown1"] ;')
 
 	if (rctxt.verbosity != 0):
 		print

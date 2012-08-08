@@ -67,7 +67,7 @@ p.add_option("--print-packages", dest="print_pkgs", action="store_true", default
 p.add_option("--print-dot", dest="print_dot", action="store_true", default=False, \
 	help="output a dot-graph representation of the configuration resolution [default = %default]")
 p.add_option("--meta-info", dest="meta_info", type="string", \
-    help="Bake metadata into env-vars. Eg: --meta-info=tools:priority,#:category")
+    help="Bake metadata into env-vars. Eg: --meta-info=tools:priority,#")
 p.add_option("--ignore-archiving", dest="ignore_archiving", action="store_true", default=False, \
 	help="silently ignore packages that have been archived [default = %default]")
 p.add_option("--ignore-blacklist", dest="ignore_blacklist", action="store_true", default=False, \
