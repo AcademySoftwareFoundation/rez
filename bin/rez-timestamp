@@ -1,0 +1,52 @@
+#!/bin/bash
+
+function usage {
+	echo "usage: rez-timestamp <package_install_directory>"
+	echo
+	echo "This utility sets a timestamp on a package, so that it works correctly with rez's"
+	echo "timestamping feature (see the user manual). If a package is not timestamped then rez"
+	echo "treats it as though it does not exist."
+}
+
+if [ $# -ne 1 ]; then
+	usage
+	exit 1
+fi
+
+if [ "$1" == "-h" -o "$1" == "--h" -o "$1" == "-help" -o "$1" == "--help" -o "$1" == "-?" ]; then
+	usage
+	exit 1
+fi
+
+yamlpath=$1/package.yaml
+if [ ! -e $yamlpath ]; then
+	echo "Error: Target package does not contain a package.yaml file." >&2
+	exit 1
+fi
+
+metapath=$1/".metadata"
+timepath=$metapath/"release_time.txt"
+
+if [ -e $timepath ]; then
+	echo "Error: Target package is already timestamped:" >&2
+	echo $timepath >&2
+	exit 1
+fi
+
+if [ ! -e $metapath ]; then
+	mkdir $metapath
+	if [ $? -ne 0 ]; then
+		echo "Error: Could not create dir: $metapath" >&2
+		exit 1
+	fi
+fi
+
+date +%s > $timepath
+if [ $? -ne 0 ]; then
+	echo "Error: Failed to create file: $timepath" >&2
+	exit 1
+fi
+
+chmod a-w $timepath
+
+echo "Success: Package has been timestamped. See $timepath"

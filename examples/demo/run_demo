@@ -24,6 +24,7 @@
 ##########################################################################################
 
 export _REZ_ISDEMO=1
+export REZ_OLD_TIMESTAMP_BEHAVIOUR=1
 
 # cd into same dir as this script
 absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`

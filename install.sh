@@ -24,6 +24,12 @@ function usage {
     echo "  -n: disable creation of bootstrap packages (default if rez.installed is present)"
 }
 
+function make_pkg_dir {
+    rm -rf $1
+    mkdir -p $1/.metadata
+    date +%s > $1/.metadata/release_time.txt
+}
+
 # cd into same dir as this script
 absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
 cwd=`dirname $absfpath`
@@ -116,7 +122,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     #------------------
     osname=$_REZ_PLATFORM
     os_dir=$_REZ_PACKAGES_PATH/$osname
-    rm -rf $os_dir
+    make_pkg_dir $os_dir
     mkdir -p $os_dir/cmake
     os_yaml=$os_dir/package.yaml
 
@@ -137,7 +143,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     #------------------
     cmake_ver=`( $_REZ_CMAKE_BINARY --version 2>&1 ) | awk '{print $NF}'`
     cmake_dir=$_REZ_PACKAGES_PATH/cmake/$cmake_ver
-    rm -rf $cmake_dir
+    make_pkg_dir $cmake_dir
     mkdir -p $cmake_dir/$osname/bin
     ln -s $_REZ_CMAKE_BINARY $cmake_dir/$osname/bin/cmake
     cmake_yaml=$cmake_dir/package.yaml
@@ -154,7 +160,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     # cpp compiler
     #------------------
     cppcomp_dir=$_REZ_PACKAGES_PATH/$_REZ_CPP_COMPILER_NAME/$_REZ_CPP_COMPILER_VER
-    rm -rf $cppcomp_dir
+    make_pkg_dir $cppcomp_dir
     mkdir -p $cppcomp_dir/$osname/cmake
 
     c_binary=$_REZ_CPP_COMPILER
@@ -174,7 +180,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     #------------------
     py_ver=$_REZ_PYTHON_VER
     py_dir=$_REZ_PACKAGES_PATH/python/$py_ver
-    rm -rf $py_dir
+    make_pkg_dir $py_dir
     mkdir -p $py_dir/$osname/bin
     ln -s $_REZ_PYTHON_BINARY $py_dir/$osname/bin/rezpy
     ln -s $_REZ_PYTHON_BINARY $py_dir/$osname/bin/python
@@ -192,9 +198,8 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     # example package
     #------------------
     pkg_dir=$_REZ_PACKAGES_PATH/hello_world
-    rm -rf $pkg_dir
+    make_pkg_dir $pkg_dir
     mkdir -p $pkg_dir/$osname/bin
-
     pkg_sh=$pkg_dir/$osname/bin/hello_world
     echo "#!/bin/bash"					> $pkg_sh
     echo "echo 'Hello world!'"				>> $pkg_sh

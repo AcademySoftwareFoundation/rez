@@ -2,113 +2,122 @@
 Exceptions
 """
 
-class PkgSystemError(Exception):
-	"""
-	rez system error
-	"""
-	def __init__(self, value):
-		self.value = value
-	def __str__(self):
-		return str(self.value)
+class RezError(Exception):
+    """
+    Base-class Rez error.
+    """
+    def __init__(self, value=None):
+        self.value = value
+    def __str__(self):
+        return str(self.value)
 
 
-class PkgFamilyNotFoundError(Exception):
-	"""
-	A package family could not be found
-	"""
-	def __init__(self, family_name):
-		self.family_name = family_name
-	def __str__(self):
-		return str(self.family_name)
+class PkgSystemError(RezError):
+    """
+    rez system error
+    """
+    def __init__(self, value):
+        RezError.__init__(self, value)
 
 
-class PkgNotFoundError(Exception):
-	"""
-	A package could not be found
-	"""
-	def __init__(self, pkg_req, resolve_path = None):
-		self.pkg_req = pkg_req
-		self.resolve_path = resolve_path
-	def __str__(self):
-		return str( (str(self.pkg_req), self.resolve_path) )
+class PkgFamilyNotFoundError(RezError):
+    """
+    A package family could not be found
+    """
+    def __init__(self, value):
+        RezError.__init__(self, value)
 
 
-class PkgConflictError(Exception):
-	"""
-	A package conflicts with another. A list of conflicts is provided -
-	this is for cases where all of a package's variants conflict with various
-	packages
-	"""
-	def __init__(self, pkg_conflicts, last_dot_graph=""):
-		self.pkg_conflicts = pkg_conflicts
-		self.last_dot_graph = last_dot_graph
-	def __str__(self):
-		strs = []
-		for pkg_conflict in self.pkg_conflicts:
-			strs.append(str(pkg_conflict))
-		return str(strs)
+class PkgNotFoundError(RezError):
+    """
+    A package could not be found
+    """
+    def __init__(self, pkg_req, resolve_path = None):
+        RezError.__init__(self)
+        self.pkg_req = pkg_req
+        self.resolve_path = resolve_path
+    def __str__(self):
+        return str( (str(self.pkg_req), self.resolve_path) )
 
 
-class PkgsUnresolvedError(Exception):
-	"""
-	One or more packages are not resolved
-	"""
-	def __init__(self, pkg_reqs):
-		self.pkg_reqs = pkg_reqs
-	def __str__(self):
-		strs = []
-		for pkg_req in self.pkg_reqs:
-			strs.append(str(pkg_req))
-		return str(strs)
+class PkgConflictError(RezError):
+    """
+    A package conflicts with another. A list of conflicts is provided -
+    this is for cases where all of a package's variants conflict with various
+    packages
+    """
+    def __init__(self, pkg_conflicts, last_dot_graph=""):
+        RezError.__init__(self)
+        self.pkg_conflicts = pkg_conflicts
+        self.last_dot_graph = last_dot_graph
+    def __str__(self):
+        strs = []
+        for pkg_conflict in self.pkg_conflicts:
+            strs.append(str(pkg_conflict))
+        return str(strs)
 
 
-class PkgConfigNotResolvedError(Exception):
-	"""
-	The configuration could not be resolved. 'fail_config_list' is a list of
-	strings indicating failed configuration attempts.
-	"""
-	def __init__(self, pkg_reqs, fail_config_list, last_dot_graph):
-		self.pkg_reqs = pkg_reqs
-		self.fail_config_list = fail_config_list
-		self.last_dot_graph = last_dot_graph
-	def __str__(self):
-		strs = []
-		for pkg_req in self.pkg_reqs:
-			strs.append(str(pkg_req))
-		return str(strs)
+class PkgsUnresolvedError(RezError):
+    """
+    One or more packages are not resolved
+    """
+    def __init__(self, pkg_reqs):
+        RezError.__init__(self)
+        self.pkg_reqs = pkg_reqs
+    def __str__(self):
+        strs = []
+        for pkg_req in self.pkg_reqs:
+            strs.append(str(pkg_req))
+        return str(strs)
 
 
-class PkgCommandError(Exception):
-	"""
-	There is an error in a command or list of commands
-	"""
-	def __init__(self, value):
-		self.value = value
-	def __str__(self):
-		return str(self.value)
+class PkgConfigNotResolvedError(RezError):
+    """
+    The configuration could not be resolved. 'fail_config_list' is a list of
+    strings indicating failed configuration attempts.
+    """
+    def __init__(self, pkg_reqs, fail_config_list, last_dot_graph):
+        RezError.__init__(self)
+        self.pkg_reqs = pkg_reqs
+        self.fail_config_list = fail_config_list
+        self.last_dot_graph = last_dot_graph
+    def __str__(self):
+        strs = []
+        for pkg_req in self.pkg_reqs:
+            strs.append(str(pkg_req))
+        return str(strs)
 
 
-class PkgCyclicDependency(Exception):
-	"""
-	One or more cyclic dependencies have been detected in a set of packages
-	"""
-	def __init__(self, dependencies, dot_graph):
-		"""
-		dependencies is a list of (requiree, required) pairs.
-		dot_graph_str is a string describing the dot-graph of the whole environment resolution -
-		it is required because the user will want to have context, to determine how the cyclic
-		list of packages was generated in the first place
-		"""
-		self.deps = dependencies
-		self.dot_graph = dot_graph
+class PkgCommandError(RezError):
+    """
+    There is an error in a command or list of commands
+    """
+    def __init__(self, value):
+        RezError.__init__(self, value)
 
-	def __str__(self):
-		# print out as a dot-graph
-		s = "digraph g {\n"
-		for dep in self.deps:
-			s += '"' + dep[0] + '" -> "' + dep[1] + '"\n'
-		s += "}"
-		return s
+
+class PkgCyclicDependency(RezError):
+    """
+    One or more cyclic dependencies have been detected in a set of packages
+    """
+    def __init__(self, dependencies, dot_graph):
+        """
+        dependencies is a list of (requiree, required) pairs.
+        dot_graph_str is a string describing the dot-graph of the whole environment resolution -
+        it is required because the user will want to have context, to determine how the cyclic
+        list of packages was generated in the first place
+        """
+        RezError.__init__(self)
+        self.deps = dependencies
+        self.dot_graph = dot_graph
+
+    def __str__(self):
+        # print out as a dot-graph
+        s = "digraph g {\n"
+        for dep in self.deps:
+            s += '"' + dep[0] + '" -> "' + dep[1] + '"\n'
+        s += "}"
+        return s
 
 
 
