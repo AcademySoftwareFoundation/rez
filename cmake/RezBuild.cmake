@@ -99,19 +99,11 @@ include(RezInstallPython)
 # centrally, otherwise packages always go to ~/packages). Typically however,
 # central installs are done via rez-release.
 #
-
-# override for location of local install - not often used
-set(ENV_LOCAL_INSTALL_PATH $ENV{REZ_LOCAL_INSTALL_PATH})
-
 if(CENTRAL)
 	set(CMAKE_INSTALL_PREFIX ${REZ_RELEASE_PACKAGES_PATH})
 	set(REZ_FILE_INSTALL_PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
 else(CENTRAL)
-	if(ENV_LOCAL_INSTALL_PATH)
-		set(CMAKE_INSTALL_PREFIX ${ENV_LOCAL_INSTALL_PATH})
-	else(ENV_LOCAL_INSTALL_PATH)
-		set(CMAKE_INSTALL_PREFIX $ENV{HOME}/packages)
-	endif(ENV_LOCAL_INSTALL_PATH)
+	set(CMAKE_INSTALL_PREFIX $ENV{REZ_LOCAL_PACKAGES_PATH})
 	set(REZ_FILE_INSTALL_PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_WRITE GROUP_WRITE WORLD_WRITE)
 endif(CENTRAL)
 

@@ -17,6 +17,8 @@
 #
 # -c: install centrally [default: off]
 #
+# -i: set install directory - typically this is $HOME/packages
+#
 # -r: retain cmake cache [default: off]
 #
 # -d: set build directory
@@ -29,6 +31,7 @@ build_system=eclipse
 build_target=Release
 build_platform=lin64
 build_directory=.
+install_directory=
 coverage=0
 
 retain_cache=0 # i.e. remove by default
@@ -55,7 +58,7 @@ done
 
 
 # Check arguments
-while getopts "p:t:b:rd:ncoa" OPTIONS $rezcmakeargs ;
+while getopts "p:t:b:i:rd:ncoa" OPTIONS $rezcmakeargs ;
 do
     case $OPTIONS in
 	b)
@@ -72,6 +75,9 @@ do
 	d)
 	    build_directory=$OPTARG
 	    ;;
+	i)	
+		install_directory=$OPTARG
+		;;
 	r)
 	    retain_cache=1
 	    ;;
@@ -106,6 +112,10 @@ esac
 
 if [ $coverage -eq 1 ]; then
 	cmake_arguments=" -DCOVERAGE=1 "$cmake_arguments
+fi
+
+if [ "$install_directory" != "" ]; then
+	export REZ_LOCAL_PACKAGES_PATH=$install_directory
 fi
 
 # Add pass-through cmake arguments

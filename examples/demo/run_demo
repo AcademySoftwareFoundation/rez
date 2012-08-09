@@ -107,7 +107,7 @@ echo "BUILDING TEST PACKAGES..."
 echo
 
 export REZ_PACKAGES_PATH=$pkgs_dir
-export REZ_LOCAL_INSTALL_PATH=$pkgs_dir
+export REZ_LOCAL_PACKAGES_PATH=$pkgs_dir
 
 echo
 echo "BUILDING: hello_world_py-1.0.0"
