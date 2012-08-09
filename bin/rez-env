@@ -14,10 +14,9 @@
 IFS='
 '
 
-tmppy=`basename $0`'/rez_env_cmdlin.py'
-cmdlin=`!REZ_PYTHON_BINARY! $REZ_PATH/bin/rez_env_cmdlin.py $*`
+cmdlin=`!REZ_PYTHON_BINARY! $REZ_PATH/python/rez/rez_env_cmdlin.py $*`
 if [ $? -ne 0 ]; then
-	!REZ_PYTHON_BINARY! $REZ_PATH/bin/rez_env_cmdlin.py $*
+	!REZ_PYTHON_BINARY! $REZ_PATH/python/rez/rez_env_cmdlin.py $*
 	exit $?
 fi
 

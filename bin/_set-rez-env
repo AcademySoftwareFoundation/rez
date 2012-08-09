@@ -4,14 +4,13 @@
 
 unset LD_LIBRARY_PATH
 
-#REZ_SYS_PATH=$REZ_PATH/../system/$(uname)/bin
-# put this path at the top of PATH, so that we can find overrides (eg sed on osx) before others
-#PATH=$REZ_SYS_PATH:/bin:/usr/bin
 PATH=$PATH:$REZ_PATH/bin
 export PATH=$PATH
 
+# rez itself
+PYTHONPATH=$REZ_PATH/python/rez
 # pyyaml
-PYTHONPATH=!REZ_PYYAML_PATH!
+PYTHONPATH=$PYTHONPATH:!REZ_PYYAML_PATH!
 # pydot
 PYTHONPATH=$PYTHONPATH:!REZ_PYDOT_PATH!
 # pyparsing
