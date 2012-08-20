@@ -1,0 +1,83 @@
+#!!REZ_PYTHON_BINARY!
+
+from optparse import OptionParser
+import sys
+import os
+import os.path
+import shutil
+import uuid
+
+
+def _mkdir(dir):
+	if not os.path.exists(dir):
+		print "making %s..." % dir
+		os.mkdir(dir)
+
+
+_project_types = [
+	"python"
+]
+
+usage = "usage: rez-make-project <name> <version>"
+
+p = OptionParser(usage=usage)
+p.add_option("-t", "--type", dest="type", type="string", default="", \
+    help="Project type - one of (%s)" % str(',').join(_project_types))
+
+(opts, args) = p.parse_args()
+
+if not opts.type:
+	p.error("Need to specify a project type.")
+
+if len(args) != 2:
+	p.error("Wrong argument count.")
+
+proj_name = args[0]
+proj_version = args[1]
+print "Creating files and directories for %s project %s-%s..." % (opts.type, proj_name, proj_version)
+
+
+template_dir = "%s/template/project_types/%s" % (os.getenv("REZ_PATH"), opts.type)
+if not os.path.exists(template_dir):
+	print >> sys.stderr, "Internal error - path %s not found." % template_dir
+	sys.exit(1)
+
+# copy template files and directories, doing string replacement along the way
+str_repl = {
+	"#NAME#":		proj_name,
+	"#VERSION#":	proj_version,
+	"#USER#":		os.getenv("USER"),
+	"#UUID#":		str(uuid.uuid4()),
+	"#REZ_PATH#":	os.getenv("REZ_PATH"),
+	"#BROWSER#":	os.getenv("BROWSER") or "firefox"
+}
+
+def _expand(s):
+	for k,v in str_repl.iteritems():
+		s = s.replace(k,v)
+	return s
+
+cwd = os.getcwd()
+
+for root, dirs, files in os.walk(template_dir):
+	dest_root = _expand(root.replace(template_dir, cwd))
+	for dir in dirs:
+		dest_dir = _expand(os.path.join(dest_root, dir))
+		_mkdir(dest_dir)
+
+	for file in files:
+		fpath = os.path.join(root, file)
+		f = open(fpath, 'r')
+		s = f.read()
+		f.close()
+		
+		s = _expand(s)
+		dest_fpath = _expand(os.path.join(dest_root, file))
+		print "making %s..." % dest_fpath
+		f = open(dest_fpath, 'w')
+		f.write(s)
+		f.close()
+
+
+
+

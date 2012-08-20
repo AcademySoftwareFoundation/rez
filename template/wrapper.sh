@@ -8,7 +8,11 @@ if [ "${!#}" == "---i" ]; then
 	export REZ_ENV_PROMPT="${REZ_ENV_PROMPT}#CONTEXTNAME#>"
 	/bin/bash --rcfile $REZ_PATH/bin/rez-env-bashrc
 	exit $?
-elif [ "${!#}" == "---s" ]; then
+fi
+
+unset REZ_WRAPPER_CONTEXT
+
+if [ "${!#}" == "---s" ]; then
 	if [ -f ~/.bashrc ]; then
 		source ~/.bashrc &> /dev/null
 	fi

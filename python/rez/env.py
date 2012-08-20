@@ -3,6 +3,7 @@ Simple API to extract information about the current rez-configured environment.
 """
 
 import os
+from rez_exceptions import PkgFamilyNotFoundError
 
 
 class RezError(Exception):
@@ -40,6 +41,17 @@ def get_resolve_timestamp():
     """
     s = _get_rez_env_var("REZ_REQUEST_TIME")
     return int(s)
+
+
+def get_package_root(package_name):
+    """
+    @return Install path of the given package.
+    """
+    evar = "REZ_%s_ROOT" % package_name.upper()
+    pkg_root = os.getenv(evar)
+    if not pkg_root:
+        raise PkgFamilyNotFoundError(package_name)
+    return pkg_root
 
 
 def get_context_path():

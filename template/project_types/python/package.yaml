@@ -1,0 +1,26 @@
+config_version : 0
+
+name: #NAME#
+
+version: #VERSION#
+
+uuid: #UUID#
+
+authors:
+- #USER#
+
+description: >
+ Enter description here. Multiline is ok, but make sure that you 
+ leave the single leading space on each line, as shown here.
+
+requires:
+- python
+
+build_requires:
+- doxygen
+- doxypy
+
+help: #BROWSER# file://!ROOT!/doc/html/index.html
+
+commands:
+- export PYTHONPATH=$PYTHONPATH:!ROOT!/python

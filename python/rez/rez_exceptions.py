@@ -24,8 +24,11 @@ class PkgFamilyNotFoundError(RezError):
     """
     A package family could not be found
     """
-    def __init__(self, value):
-        RezError.__init__(self, value)
+    def __init__(self, family_name):
+        RezError.__init__(self)
+        self.family_name = family_name
+    def __str__(self):
+        return str(self.family_name)
 
 
 class PkgNotFoundError(RezError):

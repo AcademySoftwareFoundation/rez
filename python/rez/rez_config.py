@@ -306,8 +306,11 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	for pkg_req in pkg_reqs:
 		req_pkg_strs.append(pkg_req.short_name())
 
+	full_req_str = str(' ').join(req_pkg_strs)
+
 	env_cmds.append("export REZ_USED=" + str(os.getenv("REZ_PATH")))
-	env_cmds.append("export REZ_REQUEST='" + str(' ').join(req_pkg_strs) + "'")
+	env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")
+	env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
 	env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(rctxt.config_fail_list)) )
 	env_cmds.append("export REZ_REQUEST_TIME=" + str(time_epoch))
 

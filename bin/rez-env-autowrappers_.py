@@ -20,10 +20,25 @@
 # would expect the executables "fx_maya" and "maya_anim" to exist. The prefix/suffix is applied to
 # all tools found within that subshell.
 #
-# One last thing: each subshell has a name, by default this name is the pre/postfixed version of the
-# first pkg in the shell, so eg 'fx_maya' from above. To set this manually, do this:
+# Each subshell has a name, by default this name is the pre/postfixed version of the first pkg in 
+# the shell, so eg 'fx_maya' from above. To set this manually, do this:
 #
 # ]$ rez-env fx_(mayafx: maya mfx-4.3)
+#
+# Rez can also take a list of separate requests and 'merge' them together, use the pipe operator to
+# do this. Later requests override earlier ones. For example, consider:
+#
+# rez-env (maya foo-1) | (maya foo-2)  # ==> becomes (maya foo-2)
+#
+# Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the 
+# second request. This functionality is provided for two reasons - (a) it's used internally when
+# using patching in combination with auto-generated subshells; (b) it can be utilised by rez users,
+# who want to implement their own environment management system, and have a need to create a
+# working environment based on a heirarchical series of overriding config files.
+#
+# Lastly, the '^' operator can be used to *remove* packages from the request, eg:
+#
+# rez-env (maya foo-1) | (maya ^foo)  # ==> becomes (maya)
 #
 
 import os
@@ -35,81 +50,13 @@ import tempfile
 import rez_config as rc
 import pyparsing as pp
 import rez_env_cmdlin as rec
+import rez_parse_request as rpr
 
 _g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
 _g_context_filename     = 'package.context'
 _g_packages_filename    = 'packages.txt'
 _g_dot_filename         = _g_context_filename + '.dot'
 _g_tools_filename       = _g_context_filename + '.tools'
-
-
-# split pkgs string into separate subshells
-base_pkgs = None
-subshells = None
-curr_ss = None
-
-def parse_pkg_args(s):
-
-    global base_pkgs
-    global subshells
-    global curr_ss
-    base_pkgs = []
-    subshells = {}
-    curr_ss = None
-
-    def _parse_pkg(s, loc, toks):
-        global curr_ss
-        pkg_str = str('').join(toks)
-        if curr_ss is None:
-            base_pkgs.append(pkg_str)
-        else:
-            curr_ss["pkgs"].append(pkg_str)
-
-    def _parse_ss_label(s, loc, toks):
-        curr_ss["label"] = toks[0]
-
-    def _parse_ss_prefix(s, loc, toks):
-        global curr_ss
-        curr_ss = {
-            "pkgs": [],
-            "prefix": '',
-            "suffix": ''
-        }
-        prefix_str = toks[0][:-1]
-        if prefix_str:
-            curr_ss["prefix"] = prefix_str
-
-    def _parse_ss_suffix(s, loc, toks):
-        global curr_ss
-        suffix_str = toks[0][1:]
-        if suffix_str:
-            curr_ss["suffix"] = suffix_str
-        if "label" not in curr_ss:
-            pkg_fam = curr_ss["pkgs"][0].split('-')[0]
-            label_str = curr_ss["prefix"] + pkg_fam + curr_ss["suffix"]
-            curr_ss["label"] = label_str
-
-        subshell_name = curr_ss["label"]
-        if subshell_name in subshells:
-            print >> sys.stderr, "Error: subshell '%s' is defined more than once!" % subshell_name
-            sys.exit(1)
-
-        subshells[subshell_name] = curr_ss
-        curr_ss = None
-
-    _pkg = pp.Regex("[a-zA-Z_0-9~<=\\.\\-\\!\\+]+").setParseAction(_parse_pkg)
-
-    _subshell_label = pp.Regex("[a-z_]+")
-    _subshell_label_decl = (_subshell_label + ':').setParseAction(_parse_ss_label)
-    _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
-    _subshell_prefix = (pp.Regex("[a-z_]+\\(") ^ '(').setParseAction(_parse_ss_prefix)
-    _subshell_suffix = (pp.Regex("\\)[a-z_]+") ^ ')').setParseAction(_parse_ss_suffix)
-    _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
-
-    _expr = pp.OneOrMore(_pkg ^ _subshell)
-    pr = _expr.parseString(s, parseAll=True)
-    return (base_pkgs, subshells)
-
 
 
 # main
@@ -124,7 +71,7 @@ if __name__ == '__main__':
         p.parse_args(['-h'])
         sys.exit(1)
 
-    base_pkgs, subshells = parse_pkg_args(pkgs_str)
+    base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
 
     # create the local subshell packages
@@ -175,7 +122,7 @@ if __name__ == '__main__':
         if opts.ignore_archiving:   cmd += " --ignore-archiving"
         if opts.no_assume_dt:       cmd += " --no-assume-dt"
         if opts.time:               cmd += " --time=" + str(opts.time)
-        cmd += " " + pkgs_str
+        cmd += " '" + pkgs_str + "'"
 
         p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
         commands,err_ = p.communicate()

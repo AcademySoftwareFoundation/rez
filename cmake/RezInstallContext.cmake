@@ -73,11 +73,6 @@ macro (rez_install_context)
 	#
 	# build and install context.
 	#
-	# A note on REZ_PARENT_CONTEXT_FILE. This is for toolchains. A chain will effectively overwrite
-	# the env it is resolved into, overwriting system vars such as REZ_RESOLVE etc, as well as
-	# REZ_CONTEXT_FILE. The PARENT var points at any preexisting context file, and this is done so
-	# that the rez-context-info tool can backtrack and find out which toolchain was resolved.
-	#
 
 	string(REPLACE ";" " ; " INSTCTXT_EXTRA_COMMANDS2 "${INSTCTXT_EXTRA_COMMANDS}")
 	string(TOUPPER ${REZ_BUILD_PROJECT_NAME} uproj)
@@ -91,7 +86,6 @@ macro (rez_install_context)
 
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${INSTCTXT_dest_dir}
 		COMMAND rez-config --print-env --no-path-append --wrapper --mode=${mode} --dot-file=${INSTCTXT_dest_dir}/${target}.dot ${INSTCTXT_PACKAGES} >> ${INSTCTXT_dest_dir}/${target}
-		COMMAND echo "export REZ_PARENT_CONTEXT_FILE=$REZ_CONTEXT_FILE" >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "export REZ_CONTEXT_FILE=$REZ_${uproj}_ROOT/${INSTCTXT_dest_dir}/${target}" >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "${INSTCTXT_EXTRA_COMMANDS2}" >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "export PATH=$PATH:/bin:/usr/bin" >> ${INSTCTXT_dest_dir}/${target}

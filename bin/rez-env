@@ -32,22 +32,38 @@ do
 done
 
 unset IFS
-#set -- $pkgs
+
+autowrappers=`echo $* | grep '('`
+
+if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" -o "$_REZ_ENV_OPT_ADD_STRICT" == "True" ]; then
+	if [ "$autowrappers" != "" ]; then
+		echo "Patching of auto-wrapper environments is not yet supported." >&2
+		exit 1
+	fi
+
+	if [ "`echo $REZ_RAW_REQUEST | grep '('`" != "" ]; then
+		echo "Patching from auto-wrapper environments is not yet supported." >&2
+		exit 1
+	fi
+fi
 
 
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
+# TODO patching of wrapper envs is not yet supported.
 ##############################################################################
-if [ "`echo $* | grep '('`" != "" ]; then
+if [ "$autowrappers" != "" ]; then
 	tmpdir=`mktemp -d`
     rez-env-autowrappers $tmpdir $*
     if [ $? -ne 0 ]; then
     	exit 1
     fi
 
-    export REZ_RAW_REQUEST="$@"
+    raw_request=$pkgs
     export REZ_PACKAGES_PATH=$tmpdir:$REZ_PACKAGES_PATH
     new_pkgs=`cat $tmpdir/packages.txt`
+    unset _REZ_ENV_OPT_ADD_LOOSE
+    unset _REZ_ENV_OPT_ADD_STRICT
     set -- $new_pkgs
 else
 	set -- $pkgs
@@ -55,17 +71,8 @@ fi
 
 
 ##############################################################################
-# determine package list
+# apply patching, if any
 ##############################################################################
-
-# check for version pkg subtraction, eg: "^rv-3.10". This doesn't make sense - it only
-# makes sense to do an unversioned package subtraction, ie "^rv"
-versubpkgs=`echo $* | tr ' ' '\n' | grep '^\^' | grep '-' | tr '\n' ' '`
-if [ "$versubpkgs" != "" ]; then
-	echo "Error: Versioned package subtractions are not allowed: "$versubpkgs
-	exit 1
-fi
-
 pkg_list=
 print_pkgs=
 ctxt_pkg_list=
@@ -81,41 +88,7 @@ fi
 if [ "$ctxt_pkg_list" == "" ]; then
 	pkg_list="$@"
 else
-	used_new_pkgs=
-
-	for ctxt_pkg in $ctxt_pkg_list
-	do
-		pkg_overridden=0
-		ctxt_pkg_nover=`echo $ctxt_pkg | sed 's/-.*$//g'`
-
-		for new_pkg in "$@"
-		do
-			new_pkg_nover=`echo $new_pkg | sed 's/-.*$//g' | sed 's/^\^//'`
-
-			if [ "$new_pkg_nover" == "$ctxt_pkg_nover" ]; then
-				new_pkg_sub=`echo $new_pkg | sed -n '/^\^/p'`
-				if [ "$new_pkg_sub" == "" ]; then
-					pkg_list=$pkg_list' '$new_pkg
-				fi
-				used_new_pkgs=$used_new_pkgs' '$new_pkg
-				pkg_overridden=1
-			fi
-		done
-
-		if [ $pkg_overridden -eq 0 ]; then
-			pkg_list=$pkg_list' '$ctxt_pkg
-		fi
-	done
-
-	for new_pkg in "$@"
-	do
-		new_pkg_sub=`echo $new_pkg | sed -n '/^\^/p'`
-		if [ "$new_pkg_sub" == "" ]; then
-			if [ "`echo $used_new_pkgs | grep -w $new_pkg`" == "" ]; then
-				pkg_list=$pkg_list' '$new_pkg
-			fi
-		fi
-	done
+	pkg_list=`rez-merge-requests "$ctxt_pkg_list | $@"`
 fi
 
 if [ "$print_pkgs" != "" ] && [ "$_REZ_ENV_OPT_QUIET" != "True" ]; then
@@ -168,6 +141,11 @@ if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
 	exit 1
 fi
 
+if [ "$autowrappers" != "" ]; then
+	echo "export REZ_RAW_REQUEST='$raw_request'" >> $tmpf
+fi
+
+
 ##############################################################################
 # spawn the new shell, sourcing the bake file
 ##############################################################################
@@ -178,6 +156,7 @@ if [ $ret -eq 0 ]; then
 		export REZ_RAW_REQUEST="$@"
 	fi
 	export REZ_CONTEXT_FILE=$tmpf
+
 	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT$_REZ_ENV_OPT_PROMPT"
 
 	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then

@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# Takes a request in any form and returns the normalised result. Specifically, you generally want
+# to use this util to take separate, overriding requests, seperated by pipes (|) - the resulting
+# single merged requset will be printed.
+#
+
+. _set-rez-env
+
+rez-merge-requests_.py "$@"

@@ -21,43 +21,16 @@ echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME"):"
 echo $REZ_REQUEST | tr ' ' '\n'
 echo
 
-if [ "$REZ_SOURCE_TOOLCHAIN" != "" ]; then
-	echo
-	echo "YOU ARE IN A TOOLCHAIN OVERRIDE!"
-	echo "OVERRIDEN TOOLCHAIN: "$REZ_SOURCE_TOOLCHAIN
-	clistpath=`echo $REZ__AUTOTOOLCHAIN_ROOT | sed 's/_autotoolchain.*//'`"CMakeLists.txt"
-	echo "SEE: "$clistpath
-	echo
+if [ "$REZ_RAW_REQUEST" != "" ]; then
+	reqmatch=`echo $REZ_REQUEST | grep "$REZ_RAW_REQUEST"`
+	if [ "$reqmatch" == "" ]; then
+		echo "raw request:"
+		echo $REZ_RAW_REQUEST
+		echo
+	fi
 fi
 
 tbl=''
-
-# This is for toolchains. A toolchains overwrites the env it is resolved into. When this happens,
-# the original context file is pointed at via this PARENT var. If it exists, we look into this
-# file to get the original resolve list (containing the chain itself).
-if [ "`/bin/cat $REZ_CONTEXT_FILE | grep -w '###TOOLCHAIN###'`" != "" ]; then
-	if [ "$REZ_PARENT_CONTEXT_FILE" != "" ]; then
-		resolve_line=`/bin/cat $REZ_PARENT_CONTEXT_FILE | grep '^export REZ_RESOLVE='`
-		if [ "$resolve_line" != "" ]; then
-			parent_resolve_pkgs=`echo $resolve_line | sed "s/'//g" | sed 's/[^=]*=//'`
-
-			tbl=$tbl'#resolved%toolchain:#'
-			for pkg in $parent_resolve_pkgs
-			do
-				upkg=`echo $pkg | sed 's/-.*//g' | /usr/bin/tr 'a-z' 'A-Z'`
-				root=`/bin/cat $REZ_PARENT_CONTEXT_FILE | grep '^export REZ_'"$upkg"'_ROOT=' | sed 's/[^=]*=//'`
-
-				if [ "`echo $root | grep $USER`" == "" ]; then
-					tbl="$tbl # $pkg $root"
-				else
-					tbl="$tbl # $pkg $root"" (local)"
-				fi
-			done
-
-			tbl=$tbl'#%#'
-		fi
-	fi
-fi
 
 REZ_RESOLVE=`echo $REZ_RESOLVE | /usr/bin/tr ' ' '\n' | sort | /usr/bin/tr '\n' ' '`
 
