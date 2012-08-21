@@ -13,15 +13,27 @@ class RezError(Exception):
         return str(self.value)
 
 
-def get_request(as_dict=False):
+def get_request(as_dict=False, parent_env=False):
     """
     @param as_dict If True, return value is in form { UPPER_PKG_NAME: (pkg-family, pkg-version) }
+    @parent_env If true, return the request of the previous (parent) env. This is sometimes useful
+        when a wrapped program needs to know information about the calling environment.
     @return the rez package request.
     """
-    s = _get_rez_env_var("REZ_REQUEST")
+    evar = "REZ_REQUEST"
+    if parent_env:
+        evar = "REZ_PREV_REQUEST"
+    s = _get_rez_env_var(evar)
     pkgs = s.strip().split()
     if as_dict:     return _get_pkg_dict(pkgs)
     else:           return pkgs
+
+
+def in_wrapper_env():
+    """
+    @returns True if the current environment is actually a wrapper, false otherwise.
+    """
+    return os.getenv("REZ_IN_WRAPPER") == "1"
 
 
 def get_resolve(as_dict=False):

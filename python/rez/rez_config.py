@@ -261,6 +261,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	env_cmds.append("export PATH=")
 	env_cmds.append("export PYTHONPATH=%s/python" % os.getenv("REZ_PATH"))
 	if not is_wrapper:
+		env_cmds.append("export REZ_IN_WRAPPER=")
 		env_cmds.append("export REZ_WRAPPER_PATH=")
 
 	# this is because of toolchains. They set this env-var. We want it to be overwritten,
@@ -309,6 +310,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	full_req_str = str(' ').join(req_pkg_strs)
 
 	env_cmds.append("export REZ_USED=" + str(os.getenv("REZ_PATH")))
+	env_cmds.append("export REZ_PREV_REQUEST=$REZ_REQUEST")
 	env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")
 	env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
 	env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(rctxt.config_fail_list)) )
@@ -321,6 +323,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	env_cmds = process_commands(env_cmds)
 
 	if is_wrapper:
+		env_cmds.append("export REZ_IN_WRAPPER=1")
 		env_cmds.append("export PATH=$PATH:$REZ_WRAPPER_PATH")
 
 	# we're done
