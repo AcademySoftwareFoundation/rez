@@ -1,6 +1,7 @@
 #!!REZ_PYTHON_BINARY!
 
 import os
+import os.path
 import sys
 import yaml
 import optparse
@@ -25,12 +26,18 @@ def get_help(pkg):
 	try:
 		metadict = yaml.load(open(yaml_file).read())
 	except Exception:
-		return (pkg_base_path, None)
+		return (pkg_base_path, pkg_base_path, None)
 
 	if "help" not in metadict:
-		return (pkg_base_path, None)
+		return (pkg_base_path, pkg_base_path, None)
 
-	return (pkg_base_path, metadict["help"])
+	pkg_path = pkg_base_path
+	if "variants" in metadict:
+		# just pick first variant, they should all have the same copy of docs...
+		v0 = metadict["variants"][0]
+		pkg_path = os.path.join(pkg_path, *v0)
+
+	return (pkg_base_path, pkg_path, metadict["help"])
 
 
 
@@ -78,13 +85,13 @@ else:
 
 # attempt to load the latest
 fam = pkg.split("=")[0].split("-",1)[0]
-pkgpath, help = get_help(pkg)
+base_pkgpath, pkgpath, help = get_help(pkg)
 suppress_notfound_err = True
 
 while not help:
 	sys.stderr.write("Help not found in " + pkgpath + '\n')
 	ver = pkgpath.rsplit('/')[-1]
-	pkgpath, help = get_help(fam + "-0+<" + ver)
+	base_pkgpath, pkgpath, help = get_help(fam + "-0+<" + ver)
 
 if not opts.entries:
 	print "help found for " + pkgpath
@@ -134,25 +141,10 @@ if section == 0:
 
 cmd = cmds[section-1][1]
 cmd = cmd.replace('!ROOT!', pkgpath)
-cmd = cmd.replace('!BASE!', pkgpath)
+cmd = cmd.replace('!BASE!', base_pkgpath)
 cmd += " &"
 
 subprocess.Popen(cmd, shell=True).communicate()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
