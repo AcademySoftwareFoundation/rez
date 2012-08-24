@@ -164,7 +164,8 @@ if __name__ == '__main__':
         if tools:
             f.write("tools:\n")
             for tool in tools:
-                f.write("- %s\n" % tool)
+                alias = d["prefix"] + tool + d["suffix"]
+                f.write("- %s\n" % alias)
         f.close()
 
     fpath = os.path.join(tmpdir, _g_packages_filename)

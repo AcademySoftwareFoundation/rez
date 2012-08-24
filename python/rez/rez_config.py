@@ -204,7 +204,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 
 	config = _Configuration()
 
-	pkg_req_fam_set = set([x.name for x in pkg_reqs])
+	pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
 
 	for pkg_req in pkg_reqs:
 		normalise_pkg_req(pkg_req)

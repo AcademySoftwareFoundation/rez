@@ -3,16 +3,23 @@
 # List tools available in the current shell. Wrapped tools are suffixed with '*'.
 #
 
+tbl="TOOL PACKAGE/(WRAPPER) # ---------------- ----------------"
 for s in $REZ_META_TOOLS
 do
 	pkg=`echo $s | tr ':' ' ' | awk '{print $1}'`
 	tools=`echo $s | tr ':' ' ' | tr ',' ' ' | awk '{$1=""; print $0}'`
 
-	suffix=
-	if [ "`echo $pkg | grep '^__wrapper_'`" != "" ]; then suffix='*'; fi
-		
+	if [ "`echo $pkg | grep '^__wrapper_'`" != "" ]; then
+		pkg=`echo $pkg | sed 's/^__wrapper_//'`
+		pkg="("$pkg")"
+	fi
+
 	for t in $tools
 	do
-		echo "$t""$suffix"
+		tbl="$tbl # $t $pkg"
 	done
+
+	tbl="$tbl # --"
 done
+
+echo $tbl | tr '#' '\n' | column -t
