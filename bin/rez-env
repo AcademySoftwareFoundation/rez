@@ -129,9 +129,9 @@ if [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
 	max_fails_flag="--max-fails="$_REZ_ENV_OPT_VIEW_FAIL
 fi
 
-rez-config --time=$_REZ_ENV_OPT_TIME --print-env --dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE \
-	$max_fails_flag $dt_flag $ignore_archiving_flag $use_blacklist_flag $buildreq_flag \
-	$no_os_flag $pkg_list > $tmpf
+rez-config --time=$_REZ_ENV_OPT_TIME --print-env --meta-info=tools --meta-info-shallow=tools \
+	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archiving_flag \
+	$use_blacklist_flag $buildreq_flag $no_os_flag $pkg_list > $tmpf
 ret=$?
 
 if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then

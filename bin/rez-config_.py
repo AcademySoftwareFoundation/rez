@@ -67,7 +67,9 @@ p.add_option("--print-packages", dest="print_pkgs", action="store_true", default
 p.add_option("--print-dot", dest="print_dot", action="store_true", default=False, \
 	help="output a dot-graph representation of the configuration resolution [default = %default]")
 p.add_option("--meta-info", dest="meta_info", type="string", \
-    help="Bake metadata into env-vars. Eg: --meta-info=tools:priority,#")
+    help="Bake metadata into env-vars. Eg: --meta-info=tools,priority")
+p.add_option("--meta-info-shallow", dest="meta_info_shallow", type="string", \
+    help="Same as --meta-info, but only bakes data for directly requested packages.")
 p.add_option("--ignore-archiving", dest="ignore_archiving", action="store_true", default=False, \
 	help="silently ignore packages that have been archived [default = %default]")
 p.add_option("--ignore-blacklist", dest="ignore_blacklist", action="store_true", default=False, \
@@ -115,18 +117,8 @@ do_quiet = opts.quiet or opts.print_env or opts.print_pkgs or opts.print_dot
 time_epoch = int(opts.time)
 
 # parse out meta bake
-meta_vars = []
-if opts.meta_info:
-    toks = opts.meta_info.split(':')
-    for tok in toks:
-        toks2 = tok.split(',')
-        if (toks2 == ['']) or (len(toks2) > 2) or (len(toks2)==2 and not toks2[1]):
-            sys.stderr.write("rez-config: error: invalid --meta-info value '" + opts.meta_info + "'\n")
-            sys.exit(1)
-        if len(toks2) == 1:
-            meta_vars.append((tok,','))
-        elif len(toks2) == 2:
-            meta_vars.append((toks2[0], toks2[1]))
+meta_vars = (opts.meta_info or '').replace(',',' ').strip().split()
+shallow_meta_vars = (opts.meta_info_shallow or '').replace(',',' ').strip().split()
 
 
 #################################################################################
@@ -203,13 +195,13 @@ if opts.no_catch:
 	pkg_ress, env_cmds, dot_graph, num_fails = \
 		dc.resolve_packages(pkg_reqs, mode, do_quiet, opts.verbosity, opts.max_fails, \
 		time_epoch, opts.no_path_append, opts.buildreqs, not opts.no_assume_dt, opts.wrapper, \
-		meta_vars)
+		meta_vars, shallow_meta_vars)
 else:
 	try:
 		pkg_ress, env_cmds, dot_graph, num_fails = \
 			dc.resolve_packages(pkg_reqs, mode, do_quiet, opts.verbosity, opts.max_fails, \
 			time_epoch, opts.no_path_append, opts.buildreqs, not opts.no_assume_dt, opts.wrapper, \
-			meta_vars)
+			meta_vars, shallow_meta_vars)
 
 	except dc.PkgSystemError, e:
 		sys.stderr.write(str(e)+'\n')

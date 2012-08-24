@@ -90,20 +90,10 @@ if __name__ == '__main__':
             if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
             print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
 
-        # create the package.yaml
         pkgname = '__wrapper_' + name
         pkgdir = os.path.join(tmpdir, pkgname)
         os.mkdir(pkgdir)
         all_pkgs.append(pkgname)
-
-        f = open(os.path.join(pkgdir, 'package.yaml'), 'w')
-        f.write( \
-            'config_version : 0\n' \
-            'name: ' + pkgname + '\n' \
-            'commands:\n' \
-            '- export PATH=$PATH:!ROOT!\n' \
-            '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
-        f.close()
 
         # do the resolve, creates the context and dot files
         # Invoking rez-config as a subproc sucks... but I'd have to reorganise a bunch of code to
@@ -112,7 +102,8 @@ if __name__ == '__main__':
         dotfile = os.path.join(pkgdir, _g_dot_filename)
         pkgs_str = str(' ').join(d['pkgs'])
 
-        cmd = 'rez-config --print-env --wrapper --dot-file=%s --meta-info=tools' % dotfile
+        cmd = ('rez-config --print-env --wrapper --dot-file=%s --meta-info=tools ' + \
+            '--meta-info-shallow=tools') % dotfile
 
         # forward opts onto rez-config invocation
         if opts.quiet:              cmd += " --quiet"
@@ -141,7 +132,7 @@ if __name__ == '__main__':
         f = open(contextfile, 'r')
         lines = f.read().strip().split('\n')
         for l in lines:
-            if l.startswith("export REZ_META_TOOLS="):
+            if l.startswith("export REZ_META_SHALLOW_TOOLS="):
                 toks = l.strip().split("'")[1].split()
                 for tok in toks:
                     toks2 = tok.split(':')
@@ -160,6 +151,21 @@ if __name__ == '__main__':
             f.write(src)
             f.close()
             os.chmod(aliasfile, stat.S_IXUSR|stat.S_IXGRP|stat.S_IRUSR|stat.S_IRGRP)
+
+        # create the package.yaml
+        f = open(os.path.join(pkgdir, 'package.yaml'), 'w')
+        f.write( \
+            'config_version : 0\n' \
+            'name: ' + pkgname + '\n' \
+            'commands:\n' \
+            '- export PATH=$PATH:!ROOT!\n' \
+            '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
+
+        if tools:
+            f.write("tools:\n")
+            for tool in tools:
+                f.write("- %s\n" % tool)
+        f.close()
 
     fpath = os.path.join(tmpdir, _g_packages_filename)
     f = open(fpath, 'w')

@@ -158,7 +158,7 @@ class ResolvedPackage:
 
 def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_fails = -1, \
 	time_epoch = 0, no_path_append = False, build_requires = False, assume_dt = False, \
-	is_wrapper = False, meta_vars = None):
+	is_wrapper = False, meta_vars = None, shallow_meta_vars = None):
 	"""
 	Given a list of packages, return:
 	(a) a list of ResolvedPackage objects, representing the resolved config;
@@ -180,9 +180,10 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	assume_dt: Assume dependency transitivity
 	is_wrapper: If this env is being resolved for a wrapper, then some very slight changes
 	are needed to a normal env, so that wrappers can see one another.
-	meta_vars: A list of 2-tuples. [0] is the name of a key; if that key is found in a package
-	yaml file, then its value will be baked into the env-var REZ_META_<KEY>. [1] is the
-	separator that wil be used, if the value in the yaml is a list.
+	meta_vars: A list of strings, where each string is a key whos value will be saved into an
+	env-var named REZ_META_<KEY> (lists are comma-seprated).
+	shallow_meta_vars: Same as meta-vars, but only the values from those packages directly
+	requested are baked into the env var.
 	"""
 	if (len(pkg_reqs) == 0):
 		return [], [], "digraph g{}", 0
@@ -202,6 +203,8 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	rctxt.assume_dt = assume_dt
 
 	config = _Configuration()
+
+	pkg_req_fam_set = set([x.name for x in pkg_reqs])
 
 	for pkg_req in pkg_reqs:
 		normalise_pkg_req(pkg_req)
@@ -235,7 +238,8 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 
 	# color resolved packages
 	for pkg_res in pkg_res_list:
-		config.add_dot_graph_verbatim('"' + pkg_res.short_name() + '" [style=filled fillcolor="darkseagreen1"] ;')
+		config.add_dot_graph_verbatim('"' + pkg_res.short_name() + \
+			'" [style=filled fillcolor="darkseagreen1"] ;')
 
 	if (rctxt.verbosity != 0):
 		print
@@ -271,6 +275,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 
 	# packages: base/root/version, and commands
 	meta_envvars = {}
+	shallow_meta_envvars = {}
 
 	for pkg_res in pkg_res_list:
 		prefix = "REZ_" + pkg_res.name.upper()
@@ -278,14 +283,20 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 		env_cmds.append("export " + prefix + "_BASE=" + pkg_res.base)
 		env_cmds.append("export " + prefix + "_ROOT=" + pkg_res.root)
 
-		for key,seperator in meta_vars:
-			if key in pkg_res.metadata.metadict:
-				val = pkg_res.metadata.metadict[key]
-				if type(val) == list:
-					val = seperator.join(val)
-				if key not in meta_envvars:
-					meta_envvars[key] = []
-				meta_envvars[key].append(pkg_res.name + ':' + val)
+		def _add_meta_vars(mvars, target):
+			for key in mvars:
+				if key in pkg_res.metadata.metadict:
+					val = pkg_res.metadata.metadict[key]
+					if type(val) == list:
+						val = str(',').join(val)
+					if key not in target:
+						target[key] = []
+					target[key].append(pkg_res.name + ':' + val)
+
+		_add_meta_vars(meta_vars, meta_envvars)
+
+		if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
+			_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
 
 		if pkg_res.commands:
 			for cmd in pkg_res.commands:
@@ -293,6 +304,8 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 
 	for k,v in meta_envvars.iteritems():
 		env_cmds.append("export REZ_META_" + k.upper() + "='" + str(' ').join(v) + "'")
+	for k,v in shallow_meta_envvars.iteritems():
+		env_cmds.append("export REZ_META_SHALLOW_" + k.upper() + "='" + str(' ').join(v) + "'")
 
 	# metadata env-vars (REZ_CONFIG_XXX)
 	if (resolve_mode == RESOLVE_MODE_LATEST):
