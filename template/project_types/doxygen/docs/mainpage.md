@@ -1,6 +1,6 @@
-#USER# has not written any documentation yet! {#mainpage}
+%(USER)s has not written any documentation yet! {#mainpage}
 ============
-\image html "#REZ_PATH#/template/project_types/feelbad.jpg"
+\image html "%(REZ_PATH)s/template/project_types/feelbad.jpg"
 
 
 Markdown examples (this is an h3 header)

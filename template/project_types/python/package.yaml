@@ -1,13 +1,13 @@
 config_version : 0
 
-name: #NAME#
+name: %(NAME)s
 
-version: #VERSION#
+version: %(VERSION)s
 
-uuid: #UUID#
+uuid: %(UUID)s
 
 authors:
-- #USER#
+- %(USER)s
 
 description: >
  Enter description here. Multiline is ok, but make sure that you 
@@ -20,7 +20,10 @@ build_requires:
 - doxygen
 - doxypy
 
-help: #BROWSER# file://!ROOT!/doc/html/index.html
+help: %(BROWSER)s file://!ROOT!/doc/html/index.html
+
+%(TOOLS_YAML)s
 
 commands:
 - export PYTHONPATH=$PYTHONPATH:!ROOT!/python
+%(BIN_PATH_EXPORT_CMD)s

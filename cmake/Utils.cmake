@@ -137,17 +137,26 @@ ENDMACRO(SET_GLOBAL_LINKER_CXX_FLAGS)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
+##########################################################################
+# Boost Utilities                                                        #
+##########################################################################
+# Copyright (C) 2007 Douglas Gregor <doug.gregor@gmail.com>              #
+# Copyright (C) 2007 Troy Straszheim                                     #
+#                                                                        #
+# Distributed under the Boost Software License, Version 1.0.             #
+# See accompanying file LICENSE_1_0.txt or copy at                       #
+#   http://www.boost.org/LICENSE_1_0.txt                                 #
+##########################################################################
+# Macros in this module:                                                 #
+#                                                                        #
+#   list_contains: Determine whether a string value is in a list.        #
+#                                                                        #
+#   car: Return the first element in a list                              #
+#                                                                        #
+#   cdr: Return all but the first element in a list                      #
+#                                                                        #
+#   parse_arguments: Parse keyword arguments for use in other macros.    #
+##########################################################################
 
 
 

@@ -3,6 +3,8 @@ cmake_minimum_required(VERSION 2.8)
 include(RezBuild)
 include(RezInstallDoxygen)
 
+%(BIN_CMAKE_CODE)s
+
 file(GLOB_RECURSE py_files "python/*.py")
 rez_install_python(
     py
