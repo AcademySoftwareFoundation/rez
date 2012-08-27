@@ -13,17 +13,12 @@ description: >
  Enter description here. Multiline is ok, but make sure that you 
  leave the single leading space on each line, as shown here.
 
-requires:
-- python
+%(REQUIRES)s
 
-build_requires:
-- doxygen
-- doxypy
+%(BUILD_REQUIRES)s
 
-help: %(BROWSER)s file://!ROOT!/doc/html/index.html
+%(HELP)s
 
-%(TOOLS_YAML)s
+%(TOOLS)s
 
-commands:
-- export PYTHONPATH=$PYTHONPATH:!ROOT!/python
-%(BIN_PATH_EXPORT_CMD)s
+%(COMMANDS)s
