@@ -91,17 +91,19 @@ _project_build_requires = {
 
 
 usage = "usage: rez-make-project <name> <version>"
+proj_types_str = str(',').join(_project_types)
 
 p = OptionParser(usage=usage)
-p.add_option("--type", dest="type", type="string", default="", \
-    help="Project type - one of (%s)" % str(',').join(_project_types))
+p.add_option("--type", dest="type", type="string", default="empty", \
+    help="Project type - one of [%s]. (default: empty)" % proj_types_str)
 p.add_option("--tools", dest="tools", type="string", default="", \
     help="Optional set of programs to create, comma-separated.")
 
 (opts, args) = p.parse_args()
 
-if not opts.type:
-	p.error("Need to specify a project type.")
+if opts.type not in _project_types:
+	p.error("'%s' is not a recognised project type. Choose one of: [%s]" \
+		% opts.type, proj_types_str)
 
 if len(args) != 2:
 	p.error("Wrong argument count.")
