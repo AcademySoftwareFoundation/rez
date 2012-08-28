@@ -191,6 +191,7 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	if (time_epoch == 0):
 		time_epoch = int(time.mktime(time.localtime()))
 
+	global g_time_epoch
 	g_time_epoch = time_epoch
 
 	rctxt = _ResolvingContext()

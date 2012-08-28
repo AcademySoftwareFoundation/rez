@@ -76,7 +76,6 @@ def get_versions_in_directory(path, ascending, time_epoch=0, warnings=True):
 
 	versions = versdict.get(path)
 	if versions is None:
-
 		# load archive/blacklist info
 		pkg_ignore_ver_range = None
 		if g_use_blacklist or g_use_archiving:
@@ -174,6 +173,7 @@ def find_package(family_path, ver_range, mode, time_epoch=0):
 	find_package('.../foo', '', RESOLVE_MODE_LATEST) == 1.3.2
 	find_package('.../foo', '1.3.2.2', RESOLVE_MODE_LATEST) == None
 	"""
+
 	# check base path exists
 	if not dir_exists(family_path):
 		return None

@@ -32,9 +32,9 @@
 #
 # Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the 
 # second request. This functionality is provided for two reasons - (a) it's used internally when
-# using patching in combination with auto-generated subshells; (b) it can be utilised by rez users,
-# who want to implement their own environment management system, and have a need to create a
-# working environment based on a heirarchical series of overriding config files.
+# using patching; (b) it can be utilised by rez users, who want to implement their own environment 
+# management system, and have a need to create a working environment based on a heirarchical series 
+# of overriding config files.
 #
 # Lastly, the '^' operator can be used to *remove* packages from the request, eg:
 #
@@ -143,6 +143,9 @@ if __name__ == '__main__':
         for tool in tools:
             alias = d["prefix"] + tool + d["suffix"]
             aliasfile = os.path.join(pkgdir, alias)
+            if os.path.exists(aliasfile):
+                continue # early bird wins
+
             src = wrapper_template_src.replace("#CONTEXT#", _g_context_filename)
             src = src.replace("#CONTEXTNAME#", name)
             src = src.replace("#ALIAS#", tool)
