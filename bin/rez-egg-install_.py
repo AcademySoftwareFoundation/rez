@@ -153,6 +153,7 @@ else:
 (opts, args) = p.parse_args(rez_args)
 if len(args) != 1:
     p.error("Expected package name")
+
 pkg_name = args[0]
 
 if not easy_install_args:
@@ -176,6 +177,7 @@ if opts.mapping_file:
 platform_remappings = remappings.get("platform_mappings") or {}
 package_remappings = remappings.get("package_mappings") or {}
 
+safe_pkg_name = _convert_pkg_name(pkg_name, package_remappings)
 
 
 #########################################################################################
@@ -200,7 +202,9 @@ def _clean():
         shutil.rmtree(egg_path)
 
 cmd = "export PYTHONPATH=$PYTHONPATH:%s" % egg_path
-cmd += " ; easy_install --install-dir=%s %s" % (egg_path, str(' ').join(easy_install_args))
+cmd += " ; easy_install --always-copy --install-dir=%s %s" % \
+    (egg_path, str(' ').join(easy_install_args))
+
 print "Running: %s" % cmd
 proc = sp.Popen(cmd, shell=True)
 proc.wait()
@@ -272,7 +276,15 @@ for distr in distrs:
             sys.exit(1)
 
     eggs[name] = (distr, d)
-    
+
+
+if eggs:
+    print
+    print "FOUND EGGS: %s" % str(eggs.keys())
+if safe_pkg_name not in eggs:
+    print >> sys.stderr, "requested package '%s' not found in eggs, aborting..." % pkg_name
+    sys.exit(1)
+
 
 
 #########################################################################################
