@@ -129,6 +129,9 @@ p.add_option("--mapping-file", dest="mapping_file", type="str", \
 p.add_option("--ignore-unknown-platforms", dest="ignore_unknown_plat", \
     action="store_true", default=False, \
     help="skip unknown egg platforms, and install as a rez package with no platform dependencies")
+p.add_option("--use-non-eggs", dest="use_non_eggs", default=False, \
+    help="allow use of rez packages that already exist, but " + \
+        "were not created by rez-egg-install [default = %default]")
 p.add_option("--dry-run", dest="dry_run", action="store_true", default=False, \
     help="perform a dry run [default = %default]")
 p.add_option("--local", dest="local", action="store_true", default=False, \
@@ -192,18 +195,18 @@ if proc.returncode:
     sys.exit(1)
 
 # install the egg to a temp dir
-egg_path = tempfile.mkdtemp(prefix="rez-egg-download-")
-print "INSTALLING EGG FOR PACKAGE '%s' TO %s..." % (pkg_name, egg_path)
+eggs_path = tempfile.mkdtemp(prefix="rez-egg-download-")
+print "INSTALLING EGG FOR PACKAGE '%s' TO %s..." % (pkg_name, eggs_path)
 
 def _clean():
     if not opts.no_clean:
         print
-        print "DELETING %s..." % egg_path
-        shutil.rmtree(egg_path)
+        print "DELETING %s..." % eggs_path
+        shutil.rmtree(eggs_path)
 
-cmd = "export PYTHONPATH=$PYTHONPATH:%s" % egg_path
+cmd = "export PYTHONPATH=$PYTHONPATH:%s" % eggs_path
 cmd += " ; easy_install --always-copy --install-dir=%s %s" % \
-    (egg_path, str(' ').join(easy_install_args))
+    (eggs_path, str(' ').join(easy_install_args))
 
 print "Running: %s" % cmd
 proc = sp.Popen(cmd, shell=True)
@@ -219,10 +222,15 @@ if proc.returncode:
 #########################################################################################
 # extract info from eggs
 #########################################################################################
-sys.path = [egg_path] + sys.path
-import pkg_resources as pkg_r
+sys.path = [eggs_path] + sys.path
+try:
+    import pkg_resources as pkg_r
+except ImportError:
+    print >> sys.stderr, "couldn't import pkg_resources. You probably need to install " + \
+        "the python setuptools package, you can get it at http://pypi.python.org/pypi/setuptools."
+    sys.exit(1)
 
-distrs = pkg_r.find_distributions(egg_path)
+distrs = pkg_r.find_distributions(eggs_path)
 eggs = {}
 
 for distr in distrs:
@@ -275,6 +283,17 @@ for distr in distrs:
                 "the --ignore-unknown-platforms option.") % v
             sys.exit(1)
 
+    scripts_path = os.path.join(distr.location, "EGG-INFO", "scripts")
+    if os.path.exists(scripts_path):
+        tools = []
+        names = os.listdir(scripts_path)
+        for script_name in names:
+            script_path = os.path.join(eggs_path, script_name)
+            if os.path.isfile(script_path):
+                tools.append(script_name)
+        if tools:
+            d["tools"] = tools
+
     eggs[name] = (distr, d)
 
 
@@ -300,13 +319,39 @@ def _mkdir(path, make_ro=True):
             if make_ro:
                 destdirs.append(path)
 
-def _cpfile(filepath, destdir):
+def _cpfile(filepath, destdir, make_ro=True, make_x=False):
     print "copying %s to %s..." % (filepath, destdir+'/')
     if not opts.dry_run:
         shutil.copy(filepath, destdir)
-        destfile = os.path.join(destdir, os.path.basename(filepath))
-        os.chmod(destfile, _g_r_stat)
+        if make_ro or make_x:
+            st = 0
+            if make_ro: st |= _g_r_stat
+            if make_x:  st |= _g_x_stat
+            destfile = os.path.join(destdir, os.path.basename(filepath))
+            os.chmod(destfile, st)
 
+
+if not opts.use_non_eggs:
+    nnoneggs = 0
+    for egg_name, v in eggs.iteritems():
+        distr, d = v
+        pkg_path = os.path.join(install_path, egg_name, d["version"])
+        meta_path = os.path.join(pkg_path, ".metadata")    
+        rezeggfile = os.path.join(meta_path, "rez_egg_info.txt")
+
+        if os.path.exists(pkg_path) and not os.path.exists(rezeggfile):
+            print
+            print >> sys.stderr, ("package '%s' already exists, but was not created by " + \
+                "rez-egg-install. Use the --use-non-eggs option to skip this error, but note " + \
+                "that rez doesn't know if this package is properly configured." % egg_name)
+            nnoneggs += 1
+    if nnoneggs:
+        sys.exit(1)
+
+
+added_pkgs = []
+updated_pkgs = []
+existing_pkgs = []
 
 for egg_name, v in eggs.iteritems():
     print
@@ -320,11 +365,14 @@ for egg_name, v in eggs.iteritems():
     pkg_path = os.path.join(install_path, egg_name, d["version"])
     meta_path = os.path.join(pkg_path, ".metadata")    
     variant_path = os.path.join(pkg_path, *(variants))
+    bin_path = os.path.join(variant_path, "bin")
+    rezeggfile = os.path.join(meta_path, "rez_egg_info.txt")
 
     if os.path.exists(variant_path):
         print ("skipping installation of '%s', the current variant appears to exist already " + \
             "- %s already exists. Delete this directory to force a reinstall.") % \
             (egg_name, variant_path)
+        existing_pkgs.append(egg_name)
         continue
 
     _mkdir(meta_path, False)
@@ -343,6 +391,12 @@ for egg_name, v in eggs.iteritems():
             if not name.endswith(".pyc"):
                 _cpfile(os.path.join(root, name), dest_root)
 
+    tools = d.get("tools")
+    if tools:
+        _mkdir(bin_path)
+        for tool in tools:
+            _cpfile(os.path.join(eggs_path, tool), bin_path, make_ro=True, make_x=True)
+
     for path in reversed(destdirs):
         os.chmod(path, _g_r_stat|_g_x_stat)
 
@@ -355,8 +409,10 @@ for egg_name, v in eggs.iteritems():
         with open(yaml_path, 'r') as f:
             s = f.read()
         pkg_d = yaml.load(s) or {}
+        updated_pkgs.append(egg_name)
     else:
         print "CREATING %s..." % yaml_path
+        added_pkgs.append(egg_name)
 
     for k,v in d.iteritems():
         if k not in pkg_d:
@@ -369,9 +425,15 @@ for egg_name, v in eggs.iteritems():
     
     if "commands" not in pkg_d:
         pkg_d["commands"] = []
+
     cmd = "export PYTHONPATH=$PYTHONPATH:!ROOT!/%s" % egg_dir
     if cmd not in pkg_d["commands"]:
         pkg_d["commands"].append(cmd)
+
+    if tools:
+        cmd = "export PATH=$PATH:!ROOT!/bin"
+        if cmd not in pkg_d["commands"]:
+            pkg_d["commands"].append(cmd)        
 
     s = yaml.dump(pkg_d, default_flow_style=False)
     pretty_s = re.sub(_g_yaml_prettify_re, "\\n\\1:", s).strip() + '\n'
@@ -390,7 +452,21 @@ for egg_name, v in eggs.iteritems():
             with open(timefile, 'w') as f:
                 f.write(str(int(time.time())))
 
+        if not os.path.exists(rezeggfile):
+            with open(rezeggfile, 'w') as f:
+                f.write(str(_g_rez_egg_api_version))
+
 _clean()
+
+print
+print "Success! %d packages were installed, %d were updated." % (len(added_pkgs), len(updated_pkgs))
+if not opts.dry_run:
+    if added_pkgs:
+        print "Newly installed packages: %s" % str(", ").join(added_pkgs)
+    if updated_pkgs:
+        print "Updated packages: %s" % str(", ").join(updated_pkgs)
+    if existing_pkgs:
+        print "Pre-existing packages: %s" % str(", ").join(existing_pkgs)
 
 
 

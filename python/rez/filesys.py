@@ -20,7 +20,7 @@ g_use_archiving = False
 ignore_branches = True
 
 _g_local_pkgs_path 				= os.getenv("REZ_LOCAL_PACKAGES_PATH")
-_g_old_timestamp_behaviour 		= os.getenv("REZ_OLD_TIMESTAMP_BEHAVIOUR")
+_g_new_timestamp_behaviour 		= os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
 
 
 def enable_blacklist(enable):
@@ -125,7 +125,7 @@ def get_versions_in_directory(path, ascending, time_epoch=0, warnings=True):
 					release_time_f = fullpath + '/.metadata/release_time.txt'
 					is_timestamped = os.access(release_time_f, os.F_OK)
 
-					if not is_timestamped and not _g_old_timestamp_behaviour:
+					if not is_timestamped and _g_new_timestamp_behaviour:
 						s = "Warning: The package at %s is not timestamped and will be ignored. " + \
 							"To timestamp it manually, use the rez-timestamp utility."
 						print >> sys.stderr, s % fullpath
