@@ -27,6 +27,18 @@ else
     endif
 
 
+    # where rez will publish local packages to (ie those installed with rez-build -- -- install)
+    if (! $?REZ_LOCAL_PACKAGES_PATH ) then
+        setenv REZ_LOCAL_PACKAGES_PATH !REZ_LOCAL_PKGS_PATH!
+    fi
+
+
+    # where rez-egg-install will install python egg packages to
+    if (! $?REZ_EGG_PACKAGES_PATH" ) then
+        setenv REZ_EGG_PACKAGES_PATH !REZ_PACKAGES_PATH!
+    fi
+
+
     # expose rez binaries, replacing existing rez paths if they have been set already
     set clean_path = `echo "$PATH" | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
     set rez_path   = ":${REZ_PATH}/bin"

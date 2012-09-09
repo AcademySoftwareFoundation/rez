@@ -17,7 +17,8 @@ if [ ! "$REZ_CONTEXT_FILE" ]; then
 	exit 1
 fi
 
-echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME"):"
+readable_time=`date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"`
+echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME: $readable_time"):"
 echo $REZ_REQUEST | tr ' ' '\n'
 echo
 

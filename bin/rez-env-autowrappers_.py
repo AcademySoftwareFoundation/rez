@@ -84,11 +84,10 @@ if __name__ == '__main__':
     f.close()
 
     for name,d in subshells.iteritems():
-        if not opts.quiet:
-            s = name
-            if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
-            if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
-            print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
+        s = name
+        if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
+        if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
+        print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
 
         pkgname = '__wrapper_' + name
         pkgdir = os.path.join(tmpdir, pkgname)
