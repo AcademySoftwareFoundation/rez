@@ -122,22 +122,25 @@ usage = "usage: rez-egg-install [options] <package_name> [-- <easy_install args>
     "  $REZ_EGG_PACKAGES_PATH, which is currently:\n" + \
     "  " + (os.getenv("REZ_EGG_PACKAGES_PATH") or "UNSET!")
 
+rez_egg_remapping_file = os.getenv("REZ_EGG_MAPPING_FILE") or \
+    ("%s/template/egg_remap.yaml" % _g_rez_path)
+
 p = optparse.OptionParser(usage=usage)
-p.add_option("--mapping-file", dest="mapping_file", type="str", \
-    default="%s/template/egg_remap.yaml" % _g_rez_path, \
-    help="yaml file that remaps package names [default = %default]")
+p.add_option("--mapping-file", dest="mapping_file", type="str", default=rez_egg_remapping_file, \
+    help="yaml file that remaps package names. Set $REZ_EGG_MAPPING_FILE to change the default " + \
+    "[default = %default]")
 p.add_option("--ignore-unknown-platforms", dest="ignore_unknown_plat", \
     action="store_true", default=False, \
     help="skip unknown egg platforms, and install as a rez package with no platform dependencies")
 p.add_option("--use-non-eggs", dest="use_non_eggs", default=False, \
     help="allow use of rez packages that already exist, but " + \
-        "were not created by rez-egg-install [default = %default]")
+        "were not created by rez-egg-install")
 p.add_option("--dry-run", dest="dry_run", action="store_true", default=False, \
-    help="perform a dry run [default = %default]")
+    help="perform a dry run")
 p.add_option("--local", dest="local", action="store_true", default=False, \
-    help="install to local packages directory instead [default = %default]")
+    help="install to local packages directory instead")
 p.add_option("--no-clean", dest="no_clean", action="store_true", default=False, \
-    help="don't delete temporary egg files afterwards [default = %default]")
+    help="don't delete temporary egg files afterwards")
 
 help_args = set(["--help","-help","-h","--h"]) & set(sys.argv)
 if help_args:
@@ -264,7 +267,7 @@ for distr in distrs:
 
     v = pkg_d.get("Home-page")
     if v:
-        pkg_d["help"] = "$BROWSER %s" % v
+        d["help"] = "$BROWSER %s" % v
 
     reqs = distr.requires()
     for req in reqs:
@@ -415,6 +418,8 @@ for egg_name, v in eggs.iteritems():
         added_pkgs.append(egg_name)
 
     for k,v in d.iteritems():
+        if k == "variants":
+            continue
         if k not in pkg_d:
             pkg_d[k] = v
 
