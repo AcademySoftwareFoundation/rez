@@ -85,7 +85,7 @@ macro (rez_install_context)
 			${INSTCTXT_dest_dir}/${target}.dot
 
 		COMMAND ${CMAKE_COMMAND} -E make_directory ${INSTCTXT_dest_dir}
-		COMMAND rez-config --print-env --no-path-append --wrapper --mode=${mode} --dot-file=${INSTCTXT_dest_dir}/${target}.dot ${INSTCTXT_PACKAGES} >> ${INSTCTXT_dest_dir}/${target}
+		COMMAND rez-config --print-env --no-path-append --wrapper --mode=${mode} --meta-info=tools --meta-info-shallow=tools --dot-file=${INSTCTXT_dest_dir}/${target}.dot ${INSTCTXT_PACKAGES} >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "export REZ_CONTEXT_FILE=$REZ_${uproj}_ROOT/${INSTCTXT_dest_dir}/${target}" >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "${INSTCTXT_EXTRA_COMMANDS2}" >> ${INSTCTXT_dest_dir}/${target}
 		COMMAND echo "export PATH=$PATH:/bin:/usr/bin" >> ${INSTCTXT_dest_dir}/${target}

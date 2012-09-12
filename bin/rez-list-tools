@@ -3,7 +3,7 @@
 # List tools available in the current shell. Wrapped tools are suffixed with '*'.
 #
 
-tbl="TOOL PACKAGE/(WRAPPER) # ---------------- ----------------"
+tbl="TOOL PACKAGE/(SHELL) # ---------------- ----------------"
 for s in $REZ_META_TOOLS
 do
 	pkg=`echo $s | tr ':' ' ' | awk '{print $1}'`

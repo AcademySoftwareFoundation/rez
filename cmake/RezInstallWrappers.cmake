@@ -29,7 +29,7 @@
 # EXTRA_COMMANDS: extra bash commands, will be added to the end of the context
 #
 # Usage:
-# rez_install_context(<label> <context_target>
+# rez_install_context(<label> <context_target> <context_name>
 #	[MODE earliest|latest]
 #	PACKAGES pkg1 pkg2 ... pkgN
 #	WRAPPERS wrap1 wrap2 ... wrapN

@@ -126,12 +126,13 @@ rez_egg_remapping_file = os.getenv("REZ_EGG_MAPPING_FILE") or \
     ("%s/template/egg_remap.yaml" % _g_rez_path)
 
 p = optparse.OptionParser(usage=usage)
+p.add_option("--verbose", dest="verbose", action="store_true", default=False, \
+    help="print out extra information")
 p.add_option("--mapping-file", dest="mapping_file", type="str", default=rez_egg_remapping_file, \
     help="yaml file that remaps package names. Set $REZ_EGG_MAPPING_FILE to change the default " + \
     "[default = %default]")
-p.add_option("--ignore-unknown-platforms", dest="ignore_unknown_plat", \
-    action="store_true", default=False, \
-    help="skip unknown egg platforms, and install as a rez package with no platform dependencies")
+p.add_option("--force-platform", dest="force_platform", type=str, \
+    help="ignore egg platform and force packages (comma-separated). Eg: Linux,x86_64,centos-6.3")
 p.add_option("--use-non-eggs", dest="use_non_eggs", default=False, \
     help="allow use of rez packages that already exist, but " + \
         "were not created by rez-egg-install")
@@ -225,6 +226,19 @@ if proc.returncode:
 #########################################################################################
 # extract info from eggs
 #########################################################################################
+
+# find tools, if any
+eggs_tools = set()
+names = os.listdir(eggs_path)
+for name in names:
+    fpath = os.path.join(eggs_path, name)
+    if not os.path.isfile(fpath):
+        continue
+    m = os.stat(fpath).st_mode
+    if m & _g_x_stat:
+        eggs_tools.add(name)
+
+# add eggs to python path
 sys.path = [eggs_path] + sys.path
 try:
     import pkg_resources as pkg_r
@@ -236,6 +250,7 @@ except ImportError:
 distrs = pkg_r.find_distributions(eggs_path)
 eggs = {}
 
+# iterate over eggs
 for distr in distrs:
     print
     print "EXTRACTING DATA FROM %s..." % distr.location
@@ -247,7 +262,9 @@ for distr in distrs:
     d = {
         "config_version":   0,
         "name":             name,
+        "unsafe_name":      distr.project_name,
         "version":          ver,
+        "unsafe_version":   distr.version,
         "requires":         ["python-%s+" % pyver]
     }
 
@@ -274,35 +291,56 @@ for distr in distrs:
         rezreqs = _convert_requirement(req, package_remappings)
         d["requires"] += rezreqs
 
-    v = pkg_d.get("Platform")
-    if v:
-        platform_pkgs = platform_remappings.get(v)
-        if platform_pkgs is not None:
-            if platform_pkgs:
-                d["variants"] = platform_pkgs
-        elif not opts.ignore_unknown_plat:
-            print >> sys.stderr, ("No remappings are present for the platform '%s'. " + \
-                "Please use the --mapping-file option to provide the remapping, or " + \
-                "the --ignore-unknown-platforms option.") % v
-            sys.exit(1)
-
-    scripts_path = os.path.join(distr.location, "EGG-INFO", "scripts")
-    if os.path.exists(scripts_path):
-        tools = []
-        names = os.listdir(scripts_path)
-        for script_name in names:
-            script_path = os.path.join(eggs_path, script_name)
-            if os.path.isfile(script_path):
-                tools.append(script_name)
-        if tools:
-            d["tools"] = tools
+    if opts.force_platform is None:
+        v = pkg_d.get("Platform")
+        if v:
+            platform_pkgs = platform_remappings.get(v)
+            if platform_pkgs is None:
+                print >> sys.stderr, ("No remappings are present for the platform '%s'. " + \
+                    "Please use the --mapping-file option to provide the remapping, or " + \
+                    "use the --force-platform option.") % v
+                sys.exit(1)
+            else:
+                if platform_pkgs:
+                    d["variants"] = platform_pkgs
+    else:
+        toks = opts.force_platform.replace(',',' ').strip().split()
+        if toks:
+            d["variants"] = toks
 
     eggs[name] = (distr, d)
 
 
+# iterate over tools and assign to eggs. There doesn't seem to be consistency in how eggs specify
+# their scripts (if at all), so we work it out by looking for the egg name in the script sources.
+if eggs and eggs_tools:
+    for tool in eggs_tools:
+        with open(os.path.join(eggs_path, tool), 'r') as f:
+            s = f.read()
+        
+        count_d = {}
+        for egg_name,v in eggs.iteritems():
+            distr, d = v
+            n = s.count(d["unsafe_name"])
+            count_d[n] = egg_name
+
+        counts = count_d.keys()
+        counts.sort()
+        n = counts[-1]
+        script_egg = count_d[n]
+
+        d = eggs[script_egg][1]
+        if "tools" not in d:
+            d["tools"] = []
+        d["tools"].append(tool)
+
+
 if eggs:
     print
-    print "FOUND EGGS: %s" % str(eggs.keys())
+    print "FOUND EGGS: %s" % str(", ").join(eggs.keys())
+    if eggs_tools:
+        print "FOUND PROGRAMS: %s" % str(", ").join(eggs_tools)
+
 if safe_pkg_name not in eggs:
     print >> sys.stderr, "requested package '%s' not found in eggs, aborting..." % pkg_name
     sys.exit(1)
@@ -316,14 +354,16 @@ destdirs = []
 
 def _mkdir(path, make_ro=True):
     if not os.path.exists(path):
-        print "creating %s..." % path
+        if opts.verbose:
+            print "creating %s..." % path
         if not opts.dry_run:
             os.makedirs(path)
             if make_ro:
                 destdirs.append(path)
 
 def _cpfile(filepath, destdir, make_ro=True, make_x=False):
-    print "copying %s to %s..." % (filepath, destdir+'/')
+    if opts.verbose:
+        print "copying %s to %s..." % (filepath, destdir+'/')
     if not opts.dry_run:
         shutil.copy(filepath, destdir)
         if make_ro or make_x:

@@ -11,7 +11,7 @@ from rez_metafile import *
 try:
 	opts, pkgstrs = getopt.getopt(sys.argv[1:], '', \
 		["filepath=", "print-version", "print-name", "print-requires", "print-build-requires", \
-		"print-desc", "print-help", "print-variant=", "quiet", "no-catch"])
+		"print-desc", "print-help", "print-tools", "print-variant=", "quiet", "no-catch"])
 except getopt.GetoptError, e:
 	sys.stderr.write(str(e)+'\n')
 	sys.exit(1)
@@ -24,6 +24,7 @@ print_desc = ("--print-desc", "") in opts
 print_requires = ("--print-requires", "") in opts
 print_build_requires = ("--print-build-requires", "") in opts
 print_help = ("--print-help", "") in opts
+print_tools = ("--print-tools", "") in opts
 quiet = ("--quiet", "") in opts
 no_catch = ("--no-catch", "") in opts
 
@@ -47,9 +48,10 @@ if no_catch:
 else:
 	try:
 		metadata = ConfigMetadata(filepath)
-	except Exception:
+	except Exception as e:
 		if not quiet:
 			sys.stderr.write("Malformed package.yaml: '" + filepath + "'.\n")
+			print >> sys.stderr, str(e)
 		sys.exit(1)
 
 if print_version:
@@ -96,6 +98,11 @@ if print_help:
 		if not quiet:
 			sys.stderr.write("No 'help' entry specified in " + filepath + ".\n")
 		sys.exit(1)
+
+if print_tools:
+	tools = metadata.metadict.get("tools")
+	if tools:
+		print str(' ').join(tools)
 
 if (variant_num != None):
 	variants = metadata.get_variants()

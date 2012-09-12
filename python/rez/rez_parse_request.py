@@ -86,11 +86,11 @@ def parse_request(s):
 
     _pkg = pp.Regex("[a-zA-Z_0-9~<=^\\.\\-\\!\\+]+").setParseAction(_parse_pkg)
 
-    _subshell_label = pp.Regex("[a-z_]+")
+    _subshell_label = pp.Regex("[a-zA-Z0-9_]+")
     _subshell_label_decl = (_subshell_label + ':').setParseAction(_parse_ss_label)
     _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
-    _subshell_prefix = (pp.Regex("[a-z_]+\\(") ^ '(').setParseAction(_parse_ss_prefix)
-    _subshell_suffix = (pp.Regex("\\)[a-z_]+") ^ ')').setParseAction(_parse_ss_suffix)
+    _subshell_prefix = (pp.Regex("[a-zA-Z0-9_]+\\(") ^ '(').setParseAction(_parse_ss_prefix)
+    _subshell_suffix = (pp.Regex("\\)[a-zA-Z0-9_]+") ^ ')').setParseAction(_parse_ss_suffix)
     _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
 
     _request = pp.OneOrMore(_pkg ^ _subshell).setParseAction(_parse_ss_request)
