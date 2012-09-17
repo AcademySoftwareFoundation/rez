@@ -181,9 +181,9 @@ def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_f
 	is_wrapper: If this env is being resolved for a wrapper, then some very slight changes
 	are needed to a normal env, so that wrappers can see one another.
 	meta_vars: A list of strings, where each string is a key whos value will be saved into an
-	env-var named REZ_META_<KEY> (lists are comma-seprated).
+	env-var named REZ_META_<KEY> (lists are comma-separated).
 	shallow_meta_vars: Same as meta-vars, but only the values from those packages directly
-	requested are baked into the env var.
+	requested are baked into the env var REZ_META_SHALLOW_<KEY>.
 	"""
 	if (len(pkg_reqs) == 0):
 		return [], [], "digraph g{}", 0
@@ -1867,17 +1867,7 @@ def process_commands(cmds):
 ##############################################################################
 
 syspaths = get_system_package_paths()
-
-
-
-
-
-
-
-
-
-
-
+# TODO move to filesys!!!
 
 
 
