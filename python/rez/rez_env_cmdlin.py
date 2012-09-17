@@ -40,6 +40,8 @@ def get_cmdlin_parser():
         help="Ignore packages newer than the given epoch time")
     p.add_option("-r", "--rcfile", dest="rcfile", type="string", default='', \
         help="Source this file after the new shell is invoked")
+    p.add_option("--propogate-rcfile", dest="prop_rcfile", action="store_true", default=False, \
+        help="Propogate rcfile into subshells")
     p.add_option("-s", "--stdin", dest="stdin", action="store_true", default=False, \
         help="Read commands from stdin, rather than starting an interactive shell [default = %default]")
     p.add_option("-a", "--add_loose", dest="add_loose", action="store_true", default=False, \

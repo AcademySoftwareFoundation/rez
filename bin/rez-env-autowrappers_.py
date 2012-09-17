@@ -45,6 +45,7 @@ import os
 import stat
 import os.path
 import sys
+import shutil
 import subprocess
 import tempfile
 import rez_config as rc
@@ -74,15 +75,20 @@ if __name__ == '__main__':
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
 
-    # create the local subshell packages
     tmpdir = sys.argv[1]
     if not opts.quiet:
         print 'Building into ' + tmpdir + '...'
 
-    f = open(_g_alias_context_filename, 'r')
-    wrapper_template_src = f.read()
-    f.close()
+    # make a copy of rcfile, if specified. We need to propogate this into the subshells
+    rcfile_copy = None
+    if opts.rcfile and opts.prop_rcfile and os.path.isfile(opts.rcfile):
+        rcfile_copy = os.path.join(tmpdir, "rcfile.sh")
+        shutil.copy(opts.rcfile, rcfile_copy)
 
+    with open(_g_alias_context_filename, 'r') as f:
+        wrapper_template_src = f.read()
+
+    # create the local subshell packages
     for name,d in subshells.iteritems():
         s = name
         if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
@@ -148,6 +154,9 @@ if __name__ == '__main__':
             src = wrapper_template_src.replace("#CONTEXT#", _g_context_filename)
             src = src.replace("#CONTEXTNAME#", name)
             src = src.replace("#ALIAS#", tool)
+
+            if rcfile_copy:
+                src = src.replace("#RCFILE#", "../rcfile.sh")                
             
             f = open(aliasfile, 'w')
             f.write(src)

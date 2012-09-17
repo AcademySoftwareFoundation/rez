@@ -38,7 +38,6 @@ else
 		export REZ_EGG_PACKAGES_PATH=!REZ_PACKAGES_PATH!
 	fi
 
-
 	# expose rez binaries, replacing existing rez paths if they have been set already
 	PATH=`echo $PATH | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
 	export PATH=$PATH:$REZ_PATH/bin

@@ -1,8 +1,17 @@
 #!/bin/bash
 
 export REZ_WRAPPER_CONTEXT=`dirname $0`/#CONTEXT#
-source $REZ_WRAPPER_CONTEXT
 source $REZ_PATH/init.sh
+
+if [ "#RCFILE#" != "" ]; then
+	path=#RCFILE#
+	if [ "`echo '#RCFILE#' | grep '^/'`" == "" ]; then
+		path=`dirname $0`/#RCFILE#
+	fi
+	if [ -e $path ]; then
+		export __REZ_RCFILE=$path
+	fi
+fi
 
 if [ "${!#}" == "---i" ]; then
 	export REZ_ENV_PROMPT="${REZ_ENV_PROMPT}#CONTEXTNAME#>"
@@ -10,7 +19,12 @@ if [ "${!#}" == "---i" ]; then
 	exit $?
 fi
 
+source $REZ_WRAPPER_CONTEXT
 unset REZ_WRAPPER_CONTEXT
+
+if [ "$__REZ_RCFILE" != "" ]; then
+	source $__REZ_RCFILE
+fi
 
 if [ "${!#}" == "---s" ]; then
 	if [ -f ~/.bashrc ]; then
@@ -19,19 +33,11 @@ if [ "${!#}" == "---s" ]; then
 	/bin/bash -s
 	exit $?
 else
-	patch=`echo $* | grep '\-\-\-p'`
-	if [ "$patch" == "" ]; then
-		if [ -f ~/.bashrc ]; then
-			source ~/.bashrc &> /dev/null
-		fi
-		#ALIAS# $*
-		exit $?
-	else
-		args=`echo $* | sed 's/---p.*//g'`
-		pkgs=`echo $* | sed 's/.*---p//g'`
-		( echo rez-context-info ; echo '#ALIAS#' $args ) | rez-env -s -a $pkgs
-		exit $?
+	if [ -f ~/.bashrc ]; then
+		source ~/.bashrc &> /dev/null
 	fi
+	#ALIAS# $*
+	exit $?
 fi
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

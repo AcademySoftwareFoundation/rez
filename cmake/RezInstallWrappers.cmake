@@ -120,7 +120,7 @@ macro (rez_install_wrappers)
 		add_custom_command(
 			OUTPUT ${INSTWRP_dest_dir}/${wrapper_script}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${INSTWRP_dest_dir}
-			COMMAND cat $ENV{REZ_PATH}/template/wrapper.sh | sed -e "s/#CONTEXT#/${instwrp_context_target}/g" -e "s/#CONTEXTNAME#/${instwrp_context_name}/g" -e "s/#ALIAS#/${alias}/g" > ${INSTWRP_dest_dir}/${wrapper_script}
+			COMMAND cat $ENV{REZ_PATH}/template/wrapper.sh | sed -e "s/#CONTEXT#/${instwrp_context_target}/g" -e "s/#CONTEXTNAME#/${instwrp_context_name}/g" -e "s/#ALIAS#/${alias}/g" -e "s/#RCFILE#//g" > ${INSTWRP_dest_dir}/${wrapper_script}
 			COMMENT "Building wrapper script ${INSTWRP_dest_dir}/${wrapper_script}"
 			VERBATIM
 		)
