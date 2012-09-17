@@ -72,32 +72,24 @@ class ConfigMetadata:
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains invalid config version '" + str(self.config_version) + "'")
 
-			# uuid
-			if "uuid" in self.metadict:
-				self.uuid = str(self.metadict["uuid"])
+			def _get_str(label):
+				val = self.metadict.get(label)
+				if val is not None:
+					return str(val).strip()
+				return None
+
+			self.uuid			= _get_str("uuid")
+			self.description 	= _get_str("description")
+			self.version 		= _get_str("version")
+			self.name 			= _get_str("name")
+			self.help 			= _get_str("help")
 
 			# authors
 			if "authors" in self.metadict:
 				self.authors = self.metadict["authors"]
-				if (type(self.authors) != type([])):
+				if (type(self.authors) != list):
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains 'authors' entry which is not a list")
-
-			# description
-			if "description" in self.metadict:
-				self.description = str(self.metadict["description"]).strip()
-
-			# version
-			if "version" in self.metadict:
-				self.version = str(self.metadict["version"])
-
-			# name
-			if "name" in self.metadict:
-				self.name = str(self.metadict["name"])
-
-			# help
-			if "help" in self.metadict:
-				self.help = str(self.metadict["help"])
 
 			###############################
 			# config-version-specific content

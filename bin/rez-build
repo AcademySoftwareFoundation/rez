@@ -220,14 +220,14 @@ fi
 #-#################################################################################################
 # Iterate over variants
 #-#################################################################################################
-VCS='svn'
+VCS=
 if [ -d $PWD/.git ]; then
   VCS='git'
-else
+elif [ -d $PWD/.svn ]; then
   VCS='svn'
 fi
 
-if [ "$SVNURL_METADATA" == "" ]; then
+if [ "$VCS" != "" -a "$SVNURL_METADATA" == "" ]; then
   SVNURL_METADATA=`rez-$VCS-print-url`
 fi
 
@@ -285,7 +285,9 @@ do
 	# store the changelog into a metafile (rez-release will specify one
 	# via the -c flag)
 	if [ "$CHANGELOG" == "" ]; then
-    	rez-$VCS-changelog > $CHLOGF
+		if [ "$VCS" != "" ]; then
+    		rez-$VCS-changelog > $CHLOGF
+    	fi
 	else
 		cp $CHANGELOG $CHLOGF
 	fi

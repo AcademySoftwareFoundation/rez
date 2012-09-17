@@ -17,30 +17,32 @@
 # make sure we're within a rez-build context
 #############################################################################
 
+if(NOT DEFINED ENV{REZ_BUILD_ENV})
+	message(FATAL_ERROR "This project must be built with rez-build.")
+endif(NOT DEFINED ENV{REZ_BUILD_ENV})
+
 set(REZ_BUILD_ENV $ENV{REZ_BUILD_ENV})
-if(NOT REZ_BUILD_ENV)
-	message(FATAL_ERROR "This project must be built via rez-build (REZ_BUILD_ENV was not defined in the environment).")
-endif(NOT REZ_BUILD_ENV)
 
 
 #############################################################################
 # setup rez-build system variables
 #############################################################################
 
-set(REZ_RELEASE_PACKAGES_PATH $ENV{REZ_RELEASE_PACKAGES_PATH})
-if(NOT REZ_RELEASE_PACKAGES_PATH)
+if(NOT DEFINED ENV{REZ_RELEASE_PACKAGES_PATH})
 	message(FATAL_ERROR "REZ_RELEASE_PACKAGES_PATH was not defined in the environment.")
-endif(NOT REZ_RELEASE_PACKAGES_PATH)
+endif(NOT DEFINED ENV{REZ_RELEASE_PACKAGES_PATH})
 
+if(NOT DEFINED ENV{REZ_BUILD_PROJECT_VERSION})
+	message(FATAL_ERROR "REZ_BUILD_PROJECT_VERSION was not defined in the environment.")
+endif(NOT DEFINED ENV{REZ_BUILD_PROJECT_VERSION})
+
+if(NOT DEFINED ENV{REZ_BUILD_PROJECT_NAME})
+	message(FATAL_ERROR "REZ_BUILD_PROJECT_NAME was not defined in the environment.")
+endif(NOT DEFINED ENV{REZ_BUILD_PROJECT_NAME})
+
+set(REZ_RELEASE_PACKAGES_PATH $ENV{REZ_RELEASE_PACKAGES_PATH})
 set(REZ_BUILD_PROJECT_VERSION $ENV{REZ_BUILD_PROJECT_VERSION})
-if(NOT REZ_BUILD_PROJECT_VERSION)
-	message(FATAL_ERROR "This project must be built via rez-build (REZ_BUILD_PROJECT_VERSION was not defined in the environment).")
-endif(NOT REZ_BUILD_PROJECT_VERSION)
-
 set(REZ_BUILD_PROJECT_NAME $ENV{REZ_BUILD_PROJECT_NAME})
-if(NOT REZ_BUILD_PROJECT_NAME)
-	message(FATAL_ERROR "This project must be built via rez-build (REZ_BUILD_PROJECT_NAME was not defined in the environment).")
-endif(NOT REZ_BUILD_PROJECT_NAME)
 
 # list of all packages used by this build
 set(REZ_BUILD_ALL_PKGS "$ENV{REZ_BUILD_REQUIRES_UNVERSIONED} $ENV{REZ_BUILD_VARIANT_UNVERSIONED}")
