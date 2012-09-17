@@ -5,20 +5,21 @@
 
 
 # This section maps the egg platform to a list of rez packages. Eggs typically describe the platform
-# they are built on in their metadata, keyed under 'Platform'. Typical values include 'UNKNOWN',
-# 'any' and 'Unix'. You probably have rez packages already installed that describe the current 
+# they are built on in their metadata, keyed under 'Platform'. Typical values include 'unknown',
+# 'any' and 'unix'. You probably have rez packages already installed that describe the current 
 # platform - for example, you may have the packages 'Linux', 'x86_64' and 'centos-6.3'. This file
-# lets you associate rez packages with egg platforms.
+# lets you associate rez packages with egg platforms. Note that the association is NON-case sensitive.
 platform_mappings:
-  UNKNOWN:  []
+  unknown:  []
   any:      []
-  Unix:     [Linux, x86_64, centos-6.3]  # this is just an example!
+  all:      []
+  unix:     [Linux, x86_64, centos-6.3]  # this is just an example!
 
 
 # This section remaps egg names to internal rez package names that your studio wants to use instead.
 # For example, ILM provides an 'OpenEXR' egg, but you might already have an 'OpenEXR' rez package, 
 # which is actually the C++ library and headers. In that case you might want to call the package 
-# 'PyOpenEXR' instead - use this file to do so.
+# 'PyOpenEXR' instead - use this file to do so. Note that the association IS case-sensitive.
 
 package_mappings:
   OpenEXR:  PyOpenEXR  # this is just an example!
