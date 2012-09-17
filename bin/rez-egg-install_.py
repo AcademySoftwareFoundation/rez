@@ -29,7 +29,13 @@ _g_yaml_prettify_re     = re.compile("^([^: \\n]+):", re.MULTILINE)
 # this is because rez doesn't have alphanumeric version support. It will have though, when
 # ported to Certus. Just not yet. :(
 def _convert_version(txt):
+    
+    txt = txt.lower()
+    txt = txt.replace('-','.')
+    txt = txt.replace("python",'')
+    txt = txt.replace("py",'')    
     ver = ''
+
     for ch in txt:
         num = None
         if ch>='a' and ch<='z':
@@ -181,8 +187,12 @@ if opts.mapping_file:
     with open(opts.mapping_file, 'r') as f:
         s = f.read()
     remappings = yaml.load(s)
-platform_remappings = remappings.get("platform_mappings") or {}
 package_remappings = remappings.get("package_mappings") or {}
+
+platre = remappings.get("platform_mappings") or {}
+platform_remappings = {}
+for k,v in platre.iteritems():
+    platform_remappings[k.lower()] = v
 
 safe_pkg_name = _convert_pkg_name(pkg_name, package_remappings)
 
@@ -294,7 +304,7 @@ for distr in distrs:
     if opts.force_platform is None:
         v = pkg_d.get("Platform")
         if v:
-            platform_pkgs = platform_remappings.get(v)
+            platform_pkgs = platform_remappings.get(v.lower())
             if platform_pkgs is None:
                 print >> sys.stderr, ("No remappings are present for the platform '%s'. " + \
                     "Please use the --mapping-file option to provide the remapping, or " + \
@@ -340,10 +350,6 @@ if eggs:
     print "FOUND EGGS: %s" % str(", ").join(eggs.keys())
     if eggs_tools:
         print "FOUND PROGRAMS: %s" % str(", ").join(eggs_tools)
-
-if safe_pkg_name not in eggs:
-    print >> sys.stderr, "requested package '%s' not found in eggs, aborting..." % pkg_name
-    sys.exit(1)
 
 
 

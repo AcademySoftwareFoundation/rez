@@ -94,11 +94,10 @@ if (len(sys.argv) == 1):
 
 (opts, packages) = p.parse_args()
 packages_set = set(packages)
+if not packages_set:
+	opts.all = True
 
-
-if not os.path.isdir(opts.path):
-	sys.stderr.write("'" + opts.path + "' is not a directory.\n")
-	sys.exit(1)
+paths = opts.path.split(':')
 
 if opts.depth == 0:
 	opts.depth = -1
@@ -115,7 +114,16 @@ if opts.depth == 0:
 dependsMap = {}
 
 all_packages = set()
-all_dirs = os.listdir(opts.path)
+
+all_dirs = []
+for path in paths:
+	if os.path.isdir(path):
+		for name in os.listdir(path):
+			path2 = os.path.join(path, name)
+			if os.path.isdir(path2):
+				all_dirs.append(path2)
+	else:
+		print >> sys.stderr, "Warning: skipping nonexistent path %s..." % path
 
 if not opts.quiet:
 	print("gathering packages...")
@@ -124,7 +132,8 @@ if not opts.quiet:
 	progstep = len(all_dirs) / 10.0
 	ndir = 0
 
-for f in all_dirs:
+for fullpath in all_dirs:
+	f = os.path.basename(fullpath)
 
 	if not opts.quiet:
 		prog1 = ndir / progstep
@@ -140,27 +149,24 @@ for f in all_dirs:
 
 	all_packages.add(f)
 
-	fullpath = os.path.join(opts.path, f)
-	if os.path.isdir(fullpath):
-		vers = fs.get_versions_in_directory(fullpath, False, 0, False)
-		if vers and (len(vers) > 0):
-			filename = fullpath + '/' + str(vers[0]) + "/package.yaml"
-			metadict = yaml.load(open(filename).read())
+	vers = fs.get_versions_in_directory(fullpath, False, 0, False)
+	if vers:
+		filename = fullpath + '/' + str(vers[0]) + "/package.yaml"
+		metadict = yaml.load(open(filename).read())
 
-			reqs = metadict["requires"] if ("requires" in metadict) else []
-			vars = metadict["variants"] if ("variants" in metadict) else []
-			if len(reqs) + len(vars) > 0:
+		reqs = metadict["requires"] if ("requires" in metadict) else []
+		vars = metadict["variants"] if ("variants" in metadict) else []
+		if len(reqs) + len(vars) > 0:
 
-				fn_unver = lambda pkg: pkg.split('-')[0]
-				deps = set(map(fn_unver, reqs))
-				for var in vars:
-					deps = deps | set(map(fn_unver, var))
+			fn_unver = lambda pkg: pkg.split('-')[0]
+			deps = set(map(fn_unver, reqs))
+			for var in vars:
+				deps = deps | set(map(fn_unver, var))
 
-				for dep in deps:
-					if dep not in dependsMap:
-						dependsMap[dep] = set()
-					dependsMap[dep].add(f)
-
+			for dep in deps:
+				if dep not in dependsMap:
+					dependsMap[dep] = set()
+				dependsMap[dep].add(f)
 
 if not opts.quiet:
 	print("\ndetecting cyclic dependencies...")
