@@ -157,12 +157,22 @@ if [ "$packages_path" == "" ]; then
 	exit 1
 fi
 
+if [ "`echo $packages_path | grep '^/'`" == "" ]; then
+	echo "Packages path must be an absolute path, not $packages_path" 1>&2
+	exit 1
+fi
+
 
 # local packages path
 #-----------------------------------------------------------------------------------------
 if [ "$local_packages_path" == "" ]; then
 	echo "You need to set the local packages path directory in configure.sh, or set "'$'"REZCONFIG_LOCAL_PACKAGES_PATH" 1>&2
 	echo "This is where your rez packages will be locally installed to." 1>&2
+	exit 1
+fi
+
+if [ "`echo $local_packages_path | grep '^/'`" == "" ]; then
+	echo "Local packages path must be an absolute path, not $local_packages_path" 1>&2
 	exit 1
 fi
 
