@@ -18,7 +18,7 @@
 
 # Path where you want to centrally deploy packages to (ie, a central location that all
 # users can see). For example, /someserver/rez/packages
-packages_path=/method/packages
+packages_path=
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME. This must be different to packages_path.
