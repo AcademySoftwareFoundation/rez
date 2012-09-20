@@ -285,7 +285,9 @@ do
 	# store the changelog into a metafile (rez-release will specify one
 	# via the -c flag)
 	if [ "$CHANGELOG" == "" ]; then
-		if [ "$VCS" != "" ]; then
+		if [ "$VCS" == "" ]; then
+			echo 'not under version control' > $CHLOGF
+		else
     		rez-$VCS-changelog > $CHLOGF
     	fi
 	else
