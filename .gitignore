@@ -1,4 +1,5 @@
 *.pyc
 rez.configured
 rez.installed
+rez.cppcompiler
 use_configure.sh

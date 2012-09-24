@@ -1,0 +1,4 @@
+#!/bin/bash
+cmd=`which bash`
+unset PATH
+$cmd --norc -c 'echo $PATH'

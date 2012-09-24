@@ -1,11 +1,18 @@
 #!!REZ_PYTHON_BINARY!
 
 from optparse import OptionParser
+import subprocess as sp
 import sys
 import os
 import os.path
 import shutil
 import uuid
+
+
+def _mkdir(dir):
+	if not os.path.exists(dir):
+		print "making %s..." % dir
+		os.mkdir(dir)
 
 
 bin_cmake_code_template = \
@@ -17,12 +24,6 @@ rez_install_files(
     EXECUTABLE
 )
 """
-
-
-def _mkdir(dir):
-	if not os.path.exists(dir):
-		print "making %s..." % dir
-		os.mkdir(dir)
 
 
 _cmake_templates = {
@@ -43,9 +44,9 @@ file(GLOB_RECURSE doc_files "docs/*")
 
 rez_install_doxygen(
     doc
-    FILES ${py_files} ${doc_files}
+    FILES %(FILES)s ${doc_files}
     DESTINATION doc
-    DOXYPY
+    %(DOXYPY)s
 
     # remove this once your docs have stabilised, then they will only be built and 
     # installed when you're performing a central install (ie a rez-release).
@@ -71,7 +72,7 @@ _project_types = [
 	"python"
 ]
 
-_project_deps = {
+_project_template_deps = {
 	"empty":	[],
 	"doxygen":	["empty"],
 	"python":	["doxygen","empty"]
@@ -85,10 +86,15 @@ _project_requires = {
 
 _project_build_requires = {
 	"empty":	[],
-	"doxygen":	["doxygen", "doxypy"],
+	"doxygen":	["doxygen"],
 	"python":	[]
 }
 
+
+
+###########################################################################
+# cmdlin
+###########################################################################
 
 usage = "usage: rez-make-project <name> <version>"
 proj_types_str = str(',').join(_project_types)
@@ -110,12 +116,54 @@ if len(args) != 2:
 
 proj_name = args[0]
 proj_version = args[1]
-print "creating files and directories for %s project %s-%s..." % (opts.type, proj_name, proj_version)
 
 cwd = os.getcwd()
 proj_types = [opts.type]
-proj_types += _project_deps[opts.type] or []
+proj_types += _project_template_deps[opts.type] or []
 browser = os.getenv("BROWSER") or "firefox"
+
+
+
+###########################################################################
+# query system
+###########################################################################
+
+if "doxygen" in proj_types:
+	doxygen_support = True
+	doxypy_support = True
+	doxygen_file_types = []
+	string_repl_d = {"DOXYPY": ""}
+
+	p = sp.Popen("rez-which doxygen", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+	p.communicate()
+	if p.returncode != 0:
+		_project_build_requires["doxygen"].remove("doxygen")
+		doxygen_support = False
+
+	if doxygen_support and "python" in proj_types:
+		p = sp.Popen("rez-which doxypy", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+		p.communicate()
+		if p.returncode == 0:
+			_project_build_requires["doxygen"].append("doxypy")
+			string_repl_d["DOXYPY"] = "DOXYPY"
+			doxygen_file_types.append("py_files")
+		else:
+			print >> sys.stderr, "Skipped doxygen python support, 'doxypy' package not found!"
+			doxypy_support = False
+
+	doxy_files_str = str(' ').join([("${%s}" % x) for x in doxygen_file_types])
+	string_repl_d["FILES"] = doxy_files_str
+	code = _cmake_templates["DOXYGEN_CMAKE_CODE"] % string_repl_d
+	_cmake_templates["DOXYGEN_CMAKE_CODE"] = code
+
+
+
+###########################################################################
+# create files and dirs
+###########################################################################
+
+print "creating files and directories for %s project %s-%s..." % \
+	(opts.type, proj_name, proj_version)
 
 str_repl = {
 	"NAME":						proj_name,

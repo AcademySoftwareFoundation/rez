@@ -1,0 +1,11 @@
+/**
+\mainpage %(USER)s has not written any documentation yet!
+
+To make matters worse, you're using an old (< 1.8) version of Doxygen! You should upgrade to 1.8 or 
+higher, if you do you will get markdown support, and nicer documentation will be generated for you.
+
+After you've upgraded Doxygen, you can simply remove this .dox file - you won't need it, and Doxygen
+will start using the <package>/docs/mainpage.md file instead.
+
+\image html "%(REZ_PATH)s/template/project_types/feelbad.jpg"
+*/

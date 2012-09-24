@@ -18,11 +18,15 @@
 # <label>: This becomes the name of this cmake target. Eg 'doc'.
 # DESTINATION: Relative path to install resulting docs to. Typically Doxygen will create a 
 # directory (often 'html'), which is installed into <install_path>/<rel_install_dir>/html.
+#
 # DOXYFILE: The doxygen config file to use. If unspecified, Rez will use its own default config.
+#
 # DOXYDIR: The directory the docs will be generated in, defaults to 'html'. You only need to set
 # this if you're generating non-html output (for eg, by setting GENERATE_HTML=NO in a custom Doxyfile).
+#
 # FORCE: Normally docs are not installed unless a central installation is taking place - set this
 # arg to force doc building and installation always.
+#
 # DOXYPY: At the time of writing, Doxygen does not have good python support. A separate, GPL project
 # called 'doxypy' (http://code.foosel.org/doxypy) can be used to fix this - it lets you write 
 # doxygen-style comments in python docstrings, and extracts them correctly. Doxypy cannot be shipped
@@ -48,93 +52,92 @@ if(NOT REZ_BUILD_ENV)
 	message(FATAL_ERROR "RezInstallDoxygen requires that RezBuild have been included beforehand.")
 endif(NOT REZ_BUILD_ENV)
 
-FIND_PACKAGE(Doxygen)
-if(NOT DOXYGEN_EXECUTABLE)
-	message(FATAL_ERROR "RezInstallDoxygen cannot find Doxygen.")
-endif(NOT DOXYGEN_EXECUTABLE)
-
-
 INCLUDE(Utils)
+
+FIND_PACKAGE(Doxygen)
 
 
 macro (rez_install_doxygen)
 
-	parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR" "FORCE;DOXYPY" ${ARGN})
+	if(DOXYGEN_EXECUTABLE)
+		parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR" "FORCE;DOXYPY" ${ARGN})
 
-	list(GET INSTDOX_DEFAULT_ARGS 0 label)
-	if(NOT label)
-		message(FATAL_ERROR "need to specify a label in call to rez_install_doxygen")
-	endif(NOT label)
+		list(GET INSTDOX_DEFAULT_ARGS 0 label)
+		if(NOT label)
+			message(FATAL_ERROR "need to specify a label in call to rez_install_doxygen")
+		endif(NOT label)
 
-	list(GET INSTDOX_DESTINATION 0 dest_dir)
-	if(NOT dest_dir)
-		message(FATAL_ERROR "need to specify DESTINATION in call to rez_install_doxygen")
-	endif(NOT dest_dir)
+		list(GET INSTDOX_DESTINATION 0 dest_dir)
+		if(NOT dest_dir)
+			message(FATAL_ERROR "need to specify DESTINATION in call to rez_install_doxygen")
+		endif(NOT dest_dir)
 
-	if(NOT INSTDOX_FILES)
-		message(FATAL_ERROR "no files listed in call to rez_install_doxygen")
-	endif(NOT INSTDOX_FILES)
+		if(NOT INSTDOX_FILES)
+			message(FATAL_ERROR "no files listed in call to rez_install_doxygen")
+		endif(NOT INSTDOX_FILES)
 
-	list(GET INSTDOX_DOXYFILE 0 doxyfile)
-	if(NOT doxyfile)
-		set(doxyfile $ENV{REZ_PATH}/template/Doxyfile)
-	endif(NOT doxyfile)
+		list(GET INSTDOX_DOXYFILE 0 doxyfile)
+		if(NOT doxyfile)
+			set(doxyfile $ENV{REZ_PATH}/template/Doxyfile)
+		endif(NOT doxyfile)
 
-	list(GET INSTDOX_DOXYDIR 0 doxydir)
-	if(NOT doxydir)
-		set(doxydir html)
-	endif(NOT doxydir)
+		list(GET INSTDOX_DOXYDIR 0 doxydir)
+		if(NOT doxydir)
+			set(doxydir html)
+		endif(NOT doxydir)
 
-	set(_filter_source_files "")
-	set(_input_filter "")
-	set(_opt_output_java "")
-	set(_extract_all "")	
-	if(INSTDOX_DOXYPY)
-		find_file(DOXYPY_SRC doxypy.py $ENV{REZ_DOXYPY_ROOT})
-		if(DOXYPY_SRC)
-			set(_filter_source_files "FILTER_SOURCE_FILES = YES")
-			set(_input_filter "INPUT_FILTER = \"python ${DOXYPY_SRC}\"")
-			set(_opt_output_java "OPTIMIZE_OUTPUT_JAVA = YES")
-			set(_extract_all "EXTRACT_ALL = YES")
-		else(DOXYPY_SRC)
-			message(FATAL_ERROR "Cannot locate doxypy.py - you probably need to supply doxypy as a Rez package, see the documentation in <rez_install>/cmake/RezInstallDoxygen.cmake for more info.")
-		endif(DOXYPY_SRC)
-	endif(INSTDOX_DOXYPY)
+		set(_filter_source_files "")
+		set(_input_filter "")
+		set(_opt_output_java "")
+		set(_extract_all "")	
+		if(INSTDOX_DOXYPY)
+			find_file(DOXYPY_SRC doxypy.py $ENV{REZ_DOXYPY_ROOT})
+			if(DOXYPY_SRC)
+				set(_filter_source_files "FILTER_SOURCE_FILES = YES")
+				set(_input_filter "INPUT_FILTER = \"python ${DOXYPY_SRC}\"")
+				set(_opt_output_java "OPTIMIZE_OUTPUT_JAVA = YES")
+				set(_extract_all "EXTRACT_ALL = YES")
+			else(DOXYPY_SRC)
+				message(FATAL_ERROR "Cannot locate doxypy.py - you probably need to supply doxypy as a Rez package, see the documentation in <rez_install>/cmake/RezInstallDoxygen.cmake for more info.")
+			endif(DOXYPY_SRC)
+		endif(INSTDOX_DOXYPY)
 
-	SET(_REZ_YAMLQ $ENV{REZ_PATH}/bin/_rez_query_yaml --filepath=${CMAKE_SOURCE_DIR}/package.yaml )
-	EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-name OUTPUT_VARIABLE _proj_name OUTPUT_STRIP_TRAILING_WHITESPACE)
-	EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-version OUTPUT_VARIABLE _proj_ver OUTPUT_STRIP_TRAILING_WHITESPACE)
-	EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-desc OUTPUT_VARIABLE _proj_desc OUTPUT_STRIP_TRAILING_WHITESPACE)
-	string(REPLACE "\n" " " _proj_desc2 ${_proj_desc})
+		SET(_REZ_YAMLQ $ENV{REZ_PATH}/bin/_rez_query_yaml --filepath=${CMAKE_SOURCE_DIR}/package.yaml )
+		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-name OUTPUT_VARIABLE _proj_name OUTPUT_STRIP_TRAILING_WHITESPACE)
+		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-version OUTPUT_VARIABLE _proj_ver OUTPUT_STRIP_TRAILING_WHITESPACE)
+		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-desc OUTPUT_VARIABLE _proj_desc OUTPUT_STRIP_TRAILING_WHITESPACE)
+		string(REPLACE "\n" " " _proj_desc2 ${_proj_desc})
 
-	add_custom_command(
-		OUTPUT ${dest_dir}/Doxyfile
-		COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
-		COMMAND ${CMAKE_COMMAND} -E copy ${doxyfile} ${dest_dir}/Doxyfile
-		COMMAND echo PROJECT_NAME = \"${_proj_name}\" >> ${dest_dir}/Doxyfile
-		COMMAND echo PROJECT_NUMBER = \"${_proj_ver}\" >> ${dest_dir}/Doxyfile
-		COMMAND echo PROJECT_BRIEF = \"${_proj_desc2}\" >> ${dest_dir}/Doxyfile
-		COMMAND echo ${_filter_source_files} >> ${dest_dir}/Doxyfile
-		COMMAND echo ${_input_filter} >> ${dest_dir}/Doxyfile
-		COMMAND echo ${_opt_output_java} >> ${dest_dir}/Doxyfile
-		COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
-		COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
-		COMMENT "Generating Doxyfile ${dest_dir}/Doxyfile..."
-		VERBATIM
-	)
+		add_custom_command(
+			OUTPUT ${dest_dir}/Doxyfile
+			COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
+			COMMAND ${CMAKE_COMMAND} -E copy ${doxyfile} ${dest_dir}/Doxyfile
+			COMMAND echo PROJECT_NAME = \"${_proj_name}\" >> ${dest_dir}/Doxyfile
+			COMMAND echo PROJECT_NUMBER = \"${_proj_ver}\" >> ${dest_dir}/Doxyfile
+			COMMAND echo PROJECT_BRIEF = \"${_proj_desc2}\" >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_filter_source_files} >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_input_filter} >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_opt_output_java} >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
+			COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
+			COMMENT "Generating Doxyfile ${dest_dir}/Doxyfile..."
+			VERBATIM
+		)
 
-	add_custom_target(${label}
-		DEPENDS ${dest_dir}/Doxyfile
-		#COMMAND ${DOXYGEN_EXECUTABLE}
-		COMMAND doxygen
-		WORKING_DIRECTORY ${dest_dir}
-		COMMENT "Generating doxygen content in ${dest_dir}/${doxydir}..."
-	)
+		add_custom_target(${label}
+			DEPENDS ${dest_dir}/Doxyfile
+			#COMMAND ${DOXYGEN_EXECUTABLE}
+			COMMAND doxygen
+			WORKING_DIRECTORY ${dest_dir}
+			COMMENT "Generating doxygen content in ${dest_dir}/${doxydir}..."
+		)
 
-	if(CENTRAL OR INSTDOX_FORCE)
-		# only install docs when installing centrally
-		add_custom_target(_install_${label} ALL DEPENDS ${label})
-		install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${doxydir} DESTINATION ${dest_dir})
-	endif(CENTRAL OR INSTDOX_FORCE)
-
+		if(CENTRAL OR INSTDOX_FORCE)
+			# only install docs when installing centrally
+			add_custom_target(_install_${label} ALL DEPENDS ${label})
+			install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${doxydir} DESTINATION ${dest_dir})
+		endif(CENTRAL OR INSTDOX_FORCE)
+	else(DOXYGEN_EXECUTABLE)
+		message(WARNING "RezInstallDoxygen cannot find Doxygen - documentation was not built.")
+	endif(DOXYGEN_EXECUTABLE)
 endmacro (rez_install_doxygen)

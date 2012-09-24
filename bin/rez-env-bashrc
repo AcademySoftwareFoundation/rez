@@ -16,9 +16,6 @@ source $REZ_PATH/bin/_complete
 
 PS1="\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] $PS1"
 
-if [ "$REZ_JOB" != "" ]; then
-	PS1="\[\e[1;36m\]$REZ_JOB\[\e[0m\]$PS1"
-fi
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -21,7 +21,7 @@
 packages_path=
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
-# needed to stop early substitution of $HOME. This must be different to packages_path.
+# needed to stop early substitution of $HOME.
 local_packages_path='$HOME/packages'
 
 # The system shell that rez expects to be running in. If left blank rez will identify
@@ -46,7 +46,7 @@ cpp_compiler_binary=
 python_binary=
 
 # Path to python modules, if left blank rez will try to find them. A common mistake is to
-# include the trailing subdir (eg ../yaml), that's one dir too many
+# include the trailing subdir (eg /.../.../yaml), that's one dir too many
 pyyaml_path=
 pydot_path=
 pyparsing_path=
@@ -157,7 +157,7 @@ if [ "$packages_path" == "" ]; then
 	exit 1
 fi
 
-if [ "`echo $packages_path | grep '^/'`" == "" ]; then
+if [ "`echo $packages_path | grep '^\.'`" != "" ]; then
 	echo "Packages path must be an absolute path, not $packages_path" 1>&2
 	exit 1
 fi
@@ -171,7 +171,7 @@ if [ "$local_packages_path" == "" ]; then
 	exit 1
 fi
 
-if [ "`echo $local_packages_path | grep '^/'`" == "" ]; then
+if [ "`echo $local_packages_path | grep '^\.'`" != "" ]; then
 	echo "Local packages path must be an absolute path, not $local_packages_path" 1>&2
 	exit 1
 fi
@@ -270,6 +270,19 @@ if [ "$distro_version" == "" ]; then
 fi
 
 
+orset='edit configure.sh, or set $'
+
+
+# make
+#-----------------------------------------------------------------------------------------
+which make > /dev/null 2>&1
+if [ $? -ne 0 ]; then
+	echo
+	echo "Cannot find make!" 1>&2
+	exit 1
+fi
+
+
 # cmake
 #-----------------------------------------------------------------------------------------
 echo
@@ -284,9 +297,11 @@ else
 fi
 echo "found cmake binary: "$cmake_binary
 
-cmakever=`( $cmake_binary --version 2>&1 ) | awk '{print $NF}'`
-cmakenum=`echo $cmakever | sed 's/\.[^\.]*$//' | sed 's/\.//'`
-if (( cmakenum < 28 )); then
+cmakever=`( $cmake_binary --version 2>&1 ) | tr ' ' '\n' | sed -n '/^[0-9]/p' | head -n 1`
+versplit=`echo $cmakever | tr '.' ' ' | tr '-' ' '`
+cmake_major_ver=`echo $versplit | awk '{print $1}'`
+cmake_minor_ver=`echo $versplit | awk '{print $2}'`
+if (( (cmake_major_ver * 100) + cmake_minor_ver < 208 )); then
 	echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
 	echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
 	exit 1
@@ -296,10 +311,10 @@ fi
 # runtime 3rd-party tools
 #-----------------------------------------------------------------------------------------
 if [ "$rez_release_editor" == "" ]; then
-    rez_release_editor=`_find_program kedit gedit nedit kate vim vi`
+    rez_release_editor=`_find_program kedit gedit nedit kwrite kate vim vi`
 fi
 if [ "$rez_dot_image_viewer" == "" ]; then
-    rez_dot_image_viewer=`_find_program eog kview xnview gthumb feh gqview geeqie firefox`
+    rez_dot_image_viewer=`_find_program eog kde-open kview xnview gthumb feh gqview geeqie firefox`
 fi
 
 
@@ -307,28 +322,22 @@ fi
 #-----------------------------------------------------------------------------------------
 echo
 echo 'detecting cpp compiler...'
+
 # attempt to find compiler via cmake
 tmpf=./rez.cppcompiler
-echo 'include(CMakeDetermineCXXCompiler)'	> $tmpf
-echo 'MESSAGE(${CMAKE_CXX_COMPILER})'		>> $tmpf
-cppcompiler=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | tail -n 1`
+echo 'include(CMakeDetermineCXXCompiler)'			> $tmpf
+echo 'MESSAGE("REZCXX "${CMAKE_CXX_COMPILER})'		>> $tmpf
+echo 'MESSAGE("REZID "${CMAKE_CXX_COMPILER_ID})'	>> $tmpf
+
+cppcompiler=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | grep '^REZCXX' | grep -v 'NOTFOUND' | awk '{print $NF}'`
 if [ $? -ne 0 ]; then
 	cppcompiler=''
 fi
-if [ "$cppcompiler" == "CMAKE_CXX_COMPILER-NOTFOUND" ]; then
-	cppcompiler=''
-fi
 
-# attempt to get compiler id via cmake
-cppcompiler_id=''
-if [ "$cppcompiler" != "" ]; then
-	cppcompiler_id=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | head -n 1 | awk '{print $NF}'`
-	if [ $? -ne 0 ]; then
-		cppcompiler_id=''
-	fi
+cppcompiler_id=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | grep '^REZID' | grep -v 'NOTFOUND' | awk '{print $NF}'`
+if [ $? -ne 0 ]; then
+	cppcompiler_id=''
 fi
-rm -f $tmpf
-rm -rf ./CMakeFiles
 
 # couldn't find cpp compiler via cmake, let's just look for the binary directly
 if [ "$cppcompiler" == "" ]; then
@@ -352,12 +361,6 @@ if [ "$cppcompiler" == "" ]; then
         echo "Couldn't find cpp compiler." 1>&2
         echo "You need to $orset""REZCONFIG_CPP_COMPILER_BINARY" 1>&2
         exit 1
-fi
-
-if [ "$cppcompiler_id" == "" ]; then
-	echo $echoerr"couldn't detect compiler cmake id, assuming GNU..."$echoreset 1>&2
-	nissues=$(( $nissues + 1 ))
-	cppcompiler_id='GNU'
 fi
 
 cppcomp_name=`basename $cppcompiler | tr '+' 'p'`

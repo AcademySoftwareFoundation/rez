@@ -199,9 +199,9 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     #------------------
     pkg_dir=$_REZ_PACKAGES_PATH/hello_world
     make_pkg_dir $pkg_dir
-    mkdir -p $pkg_dir/$osname/bin
-    pkg_sh=$pkg_dir/$osname/bin/hello_world
-    echo "#!/bin/bash"					> $pkg_sh
+    mkdir -p $pkg_dir/bin
+    pkg_sh=$pkg_dir/bin/hello_world
+    echo "#!/bin/bash"			            > $pkg_sh
     echo "echo 'Hello world!'"				>> $pkg_sh
     chmod 777 $pkg_sh
 

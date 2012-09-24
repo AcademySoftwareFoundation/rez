@@ -29,25 +29,24 @@ _g_yaml_prettify_re     = re.compile("^([^: \\n]+):", re.MULTILINE)
 # this is because rez doesn't have alphanumeric version support. It will have though, when
 # ported to Certus. Just not yet. :(
 def _convert_version(txt):
-    
     txt = txt.lower()
-    txt = txt.replace('-','.')
-    txt = txt.replace("python",'')
-    txt = txt.replace("py",'')    
+    txt = txt.replace('alpha','a')
+    txt = txt.replace('beta','b')
+    txt = txt.replace("python",'p')
+    txt = txt.replace("py",'p')    
     ver = ''
 
     for ch in txt:
-        num = None
-        if ch>='a' and ch<='z':
-            num = ord(ch) - ord('a')
-        elif ch>='A' and ch<='Z':
-            num = ord(ch) - ord('A') + 26
-        elif ch=='_':
-            num = 26+26
-        if num is None:
+        if ch>='0' and ch<='9':
             ver += ch
+        elif ch>='a' and ch<='z':
+            ver += ".%s." % ch
+        elif ch=='.' or ch=='-':
+            ver += '.'
+        elif ch=='_':
+            pass
         else:
-            ver += ".%d." % num
+            ver += ".%d." % ord(ch)
 
     ver = ver.replace("..",".")
     ver = ver.strip('.')
@@ -91,7 +90,9 @@ def _convert_requirement(req, pkg_remappings):
             r = "!%s-%s" % (pkg_name, rezver)
             rezreqs.append(r)
         else:
-            raise Exception("Unknown operator '%s'" % op)
+            print >> sys.stderr, \
+                "Warning: Can't understand op '%s', just depending on unversioned package..." % op
+            rezreqs.append(pkg_name)
 
     return rezreqs
 
