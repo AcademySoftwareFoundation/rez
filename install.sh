@@ -126,6 +126,12 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     mkdir -p $os_dir/cmake
     os_yaml=$os_dir/package.yaml
 
+    os_bits='64'
+    test_bits=`getconf LONG_BIT`
+    if [ $? -eq 0 ]; then
+        os_bits=$test_bits
+    fi
+
     echo "config_version : 0" 			> $os_yaml
     echo "name: $osname" 				>> $os_yaml
     echo "commands:" 					>> $os_yaml
@@ -134,8 +140,8 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     os_cmake=$os_dir/cmake/$osname.cmake
     echo '' > $os_cmake
     if [ "$osname" == "Linux" ]; then
-        echo "#set(Linux_LIBRARIES dl z)"					>> $os_cmake
-        echo "set(Linux_DEFINITIONS -fPIC -m64 -DLINUX)"	>> $os_cmake
+        echo "#set(Linux_LIBRARIES dl z)"					    >> $os_cmake
+        echo "set(Linux_DEFINITIONS -fPIC -m$os_bits -DLINUX)"  >> $os_cmake
     fi
 
 
@@ -249,6 +255,7 @@ cat ./bin/_set-rez-env \
 	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
 	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
 	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
+    | sed -e 's|!REZ_PYRO_PATH!|'$_REZ_PYRO_PATH'|g' \
 	| sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
 	| sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
 	> $install_dir/bin/_set-rez-env
