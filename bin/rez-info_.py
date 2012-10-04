@@ -68,11 +68,8 @@ if(pkg_info):
 			print auth
 		print
 
-	print "SVN URL:"
+	print "REPOSITORY URL:"
 	svn_url = pkg_info[-1].split()[-1]
-	p = svn_url.rfind("/tags/")
-	if p != -1:
-		svn_url = svn_url[0:p] + "/trunk"
 	print svn_url
 	print
 

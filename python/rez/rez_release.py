@@ -97,13 +97,8 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	if not metadata.description:
 		raise RezReleaseError(path + "/package.yaml is missing a description")
 
-	# metadata must have authors, which must be valid users
-	if metadata.authors:
-		try:
-			metadata.validate_authors()
-		except ConfigMetadataError, e:
-			raise RezReleaseError(e.value)
-	else:
+	# metadata must have authors
+	if not metadata.authors:
 		raise RezReleaseError(path + "/package.yaml is missing authors")
 
 	pkg_release_path = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
@@ -171,7 +166,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		if (last_tag_str != "(NONE)") and (last_tag_str[0] != 'v'):
 			# make sure our version is newer than the last tagged release
 			last_tag_version = versions.Version(last_tag_str)
-			if this_version.same_branch(last_tag_version) and this_version <= last_tag_version:
+			if this_version <= last_tag_version:
 				raise RezReleaseError("cannot release: current version '" + metadata.version + \
 					"' is not greater than the latest tag '" + last_tag_str + \
 					"'. You may need to up your version, svn-checkin and try again.")

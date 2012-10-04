@@ -64,6 +64,7 @@ if [ "$autowrappers" != "" ]; then
     new_pkgs=`cat $tmpdir/packages.txt`
     unset _REZ_ENV_OPT_ADD_LOOSE
     unset _REZ_ENV_OPT_ADD_STRICT
+    _REZ_ENV_OPT_NO_CACHE=True
     set -- $new_pkgs
 else
 	set -- $pkgs
@@ -129,9 +130,13 @@ if [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
 	max_fails_flag="--max-fails="$_REZ_ENV_OPT_VIEW_FAIL
 fi
 
+if [ "$_REZ_ENV_OPT_NO_CACHE" == "True" ]; then
+	no_cache_flag="--no-cache"
+fi
+
 rez-config --time=$_REZ_ENV_OPT_TIME --print-env --meta-info=tools --meta-info-shallow=tools \
 	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archiving_flag \
-	$use_blacklist_flag $buildreq_flag $no_os_flag $pkg_list > $tmpf
+	$use_blacklist_flag $buildreq_flag $no_os_flag $no_cache_flag $pkg_list > $tmpf
 ret=$?
 
 if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then

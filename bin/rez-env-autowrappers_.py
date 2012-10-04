@@ -101,6 +101,22 @@ if __name__ == '__main__':
         all_pkgs.append(pkgname)
 
         # do the resolve, creates the context and dot files
+        contextfile = os.path.join(pkgdir, _g_context_filename)
+        dotfile = os.path.join(pkgdir, _g_dot_filename)
+
+        resolver = rc.Resolver(rc.RESOLVE_MODE_LATEST, quiet=opts.quiet, time_epoch=opts.time, \
+            build_requires=opts.build, assume_dt=not opts.no_assume_dt, caching=not opts.no_cache)
+
+        result = resolver.guarded_resolve(d['pkgs'], no_os=opts.no_os, is_wrapper=True, \
+            meta_vars=["tools"], shallow_meta_vars=["tools"], dot_file=dotfile)
+
+        if not result:
+            sys.exit(1)
+
+        commands = result[1]
+
+
+        """
         # Invoking rez-config as a subproc sucks... but I'd have to reorganise a bunch of code to
         # fix this. I'd rather just do it properly in certus (aka 2nd-gen rez).
         contextfile = os.path.join(pkgdir, _g_context_filename)
@@ -114,6 +130,7 @@ if __name__ == '__main__':
         if opts.quiet:              cmd += " --quiet"
         if opts.build:              cmd += " --build-requires"
         if opts.no_os:              cmd += " --no-os"
+        if opts.no_cache:           cmd += " --no-cache"
         if opts.ignore_blacklist:   cmd += " --ignore-blacklist"
         if opts.ignore_archiving:   cmd += " --ignore-archiving"
         if opts.no_assume_dt:       cmd += " --no-assume-dt"
@@ -126,6 +143,8 @@ if __name__ == '__main__':
             sys.exit(p.returncode)
 
         commands = [x.strip() for x in commands.strip().split('\n')]
+        """
+
         commands.append("export REZ_CONTEXT_FILE=%s" % contextfile)
 
         f = open(contextfile, 'w')

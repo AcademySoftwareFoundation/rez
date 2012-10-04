@@ -82,7 +82,7 @@ for tag_entry in tags:
 	except Exception:
 		continue
 
-	if ver.same_branch(latest_ver) and ver > latest_ver:
+	if ver > latest_ver:
 		latest_ver = ver
 		found_tag = True
 

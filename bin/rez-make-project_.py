@@ -264,7 +264,7 @@ for proj_type in proj_types:
 if tools:
 	shebang = '#!/bin/bash'
 	if opts.type == "python":
-		shebang = "#!/usr/bin/env me-python"
+		shebang = "#!/usr/bin/env python"
 	_mkdir("./bin")
 
 	for tool in tools:

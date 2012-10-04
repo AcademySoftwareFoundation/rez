@@ -26,6 +26,8 @@ def get_cmdlin_parser():
         help="Include build-only package requirements [default = %default]")
     p.add_option("-o", "--no_os", dest="no_os", action="store_true", default=False, \
         help="Stop rez-env from implicitly requesting the operating system package [default = %default]")
+    p.add_option("--no-cache", dest="no_cache", action="store_true", default=False, \
+        help="disable caching [default = %default]")
     p.add_option("-u", "--ignore_blacklist", dest="ignore_blacklist", action="store_true", default=False, \
         help="Include blacklisted packages [default = %default]")
     p.add_option("-g", "--ignore_archiving", dest="ignore_archiving", action="store_true", default=False, \

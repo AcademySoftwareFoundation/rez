@@ -29,18 +29,6 @@ except git.exc.InvalidGitRepositoryError:
 
 latest_ver = versions.Version("0")
 
-#----------------------------------------------------------------------------------------
-# find the git tags
-#----------------------------------------------------------------------------------------
-
-branch_name = repo.active_branch.name
-#if branch_name != 'master':
-#	try:
-#		# create a Version instance from the branch we are on this makes sure it's
-#		# a Well Formed Version, and also puts the base version in 'latest_ver'
-#		latest_ver = versions.Version(branch_name)
-#	except:
-#		sys.exit(4)
 
 #----------------------------------------------------------------------------------------
 # read all the tags (if any) and find the most recent
@@ -59,7 +47,7 @@ for tag_entry in tags:
 	except Exception:
 		continue
 
-	if ver.same_branch(latest_ver) and ver > latest_ver:
+	if ver > latest_ver:
 		latest_ver = ver
 		found_tag = tag_entry
 

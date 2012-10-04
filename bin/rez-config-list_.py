@@ -13,7 +13,7 @@ import optparse
 import yaml
 import sigint
 
-import filesys as fs
+import rez_filesys as fs
 
 
 p = optparse.OptionParser()
@@ -57,9 +57,9 @@ else:
 
 for fullpath in pkg_paths:
 
-	vers = fs.get_versions_in_directory(fullpath, False, 0, False)
-	if vers and (len(vers) > 0):
-		filename = fullpath + '/' + str(vers[0]) + "/package.yaml"
+	vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
+	if vers:
+		filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
 		metadict = yaml.load(open(filename).read())
 
 		ln = fullpath.split('/')[-1]

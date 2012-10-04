@@ -42,17 +42,17 @@ then the following cases break the assumption:
 import os
 import time
 import yaml
-import copy
 import sys
 import random
+import subprocess as sp
 from versions import *
 from public_enums import *
 from rez_exceptions import *
 from rez_metafile import *
-from filesys import *
+from rez_memcached import *
+import rez_filesys
+import rez_util
 
-# yes this mirrors rctxt.time_epoch, clean up in V2
-g_time_epoch = 0
 
 
 ##############################################################################
@@ -74,28 +74,31 @@ class PackageRequest:
 	this version range." A weak request is actually converted to a normal anti-
 	package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
 	"""
-	def __init__(self, name, version, mode=RESOLVE_MODE_NONE, time_epoch=0):
+	def __init__(self, name, version, memcache=None, latest=True):
 		self.name = name
 
 		if self.is_weak():
 			# convert into an anti-package
 			vr = VersionRange(version)
-			vr_inv = vr.get_inverse();
+			vr_inv = vr.get_inverse()
 			version = str(vr_inv)
 			self.name = '!' + self.name[1:]
 
-		if (mode != RESOLVE_MODE_NONE):
+		if memcache:
 			# goto filesystem and resolve version immediately
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
-			found_path, found_ver = find_package2(syspaths, name_, VersionRange(version), mode, time_epoch)
+			found_path, found_ver, found_epoch = memcache.find_package2( \
+				rez_filesys._g_syspaths, name_, VersionRange(version), latest)
+
 			if found_ver:
 				self.version = str(found_ver)
 			else:
 				raise PkgsUnresolvedError( [ PackageRequest(name, version) ] )
 		else:
-			self.version = version
+			# normalise
+			self.version = str(VersionRange(version))
 
 	def is_anti(self):
 		return (self.name[0] == '!')
@@ -114,7 +117,8 @@ class PackageRequest:
 
 
 class PackageConflict:
-	"""A package conflict. This can occur between a package (possibly a specific
+	"""
+	A package conflict. This can occur between a package (possibly a specific
 	variant) and a package request
 	"""
 	def __init__(self, pkg_req_conflicting, pkg_req, variant = None ):
@@ -134,13 +138,14 @@ class ResolvedPackage:
 	"""
 	A resolved package
 	"""
-	def __init__(self, name, version, base, root, commands, metadata):
+	def __init__(self, name, version, base, root, commands, metadata, timestamp):
 		self.name = name
 		self.version = version
 		self.base = base
 		self.root = root
 		self.commands = commands
 		self.metadata = metadata # original yaml data
+		self.timestamp = timestamp
 
 	def short_name(self):
 		if (len(self.version) == 0):
@@ -148,237 +153,412 @@ class ResolvedPackage:
 		else:
 			return self.name + '-' + str(self.version)
 
+	def strip(self):
+		# remove data that we don't want to cache
+		self.commands = None
+
 	def __str__(self):
 		return str([self.name, self.version, self.root])
+
+
+class Resolver():
+	"""
+	Where all the action happens. This class performs a package resolve.
+	"""
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
+		build_requires=False, assume_dt=False, caching=True):
+		"""
+		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
+		quiet: if True then hides unnecessary output (such as the progress dots)
+		verbosity: print extra debugging info. One of: 0, 1, 2
+		max_fails: return after N failed configuration attempts, default -1 (no limit)
+		time_epoch: ignore packages newer than this time-date. Default = 0 which is a special
+			case, meaning do not ignore any packages
+		assume_dt: Assume dependency transitivity
+		caching: If True, resolve info is read from and written to a memcache daemon if possible.
+		"""
+		if not time_epoch:
+			time_epoch = int(time.time())
+
+		self.rctxt = _ResolvingContext()
+		self.rctxt.resolve_mode = resolve_mode
+		self.rctxt.verbosity = verbosity
+		self.rctxt.max_fails = max_fails
+		self.rctxt.quiet = quiet
+		self.rctxt.build_requires = build_requires
+		self.rctxt.assume_dt = assume_dt
+		self.rctxt.time_epoch = time_epoch
+		self.rctxt.memcache = RezMemCache(time_epoch, caching)
+
+	def get_memcache(self):
+		return self.rctxt.memcache
+
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
+		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
+		"""
+		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
+		extra options for convenience.
+		@return None on failure, same as resolve() otherwise.
+		"""
+		try:
+			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache) for x in pkg_req_strs]
+			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, \
+				meta_vars, shallow_meta_vars)
+
+		except PkgSystemError, e:
+			sys.stderr.write(str(e)+'\n')
+			return None
+		except VersionError, e:
+			sys.stderr.write(str(e)+'\n')
+			return None
+		except PkgFamilyNotFoundError, e:
+			sys.stderr.write("Could not find the package family '" + e.family_name + "'\n")
+			return None
+		except PkgNotFoundError, e:
+			sys.stderr.write("Could not find the package '" + e.pkg_req.short_name() + "'\n")
+			return None
+		except PkgConflictError, e:
+			sys.stderr.write("The following conflicts occurred:\n")
+			for c in e.pkg_conflicts:
+				sys.stderr.write(str(c)+'\n')
+
+			# we still produce a dot-graph on failure
+			if e.last_dot_graph:
+				if dot_file:
+					rez_util.gen_dotgraph_image(e.last_dot_graph, dot_file)
+				if print_dot:
+					print(e.last_dot_graph)
+			return None
+		except PkgsUnresolvedError, e:
+			sys.stderr.write("The following packages could not be resolved:\n")
+			for p in e.pkg_reqs:
+				sys.stderr.write(str(p)+'\n')
+			return None
+		except PkgCommandError, e:
+			sys.stderr.write("There was a problem with the resolved command list:\n")
+			sys.stderr.write(str(e)+'\n')
+			return None
+		except PkgCyclicDependency, e:
+			sys.stderr.write("\nCyclic dependency(s) were detected:\n")
+			sys.stderr.write(str(e) + "\n")
+
+			# write graphs to file
+			tmpf = tempfile.mkstemp(suffix='.dot')
+			os.write(tmpf[0], str(e))
+			os.close(tmpf[0])
+			sys.stderr.write("\nThis graph has been written to:\n")
+			sys.stderr.write(tmpf[1] + "\n")
+
+			tmpf = tempfile.mkstemp(suffix='.dot')
+			os.write(tmpf[0], e.dot_graph)
+			os.close(tmpf[0])
+			sys.stderr.write("\nThe whole graph (with cycles highlighted) has been written to:\n")
+			sys.stderr.write(tmpf[1] + "\n")
+
+			# we still produce a dot-graph on failure
+			if dot_file:
+				rez_util.gen_dotgraph_image(e.dot_graph, dot_file)
+			if print_dot:
+				print(e.dot_graph)
+
+			return None
+
+		except PkgConfigNotResolvedError, e:
+			sys.stderr.write("The configuration could not be resolved:\n")
+			for p in e.pkg_reqs:
+				sys.stderr.write(str(p)+'\n')
+			sys.stderr.write("The failed configuration attempts were:\n")
+			for s in e.fail_config_list:
+				sys.stderr.write(s+'\n')
+
+			# we still produce a dot-graph on failure
+			if dot_file:
+				rez_util.gen_dotgraph_image(e.last_dot_graph, dot_file)
+			if print_dot:
+				print(e.last_dot_graph)
+
+			return None
+
+		pkg_res_list, env_cmds, dot_graph, nfails = result
+
+		if print_dot:
+			print(dot_graph)
+
+		if dot_file:
+			rez_util.gen_dotgraph_image(dot_graph, dot_file)
+
+		return result
+
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
+		meta_vars=None, shallow_meta_vars=None):
+		"""
+		Perform a package resolve.
+		Inputs:
+		pkg_reqs: list of packages to resolve into a configuration
+		no_os: don't include the OS package.
+		no_path_append: don't append OS-specific paths to PATH when printing an environment
+		is_wrapper: If this env is being resolved for a wrapper, then some very slight changes
+			are needed to a normal env, so that wrappers can see one another.
+		meta_vars: A list of strings, where each string is a key whos value will be saved into an
+			env-var named REZ_META_<KEY> (lists are comma-separated).
+		shallow_meta_vars: Same as meta-vars, but only the values from those packages directly
+			requested are baked into the env var REZ_META_SHALLOW_<KEY>.
+		@returns
+		(a) a list of ResolvedPackage objects, representing the resolved config;
+		(b) a list of commands which, when run, should configure the environment;
+		(c) a dot-graph representation of the config resolution, as a string;
+		(d) the number of failed config attempts before the successful one was found
+		-OR-
+		raise the relevant exception, if config resolution is not possible
+		"""
+		if not no_os:
+			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg)
+			pkg_reqs = [os_pkg_req] + pkg_reqs
+
+		if not pkg_reqs:
+			return ([], [], "digraph g{}", 0)
+
+		# get the resolve, possibly read/write cache
+		result = self.get_cached_resolve(pkg_reqs)
+		if not result:
+			result = self.resolve_base(pkg_reqs)
+			self.set_cached_resolve(pkg_reqs, result)
+
+		pkg_res_list, env_cmds, dot_graph, nfails = result
+		env_cmds = env_cmds[:]
+
+		# add wrapper stuff
+		if is_wrapper:
+			env_cmds.append("export REZ_IN_WRAPPER=1")
+			env_cmds.append("export PATH=$PATH:$REZ_WRAPPER_PATH")
+		else:
+			env_cmds.append("export REZ_IN_WRAPPER=")
+			env_cmds.append("export REZ_WRAPPER_PATH=")
+
+		# add meta env vars
+		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
+		meta_envvars = {}
+		shallow_meta_envvars = {}
+
+		for pkg_res in pkg_res_list:
+			def _add_meta_vars(mvars, target):
+				for key in mvars:
+					if key in pkg_res.metadata.metadict:
+						val = pkg_res.metadata.metadict[key]
+						if type(val) == list:
+							val = str(',').join(val)
+						if key not in target:
+							target[key] = []
+						target[key].append(pkg_res.name + ':' + val)
+
+			_add_meta_vars(meta_vars, meta_envvars)
+
+			if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
+				_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
+
+		for k,v in meta_envvars.iteritems():
+			env_cmds.append("export REZ_META_" + k.upper() + "='" + str(' ').join(v) + "'")
+		for k,v in shallow_meta_envvars.iteritems():
+			env_cmds.append("export REZ_META_SHALLOW_" + k.upper() + "='" + str(' ').join(v) + "'")
+
+		# ad system paths
+		sys_paths = [os.environ["REZ_PATH"]+"/bin"]
+		if not no_path_append:
+			sys_paths += rez_filesys._g_os_paths
+		env_cmds.append("export PATH=$PATH:%s" % str(':').join(sys_paths))
+
+		return pkg_res_list, env_cmds, dot_graph, nfails
+
+	def resolve_base(self, pkg_reqs):	
+		config = _Configuration(self.rctxt)
+		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
+
+		for pkg_req in pkg_reqs:
+			normalise_pkg_req(pkg_req)
+			config.add_package(pkg_req)
+
+		for pkg_req in pkg_reqs:
+			name = pkg_req.short_name()
+			if name.startswith("__wrapper_"):
+				name2 = name.replace("__wrapper_", "")
+				config.add_dot_graph_verbatim('"' + name +
+					'" [label="%s" style="filled" shape=folder fillcolor="rosybrown1"] ;' \
+					% (name2))
+			else:
+				config.add_dot_graph_verbatim('"' + name +
+					'" [style=filled shape=box fillcolor="rosybrown1"] ;')
+
+		if (self.rctxt.verbosity != 0):
+			print
+			print "initial config:"
+		if (self.rctxt.verbosity == 1):
+			print str(config)
+		elif (self.rctxt.verbosity == 2):
+			config.dump()
+
+
+		# do the config resolve - all the action happens here!
+		pkg_res_list = config.resolve_packages()
+
+		# color resolved packages in graph
+		for pkg_res in pkg_res_list:
+			config.add_dot_graph_verbatim('"' + pkg_res.short_name() + \
+				'" [style=filled fillcolor="darkseagreen1"] ;')
+
+		if (self.rctxt.verbosity != 0):
+			print
+			print "final config:"
+		if (self.rctxt.verbosity == 1):
+			print str(config)
+			print
+		elif (self.rctxt.verbosity == 2):
+			config.dump()
+			print
+
+		# build the environment commands
+		env_cmds = []
+		res_pkg_strs = [x.short_name() for x in pkg_reqs]
+		full_req_str = str(' ').join(res_pkg_strs)
+
+		if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
+			mode_str = "latest"
+		elif (self.rctxt.resolve_mode == RESOLVE_MODE_EARLIEST):
+			mode_str = "earliest"
+		else:
+			mode_str = "none"
+
+		# special case env-vars
+		env_cmds.append("export REZ_USED=" + rez_filesys._g_rez_path)
+		env_cmds.append("export REZ_PREV_REQUEST=$REZ_REQUEST")
+		env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")
+		env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
+		env_cmds.append("export PYTHONPATH=%s/python" % rez_filesys._g_rez_path)
+		env_cmds.append("export REZ_RESOLVE='"+ str(" ").join(res_pkg_strs)+"'")
+		env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
+		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
+		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
+
+		# packages: base/root/version, and commands
+		env_cmds.append("#### START of package commands ####")
+
+		for pkg_res in pkg_res_list:
+			env_cmds.append("# Commands from package %s" % pkg_res.name)
+
+			prefix = "REZ_" + pkg_res.name.upper()
+			env_cmds.append("export " + prefix + "_VERSION=" + pkg_res.version)
+			env_cmds.append("export " + prefix + "_BASE=" + pkg_res.base)
+			env_cmds.append("export " + prefix + "_ROOT=" + pkg_res.root)
+
+			if pkg_res.commands:
+				for cmd in pkg_res.commands:
+					env_cmds.append([cmd, pkg_res.short_name()])
+
+		env_cmds.append("#### END of package commands ####")
+
+		# process the commands
+		env_cmds = process_commands(env_cmds)
+
+		# build the dot-graph representation
+		dot_graph = config.get_dot_graph_as_string()
+
+		# here we remove unnecessary data, because if caching is on then it's gonna be sent over
+		# the network, and we want to minimise traffic.
+		for pkg_res in pkg_res_list:
+			pkg_res.strip()
+
+		result = (pkg_res_list, env_cmds, dot_graph, len(self.rctxt.config_fail_list))
+
+		# we're done
+		return result
+
+	def set_cached_resolve(self, pkg_reqs, result):
+		if not self.rctxt.memcache.mc:
+			return
+
+		# if any local packages are involved, don't cache
+		pkg_res_list = result[0]
+		for pkg_res in pkg_res_list:
+			if pkg_res.base.startswith(rez_filesys._g_local_pkgs_path):
+				return
+
+		self.rctxt.memcache.store_resolve(rez_filesys._g_syspaths_nolocal, pkg_reqs, result)
+
+	def get_cached_resolve(self, pkg_reqs):
+		# the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
+		# here and rctxt.time_epoch, the resolve will be the same.
+		if not self.rctxt.memcache.mc:
+			return None
+
+		result, cache_timestamp = self.rctxt.memcache.get_resolve( \
+			rez_filesys._g_syspaths_nolocal, pkg_reqs)
+		
+		if not result:
+			return None
+		pkg_res_list = result[0]
+
+		# if any version of any resolved packages also appear in a local package path, and that 
+		# path has been modified since the cache timestamp, then discard the cached resolve.
+		if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
+			for pkg_res in pkg_res_list:
+				fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
+				if os.path.isdir(fam_path):
+					path_modtime = int(os.path.getmtime(fam_path))
+					if path_modtime >= cache_timestamp:
+						print >> sys.stderr, "LOCAL package forced no cache resolve!"
+						return None
+
+		env_cmds = result[1]
+		env_cmds.append("export REZ_RESOLVE_FROM_CACHE=1")
+		env_cmds.append("export REZ_CACHE_TIMESTAMP=%d" % cache_timestamp)
+
+		return result
 
 
 ##############################################################################
 # Public Functions
 ##############################################################################
 
-def resolve_packages(pkg_reqs, resolve_mode, quiet = False, verbosity = 0, max_fails = -1, \
-	time_epoch = 0, no_path_append = False, build_requires = False, assume_dt = False, \
-	is_wrapper = False, meta_vars = None, shallow_meta_vars = None):
-	"""
-	Given a list of packages, return:
-	(a) a list of ResolvedPackage objects, representing the resolved config;
-	(b) a list of commands which, when run, should configure the environment;
-	(c) a dot-graph representation of the config resolution, as a string;
-	(d) the number of failed config attempts before the successful one was found
-	-OR-
-	raise the relevant exception, if config resolution is not possible
-
-	Inputs:
-	pkg_reqs: list of packages to resolve into a configuration
-	resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
-	quiet: if True then hides unnecessary output (such as the progress dots)
-	verbosity: print extra debugging info. One of: 0, 1, 2
-	max_fails: return after N failed configuration attempts, default -1 (no limit)
-	time_epoch: ignore packages newer than this time-date. Default = 0 which is a special
-	case, meaning do not ignore any packages
-	no_path_append: don't append OS-specific paths to PATH when printing an environment
-	assume_dt: Assume dependency transitivity
-	is_wrapper: If this env is being resolved for a wrapper, then some very slight changes
-	are needed to a normal env, so that wrappers can see one another.
-	meta_vars: A list of strings, where each string is a key whos value will be saved into an
-	env-var named REZ_META_<KEY> (lists are comma-separated).
-	shallow_meta_vars: Same as meta-vars, but only the values from those packages directly
-	requested are baked into the env var REZ_META_SHALLOW_<KEY>.
-	"""
-	if (len(pkg_reqs) == 0):
-		return [], [], "digraph g{}", 0
-
-	if (time_epoch == 0):
-		time_epoch = int(time.mktime(time.localtime()))
-
-	global g_time_epoch
-	g_time_epoch = time_epoch
-
-	rctxt = _ResolvingContext()
-	rctxt.resolve_mode = resolve_mode
-	rctxt.verbosity = verbosity
-	rctxt.max_fails = max_fails
-	rctxt.quiet = quiet
-	rctxt.time_epoch = time_epoch
-	rctxt.build_requires = build_requires
-	rctxt.assume_dt = assume_dt
-
-	config = _Configuration()
-
-	pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
-
-	for pkg_req in pkg_reqs:
-		normalise_pkg_req(pkg_req)
-		config.add_package(rctxt, pkg_req)
-
-	for pkg_req in pkg_reqs:
-		name = pkg_req.short_name()
-		if name.startswith("__wrapper_"):
-			name2 = name.replace("__wrapper_", "")
-			config.add_dot_graph_verbatim('"' + name +
-				'" [label="%s" style="filled" shape=folder fillcolor="rosybrown1"] ;' \
-				% (name2))
-		else:
-			config.add_dot_graph_verbatim('"' + name +
-				'" [style=filled shape=box fillcolor="rosybrown1"] ;')
-
-	if (rctxt.verbosity != 0):
-		print
-		print "initial config:"
-	if (rctxt.verbosity == 1):
-		print str(config)
-	elif (rctxt.verbosity == 2):
-		config.dump()
-
-
-	######################################################
-	# do the config resolve - all the action happens here!
-	######################################################
-	pkg_res_list = config.resolve_packages(rctxt)
-
-
-	# color resolved packages
-	for pkg_res in pkg_res_list:
-		config.add_dot_graph_verbatim('"' + pkg_res.short_name() + \
-			'" [style=filled fillcolor="darkseagreen1"] ;')
-
-	if (rctxt.verbosity != 0):
-		print
-		print "final config:"
-	if (rctxt.verbosity == 1):
-		print str(config)
-		print
-	elif (rctxt.verbosity == 2):
-		config.dump()
-		print
-
-	# build the dot-graph representation
-	dot_graph = config.get_dot_graph_as_string()
-
-	res_pkg_strs = []
-	for pkg_res in pkg_res_list:
-		res_pkg_strs.append(pkg_res.short_name())
-
-	# build the environment commands
-	env_cmds = []
-
-	# special case env-vars
-	env_cmds.append("export PATH=")
-	env_cmds.append("export PYTHONPATH=%s/python" % os.getenv("REZ_PATH"))
-	if not is_wrapper:
-		env_cmds.append("export REZ_IN_WRAPPER=")
-		env_cmds.append("export REZ_WRAPPER_PATH=")
-
-	# this is because of toolchains. They set this env-var. We want it to be overwritten,
-	# otherwise we don't get the resolve list of the chain itself - this is why we set it
-	# here, before the package commands are written.
-	env_cmds.append("export REZ_RESOLVE='"+ str(" ").join(res_pkg_strs)+"'")
-
-	# packages: base/root/version, and commands
-	meta_envvars = {}
-	shallow_meta_envvars = {}
-
-	for pkg_res in pkg_res_list:
-		prefix = "REZ_" + pkg_res.name.upper()
-		env_cmds.append("export " + prefix + "_VERSION=" + pkg_res.version)
-		env_cmds.append("export " + prefix + "_BASE=" + pkg_res.base)
-		env_cmds.append("export " + prefix + "_ROOT=" + pkg_res.root)
-
-		def _add_meta_vars(mvars, target):
-			for key in mvars:
-				if key in pkg_res.metadata.metadict:
-					val = pkg_res.metadata.metadict[key]
-					if type(val) == list:
-						val = str(',').join(val)
-					if key not in target:
-						target[key] = []
-					target[key].append(pkg_res.name + ':' + val)
-
-		_add_meta_vars(meta_vars, meta_envvars)
-
-		if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
-			_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
-
-		if pkg_res.commands:
-			for cmd in pkg_res.commands:
-				env_cmds.append([cmd, pkg_res.short_name()])
-
-	for k,v in meta_envvars.iteritems():
-		env_cmds.append("export REZ_META_" + k.upper() + "='" + str(' ').join(v) + "'")
-	for k,v in shallow_meta_envvars.iteritems():
-		env_cmds.append("export REZ_META_SHALLOW_" + k.upper() + "='" + str(' ').join(v) + "'")
-
-	# metadata env-vars (REZ_CONFIG_XXX)
-	if (resolve_mode == RESOLVE_MODE_LATEST):
-		mode_str = "latest"
-	elif (resolve_mode == RESOLVE_MODE_EARLIEST):
-		mode_str = "earliest"
-	else:
-		mode_str = "none"
-	env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
-
-	req_pkg_strs = []
-	for pkg_req in pkg_reqs:
-		req_pkg_strs.append(pkg_req.short_name())
-
-	full_req_str = str(' ').join(req_pkg_strs)
-
-	env_cmds.append("export REZ_USED=" + str(os.getenv("REZ_PATH")))
-	env_cmds.append("export REZ_PREV_REQUEST=$REZ_REQUEST")
-	env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")
-	env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
-	env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(rctxt.config_fail_list)) )
-	env_cmds.append("export REZ_REQUEST_TIME=" + str(time_epoch))
-
-	if not no_path_append:
-		env_cmds.append("export PATH=$PATH:/bin:/usr/bin:"+os.environ["REZ_PATH"]+"/bin")
-
-	# process the commands
-	env_cmds = process_commands(env_cmds)
-
-	if is_wrapper:
-		env_cmds.append("export REZ_IN_WRAPPER=1")
-		env_cmds.append("export PATH=$PATH:$REZ_WRAPPER_PATH")
-
-	# we're done
-	return pkg_res_list, env_cmds, dot_graph, len(rctxt.config_fail_list)
-
-
-
-def str_to_pkg_req(str_, time_epoch=0):
+def str_to_pkg_req(str_, memcache=None):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a PackageRequest.
 	Note that a version string ending in '=e','=l' will result in a package request
 	that immediately resolves to earliest/latest version.
 	"""
-	mode = RESOLVE_MODE_NONE
-	if str_.endswith("=e"):
-		mode = RESOLVE_MODE_EARLIEST
-	elif str_.endswith("=l"):
-		mode = RESOLVE_MODE_LATEST
-	if (mode != RESOLVE_MODE_NONE):
-		str_ = str_.split('=')[0]
+	latest = True
+	memcache2 = None
+	if str_.endswith("=l"):
+		if not memcache:
+			raise Exception("Need memcache to resolve '%s'" % str_)
+		memcache2 = memcache
+	elif str_.endswith("=e"):
+		if not memcache:
+			raise Exception("Need memcache to resolve '%s'" % str_)
+		latest = False
+		memcache2 = memcache
 
+	str_ = str_.split('=')[0]
 	strs = str_.split('-', 1)
 	dim = len(strs)
 	if (dim == 1):
-		return PackageRequest(str_, "", mode, time_epoch)
+		return PackageRequest(str_, "", memcache2, latest)
 	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], mode, time_epoch)
+		return PackageRequest(strs[0], strs[1], memcache2, latest)
 	else:
 		raise PkgSystemError("Invalid package string '" + str_ + "'")
 
 
 
 def get_base_path(pkg_str):
+	"""
+	NOTE: This is only used by auxilliary tools such as rez-diff, package searches are not
+	cached! Use RezMemCache in preference to this function.
+	"""
+	latest = True
 	if pkg_str.endswith("=l"):
-		mode = RESOLVE_MODE_LATEST
 		pkg_str = pkg_str[0:-2]
 	elif pkg_str.endswith("=e"):
-		mode = RESOLVE_MODE_EARLIEST
 		pkg_str = pkg_str[0:-2]
-	else:
-		mode = RESOLVE_MODE_LATEST
+		latest = False
 
 	pkg_str = pkg_str.rsplit("=",1)[0]
 	strs = pkg_str.split('-', 1)
@@ -388,8 +568,9 @@ def get_base_path(pkg_str):
 	else:
 		verrange = strs[1]
 
-	path, ver = find_package2(syspaths, name, VersionRange(verrange), mode)
-	if (not path) or (not ver):
+	path,ver,pkg_epoch = \
+		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
+	if not path:
 		raise PkgNotFoundError(pkg_str)
 
 	verstr = str(ver)
@@ -420,7 +601,6 @@ def make_random_color_string():
 # Internal Classes
 ##############################################################################
 
-
 class _ResolvingContext:
 	"""
 	Resolving context
@@ -435,6 +615,7 @@ class _ResolvingContext:
 		self.quiet = False
 		self.build_requires = False
 		self.assume_dt = False
+		self.memcache = None
 
 
 class _PackageVariant:
@@ -445,12 +626,17 @@ class _PackageVariant:
 	a variant is just a list of dependencies, but it may later become a dict, with
 	more info than just dependencies.
 	"""
-	def __init__(self, metadata_node):
+	def __init__(self, metadata_node, _working_list=None):
 		self.metadata = metadata_node
-		if (type(self.metadata) == type([])):
+		if _working_list is not None:
+			self.working_list = _working_list[:]
+		elif type(self.metadata) == list:
 			self.working_list = self.metadata[:]
 		else:
 			raise PkgSystemError("malformed variant metadata: " + str(self.metadata))
+
+	def copy(self):
+		return _PackageVariant(self.metadata, self.working_list)
 
 	def __str__(self):
 		return str(self.metadata)
@@ -460,7 +646,7 @@ class _Package:
 	"""
 	Internal package representation
 	"""
-	def __init__(self, pkg_req):
+	def __init__(self, pkg_req, memcache=None):
 		self.is_transitivity = False
 		self.has_added_transitivity = False
 		if pkg_req:
@@ -470,32 +656,28 @@ class _Package:
 			self.metadata = None
 			self.variants = None
 			self.root_path = None
+			self.timestamp = None
 
-			if not self.is_anti():
-				# family dir must exist
-				family_found = False
-				for syspath in syspaths:
-					if dir_exists(syspath + '/' + self.name):
-						family_found = True
-						break
+			if not self.is_anti() and memcache and \
+				not memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+				raise PkgFamilyNotFoundError(self.name)
 
-				if not family_found:
-					raise PkgFamilyNotFoundError(self.name)
-
-	def __deepcopy__(self, memo_dict):
-		"""
-		Return a copy of this package. Note that the metadata is not copied. This is the
-		exception - metadata is read-only and can be shared between packages.
-		"""
+	def copy(self, skip_version_range=False):
 		p = _Package(None)
 		p.is_transitivity = self.is_transitivity
 		p.has_added_transitivity = self.has_added_transitivity
 		p.name = self.name
 		p.base_path = self.base_path
 		p.root_path = self.root_path
-		p.version_range = copy.deepcopy(self.version_range, memo_dict)
-		p.variants = copy.deepcopy(self.variants, memo_dict)
 		p.metadata = self.metadata
+		p.timestamp = self.timestamp
+
+		if not skip_version_range:
+			p.version_range = self.version_range.copy()
+
+		p.variants = None
+		if self.variants is not None:
+			p.variants = [x.copy() for x in self.variants]
 		return p
 
 	def get_variants(self):
@@ -554,47 +736,44 @@ class _Package:
 		"""
 		"""
 		if self.is_resolved():
-			cmds = self.metadata.get_string_replace_commands(str(self.version_range), self.base_path, self.root_path)
+			cmds = self.metadata.get_string_replace_commands(str(self.version_range), \
+				self.base_path, self.root_path)
 			return cmds
 		else:
 			return None
 
-	def resolve_metafile(self):
+	def resolve_metafile(self, memcache):
 		"""
 		attempt to resolve the metafile, the metadata member will be set if
 		successful, and True will be returned. If the package has no variants,
 		then its root-path is set and this package is regarded as fully-resolved.
 		"""
 		is_any = self.version_range.is_any()
-		if self.version_range.is_inexact() and not is_any:
+		if not is_any and self.version_range.is_inexact():
 			return False
 
 		if not self.base_path:
-			for syspath in syspaths:
-				base_path = syspath + '/' + self.name
-
-				found_ver = find_package(base_path, self.version_range, \
-					RESOLVE_MODE_NONE, g_time_epoch)
-
-				if (found_ver != None):
-
-					if not is_any:
-						base_path += '/' + str(self.version_range)
-					metafile = base_path  + '/' + PKG_METADATA_FILENAME
-
-					self.base_path = base_path
-					self.metadata = get_cached_metadata(metafile)
-					metafile_variants = self.metadata.get_variants()
-					if metafile_variants:
-						# convert variants from metafile into _PackageVariants
-						self.variants = []
-						for metavar in metafile_variants:
-							pkg_var = _PackageVariant(metavar)
-							self.variants.append(pkg_var)
-					else:
-						# no variants, we're fully resolved
-						self.resolve(self.base_path)
-					break
+			fam_path,ver,pkg_epoch = memcache.find_package2( \
+				rez_filesys._g_syspaths, self.name, self.version_range, exact=True)
+			if ver is not None:
+				base_path = fam_path
+				if not is_any:
+					base_path = os.path.join(fam_path, str(self.version_range))
+				
+				metafile = os.path.join(base_path, PKG_METADATA_FILENAME)
+				self.timestamp = pkg_epoch
+				self.base_path = base_path
+				self.metadata = memcache.get_metafile(metafile)
+				metafile_variants = self.metadata.get_variants()
+				if metafile_variants:
+					# convert variants from metafile into _PackageVariants
+					self.variants = []
+					for metavar in metafile_variants:
+						pkg_var = _PackageVariant(metavar)
+						self.variants.append(pkg_var)
+				else:
+					# no variants, we're fully resolved
+					self.resolve(self.base_path)
 
 		return (self.base_path != None)
 
@@ -624,7 +803,9 @@ class _Configuration:
 	"""
 	s_uid = 0
 
-	def __init__(self, inc_uid = False):
+	def __init__(self, rctxt, inc_uid = False):
+		# resolving context
+		self.rctxt = rctxt
 		# packages map, for quick lookup
 		self.pkgs = {}
 		# packages list, for order retention wrt resolving
@@ -706,7 +887,7 @@ class _Configuration:
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = copy.deepcopy(config_pkg)
+						pkg_add = config_pkg.copy(True)
 						pkg_add.version_range = ver_range_intersect
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -721,12 +902,10 @@ class _Configuration:
 				ver_range_union = config_pkg.version_range.get_union(pkg_req_ver_range)
 				pkg_add = None
 				if create_pkg_add:
-					pkg_add = copy.deepcopy(config_pkg)
+					pkg_add = config_pkg.copy(True)
 					pkg_add.version_range = ver_range_union
 				return (_Configuration.ADDPKG_ADD, pkg_add)
-
 		else:
-
 			if ('!' + pkg_req.name) in self.pkgs:
 				config_pkg = self.pkgs['!' + pkg_req.name]
 
@@ -735,7 +914,7 @@ class _Configuration:
 				if not ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req)
+						pkg_add = _Package(pkg_req, self.rctxt.memcache)
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 
 				# if non-anti and (inverse of anti) intersect, then add reduced anti,
@@ -745,7 +924,7 @@ class _Configuration:
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req)
+						pkg_add = _Package(pkg_req, self.rctxt.memcache)
 						pkg_add.version_range = ver_range_intersect
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -759,19 +938,9 @@ class _Configuration:
 
 				ver_range_intersect = config_pkg.version_range.get_intersection(pkg_req_ver_range)
 				if ver_range_intersect:
-					if config_pkg.is_resolved():
-						# if there is an intersection, and the package we already have is resolved
-						# remove any packages (to add) that are not part of the existing branch. this
-						# is because the intersection of a plain version and a branch version will
-						# give a overly-specific branch version, so this will weed out undesired
-						# versions.
-						assert len(config_pkg.version_range.versions)==1
-						pruned = ver_range_intersect.get_pruned_versions(config_pkg.version_range.versions[0])
-						if pruned.is_none():
-							return (_Configuration.ADDPKG_CONFLICT, config_pkg)
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = copy.deepcopy(config_pkg)
+						pkg_add = config_pkg.copy(True)
 						pkg_add.version_range = ver_range_intersect
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -780,7 +949,7 @@ class _Configuration:
 		# package can be added directly, doesn't overlap with anything
 		pkg_add = None
 		if create_pkg_add:
-			pkg_add = _Package(pkg_req)
+			pkg_add = _Package(pkg_req, self.rctxt.memcache)
 		return (_Configuration.ADDPKG_ADD, pkg_add)
 
 	def get_conflicting_package(self, pkg_req):
@@ -802,7 +971,7 @@ class _Configuration:
 	PKGCONN_CYCLIC		= 5
 	PKGCONN_TRANSITIVE	= 6
 
-	def add_package(self, rctxt, pkg_req, parent_pkg = None, dot_connection_type = 0):
+	def add_package(self, pkg_req, parent_pkg=None, dot_connection_type=0):
 		"""
 		add a package request to this configuration, optionally describing the 'parent'
 		package (ie the package that requires it), and the type of dot-graph connection,
@@ -824,10 +993,10 @@ class _Configuration:
 
 			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
 				_Configuration.PKGCONN_CONFLICT ) ) )
-			rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
 			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
-			raise PkgConflictError([ pkg_conflict ], rctxt.last_fail_dot_graph)
+			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and (pkg != None):
 
@@ -915,10 +1084,21 @@ class _Configuration:
 		"""
 		return a shallow copy
 		"""
-		confcopy = _Configuration()
+		confcopy = _Configuration(self.rctxt)
 		confcopy.pkgs = self.pkgs.copy()
 		confcopy.families = self.families[:]
 		confcopy.dot_graph = self.dot_graph[:]
+		return confcopy
+
+	def deep_copy(self):
+		confcopy = _Configuration(self.rctxt)
+		confcopy.families = self.families[:]
+		confcopy.dot_graph = self.dot_graph[:]
+
+		confcopy.pkgs = {}
+		for k,v in self.pkgs.iteritems():
+			confcopy.pkgs[k] = v.copy()
+
 		return confcopy
 
 	def swap(self, a):
@@ -948,7 +1128,7 @@ class _Configuration:
 			pkg_reqs.append(pkg_to_pkg_req(pkg))
 		return pkg_reqs
 
-	def resolve_packages(self, rctxt):
+	def resolve_packages(self):
 		"""
 		resolve the current configuration - all the action happens here. On success,
 		a resolved package list is returned. This function should only fail via an
@@ -959,20 +1139,20 @@ class _Configuration:
 		"""
 
 		while (not self.all_resolved()) and \
-		    ((rctxt.max_fails == -1) or (len(rctxt.config_fail_list) <= rctxt.max_fails)):
+		    ((self.rctxt.max_fails == -1) or (len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
 			# do an initial resolve pass
-			self.resolve_packages_no_filesys(rctxt)
+			self.resolve_packages_no_filesys()
 			if self.all_resolved():
 				break
 
 			# fail if not all resolved and mode=none
-			if (not self.all_resolved()) and (rctxt.resolve_mode == RESOLVE_MODE_NONE):
+			if (not self.all_resolved()) and (self.rctxt.resolve_mode == RESOLVE_MODE_NONE):
 				pkg_reqs = self.get_unresolved_packages_as_package_requests()
 				raise PkgsUnresolvedError(pkg_reqs)
 
 			# add transitive dependencies
-			self.add_transitive_dependencies(rctxt)
+			self.add_transitive_dependencies()
 
 			# this shouldn't happen here but just in case...
 			if self.all_resolved():
@@ -993,15 +1173,15 @@ class _Configuration:
 				# find that variant, out of all remaining packages, that is 'least suitable',
 				# and remove it. 'least suitable' means that the variant has largest number
 				# of packages that do not intersect with anything in the config.
-				if (rctxt.verbosity != 0):
+				if (self.rctxt.verbosity != 0):
 					print
 					print "Ran out of concrete resolution choices, yet unresolved packages still remain:"
-					if (rctxt.verbosity == 1):
+					if (self.rctxt.verbosity == 1):
 						print str(self)
-					elif (rctxt.verbosity == 2):
+					elif (self.rctxt.verbosity == 2):
 						self.dump()
 
-				self.remove_least_suitable_variant(rctxt)
+				self.remove_least_suitable_variant(self.rctxt)
 
 			else:
 
@@ -1014,13 +1194,15 @@ class _Configuration:
 				# that resolve_packages will be called recursively
 				num_version_searches = 0
 				while (not (ver_range_valid == None)) and \
-		            ((rctxt.max_fails == -1) or (len(rctxt.config_fail_list) <= rctxt.max_fails)):
+		            ((self.rctxt.max_fails == -1) or \
+		            	(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
 					try:
-						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid), rctxt.resolve_mode, rctxt.time_epoch)
+						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid), \
+							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 					except PkgsUnresolvedError, e:
 
 						if(num_version_searches == 1):
@@ -1032,7 +1214,7 @@ class _Configuration:
 							self.add_dot_graph_verbatim('"' + \
 								e.pkg_reqs[0].short_name() + '" -> "' + \
 								e.pkg_reqs[0].short_name() + ' NOT FOUND" ;')
-							rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+							self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
 							sys.stderr.write("Warning! Package not found: " + str(e.pkg_reqs[0]) + "\n")
 							raise PkgNotFoundError(e.pkg_reqs[0])
@@ -1048,7 +1230,7 @@ class _Configuration:
 
 					# restrict next package search to one version less desirable
 					try:
-						if (rctxt.resolve_mode == RESOLVE_MODE_LATEST):
+						if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange("0+<" + pkg_req_.version))
 						else:
 							ver_inc = Version(pkg_req_.version).get_inc()
@@ -1057,27 +1239,24 @@ class _Configuration:
 						ver_range_valid = None
 
 					# create config copy, bit of fiddling though cause we want a proper guid
-					config2 =_Configuration(True)
+					config2 =_Configuration(self.rctxt, True)
 					guid_ = config2.uid
 
-					# todo optimisation here, a full deep copy isn't necessary - probably pkgs need
-					# copies, but their metadata could remain shared with pkg copy. Since metadata will
-					# become large for some packages, this is worth doing. So, impl Config.deepcopy().
-					config2 = copy.deepcopy(self)
+					config2 = self.deep_copy()
 					config2.uid = guid_
 
-					if (rctxt.verbosity != 0):
+					if (self.rctxt.verbosity != 0):
 						print
 						print "SPAWNED NEW CONFIG #" + str(config2.uid) + " FROM PARENT #" + str(self.uid) + \
 							" BASED ON FILESYS RESOLUTION: " + pkg_resolve_str
 
 					# attempt to add package to config copy
 					try:
-						config2.add_package(rctxt, pkg_req_, None, _Configuration.PKGCONN_RESOLVE)
+						config2.add_package(pkg_req_, None, _Configuration.PKGCONN_RESOLVE)
 					except PkgConflictError, e:
-						rctxt.last_fail_dot_graph = config2.get_dot_graph_as_string()
+						self.rctxt.last_fail_dot_graph = config2.get_dot_graph_as_string()
 
-						if (rctxt.verbosity != 0):
+						if (self.rctxt.verbosity != 0):
 							print
 							print "CONFIG #" + str(config2.uid) + " FAILED (" + e.__class__.__name__ + "):"
 							print str(e)
@@ -1085,17 +1264,17 @@ class _Configuration:
 							print "ROLLING BACK TO CONFIG #" + self.uid
 						continue
 
-					if (rctxt.verbosity != 0):
+					if (self.rctxt.verbosity != 0):
 						print
 						print "config after applying: " + pkg_resolve_str
-						if (rctxt.verbosity == 1):
+						if (self.rctxt.verbosity == 1):
 							print str(config2)
-						elif (rctxt.verbosity == 2):
+						elif (self.rctxt.verbosity == 2):
 							config2.dump()
 
 					# now fully resolve config copy
 					try:
-						config2.resolve_packages(rctxt)
+						config2.resolve_packages()
 					except ( \
 						PkgConfigNotResolvedError, \
 						PkgsUnresolvedError, \
@@ -1108,24 +1287,25 @@ class _Configuration:
 						# tells us that the sub-config failed because its sub-config failed.
 						if (type(e) not in [PkgConfigNotResolvedError, PkgsUnresolvedError]):
 
-							sys.stderr.write("conflict " + str(len(rctxt.config_fail_list)) + ": " + config2.short_str() + '\n')
+							sys.stderr.write("conflict " + str(len(self.rctxt.config_fail_list)) + \
+								": " + config2.short_str() + '\n')
 							sys.stderr.flush()
 
 							this_fail = "config: (" + str(config2).strip() + "): " + \
 								e.__class__.__name__ + ": " + str(e)
 
-							if(rctxt.max_fails >= 0):
-								if(len(rctxt.config_fail_list) <= rctxt.max_fails):
-									rctxt.config_fail_list.append(this_fail)
-									if(len(rctxt.config_fail_list) > rctxt.max_fails):
+							if(self.rctxt.max_fails >= 0):
+								if(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails):
+									self.rctxt.config_fail_list.append(this_fail)
+									if(len(rctxt.config_fail_list) > self.rctxt.max_fails):
 										rctxt.config_fail_list.append("Maximum configuration failures reached.")
 										pkg_reqs_ = self.get_all_packages_as_package_requests()
 										raise PkgConfigNotResolvedError(pkg_reqs_, \
-											rctxt.config_fail_list, rctxt.last_fail_dot_graph)
+											self.rctxt.config_fail_list, self.rctxt.last_fail_dot_graph)
 							else:
-								rctxt.config_fail_list.append(this_fail)
+								self.rctxt.config_fail_list.append(this_fail)
 
-						if (rctxt.verbosity != 0):
+						if (self.rctxt.verbosity != 0):
 							print
 							print "CONFIG #" + str(config2.uid) + " FAILED (" + e.__class__.__name__ + "):"
 							print str(e)
@@ -1142,13 +1322,13 @@ class _Configuration:
 				if not valid_config_found:
 					# we're exhausted the possible versions of this package to try
 					fail_msg = "No more versions to be found on filesys: " + pkg.short_name()
-					if (rctxt.verbosity != 0):
+					if (self.rctxt.verbosity != 0):
 						print
 						print fail_msg
 
 					pkg_reqs_ = self.get_all_packages_as_package_requests()
 					raise PkgConfigNotResolvedError(pkg_reqs_, \
-						rctxt.config_fail_list, rctxt.last_fail_dot_graph)
+						self.rctxt.config_fail_list, self.rctxt.last_fail_dot_graph)
 
 		#################################################
 		# woohoo, we have a fully resolved configuration!
@@ -1164,7 +1344,8 @@ class _Configuration:
 			dot_str = self.get_dot_graph_as_string()
 			raise PkgCyclicDependency(cyclic_deps, dot_str)
 
-		# convert packages into a list of package resolutions, forcing them into the correct order wrt command sourcing
+		# convert packages into a list of package resolutions, forcing them into the correct 
+		# order wrt command sourcing
 		ordered_fams = self.get_ordered_families()
 
 		pkg_ress = []
@@ -1173,7 +1354,7 @@ class _Configuration:
 			if not pkg.is_anti():
 				resolved_cmds = pkg.get_resolved_commands()
 				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, \
-                    pkg.root_path, resolved_cmds, pkg.metadata)
+                    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
 				pkg_ress.append(pkg_res)
 
 		return pkg_ress
@@ -1294,7 +1475,7 @@ class _Configuration:
 
 		return deps
 
-	def resolve_packages_no_filesys(self, rctxt):
+	def resolve_packages_no_filesys(self):
 		"""
 		resolve current packages as far as possible without querying the file system
 		"""
@@ -1312,18 +1493,18 @@ class _Configuration:
 				(not self.all_resolved())):
 
 			# resolve metafiles
-			nresolved_metafiles = self.resolve_metafiles(rctxt)
+			nresolved_metafiles = self.resolve_metafiles()
 
 			# remove conflicting variants
-			nconflicting_variants_removed = self.remove_conflicting_variants(rctxt)
+			nconflicting_variants_removed = self.remove_conflicting_variants()
 
 			# resolve common variant packages
-			nresolved_common_variant_pkgs = self.resolve_common_variants(rctxt)
+			nresolved_common_variant_pkgs = self.resolve_common_variants()
 
 			# resolve packages with a single, fully-resolved variant
-			nresolved_single_variant_pkgs = self.resolve_single_variant_packages(rctxt)
+			nresolved_single_variant_pkgs = self.resolve_single_variant_packages()
 
-	def remove_least_suitable_variant(self, rctxt):
+	def remove_least_suitable_variant(self):
 		"""
 		remove one variant from any remaining unresolved packages, such that that variant is
 		'least suitable' - that is, has the greatest number of packages which do not appear
@@ -1346,7 +1527,7 @@ class _Configuration:
 
 		bad_pkg.get_variants().remove(bad_variant)
 
-		if (rctxt.verbosity != 0):
+		if (self.rctxt.verbosity != 0):
 			print
 			print "removed least suitable variant:"
 			print bad_pkg.short_name() + " variant:" + str(bad_variant)
@@ -1358,78 +1539,77 @@ class _Configuration:
 		"""
 		num = 0
 		for pkg_str in pkg_strs:
-			pkg_req = str_to_pkg_req(pkg_str)
+			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
 			if pkg_req.name not in self.pkgs:
 				num += 1
 
 		return num
 
-	def resolve_metafiles(self, rctxt):
+	def resolve_metafiles(self):
 		"""
 		for each package, resolve metafiles until no more can be resolved, returning
 		the number of metafiles that were resolved.
 		"""
-
 		num = 0
-		config2 = self.copy()
+		config2 = None
 
 		for name, pkg in self.pkgs.iteritems():
 			if (pkg.metadata == None):
-				if pkg.resolve_metafile():
+				if pkg.resolve_metafile(self.rctxt.memcache):
 					num += 1
 
-					if (rctxt.verbosity != 0):
+					if (self.rctxt.verbosity != 0):
 						print
 						print "resolved metafile for " + pkg.short_name() + ":"
-					if (rctxt.verbosity == 1):
-						print str(config2)
-					elif (rctxt.verbosity == 2):
+					if (self.rctxt.verbosity == 2):
 						print str(pkg)
 
 					# add required packages to the configuration, this may
 					# reduce wrt existing packages (eg: foo-1 -> foo-1.2 is a reduction)
-					requires = pkg.metadata.get_requires(rctxt.build_requires)
+					requires = pkg.metadata.get_requires(self.rctxt.build_requires)
 
 					if requires:
 						for pkg_str in requires:
-							pkg_req = str_to_pkg_req(pkg_str, rctxt.time_epoch)
+							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
 
-							if (rctxt.verbosity != 0):
+							if (self.rctxt.verbosity != 0):
 								print
 								print "adding " + pkg.short_name() + \
 									"'s required package " + pkg_req.short_name() + '...'
 
-							config2.add_package(rctxt, pkg_req, pkg)
+							if not config2:
+								config2 = self.copy()
+							config2.add_package(pkg_req, pkg)
 
-							if (rctxt.verbosity != 0):
+							if (self.rctxt.verbosity != 0):
 								print "config after adding " + pkg.short_name() + \
 									"'s required package " + pkg_req.short_name() + ':'
-							if (rctxt.verbosity == 1):
+							if (self.rctxt.verbosity == 1):
 								print str(config2)
-							elif (rctxt.verbosity == 2):
+							elif (self.rctxt.verbosity == 2):
 								config2.dump()
 
-		if num>0:
+		if config2:
 			self.swap(config2)
 		return num
 
 
-	def add_transitive_dependencies(self, rctxt):
+	def add_transitive_dependencies(self):
 		"""
 		for each package that is inexact and not resolved, calculate the package ranges that
 		it must eventually pull in anyway, assuming dependency transitivity, and add those to
 		the current configuration.
 		"""
-		if not rctxt.assume_dt:
+		if not self.rctxt.assume_dt:
 			return
-		while (self._add_transitive_dependencies(rctxt) > 0):
+		while (self._add_transitive_dependencies() > 0):
 			pass
 
 
-	def _add_transitive_dependencies(self, rctxt):
+	def _add_transitive_dependencies(self):
 
 		num = 0
-		config2 = self.copy()
+		config2 = None
 
 		for name, pkg in self.pkgs.iteritems():
 			if pkg.is_metafile_resolved():
@@ -1440,19 +1620,24 @@ class _Configuration:
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver = find_package2(syspaths, pkg.name, pkg.version_range, \
-				RESOLVE_MODE_EARLIEST, rctxt.time_epoch)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2( \
+				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False)
+
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_e = get_cached_metadata(found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_e = self.rctxt.memcache.get_metafile( \
+				found_path + "/" + str(found_ver) + "/package.yaml")
 			if not metafile_e:
 				continue
 
-			found_path, found_ver = find_package2(syspaths, pkg.name, pkg.version_range, \
-				RESOLVE_MODE_LATEST, rctxt.time_epoch)
+			found_path, found_ver, found_epoch = \
+				self.rctxt.memcache.find_package2( \
+					rez_filesys._g_syspaths, pkg.name, pkg.version_range, True)
+
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_l = get_cached_metadata(found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_l = self.rctxt.memcache.get_metafile( \
+				found_path + "/" + str(found_ver) + "/package.yaml")
 			if not metafile_l:
 				continue
 
@@ -1469,10 +1654,10 @@ class _Configuration:
 				if (pkg_str_e[0] == '!') or (pkg_str_e[0] == '~'):
 					continue
 
-				pkg_req_e = str_to_pkg_req(pkg_str_e, rctxt.time_epoch)
+				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.memcache)
 
 				for pkg_str_l in requires_l:
-					pkg_req_l = str_to_pkg_req(pkg_str_l, rctxt.time_epoch)
+					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.memcache)
 					if (pkg_req_e.name == pkg_req_l.name):
 						pkg_req = pkg_req_e
 						if (pkg_req_e.version != pkg_req_l.version):
@@ -1488,7 +1673,9 @@ class _Configuration:
 								v.ge = [0]
 							pkg_req = PackageRequest(pkg_req_e.name, str(v))
 
-						config2.add_package(rctxt, pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
+						if not config2:
+							config2 = self.copy()
+						config2.add_package(pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
 						num = num + 1
 
 			# find common variants that exist in both. Note that this code is somewhat redundant,
@@ -1504,7 +1691,7 @@ class _Configuration:
 			for variant in (variants_e + variants_l):
 				comm_fams = set()
 				for pkgstr in variant:
-					pkgreq = str_to_pkg_req(pkgstr, rctxt.time_epoch)
+					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.memcache)
 					comm_fams.add(pkgreq.name)
 					if pkgreq.name in pkg_vers:
 						pkg_vers[pkgreq.name].append(pkgreq.version)
@@ -1530,22 +1717,25 @@ class _Configuration:
 							v.ge = [0]
 
 						pkg_req = PackageRequest(pkg_fam, str(v))
-						config2.add_package(rctxt, pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
+
+						if not config2:
+							config2 = self.copy()
+						config2.add_package(pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
 						num = num + 1
 
-		if num>0:
+		if config2:
 			self.swap(config2)
 		return num
 
 
-	def remove_conflicting_variants(self, rctxt):
+	def remove_conflicting_variants(self):
 		"""
 		for each package, remove those variants which contain one or more packages which
 		conflict with the current configuration. If a package has all of its variants
 		removed in this way, then a pkg-conflict exception will be raised.
 		"""
 
-		if (rctxt.verbosity == 2):
+		if (self.rctxt.verbosity == 2):
 			print
 			print "removing conflicting variants..."
 
@@ -1560,7 +1750,7 @@ class _Configuration:
 				conflicting_variants = set()
 				for variant in variants:
 					for pkgstr in variant.metadata:
-						pkg_req_ = str_to_pkg_req(pkgstr, rctxt.time_epoch)
+						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.memcache)
 						pkg_conflicting = self.get_conflicting_package(pkg_req_)
 						if pkg_conflicting:
 							pkg_req_conflicting = pkg_conflicting.as_package_request()
@@ -1594,13 +1784,13 @@ class _Configuration:
 							self.dot_graph.append( ( pkg_req_conflicting.short_name(), \
 								( varstr, _Configuration.PKGCONN_CONFLICT ) ) )
 
-						rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+						self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 						raise PkgConflictError(conflicts)
 					else:
 						for cv in conflicting_variants:
 							variants.remove(cv)
 
-						if (rctxt.verbosity == 2):
+						if (self.rctxt.verbosity == 2):
 							print
 							print "removed conflicting variants from " + pkg.short_name() + ':'
 							for conflict in conflicts:
@@ -1608,7 +1798,7 @@ class _Configuration:
 		return num
 
 
-	def resolve_common_variants(self, rctxt):
+	def resolve_common_variants(self):
 		"""
 		for each package, find common package families within its variants, and add these to
 		the configuration. For eg, if a pkg has 2 variants 'python-2.5' and 'python-2.6',
@@ -1635,7 +1825,7 @@ class _Configuration:
 					if (len(variant.working_list) > 0):
 						pkgname_set = set()
 						for pkgstr in variant.working_list:
-							pkg_req = str_to_pkg_req(pkgstr, rctxt)
+							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.memcache)
 							pkgname_set.add(pkg_req.name)
 							if not (pkg_req.name in pkgname_versions):
 								pkgname_versions[pkg_req.name] = []
@@ -1655,27 +1845,27 @@ class _Configuration:
 					# and remove the packages from the variants' working lists
 					for common_pkgname in common_pkgnames:
 						ored_pkgs_str = common_pkgname + '-' +str('|').join(pkgname_versions[common_pkgname])
-						pkg_req_ = str_to_pkg_req(ored_pkgs_str, rctxt.time_epoch)
+						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.memcache)
 
 						normalise_pkg_req(pkg_req_)
-						config2.add_package(rctxt, pkg_req_, pkg)
+						config2.add_package(pkg_req_, pkg)
 
 						for entry in pkgname_entries[common_pkgname]:
 							entry[0].remove(entry[1])
 
-						if (rctxt.verbosity != 0):
+						if (self.rctxt.verbosity != 0):
 							print
 							print "removed common package family '" + common_pkgname + "' from " + pkg.short_name() + \
 								"'s variants; config after adding " + pkg_req_.short_name() + ':'
-						if (rctxt.verbosity == 1):
+						if (self.rctxt.verbosity == 1):
 							print str(config2)
-						elif (rctxt.verbosity == 2):
+						elif (self.rctxt.verbosity == 2):
 							config2.dump()
 
 		self.swap(config2)
 		return num
 
-	def resolve_single_variant_packages(self, rctxt):
+	def resolve_single_variant_packages(self):
 		"""
 		find packages which have one non-conflicting, fully-resolved variant. These
 		packages can now be fully resolved
@@ -1693,7 +1883,7 @@ class _Configuration:
 
 					# check resolved path exists
 					root_path = pkg.base_path + '/' + str('/').join(variant.metadata)
-					if not dir_exists(root_path):
+					if not os.path.isdir(root_path):
 						pkg_req_ = pkg.as_package_request()
 
 						self.add_dot_graph_verbatim('"' + \
@@ -1702,7 +1892,7 @@ class _Configuration:
 						self.add_dot_graph_verbatim('"' + \
 							pkg_req_.short_name() + '" -> "' + \
 							pkg_req_.short_name() + ' NOT FOUND" ;')
-						rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+						self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
 						sys.stderr.write("Warning! Package not found: " + str(pkg_req_) + "\n")
 						raise PkgNotFoundError(pkg_req_, root_path)
@@ -1710,12 +1900,12 @@ class _Configuration:
 					pkg.resolve(root_path)
 					num += 1
 
-					if (rctxt.verbosity != 0):
+					if (self.rctxt.verbosity != 0):
 						print
 						print "resolved single-variant package " + pkg.short_name() + ':'
-					if (rctxt.verbosity == 1):
+					if (self.rctxt.verbosity == 1):
 						print str(self)
-					elif (rctxt.verbosity == 2):
+					elif (self.rctxt.verbosity == 2):
 						print str(pkg)
 		return num
 
@@ -1768,18 +1958,6 @@ class _Configuration:
 # Internal Functions
 ##############################################################################
 
-def get_system_package_paths():
-	"""
-	Get the system roots for package installations. REZ_PACKAGES_PATH is a colon-
-	separated string, and the paths will be searched in order of appearance.
-	"""
-	syspathstr = os.getenv(REZ_PACKAGES_PATH_ENVVAR)
-	if syspathstr:
-		syspaths = syspathstr.split(':')
-		return syspaths
-	else:
-		raise PkgSystemError(REZ_PACKAGES_PATH_ENVVAR + " is not set")
-
 
 def pkg_to_pkg_req(pkg):
 	"""
@@ -1788,6 +1966,7 @@ def pkg_to_pkg_req(pkg):
 	return PackageRequest(pkg.name, str(pkg.version_range))
 
 
+# todo remove, this now in pkgReq constr
 def normalise_pkg_req(pkg_req):
 	"""
 	Helper fn to turn a PackageRequest into a regular representation. It is possible
@@ -1860,15 +2039,6 @@ def process_commands(cmds):
 			new_cmds.append(cmd)
 
 	return new_cmds
-
-
-##############################################################################
-# Statics
-##############################################################################
-
-syspaths = get_system_package_paths()
-# TODO move to filesys!!!
-
 
 
 

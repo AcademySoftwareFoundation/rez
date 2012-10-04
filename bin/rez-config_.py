@@ -11,34 +11,12 @@ import os
 import sys
 import optparse
 import rez_config as dc
-import filesys
-import tempfile
-import sigint
-
-
-def gen_dotgraph_image(dot_data, out_file):
-	import pydot
-	graph = pydot.graph_from_dot_data(dot_data)
-
-	# assume write format from image extension
-	ext = "jpg"
-	if(out_file.rfind('.') != -1):
-		ext = out_file.split('.')[-1]
-
-	try:
-		fn = getattr(graph, "write_"+ext)
-	except Exception:
-		sys.stderr.write("could not write to '" + out_file + "': unknown format specified")
-		sys.exit(1)
-
-	fn(out_file)
 
 
 
 ##########################################################################################
 # parse arguments
 ##########################################################################################
-
 usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
 p = optparse.OptionParser(usage=usage)
 
@@ -56,6 +34,8 @@ p.add_option("-b", "--build-requires", dest="buildreqs", action="store_true", de
 	help="include build-only required packages [default = %default]")
 p.add_option("--max-fails", dest="max_fails", type="int", default=-1, \
 	help="exit when the number of failed configuration attempts exceeds N [default = no limit]")
+p.add_option("--no-cache", dest="no_cache", action="store_true", default=False, \
+	help="disable caching [default = %default]")
 p.add_option("--dot-file", dest="dot_file", type="string", default="", \
 	help="write the dot-graph to the file specified (dot, gif, jpg, png, pdf supported). " + \
 		"Note that if resolution fails, the last failed attempt will still produce an image. " + \
@@ -121,162 +101,25 @@ meta_vars = (opts.meta_info or '').replace(',',' ').strip().split()
 shallow_meta_vars = (opts.meta_info_shallow or '').replace(',',' ').strip().split()
 
 
-#################################################################################
-# MISC STUFF
-#################################################################################
-
-def pkg_not_found(pkg_req):
-	syspaths = dc.get_system_package_paths()
-
-	# check to see if it exists but it's archived
-	if filesys.g_use_blacklist:
-		filesys.enable_blacklist(False)
-		found_path, found_ver = filesys.find_package2(syspaths, pkg_req.name, \
-			dc.VersionRange(pkg_req.version), mode, time_epoch)
-		if found_path != None:
-			sys.stderr.write(pkg_req.short_name() + " exists but is blacklisted.\n")
-			return
-
-	if filesys.g_use_archiving:
-		filesys.enable_archiving(False)
-		found_path, found_ver = filesys.find_package2(syspaths, pkg_req.name, \
-			dc.VersionRange(pkg_req.version), mode, time_epoch)
-		if found_path != None:
-			sys.stderr.write(pkg_req.short_name() + " exists but is archived.\n")
-			return
-
-	sys.stderr.write("Could not find the package '" + pkg_req.short_name() + "'\n")
-
-
-##########################################################################################
-# global initialisation
-##########################################################################################
-
-filesys.enable_blacklist(not opts.ignore_blacklist)
-filesys.enable_archiving(not opts.ignore_archiving)
-
 
 ##########################################################################################
 # construct package request
 ##########################################################################################
-
-pkg_reqs = []
-
-if not opts.no_os:
-
-	osname = os.getenv("REZ_PLATFORM")
-	if osname:
-		ospkg = osname
-	else:
-
-		import platform
-		osname = platform.system()
-		ospkg = ""
-
-		if osname == "Linux":
-			ospkg = "Linux"
-		elif osname == "Darwin":
-			ospkg = "Darwin"
-
-	if ospkg == "":
-		sys.stderr.write("Warning: Unknown operating system '" + ospkg + "'\n")
-	elif ospkg not in pkgstrs:
-		pkg_reqs.append(dc.str_to_pkg_req(ospkg))
-
-for pkgstr in pkgstrs:
-	pkg_reqs.append(dc.str_to_pkg_req(pkgstr))
-
-
-##########################################################################################
-# do the resolve
-##########################################################################################
+resolver = dc.Resolver(mode, do_quiet, opts.verbosity, opts.max_fails, time_epoch, \
+	opts.buildreqs, not opts.no_assume_dt, not opts.no_cache)
 
 if opts.no_catch:
-	pkg_ress, env_cmds, dot_graph, num_fails = \
-		dc.resolve_packages(pkg_reqs, mode, do_quiet, opts.verbosity, opts.max_fails, \
-		time_epoch, opts.no_path_append, opts.buildreqs, not opts.no_assume_dt, opts.wrapper, \
-		meta_vars, shallow_meta_vars)
+	pkg_reqs = [dc.str_to_pkg_req(x) for x in pkgstrs]
+	pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, opts.no_os, \
+		opts.no_path_append, opts.wrapper, meta_vars, shallow_meta_vars)
 else:
-	try:
-		pkg_ress, env_cmds, dot_graph, num_fails = \
-			dc.resolve_packages(pkg_reqs, mode, do_quiet, opts.verbosity, opts.max_fails, \
-			time_epoch, opts.no_path_append, opts.buildreqs, not opts.no_assume_dt, opts.wrapper, \
-			meta_vars, shallow_meta_vars)
+	result = resolver.guarded_resolve(pkgstrs, opts.no_os, opts.no_path_append, opts.wrapper, \
+		meta_vars, shallow_meta_vars, opts.dot_file, opts.print_dot)
 
-	except dc.PkgSystemError, e:
-		sys.stderr.write(str(e)+'\n')
+	if not result:
 		sys.exit(1)
-	except dc.VersionError, e:
-		sys.stderr.write(str(e)+'\n')
-		sys.exit(1)
-	except dc.PkgFamilyNotFoundError, e:
-		sys.stderr.write("Could not find the package family '" + e.family_name + "'\n")
-		sys.exit(1)
-	except dc.PkgNotFoundError, e:
-		pkg_not_found(e.pkg_req)
-		sys.exit(1)
-	except dc.PkgConflictError, e:
-		sys.stderr.write("The following conflicts occurred:\n")
-		for c in e.pkg_conflicts:
-			sys.stderr.write(str(c)+'\n')
+	pkg_ress, env_cmds, dot_graph, num_fails = result
 
-		# we still produce a dot-graph on failure
-		if (e.last_dot_graph != ""):
-			if (opts.dot_file != ""):
-				gen_dotgraph_image(e.last_dot_graph, opts.dot_file)
-			if opts.print_dot:
-				print(e.last_dot_graph)
-
-		sys.exit(1)
-	except dc.PkgsUnresolvedError, e:
-		sys.stderr.write("The following packages could not be resolved:\n")
-		for p in e.pkg_reqs:
-			sys.stderr.write(str(p)+'\n')
-		sys.exit(1)
-	except dc.PkgCommandError, e:
-		sys.stderr.write("There was a problem with the resolved command list:\n")
-		sys.stderr.write(str(e)+'\n')
-		sys.exit(1)
-	except dc.PkgCyclicDependency, e:
-		sys.stderr.write("\nCyclic dependency(s) were detected:\n")
-		sys.stderr.write(str(e) + "\n")
-
-		# write graphs to file
-		tmpf = tempfile.mkstemp(suffix='.dot')
-		os.write(tmpf[0], str(e))
-		os.close(tmpf[0])
-		sys.stderr.write("\nThis graph has been written to:\n")
-		sys.stderr.write(tmpf[1] + "\n")
-
-		tmpf = tempfile.mkstemp(suffix='.dot')
-		os.write(tmpf[0], e.dot_graph)
-		os.close(tmpf[0])
-		sys.stderr.write("\nThe whole graph (with cycles highlighted) has been written to:\n")
-		sys.stderr.write(tmpf[1] + "\n")
-
-		# we still produce a dot-graph on failure
-		if (opts.dot_file != ""):
-			gen_dotgraph_image(e.dot_graph, opts.dot_file)
-		if opts.print_dot:
-			print(e.dot_graph)
-
-		sys.exit(1)
-
-	except dc.PkgConfigNotResolvedError, e:
-		sys.stderr.write("The configuration could not be resolved:\n")
-		for p in e.pkg_reqs:
-			sys.stderr.write(str(p)+'\n')
-		sys.stderr.write("The failed configuration attempts were:\n")
-		for s in e.fail_config_list:
-			sys.stderr.write(s+'\n')
-
-		# we still produce a dot-graph on failure
-		if (opts.dot_file != ""):
-			gen_dotgraph_image(e.last_dot_graph, opts.dot_file)
-		if opts.print_dot:
-			print(e.last_dot_graph)
-
-		sys.exit(1)
 
 
 ##########################################################################################
@@ -293,15 +136,6 @@ if opts.print_env:
 if opts.print_pkgs:
 	for pkg_res in pkg_ress:
 		print pkg_res.short_name()
-
-if opts.print_dot:
-	print(dot_graph)
-
-if (opts.dot_file != ""):
-	gen_dotgraph_image(dot_graph, opts.dot_file)
-
-
-
 
 
 

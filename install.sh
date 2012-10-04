@@ -255,7 +255,7 @@ cat ./bin/_set-rez-env \
 	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
 	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
 	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
-    | sed -e 's|!REZ_PYRO_PATH!|'$_REZ_PYRO_PATH'|g' \
+    | sed -e 's|!REZ_PYMEMCACHED_PATH!|'$_REZ_PYMEMCACHED_PATH'|g' \
 	| sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
 	| sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
 	> $install_dir/bin/_set-rez-env

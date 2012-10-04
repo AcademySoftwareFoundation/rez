@@ -28,16 +28,13 @@ def get_help(pkg):
 	except Exception:
 		return (pkg_base_path, pkg_base_path, None)
 
-	if "help" not in metadict:
-		return (pkg_base_path, pkg_base_path, None)
-
 	pkg_path = pkg_base_path
 	if "variants" in metadict:
 		# just pick first variant, they should all have the same copy of docs...
 		v0 = metadict["variants"][0]
 		pkg_path = os.path.join(pkg_path, *v0)
 
-	return (pkg_base_path, pkg_path, metadict["help"])
+	return (pkg_base_path, pkg_path, metadict.get("help"), metadict.get("description"))
 
 
 
@@ -60,7 +57,8 @@ if (len(sys.argv) == 1):
 (opts, args) = p.parse_args()
 
 if opts.manual:
-	subprocess.Popen("kpdf "+os.environ["REZ_PATH"]+"/docs/technicalUserManual.pdf &", shell=True).communicate()
+	subprocess.Popen("kpdf "+os.environ["REZ_PATH"]+"/docs/technicalUserManual.pdf &", \
+		shell=True).communicate()
 	sys.exit(0)
 
 section = 0
@@ -83,18 +81,29 @@ else:
 # find pkg and load help metadata
 ##########################################################################################
 
+descr_printed = False
+def _print_descr(descr):
+	global descr_printed
+	if descr and not descr_printed:
+		print
+		print "Description:"
+		print descr.strip()
+		print
+		descr_printed = True
+
 # attempt to load the latest
 fam = pkg.split("=")[0].split("-",1)[0]
-base_pkgpath, pkgpath, help = get_help(pkg)
+base_pkgpath, pkgpath, help, descr = get_help(pkg)
+_print_descr(descr)
 suppress_notfound_err = True
 
 while not help:
 	sys.stderr.write("Help not found in " + pkgpath + '\n')
 	ver = pkgpath.rsplit('/')[-1]
-	base_pkgpath, pkgpath, help = get_help(fam + "-0+<" + ver)
+	base_pkgpath, pkgpath, help, descr = get_help(fam + "-0+<" + ver)
+	_print_descr(descr)
 
-if not opts.entries:
-	print "help found for " + pkgpath
+print "help found for " + pkgpath
 
 
 ##########################################################################################

@@ -50,6 +50,7 @@ python_binary=
 pyyaml_path=
 pydot_path=
 pyparsing_path=
+pymemcached_path=
 pysvn_path=
 gitpython_path=
 
@@ -104,6 +105,9 @@ if [ "$pydot_path" == "" ]; then
 fi
 if [ "$pyparsing_path" == "" ]; then
 	pyparsing_path=$REZCONFIG_PYPARSING_PATH
+fi
+if [ "$pymemcached_path" == "" ]; then
+	pymemcached_path=$REZCONFIG_PYMEMCACHED_PATH
 fi
 if [ "$pysvn_path" == "" ]; then
 	pysvn_path=$REZCONFIG_PYSVN_PATH
@@ -523,6 +527,42 @@ echo "found pyparsing at "$pyparsing_path
 
 
 if [ "$_REZ_ISDEMO" != "1" ]; then
+    # pymemcached
+    #-----------------------------------------------------------------------------------------
+    echo
+    echo 'detecting pymemcached...'
+    if [ "$pymemcached_path" == "" ]; then
+        $python_binary -c "import memcache" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            pymemcached_path=`$python_binary -c \
+                "import os.path ; \
+                import memcache ; \
+                s = memcache.__file__.replace('/__init__.pyc','') ; \
+                s = memcache.__file__.replace('/__init__.pyo','') ; \
+                s = s.replace('/__init__.py','') ; \
+                print os.path.dirname(s)"`
+            if [ $? -ne 0 ]; then
+                pymemcached_path=""
+            fi
+        fi
+    fi
+    if [ "$pymemcached_path" == "" ]; then
+        echo $echoerr"couldn't find memcache python module - $orset""REZCONFIG_PYMEMCACHED_PATH"$echoreset 1>&2
+    else
+        bash -c "export PYTHONPATH=$pymemcached_path ; $python_binary -c 'import memcache' > /dev/null 2>&1"
+        if [ $? -ne 0 ]; then
+            echo $echoerr"memcache python module not found at "${pymemcached_path}$echoreset 1>&2
+            pymemcached_path=""
+        fi
+    fi
+    if [ "$pymemcached_path" == "" ]; then
+        echo "Installation can continue, but caching will not be available." 1>&2
+        echo "To enable later, just add the python-memcached python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "found python-memcached at "$pymemcached_path
+    fi
+
     # pysvn
     #-----------------------------------------------------------------------------------------
     echo
@@ -616,6 +656,7 @@ echo "export _REZ_PYTHON_VER='"$pyver"'"					        >> ./rez.configured
 echo "export _REZ_PYYAML_PATH='"$pyyaml_path"'" 				    >> ./rez.configured
 echo "export _REZ_PYDOT_PATH='"$pydot_path"'"	 				    >> ./rez.configured
 echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
+echo "export _REZ_PYMEMCACHED_PATH='"$pymemcached_path"'"	 		>> ./rez.configured
 echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				    >> ./rez.configured
 echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 			>> ./rez.configured
 echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 	    >> ./rez.configured

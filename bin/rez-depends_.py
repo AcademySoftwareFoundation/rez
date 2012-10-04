@@ -22,6 +22,8 @@
 # to view a dot-graph showing all dependencies of all packages (a BIG image):
 # rez-depends --show-dot --all
 #
+# TODO rewrite to use find_package2, more robust.
+#
 
 
 import os
@@ -30,8 +32,7 @@ import sys
 import optparse
 import yaml
 import sigint
-
-import filesys as fs
+import rez_filesys as fs
 
 
 #########################################################################################
@@ -149,9 +150,9 @@ for fullpath in all_dirs:
 
 	all_packages.add(f)
 
-	vers = fs.get_versions_in_directory(fullpath, False, 0, False)
+	vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
 	if vers:
-		filename = fullpath + '/' + str(vers[0]) + "/package.yaml"
+		filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
 		metadict = yaml.load(open(filename).read())
 
 		reqs = metadict["requires"] if ("requires" in metadict) else []

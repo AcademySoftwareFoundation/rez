@@ -8,15 +8,13 @@ import os
 
 
 class ConfigMetadataError(Exception):
-	"""
-	exception
-	"""
 	def __init__(self, value):
 		self.value = value
 	def __str__(self):
 		return str(self.value)
 
 
+# TODO this class is too heavy
 class ConfigMetadata:
 	"""
 	metafile. An incorrectly-formatted file will result in either a yaml exception (if
@@ -42,17 +40,15 @@ class ConfigMetadata:
 		self.variants = None
 		self.commands = None
 
-		self.metadict = yaml.load(open(filename).read())
-		if (self.metadict == None):
-			self.metadict = {}
+		with open(filename) as f:
+			self.metadict = yaml.load(f.read()) or {}
 
-		if (len(self.metadict) > 0):
-
+		if self.metadict:
 			###############################
 			# Common content
 			###############################
 
-			if (type(self.metadict) != type({})):
+			if (type(self.metadict) != dict):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
 					"' contains non-dictionary root node")
 
@@ -91,12 +87,26 @@ class ConfigMetadata:
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains 'authors' entry which is not a list")
 
-			###############################
 			# config-version-specific content
-			###############################
-
 			if (self.config_version == 0):
 				self.load_0();
+
+	def delete_nonessentials(self):
+		"""
+		Delete everything not needed for package resolving.
+		"""
+		if self.uuid:
+			del self.metadict["uuid"]
+			self.uuid = None
+		if self.description:
+			del self.metadict["description"]
+			self.description = None
+		if self.help:
+			del self.metadict["help"]
+			self.help = None
+		if self.authors:
+			del self.metadict["authors"]
+			self.authors = None
 
 	def get_requires(self, include_build_reqs = False):
 		"""
@@ -159,23 +169,6 @@ class ConfigMetadata:
 			return new_cmds
 		return None
 
-	def validate_authors(self):
-		"""
-		If authors exist, then validate them as valid users. This is used by rez-release to
-		make sure that packages aren't released with out-of-date author information
-		"""
-		# This is commented out since it's pretty OS-specific, and may be undesired
-		# behaviour. Uncomment if this suits you fine.
-		#if self.authors:
-		#	for author in self.authors:
-		#		pret = subprocess.Popen("groups " + author, \
-		#			stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-		#		tmp, tmperr = pret.communicate()
-		#		if (pret.returncode != 0):
-		#			raise ConfigMetadataError("package metafile '" + self.filename + \
-		#			"' contains invalid user as author: '" + author + "'")
-		return
-
 	def load_0(self):
 		"""
 		Load config_version=0
@@ -183,89 +176,53 @@ class ConfigMetadata:
 		# requires
 		if "requires" in self.metadict:
 			self.requires = self.metadict["requires"]
-			if (type(self.requires) != type([])):
+			if (type(self.requires) != list):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
 					"' contains non-list 'requires' node")
 			if (len(self.requires) == 0):
 				self.requires = None
 			else:
 				req0 = self.requires[0]
-				if (type(req0) != type("")):
+				if (type(req0) != str):
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains non-string 'requires' entries")
 
 		# build_requires
 		if "build_requires" in self.metadict:
 			self.build_requires = self.metadict["build_requires"]
-			if (type(self.build_requires) != type([])):
+			if (type(self.build_requires) != list):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
 					"' contains non-list 'build_requires' node")
 			if (len(self.build_requires) == 0):
 				self.build_requires = None
 			else:
 				req0 = self.build_requires[0]
-				if (type(req0) != type("")):
+				if (type(req0) != str):
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains non-string 'build_requires' entries")
 
 		# variants
 		if "variants" in self.metadict:
 			self.variants = self.metadict["variants"]
-			if (type(self.variants) != type([])):
+			if (type(self.variants) != list):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
 					"' contains non-list 'variants' node")
 			if (len(self.variants) == 0):
 				self.variants = None
 			else:
 				var0 = self.variants[0]
-				if (type(var0) != type([])):
+				if (type(var0) != list):
 					raise ConfigMetadataError("package metafile '" + self.filename + \
 						"' contains non-list 'variants' entries")
 
 		# commands
 		if "commands" in self.metadict:
 			self.commands = self.metadict["commands"]
-			if (type(self.commands) != type([])):
+			if (type(self.commands) != list):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
 					"' contains non-list 'commands' node")
 			if (len(self.commands) == 0):
 				self.commands = None
-
-
-# caches metafiles
-metafile_cache = {}
-
-def get_cached_metadata(filename):
-	global metafile_cache
-	if filename in metafile_cache:
-		return metafile_cache[filename]
-
-	f = ConfigMetadata(filename)
-	metafile_cache[filename] = f
-	return f
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
