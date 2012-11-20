@@ -97,11 +97,25 @@ def _convert_requirement(req, pkg_remappings):
     return rezreqs
 
 
+# some pkg-infos appear to be screwed
+def _repair_pkg_info(s):
+    s2 = ''
+    lines = s2.split('\n')
+    for line in lines:
+        line = line.strip()
+        if line.startswith('[') and not line.endswith(']'):
+            line += ']'
+        s2 += line + '\n'
+    return s2
+
+
 def _convert_metadata(distr):
     meta = {}
     if distr.has_metadata("PKG-INFO"):
         s = distr.get_metadata("PKG-INFO")
+        s = _repair_pkg_info(s)
         sections = pkg_r.split_sections(s)
+        print sections
         for section in sections:
             entries = section[1]
             for e in entries:

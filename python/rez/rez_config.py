@@ -321,6 +321,7 @@ class Resolver():
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
 		if not result:
+			#print "get_cached_resolve FAILED"
 			result = self.resolve_base(pkg_reqs)
 			self.set_cached_resolve(pkg_reqs, result)
 
@@ -372,6 +373,7 @@ class Resolver():
 	def resolve_base(self, pkg_reqs):	
 		config = _Configuration(self.rctxt)
 		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
+		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
 			normalise_pkg_req(pkg_req)
@@ -417,8 +419,7 @@ class Resolver():
 
 		# build the environment commands
 		env_cmds = []
-		res_pkg_strs = [x.short_name() for x in pkg_reqs]
-		full_req_str = str(' ').join(res_pkg_strs)
+		res_pkg_strs = [x.short_name() for x in pkg_res_list]
 
 		if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
 			mode_str = "latest"
@@ -494,10 +495,24 @@ class Resolver():
 		
 		if not result:
 			return None
+
 		pkg_res_list = result[0]
 
+		# discard cache if any version of any resolved pkg is also present as a local pkg,
+		# unless the versions fall outside of that pkg's max bounds.
+		if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
+			for pkg_res in pkg_res_list:
+				fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
+				if os.path.isdir(fam_path):
+					# todo max bounds check
+					print_cache_warning(("Presence of local package directory %s " + \
+						"caused cache miss") % fam_path)
+					return None
+
+		"""
 		# if any version of any resolved packages also appear in a local package path, and that 
 		# path has been modified since the cache timestamp, then discard the cached resolve.
+		# TODO incorrect, time has no effect. Can only discard based on 'pkg max bounds'
 		if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
 			for pkg_res in pkg_res_list:
 				fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
@@ -506,6 +521,7 @@ class Resolver():
 					if path_modtime >= cache_timestamp:
 						print >> sys.stderr, "LOCAL package forced no cache resolve!"
 						return None
+		"""
 
 		env_cmds = result[1]
 		env_cmds.append("export REZ_RESOLVE_FROM_CACHE=1")
@@ -998,7 +1014,7 @@ class _Configuration:
 			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
 			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
-		elif (result == _Configuration.ADDPKG_ADD) and (pkg != None):
+		elif (result == _Configuration.ADDPKG_ADD) and pkg:
 
 			# update dot-graph
 			pkgname = pkg.short_name()

@@ -14,13 +14,10 @@ class MemCacheClient():
         self.verbose = verbose
 
     def _get_key(self, k):
-        if type(k) == str and len(k) < self.mc.server_max_key_length:
+        if isinstance(k, basestring) and len(k) < self.mc.server_max_key_length:
             return k.replace(' ','_')
         else:
-            s = hashlib.sha512(pickle.dumps(k)).hexdigest()
-            #print "%s ----------> %s" % (str(k), s)
-            return s
-            #return hashlib.sha512(pickle.dumps(k)).hexdigest()
+            return hashlib.sha512(pickle.dumps(k)).hexdigest()
 
     def _set(self, k, v, fn):
         return fn(self._get_key(k), v, min_compress_len=self.mc.server_max_value_length/2)        
@@ -34,14 +31,11 @@ class MemCacheClient():
     def add(self, k, v):
         return self._set(k, v, self.mc.add)
 
-    def _get(self, k, fn):
-        return fn(self._get_key(k))      
-
     def get(self, k):
-        return self._get(k, self.mc.get)
+        return self.mc.get(self._get_key(k))
 
     def gets(self, k):
-        return self._get(k, self.mc.gets)
+        return self.mc.gets(self._get_key(k))
 
     def update(self, k, fn, initial):
         """

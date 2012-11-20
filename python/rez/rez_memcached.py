@@ -20,6 +20,10 @@ def _create_client():
     return memcache.Client([_g_memcached_server], cache_cas=True)
 
 
+def print_cache_warning(msg):
+    print >> sys.stderr, "Cache Warning: %s" % msg
+
+
 # init
 _g_caching_enabled = not os.getenv("REZ_DISABLE_CACHING")
 if _g_caching_enabled:
@@ -209,18 +213,26 @@ class RezMemCache():
 
         # store
         self.mc.update_add_to_set(k_no_timestamp, max_epoch)
-        self.mc.set(k_timestamped, result)
+        self.mc.set(k_timestamped, (self.epoch,result))
+
+    def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
+        for path in paths:
+            famp = os.path.join(path, family_name)
+            if os.path.isdir(famp):
+                mtime = int(os.path.getmtime(famp))
+                if mtime >= start_epoch and mtime <= end_epoch:
+                    return famp
 
     def get_resolve(self, paths, pkg_reqs):
         """
-        Return a cached resolve, or None if the resolve is not found or possible outdated.
+        Return a cached resolve, or None if the resolve is not found or possibly stale.
         """
         if not self.mc:
             return None,None
 
         k_base = (paths, pkg_reqs)
 
-        # get most recent cache of this resolve that is < current time
+        # get most recent cache of this resolve that is < current resolve time
         k_no_timestamp = ("RESOLVE-NO-TS", k_base)
         timestamps = self.mc.get(k_no_timestamp)
         if not timestamps:
@@ -232,18 +244,61 @@ class RezMemCache():
 
         cache_timestamp = sorted(older_timestamps)[-1]
         k_timestamped = ("RESOLVE", cache_timestamp, k_base)
-        result = self.mc.get(k_timestamped)
-        if not result:
+        t = self.mc.get(k_timestamped)
+        if not t:
             return None,None
 
+        # trim down list of resolve pkgs to those that may invalidate the cache
+        result_epoch,result = t
+
+        # cache cannot be stale in this case
+        if self.epoch <= result_epoch:
+            return result, cache_timestamp
+
+        pkg_res_list = result[0]
+        pkgs = {}
+        for pkg_res in pkg_res_list:
+            pkgs[pkg_res.name] = pkg_res
+
+        # check for new package versions released before the current resolve time, but after the
+        # cache resolve time. These may invalidate the cache.
+        for pkg_name,pkg in pkgs.items():
+            if not self.package_fam_modified_during(paths, pkg_name, result_epoch, self.epoch):
+                del pkgs[pkg_name]
+
+        if not pkgs:
+            return result, result_epoch
+
+        # remove pkgs where new versions have been released after the cache was written, but none
+        # of these versions fall within the 'max bounds' of that pkg. This can be simplified to 
+        # checking only the earliest version in this set.
+        # TODO NOT YET IMPLEMENTED
+        #for pkg_name,pkg in pkgs.items():
+        #    pass
+
+        if pkgs:
+            print_cache_warning("Newer released package(s) caused cache miss: %s" % \
+                str(", ").join(pkgs.keys()))
+            return None,None
+        else:
+            return result, cache_timestamp
+
+
+        """
         # check if there are any versions of the resolved packages that are newer than the resolved
         # version, but older than the current time - if so, this resolve may be out of date, and
         # must be discarded.
+        print "checking for newer versions..."
+
         pkg_res_list = result[0]
         for pkg_res in pkg_res_list:
             pkg_res_ver = Version(pkg_res.version)
             fam_path,ver,pkg_epoch = self.find_package2(paths, pkg_res.name, VersionRange(""))
             if ver is not None and ver > pkg_res_ver and pkg_epoch <= self.epoch:
+                print fam_path
+                print "newer pkg: " + str(ver)
+                print "existing pkg: " + str(pkg_res_ver)
                 return None,None
 
         return result, cache_timestamp
+        """

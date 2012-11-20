@@ -1,6 +1,7 @@
 # TODO add blacklisting/archiving, is anyone using that though?
 
 import os
+import sys
 import os.path
 import subprocess as sp
 from versions import *
