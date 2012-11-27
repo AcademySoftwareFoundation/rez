@@ -6,7 +6,6 @@ import rez_metafile
 from versions import *
 from public_enums import *
 from rez_exceptions import *
-from memcached_client import *
 
 
 
@@ -29,6 +28,7 @@ _g_caching_enabled = not os.getenv("REZ_DISABLE_CACHING")
 if _g_caching_enabled:
     try:
         import memcache
+        from memcached_client import *
     except:
         _g_caching_enabled = False
 if _g_caching_enabled:
