@@ -398,7 +398,6 @@ class Resolver():
 		elif (self.rctxt.verbosity == 2):
 			config.dump()
 
-
 		# do the config resolve - all the action happens here!
 		pkg_res_list = config.resolve_packages()
 

@@ -10,7 +10,6 @@
 import os
 import sys
 import optparse
-import rez_config as dc
 
 
 
@@ -64,6 +63,8 @@ p.add_option("--no-path-append", dest="no_path_append", action="store_true", def
 	help="don't append system-specific paths to PATH [default = %default]")
 p.add_option("--wrapper", dest="wrapper", action="store_true", default=False, \
 	help="set to true if creating a wrapper environment [default = %default]")
+p.add_option("--no-local", dest="no_local", action="store_true", default=False, \
+	help="don't load local packages")
 
 if (len(sys.argv) == 1):
 	(opts, extraArgs) = p.parse_args(["-h"])
@@ -79,17 +80,6 @@ if (opts.verbosity < 0) or (opts.verbosity > 2):
 	sys.stderr.write("rez-config: error: option -v: invalid integer value: " + str(opts.verbosity) + '\n')
 	sys.exit(1)
 
-mode = None
-if (opts.mode == "none"):
-	mode = dc.RESOLVE_MODE_NONE
-elif (opts.mode == "latest"):
-	mode = dc.RESOLVE_MODE_LATEST
-elif (opts.mode == "earliest"):
-	mode = dc.RESOLVE_MODE_EARLIEST
-else:
-	sys.stderr.write("rez-config: error: option -m: illegal resolution mode '" + opts.mode + "'\n")
-	sys.exit(1)
-
 # force quiet with some options
 do_quiet = opts.quiet or opts.print_env or opts.print_pkgs or opts.print_dot
 
@@ -100,6 +90,27 @@ time_epoch = int(opts.time)
 meta_vars = (opts.meta_info or '').replace(',',' ').strip().split()
 shallow_meta_vars = (opts.meta_info_shallow or '').replace(',',' ').strip().split()
 
+# hide local pkgs
+if opts.no_local:
+	localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
+	if localpath:
+		pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
+		if localpath in pkgpaths:
+			pkgpaths.remove(localpath)
+			os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
+
+import rez_config as dc
+
+mode = None
+if (opts.mode == "none"):
+	mode = dc.RESOLVE_MODE_NONE
+elif (opts.mode == "latest"):
+	mode = dc.RESOLVE_MODE_LATEST
+elif (opts.mode == "earliest"):
+	mode = dc.RESOLVE_MODE_EARLIEST
+else:
+	sys.stderr.write("rez-config: error: option -m: illegal resolution mode '" + opts.mode + "'\n")
+	sys.exit(1)
 
 
 ##########################################################################################

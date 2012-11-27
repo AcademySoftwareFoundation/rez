@@ -52,6 +52,8 @@ def get_cmdlin_parser():
         help="Add mode (strict). Packages will override or add to the existing resolve list [default = %default]")
     p.add_option("-f", "--view_fail", dest="view_fail", type=int, default=-1, \
         help="View the dotgraph for the Nth failed config attempt")
+    p.add_option("--no-local", dest="no_local", action="store_true", default=False, \
+        help="don't load local packages")
 
     return p
 
