@@ -48,7 +48,6 @@ import sys
 import shutil
 import subprocess
 import tempfile
-import rez_config as rc
 import pyparsing as pp
 import rez_env_cmdlin as rec
 import rez_parse_request as rpr
@@ -71,6 +70,16 @@ if __name__ == '__main__':
     if not pkgs_str:
         p.parse_args(['-h'])
         sys.exit(1)
+
+    if opts.no_local:
+        localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
+        if localpath:
+            pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
+            if localpath in pkgpaths:
+                pkgpaths.remove(localpath)
+                os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
+
+    import rez_config as rc
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
