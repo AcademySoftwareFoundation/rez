@@ -425,6 +425,7 @@ for egg_name, v in eggs.iteritems():
     distr, d = v
     egg_path = distr.location
     egg_dir = os.path.basename(egg_path)
+    egg_path = os.path.split(egg_path)[0]
     
     pkg_path = os.path.join(install_path, egg_name, d["version"])
     meta_path = os.path.join(pkg_path, ".metadata")    
