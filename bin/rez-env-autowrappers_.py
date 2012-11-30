@@ -85,7 +85,7 @@ if __name__ == '__main__':
     all_pkgs = base_pkgs[:]
 
     tmpdir = sys.argv[1]
-    if not opts.quiet:
+    if not opts.quiet and not opts.stdin:
         print 'Building into ' + tmpdir + '...'
 
     # make a copy of rcfile, if specified. We need to propogate this into the subshells
@@ -102,7 +102,8 @@ if __name__ == '__main__':
         s = name
         if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
         if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
-        print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
+        if not opts.stdin:
+            print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
 
         pkgname = '__wrapper_' + name
         pkgdir = os.path.join(tmpdir, pkgname)
@@ -123,37 +124,6 @@ if __name__ == '__main__':
             sys.exit(1)
 
         commands = result[1]
-
-
-        """
-        # Invoking rez-config as a subproc sucks... but I'd have to reorganise a bunch of code to
-        # fix this. I'd rather just do it properly in certus (aka 2nd-gen rez).
-        contextfile = os.path.join(pkgdir, _g_context_filename)
-        dotfile = os.path.join(pkgdir, _g_dot_filename)
-        pkgs_str = str(' ').join(d['pkgs'])
-
-        cmd = ('rez-config --print-env --wrapper --dot-file=%s --meta-info=tools ' + \
-            '--meta-info-shallow=tools') % dotfile
-
-        # forward opts onto rez-config invocation
-        if opts.quiet:              cmd += " --quiet"
-        if opts.build:              cmd += " --build-requires"
-        if opts.no_os:              cmd += " --no-os"
-        if opts.no_cache:           cmd += " --no-cache"
-        if opts.ignore_blacklist:   cmd += " --ignore-blacklist"
-        if opts.ignore_archiving:   cmd += " --ignore-archiving"
-        if opts.no_assume_dt:       cmd += " --no-assume-dt"
-        if opts.time:               cmd += " --time=" + str(opts.time)
-        cmd += " '" + pkgs_str + "'"
-
-        p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE)
-        commands,err_ = p.communicate()
-        if p.returncode != 0:
-            sys.exit(p.returncode)
-
-        commands = [x.strip() for x in commands.strip().split('\n')]
-        """
-
         commands.append("export REZ_CONTEXT_FILE=%s" % contextfile)
 
         f = open(contextfile, 'w')

@@ -54,6 +54,7 @@ fi
 ##############################################################################
 if [ "$autowrappers" != "" ]; then
 	tmpdir=`mktemp -d`
+	export REZ_WRAPPERS_TMP_DIR=$tmpdir
     rez-env-autowrappers $tmpdir $*
     if [ $? -ne 0 ]; then
     	exit 1

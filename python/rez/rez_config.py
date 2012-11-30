@@ -321,20 +321,34 @@ class Resolver():
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
 		if not result:
-			#print "get_cached_resolve FAILED"
 			result = self.resolve_base(pkg_reqs)
 			self.set_cached_resolve(pkg_reqs, result)
 
-		pkg_res_list, env_cmds, dot_graph, nfails = result
-		env_cmds = env_cmds[:]
+		env_cmds = []
+
+		if not is_wrapper:
+			env_cmds.append("export REZ_IN_WRAPPER=")
+			env_cmds.append("export REZ_WRAPPER_PATH=")
+
+		pkg_res_list, env_cmds_, dot_graph, nfails = result
+		env_cmds_ = env_cmds_[:]
+
+		# we need to inject system paths here. They're not there already because they can't be cached
+		sys_paths = [os.environ["REZ_PATH"]+"/bin"]
+		if not no_path_append:
+			sys_paths += rez_filesys._g_os_paths
+
+		sys_paths_added = ("export PATH=" in env_cmds_)
+		if sys_paths_added:
+			i = env_cmds_.index("export PATH=")
+			env_cmds_[i] = "export PATH=%s" % str(':').join(sys_paths)
+
+		env_cmds += env_cmds_
 
 		# add wrapper stuff
 		if is_wrapper:
 			env_cmds.append("export REZ_IN_WRAPPER=1")
 			env_cmds.append("export PATH=$PATH:$REZ_WRAPPER_PATH")
-		else:
-			env_cmds.append("export REZ_IN_WRAPPER=")
-			env_cmds.append("export REZ_WRAPPER_PATH=")
 
 		# add meta env vars
 		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
@@ -362,15 +376,13 @@ class Resolver():
 		for k,v in shallow_meta_envvars.iteritems():
 			env_cmds.append("export REZ_META_SHALLOW_" + k.upper() + "='" + str(' ').join(v) + "'")
 
-		# ad system paths
-		sys_paths = [os.environ["REZ_PATH"]+"/bin"]
-		if not no_path_append:
-			sys_paths += rez_filesys._g_os_paths
-		env_cmds.append("export PATH=$PATH:%s" % str(':').join(sys_paths))
+		# this here for backwards compatibility
+		if not sys_paths_added:
+			env_cmds.append("export PATH=$PATH:%s" % str(':').join(sys_paths))
 
 		return pkg_res_list, env_cmds, dot_graph, nfails
 
-	def resolve_base(self, pkg_reqs):	
+	def resolve_base(self, pkg_reqs):
 		config = _Configuration(self.rctxt)
 		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
 		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
@@ -428,6 +440,7 @@ class Resolver():
 			mode_str = "none"
 
 		# special case env-vars
+		env_cmds.append("export PATH=")
 		env_cmds.append("export REZ_USED=" + rez_filesys._g_rez_path)
 		env_cmds.append("export REZ_PREV_REQUEST=$REZ_REQUEST")
 		env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")

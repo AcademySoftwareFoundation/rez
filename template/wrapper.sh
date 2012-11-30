@@ -1,6 +1,9 @@
 #!/bin/bash
 
 export REZ_WRAPPER_CONTEXT=`dirname $0`/#CONTEXT#
+export REZ_WRAPPER_NAME='#CONTEXTNAME#'
+export REZ_WRAPPER_ALIAS='#ALIAS#'
+
 source $REZ_PATH/init.sh
 
 if [ "#RCFILE#" != "" ]; then
