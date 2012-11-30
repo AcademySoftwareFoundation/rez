@@ -47,14 +47,18 @@ if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" -o "$_REZ_ENV_OPT_ADD_STRICT" == "True"
 	fi
 fi
 
+tmpdir=$_REZ_ENV_OPT_TMPDIR
+
 
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
 # TODO patching of wrapper envs is not yet supported.
 ##############################################################################
 if [ "$autowrappers" != "" ]; then
-	tmpdir=`mktemp -d`
-	export REZ_WRAPPERS_TMP_DIR=$tmpdir
+	if [ "$tmpdir" == "" ]; then
+		tmpdir=`mktemp -d`
+	fi
+	export REZ_TMP_DIR=$tmpdir
     rez-env-autowrappers $tmpdir $*
     if [ $? -ne 0 ]; then
     	exit 1
@@ -102,8 +106,7 @@ fi
 ##############################################################################
 # call rez-config, and write env into bake file
 ##############################################################################
-
-tmpf=`mktemp /tmp/.rez-context.XXXXXXXXXX`
+tmpf=`mktemp --tmpdir=$tmpdir .rez-context.XXXXXXXXXX`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
