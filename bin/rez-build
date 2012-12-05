@@ -389,7 +389,8 @@ do
 		cd -
 	else
 		echo 'export REZ_ENV_PROMPT=">$REZ_ENV_PROMPT"' >> $SCR
-		echo "/bin/bash --rcfile $REZ_PATH/bin/REZ-env-bashrc" >> $SCR
+		echo "export REZ_ENV_PROMPT='BUILD>'" >> $SCR
+		echo "/bin/bash --rcfile $REZ_PATH/bin/rez-env-bashrc" >> $SCR
 
 		if [ $VNUM -eq -1 ]; then
 			echo "Generated "$SCR", invoke to run cmake for this project."

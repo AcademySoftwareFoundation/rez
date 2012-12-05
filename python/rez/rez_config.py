@@ -1325,8 +1325,9 @@ class _Configuration:
 							if(self.rctxt.max_fails >= 0):
 								if(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails):
 									self.rctxt.config_fail_list.append(this_fail)
-									if(len(rctxt.config_fail_list) > self.rctxt.max_fails):
-										rctxt.config_fail_list.append("Maximum configuration failures reached.")
+									if(len(self.rctxt.config_fail_list) > self.rctxt.max_fails):
+										self.rctxt.config_fail_list.append( \
+											"Maximum configuration failures reached.")
 										pkg_reqs_ = self.get_all_packages_as_package_requests()
 										raise PkgConfigNotResolvedError(pkg_reqs_, \
 											self.rctxt.config_fail_list, self.rctxt.last_fail_dot_graph)
