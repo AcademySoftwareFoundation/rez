@@ -11,6 +11,7 @@
 #	DESTINATION <rel_install_dir>
 #	[DOXYFILE <doxyfile>]
 #	[DOXYDIR <dir>]
+#	[IMAGEPATH <dir>]
 #   [FORCE]
 #	[DOXYPY]
 # )
@@ -23,6 +24,8 @@
 #
 # DOXYDIR: The directory the docs will be generated in, defaults to 'html'. You only need to set
 # this if you're generating non-html output (for eg, by setting GENERATE_HTML=NO in a custom Doxyfile).
+#
+# IMAGEPATH: The directory that images are found in.
 #
 # FORCE: Normally docs are not installed unless a central installation is taking place - set this
 # arg to force doc building and installation always.
@@ -60,7 +63,7 @@ FIND_PACKAGE(Doxygen)
 macro (rez_install_doxygen)
 
 	if(DOXYGEN_EXECUTABLE)
-		parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR" "FORCE;DOXYPY" ${ARGN})
+		parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR;IMAGEPATH" "FORCE;DOXYPY" ${ARGN})
 
 		list(GET INSTDOX_DEFAULT_ARGS 0 label)
 		if(NOT label)
@@ -120,6 +123,7 @@ macro (rez_install_doxygen)
 			COMMAND echo ${_opt_output_java} >> ${dest_dir}/Doxyfile
 			COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
 			COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
+			COMMAND echo IMAGE_PATH = ${CMAKE_SOURCE_DIR}/${INSTDOX_IMAGEPATH} >> ${dest_dir}/Doxyfile
 			COMMENT "Generating Doxyfile ${dest_dir}/Doxyfile..."
 			VERBATIM
 		)

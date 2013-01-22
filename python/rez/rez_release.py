@@ -9,6 +9,7 @@ import os
 import time
 import pysvn
 import subprocess
+import rez_release_base as rrb
 from rez_metafile import *
 import versions
 
@@ -378,6 +379,14 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	time_epoch = int(time.mktime(time.localtime()))
 	timef.write(str(time_epoch) + '\n')
 	timef.close()
+
+	# email
+	usr = os.getenv("USER", "unknown.user")
+	pkgname = "%s-%s" % (metadata.name, str(this_version))
+	subject = "[rez] [release] %s released %s" % (usr, pkgname)
+	if len(variants_) > 1:
+		subject += " (%d variants)" % len(variants_)
+	rrb.send_release_email(subject, commit_message)
 
 	print
 	print("rez-release: your package was released successfully.")
