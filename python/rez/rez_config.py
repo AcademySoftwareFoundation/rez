@@ -1209,7 +1209,7 @@ class _Configuration:
 					elif (self.rctxt.verbosity == 2):
 						self.dump()
 
-				self.remove_least_suitable_variant(self.rctxt)
+				self.remove_least_suitable_variant()
 
 			else:
 
