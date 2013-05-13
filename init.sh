@@ -10,7 +10,9 @@ export REZ_VERSION=!REZ_VERSION!
 export REZ_PLATFORM=!REZ_PLATFORM!
 
 # where rez is installed
-export REZ_PATH=!REZ_BASE_PATH!/!REZ_VERSION!
+# MethodLA: Removed version from path because tools shed already has version higher up in the path
+#export REZ_PATH=!REZ_BASE_PATH!/!REZ_VERSION!
+export REZ_PATH=!REZ_BASE_PATH!
 if [ ! -d $REZ_PATH ]; then
 	echo "ERROR! Rez could not be found at $REZ_PATH" 1>&2
 else

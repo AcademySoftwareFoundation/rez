@@ -93,7 +93,9 @@ else
     fi
 fi
 
-install_dir=$base_install_dir"/"$rez_version
+# MethodLA: Do not install into versioned directory as tools shed has version already in path
+#install_dir=$base_install_dir"/"$rez_version
+install_dir=$base_install_dir
 if [ -e $install_dir ]; then
 	rm -rf $install_dir/*
 else
@@ -200,7 +202,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     echo "variants:"					>> $py_yaml
     echo "- [ $osname ]"					>> $py_yaml
     echo "commands:" 					>> $py_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'			>> $py_yaml
+    echo '- export PATH=!ROOT!/bin:$PATH'			>> $py_yaml
 
 
     # example package
@@ -219,7 +221,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     echo "tools:"                           >> $pkg_yaml
     echo "- hello_world"                    >> $pkg_yaml
     echo "commands:" 						>> $pkg_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
+    echo '- export PATH=!ROOT!/bin:$PATH'	>> $pkg_yaml
 fi
 
 

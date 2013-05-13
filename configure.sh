@@ -18,7 +18,7 @@
 
 # Path where you want to centrally deploy packages to (ie, a central location that all
 # users can see). For example, /someserver/rez/packages
-packages_path=
+packages_path=/tools/shed/method.rez
 
 # Path to where you want to locally install packages to. Note the single quotes, which are
 # needed to stop early substitution of $HOME.
@@ -41,26 +41,26 @@ distro_version=
 sysarch=
 
 # Binaries that rez needs, if left blank rez will try to find them
-cmake_binary=
+cmake_binary=/tools/shed/opensource/cmake/2.8.9/payload/bin/cmake
 cpp_compiler_binary=
-python_binary=
+python_binary=/tools/shed/opensource/python/2.6.8/payload/bin/python
 
 # Path to python modules, if left blank rez will try to find them. A common mistake is to
 # include the trailing subdir (eg /.../.../yaml), that's one dir too many
-pyyaml_path=
-pydot_path=
-pyparsing_path=
+pyyaml_path=/tools/shed/opensource/PyYAML/3.10/payload/lib/python2.6/site-packages
+pydot_path=/tools/shed/opensource/pydot/1.0.28/payload/lib/python2.6/site-packages
+pyparsing_path=/tools/shed/opensource/pyparsing/1.5.7/payload/lib/python2.6/site-packages
 pymemcached_path=
-pysvn_path=
-gitpython_path=
+pysvn_path=/tools/shed/opensource/pysvn/1.7.6/payload/lib/python2.6/site-packages
+gitpython_path=/tools/shed/opensource/GitPython/0.3.2.RC1/payload/lib/python2.6/site-packages
 
 # Your preferred text editor for writing package release notes. You can change this at any
 # time by setting $REZ_RELEASE_EDITOR appropriately.
-rez_release_editor=
+rez_release_editor=/usr/bin/vim
 
 # Your preferred image viewer, for viewing resolve graphs. You can change this at any time
 # by setting $REZ_DOT_IMAGE_VIEWER appropriately.
-rez_dot_image_viewer=
+rez_dot_image_viewer=/usr/bin/kview
 
 ###---------------------------------------------------------------------------------------
 ### <<< END EDITING HERE
@@ -207,6 +207,34 @@ if [ "$osname" == "" ]; then
         echoreset=$(tput sgr0)
     fi
     echo "Operating system is: "$osname
+fi
+
+
+# arch
+#-----------------------------------------------------------------------------------------
+if [ "$sysarch" == "" ]; then
+    echo
+    echo "Detecting hardware platform..."
+    sysarch=`uname -m`
+    if [ $? -ne 0 ]; then
+        echo "Could not identify hardware platform - $or_set""REZCONFIG_ARCH" 1>&2
+        exit 1
+    fi
+    echo "Hardware platform is: "$sysarch
+fi
+
+
+# hostname
+#-----------------------------------------------------------------------------------------
+if [ "$host" == "" ]; then
+    echo
+    echo "Detecting host name..."
+    host=`uname -n`
+    if [ $? -ne 0 ]; then
+        echo "Could not identify host name" 1>&2
+        exit 1
+    fi
+    echo "Host name is: "$host
 fi
 
 
@@ -661,6 +689,8 @@ echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				    >> ./rez.configured
 echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 			>> ./rez.configured
 echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 	    >> ./rez.configured
 echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 	>> ./rez.configured
+echo "export _REZ_ARCH='"$sysarch"'"								>> ./rez.configured
+echo "export _REZ_HOST='"$host"'"									>> ./rez.configured
 
 echo
 if [ $nissues -ne 0 ]; then

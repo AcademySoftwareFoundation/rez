@@ -19,6 +19,10 @@ p.add_option("-j", "--jobs", dest="jobs", type="int", default=1, \
 p.add_option("--allow-not-latest", dest="nolatest", action="store_true", default=False, \
 	help="allows release of version earlier than the latest release. Do NOT use this option \
 unless you have to and you have good reason. [default = %default].")
+p.add_option("--with-existing-tag", dest="existingtag", action="store_true", default=False, \
+	help="allows release when a tag already exists for this version; useful to allow other \
+sites to install packages without unnecessary and misleading version increments. \
+[default = %default].")
 p.add_option("-t", "--time", dest="time", default="0", \
 	help="ignore packages newer than the given epoch time [default = current time]")
 
@@ -33,7 +37,7 @@ msg = opts.message
 if (not msg) and (opts.nomessage):
 	msg = ""
 
-rezr.release_from_path(".", msg, opts.jobs, opts.time, opts.nolatest)
+rezr.release_from_path(".", msg, opts.jobs, opts.time, opts.nolatest, opts.existingtag)
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

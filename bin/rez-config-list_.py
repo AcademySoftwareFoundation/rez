@@ -29,6 +29,8 @@ p.add_option("--desc", dest="desc", action="store_true", default=False, \
 	help="list package description [default = %default]")
 p.add_option("--dep", dest="dep", action="store_true", default=False, \
 	help="list package dependencies [default = %default]")
+p.add_option("--vers", dest="vers", action="store_true", default=False, \
+	help="list package versions [default = %default]")
 
 (opts, args) = p.parse_args()
 
@@ -57,7 +59,7 @@ else:
 
 for fullpath in pkg_paths:
 
-	vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
+	vers = [x for x in fs.get_versions_in_directory(fullpath, False)]
 	if vers:
 		filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
 		metadict = yaml.load(open(filename).read())
@@ -93,7 +95,13 @@ for fullpath in pkg_paths:
 
 				if len(deps) > 0:
 					ln = ln + "*" + str(" *").join(deps)
-
+					
+		if opts.vers:
+			ln = ln + " | "
+			versions = [str(x[0]) for x in vers]
+			if len(versions) > 0:
+				ln = ln + "*" + str(" *").join(versions)
+					
 		print ln
 
 
