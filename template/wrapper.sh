@@ -39,7 +39,7 @@ else
 	if [ -f ~/.bashrc ]; then
 		source ~/.bashrc &> /dev/null
 	fi
-	#ALIAS# $*
+	#ALIAS# "$@"
 	exit $?
 fi
 
