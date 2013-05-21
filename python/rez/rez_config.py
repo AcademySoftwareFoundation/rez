@@ -45,6 +45,8 @@ import yaml
 import sys
 import random
 import subprocess as sp
+import copy
+
 from versions import *
 from public_enums import *
 from rez_exceptions import *
@@ -317,6 +319,9 @@ class Resolver():
 
 		if not pkg_reqs:
 			return ([], [], "digraph g{}", 0)
+
+		# hold on to a copy to sort against (as possible) after the resolve
+		self.rctxt.originalRequest = copy.deepcopy(pkg_reqs)
 
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
@@ -871,8 +876,8 @@ class _Configuration:
 		"""
 		return (self.get_num_resolved_packages() == self.get_num_packages())
 
-	ADDPKG_CONFLICT 	= 0
-	ADDPKG_ADD 			= 1
+	ADDPKG_CONFLICT		= 0
+	ADDPKG_ADD			= 1
 	ADDPKG_NOEFFECT		= 2
 
 	def test_pkg_req_add(self, pkg_req, create_pkg_add):
@@ -991,9 +996,9 @@ class _Configuration:
 		else:
 			return None
 
-	PKGCONN_REDUCE 		= 0
-	PKGCONN_RESOLVE 	= 1
-	PKGCONN_REQUIRES 	= 2
+	PKGCONN_REDUCE			= 0
+	PKGCONN_RESOLVE		= 1
+	PKGCONN_REQUIRES	= 2
 	PKGCONN_CONFLICT	= 3
 	PKGCONN_VARIANT		= 4
 	PKGCONN_CYCLIC		= 5
@@ -1222,8 +1227,8 @@ class _Configuration:
 				# that resolve_packages will be called recursively
 				num_version_searches = 0
 				while (not (ver_range_valid == None)) and \
-		            ((self.rctxt.max_fails == -1) or \
-		            	(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
+			    ((self.rctxt.max_fails == -1) or \
+				(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
 					num_version_searches += 1
 
@@ -1383,7 +1388,7 @@ class _Configuration:
 			if not pkg.is_anti():
 				resolved_cmds = pkg.get_resolved_commands()
 				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, \
-                    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
+		    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
 				pkg_ress.append(pkg_res)
 
 		return pkg_ress
@@ -1428,9 +1433,9 @@ class _Configuration:
 
 			leaf_fams = children - parents
 			if len(leaf_fams) == 0:
-				break 	# if we hit this then there are cycle(s) somewhere
+				break	# if we hit this then there are cycle(s) somewhere
 
-			for fam in leaf_fams:
+			for fam in self.align_with_original_order(leaf_fams):
 				fam_list.append(fam)
 
 			del_deps = set()
@@ -1442,11 +1447,26 @@ class _Configuration:
 			fams -= leaf_fams
 
 		# anything left in the fam set is a topmost node
-		for fam in fams:
+		for fam in self.align_with_original_order(fams):
 			fam_list.append(fam)
 
 		return fam_list
 
+	def align_with_original_order(self, rawUnordered):
+		"""
+		Returns a list version of a supplied set where the items are sorted
+		according to the original request order (if possible)
+		"""
+		unordered = copy.deepcopy(rawUnordered)
+		ordered = []
+		
+		for each in self.rctxt.originalRequest:
+			if each.name in unordered:
+				ordered.append(each.name)
+				unordered.remove(each.name)
+
+		ordered += list(unordered)
+		return ordered
 
 	def detect_cyclic_dependencies(self):
 		"""
