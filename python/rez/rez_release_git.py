@@ -30,9 +30,9 @@ class RezReleaseError(Exception):
 # Globals
 ##############################################################################
 
-REZ_RELEASE_PATH_ENV_VAR = 		"REZ_RELEASE_PACKAGES_PATH"
-EDITOR_ENV_VAR		 	= 		"REZ_RELEASE_EDITOR"
-RELEASE_COMMIT_FILE 	= 		"rez-release-git-commit.tmp"
+REZ_RELEASE_PATH_ENV_VAR =		"REZ_RELEASE_PACKAGES_PATH"
+EDITOR_ENV_VAR			 =		"REZ_RELEASE_EDITOR"
+RELEASE_COMMIT_FILE		 =		"rez-release-git-commit.tmp"
 
 
 ##############################################################################
@@ -40,7 +40,7 @@ RELEASE_COMMIT_FILE 	= 		"rez-release-git-commit.tmp"
 ##############################################################################
 
 
-def release_from_path(path, commit_message, njobs, build_time, allow_not_latest):
+def release_from_path(path, commit_message, njobs, build_time, allow_not_latest, allow_existing_tag):
 	"""
 	release a package from the given path on disk, copying to the relevant tag,
 	and performing a fresh build before installing it centrally. If 'commit_message'
@@ -147,8 +147,11 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	try:
 		# if this doesn't raise IndexError, then tag_id already exists
 		tag = repo.tags[tag_id]
-		raise RezReleaseError("cannot release: the tag '" + tag_id + "' already exists in git." + \
-			" You may need to up your version, git-commit and try again.")
+		if allow_existing_tag:
+			print("allowing installation although the tag (%s) already exists." % (tag_id,))
+		else:
+			raise RezReleaseError("cannot release: the tag '" + tag_id + "' already exists in git." + \
+				" You may need to up your version, git-commit and try again.")
 	except IndexError, e:
 		# tag does not exist, so we can just continue
 		pass
@@ -162,7 +165,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		if (last_tag_str != "(NONE)") and (last_tag_str[0] != 'v'):
 			# make sure our version is newer than the last tagged release
 			last_tag_version = versions.Version(last_tag_str)
-			if this_version <= last_tag_version:
+			if (this_version <= last_tag_version) and (not allow_existing_tag):
 				raise RezReleaseError("cannot release: current version '" + metadata.version + \
 					"' is not greater than the latest tag '" + last_tag_str + \
 					"'. You may need to up your version, git-commit and try again.")
@@ -295,6 +298,14 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		print
 		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
 
+		if allow_existing_tag and os.path.isdir(instpath):
+			# We are in a potential overwrite situation that is not prevented by the normal tag-checking
+			if os.listdir(instpath):
+				raise RezReleaseError("\n\nexisting install at %s found - aborting\n\n" % (instpath,) +
+									  "rez-release: install failed!! A partial central installation " +
+									  "may have resulted, please see to this immediately - it should " +
+									  "probably be removed.")
+
 		# run rez-build, and:
 		# * manually specify the git-url to write into metadata;
 		# * manually specify the changelog file to use
@@ -343,23 +354,24 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		f.write(commit_message)
 		f.close()
 
-		pret = subprocess.Popen(editor + " " + tmpf, shell=True)
-		pret.wait()
-		if (pret.returncode == 0):
-			# if commit file was unchanged, then give a chance to abort the release
-			new_commit_message = open(tmpf).read()
-			if (new_commit_message == commit_message):
-				pret = subprocess.Popen( \
-					'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
-					' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
-				pret.wait()
-				if (pret.returncode != 0):
-					print("release aborted by user")
-					pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+		if not allow_existing_tag:
+			pret = subprocess.Popen(editor + " " + tmpf, shell=True)
+			pret.wait()
+			if (pret.returncode == 0):
+				# if commit file was unchanged, then give a chance to abort the release
+				new_commit_message = open(tmpf).read()
+				if (new_commit_message == commit_message):
+					pret = subprocess.Popen( \
+						'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
+						' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
 					pret.wait()
-					sys.exit(1)
+					if (pret.returncode != 0):
+						print("release aborted by user")
+						pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+						pret.wait()
+						sys.exit(1)
 
-			commit_message = new_commit_message
+				commit_message = new_commit_message
 
 	print
 	print("---------------------------------------------------------")
@@ -367,23 +379,29 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	print("---------------------------------------------------------")
 	print
 
-	remote = repo.remote()
-	# at this point all variants have built and installed successfully. Copy to the new tag
-	print("rez-release: creating project tag: " + tag_id + " and pushing to: " + remote.url + "...")
+	if allow_existing_tag:
+		print("the usual tagging will not be performed.")
+		# delete the temp commit message file
+		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+		pret.wait()
+	else:
+		remote = repo.remote()
+		# at this point all variants have built and installed successfully. Copy to the new tag
+		print("rez-release: creating project tag: " + tag_id + " and pushing to: " + remote.url + "...")
 
-	repo.create_tag(tag_id, a=True, F=tmpf)
-	# delete the temp commit message file
-	pret = subprocess.Popen("rm -f " + tmpf, shell=True)
-	pret.wait()
+		repo.create_tag(tag_id, a=True, F=tmpf)
+		# delete the temp commit message file
+		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+		pret.wait()
 
-	# git-push any changes to the remote
-	push_result = remote.push()
-	if len(push_result) == 0:
-		print("failed to push to remote, you have to run 'git push' manually.")
-	# git-push the new tag to the remote
-	push_result = remote.push(tags=True)
-	if len(push_result) == 0:
-		print("failed to push the new tag to the remote, you have to run 'git push --tags' manually.")
+		# git-push any changes to the remote
+		push_result = remote.push()
+		if len(push_result) == 0:
+			print("failed to push to remote, you have to run 'git push' manually.")
+		# git-push the new tag to the remote
+		push_result = remote.push(tags=True)
+		if len(push_result) == 0:
+			print("failed to push the new tag to the remote, you have to run 'git push --tags' manually.")
 
 	# the very last thing we do is write out the current date-time to a metafile. This is
 	# used by rez to specify when a package 'officially' comes into existence.
@@ -453,21 +471,21 @@ def git_checkout_index_submodules(varname, submodules, subdir):
 
 
 
-#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#	 Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
 #
-#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#	 Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
-#    This file is part of Rez.
+#	 This file is part of Rez.
 #
-#    Rez is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
+#	 Rez is free software: you can redistribute it and/or modify
+#	 it under the terms of the GNU Lesser General Public License as published by
+#	 the Free Software Foundation, either version 3 of the License, or
+#	 (at your option) any later version.
 #
-#    Rez is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
+#	 Rez is distributed in the hope that it will be useful,
+#	 but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	 MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#	 GNU General Public License for more details.
 #
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.
+#	 You should have received a copy of the GNU Lesser General Public License
+#	 along with Rez.  If not, see <http://www.gnu.org/licenses/>.

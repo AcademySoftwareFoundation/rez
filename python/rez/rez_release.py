@@ -39,7 +39,7 @@ RELEASE_COMMIT_FILE 	= 		"rez-release-svn-commit.tmp"
 ##############################################################################
 
 
-def release_from_path(path, commit_message, njobs, build_time, allow_not_latest):
+def release_from_path(path, commit_message, njobs, build_time, allow_not_latest, allow_existing_tag):
 	"""
 	release a package from the given path on disk, copying to the relevant tag,
 	and performing a fresh build before installing it centrally. If 'commit_message'
@@ -155,8 +155,11 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 
 	# check that this tag does not already exist
 	if svn_url_exists(svnc, tag_url):
-		raise RezReleaseError("cannot release: the tag '" + tag_url + "' already exists in svn." + \
-			" You may need to up your version, svn-checkin and try again.")
+		if allow_existing_tag:
+			print("allowing installation although the tag (%s) already exists." % (tag_url,))
+		else:
+			raise RezReleaseError("cannot release: the tag '" + tag_url + "' already exists in svn." + \
+				" You may need to up your version, svn-checkin and try again.")
 
 	# find latest tag, if it exists. Get the changelog at the same time.
 	pret = subprocess.Popen("rez-svn-changelog", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
@@ -167,7 +170,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		if (last_tag_str != "(NONE)") and (last_tag_str[0] != 'v'):
 			# make sure our version is newer than the last tagged release
 			last_tag_version = versions.Version(last_tag_str)
-			if this_version <= last_tag_version:
+			if (this_version <= last_tag_version) and (not allow_existing_tag):
 				raise RezReleaseError("cannot release: current version '" + metadata.version + \
 					"' is not greater than the latest tag '" + last_tag_str + \
 					"'. You may need to up your version, svn-checkin and try again.")
@@ -294,6 +297,14 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		print
 		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
 
+		if allow_existing_tag and os.path.isdir(instpath):
+			# We are in a potential overwrite situation that is not prevented by the normal tag-checking
+			if os.listdir(instpath):
+				raise RezReleaseError("\n\nexisting install at %s found - aborting\n\n" % (instpath,) +
+									  "rez-release: install failed!! A partial central installation " +
+									  "may have resulted, please see to this immediately - it should " +
+									  "probably be removed.")
+
 		# run rez-build, and:
 		# * manually specify the svn-url to write into metadata;
 		# * manually specify the changelog file to use
@@ -337,26 +348,27 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		f.write(commit_message)
 		f.close()
 
-		pret = subprocess.Popen(editor + " " + tmpf, shell=True)
-		pret.wait()
-		if (pret.returncode == 0):
-			# if commit file was unchanged, then give a chance to abort the release
-			new_commit_message = open(tmpf).read()
-			if (new_commit_message == commit_message):
-				pret = subprocess.Popen( \
-					'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
-					' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
-				pret.wait()
-				if (pret.returncode != 0):
-					print("release aborted by user")
-					pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+		if not allow_existing_tag:
+			pret = subprocess.Popen(editor + " " + tmpf, shell=True)
+			pret.wait()
+			if (pret.returncode == 0):
+				# if commit file was unchanged, then give a chance to abort the release
+				new_commit_message = open(tmpf).read()
+				if (new_commit_message == commit_message):
+					pret = subprocess.Popen( \
+						'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
+						' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
 					pret.wait()
-					sys.exit(1)
+					if (pret.returncode != 0):
+						print("release aborted by user")
+						pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+						pret.wait()
+						sys.exit(1)
 
-			commit_message = new_commit_message
+				commit_message = new_commit_message
 
-		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
-		pret.wait()
+			pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+			pret.wait()
 
 	print
 	print("---------------------------------------------------------")
@@ -364,12 +376,18 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	print("---------------------------------------------------------")
 	print
 
-	# at this point all variants have built and installed successfully. Copy to the new tag
-	print("rez-release: creating project tag in: " + tag_url + "...")
-	svnc.callback_get_log_message = SvnValueCallback(commit_message)
+	if allow_existing_tag:
+		print("the usual tagging will not be performed.")
+		# delete the temp commit message file
+		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+		pret.wait()
+	else:
+		# at this point all variants have built and installed successfully. Copy to the new tag
+		print("rez-release: creating project tag in: " + tag_url + "...")
+		svnc.callback_get_log_message = SvnValueCallback(commit_message)
 
-	svnc.copy2([ (this_url,) ], \
-		tag_url, make_parents=True )
+		svnc.copy2([ (this_url,) ], \
+			tag_url, make_parents=True )
 
 	# the very last thing we do is write out the current date-time to a metafile. This is
 	# used by rez to specify when a package 'officially' comes into existence.
