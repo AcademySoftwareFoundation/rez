@@ -71,43 +71,6 @@ def _importVisitFunc(args, dirname, names):
             cResult.append(dirname)
             break
 
-def findLib64Dir(startDir):
-    cLibrary64Dir = None
-    result = collections.deque()
-    os.path.walk(startDir, _import64VisitFunc, result)
-    if result:
-        cLibrary64Dir = os.path.normpath(result.pop())
-        log.debug('C-lang library64 dir: %s' % cLibrary64Dir)
-    return cLibrary64Dir
-
-def _import64VisitFunc(result, dirname, names):
-    for name in names:
-        if re.search(r'\.so$', name) is not None:
-            result.append(dirname)
-            break
-
-def findExecutableDir(startDir):
-    exeDir = None
-    exes = []
-    dirResult = collections.deque()
-    exeResult = collections.deque()
-    os.path.walk(startDir, _exeVisitFunc, [dirResult, exeResult])
-    if dirResult:
-        exeDir = os.path.normpath(os.path.join(dirResult.pop()))
-        exes = list(exeResult)
-    log.debug('Executable dir: %s' % exeDir)
-    return exeDir, exes
-
-def _exeVisitFunc(args, dirname, names):
-    dirBin = args[0]
-    exesBin = args[1]
-    result = []
-    result = [x for x in names if int(oct(os.stat(os.path.join(dirname, x)).st_mode & 0011))]
-    if result:
-        dirBin.append(dirname)
-        for exe in result:
-            exesBin.append(exe)
-
 def addVariant(data):
     var = ''
     if 'descriptor' in data:
@@ -220,16 +183,64 @@ def actCautiouslyAroundPythonModules(rawStr):
 
     ret = '\n'.join(washed)
     return ret, substitutionMade
+
+def parseConfig(srcFile):
+    rawData = []
+    try:
+        f = open(srcFile, 'r')
+        rawData = f.readlines()
+    except RuntimeError:
+        raise
+    finally:
+        f.close()
+
+    culledData = []
+    for line in rawData:
+        if re.search('^\s*COMMAND:', line) is None:
+            line = line.strip()
+            line = re.sub('#.*$', '', line)
+            if line and line != 'ENV:':
+                culledData.append(line)
+        else:
+            break
+
+    p = re.compile(r'^(.+?):\s*(.*?|)$')
+    partitionedData = {}
+    orderedKeys = []
+    currentKey = None
+    for line in culledData:
+        if line[0] is '-': # start of a new yaml thing
+            line = line[1:].strip()
+            m = re.search(p, line) 
+            if m is not None:
+                currentKey = m.group(1)
+                orderedKeys.append(currentKey)
+                partitionedData[currentKey] = []
+                if m.group(2):
+                    partitionedData[currentKey].append(rmQuotes(m.group(2)))
+        else:
+            partitionedData[currentKey].append(rmQuotes(line))
+
+    for k in orderedKeys:
+        print('%s: %s' % (k, partitionedData[k]))
+
+def rmQuotes(raw):
+    ret = re.sub(r'^[\'"]+', '', raw)
+    ret = re.sub(r'[\s\\]*$', '', ret) # and line continuations...
+    ret = re.sub(r'[\'"]+$', '', ret)
+    return ret
+        
+    
     
 ####
 
 parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--source", default=os.getcwd(),
-                    help="(Existing) project root (something like: '/tools/shed/opensource/PyYAML/3.10') [optional - defaults to '.']",
+                    help="(Existing) applauncher config root (something like: '/tools/config/AppLauncher/apps/houdini/linux_el5_x86_64/12.5.392') [optional - defaults to '.']",
 )
-defTgt = '/tools/shed/method.rez'
+defTgt = '/tools/shed/method.rez.prod'
 parser.add_argument("-t", "--target", default=defTgt,
-                    help="(New) rez-wrapped (base, not specify package) root [optional - defaults to '%s']" % (defTgt,),
+                    help="(New) rez prod container (base, not specify package) root [optional - defaults to '%s']" % (defTgt,),
 )
 parser.add_argument("-v", "--verbosity", default=1, type=int,
                     help="Logging verbosity; a number in the range 0-3 (higher == more verbose)",
@@ -241,40 +252,54 @@ if args.verbosity != 1:
 
 src = None
 try:
-    tgt = os.path.realpath(args.target)
+    tgtRoot = os.path.realpath(args.target)
     src = os.path.realpath(args.source)
 except Exception, e:
     log.error('Problem determining canonical paths for source and target (are they valid (existing) directories?).')
     sys.exit(1)
 package = None
-version = None
+version = '0.1.0'
 
 # Verify source data
-m = re.search(r'/([\w\.]+)/([\w\.]+)/?$', args.source)
+m = re.search(r'/([\w\.]+)/[\w\.]+/[\w\.]+/?$', args.source)
 if m is not None:
     package = m.group(1)
-    version = m.group(2)
     log.info('Inferred from source path:')
-    log.info('package: %s' % (package,))
-    log.info('version: %s' % (version,))
+    log.info('package: %s (this will be the prefix of the new rez profiles)' % (package,))
     verify()
 else:
-    raise RuntimeError, '[ERROR] Cannot determine package and/or version from supplied source ("%s")' % (args.source,)
+    raise RuntimeError, '[ERROR] Cannot determine package from supplied source ("%s")' % (args.source,)
+
+profiles = []
+for profile in [x for x in sorted(os.listdir(args.source)) if not re.search('^\.', x) and not re.search('\.yaml$', x)]:
+    r = raw_input("> Make rez version of profile '%s'? (hit Enter to accept; any other input skips this profile.)" %
+        (profile,),
+    )
+
+    if r != '':
+        log.info('Skipping...')
+    else:
+        profiles.append(profile)
 
 # Verify target data
-tgt = os.path.join(tgt, package, version)
-log.info('The new, rez-wrapped version will use the following:')
-log.info('target (root): %s' % (tgt,))
+
+log.info('The new, rez prod version will have the following:')
+for profile in profiles:
+    tgt = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
+    log.info('    %s' % (tgt,))
 verify()
 
-# Check for existing install
-if not os.path.isdir(tgt):
-    try:
-        os.makedirs(tgt)
-    except Exception, e:
-        log.error("Problem making target directory ('%s')" % (tgt,))
-        log.info("Common reasons include permissions and mount options...")
-        log.info("""Mounting cheat sheet (using /tools/shed as an example dir; prompts omitted for paste-ability):
+for profile in profiles:
+    tgtProfile = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
+
+    # Check for existing install
+    if not os.path.isdir(tgt):
+        try:
+            os.makedirs(tgt)
+        except Exception, e:
+            log.error("Problem making target directory ('%s')" % (tgt,))
+            log.info("Common reasons include permissions and mount options...")
+            log.info("""Mounting cheat sheet (using /tools/shed as an example dir; prompts omitted for paste-ability):
 
 stat /tools/shed/ > /dev/null
 sudo mount -oremount,rw $(ypmatch shed auto.tools | cut -d" " -f2)
@@ -284,20 +309,25 @@ sudo mount -oremount,ro $(ypmatch shed auto.tools | cut -d" " -f2)
 umask 000
 
 """)
-        sys.exit(1)
+            sys.exit(1)
 
-if os.listdir(tgt):
-    log.error("Existing data found in the tgt location ('%s').\nIf you do want to install here, \
-you must manually remove this data first." % (tgt))
-    sys.exit(1)
+    if os.listdir(tgt):
+        log.warn("Existing data found in the tgt location ('%s').\nIf you do want to install here, \
+        you must manually remove this data first (skipping this profile)" % (tgt))
+        continue
 
-# Analyze source data
-payloadDir = os.path.join(src, 'payload')
-if not os.path.isdir(payloadDir):
-    log.error("No 'payload' dir found under the base source dir - exiting.")
-    
-versionDirs = []
-versionlessDirs = []
+    # Analyze source data
+    srcDir = os.path.join(src, profile)
+    srcFile = os.path.join(srcDir, 'config.yaml')
+    if not os.path.isfile(srcFile):
+        log.warn("The expected source file, '%s', was not found; skipping this profile..." % (srcFile,))
+        continue
+
+    commands = []
+    commands = parseConfig(srcFile)
+
+sys.exit(99)
+
 
 ################################################################################
 
