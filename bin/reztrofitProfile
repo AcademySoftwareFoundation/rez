@@ -124,7 +124,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--source", default=os.getcwd(),
                     help="(Existing) applauncher config root (something like: '/tools/config/AppLauncher/apps/houdini/linux_el5_x86_64/12.5.392') [optional - defaults to '.']",
 )
-defTgt = '/tools/shed/method.rez.prod/TMP'
+defTgt = '/tools/shed/method.rez.prod'
 parser.add_argument("-t", "--target", default=defTgt,
                     help="(New) rez prod container (base, not specify package) root [optional - defaults to '%s']" % (defTgt,),
 )
@@ -247,7 +247,7 @@ umask 000
     commandsStr = 'commands:\n'
     commandsStr += commands
     descStr = 'Auto-ported from legacy Applauncher profile %s' % (srcFile,)
-    depStr = 'requires:\n- %s' % (package,)
+    depStr = 'requires:\n- %s%s' % (package, ('_default' if profile is not 'default' else ''))
     metaData = '''config_version : 0
 
 name: %(package)s_%(profile)s
