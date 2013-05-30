@@ -39,151 +39,6 @@ def mklinkIfNeeded(src, tgt):
             log.debug("Raised exception message:\n%s" % (e,))
             sys.exit(1)
 
-def findImportDir(startDir):
-    pythonImportDir = None
-    cLibraryDir = None
-    pythonResult = collections.deque()
-    cResult = collections.deque()
-    os.path.walk(startDir, _importVisitFunc, [pythonResult, cResult])
-    if pythonResult:
-        pythonImportDir = os.path.normpath(pythonResult.pop())
-        log.debug('Python import dir: %s' % pythonImportDir)
-    if cResult:
-        cLibraryDir = os.path.normpath(cResult.pop())
-        log.debug('C-lang library dir: %s' % cLibraryDir)
-    return pythonImportDir, cLibraryDir
-
-def _importVisitFunc(args, dirname, names):
-    pythonResult = args[0]
-    cResult = args[1]
-    
-    foundPython = False
-    if names.count('__init__.py') or names.count('__init__.pyc'):
-        pythonResult.append(os.path.join(dirname, '..'))
-        foundPython = True
-    if not foundPython:
-        for name in names:
-            if re.search(r'\.pyc?$', name) is not None:
-                pythonResult.append(dirname)
-                break
-    for name in names:
-        if re.search(r'\.so$', name) is not None:
-            cResult.append(dirname)
-            break
-
-def addVariant(data):
-    var = ''
-    if 'descriptor' in data:
-        var = '- [ %s ]\n' % (data['descriptor'],)
-    return var
-
-def addTools(data, path):
-    exes = []
-    exeCmdPrefix = '- export PATH="$PATH'
-    exeCmdSuffix = ''
-    exeCmd = ''
-    if 'executables' in data and 'exeDir' in data:
-        binPath = os.path.join(tgt, path, 'bin')
-        mklinkIfNeeded(data['exeDir'], binPath)
-        exeCmdSuffix += ':!ROOT!/bin'
-        exes = data['executables']
-    if 'altExeDirs' in data:
-        exes += data['altExes']
-
-        if exeCmdSuffix == '' and len(data['altExeDirs']) == 1:
-            binPath = os.path.join(tgt, path, 'bin')
-            mklinkIfNeeded(data['altExeDirs'][0], binPath)
-            exeCmdSuffix += ':!ROOT!/bin'
-        else:
-            for i in range(len(data['altExeDirs'])):
-                thisBin = 'altBin%s' % (i,)
-                binPath = os.path.join(tgt, path, thisBin)
-                mklinkIfNeeded(data['altExeDirs'][i], binPath)
-                exeCmdSuffix += ':!ROOT!/%s' % (thisBin,)
-
-    if exeCmdSuffix:
-        exeCmdSuffix += '"\n'
-        exeCmd = '%s%s' % (exeCmdPrefix, exeCmdSuffix)
-        
-    return exeCmd, exes
-
-def addLib(data, path):
-    libCmd = ''
-    if 'pythonImportDir' in data and data['pythonImportDir']:
-        libPath = os.path.join(tgt, path, 'libpython')
-        mklinkIfNeeded(data['pythonImportDir'], libPath)
-        libCmd += '- export PYTHONPATH="$PYTHONPATH:!ROOT!/libpython"\n'
-    if 'cLibraryDir' in data and data['cLibraryDir']:
-        libPath = os.path.join(tgt, path, 'lib')
-        mklinkIfNeeded(data['cLibraryDir'], libPath)
-        libCmd += '- export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:!ROOT!/lib"\n'
-    if 'cLibrary64Dir' in data and data['cLibrary64Dir']:
-        libPath = os.path.join(tgt, path, 'lib64')
-        mklinkIfNeeded(data['cLibrary64Dir'], libPath)
-        libCmd += '- export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:!ROOT!/lib64"\n'
-        
-    return libCmd
-
-def rmDupes(rawStr):
-    tmp = rawStr.split('\n')
-    culled = []
-    for each in tmp:
-        if not each in culled and each.strip():
-            culled.append(each)
-    if len(culled) < 2:
-        culled[0] = '# %s' % (culled[0],)
-    ret = '\n'.join(culled)
-    return ret
-
-def actCautiouslyAroundExecutables(rawStr):
-    tmp = rawStr.split('\n')
-    washed = tmp[:1]
-    tmp = tmp[1:]
-    haveExes = False
-    substitutionMade = False
-    for each in tmp:
-        if re.search(r' PATH=', each) is not None:
-            haveExes = True
-            break
-    if haveExes:
-        for each in tmp:
-            if re.search(r' LD_LIBRARY_PATH=', each) is not None:
-                washed.append('# %s' % (each,))
-                substitutionMade = True
-            else:
-                washed.append(each)
-    else:
-        washed += tmp
-
-    ret = '\n'.join(washed)
-    return ret, substitutionMade
-    
-def actCautiouslyAroundPythonModules(rawStr):
-    tmp = rawStr.split('\n')
-    washed = tmp[:1]
-    tmp = tmp[1:]
-    havePython = False
-    substitutionMade = False
-    for each in tmp:
-        if re.search(r' PYTHONPATH=', each) is not None:
-            havePython = True
-            break
-    if havePython:
-        for each in tmp:
-            if re.search(r' LD_LIBRARY_PATH=', each) is not None:
-                if each[0] != '#': # This may have already happened
-                    washed.append('# %s' % (each,))
-                    substitutionMade = True
-                else:
-                    washed.append(each)
-            else:
-                washed.append(each)
-    else:
-        washed += tmp
-
-    ret = '\n'.join(washed)
-    return ret, substitutionMade
-
 def parseConfig(srcFile):
     rawData = []
     try:
@@ -252,7 +107,8 @@ def parseConfig(srcFile):
         body = re.sub(r'[\s\\]*$', '', body)
         yamledData.append('%s%s%s' % (prefix, body, suffix))
 
-    print('\n'.join(yamledData))
+    commands = '\n'.join(yamledData)
+    return commands
 
 def rmQuotes(raw):
     ret = re.sub(r'^[\'"]+', '', raw)
@@ -268,7 +124,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("-s", "--source", default=os.getcwd(),
                     help="(Existing) applauncher config root (something like: '/tools/config/AppLauncher/apps/houdini/linux_el5_x86_64/12.5.392') [optional - defaults to '.']",
 )
-defTgt = '/tools/shed/method.rez.prod'
+defTgt = '/tools/shed/method.rez.prod/TMP'
 parser.add_argument("-t", "--target", default=defTgt,
                     help="(New) rez prod container (base, not specify package) root [optional - defaults to '%s']" % (defTgt,),
 )
@@ -320,7 +176,9 @@ for profile in profiles:
 verify()
 
 for profile in profiles:
-    tgtProfile = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
+    print('\n-----------------------------------------------------------------------\n')
+    log.info('Starting profile: %s' % (profile,))
+    tgt = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
 
     # Check for existing install
     if not os.path.isdir(tgt):
@@ -353,273 +211,46 @@ umask 000
         log.warn("The expected source file, '%s', was not found; skipping this profile..." % (srcFile,))
         continue
 
-    commands = []
     commands = parseConfig(srcFile)
 
-sys.exit(99)
+    ########################
 
-
-################################################################################
-
-# lib?
-libDir = os.path.join(payloadDir, 'lib')
-libVariants = []
-libs = []
-if os.path.isdir(libDir):
-    log.info("Found a 'lib' directory under payload...")
-    # Check for identifiable package versions ("pythonX.Y", really)
-    raw = os.listdir(libDir)
-    rawLibDirs = [os.path.join(libDir, x) for x in raw if os.path.isdir(os.path.join(libDir, x))]
-    p = re.compile(r'(\w+?)(-|)([\d.]+)$')
-    for dir in rawLibDirs:
-        m = re.search(p, os.path.basename(dir))
-        if m is not None:
-            pythonImportDir, cLibraryDir = findImportDir(dir)
-            if not pythonImportDir and not cLibraryDir:
-                log.debug("No '__init__.py[c]' files were found - using the base variant dir as the \
-variantSrcDir.")
-                pythonImportDir = dir
-            versionDirs.append({'pkg': m.group(1),
-                                'ver': m.group(3),
-                                'descriptor': '%s-%s' % (m.group(1), m.group(3)),
-                                'pythonImportDir': pythonImportDir,
-                                'cLibraryDir': cLibraryDir,
-                               }
-                              )
-        else:
-            pythonImportDir, cLibraryDir = findImportDir(dir)
-            if not pythonImportDir and not cLibraryDir:
-                log.debug("No '__init__.py[c]' files were found - using the base dir as the srcDir.")
-                pythonImportDir = dir
-            versionlessDirs.append({'pkg': None,
-                                    'ver': None,
-                                    'descriptor': None,
-                                    'pythonImportDir': pythonImportDir,
-                                    'cLibraryDir': cLibraryDir,
-                                   }
-                                  )
-
-    if versionDirs and versionlessDirs:
-        versionlessDirs = []
-        log.info("As both versioned and versionless subdirs were detected, the versionless ones are being ignored.")
-
-    for dir in versionDirs:
-        log.debug("Adding variant entry: %s" % (dir))
-    for dir in versionlessDirs:
-        log.debug("Adding basic entry: %s" % (dir))
-
-    print('')
-
-# bin?
-binDir = os.path.join(payloadDir, 'bin')
-executables = None
-if os.path.isdir(binDir):
-    tmpVersionlessExes = []
-    log.info("Found a 'bin' directory under payload...")
-
-    # Check for identifiable package versions ("pythonX.Y", really)
-    raw = os.listdir(binDir)
-    rawBinDirs = [os.path.join(binDir, x) for x in raw if os.path.isdir(os.path.join(binDir, x))]
-    rawBinDirs.append(binDir)
-    p = re.compile(r'(\w+?)(-|)([\d.]+)$')
-    for dir in rawBinDirs:
-        m = re.search(p, os.path.basename(dir))
-        if m is not None:
-            variantExeDir, foundExecutables = findExecutableDir(dir)
-            if not foundExecutables:
-                log.debug("No executable files were found - skipping.")
-                continue
-            foundVer = m.group(3)
-            needNewVariant = True
-            for each in versionDirs: # i.e., the already found, versioned variants
-                if each['ver'] == foundVer:
-                    each['exeDir'] = variantExeDir
-                    each['executables'] = foundExecutables 
-                    needNewVariant = False
-            if needNewVariant:
-                versionDirs.append({'pkg': None,
-                                    'ver': None,
-                                    'descriptor': None,
-                                    'exeDir': variantExeDir,
-                                    'executables': foundExecutables,
-                                   }
-                                  )
-        else:
-            variantExeDir, foundExecutables = findExecutableDir(dir)
-            if not foundExecutables:
-                log.debug("No executable files were found - skipping.")
-                continue
-            tmpVersionlessExes.append({'pkg': None,
-                                    'ver': None,
-                                    'descriptor': None,
-                                    'exeDir': variantExeDir,
-                                    'executables': foundExecutables,
-                                   }
-                                  )
-    
-
-    if versionDirs and tmpVersionlessExes:
-        log.info("As both versioned and unversioned subdirs were found, the unversioned executables \
-will be duplicated in each of the versioned subdirs (variants).")
-
-        for variant in versionDirs:
-            variant['altExeDirs'] = []
-            variant['altExes'] = []
-            for each in tmpVersionlessExes:
-                variant['altExeDirs'].append(each['exeDir'])
-                variant['altExes'] += each['executables']
-
-    if tmpVersionlessExes and not versionDirs:
-        versionlessDirs += tmpVersionlessExes
-
-    for dir in versionDirs:
-        log.debug("Adding variant entry: %s" % (dir))
-    for dir in versionlessDirs:
-        log.debug("Adding basic entry: %s" % (dir))
-
-    print('')
-        
-
-else:
-    log.info("No 'bin' dir found. Continuing...\n")
-
-# lib64?
-lib64Dir = os.path.join(payloadDir, 'lib64')
-if os.path.isdir(lib64Dir):
-    tmpVersionlessLib = []
-    log.info("Found a 'lib64' directory under payload...")
-    cLibrary64Dir = findLib64Dir(lib64Dir)
-    if not cLibrary64Dir:
-        log.debug("No .so files were found - omitting.")
+    # Build the rez structure
+    # is package.uuid present?
+    uuidFile = os.path.normpath(os.path.join(tgt, '..', 'package.uuid'))
+    uuidVal = None
+    if os.path.isfile(uuidFile):
+        try:
+            f = open(uuidFile)
+            uuidVal = f.readline()
+        except Exception, e:
+            log.error("Problem determining uuid value from file: '%s'. Please verify this file is valid." % (uuidFile,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+        finally:
+            f.close()
     else:
-        tmpVersionlessLib.append({'cLibrary64Dir': cLibrary64Dir})
+        uuidVal = str(uuid.uuid4()) ## Note: this is the 'random' version
+        try:
+            f = open(uuidFile, 'w+')
+            f.write(uuidVal)
+        except Exception, e:
+            log.error("Problem creating new uuid file: '%s'. Please check permissions, etc..." % (uuidFile,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+        finally:
+            f.close()
 
-    if versionDirs and tmpVersionlessLib:
-        for variant in versionDirs:
-            variant['cLibrary64Dir'] = cLibrary64Dir
-    else:
-        versionlessDirs += tmpVersionlessLib
-    print('')
-    log.debug("Adding basic entry: %s" % (dir))
-else:
-    log.info("No 'lib64' dir found. Continuing...\n")
+    ####
+    variantsStr = '#variants:\n'
+    toolsStr = '#tools:\n'
+    commandsStr = 'commands:\n'
+    commandsStr += commands
+    descStr = 'Auto-ported from legacy Applauncher profile %s' % (srcFile,)
+    depStr = 'requires:\n- %s' % (package,)
+    metaData = '''config_version : 0
 
-########################
-
-# Build the rez structure
-# is package.uuid present?
-uuidFile = os.path.normpath(os.path.join(tgt, '..', 'package.uuid'))
-uuidVal = None
-if os.path.isfile(uuidFile):
-    try:
-        f = open(uuidFile)
-        uuidVal = f.readline()
-    except Exception, e:
-        log.error("Problem determining uuid value from file: '%s'. Please verify this file is valid." % (uuidFile,))
-        log.debug("Raised exception message:\n%s" % (e,))
-        sys.exit(1)
-    finally:
-        f.close()
-else:
-    uuidVal = str(uuid.uuid4()) ## Note: this is the 'random' version
-    try:
-        f = open(uuidFile, 'w+')
-        f.write(uuidVal)
-    except Exception, e:
-        log.error("Problem creating new uuid file: '%s'. Please check permissions, etc..." % (uuidFile,))
-        log.debug("Raised exception message:\n%s" % (e,))
-        sys.exit(1)
-    finally:
-        f.close()
-
-####
-variantsStr = 'variants:\n'
-toolsStr = 'tools:\n'
-commandsStr = 'commands:\n'
-
-
-# Make any variants
-if versionDirs and versionlessDirs:
-    log.warn("Both version-specific and unversioned variants are being created. This is most likely \
-not correct and is being done with the intention that additional, manual cleanup will be performed.")
-    verify()
-    
-if versionDirs: # i.e., variants
-    # versioned
-    for each in versionDirs:
-        log.info("Making (version-specific) variant: %s" % (each,))
-        variantPath = os.path.join(tgt, each['descriptor']) 
-        mkdirIfNeeded(variantPath)
-        variantsStr += addVariant(each)
-
-        exeCmd, toolsStrAddition = addTools(each, variantPath)
-        commandsStr += exeCmd
-        for item in toolsStrAddition:
-            toolsStr += '''- %s\n''' % (item,)
-
-        libCmd = addLib(each, variantPath)
-        commandsStr += libCmd
-        
-    # versionless
-    for each in versionlessDirs:
-        log.info("Making (versionless) variant: %s" % (each,))
-        variantPath = os.path.join(tgt, 'default')
-        mkdirIfNeeded(variantPath) 
-        variantsStr += addVariant(each)
-        
-        exeCmd, toolsStrAddition = addTools(each, variantPath)
-        commandsStr += exeCmd
-        for item in toolsStrAddition:
-            toolsStr += '''- %s\n''' % (item,)
-
-        libCmd = addLib(each, variantPath)
-        commandsStr += libCmd
-
-else: # no variants (flat)
-    for each in versionlessDirs:
-        log.info("Adding flattened data: %s" % (each,))
-
-        exeCmd, toolsStrAddition = addTools(each, tgt)
-        commandsStr += exeCmd
-        for item in toolsStrAddition:
-            toolsStr += '''- %s\n''' % (item,)
-
-        libCmd = addLib(each, tgt)
-        commandsStr += libCmd
-
-variantsStr = rmDupes(variantsStr)
-toolsStr = rmDupes(toolsStr)
-commandsStr = rmDupes(commandsStr)
-
-commandsStr, warn1 = actCautiouslyAroundExecutables(commandsStr)
-commandsStr, warn2 = actCautiouslyAroundPythonModules(commandsStr)
-
-####
-print('\n\n')
-
-log.info("If you would like to provide a brief description of this package (%s), please enter it now...")
-descStr = raw_input('>>> ')
-if descStr == '':
-    log.info('Using default description.')
-    descStr = 'No description provided.'
-
-log.info("If you would like to indicate dependencies, please enter them now (comma separated, \
-in form: pkgName[-version]) (or simply <Enter> for no dependencies)...")
-depStr = raw_input('>>> ')
-if depStr == '':
-    log.info('No dependencies added.')
-    depStr = '# requires:'
-else:
-    tmp = 'requires:\n'
-    for dep in depStr.split(','):
-        tmp += '- %s\n' % (dep,)
-    depStr = tmp
-
-####
-
-metaData = '''config_version : 0
-
-name: %(package)s
+name: %(package)s_%(profile)s
 
 version: %(version)s
 
@@ -640,27 +271,17 @@ description: "%(descStr)s"
 
 ''' % locals()
 
-print("\n\n--------\n")
-log.info("\nHere is the generated package.yaml file:\n\n%s\n\n" % (metaData))
-
-metadataFile = os.path.join(tgt, 'package.yaml')
-try:
-    f = open(metadataFile, 'w+')
-    f.writelines(metaData)
-except Exception, e:
-    log.error("Problem creating new metadata file: '%s'." % (metadataFile,))
-    log.debug("Raised exception message:\n%s" % (e,))
-    sys.exit(1)
-finally:
-    f.close()
-
-
-if warn1:
     print("\n\n--------\n")
-    log.info("As executables were found, commands to append to PYTHONPATH and/or LD_LIBRARY_PATH are \
-commented out in the config.yaml.")
+    log.info("\nHere is the generated package.yaml file:\n\n%s\n\n" % (metaData))
 
-if warn2:
-    print("\n--------\n")
-    log.info("As python modules were found, commands to append to LD_LIBRARY_PATH are commented out \
-in the config.yaml.")
+    metadataFile = os.path.join(tgt, 'package.yaml')
+    try:
+        f = open(metadataFile, 'w+')
+        f.writelines(metaData)
+    except Exception, e:
+        log.error("Problem creating new metadata file: '%s'." % (metadataFile,))
+        log.debug("Raised exception message:\n%s" % (e,))
+        sys.exit(1)
+    finally:
+        f.close()
+
