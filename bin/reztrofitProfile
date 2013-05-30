@@ -221,8 +221,38 @@ def parseConfig(srcFile):
         else:
             partitionedData[currentKey].append(rmQuotes(line))
 
+
+    yamledData = []
     for k in orderedKeys:
-        print('%s: %s' % (k, partitionedData[k]))
+        prefix1 = '- export %s=' % (k,)
+        suffix1 = ''
+        prefix2 = '- "export %s=\\"' % (k,)
+        suffix2 = '\\""'
+        body = ''
+        needsQuotes = False
+        for line in partitionedData[k]:
+            if (re.search('\$', line) is not None or
+                re.search(' ', line) is not None
+               ):
+                needsQuotes = True
+                break
+        
+        first = True
+        prefix = prefix1
+        suffix = suffix1
+        if needsQuotes:
+            prefix = prefix2
+            suffix = suffix2
+
+        for line in partitionedData[k]:
+            body += '%s%s\\' % ((len(prefix) * ' ' if not first else '', line))
+            if len(partitionedData[k]) > 1:
+                body += '\n'
+            first = False
+        body = re.sub(r'[\s\\]*$', '', body)
+        yamledData.append('%s%s%s' % (prefix, body, suffix))
+
+    print('\n'.join(yamledData))
 
 def rmQuotes(raw):
     ret = re.sub(r'^[\'"]+', '', raw)
