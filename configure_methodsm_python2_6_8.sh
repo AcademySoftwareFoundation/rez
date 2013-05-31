@@ -50,7 +50,7 @@ python_binary=/tools/shed/opensource/python/2.6.8/payload/bin/python
 pyyaml_path=/tools/shed/opensource/PyYAML/3.10/payload/lib/python2.6/site-packages
 pydot_path=/tools/shed/opensource/pydot/1.0.28/payload/lib/python2.6/site-packages
 pyparsing_path=/tools/shed/opensource/pyparsing/1.5.7/payload/lib/python2.6/site-packages
-pymemcached_path=/tools/shed/method.rez/python_memcached/1.51/python_memcached-1.51-py2.6.egg
+pymemcached_path=/tools/shed/method.rez/python_memcached/1.51/python-2.6/libpython/python_memcached-1.51-py2.6.egg
 pysvn_path=/tools/shed/opensource/pysvn/1.7.6/payload/lib/python2.6/site-packages
 gitpython_path=/tools/shed/opensource/GitPython/0.3.2.RC1/payload/lib/python2.6/site-packages
 
