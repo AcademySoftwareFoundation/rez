@@ -147,7 +147,7 @@ package = None
 version = '0.1.0'
 
 # Verify source data
-m = re.search(r'/([\w\.]+)/[\w\.]+/[\w\.]+/?$', args.source)
+m = re.search(r'/([\w\.-]+)/[\w\.-]+/[\w\.-]+/?$', args.source)
 if m is not None:
     package = m.group(1)
     log.info('Inferred from source path:')
