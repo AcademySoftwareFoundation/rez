@@ -1,10 +1,13 @@
-rez_release_version=1.6.11
+#! /bin/bash
 
-git clone chili-git:la-rez /tmp/rez-${rez_release_version}
+rez_release_version=1.6.11
+tmp_loc=$(mktemp)
+
+git clone chili-git:la-rez tmp_loc
 
 sudo mkdir -p /tools/shed/opensource/la-rez/${rez_release_version}/payload
 
-sudo mv /tmp/rez-${rez_release_version} /tools/shed/opensource/la-rez/${rez_release_version}/src
+sudo mv tmp_loc /tools/shed/opensource/la-rez/${rez_release_version}/src
 
 cd /tools/shed/opensource/la-rez/${rez_release_version}/src
 
