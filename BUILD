@@ -1,6 +1,6 @@
 #! /bin/bash
 
-rez_release_version=1.6.11
+rez_release_version=1.6.12
 tmp_loc=$(mktemp)
 
 git clone chili-git:la-rez $tmp_loc

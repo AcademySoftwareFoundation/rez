@@ -56,6 +56,8 @@ else
 
 
 	source $REZ_PATH/bin/_complete
+	source $REZ_PATH/bin/_complete_svn.sh
+	source $REZ_PATH/bin/_complete_git.sh
 
 fi
 
