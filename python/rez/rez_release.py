@@ -51,173 +51,230 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	build_time: epoch time to build at. If 0, use current time
 	allow_not_latest: if True, allows for releasing a tag that is not > the latest tag version
 	"""
-	# check for ./package.yaml
-	if not os.access(path + "/package.yaml", os.F_OK):
-		raise RezReleaseError(path + "/package.yaml not found")
+	rel = RezRelease(path, commit_message, njobs, build_time, allow_not_latest)
+	rel.release()
 
-	# check we're in an svn working copy
-	svnc = pysvn.Client()
-	svnc.set_interactive( True )
-	svnc.set_auth_cache( False )
-	svnc.set_store_passwords( False )
-	svnc.callback_get_login = getSvnLogin
+class RezRelease(object):
+	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
+		self.path = path
+		self.self.commit_message = commit_message
+		self.njobs = njobs
+		self.build_time = build_time
+		self.allow_not_latest = allow_not_latest
+		
+		# variables filled out in pre_build()
+		self.metadata = None
+		self.base_dir = None
+		self.pkg_release_path = None
+		self.package_uuid_exists = None
 
-	svn_entry = svnc.info(path)
-	if not svn_entry:
-		raise RezReleaseError("'" + path + "' is not an svn working copy")
-	this_url = str(svn_entry["url"])
+#-svn--------------
+		# check we're in an svn working copy
+		self.svnc = pysvn.Client()
+		self.svnc.set_interactive( True )
+		self.svnc.set_auth_cache( False )
+		self.svnc.set_store_passwords( False )
+		self.svnc.callback_get_login = getSvnLogin
+		svn_entry = self.svnc.info(self.path)
+		if not svn_entry:
+			raise RezReleaseError("'" + self.path + "' is not an svn working copy")
+		self.this_url = str(svn_entry["url"])
+		
+		# variables filled out in pre_build()
+		self.tag_url = None
+		self.changelogFile = None
+		self.self.changeLog = None
+		self.editor = None
+#-svn--------------
 
-	# check that ./package.yaml is under svn control
-	if not svn_url_exists(svnc, this_url + "/package.yaml"):
-		raise RezReleaseError(path + "/package.yaml is not under source control")
+	def release(self):
+		self.pre_build()
+		self.build()
+		self.install()
+		self.post_install()
 
-	if (commit_message == None):
-		# get preferred editor for commit message
-		editor = os.getenv(EDITOR_ENV_VAR)
-		if not editor:
-			raise RezReleaseError("rez-release: $" + EDITOR_ENV_VAR + " is not set.")
+	@property
+	def get_metadata(self):
+		# check for ./package.yaml
+		if not os.access(self.path + "/package.yaml", os.F_OK):
+			raise RezReleaseError(self.path + "/package.yaml not found")
 
-	# load the package metadata
-	metadata = ConfigMetadata(path + "/package.yaml")
-	if (not metadata.version):
-		raise RezReleaseError(path + "/package.yaml does not specify a version")
-	try:
-		this_version = versions.Version(metadata.version)
-	except VersionError:
-		raise RezReleaseError(path + "/package.yaml contains illegal version number")
+		# load the package metadata
+		metadata = ConfigMetadata(self.path + "/package.yaml")
+		if (not metadata.version):
+			raise RezReleaseError(self.path + "/package.yaml does not specify a version")
+		try:
+			self.this_version = versions.Version(metadata.version)
+		except VersionError:
+			raise RezReleaseError(self.path + "/package.yaml contains illegal version number")
 
-	# metadata must have name
-	if not metadata.name:
-		raise RezReleaseError(path + "/package.yaml is missing name")
+		# metadata must have name
+		if not metadata.name:
+			raise RezReleaseError(self.path + "/package.yaml is missing name")
 
-	# metadata must have uuid
-	if not metadata.uuid:
-		raise RezReleaseError(path + "/package.yaml is missing uuid")
+		# metadata must have uuid
+		if not metadata.uuid:
+			raise RezReleaseError(self.path + "/package.yaml is missing uuid")
 
-	# metadata must have description
-	if not metadata.description:
-		raise RezReleaseError(path + "/package.yaml is missing a description")
+		# .metadata must have description
+		if not metadata.description:
+			raise RezReleaseError(self.path + "/package.yaml is missing a description")
 
-	# metadata must have authors
-	if not metadata.authors:
-		raise RezReleaseError(path + "/package.yaml is missing authors")
+		# metadata must have authors
+		if not metadata.authors:
+			raise RezReleaseError(self.path + "/package.yaml is missing authors")
+		
+#-svn--------------
+		# check that ./package.yaml is under svn control
+		if not svn_url_exists(self.svnc, self.this_url + "/package.yaml"):
+			raise RezReleaseError(self.path + "/package.yaml is not under source control")
+#-svn--------------
 
-	pkg_release_path = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
-	if not pkg_release_path:
-		raise RezReleaseError("$" + REZ_RELEASE_PATH_ENV_VAR + " is not set.")
+		return metadata
 
-	# check uuid against central uuid for this package family, to ensure that
-	# we are not releasing over the top of a totally different package due to naming clash
-	existing_uuid = None
-	package_uuid_dir = pkg_release_path + '/' + metadata.name
-	package_uuid_file = package_uuid_dir + "/package.uuid"
-	package_uuid_exists = True
+	def get_build_cmd(self, vararg):
+		build_cmd = "rez-build" + \
+			" -t " + str(self.build_time) + \
+			" " + vararg + \
+			" -s " + self.tag_url + \
+			" -c " + self.changelogFile + \
+			" -- -- -j" + str(self.njobs)
+		return build_cmd
 
-	try:
-		existing_uuid = open(package_uuid_file).read().strip()
-	except Exception:
-		package_uuid_exists = False
-		existing_uuid = metadata.uuid
+	def get_install_cmd(self, vararg):
+		build_cmd = "rez-build -n" + \
+			" -t " + str(self.build_time) + \
+			" " + vararg + \
+			" -s " + self.tag_url + \
+			" -c " + self.changelogFile + \
+			" -- -c -- install"
+		return build_cmd
 
-	if(existing_uuid != metadata.uuid):
-		raise RezReleaseError("the uuid in '" + package_uuid_file + \
-			"' does not match this package's uuid - you may have a package name clash. All package " + \
-			"names must be unique.")
+	def pre_build(self):
+		'''
+		Fill out variables and check for problems
+		'''
+		self.metadata = self.get_metadata()
 
-	# find the base path, ie where 'trunk', 'branches', 'tags' should be
-	pos_tr = this_url.find("/trunk")
-	pos_br = this_url.find("/branches")
-	pos = max(pos_tr, pos_br)
-	if (pos == -1):
-		raise RezReleaseError(path + "is not in a branch or trunk")
-	base_url = this_url[:pos]
+		self.pkg_release_path = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
+		if not self.pkg_release_path:
+			raise RezReleaseError("$" + REZ_RELEASE_PATH_ENV_VAR + " is not set.")
 
-	# check we're in a state to release (no modified/out-of-date files etc)
-	status_list = svnc.status(path, get_all=False, update=True)
-	status_list_known = []
-	for status in status_list:
-		if status.entry:
-			status_list_known.append(status)
-	if len(status_list_known) > 0:
-		raise RezReleaseError("'" + path + "' is not in a state to release - you may need to " + \
-			"svn-checkin and/or svn-update: " + str(status_list_known))
+		# check uuid against central uuid for this package family, to ensure that
+		# we are not releasing over the top of a totally different package due to naming clash
+		package_uuid_dir = self.pkg_release_path + '/' + self.metadata.name
+		self.package_uuid_file = package_uuid_dir + "/package.uuid"
 
-	# do an update
-	print("rez-release: svn-updating...")
-	svnc.update(path)
+		try:
+			existing_uuid = open(self.package_uuid_file).read().strip()
+		except Exception:
+			self.package_uuid_exists = False
+			existing_uuid = self.metadata.uuid
+		else:
+			self.package_uuid_exists = True
 
-	tags_url = base_url + "/tags"
-	latest_tag = []
-	latest_tag_str = ''
-	changeLog = ''
+		if(existing_uuid != self.metadata.uuid):
+			raise RezReleaseError("the uuid in '" + self.package_uuid_file + \
+				"' does not match this package's uuid - you may have a package name clash. All package " + \
+				"names must be unique.")
 
-	tag_url = tags_url + '/' + str(this_version)
+		self.variants = self.metadata.get_variants()
+		if not self.variants:
+			self.variants = [ None ]
 
-	# check that this tag does not already exist
-	if svn_url_exists(svnc, tag_url):
-		raise RezReleaseError("cannot release: the tag '" + tag_url + "' already exists in svn." + \
-			" You may need to up your version, svn-checkin and try again.")
+		# create base dir to do clean builds from
+		self.base_dir = os.getcwd() + "/build/rez-release"
+		pret = subprocess.Popen("rm -rf " + self.base_dir, shell=True)
+		pret.communicate()
+		pret = subprocess.Popen("mkdir -p " + self.base_dir, shell=True)
+		pret.communicate()
 
-	# find latest tag, if it exists. Get the changelog at the same time.
-	pret = subprocess.Popen("rez-svn-changelog", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-	changeLog, changeLog_err = pret.communicate()
+#-svn--------------
+		if (self.commit_message == None):
+			# get preferred self.editor for commit message
+			self.editor = os.getenv(EDITOR_ENV_VAR)
+			if not self.editor:
+				raise RezReleaseError("rez-release: $" + EDITOR_ENV_VAR + " is not set.")
 
-	if (pret.returncode == 0) and (not allow_not_latest):
-		last_tag_str = changeLog.splitlines()[0].split()[-1].replace('/',' ').replace(':',' ').split()[-1]
-		if (last_tag_str != "(NONE)") and (last_tag_str[0] != 'v'):
-			# make sure our version is newer than the last tagged release
-			last_tag_version = versions.Version(last_tag_str)
-			if this_version <= last_tag_version:
-				raise RezReleaseError("cannot release: current version '" + metadata.version + \
-					"' is not greater than the latest tag '" + last_tag_str + \
-					"'. You may need to up your version, svn-checkin and try again.")
+		# find the base self.path, ie where 'trunk', 'branches', 'tags' should be
+		pos_tr = self.this_url.find("/trunk")
+		pos_br = self.this_url.find("/branches")
+		pos = max(pos_tr, pos_br)
+		if (pos == -1):
+			raise RezReleaseError(self.path + "is not in a branch or trunk")
+		base_url = self.this_url[:pos]
 
-	# create base dir to do clean builds from
-	base_dir = os.getcwd() + "/build/rez-release"
-	pret = subprocess.Popen("rm -rf " + base_dir, shell=True)
-	pret.communicate()
-	pret = subprocess.Popen("mkdir -p " + base_dir, shell=True)
-	pret.communicate()
+		# check we're in a state to release (no modified/out-of-date files etc)
+		status_list = self.svnc.status(self.path, get_all=False, update=True)
+		status_list_known = []
+		for status in status_list:
+			if status.entry:
+				status_list_known.append(status)
+		if len(status_list_known) > 0:
+			raise RezReleaseError("'" + self.path + "' is not in a state to release - you may need to " + \
+				"svn-checkin and/or svn-update: " + str(status_list_known))
 
-	# write the changelog to file, so that rez-build can install it as metadata
-	changelogFile = os.getcwd() + '/build/rez-release-changelog.txt'
-	chlogf = open(changelogFile, 'w')
-	chlogf.write(changeLog)
-	chlogf.close()
+		# do an update
+		print("rez-release: svn-updating...")
+		self.svnc.update(self.path)
 
-	# svn-export each variant out to a clean directory, and build it locally. If any
-	# builds fail then this release is aborted
-	varnum = -1
-	variants = metadata.get_variants()
-	variants_ = variants
-	varname = "project"
+		tags_url = base_url + "/tags"
+		self.tag_url = tags_url + '/' + str(self.this_version)
 
-	if not variants:
-		variants_ = [ None ]
-		varnum = ''
-		vararg = ''
+		# check that this tag does not already exist
+		if svn_url_exists(self.svnc, self.tag_url):
+			raise RezReleaseError("cannot release: the tag '" + self.tag_url + "' already exists in svn." + \
+				" You may need to up your version, svn-checkin and try again.")
 
-	print
-	print("---------------------------------------------------------")
-	print("rez-release: building...")
-	print("---------------------------------------------------------")
+		# find latest tag, if it exists. Get the changelog at the same time.
+		pret = subprocess.Popen("rez-svn-changelog", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		self.changeLog, changeLog_err = pret.communicate()
 
-	# take note of the current time, and use it as the build time for all variants. This ensures
-	# that all variants will find the same packages, in case some new packages are released
-	# during the build.
-	if str(build_time) == "0":
-		build_time = subprocess.Popen("date +%s", stdout=subprocess.PIPE, shell=True).communicate()[0]
-		build_time = build_time.strip()
+		if (pret.returncode == 0) and (not self.allow_not_latest):
+			last_tag_str = self.changeLog.splitlines()[0].split()[-1].replace('/',' ').replace(':',' ').split()[-1]
+			if (last_tag_str != "(NONE)") and (last_tag_str[0] != 'v'):
+				# make sure our version is newer than the last tagged release
+				last_tag_version = versions.Version(last_tag_str)
+				if self.this_version <= last_tag_version:
+					raise RezReleaseError("cannot release: current version '" + self.metadata.version + \
+						"' is not greater than the latest tag '" + last_tag_str + \
+						"'. You may need to up your version, svn-checkin and try again.")
 
-	timearg = "-t " + str(build_time)
+		# write the changelog to file, so that rez-build can install it as metadata
+		self.changelogFile = os.getcwd() + '/build/rez-release-changelog.txt'
+		chlogf = open(self.changelogFile, 'w')
+		chlogf.write(self.changeLog)
+		chlogf.close()
+#-svn--------------
 
-	for variant in variants_:
+	def build(self):
+		# svn-export each variant out to a clean directory, and build it locally. If any
+		# builds fail then this release is aborted
+
+		print
+		print("---------------------------------------------------------")
+		print("rez-release: building...")
+		print("---------------------------------------------------------")
+
+		# take note of the current time, and use it as the build time for all variants. This ensures
+		# that all variants will find the same packages, in case some new packages are released
+		# during the build.
+		if str(self.build_time) == "0":
+			self.build_time = subprocess.Popen("date +%s", stdout=subprocess.PIPE, shell=True).communicate()[0]
+			self.build_time = self.build_time.strip()
+
+		for varnum, variant in enumerate(self.variants):
+			self.build_variant(variant, varnum)
+
+	def build_variant(self, variant, varnum):
 		if variant:
-			varnum += 1
 			varname = "project variant #" + str(varnum)
 			vararg = "-v " + str(varnum)
-
-		subdir = base_dir + '/' + str(varnum) + '/'
+		else:
+			varnum = ''
+			varname = "project"
+			vararg = ''
+		subdir = self.base_dir + '/' + str(varnum) + '/'
 		print
 		print("rez-release: svn-exporting clean copy of " + varname + " to " + subdir + "...")
 
@@ -227,19 +284,16 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		if (pret.returncode != 0):
 			raise RezReleaseError("rez-release: deletion of '" + subdir + "' failed")
 
-		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(path)' here, hence shell
-		pret = subprocess.Popen(["svn","export",this_url,subdir])
+#-svn--------------
+		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.path)' here, hence shell
+		pret = subprocess.Popen(["svn", "export", self.this_url, subdir])
 		pret.communicate()
 		if (pret.returncode != 0):
 			raise RezReleaseError("rez-release: svn export failed")
+#-svn--------------
 
 		# build it
-		build_cmd = "rez-build" + \
-			" " + timearg + \
-			" " + vararg + \
-			" -s " + tag_url + \
-			" -c " + changelogFile + \
-			" -- -- -j" + str(njobs)
+		build_cmd = self.get_build_cmd(vararg)
 
 		print
 		print("rez-release: building " + varname + " in " + subdir + "...")
@@ -251,38 +305,69 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		if (pret.returncode != 0):
 			raise RezReleaseError("rez-release: build failed")
 
-	# now install the variants
-	varnum = -1
+	def install(self):
+		# now install the variants
+		print
+		print("---------------------------------------------------------")
+		print("rez-release: installing...")
+		print("---------------------------------------------------------")
+	
+		# create the package.uuid file, if it doesn't exist
+		if not self.package_uuid_exists:
+			pret = subprocess.Popen("mkdir -p " + os.path.dirname(self.package_uuid_file), shell=True)
+			pret.wait()
+	
+			pret = subprocess.Popen("echo " + self.metadata.uuid + " > " + self.package_uuid_file, \
+				stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			pret.communicate()
+	
+		# install the variants
+		for varnum, variant in enumerate(self.variants):
+			self.install_variant(variant, varnum)
 
-	if not variants:
-		variants_ = [ None ]
-		varnum = ''
-		vararg = ''
+		if (self.commit_message is not None):
+			self.commit_message += '\n' + self.changeLog
+		else:
+			# prompt for tag comment, automatically setting to the change-log
+			self.commit_message = "\n\n" + self.changeLog
+	
+			tmpf = self.base_dir + '/' + RELEASE_COMMIT_FILE
+			f = open(tmpf, 'w')
+			f.write(self.commit_message)
+			f.close()
+	
+			pret = subprocess.Popen(self.editor + " " + tmpf, shell=True)
+			pret.wait()
+			if (pret.returncode == 0):
+				# if commit file was unchanged, then give a chance to abort the release
+				new_commit_message = open(tmpf).read()
+				if (new_commit_message == self.commit_message):
+					pret = subprocess.Popen( \
+						'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
+						' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
+					pret.wait()
+					if (pret.returncode != 0):
+						print("release aborted by user")
+						pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+						pret.wait()
+						sys.exit(1)
+	
+				self.commit_message = new_commit_message
+	
+			pret = subprocess.Popen("rm -f " + tmpf, shell=True)
+			pret.wait()
 
-	print
-	print("---------------------------------------------------------")
-	print("rez-release: installing...")
-	print("---------------------------------------------------------")
-
-	# create the package.uuid file, if it doesn't exist
-	if not package_uuid_exists:
-		pret = subprocess.Popen("mkdir -p " + package_uuid_dir, shell=True)
-		pret.wait()
-
-		pret = subprocess.Popen("echo " + metadata.uuid + " > " + package_uuid_file, \
-			stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-		pret.communicate()
-
-	# install the variants
-	for variant in variants_:
+	def install_variant(self, variant, varnum):
 		if variant:
-			varnum += 1
 			varname = "project variant #" + str(varnum)
 			vararg = "-v " + str(varnum)
+		else:
+			varnum = ''
+			varname = 'project'
+			vararg = ''
+		subdir = self.base_dir + '/' + str(varnum) + '/'
 
-		subdir = base_dir + '/' + str(varnum) + '/'
-
-		# determine install path
+		# determine install self.path
 		pret = subprocess.Popen("cd " + subdir + " ; rez-build -i " + vararg, \
 			stdout=subprocess.PIPE, shell=True)
 		instpath, instpath_err = pret.communicate()
@@ -295,16 +380,13 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
 
 		# run rez-build, and:
-		# * manually specify the svn-url to write into metadata;
+		# * manually specify the svn-url to write into self.metadata;
 		# * manually specify the changelog file to use
 		# these steps are needed because the code we're building has been svn-exported, thus
 		# we don't have any svn context.
-		pret = subprocess.Popen("cd " + subdir + " ; rez-build -n" + \
-			" " + timearg + \
-			" " + vararg + \
-			" -s " + tag_url + \
-			" -c " + changelogFile + \
-			" -- -c -- install", shell=True)
+
+		build_cmd = self.get_install_cmd(vararg)
+		pret = subprocess.Popen("cd " + subdir + " ; " + build_cmd, shell=True)
 
 		pret.wait()
 		if (pret.returncode != 0):
@@ -316,7 +398,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 		pret.wait()
 
 		# Remove write permissions from all installed files.
-		pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -type f | grep -v '\.metadata'`", shell=True)
+		pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -type f | grep -v '\.self.metadata'`", shell=True)
 		pret.wait()
 
 		# Remove write permissions on dirs that contain py files
@@ -326,73 +408,42 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 			pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -name '*.py' | xargs -n 1 dirname | sort | uniq`", shell=True)
 			pret.wait()
 
-	if (commit_message != None):
-		commit_message += '\n' + changeLog
-	else:
-		# prompt for tag comment, automatically setting to the change-log
-		commit_message = "\n\n" + changeLog
+	def post_install(self):
+#-svn--------------
+		print
+		print("---------------------------------------------------------")
+		print("rez-release: tagging...")
+		print("---------------------------------------------------------")
+		print
+	
+		# at this point all variants have built and installed successfully. Copy to the new tag
+		print("rez-release: creating project tag in: " + self.tag_url + "...")
+		self.svnc.callback_get_log_message = SvnValueCallback(self.commit_message)
+	
+		self.svnc.copy2([ (self.this_url,) ], \
+			self.tag_url, make_parents=True )
+#-svn--------------
 
-		tmpf = base_dir + '/' + RELEASE_COMMIT_FILE
-		f = open(tmpf, 'w')
-		f.write(commit_message)
-		f.close()
-
-		pret = subprocess.Popen(editor + " " + tmpf, shell=True)
-		pret.wait()
-		if (pret.returncode == 0):
-			# if commit file was unchanged, then give a chance to abort the release
-			new_commit_message = open(tmpf).read()
-			if (new_commit_message == commit_message):
-				pret = subprocess.Popen( \
-					'read -p "Commit message unchanged - (a)bort or (c)ontinue? "' + \
-					' ; if [ "$REPLY" != "c" ]; then exit 1 ; fi', shell=True)
-				pret.wait()
-				if (pret.returncode != 0):
-					print("release aborted by user")
-					pret = subprocess.Popen("rm -f " + tmpf, shell=True)
-					pret.wait()
-					sys.exit(1)
-
-			commit_message = new_commit_message
-
-		pret = subprocess.Popen("rm -f " + tmpf, shell=True)
-		pret.wait()
-
-	print
-	print("---------------------------------------------------------")
-	print("rez-release: tagging...")
-	print("---------------------------------------------------------")
-	print
-
-	# at this point all variants have built and installed successfully. Copy to the new tag
-	print("rez-release: creating project tag in: " + tag_url + "...")
-	svnc.callback_get_log_message = SvnValueCallback(commit_message)
-
-	svnc.copy2([ (this_url,) ], \
-		tag_url, make_parents=True )
-
-	# the very last thing we do is write out the current date-time to a metafile. This is
-	# used by rez to specify when a package 'officially' comes into existence.
-	this_pkg_release_path = pkg_release_path + '/' + metadata.name + '/' + metadata.version
-	time_metafile = this_pkg_release_path + '/.metadata/release_time.txt'
-	timef = open(time_metafile, 'w')
-	time_epoch = int(time.mktime(time.localtime()))
-	timef.write(str(time_epoch) + '\n')
-	timef.close()
-
-	# email
-	usr = os.getenv("USER", "unknown.user")
-	pkgname = "%s-%s" % (metadata.name, str(this_version))
-	subject = "[rez] [release] %s released %s" % (usr, pkgname)
-	if len(variants_) > 1:
-		subject += " (%d variants)" % len(variants_)
-	rrb.send_release_email(subject, commit_message)
-
-	print
-	print("rez-release: your package was released successfully.")
-	print
-
-
+		# the very last thing we do is write out the current date-time to a metafile. This is
+		# used by rez to specify when a package 'officially' comes into existence.
+		this_pkg_release_path = self.pkg_release_path + '/' + self.metadata.name + '/' + self.metadata.version
+		time_metafile = this_pkg_release_path + '/.metadata/release_time.txt'
+		timef = open(time_metafile, 'w')
+		time_epoch = int(time.mktime(time.localtime()))
+		timef.write(str(time_epoch) + '\n')
+		timef.close()
+	
+		# email
+		usr = os.getenv("USER", "unknown.user")
+		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
+		subject = "[rez] [release] %s released %s" % (usr, pkgname)
+		if len(self.variants) > 1:
+			subject += " (%d variants)" % len(self.variants)
+		rrb.send_release_email(subject, self.commit_message)
+	
+		print
+		print("rez-release: your package was released successfully.")
+		print
 
 
 ##############################################################################
