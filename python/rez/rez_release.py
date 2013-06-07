@@ -7,7 +7,6 @@ A tool for releasing rez - compatible projects centrally
 import sys
 import os
 import time
-import pysvn
 import subprocess
 import rez_release_base as rrb
 from rez_metafile import *
@@ -51,7 +50,8 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	build_time: epoch time to build at. If 0, use current time
 	allow_not_latest: if True, allows for releasing a tag that is not > the latest tag version
 	"""
-	rel = RezRelease(path, commit_message, njobs, build_time, allow_not_latest)
+	# TODO: provide a mechanism for choosing which release class/method to use
+	rel = SvnRezRelease(path, commit_message, njobs, build_time, allow_not_latest)
 	rel.release()
 
 class RezRelease(object):
@@ -68,32 +68,12 @@ class RezRelease(object):
 		self.pkg_release_path = None
 		self.package_uuid_exists = None
 
-#-svn--------------
-		# check we're in an svn working copy
-		self.svnc = pysvn.Client()
-		self.svnc.set_interactive( True )
-		self.svnc.set_auth_cache( False )
-		self.svnc.set_store_passwords( False )
-		self.svnc.callback_get_login = getSvnLogin
-		svn_entry = self.svnc.info(self.path)
-		if not svn_entry:
-			raise RezReleaseError("'" + self.path + "' is not an svn working copy")
-		self.this_url = str(svn_entry["url"])
-		
-		# variables filled out in pre_build()
-		self.tag_url = None
-		self.changelogFile = None
-		self.self.changeLog = None
-		self.editor = None
-#-svn--------------
-
 	def release(self):
 		self.pre_build()
 		self.build()
 		self.install()
 		self.post_install()
 
-	@property
 	def get_metadata(self):
 		# check for ./package.yaml
 		if not os.access(self.path + "/package.yaml", os.F_OK):
@@ -123,12 +103,6 @@ class RezRelease(object):
 		# metadata must have authors
 		if not metadata.authors:
 			raise RezReleaseError(self.path + "/package.yaml is missing authors")
-		
-#-svn--------------
-		# check that ./package.yaml is under svn control
-		if not svn_url_exists(self.svnc, self.this_url + "/package.yaml"):
-			raise RezReleaseError(self.path + "/package.yaml is not under source control")
-#-svn--------------
 
 		return metadata
 
@@ -136,8 +110,6 @@ class RezRelease(object):
 		build_cmd = "rez-build" + \
 			" -t " + str(self.build_time) + \
 			" " + vararg + \
-			" -s " + self.tag_url + \
-			" -c " + self.changelogFile + \
 			" -- -- -j" + str(self.njobs)
 		return build_cmd
 
@@ -145,10 +117,13 @@ class RezRelease(object):
 		build_cmd = "rez-build -n" + \
 			" -t " + str(self.build_time) + \
 			" " + vararg + \
-			" -s " + self.tag_url + \
-			" -c " + self.changelogFile + \
 			" -- -c -- install"
 		return build_cmd
+
+	def copy_source(self, build_dir):
+		# FIXME: not sure what the non-svn equivalent of this would be:
+		# copy the current directory? an in-place build?
+		raise NotImplementedError()
 
 	def pre_build(self):
 		'''
@@ -189,7 +164,263 @@ class RezRelease(object):
 		pret = subprocess.Popen("mkdir -p " + self.base_dir, shell=True)
 		pret.communicate()
 
-#-svn--------------
+		# take note of the current time, and use it as the build time for all variants. This ensures
+		# that all variants will find the same packages, in case some new packages are released
+		# during the build.
+		if str(self.build_time) == "0":
+			self.build_time = subprocess.Popen("date +%s", stdout=subprocess.PIPE, shell=True).communicate()[0]
+			self.build_time = self.build_time.strip()
+
+	def build(self):
+		# svn-export each variant out to a clean directory, and build it locally. If any
+		# builds fail then this release is aborted
+
+		print
+		print("---------------------------------------------------------")
+		print("rez-release: building...")
+		print("---------------------------------------------------------")
+
+		for varnum, variant in enumerate(self.variants):
+			self.build_variant(variant, varnum)
+
+	def build_variant(self, variant, varnum):
+		if variant:
+			varname = "project variant #" + str(varnum)
+			vararg = "-v " + str(varnum)
+		else:
+			varnum = ''
+			varname = "project"
+			vararg = ''
+		subdir = self.base_dir + '/' + str(varnum) + '/'
+		print
+		print("rez-release: svn-exporting clean copy of " + varname + " to " + subdir + "...")
+
+		# remove subdir in case it already exists
+		pret = subprocess.Popen("rm -rf " + subdir, shell=True)
+		pret.communicate()
+		if (pret.returncode != 0):
+			raise RezReleaseError("rez-release: deletion of '" + subdir + "' failed")
+
+		self.copy_source(subdir)
+
+		# build it
+		build_cmd = self.get_build_cmd(vararg)
+
+		print
+		print("rez-release: building " + varname + " in " + subdir + "...")
+		print("rez-release: invoking: " + build_cmd)
+
+		build_cmd = "cd " + subdir + " ; " + build_cmd
+		pret = subprocess.Popen(build_cmd, shell=True)
+		pret.communicate()
+		if (pret.returncode != 0):
+			raise RezReleaseError("rez-release: build failed")
+
+	def install(self):
+		# now install the variants
+		print
+		print("---------------------------------------------------------")
+		print("rez-release: installing...")
+		print("---------------------------------------------------------")
+	
+		# create the package.uuid file, if it doesn't exist
+		if not self.package_uuid_exists:
+			pret = subprocess.Popen("mkdir -p " + os.path.dirname(self.package_uuid_file), shell=True)
+			pret.wait()
+	
+			pret = subprocess.Popen("echo " + self.metadata.uuid + " > " + self.package_uuid_file, \
+				stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+			pret.communicate()
+	
+		# install the variants
+		for varnum, variant in enumerate(self.variants):
+			self.install_variant(variant, varnum)
+
+	def install_variant(self, variant, varnum):
+		if variant:
+			varname = "project variant #" + str(varnum)
+			vararg = "-v " + str(varnum)
+		else:
+			varnum = ''
+			varname = 'project'
+			vararg = ''
+		subdir = self.base_dir + '/' + str(varnum) + '/'
+
+		# determine install self.path
+		pret = subprocess.Popen("cd " + subdir + " ; rez-build -i " + vararg, \
+			stdout=subprocess.PIPE, shell=True)
+		instpath, instpath_err = pret.communicate()
+		if (pret.returncode != 0):
+			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
+				"have resulted, please see to this immediately - it should probably be removed.")
+		instpath = instpath.strip()
+
+		print
+		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
+
+		# run rez-build, and:
+		# * manually specify the svn-url to write into self.metadata;
+		# * manually specify the changelog file to use
+		# these steps are needed because the code we're building has been svn-exported, thus
+		# we don't have any svn context.
+
+		build_cmd = self.get_install_cmd(vararg)
+		pret = subprocess.Popen("cd " + subdir + " ; " + build_cmd, shell=True)
+
+		pret.wait()
+		if (pret.returncode != 0):
+			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
+				"have resulted, please see to this immediately - it should probably be removed.")
+
+		# Prior to locking down the installation, remove any .pyc files that may have been spawned
+		pret = subprocess.Popen("cd " + instpath + " ; rm -f `find -type f | grep '\.pyc$'`", shell=True)
+		pret.wait()
+
+		# Remove write permissions from all installed files.
+		pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -type f | grep -v '\.self.metadata'`", shell=True)
+		pret.wait()
+
+		# Remove write permissions on dirs that contain py files
+		pret = subprocess.Popen("cd " + instpath + " ; find -name '*.py'", shell=True, stdout=subprocess.PIPE)
+		cmdout, cmderr = pret.communicate()
+		if len(cmdout.strip()) > 0:
+			pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -name '*.py' | xargs -n 1 dirname | sort | uniq`", shell=True)
+			pret.wait()
+
+	def post_install(self):
+		# the very last thing we do is write out the current date-time to a metafile. This is
+		# used by rez to specify when a package 'officially' comes into existence.
+		this_pkg_release_path = self.pkg_release_path + '/' + self.metadata.name + '/' + self.metadata.version
+		time_metafile = this_pkg_release_path + '/.metadata/release_time.txt'
+		timef = open(time_metafile, 'w')
+		time_epoch = int(time.mktime(time.localtime()))
+		timef.write(str(time_epoch) + '\n')
+		timef.close()
+	
+		# email
+		usr = os.getenv("USER", "unknown.user")
+		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
+		subject = "[rez] [release] %s released %s" % (usr, pkgname)
+		if len(self.variants) > 1:
+			subject += " (%d variants)" % len(self.variants)
+		rrb.send_release_email(subject, self.commit_message)
+	
+		print
+		print("rez-release: your package was released successfully.")
+		print
+
+
+##############################################################################
+# Utilities
+##############################################################################
+
+class SvnValueCallback:
+	"""
+	simple functor class
+	"""
+	def __init__(self, value):
+		self.value = value
+	def __call__(self):
+		return True, self.value
+
+
+def svn_url_exists(client, url):
+	"""
+	return True if the svn url exists
+	"""
+	import pysvn
+	try:
+		svnlist = client.info2(url, recurse = False)
+		return len( svnlist ) > 0
+	except pysvn.ClientError:
+		return False
+
+
+def get_last_changed_revision(client, url):
+	"""
+	util func, get last revision of url
+	"""
+	import pysvn
+	try:
+		svn_entries = client.info2(url, pysvn.Revision(pysvn.opt_revision_kind.head), recurse=False)
+		if len(svn_entries) == 0:
+			raise RezReleaseError("svn.info2() returned no results on url '" + url + "'")
+		return svn_entries[0][1].last_changed_rev
+	except pysvn.ClientError, ce:
+		raise RezReleaseError("svn.info2() raised ClientError: %s"%ce)
+
+
+def getSvnLogin(realm, username, may_save):
+	"""
+	provide svn with permissions. @TODO this will have to be updated to take
+	into account automated releases etc.
+	"""
+	import getpass
+
+	print "svn requires a password for the user '" + username + "':"
+	pwd = ''
+	while(pwd.strip() == ''):
+		pwd = getpass.getpass("--> ")
+
+	return True, username, pwd, False
+
+class SvnRezRelease(RezRelease):
+	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
+		super(SvnRezRelease, self).__init__()
+		import pysvn
+		# check we're in an svn working copy
+		self.svnc = pysvn.Client()
+		self.svnc.set_interactive( True )
+		self.svnc.set_auth_cache( False )
+		self.svnc.set_store_passwords( False )
+		self.svnc.callback_get_login = getSvnLogin
+		svn_entry = self.svnc.info(self.path)
+		if not svn_entry:
+			raise RezReleaseError("'" + self.path + "' is not an svn working copy")
+		self.this_url = str(svn_entry["url"])
+		
+		# variables filled out in pre_build()
+		self.tag_url = None
+		self.changelogFile = None
+		self.self.changeLog = None
+		self.editor = None
+
+
+	def get_metadata(self):
+		result = super(SvnRezRelease, self).get_metadata()
+		# check that ./package.yaml is under svn control
+		if not svn_url_exists(self.svnc, self.this_url + "/package.yaml"):
+			raise RezReleaseError(self.path + "/package.yaml is not under source control")
+		return result
+
+	def get_build_cmd(self, vararg):
+		build_cmd = "rez-build" + \
+			" -t " + str(self.build_time) + \
+			" " + vararg + \
+			" -s " + self.tag_url + \
+			" -c " + self.changelogFile + \
+			" -- -- -j" + str(self.njobs)
+		return build_cmd
+
+	def get_install_cmd(self, vararg):
+		build_cmd = "rez-build -n" + \
+			" -t " + str(self.build_time) + \
+			" " + vararg + \
+			" -s " + self.tag_url + \
+			" -c " + self.changelogFile + \
+			" -- -c -- install"
+		return build_cmd
+
+	def copy_source(self, build_dir):
+		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.path)' here, hence shell
+		pret = subprocess.Popen(["svn", "export", self.this_url, build_dir])
+		pret.communicate()
+		if (pret.returncode != 0):
+			raise RezReleaseError("rez-release: svn export failed")
+
+	def pre_build(self):
+		super(SvnRezRelease, self).pre_build()
+		
 		if (self.commit_message == None):
 			# get preferred self.editor for commit message
 			self.editor = os.getenv(EDITOR_ENV_VAR)
@@ -245,85 +476,13 @@ class RezRelease(object):
 		chlogf = open(self.changelogFile, 'w')
 		chlogf.write(self.changeLog)
 		chlogf.close()
-#-svn--------------
 
-	def build(self):
-		# svn-export each variant out to a clean directory, and build it locally. If any
-		# builds fail then this release is aborted
-
-		print
-		print("---------------------------------------------------------")
-		print("rez-release: building...")
-		print("---------------------------------------------------------")
-
-		# take note of the current time, and use it as the build time for all variants. This ensures
-		# that all variants will find the same packages, in case some new packages are released
-		# during the build.
-		if str(self.build_time) == "0":
-			self.build_time = subprocess.Popen("date +%s", stdout=subprocess.PIPE, shell=True).communicate()[0]
-			self.build_time = self.build_time.strip()
-
-		for varnum, variant in enumerate(self.variants):
-			self.build_variant(variant, varnum)
-
+	
 	def build_variant(self, variant, varnum):
-		if variant:
-			varname = "project variant #" + str(varnum)
-			vararg = "-v " + str(varnum)
-		else:
-			varnum = ''
-			varname = "project"
-			vararg = ''
-		subdir = self.base_dir + '/' + str(varnum) + '/'
-		print
-		print("rez-release: svn-exporting clean copy of " + varname + " to " + subdir + "...")
-
-		# remove subdir in case it already exists
-		pret = subprocess.Popen("rm -rf " + subdir, shell=True)
-		pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: deletion of '" + subdir + "' failed")
-
-#-svn--------------
-		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.path)' here, hence shell
-		pret = subprocess.Popen(["svn", "export", self.this_url, subdir])
-		pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: svn export failed")
-#-svn--------------
-
-		# build it
-		build_cmd = self.get_build_cmd(vararg)
-
-		print
-		print("rez-release: building " + varname + " in " + subdir + "...")
-		print("rez-release: invoking: " + build_cmd)
-
-		build_cmd = "cd " + subdir + " ; " + build_cmd
-		pret = subprocess.Popen(build_cmd, shell=True)
-		pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: build failed")
-
+		super(SvnRezRelease, self).build_variant(variant, varnum)
+	
 	def install(self):
-		# now install the variants
-		print
-		print("---------------------------------------------------------")
-		print("rez-release: installing...")
-		print("---------------------------------------------------------")
-	
-		# create the package.uuid file, if it doesn't exist
-		if not self.package_uuid_exists:
-			pret = subprocess.Popen("mkdir -p " + os.path.dirname(self.package_uuid_file), shell=True)
-			pret.wait()
-	
-			pret = subprocess.Popen("echo " + self.metadata.uuid + " > " + self.package_uuid_file, \
-				stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-			pret.communicate()
-	
-		# install the variants
-		for varnum, variant in enumerate(self.variants):
-			self.install_variant(variant, varnum)
+		super(SvnRezRelease, self).install()
 
 		if (self.commit_message is not None):
 			self.commit_message += '\n' + self.changeLog
@@ -358,58 +517,10 @@ class RezRelease(object):
 			pret.wait()
 
 	def install_variant(self, variant, varnum):
-		if variant:
-			varname = "project variant #" + str(varnum)
-			vararg = "-v " + str(varnum)
-		else:
-			varnum = ''
-			varname = 'project'
-			vararg = ''
-		subdir = self.base_dir + '/' + str(varnum) + '/'
-
-		# determine install self.path
-		pret = subprocess.Popen("cd " + subdir + " ; rez-build -i " + vararg, \
-			stdout=subprocess.PIPE, shell=True)
-		instpath, instpath_err = pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
-				"have resulted, please see to this immediately - it should probably be removed.")
-		instpath = instpath.strip()
-
-		print
-		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
-
-		# run rez-build, and:
-		# * manually specify the svn-url to write into self.metadata;
-		# * manually specify the changelog file to use
-		# these steps are needed because the code we're building has been svn-exported, thus
-		# we don't have any svn context.
-
-		build_cmd = self.get_install_cmd(vararg)
-		pret = subprocess.Popen("cd " + subdir + " ; " + build_cmd, shell=True)
-
-		pret.wait()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
-				"have resulted, please see to this immediately - it should probably be removed.")
-
-		# Prior to locking down the installation, remove any .pyc files that may have been spawned
-		pret = subprocess.Popen("cd " + instpath + " ; rm -f `find -type f | grep '\.pyc$'`", shell=True)
-		pret.wait()
-
-		# Remove write permissions from all installed files.
-		pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -type f | grep -v '\.self.metadata'`", shell=True)
-		pret.wait()
-
-		# Remove write permissions on dirs that contain py files
-		pret = subprocess.Popen("cd " + instpath + " ; find -name '*.py'", shell=True, stdout=subprocess.PIPE)
-		cmdout, cmderr = pret.communicate()
-		if len(cmdout.strip()) > 0:
-			pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -name '*.py' | xargs -n 1 dirname | sort | uniq`", shell=True)
-			pret.wait()
+		super(SvnRezRelease, self).install_variant(variant, varnum)
 
 	def post_install(self):
-#-svn--------------
+
 		print
 		print("---------------------------------------------------------")
 		print("rez-release: tagging...")
@@ -422,88 +533,8 @@ class RezRelease(object):
 	
 		self.svnc.copy2([ (self.this_url,) ], \
 			self.tag_url, make_parents=True )
-#-svn--------------
 
-		# the very last thing we do is write out the current date-time to a metafile. This is
-		# used by rez to specify when a package 'officially' comes into existence.
-		this_pkg_release_path = self.pkg_release_path + '/' + self.metadata.name + '/' + self.metadata.version
-		time_metafile = this_pkg_release_path + '/.metadata/release_time.txt'
-		timef = open(time_metafile, 'w')
-		time_epoch = int(time.mktime(time.localtime()))
-		timef.write(str(time_epoch) + '\n')
-		timef.close()
-	
-		# email
-		usr = os.getenv("USER", "unknown.user")
-		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
-		subject = "[rez] [release] %s released %s" % (usr, pkgname)
-		if len(self.variants) > 1:
-			subject += " (%d variants)" % len(self.variants)
-		rrb.send_release_email(subject, self.commit_message)
-	
-		print
-		print("rez-release: your package was released successfully.")
-		print
-
-
-##############################################################################
-# Utilities
-##############################################################################
-
-class SvnValueCallback:
-	"""
-	simple functor class
-	"""
-	def __init__(self, value):
-		self.value = value
-	def __call__(self):
-		return True, self.value
-
-
-def svn_url_exists(client, url):
-	"""
-	return True if the svn url exists
-	"""
-	try:
-		svnlist = client.info2(url, recurse = False)
-		return len( svnlist ) > 0
-	except pysvn.ClientError:
-		return False
-
-
-def get_last_changed_revision(client, url):
-	"""
-	util func, get last revision of url
-	"""
-	try:
-		svn_entries = client.info2(url, pysvn.Revision(pysvn.opt_revision_kind.head), recurse=False)
-		if len(svn_entries) == 0:
-			raise RezReleaseError("svn.info2() returned no results on url '" + url + "'")
-		return svn_entries[0][1].last_changed_rev
-	except pysvn.ClientError, ce:
-		raise RezReleaseError("svn.info2() raised ClientError: %s"%ce)
-
-
-def getSvnLogin(realm, username, may_save):
-	"""
-	provide svn with permissions. @TODO this will have to be updated to take
-	into account automated releases etc.
-	"""
-	import getpass
-
-	print "svn requires a password for the user '" + username + "':"
-	pwd = ''
-	while(pwd.strip() == ''):
-		pwd = getpass.getpass("--> ")
-
-	return True, username, pwd, False
-
-
-
-
-
-
-
+		super(SvnRezRelease, self).post_install()
 
 
 
