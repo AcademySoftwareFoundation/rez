@@ -6,12 +6,15 @@ A tool for releasing rez - compatible projects centrally
 
 import sys
 import os
+import shutil
+import inspect
 import time
 import subprocess
 import rez_release_base as rrb
 from rez_metafile import *
 import versions
 
+_release_classes = {}
 
 ##############################################################################
 # Exceptions
@@ -37,8 +40,19 @@ RELEASE_COMMIT_FILE 	= 		"rez-release-svn-commit.tmp"
 # Public Functions
 ##############################################################################
 
+def register_release_mode(name, cls):
+	"""
+	Register a subclass of RezRelease for performing a custom release procedure.
+	"""
+	assert inspect.isclass(cls) and issubclass(cls, RezRelease), \
+		"Provided class is not a subclass of RezRelease"
+	_release_classes[name] = cls
 
-def release_from_path(path, commit_message, njobs, build_time, allow_not_latest):
+def list_release_modes():
+	return _release_classes.keys()
+
+def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
+					  mode='svn'):
 	"""
 	release a package from the given path on disk, copying to the relevant tag,
 	and performing a fresh build before installing it centrally. If 'commit_message'
@@ -50,14 +64,22 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest)
 	build_time: epoch time to build at. If 0, use current time
 	allow_not_latest: if True, allows for releasing a tag that is not > the latest tag version
 	"""
-	# TODO: provide a mechanism for choosing which release class/method to use
-	rel = SvnRezRelease(path, commit_message, njobs, build_time, allow_not_latest)
+	cls = _release_classes[mode]
+	rel = cls(path, commit_message, njobs, build_time, allow_not_latest)
 	rel.release()
 
+##############################################################################
+# Implementation Classes
+##############################################################################
+
 class RezRelease(object):
+	'''
+	Base class for all release modes
+	'''
 	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
+		# TODO: implement commit message in a svn-agnostic way
 		self.path = path
-		self.self.commit_message = commit_message
+		self.commit_message = commit_message
 		self.njobs = njobs
 		self.build_time = build_time
 		self.allow_not_latest = allow_not_latest
@@ -65,16 +87,22 @@ class RezRelease(object):
 		# variables filled out in pre_build()
 		self.metadata = None
 		self.base_dir = None
-		self.pkg_release_path = None
+		self.pkg_release_dir = None
 		self.package_uuid_exists = None
 
 	def release(self):
+		'''
+		Main entry point for executing the release
+		'''
 		self.pre_build()
 		self.build()
 		self.install()
 		self.post_install()
 
 	def get_metadata(self):
+		'''
+		return a ConfigMetadata instance for this project's package.yaml file.
+		'''
 		# check for ./package.yaml
 		if not os.access(self.path + "/package.yaml", os.F_OK):
 			raise RezReleaseError(self.path + "/package.yaml not found")
@@ -121,9 +149,13 @@ class RezRelease(object):
 		return build_cmd
 
 	def copy_source(self, build_dir):
-		# FIXME: not sure what the non-svn equivalent of this would be:
-		# copy the current directory? an in-place build?
-		raise NotImplementedError()
+		'''
+		Copy the source to the build directory.
+
+		This is particularly useful for revision control systems, which can
+		export a clean unmodified copy
+		'''
+		os.symlink(os.getcwd(), build_dir)
 
 	def pre_build(self):
 		'''
@@ -131,14 +163,14 @@ class RezRelease(object):
 		'''
 		self.metadata = self.get_metadata()
 
-		self.pkg_release_path = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
-		if not self.pkg_release_path:
+		self.pkg_release_dir = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
+		if not self.pkg_release_dir:
 			raise RezReleaseError("$" + REZ_RELEASE_PATH_ENV_VAR + " is not set.")
 
 		# check uuid against central uuid for this package family, to ensure that
 		# we are not releasing over the top of a totally different package due to naming clash
-		package_uuid_dir = self.pkg_release_path + '/' + self.metadata.name
-		self.package_uuid_file = package_uuid_dir + "/package.uuid"
+		self.pkg_release_dir = os.path.join(self.pkg_release_dir, self.metadata.name)
+		self.package_uuid_file = os.path.join(self.pkg_release_dir,  "package.uuid")
 
 		try:
 			existing_uuid = open(self.package_uuid_file).read().strip()
@@ -158,11 +190,9 @@ class RezRelease(object):
 			self.variants = [ None ]
 
 		# create base dir to do clean builds from
-		self.base_dir = os.getcwd() + "/build/rez-release"
-		pret = subprocess.Popen("rm -rf " + self.base_dir, shell=True)
-		pret.communicate()
-		pret = subprocess.Popen("mkdir -p " + self.base_dir, shell=True)
-		pret.communicate()
+		self.base_dir = os.path.join(os.getcwd(), "build", "rez-release")
+		shutil.rmtree(self.base_dir)
+		os.makedirs(self.base_dir)
 
 		# take note of the current time, and use it as the build time for all variants. This ensures
 		# that all variants will find the same packages, in case some new packages are released
@@ -172,6 +202,9 @@ class RezRelease(object):
 			self.build_time = self.build_time.strip()
 
 	def build(self):
+		'''
+		Perform build of all variants
+		'''
 		# svn-export each variant out to a clean directory, and build it locally. If any
 		# builds fail then this release is aborted
 
@@ -184,6 +217,9 @@ class RezRelease(object):
 			self.build_variant(variant, varnum)
 
 	def build_variant(self, variant, varnum):
+		'''
+		Build a single variant
+		'''
 		if variant:
 			varname = "project variant #" + str(varnum)
 			vararg = "-v " + str(varnum)
@@ -191,15 +227,9 @@ class RezRelease(object):
 			varnum = ''
 			varname = "project"
 			vararg = ''
-		subdir = self.base_dir + '/' + str(varnum) + '/'
+		subdir = os.path.join(self.base_dir, str(varnum))
 		print
-		print("rez-release: svn-exporting clean copy of " + varname + " to " + subdir + "...")
-
-		# remove subdir in case it already exists
-		pret = subprocess.Popen("rm -rf " + subdir, shell=True)
-		pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: deletion of '" + subdir + "' failed")
+		print("rez-release: creating clean copy of " + varname + " to " + subdir + "...")
 
 		self.copy_source(subdir)
 
@@ -217,26 +247,31 @@ class RezRelease(object):
 			raise RezReleaseError("rez-release: build failed")
 
 	def install(self):
+		'''
+		Perform installation of all variants
+		'''
 		# now install the variants
 		print
 		print("---------------------------------------------------------")
 		print("rez-release: installing...")
 		print("---------------------------------------------------------")
-	
+
 		# create the package.uuid file, if it doesn't exist
 		if not self.package_uuid_exists:
-			pret = subprocess.Popen("mkdir -p " + os.path.dirname(self.package_uuid_file), shell=True)
-			pret.wait()
-	
-			pret = subprocess.Popen("echo " + self.metadata.uuid + " > " + self.package_uuid_file, \
-				stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-			pret.communicate()
-	
+			os.makedirs(self.pkg_release_dir)
+
+			f = open(self.package_uuid_file, 'w')
+			f.write(self.metadata.uuid)
+			f.close()
+
 		# install the variants
 		for varnum, variant in enumerate(self.variants):
 			self.install_variant(variant, varnum)
 
 	def install_variant(self, variant, varnum):
+		'''
+		Install a single variant
+		'''
 		if variant:
 			varname = "project variant #" + str(varnum)
 			vararg = "-v " + str(varnum)
@@ -288,15 +323,18 @@ class RezRelease(object):
 			pret.wait()
 
 	def post_install(self):
+		'''
+		Final stage after installation
+		'''
 		# the very last thing we do is write out the current date-time to a metafile. This is
 		# used by rez to specify when a package 'officially' comes into existence.
-		this_pkg_release_path = self.pkg_release_path + '/' + self.metadata.name + '/' + self.metadata.version
-		time_metafile = this_pkg_release_path + '/.metadata/release_time.txt'
+		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
+									'.metadata' , 'release_time.txt')
 		timef = open(time_metafile, 'w')
 		time_epoch = int(time.mktime(time.localtime()))
 		timef.write(str(time_epoch) + '\n')
 		timef.close()
-	
+
 		# email
 		usr = os.getenv("USER", "unknown.user")
 		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
@@ -304,11 +342,12 @@ class RezRelease(object):
 		if len(self.variants) > 1:
 			subject += " (%d variants)" % len(self.variants)
 		rrb.send_release_email(subject, self.commit_message)
-	
+
 		print
 		print("rez-release: your package was released successfully.")
 		print
 
+register_release_mode('base', RezRelease)
 
 ##############################################################################
 # Utilities
@@ -366,7 +405,8 @@ def getSvnLogin(realm, username, may_save):
 
 class SvnRezRelease(RezRelease):
 	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
-		super(SvnRezRelease, self).__init__()
+		super(SvnRezRelease, self).__init__(path, commit_message, njobs,
+										    build_time, allow_not_latest)
 		import pysvn
 		# check we're in an svn working copy
 		self.svnc = pysvn.Client()
@@ -384,7 +424,6 @@ class SvnRezRelease(RezRelease):
 		self.changelogFile = None
 		self.self.changeLog = None
 		self.editor = None
-
 
 	def get_metadata(self):
 		result = super(SvnRezRelease, self).get_metadata()
@@ -477,10 +516,9 @@ class SvnRezRelease(RezRelease):
 		chlogf.write(self.changeLog)
 		chlogf.close()
 
-	
 	def build_variant(self, variant, varnum):
 		super(SvnRezRelease, self).build_variant(variant, varnum)
-	
+
 	def install(self):
 		super(SvnRezRelease, self).install()
 
@@ -489,12 +527,12 @@ class SvnRezRelease(RezRelease):
 		else:
 			# prompt for tag comment, automatically setting to the change-log
 			self.commit_message = "\n\n" + self.changeLog
-	
+
 			tmpf = self.base_dir + '/' + RELEASE_COMMIT_FILE
 			f = open(tmpf, 'w')
 			f.write(self.commit_message)
 			f.close()
-	
+
 			pret = subprocess.Popen(self.editor + " " + tmpf, shell=True)
 			pret.wait()
 			if (pret.returncode == 0):
@@ -510,9 +548,9 @@ class SvnRezRelease(RezRelease):
 						pret = subprocess.Popen("rm -f " + tmpf, shell=True)
 						pret.wait()
 						sys.exit(1)
-	
+
 				self.commit_message = new_commit_message
-	
+
 			pret = subprocess.Popen("rm -f " + tmpf, shell=True)
 			pret.wait()
 
@@ -526,17 +564,17 @@ class SvnRezRelease(RezRelease):
 		print("rez-release: tagging...")
 		print("---------------------------------------------------------")
 		print
-	
+
 		# at this point all variants have built and installed successfully. Copy to the new tag
 		print("rez-release: creating project tag in: " + self.tag_url + "...")
 		self.svnc.callback_get_log_message = SvnValueCallback(self.commit_message)
-	
+
 		self.svnc.copy2([ (self.this_url,) ], \
 			self.tag_url, make_parents=True )
 
 		super(SvnRezRelease, self).post_install()
 
-
+register_release_mode('svn', SvnRezRelease)
 
 
 
