@@ -191,7 +191,14 @@ class RezRelease(object):
 
 		# create base dir to do clean builds from
 		self.base_dir = os.path.join(os.getcwd(), "build", "rez-release")
-		shutil.rmtree(self.base_dir)
+		if os.path.exists(self.base_dir):
+			if os.path.islink(self.base_dir):
+				os.remove(self.base_dir)
+			elif os.path.isdir(self.base_dir):
+				shutil.rmtree(self.base_dir)
+			else:
+				os.remove(self.base_dir)
+
 		os.makedirs(self.base_dir)
 
 		# take note of the current time, and use it as the build time for all variants. This ensures
@@ -223,13 +230,17 @@ class RezRelease(object):
 		if variant:
 			varname = "project variant #" + str(varnum)
 			vararg = "-v " + str(varnum)
+			subdir = os.path.join(self.base_dir, str(varnum))
 		else:
 			varnum = ''
 			varname = "project"
 			vararg = ''
-		subdir = os.path.join(self.base_dir, str(varnum))
+			subdir = self.base_dir
 		print
 		print("rez-release: creating clean copy of " + varname + " to " + subdir + "...")
+
+		if os.path.exists(subdir):
+			shutil.rmtree(subdir)
 
 		self.copy_source(subdir)
 
