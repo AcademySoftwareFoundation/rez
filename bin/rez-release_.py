@@ -1,6 +1,7 @@
 #!!REZ_PYTHON_BINARY!
 
 import sys
+import os
 import optparse
 import rez_release as rezr
 import sigint
@@ -8,7 +9,6 @@ import sigint
 #
 # command-line
 #
-
 p = optparse.OptionParser(usage="Usage: rez-release [options]")
 p.add_option("-m", "--message", dest="message", default=None,
 	help="specify commit message, do not prompt user. Svn log will still be appended.")
@@ -21,8 +21,16 @@ p.add_option("--allow-not-latest", dest="nolatest", action="store_true", default
 unless you have to and you have good reason. [default = %default].")
 p.add_option("-t", "--time", dest="time", default="0",
 	help="ignore packages newer than the given epoch time [default = current time]")
-p.add_option("--mode", dest="mode", default="svn",
-	help="the release procedure: %s" % ', '.join(rezr.list_release_modes()))
+
+release_modes = rezr.list_available_release_modes(os.getcwd())
+default_mode = release_modes[0]
+unavailable_release_modes = [mode for mode in rezr.list_release_modes() if mode not in release_modes]
+
+p.add_option("--mode", dest="mode", default=default_mode,
+	help="the release procedure: %s [default = %s] (unavailable: %s)" % \
+		(', '.join(release_modes),
+		 default_mode,
+		 ', '.join(unavailable_release_modes)))
 
 (opts, args) = p.parse_args()
 

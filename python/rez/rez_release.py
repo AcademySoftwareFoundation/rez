@@ -14,7 +14,7 @@ import rez_release_base as rrb
 from rez_metafile import *
 import versions
 
-_release_classes = {}
+_release_classes = []
 
 ##############################################################################
 # Exceptions
@@ -46,10 +46,16 @@ def register_release_mode(name, cls):
 	"""
 	assert inspect.isclass(cls) and issubclass(cls, RezRelease), \
 		"Provided class is not a subclass of RezRelease"
-	_release_classes[name] = cls
+	assert name not in list_release_modes(), \
+		"Mode has already been registered"
+	# put new entries at the front
+	_release_classes.insert(0, (name, cls))
 
 def list_release_modes():
-	return _release_classes.keys()
+	return [name for (name, cls) in _release_classes]
+
+def list_available_release_modes(path):
+	return [name for (name, cls) in _release_classes if cls.available(path)]
 
 def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 					  mode='svn'):
@@ -64,7 +70,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 	build_time: epoch time to build at. If 0, use current time
 	allow_not_latest: if True, allows for releasing a tag that is not > the latest tag version
 	"""
-	cls = _release_classes[mode]
+	cls = dict(_release_classes)[mode]
 	rel = cls(path, commit_message, njobs, build_time, allow_not_latest)
 	rel.release()
 
@@ -89,6 +95,13 @@ class RezRelease(object):
 		self.base_dir = None
 		self.pkg_release_dir = None
 		self.package_uuid_exists = None
+
+	@classmethod
+	def available(cls, path):
+		'''
+		Returns True if this release mode is available and working at the given directory
+		'''
+		return True
 
 	def release(self):
 		'''
@@ -435,6 +448,18 @@ class SvnRezRelease(RezRelease):
 		self.changelogFile = None
 		self.self.changeLog = None
 		self.editor = None
+
+	@classmethod
+	def available(cls, path):
+		'''
+		Returns True if this release mode is available and working at the given directory
+		'''
+		try:
+			import pysvn
+		except ImportError:
+			return False
+		# TODO: check for a valid .svn directory
+		return True
 
 	def get_metadata(self):
 		result = super(SvnRezRelease, self).get_metadata()
