@@ -98,6 +98,8 @@ if [ -e $install_dir ]; then
 	rm -rf $install_dir/*
 else
 	mkdir -p $install_dir
+  chmod 755 $base_install_dir
+  chmod 755 $install_dir
 	if [ ! -e $install_dir ]; then
 		echo "couldn't create dir $install_dir." 1>&2
 		exit 1
@@ -209,7 +211,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     pkg_sh=$pkg_dir/bin/hello_world
     echo "#!/bin/bash"			            > $pkg_sh
     echo "echo 'Hello world!'"				>> $pkg_sh
-    chmod 777 $pkg_sh
+    chmod 755 $pkg_sh
 
     pkg_yaml=$pkg_dir/package.yaml
     echo "config_version : 0" 				> $pkg_yaml
@@ -233,6 +235,7 @@ cat ./init.sh \
 	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
 	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
 	> $install_dir/init.sh
+chmod 644 $install_dir/init.sh
 
 # install init.csh
 #-----------------------------------------------------------------------------------------
@@ -246,10 +249,12 @@ cat ./init.csh \
 	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
 	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
 	> $install_dir/init.csh
+chmod 644 $install_dir/init.csh
 
 # install bin/ files
 #-----------------------------------------------------------------------------------------
 mkdir -p $install_dir/bin
+chmod 755 $install_dir/bin
 cat ./bin/_set-rez-env \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
 	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
@@ -269,15 +274,21 @@ do
 
 	shebang=`cat ./bin/$f | grep -n '^#!' | tr ':' ' ' | awk '{print $1}'`
 	if [ "$shebang" == "1" ]; then
-		chmod 777 $install_dir/bin/$f
+		chmod 755 $install_dir/bin/$f
 	fi
 done
 
 # install remaining files
 #-----------------------------------------------------------------------------------------
 cp -rf ./python $install_dir
+chmod 755 `find $install_dir/python -type d`
+chmod 644 `find $install_dir/python -type f`
 cp -rf ./cmake $install_dir
+chmod 755 `find $install_dir/cmake -type d`
+chmod 644 `find $install_dir/cmake -type f`
 cp -rf ./template $install_dir
+chmod 755 `find $install_dir/template -type d`
+chmod 644 `find $install_dir/template -type f`
 
 # finish up
 #-----------------------------------------------------------------------------------------
