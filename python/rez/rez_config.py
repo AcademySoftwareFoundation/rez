@@ -1209,7 +1209,7 @@ class _Configuration:
 					elif (self.rctxt.verbosity == 2):
 						self.dump()
 
-				self.remove_least_suitable_variant(self.rctxt)
+				self.remove_least_suitable_variant()
 
 			else:
 
@@ -2033,7 +2033,7 @@ def process_commands(cmds):
 		if cmd.split()[0] == "export":
 
 			# parse name, value
-			var_val = cmd[len("export"):].split('=')
+			var_val = cmd[len("export"):].split('=',1)
 			if (len(var_val) != 2):
 				raise PkgCommandError("invalid command:'" + cmd + "'")
 			varname = var_val[0].split()[0]
