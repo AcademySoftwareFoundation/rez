@@ -1,7 +1,10 @@
 #! /bin/bash
 
-rez_release_version=1.6.13
-sudo mkdir -p /tools/shed/opensource/la-rez/${rez_release_version}/payload
+DIR=$(dirname $(readlink -f $BASH_SOURCE[0]))
+rez_release_version=$( echo $(grep rez_version "$DIR/version.sh") | sed -r s/rez_version=\'\(.*\)\'/\\1/ )
+echo "Found version: $rez_release_version in $DIR/version.sh"
+
+sudo mkdir -pv /tools/shed/opensource/la-rez/${rez_release_version}/payload
 
 tmp_loc=$(mktemp -d)
 cd $tmp_loc; git clone chili-git:la-rez 
