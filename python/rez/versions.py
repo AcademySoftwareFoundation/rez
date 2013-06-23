@@ -17,7 +17,7 @@ in one case, but may represent the superset of all versions '10.5.x' in another.
 """
 
 import re
-
+import version_compare
 
 class VersionError(Exception):
 	"""
@@ -48,7 +48,8 @@ class Version:
 			rangepos = version_str.find("+<")
 			if (rangepos == -1):
 				plus = version_str.endswith('+')
-				tokens = version_str.rstrip('+').replace('-', '.').split('.')
+				### tokens = version_str.rstrip('+').replace('-', '.').split('.')
+				tokens = version_compare._normalize_and_tokenize(version_str)
 				self.ge = []
 				for tok in tokens:
 					self.to_comp(tok, version_str)
@@ -96,14 +97,15 @@ class Version:
 			if i < 0:
 				raise VersionError("Can't have negative components: "+version_str)
 			self.ge.append(i)
-		except ValueError:
-			if self.is_tok_single_letter(tok):
-				self.ge.append(tok)
-			else:
-				raise VersionError("Invalid version '%s'" % version_str)
+		except ValueError: # a string of some kind...
+			self.ge.append(tok)
+			# if self.is_tok_single_letter(tok):
+			# 	self.ge.append(tok)
+			# else:
+			# 	raise VersionError("Invalid version '%s'" % version_str)
 
-	def is_tok_single_letter(self, tok):
-		return Version.valid_char.match(tok) is not None
+	# def is_tok_single_letter(self, tok):
+	# 	return Version.valid_char.match(tok) is not None
 
 	def get_ge_plus_one(self):
 		if len(self.ge) == 0:
@@ -131,12 +133,12 @@ class Version:
 
 	def inc_comp(self,comp):
 		"""
-		increment a number or single character by 1
+		increment a number (numerically) or string by 1 (asciibetically)
 		"""
 		if type(comp) == type(1):
 			return comp + 1
 		else:
-			return chr(ord(comp) + 1)
+			return comp[:-1] + chr(ord(comp[-1]) + 1)
 
 	def contains_version(self, ge):
 		"""
@@ -176,18 +178,18 @@ class Version:
 		return ver_int
 
 	def __str__(self):
-		def get_str(parts):
-			return ".".join([str(part) for part in parts])
-
 		if self.lt == Version.INF:
 			if self.ge == Version.NEG_INF:
 				return ""
 			else:
-				return get_str(self.ge) + "+"
+				return self._get_simple_str(self.ge) + "+"
 		elif self.is_inexact():
-			return get_str(self.ge) + "+<" + get_str(self.lt)
+			return self._get_simple_str(self.ge) + "+<" + self._get_simple_str(self.lt)
 		else:
-			return get_str(self.ge)
+			return self._get_simple_str(self.ge)
+
+	def _get_simple_str(self, tokens):
+		return ".".join([str(tok) for tok in tokens])
 
 	def __lt__(self, ver):
 		"""
@@ -195,13 +197,28 @@ class Version:
 		bounds are the same, the lt bounds are then tested, and A is < B if its
 		lt bound is < B's.
 		"""
-		return self.lt < ver.lt if self.ge == ver.ge else self.ge < ver.ge
+		#return self.lt < ver.lt if self.ge == ver.ge else self.ge < ver.ge
+		f = version_compare.version_compare
+		return (
+			(f(self._get_simple_str(self.lt), self._get_simple_str(ver.lt)) == -1) if
+			self.ge == ver.ge else
+			(f(self._get_simple_str(self.ge), self._get_simple_str(ver.ge)) == -1)
+		)
 
 	def __eq__(self, ver):
 		return self.ge == ver.ge and self.lt == ver.lt
 
 	def __le__(self, ver):
 		return self.__lt__(ver) or self.__eq__(ver)
+
+	def _lt(self, a, b):
+		return version_compare.version_compare(self._get_simple_str(a), self._get_simple_str(ver.ge)) == -1
+
+	def _gt(self, ver):
+		return version_compare.version_compare(self._get_simple_str(self.ge), self._get_simple_str(ver.ge)) == 1
+		
+	def _eq(self, ver):
+		return version_compare.version_compare(self._get_simple_str(self.ge), self._get_simple_str(ver.ge)) == 0
 
 
 class VersionRange:

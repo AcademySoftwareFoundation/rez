@@ -55,7 +55,7 @@ from rez_memcached import *
 import rez_filesys
 import rez_util
 
-
+PRIMARY_SEPARATOR = '@'
 
 ##############################################################################
 # Public Classes
@@ -112,7 +112,7 @@ class PackageRequest:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + self.version
+			return self.name + PRIMARY_SEPARATOR + self.version
 
 	def __str__(self):
 		return str((self.name, self.version))
@@ -153,7 +153,7 @@ class ResolvedPackage:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + str(self.version)
+			return self.name + PRIMARY_SEPARATOR + str(self.version)
 
 	def strip(self):
 		# remove data that we don't want to cache
@@ -568,16 +568,29 @@ def str_to_pkg_req(str_, memcache=None):
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
 		memcache2 = memcache
-
 	str_ = str_.split('=')[0]
-	strs = str_.split('-', 1)
-	dim = len(strs)
-	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
-	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
-	else:
-		raise PkgSystemError("Invalid package string '" + str_ + "'")
+	package, version = parse_descriptor(str_)
+	return PackageRequest(package, version, memcache2, latest)
+
+def parse_descriptor(pkg_str):
+	"""
+	Proceeds through a list of acceptable delimiters, separating the package name from the (optional) version
+	"""
+	package = None
+	version = ''
+	if re.search(r'\s+', pkg_str) is None:
+		for d in ['@', '-', '']:
+			s = r'^([A-Za-z0-9._:]+)%s(.*|)' % (d,)
+			p = re.compile(s)
+			m = re.search(p, pkg_str)
+			if m is not None:
+				package = m.group(1)
+				version = m.group(2)
+				break
+	if not package:
+		raise PkgSystemError("Invalid package string: '%s'" % (pkg_str,))
+	return (package, version)
+		
 
 
 
@@ -738,7 +751,7 @@ class _Package:
 		if self.version_range.is_any():
 			return self.name
 		else:
-			return self.name + '-' + str(self.version_range)
+			return self.name + PRIMARY_SEPARATOR + str(self.version_range)
 
 		return self.name + '-' + str(self.version_range)
 
