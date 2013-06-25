@@ -1,0 +1,3 @@
+requires: []
+templateDependencies: ["empty"]
+buildRequires: ["doxygen"]
