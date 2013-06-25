@@ -17,7 +17,6 @@ TEMPLATE_CONFIG_DIR = 'TEMPLATE_CONFIG'
 VARIANT_DIR = '_VARIANT_'
 TEMPLATE_CONFIG_FILE = 'TEMPLATE_CONFIG.yaml'
 template_path = "%s/template/project_types" % (os.getenv("REZ_PATH"))
-#template_path = "/home/anaik/template/project_types"
 _project_types = [projDir for projDir in os.listdir(template_path) if os.path.isdir('%s/%s' % (template_path, projDir))]
 cwd = os.getcwd()
 browser = os.getenv("BROWSER") or "firefox"
@@ -219,8 +218,7 @@ proj_version = args[1]
 ## GET PROPERTIES FROM TEMPLATE CONFIG YAML FOR THE PROJECT TYPE WE ARE BUILDING
 
 if not is_custom_template:
-    projConfigFile = "%s/template/project_types/%s/%s/config.yaml" % (os.getenv("REZ_PATH"), opts.type, TEMPLATE_CONFIG_DIR)
-    # projConfigFile = "/home/anaik/template/project_types/%s/%s/%s" % (opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
+    projConfigFile = "%s/template/project_types/%s/%s/%s" % (os.getenv("REZ_PATH"), opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
 else:
     projConfigFile = "%s/%s/%s/%s" % (opts.template_location, opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
 
@@ -277,7 +275,6 @@ if "doxygen" in proj_types:
     string_repl_d["FILES"] = doxy_files_str
     doxy_cmake_code_filename = "doxygen_cmake_code"
     doxy_cmake_code_filepath = "%s/template/project_types/doxygen/%s/%s" % (os.getenv("REZ_PATH"), TEMPLATE_CONFIG_DIR, doxy_cmake_code_filename)
-    # doxy_cmake_code_filepath = "/home/anaik/template/project_types/doxygen/%s/%s" % (TEMPLATE_CONFIG_DIR, doxy_cmake_code_filename)
     doxyCode = _read_cmake_code(doxy_cmake_code_filepath)
     code = doxyCode % string_repl_d
     _cmake_templates["DOXYGEN_CMAKE_CODE"] = code
@@ -321,7 +318,6 @@ for proj_type in proj_types:
 
     if proj_type not in _custom_project_types:
         cmake_code_filepath = "%s/template/project_types/%s/%s/%s" % (os.getenv("REZ_PATH"), proj_type, TEMPLATE_CONFIG_DIR, cmake_code_filename)
-        # cmake_code_filepath = "/home/anaik/template/project_types/%s/%s/%s" % (proj_type, TEMPLATE_CONFIG_DIR, cmake_code_filename)
     else:
         cmake_code_filepath = "%s/%s/%s/%s" % (opts.template_location, proj_type, TEMPLATE_CONFIG_DIR, cmake_code_filename)
     if str_repl.has_key(cmake_code_tok):
@@ -344,7 +340,6 @@ for proj_type in proj_types:
 
     if proj_type not in _custom_project_types:
         template_dir = "%s/template/project_types/%s" % (os.getenv("REZ_PATH"), proj_type)
-        # template_dir = "/home/anaik/template/project_types/%s" % proj_type
     else:
         template_dir = "%s/%s" % (opts.template_location, proj_type)
     if not os.path.exists(template_dir):
