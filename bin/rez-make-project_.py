@@ -80,7 +80,7 @@ def _copy_structure(template_dir, cmake_code_filename, _project_types, variant='
                     _mkdir(dest_dir)
 
             for file in files:
-                if file != cmake_code_filename and file != TEMPLATE_CONFIG_FILE:
+                if file != cmake_code_filename and file != TEMPLATE_CONFIG_FILE and file != '.gitignore':
                     fpath = os.path.join(root, file)
                     f = open(fpath, 'r')
                     s = f.read()
@@ -260,11 +260,11 @@ if "doxygen" in proj_types:
             _project_build_requires[opts.type].remove("doxygen")
             doxygen_support = False
 
-    if doxygen_support and "python" in proj_types:
+    if doxygen_support and "doxygen" in _project_build_requires[opts.type] and "python" in proj_types:
         p = sp.Popen("rez-which doxypy", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
         p.communicate()
         if p.returncode == 0:
-            _project_build_requires["doxygen"].append("doxypy")
+            _project_build_requires[opts.type]["doxygen"].append("doxypy")
             string_repl_d["DOXYPY"] = "DOXYPY"
             doxygen_file_types.append("py_files")
         else:
