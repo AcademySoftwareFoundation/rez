@@ -108,7 +108,6 @@ def _create_str_repl(proj_name, proj_version, _project_types):
 	"USER":						os.getenv("USER"),
 	"UUID":						str(uuid.uuid4()),
 	"REZ_PATH":					os.getenv("REZ_PATH"),
-    # "REZ_PATH":                 '/home/anaik/template',
 	"BIN_CMAKE_CODE":			'',
 	"COMMANDS":					'',
 	"TOOLS":					'',
