@@ -13,7 +13,7 @@ if [[ "$@" != '' ]]; then
     SRC="$@"
     echo "Using overridden repo (branch?) instead of 'chili-git:la-rez': $SRC"
 fi
-cd $tmp_loc; git clone -v "$SRC"
+cd $tmp_loc; git clone -v "$SRC" la-rez
 sudo mv la-rez /tools/shed/opensource/la-rez/${rez_release_version}/src
 
 cd /tools/shed/opensource/la-rez/${rez_release_version}/src
