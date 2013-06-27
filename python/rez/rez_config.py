@@ -55,7 +55,7 @@ from rez_memcached import *
 import rez_filesys
 import rez_util
 
-PRIMARY_SEPARATOR = '@'
+PRIMARY_SEPARATOR = '@' # defines the boundary between a package name string and the version string
 
 ##############################################################################
 # Public Classes
@@ -607,12 +607,7 @@ def get_base_path(pkg_str):
 		latest = False
 
 	pkg_str = pkg_str.rsplit("=",1)[0]
-	strs = pkg_str.split('-', 1)
-	name = strs[0]
-	if len(strs) == 1:
-		verrange = ""
-	else:
-		verrange = strs[1]
+	name, verrange = parse_descriptor(pkg_str)
 
 	path,ver,pkg_epoch = \
 		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
@@ -752,8 +747,6 @@ class _Package:
 			return self.name
 		else:
 			return self.name + PRIMARY_SEPARATOR + str(self.version_range)
-
-		return self.name + '-' + str(self.version_range)
 
 	def is_metafile_resolved(self):
 		"""
@@ -1034,7 +1027,6 @@ class _Configuration:
 
 		# test to see what adding this package would do
 		result, pkg = self.test_pkg_req_add(pkg_req, True)
-
 		if (result == _Configuration.ADDPKG_CONFLICT):
 
 			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
@@ -1416,12 +1408,12 @@ class _Configuration:
 		for conn in self.dot_graph:
 			if (type(conn) != type("")) and \
 				(conn[0][0] != '!'):
-				fam1 = conn[0].split('-',1)[0]
+				fam1 = conn[0].split(PRIMARY_SEPARATOR, 1)[0]
 				fams.add(fam1)
 				if (conn[1] != None) and \
 					(conn[1][1] == _Configuration.PKGCONN_REQUIRES) and \
 					(conn[1][0][0] != '!'):
-					fam2 = conn[1][0].split('-',1)[0]
+					fam2 = conn[1][0].split(PRIMARY_SEPARATOR, 1)[0]
 					fams.add(fam2)
 					if fam1 != fam2:
 						deps.add( (fam1, fam2) )
