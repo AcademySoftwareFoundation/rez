@@ -8,12 +8,13 @@ sudo mkdir -pv /tools/shed/opensource/la-rez/${rez_release_version}/payload
 
 tmp_loc=$(mktemp -d)
 
-SRC='chili-git:la-rez'
+cd $tmp_loc
 if [[ "$@" != '' ]]; then
-    SRC="$@"
-    echo "Using overridden repo (branch?) instead of 'chili-git:la-rez': $SRC"
+    echo "Using overridden repo (branch?) instead of 'chili-git:la-rez': $@"
+    git clone -v $@ la-rez
+else
+    git clone -v chili-git:la-rez
 fi
-cd $tmp_loc; git clone -v "$SRC" la-rez
 sudo mv la-rez /tools/shed/opensource/la-rez/${rez_release_version}/src
 
 cd /tools/shed/opensource/la-rez/${rez_release_version}/src

@@ -1,4 +1,3 @@
-ll
 #
 # Current version of rez. To release new versions (ie if you're developing rez), change the
 # version number in this file, then run ./install.sh again, but with no arguments. See comments
