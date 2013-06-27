@@ -1,0 +1,13 @@
+include(RezInstallDoxygen)
+file(GLOB_RECURSE doc_files "docs/*")
+
+rez_install_doxygen(
+    doc
+    FILES %(FILES)s ${doc_files}
+    DESTINATION doc
+    %(DOXYPY)s
+
+    # remove this once your docs have stabilised, then they will only be built and
+    # installed when you're performing a central install (ie a rez-release).
+    FORCE
+)
