@@ -7,7 +7,13 @@ echo "Found version: $rez_release_version in $DIR/version.sh"
 sudo mkdir -pv /tools/shed/opensource/la-rez/${rez_release_version}/payload
 
 tmp_loc=$(mktemp -d)
-cd $tmp_loc; git clone chili-git:la-rez 
+
+SRC='chili-git:la-rez'
+if [[ "$@" != '' ]]; then
+    SRC="$@"
+    echo "Using overridden repo/branch/?? instead of 'chili-git:la-rez -b HEAD': $SRC"
+fi
+cd $tmp_loc; git clone "$SRC"
 sudo mv la-rez /tools/shed/opensource/la-rez/${rez_release_version}/src
 
 cd /tools/shed/opensource/la-rez/${rez_release_version}/src
