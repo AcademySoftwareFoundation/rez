@@ -40,6 +40,7 @@ class Version:
 
 	def __init__(self, version_str=None, ge_lt=None):
 		if version_str:
+			original_version_str = version_str
 			try:
 				version_str = str(version_str)
 			except UnicodeEncodeError:
@@ -48,17 +49,17 @@ class Version:
 			rangepos = version_str.find("+<")
 			if (rangepos == -1):
 				plus = version_str.endswith('+')
-				### tokens = version_str.rstrip('+').replace('-', '.').split('.')
-				tokens = version_compare._normalize_and_tokenize(version_str)
+				version_str = version_str[:-1] if plus else version_str
 				self.ge = []
+				tokens = version_compare.rezTokenize(version_str,)
 				for tok in tokens:
-					self.to_comp(tok, version_str)
+					self.to_comp(tok, original_version_str)
 
 				if plus:
 					self.lt = Version.INF
 				else:
 					self.lt = self.get_ge_plus_one()
-
+					
 				if len(self.ge) == 0:
 					self.ge = Version.NEG_INF
 
@@ -75,6 +76,9 @@ class Version:
 
 				if self.lt <= self.ge:
 					raise VersionError("lt<=ge: "+version_str)
+
+			# print('Init-ed -> %s (%s)' % (str(self), self.__dict__))
+					
 		elif ge_lt:
 			self.ge = ge_lt[0][:]
 			self.lt = ge_lt[1][:]
@@ -82,30 +86,22 @@ class Version:
 			self.ge = Version.NEG_INF
 			self.lt = Version.INF
 
+		
 	def copy(self):
 		return Version(ge_lt=(self.ge, self.lt))
 
 	def to_comp(self, tok, version_str):
 		if len(tok) == 0:
-			raise VersionError(version_str)
-
-		if (tok[0] == '0') and (tok != '0'):  # zero-padding is not allowed, eg '03'
-			raise VersionError(version_str)
-
+			raise VersionError("Can't have empty tokens: " + version_str)
 		try:
 			i = int(tok)
 			if i < 0:
-				raise VersionError("Can't have negative components: "+version_str)
+				raise VersionError("Can't have negative components: " + version_str)
+			if tok[0] == '0' and tok != '0':
+				raise VersionError("Can't have padded strictly numeric tokens ('%s'): " % (tok, version_str))
 			self.ge.append(i)
-		except ValueError: # a string of some kind...
+		except ValueError: # a more complex token of some kind...
 			self.ge.append(tok)
-			# if self.is_tok_single_letter(tok):
-			# 	self.ge.append(tok)
-			# else:
-			# 	raise VersionError("Invalid version '%s'" % version_str)
-
-	# def is_tok_single_letter(self, tok):
-	# 	return Version.valid_char.match(tok) is not None
 
 	def get_ge_plus_one(self):
 		if len(self.ge) == 0:

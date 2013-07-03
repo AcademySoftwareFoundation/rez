@@ -1664,7 +1664,6 @@ class _Configuration:
 
 		num = 0
 		config2 = None
-
 		for name, pkg in self.pkgs.iteritems():
 			if pkg.is_metafile_resolved():
 				continue

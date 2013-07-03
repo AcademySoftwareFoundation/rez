@@ -1,15 +1,20 @@
 #! /usr/bin/env python
 
 import re
+import itertools
 
 def version_compare(first, second):
     '''
     Returns -1 if the first version is lower than the second,
     0 if they are equal,
     and 1 if the second is lower.
+
     '''
-    first = _normalize_and_tokenize(first)
-    second = _normalize_and_tokenize(second)
+    tmp = _normalize_and_tokenize(first)
+    first = _flatten(tmp)
+    
+    tmp = _normalize_and_tokenize(second)
+    second = _flatten(tmp)
 
     i = 0
     while 1:
@@ -35,13 +40,36 @@ def version_compare(first, second):
         else:
             i += 1
 
+def rezTokenize(rawVersion):
+    trueTokens = _normalize_and_tokenize(rawVersion)
+    rezTokens = []
+    for each in trueTokens:
+        if isinstance(each, str):
+            rezTokens.append(each)
+        elif isinstance(each, list): # these should only ever go 1 level deep
+            rezTokens.append(''.join(each))
+        else:
+            raise RuntimeError, "Encountered a token which is not a string and is not a list: '%s'" % (each,)
+    return rezTokens
+
 def _normalize_and_tokenize(rawVersion):
-    val = re.sub(r'[_,\-+.:]+', '.', str(rawVersion))
+    val = re.sub(r'[_,.:]+', '.', str(rawVersion))
     rawList = val.split('.')
     ret = []
     for each in rawList:
-        ret += _split_out_non_numbers(each)
+        subVal = _split_out_non_numbers(each)
+        if len(subVal) == 1:
+            ret.append(subVal[0])
+        else:
+            ret.append(subVal)
     return ret
+
+def _flatten(multidimInput):
+    '''
+    flatten only lists, not splitting strings
+    '''
+    l2 = [([x] if isinstance(x, str) else x) for x in multidimInput]
+    return list(itertools.chain(*l2))
 
 def _split_out_non_numbers(val):
     if re.search(r'^\d+$', val) is not None:
