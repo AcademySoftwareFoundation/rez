@@ -53,7 +53,7 @@ def rezTokenize(rawVersion):
     return rezTokens
 
 def _normalize_and_tokenize(rawVersion):
-    val = re.sub(r'[_,.:]+', '.', str(rawVersion))
+    val = re.sub(r'[_,.:-]+', '.', str(rawVersion))
     rawList = val.split('.')
     ret = []
     for each in rawList:
