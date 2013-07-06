@@ -46,6 +46,9 @@ import sys
 import random
 import subprocess as sp
 import copy
+import shlex
+import string
+
 
 from versions import *
 from public_enums import *
@@ -2043,10 +2046,14 @@ def process_commands(cmds):
 	This function returns the altered commands. Order of commands is retained.
 	"""
 	set_vars = {}
+	set_functions = {}
+	exported_vars = set([])
 	new_cmds = []
-
+	processed_commands = []
+	
 	for cmd_ in cmds:
-
+		# sys.stderr.write("----------\nProcessing command: '%s'\n" % (repr(cmd_),))
+		varname = None
 		if type(cmd_) == type([]):
 			cmd = cmd_[0]
 			pkgname = cmd_[1]
@@ -2054,25 +2061,95 @@ def process_commands(cmds):
 			cmd = cmd_
 			pkgname = None
 
-		if cmd.split()[0] == "export":
+		l1 = splitMultipleShellCommands(cmd)
+		# sys.stderr.write("    Preliminarily split into: %s\n" % (repr(l1),))
+		for each in l1:
+			processed_commands.append([each, pkgname])
 
-			# parse name, value
-			var_val = cmd[len("export"):].split('=',1)
-			if (len(var_val) != 2):
-				raise PkgCommandError("invalid command:'" + cmd + "'")
-			varname = var_val[0].split()[0]
-			val = var_val[1]
+	for each in processed_commands:
+		cmd = each[0]
+		# sys.stderr.write('Examining: %s\n' % (cmd,))
+		l = carefulCommandSplit(cmd)
 
+		# sys.stderr.write("    Secondarily split into: %s\n" % (repr(l),))
+
+		if ( (l.count('export')) or
+		     (l.count('declare') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) or
+		     (l.count('typeset') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) ):
+			for token in l[1:]:
+				m = re.search(r'^(?<!-)(\w+)(.*|)$', token)
+				if m is not None: # accepting first non-option token, excluding set values (=\w*), as the identifier
+					varname = m.group(1)
+					# sys.stderr.write("             Found varname: >>>%s<<<\n" % (varname,))
+					break
+
+			exported_vars.add(varname)
+			# sys.stderr.write('        EXPORTED: %s\n' % (varname,))
+
+	for each in processed_commands:
+		cmd = each[0]
+		pkgname = each[1]
+		varname = None
+		val = None
+		# sys.stderr.write('----\nExamining: %s\n' % (cmd,))
+		l = carefulCommandSplit(cmd)
+
+		# sys.stderr.write("    And finally split into: %s\n" % (l,))
+
+		if l.count('=') is 1:
+			i = l.index('=')
+			varname = l[i - 1]
+			val = ''
+			if (i + 1) <= (len(l) - 1):
+				val = l[(i + 1)]
+			# sys.stderr.write("---> Val on this was >>>%s<<<\n" % (val,))
+		elif l.count('=') > 1:
+			raise PkgCommandError("Cannot determine varname and value from '%s'" % (cmd,))
+
+		if l.count('()') > 0 or l.count('function') > 0:
+			# first, check for 'function' style:
+			if l.count('function') > 0:
+				i = l.index('function')
+				try:
+					j = l.index('{')
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+				for token in l[(i + 1):j]:
+					if token == '()':
+						continue
+					varname = token
+					break # should be a formality for well-formed, non-nested function
+			else: # C-style
+				j = l.index('()')
+				try:
+					varname = l[j - 1]
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+			# sys.stderr.write('>>>>>> Fn name: %s\n' % (varname,))
+			if varname in exported_vars:
+				# sys.stderr.write('>> Trying to set an exported function\'s value...\n')
+				defined = (varname in set_functions)
+				if defined:
+					# this indicates a redefinition
+					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
+						"\noverwrites the exported function defined in a previous command by '" + str(set_functions[varname]) + "'")
+				set_functions[varname] = pkgname
+			new_cmds.append(cmd)
+
+		elif varname in exported_vars:
+			# sys.stderr.write('>> Trying to set an exported variable\'s value...\n')
 			# has value already been set?
 			val_is_set = (varname in set_vars)
 
 			# check for variable self-reference (eg X=$X:foo etc)
-			pos = val.find('$'+varname)
-			if (pos == -1):
+			deref = re.search(r'\${?%s}?' % (varname,), val)
+			if deref is None:
 				if val_is_set:
 					# no self-ref but previous val, this is a val overwrite
 					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
-						"\noverwrites the variable set in a previous command by '" + str(set_vars[varname]) + "'")
+						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
 			elif not val_is_set:
 				# self-ref but no previous val, so strip self-ref out
 				val = val.replace('$'+varname,'')
@@ -2093,6 +2170,61 @@ def process_commands(cmds):
 
 	return new_cmds
 
+
+def splitMultipleShellCommands(commands):
+	"""
+	Break a commandline on (unquoted) semicolons
+	"""
+	pieces = [p for p in re.split(r'''(;|['"].*?['"])''', commands) if p.strip()]
+	l = []
+	tmp = ''
+	for i in range(len(pieces)):
+		if i == len(pieces) - 1 and pieces[i] != ';':
+			l.append((tmp + pieces[i]).strip())
+			break
+		if pieces[i] != ';':
+			tmp += pieces[i]
+		else:
+			l.append(tmp.strip())
+			tmp = ''
+	return l
+
+	
+def carefulCommandSplit(command):
+	"""
+	Correctly splits up an individual shell command into a list
+	"""
+	lexer = shlex.shlex(command)
+	lexer.wordchars += string.punctuation.replace('"','').replace("'",'').replace('=','').replace('$','')
+	l = [x for x in lexer]
+
+	# # deal with possibility of an orpahned '=' (that was inside a quoted string)
+	# if l.count('='):
+	# 	i = l.index('=')
+	# 	if i != 0:
+	# 		l.pop(i)
+	# 		l[i-1] += '='
+	# 		i -= 1
+	# 	if i != len(l) - 1:
+	# 		l[i+1] = l[i] + l[i+1]
+	# 		l.pop(i)
+
+	# # more quoting issues
+	# for i in range(len(l)):
+	# 	if i <= len(l) - 1: # need to check due to item popping
+	# 		if re.search(r'(=$|=\$$)', l[i]) is not None and i < len(l) - 1:
+	# 			l[i] += l[1+1]
+	# 			l.pop(i+1)
+
+	# repair possible orphaned $
+	for i in range(len(l)):
+		if i <= len(l) - 1: # need to check due to item popping
+			if l[i] == '$' and i < len(l) - 1:
+				l[i] += l[i+1]
+				l.pop(i+1)
+	return l
+			
+			
 
 
 
