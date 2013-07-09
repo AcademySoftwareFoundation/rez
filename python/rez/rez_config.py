@@ -2175,7 +2175,7 @@ def splitMultipleShellCommands(commands):
 	"""
 	Break a commandline on (unquoted) semicolons
 	"""
-	pieces = [p for p in re.split(r'''(;|['"].*?['"])''', commands) if p.strip()]
+	pieces = [p for p in re.split(r'''(;|['"].*?['"]|[{].*?[}]|[(].*?[)])''', commands) if p.strip()] # quoted/fn def/subshell
 	l = []
 	tmp = ''
 	for i in range(len(pieces)):
