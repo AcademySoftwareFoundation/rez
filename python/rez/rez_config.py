@@ -458,6 +458,7 @@ class Resolver():
 		env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
 		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
 		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
+		env_cmds.append("export REZ_PRIMARY_SEPARATOR='" + PRIMARY_SEPARATOR + "'")
 
 		# packages: base/root/version, and commands
 		env_cmds.append("#### START of package commands ####")
@@ -2052,7 +2053,6 @@ def process_commands(cmds):
 	processed_commands = []
 	
 	for cmd_ in cmds:
-		# sys.stderr.write("----------\nProcessing command: '%s'\n" % (repr(cmd_),))
 		varname = None
 		if type(cmd_) == type([]):
 			cmd = cmd_[0]
@@ -2062,16 +2062,12 @@ def process_commands(cmds):
 			pkgname = None
 
 		l1 = splitMultipleShellCommands(cmd)
-		# sys.stderr.write("    Preliminarily split into: %s\n" % (repr(l1),))
 		for each in l1:
 			processed_commands.append([each, pkgname])
 
 	for each in processed_commands:
 		cmd = each[0]
-		# sys.stderr.write('Examining: %s\n' % (cmd,))
 		l = carefulCommandSplit(cmd)
-
-		# sys.stderr.write("    Secondarily split into: %s\n" % (repr(l),))
 
 		if ( (l.count('export')) or
 		     (l.count('declare') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) or
@@ -2080,21 +2076,16 @@ def process_commands(cmds):
 				m = re.search(r'^(?<!-)(\w+)(.*|)$', token)
 				if m is not None: # accepting first non-option token, excluding set values (=\w*), as the identifier
 					varname = m.group(1)
-					# sys.stderr.write("             Found varname: >>>%s<<<\n" % (varname,))
 					break
 
 			exported_vars.add(varname)
-			# sys.stderr.write('        EXPORTED: %s\n' % (varname,))
 
 	for each in processed_commands:
 		cmd = each[0]
 		pkgname = each[1]
 		varname = None
 		val = None
-		# sys.stderr.write('----\nExamining: %s\n' % (cmd,))
 		l = carefulCommandSplit(cmd)
-
-		# sys.stderr.write("    And finally split into: %s\n" % (l,))
 
 		if l.count('=') is 1:
 			i = l.index('=')
@@ -2102,7 +2093,6 @@ def process_commands(cmds):
 			val = ''
 			if (i + 1) <= (len(l) - 1):
 				val = l[(i + 1)]
-			# sys.stderr.write("---> Val on this was >>>%s<<<\n" % (val,))
 		elif l.count('=') > 1:
 			raise PkgCommandError("Cannot determine varname and value from '%s'" % (cmd,))
 
@@ -2127,9 +2117,7 @@ def process_commands(cmds):
 				except ValueError:
 					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
 
-			# sys.stderr.write('>>>>>> Fn name: %s\n' % (varname,))
 			if varname in exported_vars:
-				# sys.stderr.write('>> Trying to set an exported function\'s value...\n')
 				defined = (varname in set_functions)
 				if defined:
 					# this indicates a redefinition
@@ -2139,7 +2127,6 @@ def process_commands(cmds):
 			new_cmds.append(cmd)
 
 		elif varname in exported_vars:
-			# sys.stderr.write('>> Trying to set an exported variable\'s value...\n')
 			# has value already been set?
 			val_is_set = (varname in set_vars)
 
@@ -2198,24 +2185,6 @@ def carefulCommandSplit(command):
 	lexer.wordchars += string.punctuation.replace('"','').replace("'",'').replace('=','').replace('$','')
 	l = [x for x in lexer]
 
-	# # deal with possibility of an orpahned '=' (that was inside a quoted string)
-	# if l.count('='):
-	# 	i = l.index('=')
-	# 	if i != 0:
-	# 		l.pop(i)
-	# 		l[i-1] += '='
-	# 		i -= 1
-	# 	if i != len(l) - 1:
-	# 		l[i+1] = l[i] + l[i+1]
-	# 		l.pop(i)
-
-	# # more quoting issues
-	# for i in range(len(l)):
-	# 	if i <= len(l) - 1: # need to check due to item popping
-	# 		if re.search(r'(=$|=\$$)', l[i]) is not None and i < len(l) - 1:
-	# 			l[i] += l[1+1]
-	# 			l.pop(i+1)
-
 	# repair possible orphaned $
 	for i in range(len(l)):
 		if i <= len(l) - 1: # need to check due to item popping
@@ -2223,8 +2192,6 @@ def carefulCommandSplit(command):
 				l[i] += l[i+1]
 				l.pop(i+1)
 	return l
-			
-			
 
 
 
