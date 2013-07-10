@@ -106,6 +106,10 @@ def _get_value(val):
             return -7
     elif re.search(re.compile(r'(final|prod)', re.IGNORECASE), val) is not None:
             return -6
+    elif re.search(re.compile(r'(sp|SP)', re.IGNORECASE), val) is not None: # for maya
+            return -6
+    elif re.search(re.compile(r'(ap|AP)', re.IGNORECASE), val) is not None: # for maya
+            return -5.5
     elif re.search(re.compile(r'(int|integration|latest)', re.IGNORECASE), val) is not None:
             return 1
     else: # default, unrecognized - asciibetical
@@ -161,8 +165,6 @@ class Test(unittest.TestCase):
         self.assertEqual(version_compare('1.1.rc', '1.2'), -1)
     def test_2011vs2012(self):
         self.assertEqual(version_compare('2011', '2012'), -1)
-    def test_2011vs2011AdvPack(self):
-        self.assertEqual(version_compare('2011', '2011AdvPack'), -1)
     def test_1pt1rc1vs1pt1rc2(self):
         self.assertEqual(version_compare('1.1rc1', '1.1rc2'), -1)
     def test_1pt1rcdash1vs1pt1rcdash2(self):
@@ -180,7 +182,7 @@ class Test(unittest.TestCase):
     def test_6pt3v1vs7pt0v1(self):
         self.assertEqual(version_compare('6.3v1', '7.0v1'), -1)
     def test_2011AdvPackvs2012(self):
-        self.assertEqual(version_compare('2011AdvPack', '2012'), -1) ## Will need to specifically define 'AP vs SP2' in _get_value, however
+        self.assertEqual(version_compare('2011AdvPack', '2012'), -1)
     def test_1vs1ptfoo(self):
         self.assertEqual(version_compare('1', '1.foo'), -1)
     def test_1pt1RC1vs1pt1RC2(self):
@@ -195,7 +197,32 @@ class Test(unittest.TestCase):
         self.assertEqual(version_compare('1.f', '1.foo'), -1)
     def test_unrecognized_words2(self):
         self.assertEqual(version_compare('1.bar', '1.foo'), -1)
-        
+    def test_sp_vs_ap(self):
+        self.assertEqual(version_compare('1.sp', '1.ap'), -1)
+    def test_sp1_vs_sp2(self):
+        self.assertEqual(version_compare('1.sp1', '1.sp2'), -1)
+    def test_spdot1_vs_spdot2(self):
+        self.assertEqual(version_compare('1.sp.1', '1.sp.2'), -1)
+    def test_sp1_vs_ap1(self):
+        self.assertEqual(version_compare('1.sp1', '1.ap1'), -1)
+    def test_sp99_vs_ap1(self):
+        self.assertEqual(version_compare('1.sp99', '1.ap1'), -1)
+    def test_sp99_vs_ap2(self):
+        self.assertEqual(version_compare('1.sp99', '1.ap2'), -1)
+    def test_2011sp1_vs_2011sp2(self):
+        self.assertEqual(version_compare('2011sp1', '2011sp2'), -1)
+    def test_2011sp2_vs_2012sp1(self):
+        self.assertEqual(version_compare('2011sp2', '2012sp1'), -1)
+    def test_2011ap2_vs_2012(self):
+        self.assertEqual(version_compare('2011ap2', '2012'), -1)
+    def test_2011ap2_vs_2012sp1(self):
+        self.assertEqual(version_compare('2011ap2', '2012sp1'), -1)
+    def test_2011spDASH1_vs_2011spDASH2(self):
+        self.assertEqual(version_compare('2011sp-1', '2011sp-2'), -1)
+    def test_2011spDOT1_vs_2011spDOT2(self):
+        self.assertEqual(version_compare('2011sp.1', '2011sp.2'), -1)
+    def test_2011DOTspDOT1_vs_2011DOTspDOT2(self):
+        self.assertEqual(version_compare('2011.sp.1', '2011.sp.2'), -1)
 
 
 if __name__ == '__main__':

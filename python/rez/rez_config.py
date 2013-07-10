@@ -2139,7 +2139,9 @@ def process_commands(cmds):
 						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
 			elif not val_is_set:
 				# self-ref but no previous val, so strip self-ref out
+				sys.stderr.write('Pre val: %s\n' % (val,))
 				val = val.replace('$'+varname,'')
+				sys.stderr.write('Post val: %s\n--------\n' % (val,))
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
