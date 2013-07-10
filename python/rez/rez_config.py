@@ -58,8 +58,6 @@ from rez_memcached import *
 import rez_filesys
 import rez_util
 
-PRIMARY_SEPARATOR = '@' # defines the boundary between a package name string and the version string
-
 ##############################################################################
 # Public Classes
 ##############################################################################
@@ -2139,9 +2137,7 @@ def process_commands(cmds):
 						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
 			elif not val_is_set:
 				# self-ref but no previous val, so strip self-ref out
-				sys.stderr.write('Pre val: %s\n' % (val,))
 				val = val.replace('$'+varname,'')
-				sys.stderr.write('Post val: %s\n--------\n' % (val,))
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
@@ -2152,6 +2148,7 @@ def process_commands(cmds):
 				val = val.replace(':', "';'")
 
 			set_vars[varname] = pkgname
+
 			new_cmds.append("export " + varname + '=' + val)
 
 		else:
@@ -2182,6 +2179,8 @@ def splitMultipleShellCommands(commands):
 def carefulCommandSplit(command):
 	"""
 	Correctly splits up an individual shell command into a list
+
+	(to determine varname/value, if available)
 	"""
 	lexer = shlex.shlex(command)
 	lexer.wordchars += string.punctuation.replace('"','').replace("'",'').replace('=','').replace('$','')
@@ -2193,6 +2192,17 @@ def carefulCommandSplit(command):
 			if l[i] == '$' and i < len(l) - 1:
 				l[i] += l[i+1]
 				l.pop(i+1)
+
+	# repair overzealous path splitting
+	if '=' in l:
+		i = l.index('=')
+		if len(l) > i + 1:
+			tmp = ''
+			for j in range(i + 1, len(l)):
+				tmp += l[j]
+			l = l[:i]
+			l.append(tmp)
+
 	return l
 
 
