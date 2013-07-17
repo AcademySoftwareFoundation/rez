@@ -31,35 +31,6 @@ bin_cmake_code_template = \
     )
     """
 
-_cmake_templates = {
-"BIN_CMAKE_CODE": \
-    """
-    file(GLOB_RECURSE bin_files "bin/*")
-    rez_install_files(
-        ${bin_files}
-        DESTINATION .
-        EXECUTABLE
-    )
-    """,
-
-"DOXYGEN_CMAKE_CODE": \
-    """
-    include(RezInstallDoxygen)
-    file(GLOB_RECURSE doc_files "docs/*")
-
-    rez_install_doxygen(
-        doc
-        FILES %(FILES)s ${doc_files}
-        DESTINATION doc
-        %(DOXYPY)s
-
-        # remove this once your docs have stabilised, then they will only be built and
-        # installed when you're performing a central install (ie a rez-release).
-        FORCE
-    )
-    """
-}
-
 ###########################################################################
 # functions
 ###########################################################################
@@ -172,6 +143,38 @@ def _read_cmake_code(cmake_code_filepath):
         f.close()
     return s
 
+def _query_doxygen(proj_types, _project_build_requires, opts):
+    doxygen_support = True
+    doxypy_support = True
+    doxygen_file_types = []
+    string_repl_d = {"DOXYPY": ""}
+
+    p = sp.Popen("rez-which doxygen", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    p.communicate()
+    if p.returncode != 0:
+        if "doxygen" in _project_build_requires[opts.type]:
+            _project_build_requires[opts.type].remove("doxygen")
+            doxygen_support = False
+
+    if doxygen_support and "python" in proj_types:
+        p = sp.Popen("rez-which doxypy", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        p.communicate()
+        if p.returncode == 0:
+            string_repl_d["DOXYPY"] = "DOXYPY"
+            doxygen_file_types.append("py_files")
+        else:
+            print >> sys.stderr, "Skipped doxygen python support, 'doxypy' package not found!"
+            doxypy_support = False
+
+    doxy_files_str = str(' ').join([("${%s}" % x) for x in doxygen_file_types])
+    string_repl_d["FILES"] = doxy_files_str
+    doxy_cmake_code_filename = "doxygen_cmake_code"
+    doxy_cmake_code_filepath = "%s/template/project_types/doxygen/%s/%s" % (os.getenv("REZ_PATH"), TEMPLATE_CONFIG_DIR, doxy_cmake_code_filename)
+    doxyCode = _read_cmake_code(doxy_cmake_code_filepath)
+    code = doxyCode % string_repl_d
+
+    return code, _project_build_requires
+
 
 ###########################################################################
 # cmdlin
@@ -220,8 +223,9 @@ if not is_custom_template:
     projConfigFile = "%s/template/project_types/%s/%s/%s" % (os.getenv("REZ_PATH"), opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
 else:
     projConfigFile = "%s/%s/%s/%s" % (opts.template_location, opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
-
-proj_config = _read_config(projConfigFile)
+proj_config = {}
+if opts.type != 'empty':
+    proj_config = _read_config(projConfigFile)
 
 
 _project_template_deps = {'%s' % opts.type: []}
@@ -243,42 +247,16 @@ if proj_config.has_key('commands'):
 proj_types = [opts.type]
 proj_types += _project_template_deps[opts.type] or []
 
-###########################################################################
-# query system
-###########################################################################
-if "doxygen" in proj_types:
-    doxygen_support = True
-    doxypy_support = True
-    doxygen_file_types = []
-    string_repl_d = {"DOXYPY": ""}
+# always put doxygen and empty at the end of the list
+if "doxygen" in _project_types:
+    index = _project_types.index("doxygen")
+    doxy = _project_types.pop(index)
+    _project_types.append(doxy)
 
-    p = sp.Popen("rez-which doxygen", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-    p.communicate()
-    if p.returncode != 0:
-        if "doxygen" in _project_build_requires[opts.type]:
-            _project_build_requires[opts.type].remove("doxygen")
-            doxygen_support = False
-
-    if doxygen_support and "doxygen" in _project_build_requires[opts.type] and "python" in proj_types:
-        p = sp.Popen("rez-which doxypy", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        p.communicate()
-        if p.returncode == 0:
-            _project_build_requires[opts.type]["doxygen"].append("doxypy")
-            string_repl_d["DOXYPY"] = "DOXYPY"
-            doxygen_file_types.append("py_files")
-        else:
-            print >> sys.stderr, "Skipped doxygen python support, 'doxypy' package not found!"
-            doxypy_support = False
-
-    doxy_files_str = str(' ').join([("${%s}" % x) for x in doxygen_file_types])
-    string_repl_d["FILES"] = doxy_files_str
-    doxy_cmake_code_filename = "doxygen_cmake_code"
-    doxy_cmake_code_filepath = "%s/template/project_types/doxygen/%s/%s" % (os.getenv("REZ_PATH"), TEMPLATE_CONFIG_DIR, doxy_cmake_code_filename)
-    doxyCode = _read_cmake_code(doxy_cmake_code_filepath)
-    code = doxyCode % string_repl_d
-    _cmake_templates["DOXYGEN_CMAKE_CODE"] = code
-
-
+if "empty" in _project_types:
+    index = _project_types.index("empty")
+    empty = _project_types.pop(index)
+    _project_types.append(empty)
 
 ###########################################################################
 # create files and dirs
@@ -319,10 +297,14 @@ for proj_type in proj_types:
         cmake_code_filepath = "%s/template/project_types/%s/%s/%s" % (os.getenv("REZ_PATH"), proj_type, TEMPLATE_CONFIG_DIR, cmake_code_filename)
     else:
         cmake_code_filepath = "%s/%s/%s/%s" % (opts.template_location, proj_type, TEMPLATE_CONFIG_DIR, cmake_code_filename)
-    if str_repl.has_key(cmake_code_tok):
-        str_repl[cmake_code_tok] += _read_cmake_code(cmake_code_filepath)
+    if proj_type == 'doxygen':
+        code, _project_build_requires = _query_doxygen(proj_types, _project_build_requires, opts)
     else:
-        str_repl[cmake_code_tok] = _read_cmake_code(cmake_code_filepath)
+        code = _read_cmake_code(cmake_code_filepath)
+    if str_repl.has_key(cmake_code_tok):
+        str_repl[cmake_code_tok] += code
+    else:
+        str_repl[cmake_code_tok] = code
 
     if proj_type == "doxygen":
         str_repl["HELP"] = "help: %s file://!ROOT!/doc/html/index.html" % browser
