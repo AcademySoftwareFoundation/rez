@@ -16,20 +16,20 @@ import yaml
 TEMPLATE_CONFIG_DIR = 'TEMPLATE_CONFIG'
 VARIANT_DIR = '_VARIANT_'
 TEMPLATE_CONFIG_FILE = 'TEMPLATE_CONFIG.yaml'
-template_path = "%s/template/project_types" % (os.getenv("REZ_PATH"))
-_project_types = [projDir for projDir in os.listdir(template_path) if os.path.isdir('%s/%s' % (template_path, projDir))]
+TEMPLATE_PATH = "%s/template/project_types" % (os.getenv("REZ_PATH"))
+_project_types = [projDir for projDir in os.listdir(TEMPLATE_PATH) if os.path.isdir('%s/%s' % (TEMPLATE_PATH, projDir))]
 cwd = os.getcwd()
 browser = os.getenv("BROWSER") or "firefox"
 
 bin_cmake_code_template = \
-    """
-    file(GLOB_RECURSE bin_files "bin/*")
-    rez_install_files(
-        ${bin_files}
-        DESTINATION .
-        EXECUTABLE
-    )
-    """
+"""
+file(GLOB_RECURSE bin_files "bin/*")
+rez_install_files(
+    ${bin_files}
+    DESTINATION .
+    EXECUTABLE
+)
+"""
 
 ###########################################################################
 # functions
@@ -160,6 +160,8 @@ def _query_doxygen(proj_types, _project_build_requires, opts):
         p = sp.Popen("rez-which doxypy", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
         p.communicate()
         if p.returncode == 0:
+            if "doxypy" not in _project_build_requires[opts.type]:
+                _project_build_requires[opts.type].append("doxypy")
             string_repl_d["DOXYPY"] = "DOXYPY"
             doxygen_file_types.append("py_files")
         else:
@@ -174,6 +176,18 @@ def _query_doxygen(proj_types, _project_build_requires, opts):
     code = doxyCode % string_repl_d
 
     return code, _project_build_requires
+
+def _get_config(proj, is_custom_template):
+    if not is_custom_template:
+        projConfigFile = "%s/%s/%s/%s" % (TEMPLATE_PATH, proj, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
+    else:
+        projConfigFile = "%s/%s/%s/%s" % (opts.template_location, proj, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
+    proj_config = {}
+    if proj != 'empty':
+        proj_config = _read_config(projConfigFile)
+
+    return proj_config
+
 
 
 ###########################################################################
@@ -218,15 +232,7 @@ proj_version = args[1]
 
 
 ## GET PROPERTIES FROM TEMPLATE CONFIG YAML FOR THE PROJECT TYPE WE ARE BUILDING
-
-if not is_custom_template:
-    projConfigFile = "%s/template/project_types/%s/%s/%s" % (os.getenv("REZ_PATH"), opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
-else:
-    projConfigFile = "%s/%s/%s/%s" % (opts.template_location, opts.type, TEMPLATE_CONFIG_DIR, TEMPLATE_CONFIG_FILE)
-proj_config = {}
-if opts.type != 'empty':
-    proj_config = _read_config(projConfigFile)
-
+proj_config = _get_config(opts.type, is_custom_template)
 
 _project_template_deps = {'%s' % opts.type: []}
 if proj_config.has_key('templateDependencies'):
@@ -290,6 +296,25 @@ if opts.variants:
 for proj_type in proj_types:
     utype = proj_type.upper()
 
+    proj_type_config = _get_config(proj_type, is_custom_template)
+
+    ## add to the requires list of the main project from dependencies
+    if proj_type_config.has_key('requires'):
+        for req in proj_type_config['requires']:
+            if req not in _project_requires[opts.type]:
+                _project_requires[opts.type].append(req)
+
+    if proj_type_config.has_key('buildRequires'):
+        for build_req in proj_type_config['buildRequires']:
+            if build_req not in _project_build_requires[opts.type]:
+                _project_build_requires[opts.type].append(build_req)
+
+    if proj_type_config.has_key('commands'):
+        for command in proj_type_config['commands']:
+            if command not in _project_commands[opts.type]:
+                _project_commands[opts.type].append(command)
+
+
     cmake_code_tok = "%s_CMAKE_CODE" % utype
     cmake_code_filename = "%s_cmake_code" % proj_type
 
@@ -309,15 +334,9 @@ for proj_type in proj_types:
     if proj_type == "doxygen":
         str_repl["HELP"] = "help: %s file://!ROOT!/doc/html/index.html" % browser
 
-    if proj_type in _project_requires[opts.type]:
-        if proj_type not in requires:
-            requires.append(proj_type)
-    if proj_type in _project_build_requires[opts.type]:
-        build_requires.append(proj_type)
-
-    str_repl["COMMANDS"] = _gen_list("commands", commands, variant=False)
-    str_repl["REQUIRES"] = _gen_list("requires", requires, variant=False)
-    str_repl["BUILD_REQUIRES"] = _gen_list("build_requires", build_requires, variant=False)
+    str_repl["COMMANDS"] = _gen_list("commands", _project_commands[opts.type], variant=False)
+    str_repl["REQUIRES"] = _gen_list("requires", _project_requires[opts.type], variant=False)
+    str_repl["BUILD_REQUIRES"] = _gen_list("build_requires", _project_build_requires[opts.type], variant=False)
 
     if proj_type not in _custom_project_types:
         template_dir = "%s/template/project_types/%s" % (os.getenv("REZ_PATH"), proj_type)
