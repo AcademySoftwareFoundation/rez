@@ -2070,6 +2070,7 @@ def process_commands(cmds):
 		if ( (l.count('export')) or
 		     (l.count('declare') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) or
 		     (l.count('typeset') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) ):
+			varname = None
 			for token in l[1:]:
 				m = re.search(r'^(?<!-)(\w+)(.*|)$', token)
 				if m is not None: # accepting first non-option token, excluding set values (=\w*), as the identifier
@@ -2090,7 +2091,7 @@ def process_commands(cmds):
 			varname = l[i - 1]
 			val = ''
 			if (i + 1) <= (len(l) - 1):
-				val = l[(i + 1)]
+				val = ' '.join(l[(i + 1):])
 		elif l.count('=') > 1:
 			raise PkgCommandError("Cannot determine varname and value from '%s'" % (cmd,))
 
@@ -2129,15 +2130,16 @@ def process_commands(cmds):
 			val_is_set = (varname in set_vars)
 
 			# check for variable self-reference (eg X=$X:foo etc)
-			deref = re.search(r'\${?%s}?' % (varname,), val)
+			deref = re.search(r'"?\$\{?%s\}?' % (varname,), val)
 			if deref is None:
 				if val_is_set:
 					# no self-ref but previous val, this is a val overwrite
 					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
 						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
-			elif not val_is_set:
-				# self-ref but no previous val, so strip self-ref out
-				val = val.replace('$'+varname,'')
+			elif not val_is_set:	
+			# self-ref but no previous val, so strip self-ref out
+				# val = val.replace('$'+varname,'')
+				val = re.sub(r'\$\{?%s\}?' % (varname,), '', val)
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
@@ -2161,18 +2163,19 @@ def splitMultipleShellCommands(commands):
 	"""
 	Break a commandline on (unquoted) semicolons
 	"""
-	pieces = [p for p in re.split(r'''(;|['"].*?['"]|[{].*?[}]|[(].*?[)])''', commands) if p.strip()] # quoted/fn def/subshell
+	pieces = [p for p in re.split(r'''(;|#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\))''', commands) if p] # quoted/fn def/subshell
 	l = []
 	tmp = ''
 	for i in range(len(pieces)):
 		if i == len(pieces) - 1 and pieces[i] != ';':
-			l.append((tmp + pieces[i]).strip())
+			l.append(tmp + pieces[i])
 			break
 		if pieces[i] != ';':
 			tmp += pieces[i]
 		else:
-			l.append(tmp.strip())
+			l.append(tmp)
 			tmp = ''
+		
 	return l
 
 	
@@ -2182,29 +2185,8 @@ def carefulCommandSplit(command):
 
 	(to determine varname/value, if available)
 	"""
-	lexer = shlex.shlex(command)
-	lexer.wordchars += string.punctuation.replace('"','').replace("'",'').replace('=','').replace('$','')
-	l = [x for x in lexer]
-
-	# repair possible orphaned $
-	for i in range(len(l)):
-		if i <= len(l) - 1: # need to check due to item popping
-			if l[i] == '$' and i < len(l) - 1:
-				l[i] += l[i+1]
-				l.pop(i+1)
-
-	# repair overzealous path splitting
-	if '=' in l:
-		i = l.index('=')
-		if len(l) > i + 1:
-			tmp = ''
-			for j in range(i + 1, len(l)):
-				tmp += l[j]
-			l = l[:i]
-			l.append(tmp)
-
-	return l
-
+	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\)|=|\s+)''', command) if (p and re.search(r'^\s+$', p) is None)]
+	return pieces
 
 
 
