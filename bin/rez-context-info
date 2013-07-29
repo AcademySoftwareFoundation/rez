@@ -38,7 +38,7 @@ REZ_RESOLVE=`echo $REZ_RESOLVE | /usr/bin/tr ' ' '\n' | sort | /usr/bin/tr '\n' 
 tbl=$tbl'#resolved%packages:#'
 for pkg in $REZ_RESOLVE
 do
-	upkg=`echo $pkg | sed 's/-.*//g' | /usr/bin/tr 'a-z' 'A-Z'`
+	upkg=`echo $pkg | sed "s/${REZ_PRIMARY_SEPARATOR}.*//g" | /usr/bin/tr 'a-z' 'A-Z'`
 	root=`eval 'echo $REZ_'"$upkg"'_ROOT'`
 
 	if [ "`echo $root | grep $USER`" == "" ]; then

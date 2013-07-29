@@ -6,6 +6,7 @@ REZ_PACKAGES_PATH_ENVVAR = "REZ_PACKAGES_PATH"
 
 PKG_METADATA_FILENAME = "package.yaml"
 
+PRIMARY_SEPARATOR = '@' # defines the boundary between a package name string and the version string
 
 # Resolve modes, used in resolve_packages()
 # If resolution of a package list results in packages with inexact versions, then:

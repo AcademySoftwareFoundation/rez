@@ -4,7 +4,7 @@
 # at the top of ./install.sh for more details.
 #
 
-rez_version='1.6.14'
+rez_version='1.7.5'
 
 
 

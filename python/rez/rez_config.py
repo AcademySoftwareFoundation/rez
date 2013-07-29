@@ -46,6 +46,9 @@ import sys
 import random
 import subprocess as sp
 import copy
+import shlex
+import string
+
 
 from versions import *
 from public_enums import *
@@ -54,8 +57,6 @@ from rez_metafile import *
 from rez_memcached import *
 import rez_filesys
 import rez_util
-
-
 
 ##############################################################################
 # Public Classes
@@ -112,7 +113,7 @@ class PackageRequest:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + self.version
+			return self.name + PRIMARY_SEPARATOR + self.version
 
 	def __str__(self):
 		return str((self.name, self.version))
@@ -153,7 +154,7 @@ class ResolvedPackage:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + str(self.version)
+			return self.name + PRIMARY_SEPARATOR + str(self.version)
 
 	def strip(self):
 		# remove data that we don't want to cache
@@ -455,6 +456,7 @@ class Resolver():
 		env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
 		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
 		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
+		env_cmds.append("export REZ_PRIMARY_SEPARATOR='" + PRIMARY_SEPARATOR + "'")
 
 		# packages: base/root/version, and commands
 		env_cmds.append("#### START of package commands ####")
@@ -568,16 +570,29 @@ def str_to_pkg_req(str_, memcache=None):
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
 		memcache2 = memcache
-
 	str_ = str_.split('=')[0]
-	strs = str_.split('-', 1)
-	dim = len(strs)
-	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
-	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
-	else:
-		raise PkgSystemError("Invalid package string '" + str_ + "'")
+	package, version = parse_descriptor(str_)
+	return PackageRequest(package, version, memcache2, latest)
+
+def parse_descriptor(pkg_str):
+	"""
+	Proceeds through a list of acceptable delimiters, separating the package name from the (optional) version
+	"""
+	package = None
+	version = ''
+	if re.search(r'\s+', pkg_str) is None:
+		for d in ['@', '-', '']:
+			s = r'^([A-Za-z0-9._:]+)%s(.*|)' % (d,)
+			p = re.compile(s)
+			m = re.search(p, pkg_str)
+			if m is not None:
+				package = m.group(1)
+				version = m.group(2)
+				break
+	if not package:
+		raise PkgSystemError("Invalid package string: '%s'" % (pkg_str,))
+	return (package, version)
+		
 
 
 
@@ -594,12 +609,7 @@ def get_base_path(pkg_str):
 		latest = False
 
 	pkg_str = pkg_str.rsplit("=",1)[0]
-	strs = pkg_str.split('-', 1)
-	name = strs[0]
-	if len(strs) == 1:
-		verrange = ""
-	else:
-		verrange = strs[1]
+	name, verrange = parse_descriptor(pkg_str)
 
 	path,ver,pkg_epoch = \
 		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
@@ -738,9 +748,7 @@ class _Package:
 		if self.version_range.is_any():
 			return self.name
 		else:
-			return self.name + '-' + str(self.version_range)
-
-		return self.name + '-' + str(self.version_range)
+			return self.name + PRIMARY_SEPARATOR + str(self.version_range)
 
 	def is_metafile_resolved(self):
 		"""
@@ -1021,7 +1029,6 @@ class _Configuration:
 
 		# test to see what adding this package would do
 		result, pkg = self.test_pkg_req_add(pkg_req, True)
-
 		if (result == _Configuration.ADDPKG_CONFLICT):
 
 			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
@@ -1403,12 +1410,12 @@ class _Configuration:
 		for conn in self.dot_graph:
 			if (type(conn) != type("")) and \
 				(conn[0][0] != '!'):
-				fam1 = conn[0].split('-',1)[0]
+				fam1 = conn[0].split(PRIMARY_SEPARATOR, 1)[0]
 				fams.add(fam1)
 				if (conn[1] != None) and \
 					(conn[1][1] == _Configuration.PKGCONN_REQUIRES) and \
 					(conn[1][0][0] != '!'):
-					fam2 = conn[1][0].split('-',1)[0]
+					fam2 = conn[1][0].split(PRIMARY_SEPARATOR, 1)[0]
 					fams.add(fam2)
 					if fam1 != fam2:
 						deps.add( (fam1, fam2) )
@@ -1659,7 +1666,6 @@ class _Configuration:
 
 		num = 0
 		config2 = None
-
 		for name, pkg in self.pkgs.iteritems():
 			if pkg.is_metafile_resolved():
 				continue
@@ -2039,10 +2045,13 @@ def process_commands(cmds):
 	This function returns the altered commands. Order of commands is retained.
 	"""
 	set_vars = {}
+	set_functions = {}
+	exported_vars = set([])
 	new_cmds = []
-
+	processed_commands = []
+	
 	for cmd_ in cmds:
-
+		varname = None
 		if type(cmd_) == type([]):
 			cmd = cmd_[0]
 			pkgname = cmd_[1]
@@ -2050,28 +2059,87 @@ def process_commands(cmds):
 			cmd = cmd_
 			pkgname = None
 
-		if cmd.split()[0] == "export":
+		l1 = splitMultipleShellCommands(cmd)
+		for each in l1:
+			processed_commands.append([each, pkgname])
 
-			# parse name, value
-			var_val = cmd[len("export"):].split('=',1)
-			if (len(var_val) != 2):
-				raise PkgCommandError("invalid command:'" + cmd + "'")
-			varname = var_val[0].split()[0]
-			val = var_val[1]
+	for each in processed_commands:
+		cmd = each[0]
+		l = carefulCommandSplit(cmd)
 
+		if ( (l.count('export')) or
+		     (l.count('declare') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) or
+		     (l.count('typeset') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) ):
+			varname = None
+			for token in l[1:]:
+				m = re.search(r'^(?<!-)(\w+)(.*|)$', token)
+				if m is not None: # accepting first non-option token, excluding set values (=\w*), as the identifier
+					varname = m.group(1)
+					break
+
+			exported_vars.add(varname)
+
+	for each in processed_commands:
+		cmd = each[0]
+		pkgname = each[1]
+		varname = None
+		val = None
+		l = carefulCommandSplit(cmd)
+
+		if l.count('=') is 1:
+			i = l.index('=')
+			varname = l[i - 1]
+			val = ''
+			if (i + 1) <= (len(l) - 1):
+				val = ' '.join(l[(i + 1):])
+		elif l.count('=') > 1:
+			raise PkgCommandError("Cannot determine varname and value from '%s'" % (cmd,))
+
+		if l.count('()') > 0 or l.count('function') > 0:
+			# first, check for 'function' style:
+			if l.count('function') > 0:
+				i = l.index('function')
+				try:
+					j = l.index('{')
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+				for token in l[(i + 1):j]:
+					if token == '()':
+						continue
+					varname = token
+					break # should be a formality for well-formed, non-nested function
+			else: # C-style
+				j = l.index('()')
+				try:
+					varname = l[j - 1]
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+			if varname in exported_vars:
+				defined = (varname in set_functions)
+				if defined:
+					# this indicates a redefinition
+					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
+						"\noverwrites the exported function defined in a previous command by '" + str(set_functions[varname]) + "'")
+				set_functions[varname] = pkgname
+			new_cmds.append(cmd)
+
+		elif varname in exported_vars:
 			# has value already been set?
 			val_is_set = (varname in set_vars)
 
 			# check for variable self-reference (eg X=$X:foo etc)
-			pos = val.find('$'+varname)
-			if (pos == -1):
+			deref = re.search(r'"?\$\{?%s\}?' % (varname,), val)
+			if deref is None:
 				if val_is_set:
 					# no self-ref but previous val, this is a val overwrite
 					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
-						"\noverwrites the variable set in a previous command by '" + str(set_vars[varname]) + "'")
-			elif not val_is_set:
-				# self-ref but no previous val, so strip self-ref out
-				val = val.replace('$'+varname,'')
+						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
+			elif not val_is_set:	
+			# self-ref but no previous val, so strip self-ref out
+				# val = val.replace('$'+varname,'')
+				val = re.sub(r'\$\{?%s\}?' % (varname,), '', val)
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
@@ -2082,6 +2150,7 @@ def process_commands(cmds):
 				val = val.replace(':', "';'")
 
 			set_vars[varname] = pkgname
+
 			new_cmds.append("export " + varname + '=' + val)
 
 		else:
@@ -2090,6 +2159,34 @@ def process_commands(cmds):
 	return new_cmds
 
 
+def splitMultipleShellCommands(commands):
+	"""
+	Break a commandline on (unquoted) semicolons
+	"""
+	pieces = [p for p in re.split(r'''(;|#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\))''', commands) if p] # quoted/fn def/subshell
+	l = []
+	tmp = ''
+	for i in range(len(pieces)):
+		if i == len(pieces) - 1 and pieces[i] != ';':
+			l.append(tmp + pieces[i])
+			break
+		if pieces[i] != ';':
+			tmp += pieces[i]
+		else:
+			l.append(tmp)
+			tmp = ''
+		
+	return l
+
+	
+def carefulCommandSplit(command):
+	"""
+	Correctly splits up an individual shell command into a list
+
+	(to determine varname/value, if available)
+	"""
+	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\)|=|\s+)''', command) if (p and re.search(r'^\s+$', p) is None)]
+	return pieces
 
 
 

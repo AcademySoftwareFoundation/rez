@@ -12,7 +12,6 @@ from rez_exceptions import *
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"
 
-
 def _create_client():
     if not _g_caching_enabled:
         return None
