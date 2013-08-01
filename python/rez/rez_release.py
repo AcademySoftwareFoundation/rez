@@ -439,6 +439,18 @@ class SvnValueCallback:
 	def __call__(self):
 		return True, self.value
 
+def svn_get_client(path):
+	import pysvn
+	# check we're in an svn working copy
+	client = pysvn.Client()
+	client.set_interactive(True)
+	client.set_auth_cache(False)
+	client.set_store_passwords(False)
+	client.callback_get_login = getSvnLogin
+	svn_entry = client.info(path)
+	if not svn_entry:
+		raise RezReleaseError("'" + path + "' is not an svn working copy")
+	return client, str(svn_entry["url"])
 
 def svn_url_exists(client, url):
 	"""
@@ -484,18 +496,9 @@ class SvnRezRelease(RezRelease):
 	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
 		super(SvnRezRelease, self).__init__(path, commit_message, njobs,
 										    build_time, allow_not_latest)
-		import pysvn
-		# check we're in an svn working copy
-		self.svnc = pysvn.Client()
-		self.svnc.set_interactive( True )
-		self.svnc.set_auth_cache( False )
-		self.svnc.set_store_passwords( False )
-		self.svnc.callback_get_login = getSvnLogin
-		svn_entry = self.svnc.info(self.path)
-		if not svn_entry:
-			raise RezReleaseError("'" + self.path + "' is not an svn working copy")
-		self.this_url = str(svn_entry["url"])
 		
+		self.svnc, self.this_url = svn_get_client(self.path)
+
 		# variables filled out in pre_build()
 		self.tag_url = None
 		self.changelogFile = None
@@ -507,12 +510,13 @@ class SvnRezRelease(RezRelease):
 		'''
 		Returns True if this release mode is available and working at the given directory
 		'''
+		# check for a valid .svn directory
 		try:
-			import pysvn
-		except ImportError:
+			svn_get_client(path)
+		except (ImportError, RezReleaseError):
 			return False
-		# TODO: check for a valid .svn directory
-		return True
+		else:
+			return True
 
 	def get_metadata(self):
 		result = super(SvnRezRelease, self).get_metadata()
