@@ -26,6 +26,12 @@ class RezReleaseError(Exception):
 	def __str__(self):
 		return str(self.value)
 
+class RezReleaseUnsupportedMode(RezReleaseError):
+	"""
+	Raise this error during initialization of a RezReleaseMode sub-class to indicate
+	that the mode is unsupported in the given context
+	"""
+	pass
 
 ##############################################################################
 # Globals
@@ -42,10 +48,10 @@ RELEASE_COMMIT_FILE 	= 		"rez-release-svn-commit.tmp"
 
 def register_release_mode(name, cls):
 	"""
-	Register a subclass of RezRelease for performing a custom release procedure.
+	Register a subclass of RezReleaseMode for performing a custom release procedure.
 	"""
-	assert inspect.isclass(cls) and issubclass(cls, RezRelease), \
-		"Provided class is not a subclass of RezRelease"
+	assert inspect.isclass(cls) and issubclass(cls, RezReleaseMode), \
+		"Provided class is not a subclass of RezReleaseMode"
 	assert name not in list_release_modes(), \
 		"Mode has already been registered"
 	# put new entries at the front
@@ -55,7 +61,15 @@ def list_release_modes():
 	return [name for (name, cls) in _release_classes]
 
 def list_available_release_modes(path):
-	return [name for (name, cls) in _release_classes if cls.available(path)]
+	modes = []
+	for name, cls in _release_classes:
+		try:
+			cls(path)
+		except:
+			pass
+		else:
+			modes.append(name)
+	return modes
 
 def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 					  mode='svn'):
@@ -71,24 +85,19 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 	allow_not_latest: if True, allows for releasing a tag that is not > the latest tag version
 	"""
 	cls = dict(_release_classes)[mode]
-	rel = cls(path, commit_message, njobs, build_time, allow_not_latest)
-	rel.release()
+	rel = cls(path)
+	rel.release(commit_message, njobs, build_time, allow_not_latest)
 
 ##############################################################################
 # Implementation Classes
 ##############################################################################
 
-class RezRelease(object):
+class RezReleaseMode(object):
 	'''
 	Base class for all release modes
 	'''
-	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
-		# TODO: implement commit message in a svn-agnostic way
+	def __init__(self, path):
 		self.path = path
-		self.commit_message = commit_message
-		self.njobs = njobs
-		self.build_time = build_time
-		self.allow_not_latest = allow_not_latest
 		
 		# variables filled out in pre_build()
 		self.metadata = None
@@ -96,17 +105,16 @@ class RezRelease(object):
 		self.pkg_release_dir = None
 		self.package_uuid_exists = None
 
-	@classmethod
-	def available(cls, path):
-		'''
-		Returns True if this release mode is available and working at the given directory
-		'''
-		return True
-
-	def release(self):
+	def release(self, commit_message, njobs, build_time, allow_not_latest):
 		'''
 		Main entry point for executing the release
 		'''
+		# TODO: implement commit message in a svn-agnostic way
+		self.commit_message = commit_message
+		self.njobs = njobs
+		self.build_time = build_time
+		self.allow_not_latest = allow_not_latest
+
 		self.pre_build()
 		self.build()
 		self.install()
@@ -380,7 +388,7 @@ class RezRelease(object):
 		print("rez-release: your package was released successfully.")
 		print
 
-register_release_mode('base', RezRelease)
+register_release_mode('base', RezReleaseMode)
 
 ##############################################################################
 # Utilities
@@ -492,10 +500,9 @@ def getSvnLogin(realm, username, may_save):
 
 	return True, username, pwd, False
 
-class SvnRezRelease(RezRelease):
-	def __init__(self, path, commit_message, njobs, build_time, allow_not_latest):
-		super(SvnRezRelease, self).__init__(path, commit_message, njobs,
-										    build_time, allow_not_latest)
+class SvnRezRelease(RezReleaseMode):
+	def __init__(self, path):
+		super(SvnRezRelease, self).__init__(path)
 		
 		self.svnc, self.this_url = svn_get_client(self.path)
 
@@ -504,19 +511,6 @@ class SvnRezRelease(RezRelease):
 		self.changelogFile = None
 		self.self.changeLog = None
 		self.editor = None
-
-	@classmethod
-	def available(cls, path):
-		'''
-		Returns True if this release mode is available and working at the given directory
-		'''
-		# check for a valid .svn directory
-		try:
-			svn_get_client(path)
-		except (ImportError, RezReleaseError):
-			return False
-		else:
-			return True
 
 	def get_metadata(self):
 		result = super(SvnRezRelease, self).get_metadata()
