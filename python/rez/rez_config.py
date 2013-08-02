@@ -79,7 +79,6 @@ class PackageRequest:
 	"""
 	def __init__(self, name, version, memcache=None, latest=True):
 		self.name = name
-
 		if self.is_weak():
 			# convert into an anti-package
 			vr = VersionRange(version)
@@ -580,14 +579,14 @@ def parse_descriptor(pkg_str):
 	"""
 	package = None
 	version = ''
-	if re.search(r'\s+', pkg_str) is None:
+	if re.search(r'\s+', pkg_str) is None: # no whitespace allowed
 		for d in ['@', '-', '']:
-			s = r'^([A-Za-z0-9._:]+)%s(.*|)' % (d,)
+			s = r'^((\!|~|)([A-Za-z0-9._:]+))%s(.*|)' % (d,)
 			p = re.compile(s)
 			m = re.search(p, pkg_str)
 			if m is not None:
-				package = m.group(1)
-				version = m.group(2)
+				package = m.group(2) + m.group(3)
+				version = m.group(4)
 				break
 	if not package:
 		raise PkgSystemError("Invalid package string: '%s'" % (pkg_str,))

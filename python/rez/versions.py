@@ -40,7 +40,7 @@ class Version:
 
 	def __init__(self, version_str=None, ge_lt=None):
 		if version_str:
-			original_version_str = version_str
+			self.original_version_str = version_str
 			try:
 				version_str = str(version_str)
 			except UnicodeEncodeError:
@@ -53,7 +53,7 @@ class Version:
 				self.ge = []
 				tokens = version_compare.rezTokenize(version_str,)
 				for tok in tokens:
-					self.to_comp(tok, original_version_str)
+					self.to_comp(tok, self.original_version_str)
 
 				if plus:
 					self.lt = Version.INF

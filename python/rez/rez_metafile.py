@@ -74,11 +74,11 @@ class ConfigMetadata:
 					return str(val).strip()
 				return None
 
-			self.uuid			= _get_str("uuid")
-			self.description 	= _get_str("description")
-			self.version 		= _get_str("version")
-			self.name 			= _get_str("name")
-			self.help 			= _get_str("help")
+			self.uuid = _get_str("uuid")
+			self.description = _get_str("description")
+			self.version = _get_str("version")
+			self.name = _get_str("name")
+			self.help = _get_str("help")
 
 			# authors
 			if "authors" in self.metadict:

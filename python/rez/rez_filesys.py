@@ -96,7 +96,7 @@ def get_versions_in_directory(path, warnings=False):
 
     tmp = {}
     for ver in vers:
-        tmp[str(ver[0])] = ver
+        tmp[ver[0].original_version_str] = ver
     sorted_vers = sort_versions(tmp.keys())
     vers = [tmp[x] for x in sorted_vers]
     return vers
