@@ -11,9 +11,9 @@ import sigint
 #
 p = optparse.OptionParser(usage="Usage: rez-release [options]")
 p.add_option("-m", "--message", dest="message", default=None,
-	help="specify commit message, do not prompt user. Svn log will still be appended.")
+	help="specify commit message, do not prompt user. VCS log will still be appended.")
 p.add_option("-n", "--no-message", dest="nomessage", action="store_true", default=False,
-	help="commit with no message. Svn log will still be appended [default = %default].")
+	help="commit with no message. VCS log will still be appended [default = %default].")
 p.add_option("-j", "--jobs", dest="jobs", type="int", default=1,
 	help="specifies the number of jobs (commands) to run simultaneously. [default = %default]")
 p.add_option("--allow-not-latest", dest="nolatest", action="store_true", default=False,
