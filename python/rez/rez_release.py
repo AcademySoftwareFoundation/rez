@@ -858,6 +858,84 @@ class SvnRezReleaseMode(RezReleaseMode):
 register_release_mode('svn', SvnRezReleaseMode)
 
 
+##############################################################################
+# Mercurial
+##############################################################################
+
+def hg(*args):
+	cmd = ['hg'] + list(args)
+	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+	out, err = p.communicate()
+	if p.returncode:
+		raise RezReleaseError("failed to call: hg " + ' '.join(args) + '\n' + err)
+	out = out.rstrip('\n')
+	if not out:
+		return []
+	return out.split('\n')
+
+class HgRezReleaseMode(RezReleaseMode):
+	def __init__(self, path):
+		super(HgRezReleaseMode, self).__init__(path)
+
+		hgdir = os.path.join(self.path, '.hg')
+		if not os.path.isdir(hgdir):
+			raise RezReleaseUnsupportedMode("'" + self.path + "' is not an mercurial working copy")
+
+		try:
+			assert hg('root')[0] == self.path
+		except AssertionError:
+			raise RezReleaseUnsupportedMode("'" + self.path + "' is not the root of a mercurial working copy")
+		except:
+			raise RezReleaseUnsupportedMode("failed to call hg")
+
+		self.patch_path = os.path.join(hgdir, 'patches')
+		if not os.path.isdir(self.patch_path):
+			self.patch_path = None
+
+	def create_release_tag(self):
+		'''
+		On release, it is customary for a VCS to generate a tag
+		'''
+		if self.patch_path:
+			# patch queue
+			hg('tag', '-f', str(self.this_version),
+			   '--message', self.commit_message, '--mq')
+			# use a bookmark on the main repo since we can't change it
+			hg('bookmark', '-f', str(self.this_version))
+		else:
+			hg('tag', '-f', str(self.this_version))
+
+	def get_tags(self):
+		tags = [line.split()[0] for line in hg('tags')]
+		bookmarks = [line.split()[-2] for line in hg('bookmarks')]
+		return tags + bookmarks
+
+	def validate_repostate(self):
+		def _check(modified, path):
+			if modified:
+				modified = [line.split()[-1] for line in modified]
+				raise RezReleaseError("'" + path + "' is not in a state to release" +
+									  " - please commit outstanding changes: " +
+									  ', '.join(modified))
+
+		_check(hg('status', '-m', '-a'), self.path)
+
+		if self.patch_path:
+			_check(hg('status', '-m', '-a', '--mq'), self.patch_path)
+
+	def get_tag_meta_str(self):
+		if self.patch_path:
+			qparent = hg('log', '-r', 'qparent', '--template', '{node}')[0]
+			mq_parent = hg('parent', '--mq', '--template', '{node}')[0]
+			return qparent + '#' + mq_parent
+		else:
+			return hg('parent', '--template' '{node}')[0]
+
+	def copy_source(self, build_dir):
+		hg('archive', build_dir)
+
+register_release_mode('hg', HgRezReleaseMode)
+
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.
