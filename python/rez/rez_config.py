@@ -292,7 +292,7 @@ class Resolver():
 		return result
 
 	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
-		meta_vars=None, shallow_meta_vars=None):
+		meta_vars=[], shallow_meta_vars=[]):
 		"""
 		Perform a package resolve.
 		Inputs:
