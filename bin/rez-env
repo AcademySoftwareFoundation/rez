@@ -125,11 +125,11 @@ if [ "$_REZ_ENV_OPT_NO_LOCAL" == "True" ]; then
 fi
 
 if [ "$_REZ_ENV_OPT_IGNORE_BLACKLIST" == "True" ]; then
-	use_blacklist_flag="--ignore-blacklisted"
+	ignore_blacklisted_flag="--ignore-blacklisted"
 fi
 
 if [ "$_REZ_ENV_OPT_IGNORE_ARCHIVING" == "True" ]; then
-	ignore_archiving_flag="--ignore-archived"
+	ignore_archived_flag="--ignore-archived"
 fi
 
 if [ "$_REZ_ENV_OPT_NO_ASSUME_DT" == "True" ]; then
@@ -145,8 +145,8 @@ if [ "$_REZ_ENV_OPT_NO_CACHE" == "True" ]; then
 fi
 
 rez-config --time=$_REZ_ENV_OPT_TIME --print-env --meta-info=tools --meta-info-shallow=tools \
-	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archiving_flag \
-	$use_blacklist_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
+	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archived_flag \
+	$ignore_blacklisted_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
 ret=$?
 
 if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
