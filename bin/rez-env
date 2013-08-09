@@ -125,11 +125,11 @@ if [ "$_REZ_ENV_OPT_NO_LOCAL" == "True" ]; then
 fi
 
 if [ "$_REZ_ENV_OPT_IGNORE_BLACKLIST" == "True" ]; then
-	use_blacklist_flag="--ignore-blacklist"
+	use_blacklist_flag="--ignore-blacklisted"
 fi
 
 if [ "$_REZ_ENV_OPT_IGNORE_ARCHIVING" == "True" ]; then
-	ignore_archiving_flag="--ignore-archiving"
+	ignore_archiving_flag="--ignore-archived"
 fi
 
 if [ "$_REZ_ENV_OPT_NO_ASSUME_DT" == "True" ]; then

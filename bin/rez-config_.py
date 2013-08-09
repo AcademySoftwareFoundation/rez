@@ -49,10 +49,10 @@ p.add_option("--meta-info", dest="meta_info", type="string", \
     help="Bake metadata into env-vars. Eg: --meta-info=tools,priority")
 p.add_option("--meta-info-shallow", dest="meta_info_shallow", type="string", \
     help="Same as --meta-info, but only bakes data for directly requested packages.")
-p.add_option("--ignore-archiving", dest="ignore_archiving", action="store_true", default=False, \
-	help="silently ignore packages that have been archived [default = %default]")
-p.add_option("--ignore-blacklist", dest="ignore_blacklist", action="store_true", default=False, \
-	help="include packages that are blacklisted [default = %default]")
+p.add_option("--ignore-archived", dest="ignore_archived", action="store_true", default=True, \
+	help="do not consider package versions that have been archived [default = %default]")
+p.add_option("--ignore-blacklisted", dest="ignore_blacklisted", action="store_true", default=True, \
+	help="do not consider package versions that have been blacklisted [default = %default]")
 p.add_option("--no-assume-dt", dest="no_assume_dt", action="store_true", default=False, \
 	help="do not assume dependency transitivity [default = %default]")
 p.add_option("--no-catch", dest="no_catch", action="store_true", default=False, \
@@ -121,11 +121,15 @@ resolver = dc.Resolver(mode, do_quiet, opts.verbosity, opts.max_fails, time_epoc
 
 if opts.no_catch:
 	pkg_reqs = [dc.str_to_pkg_req(x) for x in pkgstrs]
-	pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, opts.no_os, \
-		opts.no_path_append, opts.wrapper, meta_vars, shallow_meta_vars)
+	pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, opts.no_os,
+		opts.no_path_append, opts.wrapper, meta_vars, shallow_meta_vars,
+		ignore_archived=opts.ignore_archived, ignore_blacklisted=opts.ignore_blacklisted,
+	)
 else:
-	result = resolver.guarded_resolve(pkgstrs, opts.no_os, opts.no_path_append, opts.wrapper, \
-		meta_vars, shallow_meta_vars, opts.dot_file, opts.print_dot)
+	result = resolver.guarded_resolve(pkgstrs, opts.no_os, opts.no_path_append, opts.wrapper,
+		meta_vars, shallow_meta_vars, opts.dot_file, opts.print_dot,
+		ignore_archived=opts.ignore_archived, ignore_blacklisted=opts.ignore_blacklisted,
+	)
 
 	if not result:
 		sys.exit(1)

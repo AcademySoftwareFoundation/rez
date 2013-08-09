@@ -109,12 +109,13 @@ class RezMemCache():
         self.versions[path] = vers
         return vers
 
-    def find_package(self, path, ver_range, latest=True, exact=False):
+    def find_package(self, path, ver_range, latest=True, exact=False,
+            ignore_archived=True, ignore_blacklisted=True):
         """
         Given a path to a package family and a version range, return (resolved version, epoch)
         or None if not found.
         """
-        vers = self.get_versions_in_directory(path)
+        vers = self.get_versions_in_directory(path, ignore_archived, ignore_blacklisted)
 
         # check for special case - unversioned package
         # todo subtle bug here, unversioned pkg's timestamp not taken into account. In practice
@@ -139,7 +140,8 @@ class RezMemCache():
 
         return None
 
-    def find_package2(self, paths, family_name, ver_range, latest=True, exact=False):
+    def find_package2(self, paths, family_name, ver_range, latest=True, exact=False,
+            ignore_archived=True, ignore_blacklisted=True):
         """
         Given a list of package paths, a family name and a version range, return (family path,
         resolved version, epoch), or (None,None,None) if not found. If two versions in two different 
@@ -150,7 +152,7 @@ class RezMemCache():
 
         for pkg_path in paths:
             family_path = os.path.join(pkg_path, family_name)
-            ver2 = self.find_package(family_path, ver_range, latest, exact)
+            ver2 = self.find_package(family_path, ver_range, latest, exact, ignore_archived, ignore_blacklisted)
             if ver2:
                 if exact:
                     return family_path, ver2[0], ver2[1]

@@ -77,7 +77,7 @@ class PackageRequest:
 	this version range." A weak request is actually converted to a normal anti-
 	package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
 	"""
-	def __init__(self, name, version, memcache=None, latest=True):
+	def __init__(self, name, version, memcache=None, latest=True, ignore_archived=True, ignore_blacklisted=True):
 		self.name = name
 		if self.is_weak():
 			# convert into an anti-package
@@ -91,8 +91,10 @@ class PackageRequest:
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
-			found_path, found_ver, found_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, name_, VersionRange(version), latest)
+			found_path, found_ver, found_epoch = memcache.find_package2(
+				rez_filesys._g_syspaths, name_, VersionRange(version), latest,
+				ignore_archived, ignore_blacklisted,
+			)
 
 			if found_ver:
 				self.version = str(found_ver)
@@ -167,8 +169,9 @@ class Resolver():
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
-	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
-		build_requires=False, assume_dt=False, caching=True):
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
+		build_requires=False, assume_dt=False, caching=True, ignore_archived=True,
+		ignore_blacklisted=True):
 		"""
 		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
 		quiet: if True then hides unnecessary output (such as the progress dots)
@@ -191,21 +194,28 @@ class Resolver():
 		self.rctxt.assume_dt = assume_dt
 		self.rctxt.time_epoch = time_epoch
 		self.rctxt.memcache = RezMemCache(time_epoch, caching)
+		self.rctxt.ignore_archived = ignore_archived
+		self.rctxt.ignore_blacklisted = ignore_blacklisted
 
 	def get_memcache(self):
 		return self.rctxt.memcache
 
-	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
-		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
+		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False,
+		ignore_archived=True, ignore_blacklisted=True):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
 		extra options for convenience.
 		@return None on failure, same as resolve() otherwise.
 		"""
+		self.rctxt.ignore_archived = ignore_archived
+		self.rctxt.ignore_blacklisted = ignore_blacklisted
+
 		try:
-			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache) for x in pkg_req_strs]
+			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache, self.rctxt.ignore_archived,
+				self.rctxt.ignore_blacklisted) for x in pkg_req_strs]
 			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, \
-				meta_vars, shallow_meta_vars)
+				meta_vars, shallow_meta_vars, ignore_archived, ignore_blacklisted)
 
 		except PkgSystemError, e:
 			sys.stderr.write(str(e)+'\n')
@@ -291,8 +301,9 @@ class Resolver():
 
 		return result
 
-	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
-		meta_vars=[], shallow_meta_vars=[]):
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
+			meta_vars=[], shallow_meta_vars=[], ignore_archived=True,
+			ignore_blacklisted=True):
 		"""
 		Perform a package resolve.
 		Inputs:
@@ -314,15 +325,21 @@ class Resolver():
 		raise the relevant exception, if config resolution is not possible
 		"""
 		if not no_os:
-			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg)
+			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg,
+				ignore_archived=ignore_archived,
+				ignore_blacklisted=ignore_blacklisted,
+			)
 			pkg_reqs = [os_pkg_req] + pkg_reqs
 
 		if not pkg_reqs:
 			return ([], [], "digraph g{}", 0)
 
 		# hold on to a copy to sort against (as possible) after the resolve
-		self.rctxt.originalRequest = copy.deepcopy(pkg_reqs)
+		self.rctxt.original_request = copy.deepcopy(pkg_reqs)
 
+		self.rctxt.ignore_archived = ignore_archived
+		self.rctxt.ignore_blacklisted = ignore_blacklisted
+		
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
 		if not result:
@@ -393,7 +410,6 @@ class Resolver():
 		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
-			normalise_pkg_req(pkg_req)
 			config.add_package(pkg_req)
 
 		for pkg_req in pkg_reqs:
@@ -552,7 +568,7 @@ class Resolver():
 # Public Functions
 ##############################################################################
 
-def str_to_pkg_req(str_, memcache=None):
+def str_to_pkg_req(str_, memcache=None, ignore_archived=False, ignore_blacklisted=False):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a PackageRequest.
 	Note that a version string ending in '=e','=l' will result in a package request
@@ -571,7 +587,7 @@ def str_to_pkg_req(str_, memcache=None):
 		memcache2 = memcache
 	str_ = str_.split('=')[0]
 	package, version = parse_descriptor(str_)
-	return PackageRequest(package, version, memcache2, latest)
+	return PackageRequest(package, version, memcache2, latest, ignore_archived, ignore_blacklisted)
 
 def parse_descriptor(pkg_str):
 	"""
@@ -610,8 +626,12 @@ def get_base_path(pkg_str):
 	pkg_str = pkg_str.rsplit("=",1)[0]
 	name, verrange = parse_descriptor(pkg_str)
 
+	ignore_archived = False
+	ignore_blacklisted = False
 	path,ver,pkg_epoch = \
-		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
+		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange),
+					    latest, ignore_archived, ignore_blacklisted,
+		)
 	if not path:
 		raise PkgNotFoundError(pkg_str)
 
@@ -782,7 +802,7 @@ class _Package:
 		else:
 			return None
 
-	def resolve_metafile(self, memcache):
+	def resolve_metafile(self, memcache, ignore_archived=True, ignore_blacklisted=True):
 		"""
 		attempt to resolve the metafile, the metadata member will be set if
 		successful, and True will be returned. If the package has no variants,
@@ -793,8 +813,11 @@ class _Package:
 			return False
 
 		if not self.base_path:
-			fam_path,ver,pkg_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, self.name, self.version_range, exact=True)
+			fam_path,ver,pkg_epoch = memcache.find_package2(rez_filesys._g_syspaths,
+				self.name, self.version_range, exact=True,
+				ignore_archived=ignore_archived,
+				ignore_blacklisted=ignore_blacklisted,
+			)
 			if ver is not None:
 				base_path = fam_path
 				if not is_any:
@@ -1034,7 +1057,10 @@ class _Configuration:
 				_Configuration.PKGCONN_CONFLICT ) ) )
 			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
-			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
+			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
+					self.rctxt.ignore_blacklisted),
+				pkg_req,
+			)
 			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and pkg:
@@ -1155,7 +1181,10 @@ class _Configuration:
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
 			if (not pkg.is_resolved()) and (not pkg.is_anti()):
-				pkg_reqs.append(pkg_to_pkg_req(pkg))
+				pkg_reqs.append(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
+						self.rctxt.ignore_blacklisted,
+					)
+				)
 		return pkg_reqs
 
 	def get_all_packages_as_package_requests(self):
@@ -1164,7 +1193,10 @@ class _Configuration:
 		"""
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
-			pkg_reqs.append(pkg_to_pkg_req(pkg))
+			pkg_reqs.append(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
+					self.rctxt.ignore_blacklisted,
+				)
+			)
 		return pkg_reqs
 
 	def resolve_packages(self):
@@ -1240,8 +1272,10 @@ class _Configuration:
 
 					# resolve package to as closely desired as possible
 					try:
-						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid), \
-							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
+						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
+							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
 					except PkgsUnresolvedError, e:
 
 						if(num_version_searches == 1):
@@ -1466,7 +1500,7 @@ class _Configuration:
 		unordered = copy.deepcopy(rawUnordered)
 		ordered = []
 		
-		for each in self.rctxt.originalRequest:
+		for each in self.rctxt.original_request:
 			if each.name in unordered:
 				ordered.append(each.name)
 				unordered.remove(each.name)
@@ -1594,7 +1628,9 @@ class _Configuration:
 		"""
 		num = 0
 		for pkg_str in pkg_strs:
-			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
+			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache,
+				 self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 			if pkg_req.name not in self.pkgs:
 				num += 1
 
@@ -1610,7 +1646,9 @@ class _Configuration:
 
 		for name, pkg in self.pkgs.iteritems():
 			if (pkg.metadata == None):
-				if pkg.resolve_metafile(self.rctxt.memcache):
+				if ( pkg.resolve_metafile(self.rctxt.memcache, self.rctxt.ignore_archived,
+					self.rctxt.ignore_blacklisted)
+				):
 					num += 1
 
 					if (self.rctxt.verbosity != 0):
@@ -1625,7 +1663,10 @@ class _Configuration:
 
 					if requires:
 						for pkg_str in requires:
-							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
+							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache,
+								self.rctxt.ignore_archived,
+								self.rctxt.ignore_blacklisted,
+							)
 
 							if (self.rctxt.verbosity != 0):
 								print
@@ -1674,8 +1715,10 @@ class _Configuration:
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2( \
-				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2(
+				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False,
+				self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 
 			if (not found_path) or (not found_ver):
 				continue
@@ -1684,9 +1727,10 @@ class _Configuration:
 			if not metafile_e:
 				continue
 
-			found_path, found_ver, found_epoch = \
-				self.rctxt.memcache.find_package2( \
-					rez_filesys._g_syspaths, pkg.name, pkg.version_range, True)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2(
+				rez_filesys._g_syspaths, pkg.name, pkg.version_range, True,
+				self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 
 			if (not found_path) or (not found_ver):
 				continue
@@ -1708,10 +1752,15 @@ class _Configuration:
 				if (pkg_str_e[0] == '!') or (pkg_str_e[0] == '~'):
 					continue
 
-				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.memcache)
+				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.memcache,
+					self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+				)
 
 				for pkg_str_l in requires_l:
-					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.memcache)
+					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.memcache,
+						self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+					)
+
 					if (pkg_req_e.name == pkg_req_l.name):
 						pkg_req = pkg_req_e
 						if (pkg_req_e.version != pkg_req_l.version):
@@ -1725,7 +1774,10 @@ class _Configuration:
 							v.lt = v_l.lt
 							if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 								v.ge = [0]
-							pkg_req = PackageRequest(pkg_req_e.name, str(v))
+							pkg_req = PackageRequest(pkg_req_e.name, str(v),
+								ignore_archived=self.rctxt.ignore_archived,
+								ignore_blacklisted=self.rctxt.ignore_blacklisted,
+							)
 
 						if not config2:
 							config2 = self.copy()
@@ -1745,7 +1797,9 @@ class _Configuration:
 			for variant in (variants_e + variants_l):
 				comm_fams = set()
 				for pkgstr in variant:
-					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+						self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+					)
 					comm_fams.add(pkgreq.name)
 					if pkgreq.name in pkg_vers:
 						pkg_vers[pkgreq.name].append(pkgreq.version)
@@ -1770,8 +1824,10 @@ class _Configuration:
 						if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 							v.ge = [0]
 
-						pkg_req = PackageRequest(pkg_fam, str(v))
-
+						pkg_req = PackageRequest(pkg_fam, str(v),
+							ignore_archived=self.rctxt.ignore_archived,
+							ignore_blacklisted=self.rctxt.ignore_blacklisted,
+						)
 						if not config2:
 							config2 = self.copy()
 						config2.add_package(pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
@@ -1804,7 +1860,9 @@ class _Configuration:
 				conflicting_variants = set()
 				for variant in variants:
 					for pkgstr in variant.metadata:
-						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
 						pkg_conflicting = self.get_conflicting_package(pkg_req_)
 						if pkg_conflicting:
 							pkg_req_conflicting = pkg_conflicting.as_package_request()
@@ -1879,7 +1937,9 @@ class _Configuration:
 					if (len(variant.working_list) > 0):
 						pkgname_set = set()
 						for pkgstr in variant.working_list:
-							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+								self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+							)
 							pkgname_set.add(pkg_req.name)
 							if not (pkg_req.name in pkgname_versions):
 								pkgname_versions[pkg_req.name] = []
@@ -1899,9 +1959,10 @@ class _Configuration:
 					# and remove the packages from the variants' working lists
 					for common_pkgname in common_pkgnames:
 						ored_pkgs_str = common_pkgname + '-' +str('|').join(pkgname_versions[common_pkgname])
-						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.memcache)
+						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.memcache,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
 
-						normalise_pkg_req(pkg_req_)
 						config2.add_package(pkg_req_, pkg)
 
 						for entry in pkgname_entries[common_pkgname]:
@@ -2013,24 +2074,13 @@ class _Configuration:
 ##############################################################################
 
 
-def pkg_to_pkg_req(pkg):
+def pkg_to_pkg_req(pkg, ignore_archived=False, ignore_blacklisted=False):
 	"""
 	Helper fn to convert a _Package to a PackageRequest
 	"""
-	return PackageRequest(pkg.name, str(pkg.version_range))
-
-
-# todo remove, this now in pkgReq constr
-def normalise_pkg_req(pkg_req):
-	"""
-	Helper fn to turn a PackageRequest into a regular representation. It is possible
-	to describe a package in a way that is not the same as it will end up in the
-	system. This is perfectly fine, but it can result in confusing dot-graphs. For
-	example, the package 'foo-1|1' is equivalent to 'foo-1'.
-	"""
-	version_range = VersionRange(pkg_req.version)
-	pkg_req.version = str(version_range)
-
+	return PackageRequest(pkg.name, str(pkg.version_range), ignore_archived=ignore_archived,
+			      ignore_blacklisted=ignore_blacklisted,
+	)
 
 def process_commands(cmds):
 	"""
