@@ -28,10 +28,10 @@ def get_cmdlin_parser():
         help="Stop rez-env from implicitly requesting the operating system package [default = %default]")
     p.add_option("--no-cache", dest="no_cache", action="store_true", default=False, \
         help="disable caching [default = %default]")
-    p.add_option("-u", "--ignore_blacklisted", dest="ignore_blacklisted", action="store_true", default=True, \
-        help="Do not consider package versions that have been blacklisted [default = %default]")
-    p.add_option("-g", "--ignore_archived", dest="ignore_archived", action="store_true", default=True, \
-        help="Do not consider package versions that have been archived [default = %default]")
+    p.add_option("-u", "--use_blacklisted", dest="use_blacklisted", action="store_true", default=False, \
+        help="Potentially use package versions that have been blacklisted [default = %default]")
+    p.add_option("-g", "--use_archived", dest="use_archived", action="store_true", default=False, \
+        help="Potentially use package versions that have been archived [default = %default]")
     p.add_option("-d", "--no_assume_dt", dest="no_assume_dt", action="store_true", default=False, \
         help="Do not assume dependency transitivity [default = %default]")
     p.add_option("-m", "--mode", dest="mode", type="string", default="latest", \
