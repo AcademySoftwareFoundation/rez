@@ -93,7 +93,7 @@ class PackageRequest:
 				name_ = name[1:]
 			found_path, found_ver, found_epoch = memcache.find_package2(
 				rez_filesys._g_syspaths, name_, VersionRange(version), latest,
-				ignore_archived, ignore_blacklisted,
+				False, ignore_archived, ignore_blacklisted,
 			)
 
 			if found_ver:
@@ -699,9 +699,14 @@ class _Package:
 	"""
 	Internal package representation
 	"""
-	def __init__(self, pkg_req, memcache=None):
+	def __init__(self, pkg_req, resolve_context=None):
 		self.is_transitivity = False
 		self.has_added_transitivity = False
+		if resolve_context:
+			self.memcache = resolve_context.memcache
+			self.ignore_archived = resolve_context.ignore_archived
+			self.ignore_blacklisted = resolve_context.ignore_blacklisted
+			
 		if pkg_req:
 			self.name = pkg_req.name
 			self.version_range = VersionRange(pkg_req.version)
@@ -712,7 +717,7 @@ class _Package:
 			self.timestamp = None
 
 			if not self.is_anti() and memcache and \
-				not memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+				not self.memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
@@ -743,7 +748,9 @@ class _Package:
 		"""
 		Return this package as a package-request
 		"""
-		return PackageRequest(self.name, str(self.version_range))
+		return PackageRequest(self.name, str(self.version_range),
+			ignore_archived=self.ignore_archived, ignore_blacklisted=self.ignore_blacklisted
+		)
 
 	def is_anti(self):
 		"""
@@ -968,7 +975,7 @@ class _Configuration:
 				if not ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req, self.rctxt.memcache)
+						pkg_add = _Package(pkg_req, self.rctxt)
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 
 				# if non-anti and (inverse of anti) intersect, then add reduced anti,
@@ -978,7 +985,7 @@ class _Configuration:
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req, self.rctxt.memcache)
+						pkg_add = _Package(pkg_req, self.rctxt)
 						pkg_add.version_range = ver_range_intersect
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -1003,7 +1010,7 @@ class _Configuration:
 		# package can be added directly, doesn't overlap with anything
 		pkg_add = None
 		if create_pkg_add:
-			pkg_add = _Package(pkg_req, self.rctxt.memcache)
+			pkg_add = _Package(pkg_req, self.rctxt)
 		return (_Configuration.ADDPKG_ADD, pkg_add)
 
 	def get_conflicting_package(self, pkg_req):
@@ -1232,6 +1239,9 @@ class _Configuration:
 					pkg = pkg_
 					break
 
+			print('First pkg: %s' % (pkg.__dict__))
+			print('First pkg VR: %s' % (pkg.version_range.versions[0].__dict__))
+
 			if not pkg:
 				# The remaining unresolved packages must have more than one variant each. So
 				# find that variant, out of all remaining packages, that is 'least suitable',
@@ -1257,10 +1267,9 @@ class _Configuration:
 				# work down). The first config to resolve represents the most desirable. Note
 				# that resolve_packages will be called recursively
 				num_version_searches = 0
-				while (not (ver_range_valid == None)) and \
-			    ((self.rctxt.max_fails == -1) or \
-				(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
-
+				while ( (not (ver_range_valid == None)) and
+					((self.rctxt.max_fails == -1) or (len(self.rctxt.config_fail_list) <= self.rctxt.max_fails))
+				):
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
@@ -1271,11 +1280,12 @@ class _Configuration:
 															self.rctxt.ignore_archived,
 															self.rctxt.ignore_blacklisted,) )
 					try:
-						# pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
-						# 	self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
-						# 	self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
-						# )
-						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid))
+						import pdb; pdb.set_trace()
+						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
+							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
+
 
 					except PkgsUnresolvedError, e:
 						sys.stderr.write('%s\n' % (e,))
@@ -1310,7 +1320,7 @@ class _Configuration:
 						if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange("0+<" + pkg_req_.version))
 						else:
-							ver_inc = Version(pkg_req_.version).get_inc()
+							ver_inc = Version(pkg_req_.version).get_inc()       ## TODO: Is 'get_inc' deprecated???? #####################
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange(str(ver_inc) + '+'))
 					except VersionError:
 						ver_range_valid = None
@@ -2078,12 +2088,12 @@ class _Configuration:
 ##############################################################################
 
 
-def pkg_to_pkg_req(pkg, ignore_archived=False, ignore_blacklisted=False):
+def pkg_to_pkg_req(pkg):
 	"""
 	Helper fn to convert a _Package to a PackageRequest
 	"""
-	return PackageRequest(pkg.name, str(pkg.version_range), ignore_archived=ignore_archived,
-			      ignore_blacklisted=ignore_blacklisted,
+	return PackageRequest(pkg.name, str(pkg.version_range), ignore_archived=pkg.ignore_archived,
+		ignore_blacklisted=pkg.ignore_blacklisted,
 	)
 
 def process_commands(cmds):
