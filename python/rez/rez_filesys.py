@@ -74,15 +74,18 @@ def get_versions_in_directory(path, warnings=False, ignore_archived=True, ignore
     blacklist = []
     if ignore_archived or ignore_blacklisted:
         packages_f = os.path.join(path, 'packages.yaml')
-        with open(packages_f, 'r') as f:
-            cfg = '\n'.join(f.readlines())
-            data = (yaml.load(cfg))
-            if 'archive' in data:
-                for each in data['archive']:
-                    archive.append(Version(each))
-            if 'blacklist' in data:
-                for each in data['blacklist']:
-                    blacklist.append(Version(each))
+        try:
+            with open(packages_f, 'r') as f:
+                cfg = '\n'.join(f.readlines())
+                data = (yaml.load(cfg))
+                if 'archive' in data:
+                    for each in data['archive']:
+                        archive.append(Version(each))
+                if 'blacklist' in data:
+                    for each in data['blacklist']:
+                        blacklist.append(Version(each))
+        except IOError:
+            pass # many packages will not have a packages.yaml
 
     for f in os.listdir(path):
         fullpath = os.path.join(path, f)

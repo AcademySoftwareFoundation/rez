@@ -117,18 +117,18 @@ else:
 # construct package request
 ##########################################################################################
 resolver = dc.Resolver(mode, do_quiet, opts.verbosity, opts.max_fails, time_epoch, \
-	opts.buildreqs, not opts.no_assume_dt, not opts.no_cache)
+	opts.buildreqs, not opts.no_assume_dt, not opts.no_cache, ignore_archived=(not opts.use_archived),
+	ignore_blacklisted=(not opts.use_blacklisted),
+)
 
 if opts.no_catch:
 	pkg_reqs = [dc.str_to_pkg_req(x) for x in pkgstrs]
 	pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, opts.no_os,
 		opts.no_path_append, opts.wrapper, meta_vars, shallow_meta_vars,
-		ignore_archived=(not opts.use_archived), ignore_blacklisted=(not opts.use_blacklisted),
 	)
 else:
 	result = resolver.guarded_resolve(pkgstrs, opts.no_os, opts.no_path_append, opts.wrapper,
 		meta_vars, shallow_meta_vars, opts.dot_file, opts.print_dot,
-		ignore_archived=(not opts.use_archived), ignore_blacklisted=(not opts.use_blacklisted),
 	)
 
 	if not result:

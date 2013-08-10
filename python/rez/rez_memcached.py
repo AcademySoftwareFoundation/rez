@@ -78,7 +78,8 @@ class RezMemCache():
         self.metafiles[path] = d
         return d
 
-    def get_versions_in_directory(self, path, warnings=True):
+    def get_versions_in_directory(self, path, warnings=True, ignore_archived=False,
+            ignore_blacklisted=False):
         """
         For a given directory, return a list of (Version,epoch), which match version directories 
         found in the given directory.
@@ -102,7 +103,9 @@ class RezMemCache():
                     self.versions[path] = vers
                     return vers
 
-        tvers = rez_filesys.get_versions_in_directory(path, warnings)
+        tvers = rez_filesys.get_versions_in_directory(path, warnings, ignore_archived,
+            ignore_blacklisted,
+        )
         if self.mc:
             self.mc.set(k, (path_modtime, tvers))
         vers = [x for x in tvers if x[1] <= self.epoch]
@@ -115,7 +118,9 @@ class RezMemCache():
         Given a path to a package family and a version range, return (resolved version, epoch)
         or None if not found.
         """
-        vers = self.get_versions_in_directory(path, ignore_archived, ignore_blacklisted)
+        vers = self.get_versions_in_directory(path, ignore_archived=ignore_archived,
+            ignore_blacklisted=ignore_blacklisted,
+        )
 
         # check for special case - unversioned package
         # todo subtle bug here, unversioned pkg's timestamp not taken into account. In practice

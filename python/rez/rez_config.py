@@ -201,16 +201,12 @@ class Resolver():
 		return self.rctxt.memcache
 
 	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
-		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False,
-		ignore_archived=True, ignore_blacklisted=True):
+		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
 		extra options for convenience.
 		@return None on failure, same as resolve() otherwise.
 		"""
-		self.rctxt.ignore_archived = ignore_archived
-		self.rctxt.ignore_blacklisted = ignore_blacklisted
-
 		try:
 			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache, self.rctxt.ignore_archived,
 				self.rctxt.ignore_blacklisted) for x in pkg_req_strs]
@@ -302,8 +298,7 @@ class Resolver():
 		return result
 
 	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
-			meta_vars=[], shallow_meta_vars=[], ignore_archived=True,
-			ignore_blacklisted=True):
+			meta_vars=[], shallow_meta_vars=[]):
 		"""
 		Perform a package resolve.
 		Inputs:
@@ -326,8 +321,8 @@ class Resolver():
 		"""
 		if not no_os:
 			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg,
-				ignore_archived=ignore_archived,
-				ignore_blacklisted=ignore_blacklisted,
+				ignore_archived=self.rctxt.ignore_archived,
+				ignore_blacklisted=self.rctxt.ignore_blacklisted,
 			)
 			pkg_reqs = [os_pkg_req] + pkg_reqs
 
@@ -336,9 +331,6 @@ class Resolver():
 
 		# hold on to a copy to sort against (as possible) after the resolve
 		self.rctxt.original_request = copy.deepcopy(pkg_reqs)
-
-		self.rctxt.ignore_archived = ignore_archived
-		self.rctxt.ignore_blacklisted = ignore_blacklisted
 		
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
@@ -1212,6 +1204,8 @@ class _Configuration:
 		while (not self.all_resolved()) and \
 		    ((self.rctxt.max_fails == -1) or (len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
+			self.rctxt.verbosity = 3 ##################
+			
 			# do an initial resolve pass
 			self.resolve_packages_no_filesys()
 			if self.all_resolved():
@@ -1271,12 +1265,21 @@ class _Configuration:
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
+					sys.stderr.write('About to try...\npkg.name:%s\nver_range_valid: >>>%s<<<\nmemc:%s\nresMode:%s\nIA:%s\nIB:%s\n' % (pkg.name,
+															str(ver_range_valid),
+															self.rctxt.memcache,
+															self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+															self.rctxt.ignore_archived,
+															self.rctxt.ignore_blacklisted,) )
 					try:
-						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
-							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
-							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
-						)
+						# pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
+						# 	self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+						# 	self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						# )
+						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid))
+
 					except PkgsUnresolvedError, e:
+						sys.stderr.write('%s\n' % (e,))
 
 						if(num_version_searches == 1):
 							# this means that rather than running out of versions of this lib to try, there
@@ -1291,6 +1294,8 @@ class _Configuration:
 
 							sys.stderr.write("Warning! Package not found: " + str(e.pkg_reqs[0]) + "\n")
 							raise PkgNotFoundError(e.pkg_reqs[0])
+
+							sys.stderr.write('Made it...\n')
 
 						if (self.uid == 0):
 							# we're the topmost configuration, and there are no more packages to try -
