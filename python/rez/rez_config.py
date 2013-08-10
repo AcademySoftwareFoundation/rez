@@ -210,10 +210,7 @@ class Resolver():
 		try:
 			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache, self.rctxt.ignore_archived,
 				self.rctxt.ignore_blacklisted) for x in pkg_req_strs]
-			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, meta_vars,
-				shallow_meta_vars, self.rctxt.ignore_archived,
-				self.rctxt. ignore_blacklisted,
-			)
+			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, meta_vars, shallow_meta_vars)
 
 		except PkgSystemError, e:
 			sys.stderr.write(str(e)+'\n')
