@@ -76,7 +76,7 @@ def get_versions_in_directory(path, warnings=False, ignore_archived=True, ignore
         packages_f = os.path.join(path, 'packages.yaml')
         try:
             with open(packages_f, 'r') as f:
-                cfg = '\n'.join(f.readlines())
+                cfg = ''.join(f.readlines())
                 data = (yaml.load(cfg))
                 if 'archive' in data:
                     for each in data['archive']:
