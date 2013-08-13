@@ -69,9 +69,15 @@ class Version:
 				self.ge = v1.ge
 				self.lt = v2.ge
 
-				# remove trailing zeros on lt bound (think: 'A < 1.0.0' == 'A < 1')
+				# remove trailing 'zeros' (more general than that now, but that's
+				# the idea) on lt bound (think: 'A < 1.0.0' == 'A < 1')
+				#
 				# this also makes this version invalid: '1+<1.0.0'
-				while (len(self.lt) > 1) and (self.lt[-1] == 0):
+				while ( (len(self.lt) > 1) and
+					(version_compare.version_compare(
+						".".join([str(tok) for tok in self.lt[:]]),
+						".".join([str(tok) for tok in self.lt[:-1]])) == 0)
+				):
 					self.lt.pop()
 
 				if self.lt <= self.ge:

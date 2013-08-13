@@ -87,6 +87,8 @@ class PackageRequest:
 			self.name = '!' + self.name[1:]
 
 		if memcache:
+			#import pdb;pdb.set_trace()
+
 			# goto filesystem and resolve version immediately
 			name_ = self.name
 			if self.is_anti():
@@ -1210,8 +1212,6 @@ class _Configuration:
 		while (not self.all_resolved()) and \
 		    ((self.rctxt.max_fails == -1) or (len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
-			self.rctxt.verbosity = 3 ##################
-			
 			# do an initial resolve pass
 			self.resolve_packages_no_filesys()
 			if self.all_resolved():
@@ -1238,9 +1238,6 @@ class _Configuration:
 				if not pkg_.is_metafile_resolved():
 					pkg = pkg_
 					break
-
-			print('First pkg: %s' % (pkg.__dict__))
-			print('First pkg VR: %s' % (pkg.version_range.versions[0].__dict__))
 
 			if not pkg:
 				# The remaining unresolved packages must have more than one variant each. So
@@ -1273,14 +1270,7 @@ class _Configuration:
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
-					sys.stderr.write('About to try...\npkg.name:%s\nver_range_valid: >>>%s<<<\nmemc:%s\nresMode:%s\nIA:%s\nIB:%s\n' % (pkg.name,
-															str(ver_range_valid),
-															self.rctxt.memcache,
-															self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
-															self.rctxt.ignore_archived,
-															self.rctxt.ignore_blacklisted,) )
 					try:
-						import pdb; pdb.set_trace()
 						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
 							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
 							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
@@ -1320,7 +1310,7 @@ class _Configuration:
 						if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange("0+<" + pkg_req_.version))
 						else:
-							ver_inc = Version(pkg_req_.version).get_inc()       ## TODO: Is 'get_inc' deprecated???? #####################
+							ver_inc = Version(pkg_req_.version).get_inc()   ## TODO: Is 'get_inc' deprecated (did it ever exist?) ? #####################
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange(str(ver_inc) + '+'))
 					except VersionError:
 						ver_range_valid = None
