@@ -719,8 +719,10 @@ class _Package:
 			self.root_path = None
 			self.timestamp = None
 
-			if not self.is_anti() and memcache and \
-				not self.memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+			if (not self.is_anti() and
+				self.memcache and
+				not self.memcache.package_family_exists(rez_filesys._g_syspaths, self.name)
+				):
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
