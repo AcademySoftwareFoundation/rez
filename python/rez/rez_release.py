@@ -133,6 +133,9 @@ class RezReleaseMode(object):
 		self.package_uuid_exists = None
 		self.changelog_file = os.path.abspath('build/rez-release-changelog.txt')
 		self.editor = None
+		# for cached property: False indicates it has not been cached
+		# (since it may be None after caching)
+		self._last_tagged_version = False
 
 	def release(self, commit_message, njobs, build_time, allow_not_latest):
 		'''
@@ -163,7 +166,7 @@ class RezReleaseMode(object):
 			raise RezReleaseError(self.path + "/package.yaml does not specify a version")
 		try:
 			self.this_version = versions.Version(metadata.version)
-		except VersionError:
+		except versions.VersionError:
 			raise RezReleaseError(self.path + "/package.yaml contains illegal version number")
 
 		# metadata must have name
@@ -248,7 +251,17 @@ class RezReleaseMode(object):
 		'''
 		return self.tag_url
 
-	def get_latest_tagged_version(self):
+	@property
+	def last_tagged_version(self):
+		'''
+		Cached property for the last tagged version.  None if there are no tags.
+		'''
+		if self._last_tagged_version is False:
+			# False means the value has not been cached yet
+			self._last_tagged_version = self.get_last_tagged_version()
+		return self._last_tagged_version
+
+	def get_last_tagged_version(self):
 		'''
 		Find the latest tag returned by self.get_tags() or None if there are
 		no tags.
@@ -272,34 +285,28 @@ class RezReleaseMode(object):
 	def validate_version(self):
 		'''
 		validate the version being released, by ensuring it is greater than the
-		latest existing tag, as returned by self.get_latest_tagged_version().
+		latest existing tag, as provided by self.last_tagged_version property.
 
 		Ignored if allow_not_latest is True.
 		'''
 		if self.allow_not_latest:
 			return
 
-		# find latest tag, if it exists.
-		try:
-			last_tag_version = self.get_latest_tagged_version()
-		except RezReleaseError:
+		if self.last_tagged_version is None:
 			return
 
-		if last_tag_version is None:
-			return
-
-		last_tag_str = str(last_tag_version)
-		if last_tag_str[0] != 'v':
+		last_tag_str = str(self.last_tagged_version)
+		if last_tag_str[0] == 'v':
 			# old style
 			return
 
 		# FIXME: is the tag put under version control really our most reliable source
 		# for previous released versions? Can't we query the versions of our package
 		# on $REZ_RELEASE_PACKAGES_PATH?
-		if self.this_version <= last_tag_version:
+		if self.this_version <= self.last_tagged_version:
 			raise RezReleaseError("cannot release: current version '" + self.metadata.version + \
 				"' is not greater than the latest tag '" + last_tag_str + \
-				"'. You may need to up your version, and try again.")
+				"'. Version up or pass --allow-not-latest.")
 
 	def validate_repostate(self):
 		'''
@@ -693,7 +700,9 @@ def get_last_changed_revision(client, url):
 	"""
 	import pysvn
 	try:
-		svn_entries = client.info2(url, pysvn.Revision(pysvn.opt_revision_kind.head), recurse=False)
+		svn_entries = client.info2(url,
+								pysvn.Revision(pysvn.opt_revision_kind.head),
+								recurse=False)
 		if len(svn_entries) == 0:
 			raise RezReleaseError("svn.info2() returned no results on url '" + url + "'")
 		return svn_entries[0][1].last_changed_rev
@@ -745,10 +754,12 @@ class SvnRezReleaseMode(RezReleaseMode):
 	def svn_url_exists(self, url):
 		return svn_url_exists(self.svnc, url)
 
-	def get_last_changed_revision(self):
-		latest_ver = self.get_latest_tagged_version()
+	def get_last_tagged_revision(self):
+		'''
+		Return the revision number and tag url of the last tag
+		'''
 		tag_url = self.get_tag_url()
-		latest_tag_url = tag_url + '/' + str(latest_ver)
+		latest_tag_url = tag_url + '/' + str(self.last_tagged_version)
 		latest_rev = get_last_changed_revision(self.svnc, latest_tag_url)
 		
 		return latest_rev.number, latest_tag_url
@@ -775,7 +786,7 @@ class SvnRezReleaseMode(RezReleaseMode):
 			tags.append(tag)
 		return tags
 
-	def get_latest_tagged_version(self):
+	def get_last_tagged_version(self):
 		"""
 		returns a rez Version
 		"""
@@ -805,7 +816,8 @@ class SvnRezReleaseMode(RezReleaseMode):
 		self.tag_url = self.get_tag_url(self.version)
 		# check that this tag does not already exist
 		if self.svn_url_exists(self.tag_url):
-			raise RezReleaseError("cannot release: the tag '" + self.tag_url + "' already exists in svn." + \
+			raise RezReleaseError("cannot release: the tag '"
+				+ self.tag_url + "' already exists in svn." + \
 				" You may need to up your version, svn-checkin and try again.")
 
 		super(SvnRezReleaseMode, self).validate_version()
@@ -817,8 +829,10 @@ class SvnRezReleaseMode(RezReleaseMode):
 			if status.entry:
 				status_list_known.append(status)
 		if len(status_list_known) > 0:
-			raise RezReleaseError("'" + self.path + "' is not in a state to release - you may need to " + \
-				"svn-checkin and/or svn-update: " + str(status_list_known))
+			raise RezReleaseError("'" + self.path + "' is not in a state to "
+								  "release - you may need to "
+								  "svn-checkin and/or svn-update: " +
+								   str(status_list_known))
 
 		# do an update
 		print("rez-release: svn-updating...")
@@ -850,8 +864,26 @@ class SvnRezReleaseMode(RezReleaseMode):
 
 	def get_changelog(self):
 		# Get the changelog.
-		# TODO: read this in directly using the latest tag
-		pret = subprocess.Popen("rez-svn-changelog", stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+		# TODO: read this in directly using pysvn and the latest tag
+# 		log = ''
+# 		try:
+# 			result = self.get_last_tagged_revision()
+# 		except (ImportError, RezReleaseError):
+# 			log = "Changelog since first revision, tag:(NONE)"
+# 			#log += svn log -r HEAD:1 --stop-on-copy
+# 		else:
+# 			if result is None:
+# 				log = "Changelog since first branch revision:(NONE)"
+# 				#log += svn log -r HEAD:1 --stop-on-copy
+# 			else:
+# 				rev, tagurl = result
+# 				log = "Changelog since rev:" + rev + " tag:" + tagurl
+# 				#log += svn log -r HEAD:$rev
+# 		return log
+
+		pret = subprocess.Popen("rez-svn-changelog",
+							    stdout=subprocess.PIPE,
+							    stderr=subprocess.PIPE)
 		changelog, changelog_err = pret.communicate()
 		return changelog
 
@@ -933,6 +965,14 @@ class HgRezReleaseMode(RezReleaseMode):
 
 	def copy_source(self, build_dir):
 		hg('archive', build_dir)
+
+	def get_changelog(self):
+		log = hg('log', '-r',
+				'%s..%s and not merge()' % (str(self.last_tagged_version) if self.last_tagged_version else '0',
+											'qparent' if self.patch_path else 'tip'),
+				'--template="{desc}\n\n"')
+		return ''.join(log)
+
 
 register_release_mode('hg', HgRezReleaseMode)
 

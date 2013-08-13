@@ -13,7 +13,7 @@ import versions
 from rez_release import SvnRezReleaseMode
 
 try:
-    result = SvnRezRelease('.').get_last_changed_revision()
+    result = SvnRezRelease('.').get_last_tagged_revision()
 except RezReleaseUnsupportedMode:
     sys.exit(2)
 except (ImportError, RezReleaseError):
