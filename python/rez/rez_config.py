@@ -701,13 +701,14 @@ class _Package:
 	"""
 	Internal package representation
 	"""
-	def __init__(self, pkg_req, resolve_context=None):
+	def __init__(self, pkg_req, resolve_context):
 		self.is_transitivity = False
 		self.has_added_transitivity = False
-		if resolve_context:
-			self.memcache = resolve_context.memcache
-			self.ignore_archived = resolve_context.ignore_archived
-			self.ignore_blacklisted = resolve_context.ignore_blacklisted
+		
+		self.resolve_context = resolve_context
+		self.memcache = self.resolve_context.memcache
+		self.ignore_archived = self.resolve_context.ignore_archived
+		self.ignore_blacklisted = self.resolve_context.ignore_blacklisted
 			
 		if pkg_req:
 			self.name = pkg_req.name
@@ -723,7 +724,7 @@ class _Package:
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
-		p = _Package(None)
+		p = _Package(None, self.resolve_context)
 		p.is_transitivity = self.is_transitivity
 		p.has_added_transitivity = self.has_added_transitivity
 		p.name = self.name
@@ -1057,10 +1058,7 @@ class _Configuration:
 				_Configuration.PKGCONN_CONFLICT ) ) )
 			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
-			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
-					self.rctxt.ignore_blacklisted),
-				pkg_req,
-			)
+			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
 			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and pkg:
@@ -1181,10 +1179,7 @@ class _Configuration:
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
 			if (not pkg.is_resolved()) and (not pkg.is_anti()):
-				pkg_reqs.append(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
-						self.rctxt.ignore_blacklisted,
-					)
-				)
+				pkg_reqs.append(pkg_to_pkg_req(pkg))
 		return pkg_reqs
 
 	def get_all_packages_as_package_requests(self):
@@ -1193,10 +1188,7 @@ class _Configuration:
 		"""
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
-			pkg_reqs.append(pkg_to_pkg_req(pkg, self.rctxt.ignore_archived,
-					self.rctxt.ignore_blacklisted,
-				)
-			)
+			pkg_reqs.append(pkg_to_pkg_req(pkg))
 		return pkg_reqs
 
 	def resolve_packages(self):
