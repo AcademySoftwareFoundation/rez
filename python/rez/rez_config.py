@@ -2184,9 +2184,14 @@ def process_commands(cmds):
 					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
 						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
 			elif not val_is_set:	
-			# self-ref but no previous val, so strip self-ref out
-				# val = val.replace('$'+varname,'')
-				val = re.sub(r'\$\{?%s\}?' % (varname,), '', val)
+				# self-ref but no previous val, so strip self-ref out...
+				m = re.search(r'^"?\$\{?%s\}?"?$' % (varname,), val)
+				if m is not None:
+					val = ''
+				else:
+					m = re.search(r'^("|)\$\{?%s\}?:(.*)$' % (varname,), val)
+					if m is not None:
+						val = '%s%s' % (m.group(1), m.group(2))
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
@@ -2194,7 +2199,10 @@ def process_commands(cmds):
 			# in their package.yamls.
 			if(varname == "CMAKE_MODULE_PATH"):
 				val = val.strip(':;')
-				val = val.replace(':', "';'")
+				val = val.replace(':', ';')
+				if re.search(r'''^('|").*?('|")$''', val) is None:
+					val = '"%s"' % (val,)
+				
 
 			set_vars[varname] = pkgname
 
@@ -2210,7 +2218,10 @@ def splitMultipleShellCommands(commands):
 	"""
 	Break a commandline on (unquoted) semicolons
 	"""
-	pieces = [p for p in re.split(r'''(;|#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\))''', commands) if p] # quoted/fn def/subshell
+	pieces = [p for p in re.split(r'''(;|#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\))''',
+		commands) if p
+	] # ;-break/comment/quoted/fn def/subshell
+
 	l = []
 	tmp = ''
 	for i in range(len(pieces)):
@@ -2232,7 +2243,9 @@ def carefulCommandSplit(command):
 
 	(to determine varname/value, if available)
 	"""
-	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\)|=|\s+)''', command) if (p and re.search(r'^\s+$', p) is None)]
+	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|(?<=$)\{.*?\}|\(.*?\)|=|\s+)''',
+		command) if (p and re.search(r'^\s+$', p) is None)
+	]
 	return pieces
 
 
