@@ -92,10 +92,11 @@ cp -rf ./projects ./build/projects
 find ./build -type d -name '.svn' | xargs rm -rf
 for yaml in `find ./build/projects -name 'package.yaml'`
 do
-	sed -i -e "s/!OS!/$osname/g" \
+	tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp()'`
+	sed -e "s/!OS!/$osname/g" \
 		-e "s/!CXX!/$_REZ_CPP_COMPILER_NAME-$_REZ_CPP_COMPILER_VER/g" \
-		-e "s/!PYVER!/$_REZ_PYTHON_VER/g" \
-		$yaml
+		-e "s/!PYVER!/$_REZ_PYTHON_VER/g" < $yaml > $tmpf
+	mv $tmpf $yaml
 done
 
 

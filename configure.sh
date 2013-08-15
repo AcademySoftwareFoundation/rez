@@ -246,6 +246,9 @@ if [ "$distro" == "" ]; then
         distro=`lsb_release -i | awk '{print $NF}'`
         if [ $? -ne 0 ]; then distro=; fi
     fi
+    if [ "$osname" == "Darwin" ]; then
+        distro=Apple
+    fi
     if [ "$distro" == "" ]; then
         echo $echoerr"Could not identify OS distribution - $or_set""REZCONFIG_DISTRO" 1>&2
         echo "Setting to DISTRO_UNKNOWN-0!"$echoreset 1>&2
@@ -261,6 +264,10 @@ if [ "$distro_version" == "" ]; then
     echo 'detecting OS distribution version...'
     if [ "$osname" == "Linux" ]; then
         distro_version=`lsb_release -r | awk '{print $NF}'`
+        if [ $? -ne 0 ]; then distro_version=; fi
+    fi
+    if [ "$osname" == "Darwin" ]; then
+        distro_version=`sw_vers -productVersion`
         if [ $? -ne 0 ]; then distro_version=; fi
     fi
     if [ "$distro_version" == "" ]; then
