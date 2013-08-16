@@ -2243,7 +2243,7 @@ def carefulCommandSplit(command):
 
 	(to determine varname/value, if available)
 	"""
-	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|(?<=$)\{.*?\}|\(.*?\)|=|\s+)''',
+	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|(?<=$)\{.*?\}|(?<=$)\(.*?\)|=|\s+)''',
 		command) if (p and re.search(r'^\s+$', p) is None)
 	]
 	return pieces
