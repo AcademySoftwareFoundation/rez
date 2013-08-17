@@ -17,8 +17,6 @@ if [ ! "$REZ_CONTEXT_FILE" ]; then
 	exit 1
 fi
 
-echo REZ_REQUEST_TIME=$REZ_REQUEST_TIME
-
 # Pre python port
 # readable_time=`date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"`
 # $ date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"

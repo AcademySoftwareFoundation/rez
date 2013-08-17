@@ -3,6 +3,7 @@
 #
 
 unset LD_LIBRARY_PATH
+unset DYLD_LIBRARY_PATH
 
 PATH=$PATH:$REZ_PATH/bin
 export PATH=$PATH

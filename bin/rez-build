@@ -349,12 +349,12 @@ do
 	echo "export REZ_BUILD_PROJECT_NAME="$PKGNAME >> $SCR
 
 	if [ "$REQS" != "" ]; then
-		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`echo $REQS | sed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`echo $REQS | gsed 's/-[^ ]\+//g'`"'" >> $SCR
 	fi
 
 	if [ $VNUM -ne -1 ]; then
 		echo "export REZ_BUILD_VARIANT='"$VARIANT"'" >> $SCR
-		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`echo $VARIANT | sed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`echo $VARIANT | gsed 's/-[^ ]\+//g'`"'" >> $SCR
 		echo "export REZ_BUILD_VARIANT_SUBDIR=/"$VARIANT_SUBDIR"/" >> $SCR
 	fi
 
