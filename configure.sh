@@ -202,7 +202,7 @@ if [ "$osname" == "" ]; then
         echo "Could not identify operating system - $or_set""REZCONFIG_PLATFORM" 1>&2
         exit 1
     fi
-    if [ "$osname" == "Linux" ]; then
+    if [ "$osname" == "Linux" -o "osname" == "Darwin"]; then
         echoerr=$(tput bold)$(tput setaf 1)
         echoreset=$(tput sgr0)
     fi
