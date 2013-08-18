@@ -427,7 +427,7 @@ else
 fi
 echo "found python binary: "$python_binary
 
-pyver=`$python_binary -c 'import sys ; v = sys.version_info ; print "%d.%d.%d" % (v.major, v.minor, v.micro)'`
+pyver=`$python_binary -c 'import sys ; v = sys.version_info ; print "%d.%d.%d" % (v[0], v[1], v[2])'`
 pynum=`echo $pyver | sed 's/\.[^\.]*$//' | sed 's/\.//'`
 if (( pynum < 25 )); then
 	echo "python version "$pyver" is too old, you need 2.5 or greater." 1>&2

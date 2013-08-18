@@ -216,6 +216,11 @@ if [ "$VNUMS" == "" ]; then
 	VNUMS=-1
 fi
 
+function unversion
+{
+    # FIXME - replace with python equivalent
+    echo $1 | gsed 's/-[^ ]\+//g'
+}
 
 #-#################################################################################################
 # Iterate over variants
@@ -349,14 +354,12 @@ do
 	echo "export REZ_BUILD_PROJECT_NAME="$PKGNAME >> $SCR
 
 	if [ "$REQS" != "" ]; then
-		# FIXME - replace gsed with a python invocation
-		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`echo $REQS | gsed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`unversion $REQS`"'" >> $SCR
 	fi
 
 	if [ $VNUM -ne -1 ]; then
-		# FIXME - replace gsed with a python invocation
 		echo "export REZ_BUILD_VARIANT='"$VARIANT"'" >> $SCR
-		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`echo $VARIANT | gsed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`unversion $VARIANT`"'" >> $SCR
 		echo "export REZ_BUILD_VARIANT_SUBDIR=/"$VARIANT_SUBDIR"/" >> $SCR
 	fi
 
