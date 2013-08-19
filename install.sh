@@ -95,15 +95,15 @@ fi
 
 install_dir=$base_install_dir"/"$rez_version
 if [ -e $install_dir ]; then
-	rm -rf $install_dir/*
+    rm -rf $install_dir/*
 else
-	mkdir -p $install_dir
-  chmod 755 $base_install_dir
-  chmod 755 $install_dir
-	if [ ! -e $install_dir ]; then
-		echo "couldn't create dir $install_dir." 1>&2
-		exit 1
-	fi
+    mkdir -p $install_dir
+    chmod 755 $base_install_dir
+    chmod 755 $install_dir
+    if [ ! -e $install_dir ]; then
+        echo "couldn't create dir $install_dir." 1>&2
+        exit 1
+    fi
 fi
 
 
@@ -227,28 +227,28 @@ fi
 #-----------------------------------------------------------------------------------------
 cat ./init.sh \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.sh
+    | sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+    | sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
+    | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
+    | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
+    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
+    > $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
 # install init.csh
 #-----------------------------------------------------------------------------------------
 cat ./init.csh \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.csh
+    | sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+    | sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
+    | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
+    | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
+    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
+    > $install_dir/init.csh
 chmod 644 $install_dir/init.csh
 
 # install bin/ files
@@ -257,25 +257,25 @@ mkdir -p $install_dir/bin
 chmod 755 $install_dir/bin
 cat ./bin/_set-rez-env \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
-	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
-	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
+    | sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
+    | sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
+    | sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
     | sed -e 's|!REZ_PYMEMCACHED_PATH!|'$_REZ_PYMEMCACHED_PATH'|g' \
-	| sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
-	| sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
-	> $install_dir/bin/_set-rez-env
+    | sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
+    | sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
+    > $install_dir/bin/_set-rez-env
 
 binfiles=`ls ./bin | grep -v '_set-rez-env'`
 for f in $binfiles
 do
-	cat ./bin/$f \
-		| sed -e 's|!REZ_PYTHON_BINARY!|'$_REZ_PYTHON_BINARY'|g' \
-		> $install_dir/bin/$f
+    cat ./bin/$f \
+        | sed -e 's|!REZ_PYTHON_BINARY!|'$_REZ_PYTHON_BINARY'|g' \
+        > $install_dir/bin/$f
 
-	shebang=`cat ./bin/$f | grep -n '^#!' | tr ':' ' ' | awk '{print $1}'`
-	if [ "$shebang" == "1" ]; then
-		chmod 755 $install_dir/bin/$f
-	fi
+    shebang=`cat ./bin/$f | grep -n '^#!' | tr ':' ' ' | awk '{print $1}'`
+    if [ "$shebang" == "1" ]; then
+        chmod 755 $install_dir/bin/$f
+    fi
 done
 
 # install remaining files
