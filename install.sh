@@ -135,14 +135,14 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     fi
 
     echo "config_version : 0" 			> $os_yaml
-    echo "name: $osname" 				>> $os_yaml
-    echo "commands:" 					>> $os_yaml
+    echo "name: $osname" 			>> $os_yaml
+    echo "commands:" 				>> $os_yaml
     echo '- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake'	>> $os_yaml
 
     os_cmake=$os_dir/cmake/$osname.cmake
     echo '' > $os_cmake
     if [ "$osname" == "Linux" ]; then
-        echo "#set(Linux_LIBRARIES dl z)"					    >> $os_cmake
+        echo "#set(Linux_LIBRARIES dl z)"		        >> $os_cmake
         echo "set(Linux_DEFINITIONS -fPIC -m$os_bits -DLINUX)"  >> $os_cmake
     fi
 
@@ -156,12 +156,12 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     ln -s $_REZ_CMAKE_BINARY $cmake_dir/$osname/bin/cmake
     cmake_yaml=$cmake_dir/package.yaml
 
-    echo "config_version : 0" 				> $cmake_yaml
-    echo "name: cmake" 						>> $cmake_yaml
-    echo "version: "$cmake_ver 				>> $cmake_yaml
-    echo "variants:"						>> $cmake_yaml
-    echo "- [ $osname ]"					>> $cmake_yaml
-    echo "commands:" 						>> $cmake_yaml
+    echo "config_version : 0" 			> $cmake_yaml
+    echo "name: cmake" 				>> $cmake_yaml
+    echo "version: "$cmake_ver 			>> $cmake_yaml
+    echo "variants:"				>> $cmake_yaml
+    echo "- [ $osname ]"			>> $cmake_yaml
+    echo "commands:" 				>> $cmake_yaml
     echo '- export PATH=$PATH:!ROOT!/bin'	>> $cmake_yaml
 
 
@@ -175,13 +175,13 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     cpp_binary=$_REZ_CPP_COMPILER
 
     cppcomp_yaml=$cppcomp_dir/package.yaml
-    echo "config_version : 0" 				> $cppcomp_yaml
+    echo "config_version : 0" 			> $cppcomp_yaml
     echo "name: $_REZ_CPP_COMPILER_NAME" 	>> $cppcomp_yaml
     echo "version: "$_REZ_CPP_COMPILER_VER 	>> $cppcomp_yaml
-    echo "variants:"						>> $cppcomp_yaml
-    echo "- [ $osname ]"					>> $cppcomp_yaml
-    echo "commands:" 						>> $cppcomp_yaml
-    echo "- export CXX=$cpp_binary"			>> $cppcomp_yaml
+    echo "variants:"				>> $cppcomp_yaml
+    echo "- [ $osname ]"			>> $cppcomp_yaml
+    echo "commands:" 				>> $cppcomp_yaml
+    echo "- export CXX=$cpp_binary"		>> $cppcomp_yaml
 
 
     # python
@@ -194,13 +194,13 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     ln -s $_REZ_PYTHON_BINARY $py_dir/$osname/bin/python
     py_yaml=$py_dir/package.yaml
 
-    echo "config_version : 0" 				> $py_yaml
-    echo "name: python" 					>> $py_yaml
-    echo "version: "$py_ver 				>> $py_yaml
-    echo "variants:"					>> $py_yaml
-    echo "- [ $osname ]"					>> $py_yaml
-    echo "commands:" 					>> $py_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'			>> $py_yaml
+    echo "config_version : 0" 		  > $py_yaml
+    echo "name: python" 		  >> $py_yaml
+    echo "version: "$py_ver 		  >> $py_yaml
+    echo "variants:"			  >> $py_yaml
+    echo "- [ $osname ]"		  >> $py_yaml
+    echo "commands:" 			  >> $py_yaml
+    echo '- export PATH=$PATH:!ROOT!/bin' >> $py_yaml
 
 
     # example package
@@ -209,16 +209,16 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     make_pkg_dir $pkg_dir
     mkdir -p $pkg_dir/bin
     pkg_sh=$pkg_dir/bin/hello_world
-    echo "#!/bin/bash"			            > $pkg_sh
-    echo "echo 'Hello world!'"				>> $pkg_sh
+    echo "#!/bin/bash"			        > $pkg_sh
+    echo "echo 'Hello world!'"			>> $pkg_sh
     chmod 755 $pkg_sh
 
     pkg_yaml=$pkg_dir/package.yaml
-    echo "config_version : 0" 				> $pkg_yaml
-    echo "name: hello_world" 				>> $pkg_yaml
-    echo "tools:"                           >> $pkg_yaml
-    echo "- hello_world"                    >> $pkg_yaml
-    echo "commands:" 						>> $pkg_yaml
+    echo "config_version : 0" 			> $pkg_yaml
+    echo "name: hello_world" 			>> $pkg_yaml
+    echo "tools:"                               >> $pkg_yaml
+    echo "- hello_world"                        >> $pkg_yaml
+    echo "commands:" 				>> $pkg_yaml
     echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
 fi
 
