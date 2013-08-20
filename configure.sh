@@ -436,6 +436,17 @@ if (( pynum < 25 )); then
 fi
 echo "python version: "$pyver
 
+#
+# On the Mac, /usr/bin/python is a special file, and when we create
+# a symlink to it for rezpy, executing rezpy fails with this error:
+# rezpy: realpath couldn't resolve "/usr/bin/rezpy"
+# so if we're using the system python, we go set python_binary to the real python
+# that has a version number (/usr/bin/python2.5, /usr/bin/python2.6 or /usr/bin/python2.7)
+# as of mountain lion.
+#
+if [ "$osname" == "Darwin" -a "$python_binary" == "/usr/bin/python" ]; then
+    python_binary=/usr/bin/python`defaults read com.apple.versioner.python Version`
+fi
 
 # pyyaml
 #-----------------------------------------------------------------------------------------
