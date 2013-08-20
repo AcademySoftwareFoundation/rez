@@ -1,28 +1,32 @@
-# Rez-config
+# Rez
 
-## INFO
+## Info
 
 Rez is a set of tools for resolving environment configurations and building
 projects within these environments. Rez searches for 'packages' (pieces of
-software) in the colon-delimited env-var '$REZ_PACKAGES_PATH'. With rez you can
+software) in the colon-delimited env-var `$REZ_PACKAGES_PATH`. With rez you can
 request a set of packages, and it will return you all the packages that you
 need, or an equivalent configured environment. Rez has a resolution algorithm
 that avoids package version clashes.
 
 Original Author:
-Allan Johns, 2010
-nerdvegas@googlemail.com
-Dr D Studios, Sydney, Australia
+
+    Allan Johns, 2010
+    nerdvegas@googlemail.com
+    Dr D Studios, Sydney, Australia
 
 Forked and Modified by:
-Morné Chamberlain, 2012
-morne@blackginger.tv
-BlackGinger, Cape Town, South Africa
+
+    Morné Chamberlain, 2012
+    morne@blackginger.tv
+    BlackGinger, Cape Town, South Africa
 
 Rez has been tested on Linux Centos5, and to a lesser extent on OSX. Rez is not
 supported on Windows (yet), but volunteers are welcome!
 
 ## Runtime Dependencies
+
+`rez` requires:
 
 * bash
 * cmake (2.8 or greater)
