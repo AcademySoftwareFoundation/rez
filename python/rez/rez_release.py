@@ -45,7 +45,7 @@ class RezReleaseUnsupportedMode(RezReleaseError):
 
 REZ_RELEASE_PATH_ENV_VAR = 		"REZ_RELEASE_PACKAGES_PATH"
 EDITOR_ENV_VAR		 	= 		"REZ_RELEASE_EDITOR"
-RELEASE_COMMIT_FILE 	= 		"rez-release-svn-commit.tmp"
+RELEASE_COMMIT_FILE 	= 		"rez-release-commit.tmp"
 
 
 ##############################################################################
@@ -107,6 +107,12 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 
 def _expand_path(path):
 	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
+
+def remove_write_perms(path):
+	import stat
+	st = os.stat(path)
+	mode = st.st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+	os.chmod(path, mode)
 
 def copytree(src, dst, symlinks=False, ignore=None):
 	'''
@@ -231,7 +237,6 @@ class RezReleaseMode(object):
 		'''
 		Main entry point for executing the release
 		'''
-		# TODO: implement commit message in a svn-agnostic way
 		self.commit_message = commit_message
 		self.njobs = njobs
 		self.build_time = build_time
@@ -247,33 +252,34 @@ class RezReleaseMode(object):
 		return a ConfigMetadata instance for this project's package.yaml file.
 		'''
 		# check for ./package.yaml
-		if not os.access(self.path + "/package.yaml", os.F_OK):
-			raise RezReleaseError(self.path + "/package.yaml not found")
+		yaml_path = os.path.join(self.path + "package.yaml")
+		if not os.access(yaml_path, os.F_OK):
+			raise RezReleaseError(yaml_path + " not found")
 
 		# load the package metadata
-		metadata = ConfigMetadata(self.path + "/package.yaml")
+		metadata = ConfigMetadata(yaml_path + "")
 		if (not metadata.version):
-			raise RezReleaseError(self.path + "/package.yaml does not specify a version")
+			raise RezReleaseError(yaml_path + " does not specify a version")
 		try:
 			self.this_version = versions.Version(metadata.version)
 		except versions.VersionError:
-			raise RezReleaseError(self.path + "/package.yaml contains illegal version number")
+			raise RezReleaseError(yaml_path + " contains illegal version number")
 
 		# metadata must have name
 		if not metadata.name:
-			raise RezReleaseError(self.path + "/package.yaml is missing name")
+			raise RezReleaseError(yaml_path + " is missing name")
 
 		# metadata must have uuid
 		if not metadata.uuid:
-			raise RezReleaseError(self.path + "/package.yaml is missing uuid")
+			raise RezReleaseError(yaml_path + " is missing uuid")
 
 		# .metadata must have description
 		if not metadata.description:
-			raise RezReleaseError(self.path + "/package.yaml is missing a description")
+			raise RezReleaseError(yaml_path + " is missing a description")
 
 		# metadata must have authors
 		if not metadata.authors:
-			raise RezReleaseError(self.path + "/package.yaml is missing authors")
+			raise RezReleaseError(yaml_path + " is missing authors")
 
 		return metadata
 
@@ -357,6 +363,23 @@ class RezReleaseMode(object):
 		if len(self.variants) > 1:
 			subject += " (%d variants)" % len(self.variants)
 		send_release_email(subject, self.commit_message)
+
+	def check_installed_variant(self, instpath):
+		for root, dirs, files in os.walk(instpath):
+			has_py = False
+			for name in files:
+				path = os.path.join(root, name)
+				# remove any .pyc files that may have been spawned
+				if name.endswith('.pyc'):
+					os.remove(path)
+				elif not name == '.metadata':
+					if name.endswith('.py'):
+						has_py = True
+					# Remove write permissions from all installed files.
+					remove_write_perms(path)
+			# Remove write permissions on dirs that contain py files
+			if has_py:
+				remove_write_perms(root)
 
 	# VCS and tagging ---------
 	def create_release_tag(self):
@@ -670,23 +693,12 @@ class RezReleaseMode(object):
 
 		pret.wait()
 		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
-				"have resulted, please see to this immediately - it should probably be removed.")
+			raise RezReleaseError("rez-release: install failed!! A partial "
+								  "central installation may have resulted, "
+								  "please see to this immediately - "
+								  "it should probably be removed.")
 
-		# Prior to locking down the installation, remove any .pyc files that may have been spawned
-		pret = subprocess.Popen("cd " + instpath + " ; rm -f `find -type f | grep '\.pyc$'`", shell=True)
-		pret.wait()
-
-		# Remove write permissions from all installed files.
-		pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -type f | grep -v '\.self.metadata'`", shell=True)
-		pret.wait()
-
-		# Remove write permissions on dirs that contain py files
-		pret = subprocess.Popen("cd " + instpath + " ; find -name '*.py'", shell=True, stdout=subprocess.PIPE)
-		cmdout, cmderr = pret.communicate()
-		if len(cmdout.strip()) > 0:
-			pret = subprocess.Popen("cd " + instpath + " ; chmod a-w `find -name '*.py' | xargs -n 1 dirname | sort | uniq`", shell=True)
-			pret.wait()
+		self.check_installed_variant()
 
 	def post_install(self):
 		'''
