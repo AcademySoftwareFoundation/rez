@@ -2,7 +2,7 @@
 
 . _set-rez-env
 #python -m cProfile -s cumulative $REZ_PATH/bin/rez-config_.py $*
-rez-config_.py $*
+rez_.py config $*
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
