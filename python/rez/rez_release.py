@@ -10,9 +10,15 @@ import shutil
 import inspect
 import time
 import subprocess
-import rez_release_base as rrb
+import smtplib
+from email.mime.text import MIMEText
+
 from rez_metafile import *
 import versions
+
+##############################################################################
+# Globals
+##############################################################################
 
 _release_classes = []
 
@@ -34,7 +40,7 @@ class RezReleaseUnsupportedMode(RezReleaseError):
 	pass
 
 ##############################################################################
-# Globals
+# Constants
 ##############################################################################
 
 REZ_RELEASE_PATH_ENV_VAR = 		"REZ_RELEASE_PACKAGES_PATH"
@@ -93,6 +99,90 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 	cls = dict(_release_classes)[mode]
 	rel = cls(path)
 	rel.release(commit_message, njobs, build_time, allow_not_latest)
+
+
+##############################################################################
+# Utilities
+##############################################################################
+
+def _expand_path(path):
+	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
+
+def copytree(src, dst, symlinks=False, ignore=None):
+	'''
+	copytree that supports hard-linking
+	'''
+	print "copying directory", src
+	names = os.listdir(src)
+	if ignore is not None:
+		ignored_names = ignore(src, names)
+	else:
+		ignored_names = set()
+
+	os.makedirs(dst)
+	errors = []
+	for name in names:
+		if name in ignored_names:
+			continue
+		srcname = os.path.join(src, name)
+		dstname = os.path.join(dst, name)
+		try:
+			if symlinks and os.path.islink(srcname):
+				linkto = os.readlink(srcname)
+				os.symlink(linkto, dstname)
+			elif os.path.isdir(srcname):
+				copytree(srcname, dstname, symlinks, ignore)
+			else:
+				#shutil.copy2(srcname, dstname)
+				os.link(srcname, dstname)
+		# XXX What about devices, sockets etc.?
+		except (IOError, os.error) as why:
+			errors.append((srcname, dstname, str(why)))
+		# catch the Error from the recursive copytree so that we can
+		# continue with other files
+		except shutil.Error as err:
+			errors.extend(err.args[0])
+	try:
+		shutil.copystat(src, dst)
+	except shutil.WindowsError:
+		# can't copy file access times on Windows
+		pass
+	except OSError as why:
+		errors.extend((src, dst, str(why)))
+	if errors:
+		raise shutil.Error(errors)
+
+def send_release_email(subject, body):
+	from_ = os.getenv("REZ_RELEASE_EMAIL_FROM", "rez")
+	to_ = os.getenv("REZ_RELEASE_EMAIL_TO")
+	if not to_:
+		return
+	recipients = to_.replace(':',' ').replace(';',' ').replace(',',' ')
+	recipients = recipients.strip().split()
+	if not recipients:
+		return
+
+	print
+	print("---------------------------------------------------------")
+	print("rez-release: sending notification emails...")
+	print("---------------------------------------------------------")
+	print
+	print "sending to:\n%s" % str('\n').join(recipients)
+
+	smtphost = os.getenv("REZ_RELEASE_EMAIL_SMTP_HOST", "localhost")
+	smtpport = os.getenv("REZ_RELEASE_EMAIL_SMTP_PORT")
+
+	msg = MIMEText(body)
+	msg["Subject"] = subject
+	msg["From"] = from_
+	msg["To"] = str(',').join(recipients)
+
+	try:
+		s = smtplib.SMTP(smtphost, smtpport)
+		s.sendmail(from_, recipients, msg.as_string())
+		print 'email(s) sent.'
+	except Exception as e:
+		print  >> sys.stderr, "Emailing failed: %s" % str(e)
 
 ##############################################################################
 # Implementation Classes
@@ -229,6 +319,44 @@ class RezReleaseMode(object):
 		finally:
 			# always remove the temp file
 			os.remove(tmpf)
+
+	def check_uuid(self, package_uuid_file):
+		'''
+		check uuid against central uuid for this package family, to ensure that
+		we are not releasing over the top of a totally different package due to
+		naming clash
+		'''
+		try:
+			existing_uuid = open(package_uuid_file).read().strip()
+		except Exception:
+			package_uuid_exists = False
+			existing_uuid = self.metadata.uuid
+		else:
+			package_uuid_exists = True
+
+		if existing_uuid != self.metadata.uuid:
+			raise RezReleaseError("the uuid in '" + package_uuid_file +
+				"' does not match this package's uuid - you may have a package "
+				"name clash. All package names must be unique.")
+		return package_uuid_exists
+	
+	def write_time_metafile(self):
+		# the very last thing we do is write out the current date-time to a metafile. This is
+		# used by rez to specify when a package 'officially' comes into existence.
+		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
+									'.metadata' , 'release_time.txt')
+		timef = open(time_metafile, 'w')
+		time_epoch = int(time.mktime(time.localtime()))
+		timef.write(str(time_epoch) + '\n')
+		timef.close()
+
+	def send_email(self):
+		usr = os.getenv("USER", "unknown.user")
+		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
+		subject = "[rez] [release] %s released %s" % (usr, pkgname)
+		if len(self.variants) > 1:
+			subject += " (%d variants)" % len(self.variants)
+		send_release_email(subject, self.commit_message)
 
 	# VCS and tagging ---------
 	def create_release_tag(self):
@@ -378,6 +506,7 @@ class RezReleaseMode(object):
 			" -- -c -- install"
 		return build_cmd
 
+	# phases ---------
 	def pre_build(self):
 		'''
 		Fill out variables and check for problems
@@ -388,23 +517,10 @@ class RezReleaseMode(object):
 		if not self.pkg_release_dir:
 			raise RezReleaseError("$" + REZ_RELEASE_PATH_ENV_VAR + " is not set.")
 
-		# check uuid against central uuid for this package family, to ensure that
-		# we are not releasing over the top of a totally different package due to naming clash
 		self.pkg_release_dir = os.path.join(self.pkg_release_dir, self.metadata.name)
 		self.package_uuid_file = os.path.join(self.pkg_release_dir,  "package.uuid")
 
-		try:
-			existing_uuid = open(self.package_uuid_file).read().strip()
-		except Exception:
-			self.package_uuid_exists = False
-			existing_uuid = self.metadata.uuid
-		else:
-			self.package_uuid_exists = True
-
-		if(existing_uuid != self.metadata.uuid):
-			raise RezReleaseError("the uuid in '" + self.package_uuid_file + \
-				"' does not match this package's uuid - you may have a package name clash. All package " + \
-				"names must be unique.")
+		self.package_uuid_exists = self.check_uuid(self.package_uuid_file)
 
 		self.variants = self.metadata.get_variants()
 		if not self.variants:
@@ -576,22 +692,9 @@ class RezReleaseMode(object):
 		'''
 		Final stage after installation
 		'''
-		# the very last thing we do is write out the current date-time to a metafile. This is
-		# used by rez to specify when a package 'officially' comes into existence.
-		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
-									'.metadata' , 'release_time.txt')
-		timef = open(time_metafile, 'w')
-		time_epoch = int(time.mktime(time.localtime()))
-		timef.write(str(time_epoch) + '\n')
-		timef.close()
+		self.write_time_metafile()
 
-		# email
-		usr = os.getenv("USER", "unknown.user")
-		pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
-		subject = "[rez] [release] %s released %s" % (usr, pkgname)
-		if len(self.variants) > 1:
-			subject += " (%d variants)" % len(self.variants)
-		rrb.send_release_email(subject, self.commit_message)
+		self.send_email()
 
 		print
 		print("---------------------------------------------------------")
@@ -606,57 +709,6 @@ class RezReleaseMode(object):
 		print
 
 register_release_mode('base', RezReleaseMode)
-
-##############################################################################
-# Utilities
-##############################################################################
-
-def _expand_path(path):
-	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-def copytree(src, dst, symlinks=False, ignore=None):
-	'''
-	copytree that supports hard-linking
-	'''
-	print "copying directory", src
-	names = os.listdir(src)
-	if ignore is not None:
-		ignored_names = ignore(src, names)
-	else:
-		ignored_names = set()
-
-	os.makedirs(dst)
-	errors = []
-	for name in names:
-		if name in ignored_names:
-			continue
-		srcname = os.path.join(src, name)
-		dstname = os.path.join(dst, name)
-		try:
-			if symlinks and os.path.islink(srcname):
-				linkto = os.readlink(srcname)
-				os.symlink(linkto, dstname)
-			elif os.path.isdir(srcname):
-				copytree(srcname, dstname, symlinks, ignore)
-			else:
-				#shutil.copy2(srcname, dstname)
-				os.link(srcname, dstname)
-		# XXX What about devices, sockets etc.?
-		except (IOError, os.error) as why:
-			errors.append((srcname, dstname, str(why)))
-		# catch the Error from the recursive copytree so that we can
-		# continue with other files
-		except shutil.Error as err:
-			errors.extend(err.args[0])
-	try:
-		shutil.copystat(src, dst)
-	except shutil.WindowsError:
-		# can't copy file access times on Windows
-		pass
-	except OSError as why:
-		errors.extend((src, dst, str(why)))
-	if errors:
-		raise shutil.Error(errors)
 
 ##############################################################################
 # Subversion
