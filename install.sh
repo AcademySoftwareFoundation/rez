@@ -239,6 +239,14 @@ cat ./init.sh \
 	> $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
+# install init_site.sh
+#-----------------------------------------------------------------------------------------
+
+if [[ -e ./init_site.sh ]]; then
+    cp ./init_site.sh "$install_dir/init_site.sh"
+    chmod 644 "$install_dir/init_site.sh"
+fi
+
 # install bin/ files
 #-----------------------------------------------------------------------------------------
 mkdir -p $install_dir/bin
