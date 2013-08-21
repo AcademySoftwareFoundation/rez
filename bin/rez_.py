@@ -15,6 +15,7 @@ def subpackages(packagemod):
     modpkgs = []
     modpkgs_names = set()
     if hasattr(packagemod, '__path__'):
+        yield packagemod.__name__, packagemod, True
         for importer, modname, ispkg in pkgutil.walk_packages(packagemod.__path__,
                                                               packagemod.__name__+'.'):
             if modname not in sys.modules:
@@ -30,17 +31,29 @@ def subpackages(packagemod):
 
 def main():
     parser = argparse.ArgumentParser("rez")
-    subparsers = parser.add_subparsers(title='subcommands')
+    subparsers = []
+    parents = []
     for name, mod, ispkg in subpackages(rez.commands):
+        cmdname = name.split('.')[-1].replace('_', '-')
+        if ispkg:
+            if cmdname == 'commands':
+                title = 'commands'
+            else:
+                title = (cmdname + ' subcommands')
+            subparsers.append(parser.add_subparsers(title=title))
+            parents.append(name)
+            continue
+        elif not name.startswith(parents[-1]):
+            parents.pop()
+            subparsers.pop()
         assert mod.__doc__, "command module %s must have a module-level docstring (used as the command help)" % name
         assert hasattr(mod, 'command'), "command module %s must provide a command() function" % name
         assert hasattr(mod, 'setup_parser'), "command module %s  must provide a setup_parser() function" % name
 
         brief = mod.__doc__.strip('\n').split('\n')[0]
-        cmdname = name.split('.')[-1].replace('_', '-')
-        subparser = subparsers.add_parser(cmdname,
-                                          description=mod.__doc__,
-                                          help=brief)
+        subparser = subparsers[-1].add_parser(cmdname,
+                                              description=mod.__doc__,
+                                              help=brief)
         mod.setup_parser(subparser)
         subparser.set_defaults(func=mod.command)
 
