@@ -1,5 +1,5 @@
 '''
-Like rez-env, but is able to create wrappers on the fly. 
+Create rez-env wrappers on the fly. 
 
 Rez-env automatically switches to this
 mode if it detects the syntax described below...
