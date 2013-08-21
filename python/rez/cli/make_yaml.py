@@ -10,13 +10,14 @@ def command(opts):
     from getpass import getuser
     from platform import system
     import os
-    path = opts.path
+
+    yamlpath = os.path.join(opts.path, "package.yaml")
 
     info = {'user' : getuser(),
             'platform' : os.getenv('REZ_PLATFORM', system()),
             'uuid' : str(uuid4())}
 
-    with open(os.path.join(path, 'package.yaml'), 'w') as f:
+    with open(yamlpath, 'w') as f:
         f.write("""config_version : 0
 
 name: enter-package-name
@@ -26,7 +27,7 @@ version: 0.0.0
 uuid:  %(uuid)s
 
 authors: 
- - %(user)s
+- %(user)s
 
 description: >
  Enter description here. Multiline is ok, but make sure

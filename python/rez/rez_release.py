@@ -13,7 +13,8 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez_metafile import *
+from rez.rez_util import remove_write_perms
+from rez.rez_metafile import *
 import versions
 
 ##############################################################################
@@ -107,12 +108,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 
 def _expand_path(path):
 	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-def remove_write_perms(path):
-	import stat
-	st = os.stat(path)
-	mode = st.st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
-	os.chmod(path, mode)
 
 def copytree(src, dst, symlinks=False, ignore=None):
 	'''

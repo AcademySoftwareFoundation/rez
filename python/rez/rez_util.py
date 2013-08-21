@@ -1,6 +1,10 @@
 """
 Misc useful stuff.
 """
+import stat
+import sys
+
+WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 def gen_dotgraph_image(dot_data, out_file):
 
@@ -74,4 +78,9 @@ def hide_local_packages():
         pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
         if localpath in pkgpaths:
             pkgpaths.remove(localpath)
-            os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
+ 
+def remove_write_perms(path):
+    import os
+    st = os.stat(path)
+    mode = st.st_mode & ~WRITE_PERMS
+    os.chmod(path, mode)
