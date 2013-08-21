@@ -51,9 +51,9 @@ def detect_cycle(pkg, pkgmap):
 def setup_parser(parser):
     #usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
     parser.add_argument("pkg", nargs='+',
-                        help='package name')
+                        help='list of package names')
     parser.add_argument("-p", "--path", dest="path",
-                        default=os.environ["REZ_PACKAGES_PATH"], \
+                        default=os.environ["REZ_PACKAGES_PATH"],
                         help="path where packages are located [default = %(default)s]")
     parser.add_argument("-d", "--depth", dest="depth", type=int,
                         default=0,
@@ -74,19 +74,19 @@ def setup_parser(parser):
                         default=False,
                         help="display dependency info in a dot graph [default = %(default)s]")
 
-def command(args):
+def command(opts):
     import yaml
-    import sigint
-    import rez_filesys as fs
+    import rez.sigint
+    import rez.rez_filesys as fs
 
-    packages_set = set(args.packages)
+    packages_set = set(opts.packages)
     if not packages_set:
-        args.all = True
+        opts.all = True
 
-    paths = args.path.split(':')
+    paths = opts.path.split(':')
 
-    if args.depth == 0:
-        args.depth = -1
+    if opts.depth == 0:
+        opts.depth = -1
 
     #----------------------------------------------------------------------------------------
     # create a map of package dependency info
@@ -106,7 +106,7 @@ def command(args):
         else:
             print >> sys.stderr, "Warning: skipping nonexistent path %s..." % path
 
-    if not args.quiet:
+    if not opts.quiet:
         print("gathering packages...")
         sys.stdout.write('[           ]\b\b\b\b\b\b\b\b\b\b\b\b.')
         sys.stdout.flush()
@@ -116,7 +116,7 @@ def command(args):
     for fullpath in all_dirs:
         f = os.path.basename(fullpath)
 
-        if not args.quiet:
+        if not opts.quiet:
             prog1 = ndir / progstep
             ndir = ndir + 1
             prog2 = ndir / progstep
@@ -149,10 +149,10 @@ def command(args):
                         dependsMap[dep] = set()
                     dependsMap[dep].add(f)
 
-    if not args.quiet:
+    if not opts.quiet:
         print("\ndetecting cyclic dependencies...")
 
-    if args.all:
+    if opts.all:
         packages_set = all_packages
 
 
@@ -185,15 +185,15 @@ def command(args):
             cycles.add(cycle_str)
 
     if len(cycles) > 0:
-            if not args.quiet:
+            if not opts.quiet:
                 print("CYCLIC DEPENDENCY(S) DETECTED; ALL INVOLVED PACKAGES WILL BE REMOVED FROM FURTHER PROCESSING:")
                 for c in cycles:
                     print c
 
-            if args.ctest:
+            if opts.ctest:
                 sys.exit(1)
 
-            if not args.quiet:
+            if not opts.quiet:
                 print
 
             for cpkg in cycle_pkgs:
@@ -203,14 +203,14 @@ def command(args):
             for dpkg in dependsMap:
                 dependsMap[dpkg] -= cycle_pkgs
 
-    if args.ctest:
+    if opts.ctest:
         sys.exit(0)
 
     #----------------------------------------------------------------------------------------
     # find pkgs dependent on the given pkgs
     #----------------------------------------------------------------------------------------
     
-    if not args.quiet:
+    if not opts.quiet:
         print("identifying dependencies...")
 
     deps = packages_set
@@ -219,19 +219,19 @@ def command(args):
     depth = 0
 
     dotout = None
-    if args.printdot:
+    if opts.printdot:
         dotout = sys.stdout
-    elif args.showdot:
+    elif opts.showdot:
         import cStringIO
         dotout = cStringIO.StringIO()
 
     if dotout:
-        from rez_config import make_random_color_string
+        from rez.rez_config import make_random_color_string
         dotout.write("digraph g { \n")
         dotpairs = set()
 
-    while (len(deps) > 0) and (depth != args.depth):
-        if not args.quiet:
+    while (len(deps) > 0) and (depth != opts.depth):
+        if not opts.quiet:
             print "@ depth " + str(depth) + " (" + str(len(deps)) + " packages)..."
 
         for dep in deps:
@@ -257,7 +257,7 @@ def command(args):
         dotout.write("} \n")
         dotout.flush()
 
-        if args.showdot:
+        if opts.showdot:
             import pydot
             import tempfile
 
@@ -269,7 +269,7 @@ def command(args):
 
             import subprocess
             cmd = os.getenv("REZ_DOT_IMAGE_VIEWER", "xnview") + " " + jpgpath
-            if not args.quiet:
+            if not opts.quiet:
                 print("invoking: " + cmd)
             pret = subprocess.Popen(cmd, shell=True)
             pret.communicate()

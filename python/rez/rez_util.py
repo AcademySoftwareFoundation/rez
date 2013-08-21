@@ -66,3 +66,12 @@ def readable_time_duration(secs, approx=True):
     if neg:
         s = '-' + s
     return s
+
+def hide_local_packages():
+    import os
+    localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
+    if localpath:
+        pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
+        if localpath in pkgpaths:
+            pkgpaths.remove(localpath)
+            os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)

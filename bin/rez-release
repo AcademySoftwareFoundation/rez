@@ -10,7 +10,7 @@ export REZ_IN_REZ_RELEASE=1
 # release something centrally that is using local packages
 export REZ_PACKAGES_PATH=`echo $REZ_PACKAGES_PATH | sed "s|$REZ_LOCAL_PACKAGES_PATH||"`
 
-rez-release_.py "$@"
+rez_.py release "$@"
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

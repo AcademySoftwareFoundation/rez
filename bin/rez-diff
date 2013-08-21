@@ -2,12 +2,9 @@
 
 . _set-rez-env
 
-# remove the local packages directory from the package search directories
-export REZ_PACKAGES_PATH=`echo $REZ_PACKAGES_PATH | /usr/bin/tr ':' '\n' | grep -v $USER | grep -v '^$' | /usr/bin/tr '\n' ':' | sed 's/:$//g'`
-
 inbrowser=`echo $* | grep -w '\-\-view\-html'`
 if [ "$inbrowser" == "" ]; then
-	rez-diff_.py "$@"
+	rez_.py diff "$@"
 else
 	tmpf=`mktemp`
 	rez-diff_.py "$@" > $tmpf

@@ -1,45 +1,43 @@
-#!!REZ_PYTHON_BINARY!
+'''
+Like rez-env, but is able to create wrappers on the fly. 
 
-#
-# rez-env-autowrappers
-#
-# Like rez-env, but is able to create wrappers on the fly. Rez-env automatically switches to this
-# mode if it detects the syntax described below...
-# Consider the following invocation of rez-env:
-#
-# ]$ rez-env (maya mutils-1.4) (houdini-11 hutils-3.2.2 mysops-5)
-#
-# Each one of the bracketed sections becomes its own subshell. Any package in that subshell that has
-# executables listed in a 'tools' section of its package.yaml file, will have those executables
-# exposed as 'alias' scripts. For example, after running the above command, running 'maya' would
-# actually jump into the first subshell and then execute maya inside of it. Now consider:
-#
-# ]$ rez-env fx_(maya mfx-4.3) (maya manim-2.2)_anim
-#
-# Here, one subshell is given a prefix, and another a suffix. After running the above command, we
-# would expect the executables "fx_maya" and "maya_anim" to exist. The prefix/suffix is applied to
-# all tools found within that subshell.
-#
-# Each subshell has a name, by default this name is the pre/postfixed version of the first pkg in 
-# the shell, so eg 'fx_maya' from above. To set this manually, do this:
-#
-# ]$ rez-env fx_(mayafx: maya mfx-4.3)
-#
-# Rez can also take a list of separate requests and 'merge' them together, use the pipe operator to
-# do this. Later requests override earlier ones. For example, consider:
-#
-# rez-env (maya foo-1) | (maya foo-2)  # ==> becomes (maya foo-2)
-#
-# Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the 
-# second request. This functionality is provided for two reasons - (a) it's used internally when
-# using patching; (b) it can be utilised by rez users, who want to implement their own environment 
-# management system, and have a need to create a working environment based on a heirarchical series 
-# of overriding config files.
-#
-# Lastly, the '^' operator can be used to *remove* packages from the request, eg:
-#
-# rez-env (maya foo-1) | (maya ^foo)  # ==> becomes (maya)
-#
+Rez-env automatically switches to this
+mode if it detects the syntax described below...
+Consider the following invocation of rez-env:
+
+]$ rez-env (maya mutils-1.4) (houdini-11 hutils-3.2.2 mysops-5)
+
+Each one of the bracketed sections becomes its own subshell. Any package in that subshell that has
+executables listed in a 'tools' section of its package.yaml file, will have those executables
+exposed as 'alias' scripts. For example, after running the above command, running 'maya' would
+actually jump into the first subshell and then execute maya inside of it. Now consider:
+
+]$ rez-env fx_(maya mfx-4.3) (maya manim-2.2)_anim
+
+Here, one subshell is given a prefix, and another a suffix. After running the above command, we
+would expect the executables "fx_maya" and "maya_anim" to exist. The prefix/suffix is applied to
+all tools found within that subshell.
+
+Each subshell has a name, by default this name is the pre/postfixed version of the first pkg in 
+the shell, so eg 'fx_maya' from above. To set this manually, do this:
+
+]$ rez-env fx_(mayafx: maya mfx-4.3)
+
+Rez can also take a list of separate requests and 'merge' them together, use the pipe operator to
+do this. Later requests override earlier ones. For example, consider:
+
+rez-env (maya foo-1) | (maya foo-2)  # ==> becomes (maya foo-2)
+
+Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the 
+second request. This functionality is provided for two reasons - (a) it's used internally when
+using patching; (b) it can be utilised by rez users, who want to implement their own environment 
+management system, and have a need to create a working environment based on a heirarchical series 
+of overriding config files.
+
+Lastly, the '^' operator can be used to *remove* packages from the request, eg:
+
+rez-env (maya foo-1) | (maya ^foo)  # ==> becomes (maya)
+'''
 
 import os
 import stat
@@ -49,8 +47,8 @@ import shutil
 import subprocess
 import tempfile
 import pyparsing as pp
-import rez_env_cmdlin as rec
-import rez_parse_request as rpr
+import rez.rez_env_cmdlin as rec
+import rez.rez_parse_request as rpr
 
 _g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
 _g_context_filename     = 'package.context'
@@ -58,6 +56,12 @@ _g_packages_filename    = 'packages.txt'
 _g_dot_filename         = _g_context_filename + '.dot'
 _g_tools_filename       = _g_context_filename + '.tools'
 
+# FIXME: finish this conversion (looks like a real pita)
+def setup_parser(parser):
+    pass
+
+def command(opts):
+    pass
 
 # main
 if __name__ == '__main__':
@@ -79,7 +83,7 @@ if __name__ == '__main__':
                 pkgpaths.remove(localpath)
                 os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
 
-    import rez_config as rc
+    import rez.rez_config as rc
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
@@ -114,10 +118,10 @@ if __name__ == '__main__':
         contextfile = os.path.join(pkgdir, _g_context_filename)
         dotfile = os.path.join(pkgdir, _g_dot_filename)
 
-        resolver = rc.Resolver(rc.RESOLVE_MODE_LATEST, quiet=opts.quiet, time_epoch=opts.time, \
+        resolver = rc.Resolver(rc.RESOLVE_MODE_LATEST, quiet=opts.quiet, time_epoch=opts.time,
             build_requires=opts.build, assume_dt=not opts.no_assume_dt, caching=not opts.no_cache)
 
-        result = resolver.guarded_resolve(d['pkgs'], no_os=opts.no_os, is_wrapper=True, \
+        result = resolver.guarded_resolve(d['pkgs'], no_os=opts.no_os, is_wrapper=True,
             meta_vars=["tools"], shallow_meta_vars=["tools"], dot_file=dotfile)
 
         if not result:

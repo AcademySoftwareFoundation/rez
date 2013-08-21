@@ -37,14 +37,15 @@ def main():
         assert hasattr(mod, 'setup_parser'), "command module %s  must provide a setup_parser() function" % name
 
         brief = mod.__doc__.strip('\n').split('\n')[0]
-
-        subparser = subparsers.add_parser(name.split('.')[-1],
+        cmdname = name.split('.')[-1].replace('_', '-')
+        subparser = subparsers.add_parser(cmdname,
                                           description=mod.__doc__,
                                           help=brief)
         mod.setup_parser(subparser)
         subparser.set_defaults(func=mod.command)
 
-    parser.parse_args()
+    args = parser.parse_args()
+    args.func(args)
 
 if __name__ == '__main__':
     main()

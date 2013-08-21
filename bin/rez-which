@@ -7,14 +7,8 @@
 # Note that rez-which is in no way affected by the current environment.
 #
 
-
-if [ $# -ne 1 ]; then
-	echo "usage: rez-which <package>"
-	exit 1
-fi
-
 . _set-rez-env
-rez-which_.py "$@"
+rez_.py which "$@"
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

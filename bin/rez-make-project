@@ -8,7 +8,7 @@
 
 . _set-rez-env
 
-rez-make-project_.py "$@"
+rez_.py make-project "$@"
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -5,13 +5,12 @@ Output from this util can be used to setup said configuration (rez-env does this
 '''
 import os
 import sys
-import optparse
 
 def setup_parser(parser):
     #usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
 
     parser.add_argument("pkg", nargs='+',
-                        help='package name')
+                        help='list of package names')
     parser.add_argument("-m", "--mode", dest="mode", default="latest",
                         help="set resolution mode (earliest, latest) [default = %(default)s]")
     parser.add_argument("-v", "--verbosity", dest="verbosity", type=int,
@@ -78,61 +77,57 @@ def setup_parser(parser):
                         help="don't load local packages")
     return parser
 
-def command(args):
+def command(opts):
 
-    if args.version:
+    if opts.version:
         print os.getenv("REZ_VERSION")
         sys.exit(0)
     
-    if (args.verbosity < 0) or (args.verbosity > 2):
-        sys.stderr.write("rez-config: error: option -v: invalid integer value: " + str(args.verbosity) + '\n')
+    if (opts.verbosity < 0) or (opts.verbosity > 2):
+        sys.stderr.write("rez-config: error: option -v: invalid integer value: " + str(opts.verbosity) + '\n')
         sys.exit(1)
 
     # force quiet with some options
-    do_quiet = args.quiet or args.print_env or args.print_pkgs or args.print_dot
+    do_quiet = opts.quiet or opts.print_env or opts.print_pkgs or opts.print_dot
 
     # validate time
-    time_epoch = int(args.time)
+    time_epoch = int(opts.time)
 
     # parse out meta bake
-    meta_vars = (args.meta_info or '').replace(',',' ').strip().split()
-    shallow_meta_vars = (args.meta_info_shallow or '').replace(',',' ').strip().split()
+    meta_vars = (opts.meta_info or '').replace(',',' ').strip().split()
+    shallow_meta_vars = (opts.meta_info_shallow or '').replace(',',' ').strip().split()
 
     # hide local pkgs
-    if args.no_local:
-        localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
-        if localpath:
-            pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
-            if localpath in pkgpaths:
-                pkgpaths.remove(localpath)
-                os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
+    if opts.no_local:
+        import rez.rez_util
+        rez.rez_util.hide_local_packages()
 
-    import rez_config as dc
+    import rez.rez_config as dc
 
     mode = None
-    if (args.mode == "none"):
+    if (opts.mode == "none"):
         mode = dc.RESOLVE_MODE_NONE
-    elif (args.mode == "latest"):
+    elif (opts.mode == "latest"):
         mode = dc.RESOLVE_MODE_LATEST
-    elif (args.mode == "earliest"):
+    elif (opts.mode == "earliest"):
         mode = dc.RESOLVE_MODE_EARLIEST
     else:
-        sys.stderr.write("rez-config: error: option -m: illegal resolution mode '" + args.mode + "'\n")
+        sys.stderr.write("rez-config: error: option -m: illegal resolution mode '" + opts.mode + "'\n")
         sys.exit(1)
 
     ##########################################################################################
     # construct package request
     ##########################################################################################
-    resolver = dc.Resolver(mode, do_quiet, args.verbosity, args.max_fails, time_epoch,
-        args.buildreqs, not args.no_assume_dt, not args.no_cache)
+    resolver = dc.Resolver(mode, do_quiet, opts.verbosity, opts.max_fails, time_epoch,
+        opts.buildreqs, not opts.no_assume_dt, not opts.no_cache)
 
-    if args.no_catch:
-        pkg_reqs = [dc.str_to_pkg_req(x) for x in args.pkg]
-        pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, args.no_os,
-            args.no_path_append, args.wrapper, meta_vars, shallow_meta_vars)
+    if opts.no_catch:
+        pkg_reqs = [dc.str_to_pkg_req(x) for x in opts.pkg]
+        pkg_ress, env_cmds, dot_graph, num_fails = resolver.resolve(pkg_reqs, opts.no_os,
+            opts.no_path_append, opts.wrapper, meta_vars, shallow_meta_vars)
     else:
-        result = resolver.guarded_resolve(args.pkg, args.no_os, args.no_path_append, args.wrapper,
-            meta_vars, shallow_meta_vars, args.dot_file, args.print_dot)
+        result = resolver.guarded_resolve(opts.pkg, opts.no_os, opts.no_path_append, opts.wrapper,
+            meta_vars, shallow_meta_vars, opts.dot_file, opts.print_dot)
 
         if not result:
             sys.exit(1)
@@ -145,11 +140,11 @@ def command(args):
     if not do_quiet:
         print "\nsuccessful configuration found after " + str(num_fails) + " failed attempts."
 
-    if args.print_env:
+    if opts.print_env:
         for env_cmd in env_cmds:
             print env_cmd
 
-    if args.print_pkgs:
+    if opts.print_pkgs:
         for pkg_res in pkg_ress:
             print pkg_res.short_name()
 

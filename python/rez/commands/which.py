@@ -1,15 +1,20 @@
-#!!REZ_PYTHON_BINARY!
-
+'''
+Print the path to a package.
+'''
 import sys
-import rez_config as rc
 
-pkg = sys.argv[1]
+def setup_parser(parser):
+    parser.add_argument("pkg", metavar='PACKAGE',
+                        help="package name")
+# pkg = sys.argv[1]
 
-try:
-	print rc.get_base_path(pkg)
-except Exception:
-	print "package not found: '" + pkg + "'"
-	sys.exit(1)
+def command(opts):
+    import rez.rez_config as rc
+    try:
+        print rc.get_base_path(opts.pkg)
+    except Exception:
+        print "package not found: '" + opts.pkg + "'"
+        sys.exit(1)
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
