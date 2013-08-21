@@ -49,9 +49,8 @@ else
 		export REZ_DOT_IMAGE_VIEWER=!REZ_DOT_IMAGE_VIEWER!
 	fi
 
-    THISDIR=$(dirname $(readlink -f $BASH_SOURCE[0]))
-    if [[ -e "$THISDIR/init_site.sh" ]]; then
-        source "$THISDIR/init_site.sh"
+    if [[ -e "$REZ_PATH/init_site.sh" ]]; then
+        source "$REZ_PATH/init_site.sh"
     fi
 
 	source $REZ_PATH/bin/_complete
