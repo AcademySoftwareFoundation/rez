@@ -33,10 +33,10 @@ def main():
     parser = argparse.ArgumentParser("rez")
     subparsers = []
     parents = []
-    for name, mod, ispkg in subpackages(rez.commands):
+    for name, mod, ispkg in subpackages(rez.cli):
         cmdname = name.split('.')[-1].replace('_', '-')
         if ispkg:
-            if cmdname == 'commands':
+            if cmdname == 'cli':
                 title = 'commands'
             else:
                 title = (cmdname + ' subcommands')
