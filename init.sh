@@ -50,7 +50,7 @@ else
 	fi
 
     THISDIR=$(dirname $(readlink -f $BASH_SOURCE[0]))
-    if [[ -f "$THISDIR/init_site.sh" ]]; then
+    if [[ -e "$THISDIR/init_site.sh" ]]; then
         source "$THISDIR/init_site.sh"
     fi
 
