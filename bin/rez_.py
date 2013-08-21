@@ -5,7 +5,7 @@ import sys
 import inspect
 import argparse
 import pkgutil
-import rez.commands
+import rez.cli
 
 def subpackages(packagemod):
     """
