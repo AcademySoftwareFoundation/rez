@@ -239,20 +239,6 @@ cat ./init.sh \
 	> $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
-# install init.csh
-#-----------------------------------------------------------------------------------------
-cat ./init.csh \
-    | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.csh
-chmod 644 $install_dir/init.csh
-
 # install bin/ files
 #-----------------------------------------------------------------------------------------
 mkdir -p $install_dir/bin
