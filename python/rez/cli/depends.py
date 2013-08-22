@@ -1,7 +1,7 @@
 '''
 Display unversioned dependency information.
 
-Operates of every package found in the given directory,
+Operates on every package found in the given directory,
 or the default central packages directory if none is specified. Only information from the
 latest version of every package is used.
 

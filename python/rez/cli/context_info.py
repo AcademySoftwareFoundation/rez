@@ -1,5 +1,5 @@
 '''
-Report information on the current rez-configured environment.
+Report on the current rez-configured environment.
 '''
 import os
 import sys

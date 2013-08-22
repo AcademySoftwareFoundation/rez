@@ -1,5 +1,5 @@
 '''
-Displays the difference between two sets of packages.
+Display the difference between two sets of packages.
 
 Can show packages that have been added, packages that have been removed, and packages whos versions
 have changed, in this case listing all the changelogs associated with the version change.
