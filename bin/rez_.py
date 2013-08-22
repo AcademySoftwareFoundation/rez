@@ -5,7 +5,9 @@ import sys
 import inspect
 import argparse
 import pkgutil
-import rez.cli
+
+def get_parser_defaults(parser):
+    return dict((act.dest, act.default) for act in parser._actions)
 
 def subpackages(packagemod):
     """
@@ -20,9 +22,11 @@ def subpackages(packagemod):
                                                               packagemod.__name__+'.'):
             if modname not in sys.modules:
                 try:
-                    mod = importer.find_module(modname).load_module(modname)
+                    #mod = importer.find_module(modname).load_module(modname)
+                    __import__(modname, globals(), locals(), [], -1)
+                    mod = sys.modules[modname]
                 except Exception, e:
-                    print "error importing %s: %s" %  ( modname, e)
+                    print>>sys.stderr, "rez: error importing %s: %s" %  ( modname, e)
             else:
                 mod = sys.modules[modname]
             yield modname, mod, ispkg
@@ -30,6 +34,7 @@ def subpackages(packagemod):
         yield packagemod.__name__, packagemod, False
 
 def main():
+    import rez.cli
     parser = argparse.ArgumentParser("rez")
     subparsers = []
     parents = []

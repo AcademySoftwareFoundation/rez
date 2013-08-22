@@ -40,15 +40,6 @@ rez-env (maya foo-1) | (maya ^foo)  # ==> becomes (maya)
 '''
 
 import os
-import stat
-import os.path
-import sys
-import shutil
-import subprocess
-import tempfile
-import pyparsing as pp
-import rez.rez_env_cmdlin as rec
-import rez.rez_parse_request as rpr
 
 _g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
 _g_context_filename     = 'package.context'
@@ -56,39 +47,34 @@ _g_packages_filename    = 'packages.txt'
 _g_dot_filename         = _g_context_filename + '.dot'
 _g_tools_filename       = _g_context_filename + '.tools'
 
-# FIXME: finish this conversion (looks like a real pita)
 def setup_parser(parser):
-    pass
+    from . import env as rez_cli_env
+    rez_cli_env.setup_parser(parser)
 
 def command(opts):
-    pass
 
-# main
-if __name__ == '__main__':
+    import stat
+    import os.path
+    import sys
+    import shutil
+    import subprocess
+    import tempfile
+    import pyparsing as pp
+    import rez.rez_parse_request as rpr
+#     (opts, args) = p.parse_args(sys.argv[2:])
 
-    # parse args
-    p = rec.get_cmdlin_parser()
-
-    (opts, args) = p.parse_args(sys.argv[2:])
-    pkgs_str = str(' ').join(args).strip()
-    if not pkgs_str:
-        p.parse_args(['-h'])
-        sys.exit(1)
+    pkgs_str = str(' ').join(opts.pkg).strip()
 
     if opts.no_local:
-        localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
-        if localpath:
-            pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
-            if localpath in pkgpaths:
-                pkgpaths.remove(localpath)
-                os.environ["REZ_PACKAGES_PATH"] = str(':').join(pkgpaths)
+        import rez.rez_util
+        rez.rez_util.hide_local_packages()
 
     import rez.rez_config as rc
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
 
-    tmpdir = sys.argv[1]
+    tmpdir = opts.tmpdir
     if not opts.quiet and not opts.stdin:
         print 'Building into ' + tmpdir + '...'
 
@@ -102,10 +88,12 @@ if __name__ == '__main__':
         wrapper_template_src = f.read()
 
     # create the local subshell packages
-    for name,d in subshells.iteritems():
+    for name, d in subshells.iteritems():
         s = name
-        if d['prefix']:     s += '(prefix:' + d['prefix'] + ')'
-        if d['suffix']:     s += '(suffix:' + d['suffix'] + ')'
+        if d['prefix']:
+            s += '(prefix:' + d['prefix'] + ')'
+        if d['suffix']:
+            s += '(suffix:' + d['suffix'] + ')'
         if not opts.stdin:
             print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
 
@@ -130,9 +118,8 @@ if __name__ == '__main__':
         commands = result[1]
         commands.append("export REZ_CONTEXT_FILE=%s" % contextfile)
 
-        f = open(contextfile, 'w')
-        f.write(str('\n').join(commands))
-        f.close()
+        with open(contextfile, 'w') as f:
+            f.write(str('\n').join(commands))
 
         # extract the tools from the context file, create the alias scripts
         tools = []
@@ -160,31 +147,29 @@ if __name__ == '__main__':
             if rcfile_copy:
                 src = src.replace("#RCFILE#", "../rcfile.sh")                
             
-            f = open(aliasfile, 'w')
-            f.write(src)
-            f.close()
+            with open(aliasfile, 'w') as f:
+                f.write(src)
+
             os.chmod(aliasfile, stat.S_IXUSR|stat.S_IXGRP|stat.S_IRUSR|stat.S_IRGRP)
 
         # create the package.yaml
-        f = open(os.path.join(pkgdir, 'package.yaml'), 'w')
-        f.write( \
-            'config_version : 0\n' \
-            'name: ' + pkgname + '\n' \
-            'commands:\n' \
-            '- export PATH=$PATH:!ROOT!\n' \
-            '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
-
-        if tools:
-            f.write("tools:\n")
-            for tool in tools:
-                alias = d["prefix"] + tool + d["suffix"]
-                f.write("- %s\n" % alias)
-        f.close()
+        with open(os.path.join(pkgdir, 'package.yaml'), 'w') as f:
+            f.write(
+                'config_version : 0\n'
+                'name: ' + pkgname + '\n'
+                'commands:\n'
+                '- export PATH=$PATH:!ROOT!\n'
+                '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
+    
+            if tools:
+                f.write("tools:\n")
+                for tool in tools:
+                    alias = d["prefix"] + tool + d["suffix"]
+                    f.write("- %s\n" % alias)
 
     fpath = os.path.join(tmpdir, _g_packages_filename)
-    f = open(fpath, 'w')
-    f.write(str(' ').join(all_pkgs))
-    f.close()
+    with open(fpath, 'w') as f:
+        f.write(str(' ').join(all_pkgs))
 
 
 
