@@ -9,6 +9,7 @@ specified.
 import os
 import os.path
 import sys
+from rez.cli import error, output
 
 def setup_parser(parser):
     parser.add_argument("package", metavar="PACKAGE", default=None, nargs='?',
@@ -33,9 +34,9 @@ def command(opts):
     if not os.path.isdir(opts.path):
         sys.stderr.write("'" + opts.path + "' is not a directory.\n")
         sys.exit(1)
-    
+
     pkg_paths = []
-    
+
     if opts.package:
         fullpath = os.path.join(opts.path, opts.package)
         if not os.path.isdir(fullpath):
@@ -46,28 +47,27 @@ def command(opts):
         for f in os.listdir(opts.path):
             if (f == "rez"):
                 continue
-    
+
             fullpath = os.path.join(opts.path, f)
             if os.path.isdir(fullpath):
                 pkg_paths.append(fullpath)
-    
-    
+
+
     for fullpath in pkg_paths:
-    
         vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
         if vers:
             filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
             metadict = yaml.load(open(filename).read())
-    
+
             ln = fullpath.split('/')[-1]
-    
+
             if opts.auth:
                 ln = ln + " | "
                 if "authors" in metadict:
                     ln = ln + str(" ").join(metadict["authors"])
                 else:
                     continue
-    
+
             if opts.desc:
                 ln = ln + " | "
                 if "description" in metadict:
@@ -76,13 +76,13 @@ def command(opts):
                     ln = ln + descr
                 else:
                     continue
-    
+
             if opts.dep:
                 ln = ln + " | "
                 reqs = metadict["requires"] if ("requires" in metadict) else []
                 vars = metadict["variants"] if ("variants" in metadict) else []
                 if len(reqs) + len(vars) > 0:
-    
+
                     fn_unver = lambda pkg: pkg.split('-')[0]
                     deps = set(map(fn_unver, reqs))
                     for var in vars:
@@ -90,8 +90,8 @@ def command(opts):
     
                     if len(deps) > 0:
                         ln = ln + "*" + str(" *").join(deps)
-    
-            print ln
+
+            output(ln)
 
 
 

@@ -5,6 +5,7 @@ Display dot files from the command line.
 
 import os
 import sys
+from rez.cli import error, output
 
 #########################################################################################
 # command-line
@@ -43,28 +44,28 @@ def command(opts):
     import tempfile
 
     dotfile = opts.dotfile
-    
-    
+
+
     if not os.path.isfile(dotfile):
-        sys.stderr.write("File does not exist.\n")
+        error("File does not exist.")
         sys.exit(1)
-    
-    
+
+
     #########################################################################################
     # strip out all nodes not associated with a conflict / associated with a particular pkg
     #########################################################################################
-    
+
     g = None
-    
+
     if (opts.conflict_only) or (opts.package != ""):
-    
+
         oldg = pydot.graph_from_dot_file(dotfile)
-    
+
         # group graph edges by dest pkg, and find 'seed' pkg(s)
         edges = {}
         seed_pkgs = set()
         opt_pkg_exists_as_source = False
-    
+
         oldedges = oldg.get_edge_list()
         for e in oldedges:
             pkgsrc = e.get_source().replace('"','')
@@ -87,11 +88,11 @@ def command(opts):
                     seed_pkgs.add(pkgdest)
                 if pkgsrc.startswith(opts.package):
                     opt_pkg_exists_as_source = True
-    
+
         # extract all edges dependent (directly or not) on seed pkgs
         newg = pydot.Dot()
         consumed_edges = set()
-    
+
         if len(seed_pkgs) > 0:
             while True:
                 new_seed_pkgs = set()
@@ -104,16 +105,16 @@ def command(opts):
                                 del attribs["lp"]
                             if "pos" in attribs:
                                 del attribs["pos"]
-    
+
                             if seededge not in consumed_edges:
                                 newg.add_edge(seededge)
                                 consumed_edges.add(seededge)
                             new_seed_pkgs.add(seededge.get_source())
-    
+
                 if len(new_seed_pkgs) == 0:
                     break
                 seed_pkgs = new_seed_pkgs
-    
+
         if len(newg.get_edge_list()) > 0:
             g = newg
         elif opt_pkg_exists_as_source:
@@ -121,47 +122,46 @@ def command(opts):
             e = pydot.Edge("DIRECT REQUEST", opts.package)
             newg.add_edge(e)
             g = newg
-    
-    
+
+
     #########################################################################################
     # generate dot image
     #########################################################################################
-    
+
     if opts.filename:
         imgfile = opts.filename
     else:
         tmpf = tempfile.mkstemp(suffix='.jpg')
         os.close(tmpf[0])
         imgfile = tmpf[1]
-    
+
     if not opts.quiet:
         print "reading dot file..."
         sys.stdout.flush()
-    
+
     if not g:
         g = pydot.graph_from_dot_file(dotfile)
-    
-    
+
     if opts.ratio > 0:
         g.set_ratio(str(opts.ratio))
-    
+
     if not opts.quiet:
         print "rendering image to " + imgfile + "..."
         sys.stdout.flush()
-    
+
     g.write_jpg(imgfile)
     
     
     #########################################################################################
     # view it then delete it or just exit if we're saving to a file
     #########################################################################################
-    
+
     if not opts.filename:
         if not opts.quiet:
             print "loading viewer..."
         proc = subprocess.Popen(opts.viewer + " " + imgfile, shell=True)
         proc.wait()
-    
+
         if proc.returncode != 0:
             subprocess.Popen("firefox " + imgfile, shell=True).wait()
     

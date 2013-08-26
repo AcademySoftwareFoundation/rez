@@ -3,6 +3,7 @@ Print vital information about a package.
 '''
 
 import sys
+from rez.cli import error, output
 
 ##########################################################################################
 # parse arguments
@@ -42,13 +43,13 @@ def command(opts):
     try:
         pkg_base_path = dc.get_base_path(pkg)
     except Exception:
-        sys.stderr.write("Package not found: '" + pkg + "'\n")
+        error("Package not found: '" + pkg + "'")
         sys.exit(1)
-    
-    print
-    print "info @ " + pkg_base_path + ":"
-    
-    
+
+    output()
+    output("info @ " + pkg_base_path + ":")
+
+
     try:
         pkg_info = open(pkg_base_path + "/.metadata/info.txt").readlines()
     except Exception:
@@ -59,46 +60,46 @@ def command(opts):
         try:
             metadict = yaml.load(open(yaml_file).read())
         except Exception:
-            print "The package appears to be missing a package.yaml."
+            error("The package appears to be missing a package.yaml.")
             sys.exit(1)
-    
+
         print
-    
+
         if "description" in metadict:
-            print "Description:"
-            print str(metadict["description"]).strip()
-            print
-    
+            output("Description:")
+            output(str(metadict["description"]).strip())
+            output()
+
         if "authors" in metadict:
-            print "Authors:"
+            output("Authors:")
             for auth in metadict["authors"]:
-                print auth
-            print
-    
-        print "REPOSITORY URL:"
+                output(auth)
+            output()
+
+        output("REPOSITORY URL:")
         svn_url = pkg_info[-1].split()[-1]
-        print svn_url
-        print
-    
+        output(svn_url)
+        output()
+
         release_date_secs = int(pkg_info[0].split()[-1])
         now_secs = subprocess.Popen("date +%s", shell=True, stdout=subprocess.PIPE).communicate()[0]
         now_secs = int(now_secs)
         days = (now_secs - release_date_secs) / (3600 * 24)
-    
-        print "Days since last release:"
-        print days
+
+        output("Days since last release:")
+        output(days)
     else:
         yaml_file = pkg_base_path + "/package.yaml"
         try:
             metadict = yaml.load(open(yaml_file).read())
-            print "The package appears to be external.\n"
+            output("The package appears to be external.\n")
             if "description" in metadict:
-                print "Description:"
-                print str(metadict["description"]).strip()
-                print
-    
+                output("Description:")
+                output(str(metadict["description"]).strip())
+                output()
+
         except Exception:
-            print "The package was not released with rez-release."
+            output("The package was not released with rez-release.")
 
     print
 

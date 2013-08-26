@@ -5,6 +5,7 @@ Output from this util can be used to setup said configuration (rez-env does this
 '''
 import os
 import sys
+from rez.cli import error, output
 
 def setup_parser(parser):
     #usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
@@ -87,7 +88,7 @@ def setup_parser(parser):
 def command(opts):
 
     if opts.version:
-        print os.getenv("REZ_VERSION")
+        output(os.getenv("REZ_VERSION"))
         sys.exit(0)
 
     # force quiet with some options
@@ -115,7 +116,7 @@ def command(opts):
     elif (opts.mode == "earliest"):
         mode = dc.RESOLVE_MODE_EARLIEST
     else:
-        sys.stderr.write("rez-config: error: option -m: illegal resolution mode '" + opts.mode + "'\n")
+        error("rez-config: option -m: illegal resolution mode '" + opts.mode + "'")
         sys.exit(1)
 
     ##########################################################################################
@@ -145,11 +146,11 @@ def command(opts):
 
     if opts.print_env:
         for env_cmd in env_cmds:
-            print env_cmd
+            output(env_cmd)
 
     if opts.print_pkgs:
         for pkg_res in pkg_ress:
-            print pkg_res.short_name()
+            output(pkg_res.short_name())
 
     if opts.env_file:
         with open(opts.env_file, 'w') as f:

@@ -8,7 +8,7 @@ This information can optionally be displated in HTML format for easy viewing.
 
 import os
 import sys
-
+from rez.cli import error, output
 
 #########################################################################################
 # command-line
@@ -65,7 +65,7 @@ def command(opts):
     # turn all old pkgs into 'pkg=e' to force start from earliest
     args = []
     newgroup = False
-     
+
     for pkg in opts.pkg:
         if pkg == "--":
             newgroup = True
@@ -73,9 +73,9 @@ def command(opts):
             if (not pkg.endswith("=e")) and (not pkg.endswith("=l")):
                 pkg += "=e"
         args.append(pkg)
-     
+
     septok = "__SEP__"
-     
+
     # add new pkgs as latest of each if they weren't supplied
     if "--" in args:
         args[args.index("--")] = septok
@@ -86,46 +86,46 @@ def command(opts):
                 newpkgs.append(pkg.split('-',1)[0])
         args.append(septok)
         args += newpkgs
-    
+
     pos = args.index(septok)
     old_pkgs_list = args[:pos]
     new_pkgs_list = args[pos+1:]
-    
+
     opts.html = opts.html or opts.viewhtml
     #########################################################################################
     # determine which pkgs have been added, which removed, and which altered
     #########################################################################################
-    
+
     # (family, pkg)
     old_pkgs = {}
     new_pkgs = {}
-    
+
     for pkg in old_pkgs_list:
         fam = pkg.split('=',1)[0].split("-",1)[0]
         if fam in old_pkgs:
-            sys.stderr.write("Error: package '" + fam + "' appears more than once in old package group.\n")
+            error("Error: package '" + fam + "' appears more than once in old package group.")
             sys.exit(1)
         old_pkgs[fam] = pkg
-    
+
     for pkg in new_pkgs_list:
         fam = pkg.split('=',1)[0].split("-",1)[0]
         if fam in new_pkgs:
-            sys.stderr.write("Error: package '" + fam + "' appears more than once in new package group.\n")
+            error("Error: package '" + fam + "' appears more than once in new package group.")
             sys.exit(1)
         new_pkgs[fam] = pkg
-    
+
     # removed packages
     removed_pkgs = []
     fams = set(old_pkgs.keys()) - set(new_pkgs.keys())
     for fam in fams:
         removed_pkgs.append(old_pkgs[fam])
-    
+
     # added packages
     added_pkgs = []
     fams = set(new_pkgs.keys()) - set(old_pkgs.keys())
     for fam in fams:
         added_pkgs.append(new_pkgs[fam])
-    
+
     # altered packages
     updated_pkgs = []
     rolledback_pkgs = []
@@ -142,12 +142,12 @@ def command(opts):
                 updated_pkgs.append( (fam, old_path, new_path) )
             else:
                 rolledback_pkgs.append( (fam, new_path, old_path) )
-    
-    
+
+
     #########################################################################################
     # generate output
     #########################################################################################
-    
+
 
     outputter = Outputter(opts.html)
     outputter.print_added_packages(removed_pkgs, False)
@@ -179,41 +179,41 @@ class Outputter(object):
             self.br = ""
     
         if self.html:
-            print '<font face="Arial">'
-            print '<table border="0" cellpadding="0" bgcolor=#' + self.table_bgcolor2 + '>'
+            output('<font face="Arial">')
+            output('<table border="0" cellpadding="0" bgcolor=#' + self.table_bgcolor2 + '>')
 
     def print_added_packages(self, pkgs, are_added):
         import rez.rez_config as dc
 
         if len(pkgs) > 0:
-            print self.big_line_sep
+            output(self.big_line_sep)
             if are_added:
                 tok = "added packages:  "
             else:
                 tok = "removed packages:"
-    
+
             pkgs_ = []
             for pkg in pkgs:
                 pkg_ = pkg.rsplit("=",1)[0]
                 pkgs_.append(pkg_)
-    
+
             pkglist = str(", ").join(pkgs_)
             if self.html:
-                print "<tr>"
-                print '  <td align="center"><font size="2">' + tok + '</font></td>'
-                print '  <td bgcolor=#' + self.rowcols3[self.rowcolindex3] + '>'
-                print '      <table border="0" cellpadding="5" bgcolor=#' + self.rowcols3[self.rowcolindex3] + '><tr><td>'
-                print "         <font size='2'>" + pkglist + "</font>"
-                print "      </td></tr></table>"
-                print "  </td>"
-                print "</tr>"
+                output("<tr>")
+                output( '  <td align="center"><font size="2">' + tok + '</font></td>')
+                output('  <td bgcolor=#' + self.rowcols3[self.rowcolindex3] + '>')
+                output('      <table border="0" cellpadding="5" bgcolor=#' + self.rowcols3[self.rowcolindex3] + '><tr><td>')
+                output("         <font size='2'>" + pkglist + "</font>")
+                output("      </td></tr></table>")
+                output( "  </td>")
+                output("</tr>")
                 rowcolindex3 = 1 - self.rowcolindex3
             else:
-                print(tok + "\t" + pkglist)
-    
-    
+                output(tok + "\t" + pkglist)
+
+
     def print_altered_packages(self, pkgs, are_updated):
-    
+
         import rez.rez_config as dc
         if len(pkgs) > 0:
             print self.big_line_sep
@@ -221,50 +221,50 @@ class Outputter(object):
                 tok = "updated packages:"
             else:
                 tok = "rolled-back packages:"
-    
+
             if self.html:
-                print '<tr><td align="center"><font size="2">' + tok + '</font></td><td>'
-                print '<table border="0">'
+                output('<tr><td align="center"><font size="2">' + tok + '</font></td><td>')
+                output('<table border="0">')
                 rowcolindex = 0
             else:
-                print tok
-    
+                output(tok)
+
             for pkg in pkgs:
-                print self.small_line_sep
+                output(self.small_line_sep)
                 if self.html:
-                    print '<tr><td bgcolor=#' + self.rowcols3[self.rowcolindex3] + '>'
-                    print '<table cellspacing="5" border="0"><tr><td align="center"><font size=2>'
+                    output('<tr><td bgcolor=#' + self.rowcols3[self.rowcolindex3] + '>')
+                    output('<table cellspacing="5" border="0"><tr><td align="center"><font size=2>')
                     rowcolindex3 = 1 - self.rowcolindex3
-    
+
                 path = pkg[1].rsplit("/",1)[0]
                 fam = pkg[0]
                 oldverstr = pkg[1].rsplit("/",1)[-1]
                 newverstr = pkg[2].rsplit("/",1)[-1]
                 oldver = dc.Version(oldverstr)
                 newver = dc.Version(newverstr)
-    
+
                 if are_updated:
-                    print fam + self.br + " [" + str(oldver) + " -> " + str(newver) + "]"
+                    output(fam + self.br + " [" + str(oldver) + " -> " + str(newver) + "]")
                 else:
-                    print fam + self.br + " [" + str(newver) + " -> " + str(oldver) + "]"
-    
+                    output(fam + self.br + " [" + str(newver) + " -> " + str(oldver) + "]")
+
                 if self.html:
-                    print '</font></td></tr></table></td><td width="100%"><table border="0" bgcolor=#' + \
-                        self.table_bgcolor + ' cellpadding="0" cellspacing="1" width="100%">'
-    
+                    output('</font></td></tr></table></td><td width="100%"><table border="0" bgcolor=#' +
+                        self.table_bgcolor + ' cellpadding="0" cellspacing="1" width="100%">')
+
                 # list all changelogs between versions
                 pkgpath = dc.get_base_path(fam + "-" + str(newver))
                 currver = dc.Version(pkgpath.rsplit("/",1)[-1])
-    
+
                 while currver > oldver:
-    
+
                     if self.html:
                         rowcolindex = 1 - rowcolindex
-                        print '<tr bgcolor=#' + self.rowcols[rowcolindex] + \
-                            '><td align="center" width="5%"><font size=2>&nbsp;' + str(currver) + "&nbsp;</font></td><td>"
+                        output('<tr bgcolor=#' + self.rowcols[rowcolindex] +
+                            '><td align="center" width="5%"><font size=2>&nbsp;' + str(currver) + "&nbsp;</font></td><td>")
                     else:
-                        print "\n" + fam + "-" + str(currver) + ":"
-    
+                        output("\n" + fam + "-" + str(currver) + ":")
+
                     chlogpath = pkgpath + "/.metadata/changelog.txt"
                     if os.path.isfile(chlogpath):
                         f = open(chlogpath)
@@ -275,7 +275,7 @@ class Outputter(object):
                             prev_row = False
                             rowcolindex2 = 0
                             td_cols = self.rowcols2[rowcolindex]
-    
+
                             for l in lines:
                                 l2 = l.strip()
                                 if len(l2) > 0:
@@ -296,39 +296,39 @@ class Outputter(object):
                                                     is_rev_line = True
                                             if not is_rev_line:
                                                 l2 = "<br>" + l2
-    
+
                                         lines2.append(l2)
-    
+
                             chlog = str('\n').join(lines2)
                             chlog = '<table border="0" cellpadding="5" cellspacing="1" width="100%">' + chlog + '</table>'
-    
+
                         f.close()
-                        print chlog
+                        output(chlog)
                     else:
                         if self.html:
-                            print '<table cellspacing="1"><tr><td><font size=2>&nbsp;'
-                        print "\tno changelog available."
+                            output('<table cellspacing="1"><tr><td><font size=2>&nbsp;')
+                        output("\tno changelog available.")
                         if self.html:
-                            print "</td></tr></table></font>"
-    
+                            output("</td></tr></table></font>")
+
                     if self.html:
-                        print "</td></tr>"
-    
+                        output("</td></tr>")
+
                     pkgpath = dc.get_base_path(fam + "-0+<" + str(currver))
                     currver = dc.Version(pkgpath.rsplit("/",1)[-1])
-    
+
                 if self.html:
-                    print "</table></td></tr>"
-                    print "<tr><td></td><td></td></tr>"
-    
+                    output("</table></td></tr>")
+                    output("<tr><td></td><td></td></tr>")
+
             if self.html:
-                print "</table></td></tr>"
+                output("</table></td></tr>")
 
     def print_coda(self):
-        print self.big_line_sep
-        
+        output(self.big_line_sep)
+
         if self.html:
-            print "</table></font>"
+            output("</table></font>")
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

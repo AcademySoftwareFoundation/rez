@@ -78,7 +78,7 @@ def command(opts):
     if not opts.quiet and not opts.stdin:
         print 'Building into ' + tmpdir + '...'
 
-    # make a copy of rcfile, if specified. We need to propogate this into the subshells
+    # make a copy of rcfile, if specified. We need to propagate this into the subshells
     rcfile_copy = None
     if opts.rcfile and opts.prop_rcfile and os.path.isfile(opts.rcfile):
         rcfile_copy = os.path.join(tmpdir, "rcfile.sh")
@@ -106,8 +106,10 @@ def command(opts):
         contextfile = os.path.join(pkgdir, _g_context_filename)
         dotfile = os.path.join(pkgdir, _g_dot_filename)
 
-        resolver = rc.Resolver(rc.RESOLVE_MODE_LATEST, quiet=opts.quiet, time_epoch=opts.time,
-            build_requires=opts.build, assume_dt=not opts.no_assume_dt, caching=not opts.no_cache)
+        resolver = rc.Resolver(rc.RESOLVE_MODE_LATEST, quiet=opts.quiet,
+                               time_epoch=opts.time, build_requires=opts.build,
+                               assume_dt=not opts.no_assume_dt,
+                               caching=not opts.no_cache)
 
         result = resolver.guarded_resolve(d['pkgs'], no_os=opts.no_os, is_wrapper=True,
             meta_vars=["tools"], shallow_meta_vars=["tools"], dot_file=dotfile)
@@ -160,7 +162,7 @@ def command(opts):
                 'commands:\n'
                 '- export PATH=$PATH:!ROOT!\n'
                 '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
-    
+
             if tools:
                 f.write("tools:\n")
                 for tool in tools:

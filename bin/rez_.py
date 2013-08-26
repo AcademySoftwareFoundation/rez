@@ -5,6 +5,7 @@ import sys
 import inspect
 import argparse
 import pkgutil
+import rez.cli
 
 def get_parser_defaults(parser):
     return dict((act.dest, act.default) for act in parser._actions)
@@ -26,15 +27,15 @@ def subpackages(packagemod):
                     __import__(modname, globals(), locals(), [], -1)
                     mod = sys.modules[modname]
                 except Exception, e:
-                    print>>sys.stderr, "rez: error importing %s: %s" %  ( modname, e)
+                    rez.cli.error("importing %s: %s" %  ( modname, e))
             else:
                 mod = sys.modules[modname]
             yield modname, mod, ispkg
     else:
         yield packagemod.__name__, packagemod, False
 
+@rez.cli.redirect_to_stderr
 def main():
-    import rez.cli
     parser = argparse.ArgumentParser("rez")
     subparsers = []
     parents = []
@@ -51,9 +52,12 @@ def main():
         elif not name.startswith(parents[-1]):
             parents.pop()
             subparsers.pop()
-        assert mod.__doc__, "command module %s must have a module-level docstring (used as the command help)" % name
-        assert hasattr(mod, 'command'), "command module %s must provide a command() function" % name
-        assert hasattr(mod, 'setup_parser'), "command module %s  must provide a setup_parser() function" % name
+        if not mod.__doc__:
+            rez.cli.error("command module %s must have a module-level docstring (used as the command help)" % name)
+        if not hasattr(mod, 'command'):
+            rez.cli.error("command module %s must provide a command() function" % name)
+        if not hasattr(mod, 'setup_parser'):
+            rez.cli.error("command module %s  must provide a setup_parser() function" % name)
 
         brief = mod.__doc__.strip('\n').split('\n')[0]
         subparser = subparsers[-1].add_parser(cmdname,

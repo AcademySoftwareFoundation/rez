@@ -24,6 +24,7 @@ rez-depends --show-dot --all
 '''
 import os
 import sys
+from rez.cli import error, output
 
 def _detect_cycle(pkgmap, depchain, depset):
     pkg = depchain[-1]
@@ -104,7 +105,7 @@ def command(opts):
                 if os.path.isdir(path2):
                     all_dirs.append(path2)
         else:
-            print >> sys.stderr, "Warning: skipping nonexistent path %s..." % path
+            error("Warning: skipping nonexistent path %s..." % path)
 
     if not opts.quiet:
         print("gathering packages...")

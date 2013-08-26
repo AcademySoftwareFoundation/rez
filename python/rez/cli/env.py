@@ -5,6 +5,7 @@ Invoke a shell based on a configuration request.
 import argparse
 import sys
 import os
+from rez.cli import error, output
 
 # _g_usage = "rez-env [options] pkg1 pkg2 ... pkgN"
 
@@ -15,9 +16,8 @@ import os
 #             sys.stderr.write(msg)
 #         sys.exit(1)
 
-
 def setup_parser(parser):
-    # settings shared with rez-config
+    # settings shared with `rez config`
     parser.add_argument("pkg", nargs='+',
                         help='list of package names')
     parser.add_argument("-m", "--mode", dest="mode", type=str, default="latest",
@@ -50,6 +50,7 @@ def setup_parser(parser):
                         action="store_true", default=False,
                         help="don't load local packages")
 
+    # settings unique to `rez env`
     parser.add_argument("-p", "--prompt", dest="prompt", type=str,
                         default=">",
                         help="Set the prompt decorator [default=%(default)s]")
@@ -84,11 +85,11 @@ def command(opts):
     raw_request = os.getenv('REZ_RAW_REQUEST', '')
     if opts.add_loose or opts.add_strict:
         if autowrappers:
-            sys.stdout.write("Patching of auto-wrapper environments is not yet supported.\n")
+            error("Patching of auto-wrapper environments is not yet supported.")
             sys.exit(1)
 
         if _autowrappers(raw_request.split()):
-            sys.stdout.write("Patching from auto-wrapper environments is not yet supported.\n")
+            error("Patching from auto-wrapper environments is not yet supported.")
             sys.exit(1)
 
     ##############################################################################
@@ -137,7 +138,7 @@ def command(opts):
 
     if print_pkgs and not opts.quiet:
         quotedpkgs = ["'%s'" % pkg for pkg in pkg_list.split()]
-        print>>sys.stderr, "request: %s" % ' '.join(quotedpkgs)
+        print "request: %s" % ' '.join(quotedpkgs)
 
 
     ##############################################################################
@@ -150,36 +151,32 @@ def command(opts):
 
     from . import config as rez_cli_config
 
-    kwargs = vars(opts)
+    # setup args for rez-config
+    # TODO: provide a util which reads defaults for the cli function
+    kwargs = dict(verbosity=0,
+                  version=False,
+                  print_env=False,
+                  print_dot=False,
+                  meta_info='tools',
+                  meta_info_shallow='tools',
+                  env_file=tmpf,
+                  dot_file=tmpf3,
+                  max_fails=opts.view_fail,
+                  wrapper=False,
+                  no_catch=False,
+                  no_path_append=False,
+                  print_pkgs=False)
+    # copy settings that are the same between rez-env and rez-config
+    kwargs.update(vars(opts))
+    # override values that differ
     kwargs['quiet'] = True
-    # TODO: provide a util which reads defaults for the cli command
-    config_opts = argparse.Namespace(verbosity=0,
-                                     version=False,
-                                     print_env=False,
-                                     print_dot=False,
-                                     meta_info='tools',
-                                     meta_info_shallow='tools',
-                                     env_file=tmpf,
-                                     dot_file=tmpf3,
-                                     max_fails=opts.view_fail,
-                                     wrapper=False,
-                                     no_catch=False,
-                                     no_path_append=False,
-                                     print_pkgs=False,
-                                     **kwargs)
+    kwargs['pkg'] = pkg_list.split()
+
+    config_opts = argparse.Namespace(**kwargs)
     try:
-#         rez-config
-#         --time=$_REZ_ENV_OPT_TIME
-#         --print-env
-#         --meta-info=tools
-#         --meta-info-shallow=tools
-#         --dot-file=$tmpf3
-#         --mode=$_REZ_ENV_OPT_MODE
-#         $max_fails_flag $dt_flag $ignore_archiving_flag $use_blacklist_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
         rez_cli_config.command(config_opts)
-        # capture output into: $tmpf
     except Exception, err:
-        print>>sys.stderr, err
+        error(err)
         try:
             # TODO: change cli convention so that commands do not call sys.exit
             # and we can actually catch this exception
@@ -204,28 +201,29 @@ def command(opts):
     # spawn the new shell, sourcing the bake file
     ##############################################################################
 
+    cmd = ''
     if not raw_request:
-        print "export REZ_RAW_REQUEST='%s';" % packages
+        cmd += "export REZ_RAW_REQUEST='%s';" % packages
 
-    print "export REZ_CONTEXT_FILE=%s;" % tmpf
-    print 'export REZ_ENV_PROMPT="%s";' % (os.getenv('REZ_ENV_PROMPT', '') + opts.prompt)
+    cmd += "export REZ_CONTEXT_FILE=%s;" % tmpf
+    cmd += 'export REZ_ENV_PROMPT="%s";' % (os.getenv('REZ_ENV_PROMPT', '') + opts.prompt)
  
     if opts.stdin:
-        print "source %s;" % tmpf
+        cmd += "source %s;" % tmpf
         if not opts.rcfile:
             if os.path.exists(os.path.expanduser('~/.bashrc')):
-                print "source ~/.bashrc &> /dev/null;"
+                cmd += "source ~/.bashrc &> /dev/null;"
         else:
-            print "source %s;" % opts.rcfile
+            cmd += "source %s;" % opts.rcfile
 #                 if [ $? -ne 0 ]; then
 #                     exit 1
 #                 fi
  
         # ensure that rez-config is available no matter what (eg .bashrc might not exist,
         # rcfile might not source rez-config)
-        print "source $REZ_PATH/init.sh;"
-        print "bash -s;"
-        print "ret=$?;"
+        cmd += "source $REZ_PATH/init.sh;"
+        cmd += "bash -s;"
+        cmd += "ret=$?;"
     else:
         with open(tmpf2, 'w') as f:
             f.write("source %s\n" % tmpf)
@@ -238,12 +236,13 @@ def command(opts):
                 f.write("echo You are now in a new environment.\n")
                 f.write("rez-context-info\n")
  
-        print "bash --rcfile %s;" % tmpf2
-        print "ret=$?;"
-        print "rm -f %s;" % tmpf2
+        cmd += "bash --rcfile %s;" % tmpf2
+        cmd += "ret=$?;"
+        cmd += "rm -f %s;" % tmpf2
 
-    print "rm -f %s;" % tmpf
-    print "rm -f %s;" % tmpf3
+    cmd += "rm -f %s;" % tmpf
+    cmd += "rm -f %s;" % tmpf3
+    output(cmd)
     #print "exit $ret;"
 
 

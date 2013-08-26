@@ -115,6 +115,8 @@ class PackageRequest:
 	def __str__(self):
 		return str((self.name, self.version))
 
+	def __repr__(self):
+		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.version)
 
 class PackageConflict:
 	"""

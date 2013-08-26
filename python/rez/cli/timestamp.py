@@ -8,6 +8,7 @@ treats it as though it does not exist.
 
 import os.path
 import sys
+from rez.cli import error, output
 
 def setup_parser(parser):
     parser.add_argument("path", default=".", nargs="?")
@@ -22,14 +23,14 @@ def command(opts):
     timepath = os.path.join(metapath, "release_time.txt")
 
     if os.path.exists(timepath):
-        print>>sys.stderr, "Error: Target package is already timestamped: %s" % timepath
+        error("Target package is already timestamped: %s" % timepath)
         sys.exit(1)
 
     if not os.path.exists(metapath):
         try:
             os.mkdir(metapath)
         except Exception, err:
-            print>>sys.stderr, "Error: Could not create dir: %s: %s" % (metapath, str(err))
+            error("Could not create dir: %s: %s" % (metapath, str(err)))
 
     import time
     with open(timepath, 'w') as f:

@@ -2,6 +2,7 @@
 Print the path to a package.
 '''
 import sys
+from rez.cli import error, output
 
 def setup_parser(parser):
     parser.add_argument("pkg", metavar='PACKAGE',
@@ -11,9 +12,9 @@ def setup_parser(parser):
 def command(opts):
     import rez.rez_config as rc
     try:
-        print rc.get_base_path(opts.pkg)
+        output(rc.get_base_path(opts.pkg))
     except Exception:
-        print "package not found: '" + opts.pkg + "'"
+        output("package not found: '" + opts.pkg + "'")
         sys.exit(1)
 
 
