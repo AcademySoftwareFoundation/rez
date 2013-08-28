@@ -89,8 +89,8 @@ class PackageRequest(object):
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
-			found_path, found_ver, found_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, name_, VersionRange(version), latest)
+			found_path, found_ver, found_epoch = memcache.find_package_in_range(
+				name_, VersionRange(version), latest)
 
 			if found_ver:
 				self.version = str(found_ver)
@@ -592,7 +592,7 @@ def get_base_path(pkg_str):
 		verrange = strs[1]
 
 	path,ver,pkg_epoch = \
-		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
+		RezMemCache().find_package_in_range(name, VersionRange(verrange), latest)
 	if not path:
 		raise PkgNotFoundError(pkg_str)
 
@@ -682,7 +682,7 @@ class _Package(object):
 			self.timestamp = None
 
 			if not self.is_anti() and memcache and \
-				not memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+					not memcache.package_family_exists(self.name):
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
@@ -776,8 +776,8 @@ class _Package(object):
 			return False
 
 		if not self.base_path:
-			fam_path,ver,pkg_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, self.name, self.version_range, exact=True)
+			fam_path, ver, pkg_epoch = memcache.find_package_in_range(
+				self.name, self.version_range, exact=True)
 			if ver is not None:
 				base_path = fam_path
 				if not is_any:
@@ -1644,24 +1644,23 @@ class _Configuration(object):
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2( \
-				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+				pkg.name, pkg.version_range, latest=False)
 
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_e = self.rctxt.memcache.get_metafile( \
-				found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_e = self.rctxt.memcache.get_metafile(
+				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
 			if not metafile_e:
 				continue
 
-			found_path, found_ver, found_epoch = \
-				self.rctxt.memcache.find_package2( \
-					rez_filesys._g_syspaths, pkg.name, pkg.version_range, True)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+				pkg.name, pkg.version_range, latest=True)
 
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_l = self.rctxt.memcache.get_metafile( \
-				found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_l = self.rctxt.memcache.get_metafile(
+				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
 			if not metafile_l:
 				continue
 

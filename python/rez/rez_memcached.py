@@ -110,8 +110,53 @@ class RezMemCache(object):
         self.versions[path] = vers
         return vers
 
+    def iter_packages(self, family_name, paths=None):
+        """
+        Given a family name and a `VersionRange`, iterate through
+        (family path, resolved `Version`, epoch) for all versions found.
+        """
+        if paths is None:
+            paths = rez_filesys._g_syspaths
+
+        for pkg_path in paths:
+            family_path = os.path.join(pkg_path, family_name)
+            vers = self.get_versions_in_directory(family_path)
+            if vers:
+                for ver, timestamp in vers:
+                    yield family_path, ver, timestamp
+            elif os.path.isfile(os.path.join(family_path, PKG_METADATA_FILENAME)):
+                # check for special case - unversioned package.
+                # only allowed when no versioned packages exist.
+                yield family_path, Version(""), 0
+
+    def find_package_in_range(self, family_name, ver_range, latest=True, exact=False,
+                    paths=None):
+        """
+        Given a family name and a `VersionRange`, return (family path, resolved
+        `Version`, epoch), or (None, None, None) if no matches are found.
+        
+        If two versions in two different paths are the same, then the package in
+        the first path is returned in preference.
+        """
+        # store the generator. no paths have been walked yet
+        results = self.iter_packages(family_name, paths)
+
+        # sort 
+        if latest:
+            results = sorted(results, key=lambda x: x[1], reverse=True)
+        else:
+            results = sorted(results, key=lambda x: x[1], reverse=False)
+
+        # find the best match
+        for ver in results:
+            if ver_range.matches_version(ver[1], allow_inexact=not exact):
+                return ver
+
+        return (None, None, None)
+
     def find_package(self, path, ver_range, latest=True, exact=False):
         """
+        Deprecated: use find_package_in_range(..., paths=[path])
         Given a path to a package family and a version range, return (resolved version, epoch)
         or None if not found.
         """
@@ -142,6 +187,8 @@ class RezMemCache(object):
 
     def find_package2(self, paths, family_name, ver_range, latest=True, exact=False):
         """
+        Deprecated: use find_package_in_range()
+
         Given a list of package paths, a family name and a version range, return (family path,
         resolved version, epoch), or (None,None,None) if not found. If two versions in two different 
         paths are the same, then the package in the first path is returned in preference.
@@ -177,13 +224,16 @@ class RezMemCache(object):
         else:
             return (None,None,None)
 
-    def package_family_exists(self, paths, family_name):
+    def package_family_exists(self, family_name, paths=None):
         """
         Determines if the package family exists. This involves only quite light file system 
         access, so isn't memcached.
         """
         if family_name in self.families:
             return True
+
+        if paths is None:
+            paths = rez_filesys._g_syspaths
 
         for path in paths:
             if os.path.isdir(os.path.join(path, family_name)):

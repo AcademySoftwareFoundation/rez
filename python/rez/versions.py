@@ -248,6 +248,20 @@ class VersionRange(object):
 				return True
 		return False
 
+	def matches_version(self, ver, allow_inexact=False):
+		"""
+		Returns True if the range matches the Version.
+		
+		If `allow_inexact` is True, considers inexact matches as well. 
+		"""
+		# if the range is not inexact, then there is only one version
+		if not self.is_inexact() and ver == self.versions[0]:
+			return True
+		# Note that VersionRange('').contains_version('10') == True
+		if allow_inexact and self.contains_version(ver):
+			return True
+		return False
+
 	def get_union(self, vers):
 		"""
 		get union
