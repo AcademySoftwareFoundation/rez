@@ -5,7 +5,7 @@ import sys
 import copy
 
 
-class MemCacheClient():
+class MemCacheClient(object):
     """
     Wrapper for memcache.Client class.
     """

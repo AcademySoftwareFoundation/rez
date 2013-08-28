@@ -15,7 +15,7 @@ class ConfigMetadataError(Exception):
 
 
 # TODO this class is too heavy
-class ConfigMetadata:
+class ConfigMetadata(object):
 	"""
 	metafile. An incorrectly-formatted file will result in either a yaml exception (if
 	the syntax is wrong) or a ConfigMetadataError (if the content is wrong). An empty

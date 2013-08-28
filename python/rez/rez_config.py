@@ -59,7 +59,7 @@ import rez_util
 # Public Classes
 ##############################################################################
 
-class PackageRequest:
+class PackageRequest(object):
 	"""
 	A request for a package. 'version' may be inexact (for eg '5.4+'). If mode
 	is != NONE then the request will immediately attempt to resolve itself.
@@ -118,7 +118,7 @@ class PackageRequest:
 	def __repr__(self):
 		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.version)
 
-class PackageConflict:
+class PackageConflict(object):
 	"""
 	A package conflict. This can occur between a package (possibly a specific
 	variant) and a package request
@@ -136,7 +136,7 @@ class PackageConflict:
 		return tmpstr
 
 
-class ResolvedPackage:
+class ResolvedPackage(object):
 	"""
 	A resolved package
 	"""
@@ -163,7 +163,7 @@ class ResolvedPackage:
 		return str([self.name, self.version, self.root])
 
 
-class Resolver():
+class Resolver(object):
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
@@ -624,7 +624,7 @@ def make_random_color_string():
 # Internal Classes
 ##############################################################################
 
-class _ResolvingContext:
+class _ResolvingContext(object):
 	"""
 	Resolving context
 	"""
@@ -641,7 +641,7 @@ class _ResolvingContext:
 		self.memcache = None
 
 
-class _PackageVariant:
+class _PackageVariant(object):
 	"""
 	A package variant. The 'working list' member is a list of dependencies that are
 	removed during config resolution - a variant with an empty working_list is fully
@@ -665,7 +665,7 @@ class _PackageVariant:
 		return str(self.metadata)
 
 
-class _Package:
+class _Package(object):
 	"""
 	Internal package representation
 	"""
@@ -820,7 +820,7 @@ class _Package:
 
 
 
-class _Configuration:
+class _Configuration(object):
 	"""
 	Internal configuration representation
 	"""

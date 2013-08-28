@@ -38,7 +38,7 @@ if _g_caching_enabled:
     mc = None
 
 
-class RezMemCache():
+class RezMemCache(object):
     """
     Cache for filesystem access and resolves.
     """

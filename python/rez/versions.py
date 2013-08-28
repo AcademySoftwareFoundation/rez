@@ -28,7 +28,7 @@ class VersionError(Exception):
 	def __str__(self):
 		return "Invalid version: %s" % self.value
 
-class Version:
+class Version(object):
 	"""
 	A version string. Note that disparate version ranges (separated with '|'s) are not supported -
 	use a VersionRange for this.
@@ -204,7 +204,7 @@ class Version:
 		return self.__lt__(ver) or self.__eq__(ver)
 
 
-class VersionRange:
+class VersionRange(object):
 	"""
 	A collection of zero or more inexact versions, which do not overlap. If a
 	VersionRange is initialised with disparate version ranges which do overlap
