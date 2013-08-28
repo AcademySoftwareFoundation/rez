@@ -2,110 +2,101 @@
 Functions for parsing rez parenthesised syntax, used to create subshells on the fly (see the comments
 in bin/rez-env-autowrappers_.py)
 """
+request_parser = None
 
-import pyparsing as pp
+class RequestParser(object):
+    def __init__(self):
+        import pyparsing as pp
+        _pkg = pp.Regex("[a-zA-Z_0-9~<=^\\.\\-\\!\\+]+").setParseAction(self._parse_pkg)
 
+        _subshell_label = pp.Regex("[a-zA-Z0-9_]+")
+        _subshell_label_decl = (_subshell_label + ':').setParseAction(self._parse_subshell_label)
+        _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
+        _subshell_prefix = (pp.Regex("[a-zA-Z0-9_]+\\(") ^ '(').setParseAction(self._parse_subshell_prefix)
+        _subshell_suffix = (pp.Regex("\\)[a-zA-Z0-9_]+") ^ ')').setParseAction(self._parse_subshell_suffix)
+        _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
 
+        _request = pp.OneOrMore(_pkg ^ _subshell).setParseAction(self._parse_subshell_request)
+        self.expr = _request + pp.ZeroOrMore('|' + _request)
 
-# split pkgs string into separate subshells
-base_pkgs = None
-subshells = None
-curr_ss = None
-merged_base_pkgs = None
-merged_subshells = None
+    def _reset(self):
+        self.base_pkgs = []
+        self.subshells = {}
+        self.merged_base_pkgs = []
+        self.merged_subshells = {}
+        self.curr_subshell = None
 
-def parse_request(s):
-    """
-    Parses any request string, including parenthesised form, and merging (pipe operator).
-    @return (base_pkgs, subshells). base_pkgs is a list of packages in the 'master' shell, ie 
-        outside of any parenthesised subshell. 'subshells' is a dict of subshells, keyed on the
-        subshell name.
-    """
-
-    global base_pkgs
-    global subshells
-    global curr_ss
-    global merged_base_pkgs
-    global merged_subshells
-
-    base_pkgs = []
-    subshells = {}
-    merged_base_pkgs = []
-    merged_subshells = {}
-    curr_ss = None
-
-    def _parse_pkg(s, loc, toks):
-        global curr_ss
+    def _parse_pkg(self, s, loc, toks):
         pkg_str = str('').join(toks)
-        if curr_ss is None:
-            base_pkgs.append(pkg_str)
+        if self.curr_subshell is None:
+            self.base_pkgs.append(pkg_str)
         else:
-            curr_ss["pkgs"].append(pkg_str)
+            self.curr_subshell["pkgs"].append(pkg_str)
 
-    def _parse_ss_label(s, loc, toks):
-        curr_ss["label"] = toks[0]
+    def _parse_subshell_label(self, s, loc, toks):
+        self.curr_subshell["label"] = toks[0]
 
-    def _parse_ss_prefix(s, loc, toks):
-        global curr_ss
-        curr_ss = {
+    def _parse_subshell_prefix(self, s, loc, toks):
+        self.curr_subshell = {
             "pkgs": [],
             "prefix": '',
             "suffix": ''
         }
         prefix_str = toks[0][:-1]
         if prefix_str:
-            curr_ss["prefix"] = prefix_str
+            self.curr_subshell["prefix"] = prefix_str
 
-    def _parse_ss_suffix(s, loc, toks):
-        global curr_ss
+    def _parse_subshell_suffix(self, s, loc, toks):
         suffix_str = toks[0][1:]
         if suffix_str:
-            curr_ss["suffix"] = suffix_str
-        if "label" not in curr_ss:
-            pkg_fam = curr_ss["pkgs"][0].split('-')[0]
-            label_str = curr_ss["prefix"] + pkg_fam + curr_ss["suffix"]
-            curr_ss["label"] = label_str
+            self.curr_subshell["suffix"] = suffix_str
+        if "label" not in self.curr_subshell:
+            pkg_fam = self.curr_subshell["pkgs"][0].split('-')[0]
+            label_str = self.curr_subshell["prefix"] + pkg_fam + self.curr_subshell["suffix"]
+            self.curr_subshell["label"] = label_str
 
-        subshell_name = curr_ss["label"]
-        if subshell_name in subshells:
+        subshell_name = self.curr_subshell["label"]
+        if subshell_name in self.subshells:
+            # FIXME: raise error instead of calling sys.exit
             print >> sys.stderr, "Error: subshell '%s' is defined more than once!" % subshell_name
             sys.exit(1)
 
-        subshells[subshell_name] = curr_ss
-        curr_ss = None
+        self.subshells[subshell_name] = self.curr_subshell
+        self.curr_subshell = None
 
-    def _parse_ss_request(s, loc, toks):
-        global base_pkgs
-        global subshells
-        global merged_base_pkgs
-        global merged_subshells
-        merged_base_pkgs = _merge_pkgs(merged_base_pkgs, base_pkgs)
-        merged_subshells = _merge_subshells(merged_subshells, subshells)
-        base_pkgs = []
-        subshells = {}        
+    def _parse_subshell_request(self, s, loc, toks):
+        self.merged_base_pkgs = merge_pkgs(self.merged_base_pkgs,
+                                            self.base_pkgs)
+        self.merged_subshells = _merge_subshells(self.merged_subshells,
+                                                 self.subshells)
+        self.base_pkgs = []
+        self.subshells = {}
 
-    _pkg = pp.Regex("[a-zA-Z_0-9~<=^\\.\\-\\!\\+]+").setParseAction(_parse_pkg)
+    def parseString(self, request):
+        self._reset()
+        self.expr.parseString(request, parseAll=True)
+        return (self.merged_base_pkgs, self.merged_subshells)
 
-    _subshell_label = pp.Regex("[a-zA-Z0-9_]+")
-    _subshell_label_decl = (_subshell_label + ':').setParseAction(_parse_ss_label)
-    _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
-    _subshell_prefix = (pp.Regex("[a-zA-Z0-9_]+\\(") ^ '(').setParseAction(_parse_ss_prefix)
-    _subshell_suffix = (pp.Regex("\\)[a-zA-Z0-9_]+") ^ ')').setParseAction(_parse_ss_suffix)
-    _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
+def parse_request(request):
+    """
+    Parses any request string, including parenthesised form, and merging (pipe operator).
+    @return (base_pkgs, subshells). base_pkgs is a list of packages in the 'master' shell, ie 
+        outside of any parenthesised subshell. 'subshells' is a dict of subshells, keyed on the
+        subshell name.
+    """
+    global request_parser
+    if request_parser is None:
+        request_parser = RequestParser()
+    return request_parser.parseString(request)
 
-    _request = pp.OneOrMore(_pkg ^ _subshell).setParseAction(_parse_ss_request)
-    _expr = _request + pp.ZeroOrMore('|' + _request)
 
-    pr = _expr.parseString(s, parseAll=True)
-    return (merged_base_pkgs, merged_subshells)
-
-
-def _merge_pkgs(pkgs, override_pkgs):
+def merge_pkgs(pkgs, override_pkgs):
 
     def _parse_pkg(pkg):
         rm = pkg.startswith('^')
         if rm:
             if len(pkg.split('-')) > 1:
+                # FIXME: use a proper rez exception
                 raise Exception("Only unversioned package allowed with the remove operator '^'")
             pkg = pkg[1:]
         return (pkg.split('-')[0], rm)
@@ -115,11 +106,11 @@ def _merge_pkgs(pkgs, override_pkgs):
 
     opkgs = {}
     for pkg in override_pkgs:
-        name,rm = _parse_pkg(pkg)
+        name, rm = _parse_pkg(pkg)
         opkgs[name] = (pkg,rm)
 
     for pkg in pkgs:
-        name,rm = _parse_pkg(pkg)
+        name, rm = _parse_pkg(pkg)
         opkg = opkgs.get(name)
         if opkg:
             if not opkg[1]:
@@ -137,10 +128,10 @@ def _merge_subshells(subshells, override_subshells):
     merged_subshells = {}
     override_subshells2 = override_subshells.copy()
 
-    for name,ss in subshells.iteritems():
+    for name, ss in subshells.iteritems():
         oss = override_subshells.get(name)
         if oss:
-            merged_pkgs = _merge_pkgs(ss["pkgs"], oss["pkgs"])
+            merged_pkgs = merge_pkgs(ss["pkgs"], oss["pkgs"])
             new_ss = ss.copy()
             new_ss.update(oss)
             new_ss["pkgs"] = merged_pkgs
@@ -174,5 +165,5 @@ def _encode_subshell(ss):
 
     suffix = ss.get("suffix") or ''
     s += ")%s" % suffix
-    
+
     return s
