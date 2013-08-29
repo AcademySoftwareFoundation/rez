@@ -6,6 +6,7 @@ import argparse
 import sys
 import os
 from rez.cli import error, output
+from . import config as rez_cli_config
 
 # _g_usage = "rez-env [options] pkg1 pkg2 ... pkgN"
 
@@ -17,38 +18,12 @@ from rez.cli import error, output
 #         sys.exit(1)
 
 def setup_parser(parser):
-    # settings shared with `rez config`
+
     parser.add_argument("pkg", nargs='+',
                         help='list of package names')
-    parser.add_argument("-m", "--mode", dest="mode", type=str, default="latest",
-                        help="Set the package resolution mode [default=%(default)s]")
-    parser.add_argument("-q", "--quiet", dest="quiet",
-                        action="store_true", default=False,
-                        help="Suppress unnecessary output [default = %(default)s]")
-    parser.add_argument("-o", "--no-os", "--no_os", dest="no_os",
-                        action="store_true", default=False,
-                        help="Stop rez-env from implicitly requesting the operating system package [default = %(default)s]")
-    parser.add_argument("-b", "--build", "--build-requires", dest="buildreqs",
-                        action="store_true", default=False,
-                        help="Include build-only package requirements [default = %(default)s]")
-    parser.add_argument("--no-cache", dest="no_cache",
-                        action="store_true", default=False,
-                        help="disable caching [default = %(default)s]")
-    parser.add_argument("-g", "--ignore_archiving", dest="ignore_archiving",
-                        action="store_true", default=False,
-                        help="Include archived packages [default = %(default)s]")
-    parser.add_argument("-u", "--ignore-blacklist", "--ignore_blacklist", dest="ignore_blacklist",
-                        action="store_true", default=False,
-                        help="Include blacklisted packages [default = %(default)s]")
-    parser.add_argument("-d", "--no-assume-dt", "--no_assume_dt", dest="no_assume_dt",
-                        action="store_true", default=False,
-                        help="Do not assume dependency transitivity [default = %(default)s]")
-    parser.add_argument("-i", "--time", dest="time", type=int,
-                        default=0,
-                        help="Ignore packages newer than the given epoch time")
-    parser.add_argument("--no-local", dest="no_local",
-                        action="store_true", default=False,
-                        help="don't load local packages")
+
+    # settings shared with `rez config`
+    rez_cli_config.setup_shared_parser(parser)
 
     # settings unique to `rez env`
     parser.add_argument("-p", "--prompt", dest="prompt", type=str,
@@ -66,10 +41,16 @@ def setup_parser(parser):
     parser.add_argument("-s", "--stdin", dest="stdin",
                         action="store_true", default=False,
                         help="Read commands from stdin, rather than starting an interactive shell [default = %(default)s]")
-    parser.add_argument("-a", "--add-loose", "--add_loose", dest="add_loose",
+    parser.add_argument("-a", "--add-loose",
+                        # FIXME: remove this option:
+                        "--add_loose",
+                        dest="add_loose",
                         action="store_true", default=False,
                         help="Add mode (loose). Packages will override or add to the existing request list [default = %(default)s]")
-    parser.add_argument("-t", "--add-strict", "--add_strict", dest="add_strict",
+    parser.add_argument("-t", "--add-strict",
+                        # FIXME: remove this option:
+                        "--add_strict",
+                        dest="add_strict",
                         action="store_true", default=False,
                         help="Add mode (strict). Packages will override or add to the existing resolve list [default = %(default)s]")
     parser.add_argument("-f", "--view-fail", "--view_fail", dest="view_fail", type=int,
@@ -148,8 +129,6 @@ def command(opts):
     tmpf = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
     tmpf2 = tmpf + ".source"
     tmpf3 = tmpf + ".dot"
-
-    from . import config as rez_cli_config
 
     # setup args for rez-config
     # TODO: provide a util which reads defaults for the cli function

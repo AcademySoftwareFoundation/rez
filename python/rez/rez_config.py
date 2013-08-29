@@ -434,13 +434,6 @@ class Resolver():
 		env_cmds = []
 		res_pkg_strs = [x.short_name() for x in pkg_res_list]
 
-		if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
-			mode_str = "latest"
-		elif (self.rctxt.resolve_mode == RESOLVE_MODE_EARLIEST):
-			mode_str = "earliest"
-		else:
-			mode_str = "none"
-
 		# special case env-vars
 		env_cmds.append("export PATH=")
 		env_cmds.append("export REZ_USED=" + rez_filesys._g_rez_path)
@@ -449,7 +442,7 @@ class Resolver():
 		env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
 		env_cmds.append("export PYTHONPATH=%s/python" % rez_filesys._g_rez_path)
 		env_cmds.append("export REZ_RESOLVE='"+ str(" ").join(res_pkg_strs)+"'")
-		env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
+		env_cmds.append("export REZ_RESOLVE_MODE=" + self.rctxt.resolve_mode)
 		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
 		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
 
