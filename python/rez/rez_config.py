@@ -1000,45 +1000,17 @@ class _Configuration(object):
 		package (ie the package that requires it), and the type of dot-graph connection,
 		if the pkg has a parent pkg.
 		"""
-		if parent_pkg:
-			connt = _Configuration.PKGCONN_REQUIRES
-			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
-				connt = _Configuration.PKGCONN_TRANSITIVE
-				self.add_dot_graph_verbatim('"' + pkg_req.short_name() + \
-					'" [ shape=octagon ] ;')
-
-			self.dot_graph.append( ( parent_pkg.short_name(), ( pkg_req.short_name(), connt ) ) )
-
 		# test to see what adding this package would do
 		result, pkg = self.test_pkg_req_add(pkg_req, True)
 
+		self._add_package_to_dot_graph(pkg_req.shot_name(), result, pkg,
+									   parent_pkg, dot_connection_type)
+
 		if (result == _Configuration.ADDPKG_CONFLICT):
-
-			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
-				_Configuration.PKGCONN_CONFLICT ) ) )
-			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
-
 			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
 			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and pkg:
-
-			# update dot-graph
-			pkgname = pkg.short_name()
-			if pkg.name in self.pkgs:
-				connt = dot_connection_type
-				if (connt != _Configuration.PKGCONN_RESOLVE):
-					connt = _Configuration.PKGCONN_REDUCE
-
-				pkgname_existing = self.pkgs[pkg.name].short_name()
-				# if pkg and pkg-existing have same short-name, then a further-reduced package was already
-				# in the config (eg, we added 'python' to a config with 'python-2.5')
-				if (pkgname_existing == pkgname):
-					self.dot_graph.append( ( pkg_req.short_name(), ( pkgname_existing, connt ) ) )
-				else:
-					self.dot_graph.append( ( pkgname_existing, ( pkgname, connt ) ) )
-			self.dot_graph.append( ( pkgname, None ) )
-
 			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
 				pkg.is_transitivity = True
 
@@ -1055,6 +1027,39 @@ class _Configuration(object):
 				if ('!' + pkg.name) in self.pkgs:
 					del self.pkgs['!' + pkg.name]
 
+	def _add_package_to_dot_graph(self, short_name, pkg, result, parent_pkg=None,
+								  dot_connection_type=0):
+		if parent_pkg:
+			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
+				connt = _Configuration.PKGCONN_TRANSITIVE
+				self.add_dot_graph_verbatim('"' + short_name + \
+					'" [ shape=octagon ] ;')
+			else:
+				connt = _Configuration.PKGCONN_REQUIRES
+			self.dot_graph.append( ( parent_pkg.short_name(), ( short_name, connt ) ) )
+
+		if (result == _Configuration.ADDPKG_CONFLICT):
+			self.dot_graph.append( ( pkg.short_name(), ( short_name, \
+				_Configuration.PKGCONN_CONFLICT ) ) )
+			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+
+		elif (result == _Configuration.ADDPKG_ADD) and pkg:
+
+			# update dot-graph
+			pkgname = pkg.short_name()
+			if pkg.name in self.pkgs:
+				connt = dot_connection_type
+				if (connt != _Configuration.PKGCONN_RESOLVE):
+					connt = _Configuration.PKGCONN_REDUCE
+
+				pkgname_existing = self.pkgs[pkg.name].short_name()
+				# if pkg and pkg-existing have same short-name, then a further-reduced package was already
+				# in the config (eg, we added 'python' to a config with 'python-2.5')
+				if (pkgname_existing == pkgname):
+					self.dot_graph.append( ( short_name, ( pkgname_existing, connt ) ) )
+				else:
+					self.dot_graph.append( ( pkgname_existing, ( pkgname, connt ) ) )
+			self.dot_graph.append( ( pkgname, None ) )
 
 	def get_dot_graph_as_string(self):
 		"""
