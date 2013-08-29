@@ -53,43 +53,71 @@ class ConfigMetadata(object):
 					"' contains non-dictionary root node")
 
 			# config_version
-			if not ("config_version" in self.metadict):
+			self.config_version = self._get_int("config_version",
+													  required=True)
+
+			if (self.config_version < 0) or (self.config_version > ConfigMetadata.METAFILE_VERSION):
 				raise ConfigMetadataError("package metafile '" + self.filename + \
-					"' is missing 'config_version'")
-			else:
-				sysver = self.metadict["config_version"]
-				try:
-					self.config_version = int(sysver)
-				except (ValueError, TypeError):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains invalid config version '" + str(sysver) + "'")
+					"' contains invalid config version '" + str(self.config_version) + "'")
 
-				if (self.config_version < 0) or (self.config_version > ConfigMetadata.METAFILE_VERSION):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains invalid config version '" + str(self.config_version) + "'")
-
-			def _get_str(label):
-				val = self.metadict.get(label)
-				if val is not None:
-					return str(val).strip()
-				return None
-
-			self.uuid			= _get_str("uuid")
-			self.description 	= _get_str("description")
-			self.version 		= _get_str("version")
-			self.name 			= _get_str("name")
-			self.help 			= _get_str("help")
-
-			# authors
-			if "authors" in self.metadict:
-				self.authors = self.metadict["authors"]
-				if (type(self.authors) != list):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains 'authors' entry which is not a list")
+			self.uuid			= self._get_str("uuid")
+			self.description 	= self._get_str("description")
+			self.version 		= self._get_str("version")
+			self.name 			= self._get_str("name")
+			self.help 			= self._get_str("help")
+			self.authors		= self._get_list("authors", subtype=str)
 
 			# config-version-specific content
 			if (self.config_version == 0):
 				self.load_0();
+
+	def _get_list(self, label, subtype=None, required=False):
+		value = self.metadict.get(label)
+		if value is None:
+			if required:
+				raise ConfigMetadataError("package metafile '%s' "
+										  "is missing required '%s' entry" %
+										  (self.filename, label))
+			return None
+
+		if not isinstance(value, list):
+			raise ConfigMetadataError("package metafile '%s' "
+									  "contains non-list '%s' entry" %
+									  (self.filename, label))
+		if len(value) == 0:
+			return None
+		elif subtype is not None:
+			if not isinstance(value[0], subtype):
+				raise ConfigMetadataError("package metafile '%s' "
+										  "contains non-%s '%s' entries" %
+										  (self.filename, subtype.__name__, label))
+		return value
+
+	def _get_str(self, label, required=False):
+		value = self.metadict.get(label)
+		if value is None:
+			if required:
+				raise ConfigMetadataError("package metafile '%s' "
+										  "is missing required '%s' entry" %
+										  (self.filename, label))
+			return None
+		return str(value).strip()
+
+	def _get_int(self, label, required=False):
+		value = self.metadict.get(label)
+		if value is None:
+			if required:
+				raise ConfigMetadataError("package metafile '%s' "
+										  "is missing required '%s' entry" %
+										  (self.filename, label))
+			return None
+
+		try:
+			return int(value)
+		except (ValueError, TypeError):
+			raise ConfigMetadataError("package metafile '%s' "
+									  "contains non-int '%s' entry" %
+									  (self.filename, label))
 
 	def delete_nonessentials(self):
 		"""
@@ -173,56 +201,10 @@ class ConfigMetadata(object):
 		"""
 		Load config_version=0
 		"""
-		# requires
-		if "requires" in self.metadict:
-			self.requires = self.metadict["requires"]
-			if (type(self.requires) != list):
-				raise ConfigMetadataError("package metafile '" + self.filename + \
-					"' contains non-list 'requires' node")
-			if (len(self.requires) == 0):
-				self.requires = None
-			else:
-				req0 = self.requires[0]
-				if (type(req0) != str):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains non-string 'requires' entries")
-
-		# build_requires
-		if "build_requires" in self.metadict:
-			self.build_requires = self.metadict["build_requires"]
-			if (type(self.build_requires) != list):
-				raise ConfigMetadataError("package metafile '" + self.filename + \
-					"' contains non-list 'build_requires' node")
-			if (len(self.build_requires) == 0):
-				self.build_requires = None
-			else:
-				req0 = self.build_requires[0]
-				if (type(req0) != str):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains non-string 'build_requires' entries")
-
-		# variants
-		if "variants" in self.metadict:
-			self.variants = self.metadict["variants"]
-			if (type(self.variants) != list):
-				raise ConfigMetadataError("package metafile '" + self.filename + \
-					"' contains non-list 'variants' node")
-			if (len(self.variants) == 0):
-				self.variants = None
-			else:
-				var0 = self.variants[0]
-				if (type(var0) != list):
-					raise ConfigMetadataError("package metafile '" + self.filename + \
-						"' contains non-list 'variants' entries")
-
-		# commands
-		if "commands" in self.metadict:
-			self.commands = self.metadict["commands"]
-			if (type(self.commands) != list):
-				raise ConfigMetadataError("package metafile '" + self.filename + \
-					"' contains non-list 'commands' node")
-			if (len(self.commands) == 0):
-				self.commands = None
+		self.requires = self._get_list("requires", subtype=str)
+		self.build_requires = self._get_list("build_requires", subtype=str)
+		self.variants = self._get_list("variants", subtype=list)
+		self.commands = self._get_list("commands")
 
 
 
