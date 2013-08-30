@@ -1007,7 +1007,7 @@ class _Configuration(object):
 									   parent_pkg, dot_connection_type)
 
 		if (result == _Configuration.ADDPKG_CONFLICT):
-			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
+			pkg_conflict = PackageConflict(pkg.as_package_request(), pkg_req)
 			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and pkg:
@@ -1144,7 +1144,7 @@ class _Configuration(object):
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
 			if (not pkg.is_resolved()) and (not pkg.is_anti()):
-				pkg_reqs.append(pkg_to_pkg_req(pkg))
+				pkg_reqs.append(pkg.as_package_request())
 		return pkg_reqs
 
 	def get_all_packages_as_package_requests(self):
@@ -1153,7 +1153,7 @@ class _Configuration(object):
 		"""
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
-			pkg_reqs.append(pkg_to_pkg_req(pkg))
+			pkg_reqs.append(pkg.as_package_request())
 		return pkg_reqs
 
 	def resolve_packages(self):
