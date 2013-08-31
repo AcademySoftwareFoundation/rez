@@ -204,7 +204,11 @@ class ConfigMetadata(object):
 		self.requires = self._get_list("requires", subtype=str)
 		self.build_requires = self._get_list("build_requires", subtype=str)
 		self.variants = self._get_list("variants", subtype=list)
-		self.commands = self._get_list("commands")
+		try:
+			self.commands = self._get_list("commands", subtype=str)
+		except ConfigMetadataError:
+			# allow use of yaml multi-line strings
+			self.commands = [x for x in self._get_str("commands").split('\n') if x]
 
 
 
