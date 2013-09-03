@@ -116,8 +116,12 @@ class Version(object):
 
 	def is_inexact(self):
 		"""
-		Return true if version is inexact. !is_inexact does not imply exact - for
-		eg, the version '10.5' may refer to any version of '10.5.x'.
+		Return true if version is inexact. e.g. '10.5+' or '10.5+<10.7'
+		
+		.. note:: not is_inexact() does not imply exact - for
+		eg, the version '10.5' *may* refer to any version of '10.5.x', but we
+		cannot know this without inspecting the package. Thus, the Version class
+		on its own can only know when it is inexact, and never when it is exact.
 		"""
 		if len(self.lt)==0 and len(self.ge)==0:
 			return True
@@ -193,6 +197,9 @@ class Version(object):
 			return get_str(self.ge) + "+<" + get_str(self.lt)
 		else:
 			return get_str(self.ge)
+
+	def __repr__(self):
+		return "%s('%s')" % (self.__class__.__name__, self)
 
 	def __lt__(self, ver):
 		"""
@@ -357,6 +364,9 @@ class VersionRange(object):
 
 	def __str__(self):
 		return "|".join(str(v) for v in self.versions)
+
+	def __repr__(self):
+		return "%s('%s')" % (self.__class__.__name__, self)
 
 	def __eq__(self, ver):
 		"""
