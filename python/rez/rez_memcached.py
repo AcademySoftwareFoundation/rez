@@ -135,7 +135,7 @@ class RezMemCache(object):
         if latest:
             vers = reversed(vers)
         for ver in vers:
-            if ver_range.contains_version(ver[0].ge):
+            if ver_range.contains_version(ver[0]):
                 return ver
 
         return None

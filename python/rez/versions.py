@@ -138,10 +138,15 @@ class Version(object):
 		else:
 			return chr(ord(comp) + 1)
 
-	def contains_version(self, ge):
+	def contains_version(self, version):
 		"""
-		Returns True if the exact version ge (eg 1.0.0) is contained within this range.
+		Returns True if the exact version (eg 1.0.0) is contained within this range.
+		
+		accepts a Version instance or a version ge.
 		"""
+		# allow a ge to be passed directly
+		if isinstance(version, Version):
+			ge = version.ge
 		return (ge >= self.ge) and (ge < self.lt)
 
 	def get_union(self, ver):
@@ -227,12 +232,12 @@ class VersionRange(object):
 	def copy(self):
 		return VersionRange(_versions=self.versions)
 
-	def contains_version(self, ge):
+	def contains_version(self, version):
 		"""
-		Returns True if the exact version ge (eg 1.0.0) is contained within this range.
+		Returns True if the exact version (eg 1.0.0) is contained within this range.
 		"""
 		for ver in self.versions:
-			if ver.contains_version(ge):
+			if ver.contains_version(version):
 				return True
 		return False
 
