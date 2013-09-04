@@ -81,7 +81,7 @@ class PackageRequest(object):
 		if self.is_weak():
 			# convert into an anti-package
 			self.version_range = self.version_range.get_inverse()
-			self.name = '!' + self.name[1:]
+			self.name = anti_name(self.name)
 
 		if memcache:
 			# goto filesystem and resolve version immediately
@@ -569,7 +569,21 @@ def str_to_pkg_req(str_, memcache=None):
 	else:
 		raise PkgSystemError("Invalid package string '" + str_ + "'")
 
-
+def anti_name(pkg):
+	"""
+	Return the name of the anti-package for the given package.
+	
+	pkg may be a PackageRequest, _Package, or string
+	"""
+	if isinstance(pkg, (PackageRequest, _Package)):
+		name = pkg.name
+	else:
+		name = pkg
+	if name[0] == '!':
+		raise RezError("Already an anti-package: %r" % name)
+	if name[0] == '~':
+		return '!' + name[1:]
+	return '!' + name
 
 def get_base_path(pkg_str):
 	"""
@@ -939,9 +953,12 @@ class _Configuration(object):
 					pkg_add.version_range = ver_range_union
 				return (_Configuration.ADDPKG_ADD, pkg_add)
 		else:
-			if ('!' + pkg_req.name) in self.pkgs:
-				config_pkg = self.pkgs['!' + pkg_req.name]
-
+			try:
+				config_pkg = self.pkgs[anti_name(pkg_req)]
+			except KeyError:
+				# does not exist. move on
+				pass
+			else:
 				# if non-anti and existing anti don't overlap then pkg can be added
 				ver_range_intersect = config_pkg.version_range.get_intersection(pkg_req_ver_range)
 				if not ver_range_intersect:
@@ -1034,8 +1051,8 @@ class _Configuration(object):
 			# non-anti pkg to the config without a conflict occurring always means we can safely
 			# remove the anti pkg, if it exists.
 			if not pkg.is_anti():
-				if ('!' + pkg.name) in self.pkgs:
-					del self.pkgs['!' + pkg.name]
+				if anti_name(pkg) in self.pkgs:
+					del self.pkgs[anti_name(pkg)]
 
 	def _add_package_to_dot_graph(self, short_name, pkg, result, parent_pkg=None,
 								  dot_connection_type=0):
