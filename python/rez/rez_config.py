@@ -243,6 +243,7 @@ class Resolver(object):
 			sys.stderr.write("\nCyclic dependency(s) were detected:\n")
 			sys.stderr.write(str(e) + "\n")
 
+			import tempfile
 			# write graphs to file
 			tmpf = tempfile.mkstemp(suffix='.dot')
 			os.write(tmpf[0], str(e))
