@@ -90,7 +90,7 @@ class PackageRequest(object):
 				name_ = name[1:]
 
 			found_path, found_ver, found_epoch = memcache.find_package_in_range(
-				name_, self.verversion_range, latest)
+				name_, self.version_range, latest)
 
 			if found_ver:
 				self.version_range = VersionRange(_versions=[found_ver])
