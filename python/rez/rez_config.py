@@ -77,11 +77,10 @@ class PackageRequest(object):
 	def __init__(self, name, version, memcache=None, latest=True):
 		self.name = name
 
+		self.version_range = VersionRange(version)
 		if self.is_weak():
 			# convert into an anti-package
-			vr = VersionRange(version)
-			vr_inv = vr.get_inverse()
-			version = str(vr_inv)
+			self.version_range = self.version_range.get_inverse()
 			self.name = '!' + self.name[1:]
 
 		if memcache:
@@ -89,16 +88,16 @@ class PackageRequest(object):
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
+
 			found_path, found_ver, found_epoch = memcache.find_package_in_range(
-				name_, VersionRange(version), latest)
+				name_, self.verversion_range, latest)
 
 			if found_ver:
-				self.version = str(found_ver)
+				self.version_range = VersionRange(_versions=[found_ver])
 			else:
 				raise PkgsUnresolvedError( [ PackageRequest(name, version) ] )
-		else:
-			# normalise
-			self.version = str(VersionRange(version))
+
+		self.version = str(self.version_range)
 
 	def is_anti(self):
 		return (self.name[0] == '!')
@@ -391,6 +390,7 @@ class Resolver(object):
 		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
+			# FIXME: normalising should not be necessary because it's done in PackageReuest.__init__
 			normalise_pkg_req(pkg_req)
 			config.add_package(pkg_req)
 
@@ -674,7 +674,7 @@ class _Package(object):
 		self.has_added_transitivity = False
 		if pkg_req:
 			self.name = pkg_req.name
-			self.version_range = VersionRange(pkg_req.version)
+			self.version_range = pkg_req.version_range
 			self.base_path = None
 			self.metadata = None
 			self.variants = None
@@ -713,6 +713,7 @@ class _Package(object):
 		"""
 		Return this package as a package-request
 		"""
+		# FIXME: should we pass the memcache too?
 		return PackageRequest(self.name, str(self.version_range))
 
 	def is_anti(self):
@@ -779,8 +780,9 @@ class _Package(object):
 			fam_path, ver, pkg_epoch = memcache.find_package_in_range(
 				self.name, self.version_range, exact=True)
 			if ver is not None:
-				base_path = fam_path
-				if not is_any:
+				if is_any:
+					base_path = fam_path
+				else:
 					base_path = os.path.join(fam_path, str(self.version_range))
 				
 				metafile = os.path.join(base_path, PKG_METADATA_FILENAME)
@@ -872,14 +874,22 @@ class _Configuration(object):
 
 	def test_pkg_req_add(self, pkg_req, create_pkg_add):
 		"""
-		test the water to see what adding a package request would do to the config. Possible results are:
-		(ADDPKG_CONFLICT, pkg_conflicting):
-		The package cannot be added because it would conflict with pkg_conflicting
-		(ADDPKG_NOEFFECT, None):
-		The package doesn't need to be added, there is an identical package already there
-		(ADDPKG_ADD, pkg_add):
-		The package can be added, and the config updated accordingly by adding pkg_add (replacing
-		a package with the same family name if it already exists in the config)
+		test the water to see what adding a package request would do to the config.
+		
+		Returns an ADDPKG_* constant and a _Package instance (or None).
+
+		Possible results are:
+
+		- (ADDPKG_CONFLICT, pkg_conflicting):
+			The package cannot be added because it would conflict with
+			pkg_conflicting
+		- (ADDPKG_NOEFFECT, None):
+			The package doesn't need to be added, there is an identical package
+			already there
+		- (ADDPKG_ADD, pkg_add):
+			The package can be added, and the config updated accordingly by
+			adding pkg_add (replacing a package with the same family name if it
+			already exists in the config)
 
 		.. note::
 			that if 'create_pkg_add' is False, then 'pkg_add' will always be None.
@@ -891,7 +901,7 @@ class _Configuration(object):
 		# (testing VersionRanges for equality is not trivial)
 		pkg_shortname = pkg_req.short_name()
 
-		pkg_req_ver_range = VersionRange(pkg_req.version)
+		pkg_req_ver_range = pkg_req.version_range
 
 		if pkg_req.is_anti():
 
