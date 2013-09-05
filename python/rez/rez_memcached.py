@@ -52,6 +52,12 @@ class RezMemCache(object):
             mc = _create_client()
             self.mc = MemCacheClient(mc)
 
+    def caching_enabled(self):
+        """
+        whether the memcache client is being used
+        """
+        return bool(self.mc)
+
     def get_metafile(self, path):
         """
         Load the yaml metadata in the given file.

@@ -167,7 +167,7 @@ class Resolver(object):
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
-	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
 		build_requires=False, assume_dt=False, caching=True):
 		"""
 		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
@@ -195,7 +195,7 @@ class Resolver(object):
 	def get_memcache(self):
 		return self.rctxt.memcache
 
-	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
@@ -291,7 +291,7 @@ class Resolver(object):
 
 		return result
 
-	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None):
 		"""
 		Perform a package resolve.
@@ -368,7 +368,8 @@ class Resolver(object):
 							target[key] = []
 						target[key].append(pkg_res.name + ':' + val)
 
-			_add_meta_vars(meta_vars, meta_envvars)
+			if meta_vars:
+				_add_meta_vars(meta_vars, meta_envvars)
 
 			if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
 				_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
@@ -480,7 +481,7 @@ class Resolver(object):
 		return result
 
 	def set_cached_resolve(self, pkg_reqs, result):
-		if not self.rctxt.memcache.mc:
+		if not self.rctxt.memcache.caching_enabled():
 			return
 
 		# if any local packages are involved, don't cache
@@ -494,10 +495,10 @@ class Resolver(object):
 	def get_cached_resolve(self, pkg_reqs):
 		# the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
 		# here and rctxt.time_epoch, the resolve will be the same.
-		if not self.rctxt.memcache.mc:
+		if not self.rctxt.memcache.caching_enabled():
 			return None
 
-		result, cache_timestamp = self.rctxt.memcache.get_resolve( \
+		result, cache_timestamp = self.rctxt.memcache.get_resolve(
 			rez_filesys._g_syspaths_nolocal, pkg_reqs)
 		
 		if not result:
@@ -548,24 +549,23 @@ def str_to_pkg_req(str_, memcache=None):
 	that immediately resolves to earliest/latest version.
 	"""
 	latest = True
-	memcache2 = None
 	if str_.endswith("=l"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
-		memcache2 = memcache
 	elif str_.endswith("=e"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
-		memcache2 = memcache
-
+	else:
+		# no need for memcache
+		memcache = None
 	str_ = str_.split('=')[0]
 	strs = str_.split('-', 1)
 	dim = len(strs)
 	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
+		return PackageRequest(str_, "", memcache, latest)
 	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
+		return PackageRequest(strs[0], strs[1], memcache, latest)
 	else:
 		raise PkgSystemError("Invalid package string '" + str_ + "'")
 
