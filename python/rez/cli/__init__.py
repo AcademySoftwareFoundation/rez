@@ -9,7 +9,7 @@ def error(msg):
     '''
     sys.__stderr__.write("Error: %s\n" % msg)
 
-def output(msg):
+def output(msg=''):
     '''
     A result, printed to stdout
     '''
