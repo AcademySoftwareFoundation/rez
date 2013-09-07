@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+from collections import defaultdict
 import rez_filesys
 import rez_metafile
 from versions import *
@@ -22,6 +23,8 @@ def _create_client():
 def print_cache_warning(msg):
     print >> sys.stderr, "Cache Warning: %s" % msg
 
+def _filter_epoch(vers, cache):
+    return [x for x in vers if x[1] <= cache.epoch]
 
 # init
 _g_caching_enabled = not os.getenv("REZ_DISABLE_CACHING")
@@ -37,6 +40,66 @@ if _g_caching_enabled:
         _g_caching_enabled = False
     mc = None
 
+def cached_path(key, default=None, postfilter=None):
+    """
+    A decorator to aid in automatically caching functions
+
+    key : unique key used to identify the data to cache with the memcache client
+    default : value to return if the path does not exist
+    postfilter : filter function to apply to after retrieving data from the memcache client.
+        should take the data and an instance of the memcache as arguments and
+        return a modified copy of data.
+    """
+    def decorator(func):
+        def wrapped_func(self, path, *args, **kwargs):
+            # get the cache for this key.
+            # self.cache is a defaultdict, so this will always return a dict
+            cache = self.cache[key]
+
+            # FIXME: allow None to be cached.
+            data = cache.get(path)
+            if data is not None:
+                return data
+ 
+            try:
+                path_modtime = os.path.getmtime(path)
+            except OSError:
+                if default is not None:
+                    return default
+                raise
+
+            k = (key, path)
+            # get memcached data if it exists
+            if self.mc:
+                # FIXME: allow None to be cached.
+                t = self.mc.get(k)
+                if t is not None:
+                    mtime, d = t
+                    if path_modtime == mtime:
+                        data = d
+
+            if not data:
+                # get data
+                data = func(self, path, *args, **kwargs)
+
+            assert data is not None, "Cached function must not return None"
+
+            # cache result to memcache
+            if self.mc:
+                self.mc.set(k, (path_modtime, data))
+
+            if postfilter:
+                data = postfilter(data, self)
+            
+            # cache result to local instance cache
+            cache[path] = data
+            return data
+
+        wrapped_func.__name__ = func.__name__
+        wrapped_func.__doc__ = func.__doc__
+        wrapped_func.__module__ = func.__module__
+        return wrapped_func
+    return decorator
 
 class RezMemCache(object):
     """
@@ -44,9 +107,8 @@ class RezMemCache(object):
     """
     def __init__(self, time_epoch=0, use_caching=True):
         self.epoch = time_epoch or int(time.time())
+        self.cache = defaultdict(dict)
         self.families = set()
-        self.versions = {} # (path,order): [versions]
-        self.metafiles = {} # path, ConfigMetadata
         self.mc = None
         if use_caching and _g_caching_enabled:
             mc = _create_client()
@@ -58,63 +120,52 @@ class RezMemCache(object):
         """
         return bool(self.mc)
 
+    @cached_path("PKGYAML")
     def get_metafile(self, path):
         """
         Load the yaml metadata in the given file.
         """
-        d = self.metafiles.get(path)
-        if d is not None:
-            return d
-
-        k = ("PKGYAML", path)
-        path_modtime = os.path.getmtime(path)
-
-        if self.mc:
-            t = self.mc.get(k)
-            if t is not None:
-                mtime,d = t
-                if path_modtime == mtime:
-                    self.metafiles[path] = d
-                    return d
-
         d = rez_metafile.ConfigMetadata(path)
         d.delete_nonessentials()
-
-        if self.mc:
-            self.mc.set(k, (path_modtime, d))
-        self.metafiles[path] = d
         return d
 
+    @cached_path("VERSIONS", default=(), postfilter=_filter_epoch)
     def get_versions_in_directory(self, path, warnings=True):
         """
         For a given directory, return a list of (Version,epoch), which match version directories 
         found in the given directory.
         """
-        vers = self.versions.get(path)
-        if vers is not None:
-            return vers
+        return rez_filesys.get_versions_in_directory(path, warnings)
 
-        if not os.path.isdir(path):
-            return []
+    def _find_package(self, path, ver_range, latest=True, exact=False):
+        """
+        Given a path to a package family and a VersionRange, return (resolved
+        Version, epoch) or None if not found.
+        """
+        vers = self.get_versions_in_directory(path)
 
-        k = ("VERSIONS", path)
-        path_modtime = os.path.getmtime(path)
+        # check for special case - unversioned package
+        # todo subtle bug here, unversioned pkg's timestamp not taken into account. In practice
+        # though this should not cause any problems.
+        if not vers and ver_range.is_any() and os.path.isfile(os.path.join(path, PKG_METADATA_FILENAME)):
+            return (Version(""), 0)
 
-        if self.mc:
-            t = self.mc.get(k)
-            if t is not None:
-                mtime,tvers = t
-                if path_modtime == mtime:
-                    vers = [x for x in tvers if x[1] <= self.epoch]
-                    self.versions[path] = vers
-                    return vers
+        if not ver_range.is_inexact():
+            exact_ver = [x for x in vers if x[0] == ver_range.versions[0]]
+            if exact_ver:
+                return exact_ver[0]
 
-        tvers = rez_filesys.get_versions_in_directory(path, warnings)
-        if self.mc:
-            self.mc.set(k, (path_modtime, tvers))
-        vers = [x for x in tvers if x[1] <= self.epoch]
-        self.versions[path] = vers
-        return vers
+        if exact:
+            return None
+
+        # find the earliest/latest version on disk that falls within ver
+        if latest:
+            vers = reversed(vers)
+        for ver in vers:
+            if ver_range.contains_version(ver[0]):
+                return ver
+
+        return None
 
     def iter_packages(self, family_name, paths=None):
         """
