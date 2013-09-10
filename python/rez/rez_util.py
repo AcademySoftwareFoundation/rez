@@ -7,7 +7,8 @@ def gen_dotgraph_image(dot_data, out_file):
     # shortcut if writing .dot file
     if out_file.endswith(".dot"):
         with open(out_file, 'w') as f:
-            f.write(dot_data)
+            data = dot_data if dot_data else ''
+            f.write(data)
         return
 
     import pydot

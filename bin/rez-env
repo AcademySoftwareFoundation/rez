@@ -106,12 +106,9 @@ fi
 ##############################################################################
 # call rez-config, and write env into bake file
 ##############################################################################
-tmpd=$tmpdir
-if [ "$tmpd" == "" ]; then
-	tmpd="/tmp"
-fi
-tmpf=`mktemp -p $tmpd .rez-context.XXXXXXXXXX`
-
+# MethodLA: Changed to support older mktemp that does not support long arguments (CentOS 5.4)
+#tmpf=`mktemp --tmpdir=$tmpdir .rez-context.XXXXXXXXXX`
+tmpf=`mktemp -p $tmpdir .rez-context.XXXXXXXXXX`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
@@ -127,12 +124,12 @@ if [ "$_REZ_ENV_OPT_NO_LOCAL" == "True" ]; then
 	no_local_flag="--no-local"
 fi
 
-if [ "$_REZ_ENV_OPT_IGNORE_BLACKLIST" == "True" ]; then
-	use_blacklist_flag="--ignore-blacklist"
+if [ "$_REZ_ENV_OPT_USE_BLACKLISTED" == "True" ]; then
+	use_blacklisted_flag="--use-blacklisted"
 fi
 
-if [ "$_REZ_ENV_OPT_IGNORE_ARCHIVING" == "True" ]; then
-	ignore_archiving_flag="--ignore-archiving"
+if [ "$_REZ_ENV_OPT_USE_ARCHIVED" == "True" ]; then
+	use_archived_flag="--use-archived"
 fi
 
 if [ "$_REZ_ENV_OPT_NO_ASSUME_DT" == "True" ]; then
@@ -148,8 +145,8 @@ if [ "$_REZ_ENV_OPT_NO_CACHE" == "True" ]; then
 fi
 
 rez-config --time=$_REZ_ENV_OPT_TIME --print-env --meta-info=tools --meta-info-shallow=tools \
-	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archiving_flag \
-	$use_blacklist_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
+	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $use_archived_flag \
+	$use_blacklisted_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
 ret=$?
 
 if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then

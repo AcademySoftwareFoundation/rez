@@ -1,12 +1,12 @@
-# TODO add blacklisting/archiving, is anyone using that though?
-
 import os
 import sys
+import yaml
 import os.path
 import subprocess as sp
 from versions import *
 from public_enums import *
 from rez_exceptions import *
+from version_compare import version_compare
 
 
 _g_rez_path                 = os.getenv("REZ_PATH")
@@ -66,25 +66,35 @@ if _g_local_pkgs_path in _g_syspaths_nolocal:
     _g_syspaths_nolocal.remove(_g_local_pkgs_path)
 
 
-def get_versions_in_directory(path, warnings):
+def get_versions_in_directory(path, warnings=False, ignore_archived=True, ignore_blacklisted=True):
     is_local_pkgs = path.startswith(_g_local_pkgs_path)
     vers = []
 
+    archive = []
+    blacklist = []
+    if ignore_archived or ignore_blacklisted:
+        packages_f = os.path.join(path, 'packages.yaml')
+        try:
+            with open(packages_f, 'r') as f:
+                cfg = ''.join(f.readlines())
+                data = (yaml.load(cfg))
+                if 'archive' in data:
+                    for each in data['archive']:
+                        archive.append(Version(each))
+                if 'blacklist' in data:
+                    for each in data['blacklist']:
+                        blacklist.append(Version(each))
+        except IOError:
+            pass # many packages will not have a packages.yaml
+
     for f in os.listdir(path):
         fullpath = os.path.join(path, f)
-        if os.path.isdir(fullpath):
-            try:
-                ver = Version(f)
-            except:
+        if os.path.isdir(fullpath) and is_package_version_dir(fullpath):
+            ver = Version(f)
+            if ignore_archived and [x for x in archive if ver.get_intersection(x)]:
                 continue
-
-            yaml_file = os.path.join(fullpath, PKG_METADATA_FILENAME)
-            if not os.path.isfile(yaml_file):
-                if warnings:
-                    sys.stderr.write("Warning: ignoring package with missing " + \
-                        PKG_METADATA_FILENAME + ": " + fullpath + '\n')
+            if ignore_blacklisted and [x for x in blacklist if ver.get_intersection(x)]:
                 continue
-
             timestamp = 0
             if not is_local_pkgs:
                 release_time_f = fullpath + '/.metadata/release_time.txt'
@@ -99,5 +109,24 @@ def get_versions_in_directory(path, warnings):
 
             vers.append((ver, timestamp))
 
-    vers.sort()
+    if (not vers) and warnings and os.path.basename(path) != _g_os_pkg: # The os packages may be unversioned (?)'
+        sys.stderr.write("Warning: no valid versions (i.e., no subdirs with files found with name '%s') under '%s'\n" %
+             (PKG_METADATA_FILENAME, path)
+        )
+
+    tmp = {}
+    for ver in vers:
+        tmp[ver[0].original_version_str] = ver
+    sorted_vers = sort_versions(tmp.keys())
+    vers = [tmp[x] for x in sorted_vers]
     return vers
+
+def is_package_version_dir(root):
+    result = False
+    for root, dirs, files in os.walk(root, topdown=False):
+        if PKG_METADATA_FILENAME in files:
+            result = True
+    return result
+
+def sort_versions(versions):
+    return sorted(versions, cmp=version_compare)

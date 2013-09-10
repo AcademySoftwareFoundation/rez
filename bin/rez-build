@@ -85,8 +85,8 @@ MODE=latest
 VNUMS=
 ARGS1=
 NOCLEAN=0
-IGNORE_BLACKLIST_ARG=
-IGNORE_ARCHIVE_ARG=
+IGNORE_BLACKLISTED_ARG=
+IGNORE_ARCHIVED_ARG=
 ASSUME_DT_ARG=
 SVNURL_METADATA=
 CHANGELOG=
@@ -114,15 +114,15 @@ if [ "$ARGS1" != "" ]; then
 				;;
 			s)	SVNURL_METADATA=$OPTARG
 				;;
-			c)  CHANGELOG=$OPTARG
+            c)      CHANGELOG=$OPTARG
 				;;
 			t)	BUILD_EPOCH=$OPTARG
 				;;
 			i)	PRINT_INSTPATH=1
 				;;
-			u)	IGNORE_BLACKLIST_ARG='--ignore-blacklist'
+			u)	USE_BLACKLISTED_ARG='--use-blacklisted'
 				;;
-			g)	IGNORE_ARCHIVE_ARG='--ignore-archiving'
+			g)	USE_ARCHIVED_ARG='--use-archived'
 				;;
 			d)	ASSUME_DT_ARG='--no-assume-dt'
 				;;
@@ -297,12 +297,12 @@ do
 	# attempt to resolve env for this variant
 	echo
 	echo "rez-build: invoking rez-config with args:"
-	echo "$IGNORE_ARCHIVE_ARG $IGNORE_BLACKLIST_ARG $ASSUME_DT_ARG --time=$BUILD_EPOCH"
+	echo "$IGNORE_ARCHIVED_ARG $IGNORE_BLACKLISTED_ARG $ASSUME_DT_ARG --time=$BUILD_EPOCH"
 	echo "requested packages: "$REQS $VARIANT
 	echo "package search paths: "$REZ_PACKAGES_PATH
 
 	# Note: we pull latest version of cmake into the env
-	rez-config $IGNORE_ARCHIVE_ARG $IGNORE_BLACKLIST_ARG --print-env --time=$BUILD_EPOCH $ASSUME_DT_ARG --dot-file=$DOTF $REQS $VARIANT cmake=l > $BAKE
+	rez-config $IGNORE_ARCHIVED_ARG $IGNORE_BLACKLISTED_ARG --print-env --time=$BUILD_EPOCH $ASSUME_DT_ARG --dot-file=$DOTF $REQS $VARIANT cmake=l > $BAKE
 
 	if [ $? -ne 0 ]; then
 		rm -f $BAKE

@@ -12,7 +12,6 @@ from rez_exceptions import *
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"
 
-
 def _create_client():
     if not _g_caching_enabled:
         return None
@@ -45,7 +44,7 @@ class RezMemCache():
     def __init__(self, time_epoch=0, use_caching=True):
         self.epoch = time_epoch or int(time.time())
         self.families = set()
-        self.versions = {} # (path,order): [versions]
+        self.versions = {} # (path+str(int(ig_arch))+str(int(ig_blk)),order): [versions]
         self.metafiles = {} # path, ConfigMetadata
         self.mc = None
         if use_caching and _g_caching_enabled:
@@ -79,19 +78,21 @@ class RezMemCache():
         self.metafiles[path] = d
         return d
 
-    def get_versions_in_directory(self, path, warnings=True):
+    def get_versions_in_directory(self, path, warnings=True, ignore_archived=False,
+            ignore_blacklisted=False):
         """
         For a given directory, return a list of (Version,epoch), which match version directories 
         found in the given directory.
         """
-        vers = self.versions.get(path)
+        qualifiedPath = path + str(int(ignore_archived)) + str(int(ignore_blacklisted))
+        vers = self.versions.get(qualifiedPath)
         if vers is not None:
             return vers
 
         if not os.path.isdir(path):
             return []
 
-        k = ("VERSIONS", path)
+        k = ("VERSIONS", qualifiedPath)
         path_modtime = os.path.getmtime(path)
 
         if self.mc:
@@ -100,22 +101,27 @@ class RezMemCache():
                 mtime,tvers = t
                 if path_modtime == mtime:
                     vers = [x for x in tvers if x[1] <= self.epoch]
-                    self.versions[path] = vers
+                    self.versions[qualifiedPath] = vers
                     return vers
 
-        tvers = rez_filesys.get_versions_in_directory(path, warnings)
+        tvers = rez_filesys.get_versions_in_directory(path, warnings, ignore_archived,
+            ignore_blacklisted,
+        )
         if self.mc:
             self.mc.set(k, (path_modtime, tvers))
         vers = [x for x in tvers if x[1] <= self.epoch]
-        self.versions[path] = vers
+        self.versions[qualifiedPath] = vers
         return vers
 
-    def find_package(self, path, ver_range, latest=True, exact=False):
+    def find_package(self, path, ver_range, latest=True, exact=False,
+            ignore_archived=True, ignore_blacklisted=True):
         """
         Given a path to a package family and a version range, return (resolved version, epoch)
         or None if not found.
         """
-        vers = self.get_versions_in_directory(path)
+        vers = self.get_versions_in_directory(path, ignore_archived=ignore_archived,
+            ignore_blacklisted=ignore_blacklisted,
+        )
 
         # check for special case - unversioned package
         # todo subtle bug here, unversioned pkg's timestamp not taken into account. In practice
@@ -140,7 +146,8 @@ class RezMemCache():
 
         return None
 
-    def find_package2(self, paths, family_name, ver_range, latest=True, exact=False):
+    def find_package2(self, paths, family_name, ver_range, latest=True, exact=False,
+            ignore_archived=True, ignore_blacklisted=True):
         """
         Given a list of package paths, a family name and a version range, return (family path,
         resolved version, epoch), or (None,None,None) if not found. If two versions in two different 
@@ -151,7 +158,7 @@ class RezMemCache():
 
         for pkg_path in paths:
             family_path = os.path.join(pkg_path, family_name)
-            ver2 = self.find_package(family_path, ver_range, latest, exact)
+            ver2 = self.find_package(family_path, ver_range, latest, exact, ignore_archived, ignore_blacklisted)
             if ver2:
                 if exact:
                     return family_path, ver2[0], ver2[1]

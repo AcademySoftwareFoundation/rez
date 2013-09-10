@@ -1,0 +1,287 @@
+#! /usr/bin/env python
+
+import sys
+import os
+import re
+import argparse
+import collections
+import uuid
+
+import logUtil
+log = logUtil.initLogging()
+
+def verify():
+    r = raw_input('>>> Ok to proceed? (hit Enter to continue; any other input aborts.)')
+    if r != '':
+        log.error('Aborting.')
+        sys.exit(1)
+    print('')
+
+def mkdirIfNeeded(tgt, mode=0775):
+    if os.path.exists(tgt) and not os.path.isdir(tgt):
+        raise RuntimeError, "The requested path, '%s', exists, but is not a directory." % (tgt,)
+    if not os.path.isdir(tgt):
+        try:
+            os.makedirs(tgt, mode)
+        except Exception, e:
+            log.error("Problem making directory '%s'. Exiting." % (tgt,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+
+def mklinkIfNeeded(src, tgt):
+    if os.path.exists(tgt) and not os.path.islink(tgt):
+        raise RuntimeError, "The requested path, '%s', exists, but is not a symbolic link." % (tgt,)
+    if not os.path.islink(tgt):
+        try:
+            os.symlink(src, tgt)
+        except Exception, e:
+            log.error("Problem making directory '%s'. Exiting." % (tgt,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+
+def parseConfig(srcFile):
+    rawData = []
+    try:
+        f = open(srcFile, 'r')
+        rawData = f.readlines()
+    except RuntimeError:
+        raise
+    finally:
+        f.close()
+
+    culledData = []
+    for line in rawData:
+        if re.search('^\s*COMMAND:', line) is None:
+            line = line.strip()
+            line = re.sub('#.*$', '', line)
+            if line and line != 'ENV:':
+                culledData.append(line)
+        else:
+            break
+
+    p = re.compile(r'^(.+?):\s*(.*?|)$')
+    partitionedData = {}
+    orderedKeys = []
+    currentKey = None
+    for line in culledData:
+        if line[0] is '-': # start of a new yaml thing
+            line = line[1:].strip()
+            m = re.search(p, line) 
+            if m is not None:
+                currentKey = m.group(1)
+                orderedKeys.append(currentKey)
+                partitionedData[currentKey] = []
+                if m.group(2):
+                    partitionedData[currentKey].append(rmQuotes(m.group(2)))
+        else:
+            partitionedData[currentKey].append(rmQuotes(line))
+
+
+    yamledData = []
+    for k in orderedKeys:
+        prefix1 = '- export %s=' % (k,)
+        suffix1 = ''
+        prefix2 = '- "export %s=\\"' % (k,)
+        suffix2 = '\\""'
+        body = ''
+        needsQuotes = False
+        for line in partitionedData[k]:
+            if (re.search('\$', line) is not None or
+                re.search(' ', line) is not None
+               ):
+                needsQuotes = True
+                break
+        
+        first = True
+        prefix = prefix1
+        suffix = suffix1
+        if needsQuotes:
+            prefix = prefix2
+            suffix = suffix2
+
+        for line in partitionedData[k]:
+            body += '%s%s\\' % ((len(prefix) * ' ' if not first else '', line))
+            if len(partitionedData[k]) > 1:
+                body += '\n'
+            first = False
+        body = re.sub(r'[\s\\]*$', '', body)
+        yamledData.append('%s%s%s' % (prefix, body, suffix))
+
+    commands = '\n'.join(yamledData)
+    return commands
+
+def rmQuotes(raw):
+    ret = re.sub(r'^[\'"]+', '', raw)
+    ret = re.sub(r'[\s\\]*$', '', ret) # and line continuations...
+    ret = re.sub(r'[\'"]+$', '', ret)
+    return ret
+        
+    
+    
+####
+
+parser = argparse.ArgumentParser()
+parser.add_argument("-s", "--source", default=os.getcwd(),
+                    help="(Existing) applauncher config root (something like: '/tools/config/AppLauncher/apps/houdini/linux_el5_x86_64/12.5.392') [optional - defaults to '.']",
+)
+defTgt = '/tools/shed/method.rez.prod'
+parser.add_argument("-t", "--target", default=defTgt,
+                    help="(New) rez prod container (base, not specify package) root [optional - defaults to '%s']" % (defTgt,),
+)
+parser.add_argument("-v", "--verbosity", default=1, type=int,
+                    help="Logging verbosity; a number in the range 0-3 (higher == more verbose)",
+)
+
+args = parser.parse_args()
+if args.verbosity != 1:
+    logUtil.adjustVerbosity(log, args.verbosity)
+
+src = None
+try:
+    tgtRoot = os.path.realpath(args.target)
+    src = os.path.realpath(args.source)
+except Exception, e:
+    log.error('Problem determining canonical paths for source and target (are they valid (existing) directories?).')
+    sys.exit(1)
+package = None
+version = '0.1.0'
+
+# Verify source data
+m = re.search(r'/([\w\.-]+)/[\w\.-]+/[\w\.-]+/?$', args.source)
+if m is not None:
+    package = m.group(1)
+    log.info('Inferred from source path:')
+    log.info('package: %s (this will be the prefix of the new rez profiles)' % (package,))
+    verify()
+else:
+    raise RuntimeError, '[ERROR] Cannot determine package from supplied source ("%s")' % (args.source,)
+
+profiles = []
+for profile in [x for x in sorted(os.listdir(args.source)) if not re.search('^\.', x) and not re.search('\.yaml$', x)]:
+    r = raw_input("> Make rez version of profile '%s'? (hit Enter to accept; any other input skips this profile.)" %
+        (profile,),
+    )
+
+    if r != '':
+        log.info('Skipping...')
+    else:
+        profiles.append(profile)
+
+# Verify target data
+
+log.info('The new, rez prod version will have the following:')
+for profile in profiles:
+    tgt = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
+    log.info('    %s' % (tgt,))
+verify()
+
+for profile in profiles:
+    print('\n-----------------------------------------------------------------------\n')
+    log.info('Starting profile: %s' % (profile,))
+    tgt = os.path.join(tgtRoot, '%s_%s' % (package, profile), version)
+
+    # Check for existing install
+    if not os.path.isdir(tgt):
+        try:
+            os.makedirs(tgt)
+        except Exception, e:
+            log.error("Problem making target directory ('%s')" % (tgt,))
+            log.info("Common reasons include permissions and mount options...")
+            log.info("""Mounting cheat sheet (using /tools/shed as an example dir; prompts omitted for paste-ability):
+
+stat /tools/shed/ > /dev/null
+sudo mount -oremount,rw $(ypmatch shed auto.tools | cut -d" " -f2)
+umask 002
+< do your business... >
+sudo mount -oremount,ro $(ypmatch shed auto.tools | cut -d" " -f2)
+umask 000
+
+""")
+            sys.exit(1)
+
+    if os.listdir(tgt):
+        log.warn("Existing data found in the tgt location ('%s').\nIf you do want to install here, \
+        you must manually remove this data first (skipping this profile)" % (tgt))
+        continue
+
+    # Analyze source data
+    srcDir = os.path.join(src, profile)
+    srcFile = os.path.join(srcDir, 'config.yaml')
+    if not os.path.isfile(srcFile):
+        log.warn("The expected source file, '%s', was not found; skipping this profile..." % (srcFile,))
+        continue
+
+    commands = parseConfig(srcFile)
+
+    ########################
+
+    # Build the rez structure
+    # is package.uuid present?
+    uuidFile = os.path.normpath(os.path.join(tgt, '..', 'package.uuid'))
+    uuidVal = None
+    if os.path.isfile(uuidFile):
+        try:
+            f = open(uuidFile)
+            uuidVal = f.readline()
+        except Exception, e:
+            log.error("Problem determining uuid value from file: '%s'. Please verify this file is valid." % (uuidFile,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+        finally:
+            f.close()
+    else:
+        uuidVal = str(uuid.uuid4()) ## Note: this is the 'random' version
+        try:
+            f = open(uuidFile, 'w+')
+            f.write(uuidVal)
+        except Exception, e:
+            log.error("Problem creating new uuid file: '%s'. Please check permissions, etc..." % (uuidFile,))
+            log.debug("Raised exception message:\n%s" % (e,))
+            sys.exit(1)
+        finally:
+            f.close()
+
+    ####
+    variantsStr = '#variants:\n'
+    toolsStr = '#tools:\n'
+    commandsStr = 'commands:\n'
+    commandsStr += commands
+    descStr = 'Auto-ported from legacy Applauncher profile %s' % (srcFile,)
+    depStr = 'requires:\n- %s%s' % (package, ('_default' if profile is not 'default' else ''))
+    metaData = '''config_version : 0
+
+name: %(package)s_%(profile)s
+
+version: %(version)s
+
+uuid: %(uuidVal)s
+
+authors:
+- "Not supplied"
+
+description: "%(descStr)s"
+
+%(variantsStr)s
+
+%(depStr)s
+
+%(toolsStr)s
+
+%(commandsStr)s
+
+''' % locals()
+
+    print("\n\n--------\n")
+    log.info("\nHere is the generated package.yaml file:\n\n%s\n\n" % (metaData))
+
+    metadataFile = os.path.join(tgt, 'package.yaml')
+    try:
+        f = open(metadataFile, 'w+')
+        f.writelines(metaData)
+    except Exception, e:
+        log.error("Problem creating new metadata file: '%s'." % (metadataFile,))
+        log.debug("Raised exception message:\n%s" % (e,))
+        sys.exit(1)
+    finally:
+        f.close()
+

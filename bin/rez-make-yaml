@@ -15,9 +15,17 @@ fi
 
 echo "config_version : 0" > $f
 echo >> $f
-echo "name: enter-package-name" >> $f
+if [ -n "$1" ]; then
+    echo "name: ${1}" >> $f
+else
+    echo "name: enter-package-name" >> $f
+fi
 echo >> $f
-echo "version: 0.0.0" >> $f
+if [ -n "$2" ]; then
+    echo "version: ${2}" >> $f
+else
+    echo "version: 0.0.0" >> $f
+fi
 echo >> $f
 _uuid=`python -c 'import uuid ; print str(uuid.uuid4())'`
 echo "uuid: "$_uuid >> $f

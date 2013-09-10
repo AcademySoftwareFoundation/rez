@@ -10,7 +10,9 @@ export REZ_VERSION=!REZ_VERSION!
 export REZ_PLATFORM=!REZ_PLATFORM!
 
 # where rez is installed
-export REZ_PATH=!REZ_BASE_PATH!/!REZ_VERSION!
+# MethodLA: Removed version from path because tools shed already has version higher up in the path
+#export REZ_PATH=!REZ_BASE_PATH!/!REZ_VERSION!
+export REZ_PATH=!REZ_BASE_PATH!
 if [ ! -d $REZ_PATH ]; then
 	echo "ERROR! Rez could not be found at $REZ_PATH" 1>&2
 else
@@ -20,18 +22,15 @@ else
 		export REZ_PACKAGES_PATH=!REZ_LOCAL_PKGS_PATH!:!REZ_PACKAGES_PATH!
 	fi
 
-
 	# where rez will publish packages to (ie those released with rez-release)
 	if [ "$REZ_RELEASE_PACKAGES_PATH" == "" ]; then
 		export REZ_RELEASE_PACKAGES_PATH=!REZ_PACKAGES_PATH!
 	fi
 
-
 	# where rez will publish local packages to (ie those installed with rez-build -- -- install)
 	if [ "$REZ_LOCAL_PACKAGES_PATH" == "" ]; then
 		export REZ_LOCAL_PACKAGES_PATH=!REZ_LOCAL_PKGS_PATH!
 	fi
-
 
 	# where rez-egg-install will install python egg packages to
 	if [ "$REZ_EGG_PACKAGES_PATH" == "" ]; then
@@ -42,18 +41,21 @@ else
 	PATH=`echo $PATH | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
 	export PATH=$PATH:$REZ_PATH/bin
 
-
 	if [ "$REZ_RELEASE_EDITOR" == "" ]; then
 		export REZ_RELEASE_EDITOR=!REZ_RELEASE_EDITOR!
 	fi
-
 
 	if [ "$REZ_DOT_IMAGE_VIEWER" == "" ]; then
 		export REZ_DOT_IMAGE_VIEWER=!REZ_DOT_IMAGE_VIEWER!
 	fi
 
+    if [[ -e "$REZ_PATH/init_site.sh" ]]; then
+        source "$REZ_PATH/init_site.sh"
+    fi
 
 	source $REZ_PATH/bin/_complete
+	source $REZ_PATH/bin/_complete_svn.sh
+	source $REZ_PATH/bin/_complete_git.sh
 
 fi
 

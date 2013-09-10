@@ -45,6 +45,11 @@ import yaml
 import sys
 import random
 import subprocess as sp
+import copy
+import shlex
+import string
+import tempfile
+
 from versions import *
 from public_enums import *
 from rez_exceptions import *
@@ -52,8 +57,6 @@ from rez_metafile import *
 from rez_memcached import *
 import rez_filesys
 import rez_util
-
-
 
 ##############################################################################
 # Public Classes
@@ -74,9 +77,8 @@ class PackageRequest:
 	this version range." A weak request is actually converted to a normal anti-
 	package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
 	"""
-	def __init__(self, name, version, memcache=None, latest=True):
+	def __init__(self, name, version, memcache=None, latest=True, ignore_archived=True, ignore_blacklisted=True):
 		self.name = name
-
 		if self.is_weak():
 			# convert into an anti-package
 			vr = VersionRange(version)
@@ -85,12 +87,16 @@ class PackageRequest:
 			self.name = '!' + self.name[1:]
 
 		if memcache:
+			#import pdb;pdb.set_trace()
+
 			# goto filesystem and resolve version immediately
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
-			found_path, found_ver, found_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, name_, VersionRange(version), latest)
+			found_path, found_ver, found_epoch = memcache.find_package2(
+				rez_filesys._g_syspaths, name_, VersionRange(version), latest,
+				False, ignore_archived, ignore_blacklisted,
+			)
 
 			if found_ver:
 				self.version = str(found_ver)
@@ -110,7 +116,7 @@ class PackageRequest:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + self.version
+			return self.name + PRIMARY_SEPARATOR + self.version
 
 	def __str__(self):
 		return str((self.name, self.version))
@@ -151,7 +157,7 @@ class ResolvedPackage:
 		if (len(self.version) == 0):
 			return self.name
 		else:
-			return self.name + '-' + str(self.version)
+			return self.name + PRIMARY_SEPARATOR + str(self.version)
 
 	def strip(self):
 		# remove data that we don't want to cache
@@ -165,8 +171,9 @@ class Resolver():
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
-	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
-		build_requires=False, assume_dt=False, caching=True):
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
+		build_requires=False, assume_dt=False, caching=True, ignore_archived=True,
+		ignore_blacklisted=True):
 		"""
 		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
 		quiet: if True then hides unnecessary output (such as the progress dots)
@@ -189,11 +196,13 @@ class Resolver():
 		self.rctxt.assume_dt = assume_dt
 		self.rctxt.time_epoch = time_epoch
 		self.rctxt.memcache = RezMemCache(time_epoch, caching)
+		self.rctxt.ignore_archived = ignore_archived
+		self.rctxt.ignore_blacklisted = ignore_blacklisted
 
 	def get_memcache(self):
 		return self.rctxt.memcache
 
-	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
@@ -201,9 +210,9 @@ class Resolver():
 		@return None on failure, same as resolve() otherwise.
 		"""
 		try:
-			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache) for x in pkg_req_strs]
-			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, \
-				meta_vars, shallow_meta_vars)
+			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache, self.rctxt.ignore_archived,
+				self.rctxt.ignore_blacklisted) for x in pkg_req_strs]
+			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, meta_vars, shallow_meta_vars)
 
 		except PkgSystemError, e:
 			sys.stderr.write(str(e)+'\n')
@@ -289,8 +298,8 @@ class Resolver():
 
 		return result
 
-	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
-		meta_vars=None, shallow_meta_vars=None):
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
+			meta_vars=[], shallow_meta_vars=[]):
 		"""
 		Perform a package resolve.
 		Inputs:
@@ -312,12 +321,18 @@ class Resolver():
 		raise the relevant exception, if config resolution is not possible
 		"""
 		if not no_os:
-			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg)
+			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg,
+				ignore_archived=self.rctxt.ignore_archived,
+				ignore_blacklisted=self.rctxt.ignore_blacklisted,
+			)
 			pkg_reqs = [os_pkg_req] + pkg_reqs
 
 		if not pkg_reqs:
 			return ([], [], "digraph g{}", 0)
 
+		# hold on to a copy to sort against (as possible) after the resolve
+		self.rctxt.original_request = copy.deepcopy(pkg_reqs)
+		
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
 		if not result:
@@ -388,7 +403,6 @@ class Resolver():
 		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
-			normalise_pkg_req(pkg_req)
 			config.add_package(pkg_req)
 
 		for pkg_req in pkg_reqs:
@@ -450,6 +464,7 @@ class Resolver():
 		env_cmds.append("export REZ_RESOLVE_MODE=" + mode_str)
 		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
 		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
+		env_cmds.append("export REZ_PRIMARY_SEPARATOR='" + PRIMARY_SEPARATOR + "'")
 
 		# packages: base/root/version, and commands
 		env_cmds.append("#### START of package commands ####")
@@ -546,7 +561,7 @@ class Resolver():
 # Public Functions
 ##############################################################################
 
-def str_to_pkg_req(str_, memcache=None):
+def str_to_pkg_req(str_, memcache=None, ignore_archived=False, ignore_blacklisted=False):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a PackageRequest.
 	Note that a version string ending in '=e','=l' will result in a package request
@@ -563,16 +578,29 @@ def str_to_pkg_req(str_, memcache=None):
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
 		memcache2 = memcache
-
 	str_ = str_.split('=')[0]
-	strs = str_.split('-', 1)
-	dim = len(strs)
-	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
-	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
-	else:
-		raise PkgSystemError("Invalid package string '" + str_ + "'")
+	package, version = parse_descriptor(str_)
+	return PackageRequest(package, version, memcache2, latest, ignore_archived, ignore_blacklisted)
+
+def parse_descriptor(pkg_str):
+	"""
+	Proceeds through a list of acceptable delimiters, separating the package name from the (optional) version
+	"""
+	package = None
+	version = ''
+	if re.search(r'\s+', pkg_str) is None: # no whitespace allowed
+		for d in ['@', '-', '']:
+			s = r'^((\!|~|)([A-Za-z0-9._:]+))%s(.*|)' % (d,)
+			p = re.compile(s)
+			m = re.search(p, pkg_str)
+			if m is not None:
+				package = m.group(2) + m.group(3)
+				version = m.group(4)
+				break
+	if not package:
+		raise PkgSystemError("Invalid package string: '%s'" % (pkg_str,))
+	return (package, version)
+		
 
 
 
@@ -589,15 +617,14 @@ def get_base_path(pkg_str):
 		latest = False
 
 	pkg_str = pkg_str.rsplit("=",1)[0]
-	strs = pkg_str.split('-', 1)
-	name = strs[0]
-	if len(strs) == 1:
-		verrange = ""
-	else:
-		verrange = strs[1]
+	name, verrange = parse_descriptor(pkg_str)
 
+	ignore_archived = False
+	ignore_blacklisted = False
 	path,ver,pkg_epoch = \
-		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
+		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange),
+					    latest, ignore_archived, ignore_blacklisted,
+		)
 	if not path:
 		raise PkgNotFoundError(pkg_str)
 
@@ -674,9 +701,15 @@ class _Package:
 	"""
 	Internal package representation
 	"""
-	def __init__(self, pkg_req, memcache=None):
+	def __init__(self, pkg_req, resolve_context):
 		self.is_transitivity = False
 		self.has_added_transitivity = False
+		
+		self.resolve_context = resolve_context
+		self.memcache = self.resolve_context.memcache
+		self.ignore_archived = self.resolve_context.ignore_archived
+		self.ignore_blacklisted = self.resolve_context.ignore_blacklisted
+			
 		if pkg_req:
 			self.name = pkg_req.name
 			self.version_range = VersionRange(pkg_req.version)
@@ -686,12 +719,14 @@ class _Package:
 			self.root_path = None
 			self.timestamp = None
 
-			if not self.is_anti() and memcache and \
-				not memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+			if (not self.is_anti() and
+				self.memcache and
+				not self.memcache.package_family_exists(rez_filesys._g_syspaths, self.name)
+				):
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
-		p = _Package(None)
+		p = _Package(None, self.resolve_context)
 		p.is_transitivity = self.is_transitivity
 		p.has_added_transitivity = self.has_added_transitivity
 		p.name = self.name
@@ -718,7 +753,9 @@ class _Package:
 		"""
 		Return this package as a package-request
 		"""
-		return PackageRequest(self.name, str(self.version_range))
+		return PackageRequest(self.name, str(self.version_range),
+			ignore_archived=self.ignore_archived, ignore_blacklisted=self.ignore_blacklisted
+		)
 
 	def is_anti(self):
 		"""
@@ -733,9 +770,7 @@ class _Package:
 		if self.version_range.is_any():
 			return self.name
 		else:
-			return self.name + '-' + str(self.version_range)
-
-		return self.name + '-' + str(self.version_range)
+			return self.name + PRIMARY_SEPARATOR + str(self.version_range)
 
 	def is_metafile_resolved(self):
 		"""
@@ -770,7 +805,7 @@ class _Package:
 		else:
 			return None
 
-	def resolve_metafile(self, memcache):
+	def resolve_metafile(self, memcache, ignore_archived=True, ignore_blacklisted=True):
 		"""
 		attempt to resolve the metafile, the metadata member will be set if
 		successful, and True will be returned. If the package has no variants,
@@ -781,8 +816,11 @@ class _Package:
 			return False
 
 		if not self.base_path:
-			fam_path,ver,pkg_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, self.name, self.version_range, exact=True)
+			fam_path,ver,pkg_epoch = memcache.find_package2(rez_filesys._g_syspaths,
+				self.name, self.version_range, exact=True,
+				ignore_archived=ignore_archived,
+				ignore_blacklisted=ignore_blacklisted,
+			)
 			if ver is not None:
 				base_path = fam_path
 				if not is_any:
@@ -871,8 +909,8 @@ class _Configuration:
 		"""
 		return (self.get_num_resolved_packages() == self.get_num_packages())
 
-	ADDPKG_CONFLICT 	= 0
-	ADDPKG_ADD 			= 1
+	ADDPKG_CONFLICT		= 0
+	ADDPKG_ADD			= 1
 	ADDPKG_NOEFFECT		= 2
 
 	def test_pkg_req_add(self, pkg_req, create_pkg_add):
@@ -942,7 +980,7 @@ class _Configuration:
 				if not ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req, self.rctxt.memcache)
+						pkg_add = _Package(pkg_req, self.rctxt)
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 
 				# if non-anti and (inverse of anti) intersect, then add reduced anti,
@@ -952,7 +990,7 @@ class _Configuration:
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = _Package(pkg_req, self.rctxt.memcache)
+						pkg_add = _Package(pkg_req, self.rctxt)
 						pkg_add.version_range = ver_range_intersect
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -977,7 +1015,7 @@ class _Configuration:
 		# package can be added directly, doesn't overlap with anything
 		pkg_add = None
 		if create_pkg_add:
-			pkg_add = _Package(pkg_req, self.rctxt.memcache)
+			pkg_add = _Package(pkg_req, self.rctxt)
 		return (_Configuration.ADDPKG_ADD, pkg_add)
 
 	def get_conflicting_package(self, pkg_req):
@@ -991,9 +1029,9 @@ class _Configuration:
 		else:
 			return None
 
-	PKGCONN_REDUCE 		= 0
-	PKGCONN_RESOLVE 	= 1
-	PKGCONN_REQUIRES 	= 2
+	PKGCONN_REDUCE			= 0
+	PKGCONN_RESOLVE		= 1
+	PKGCONN_REQUIRES	= 2
 	PKGCONN_CONFLICT	= 3
 	PKGCONN_VARIANT		= 4
 	PKGCONN_CYCLIC		= 5
@@ -1016,7 +1054,6 @@ class _Configuration:
 
 		# test to see what adding this package would do
 		result, pkg = self.test_pkg_req_add(pkg_req, True)
-
 		if (result == _Configuration.ADDPKG_CONFLICT):
 
 			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
@@ -1221,17 +1258,21 @@ class _Configuration:
 				# work down). The first config to resolve represents the most desirable. Note
 				# that resolve_packages will be called recursively
 				num_version_searches = 0
-				while (not (ver_range_valid == None)) and \
-		            ((self.rctxt.max_fails == -1) or \
-		            	(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
-
+				while ( (not (ver_range_valid == None)) and
+					((self.rctxt.max_fails == -1) or (len(self.rctxt.config_fail_list) <= self.rctxt.max_fails))
+				):
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
 					try:
-						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid), \
-							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
+						pkg_req_ = PackageRequest(pkg.name, str(ver_range_valid),
+							self.rctxt.memcache, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
+
+
 					except PkgsUnresolvedError, e:
+						sys.stderr.write('%s\n' % (e,))
 
 						if(num_version_searches == 1):
 							# this means that rather than running out of versions of this lib to try, there
@@ -1247,6 +1288,8 @@ class _Configuration:
 							sys.stderr.write("Warning! Package not found: " + str(e.pkg_reqs[0]) + "\n")
 							raise PkgNotFoundError(e.pkg_reqs[0])
 
+							sys.stderr.write('Made it...\n')
+
 						if (self.uid == 0):
 							# we're the topmost configuration, and there are no more packages to try -
 							# all possible configuration attempts have failed at this point
@@ -1261,7 +1304,7 @@ class _Configuration:
 						if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange("0+<" + pkg_req_.version))
 						else:
-							ver_inc = Version(pkg_req_.version).get_inc()
+							ver_inc = Version(pkg_req_.version).get_inc()   ## TODO: Is 'get_inc' deprecated (did it ever exist?) ? #####################
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange(str(ver_inc) + '+'))
 					except VersionError:
 						ver_range_valid = None
@@ -1383,7 +1426,7 @@ class _Configuration:
 			if not pkg.is_anti():
 				resolved_cmds = pkg.get_resolved_commands()
 				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, \
-                    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
+		    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
 				pkg_ress.append(pkg_res)
 
 		return pkg_ress
@@ -1398,12 +1441,12 @@ class _Configuration:
 		for conn in self.dot_graph:
 			if (type(conn) != type("")) and \
 				(conn[0][0] != '!'):
-				fam1 = conn[0].split('-',1)[0]
+				fam1 = conn[0].split(PRIMARY_SEPARATOR, 1)[0]
 				fams.add(fam1)
 				if (conn[1] != None) and \
 					(conn[1][1] == _Configuration.PKGCONN_REQUIRES) and \
 					(conn[1][0][0] != '!'):
-					fam2 = conn[1][0].split('-',1)[0]
+					fam2 = conn[1][0].split(PRIMARY_SEPARATOR, 1)[0]
 					fams.add(fam2)
 					if fam1 != fam2:
 						deps.add( (fam1, fam2) )
@@ -1428,9 +1471,9 @@ class _Configuration:
 
 			leaf_fams = children - parents
 			if len(leaf_fams) == 0:
-				break 	# if we hit this then there are cycle(s) somewhere
+				break	# if we hit this then there are cycle(s) somewhere
 
-			for fam in leaf_fams:
+			for fam in self.align_with_original_order(leaf_fams):
 				fam_list.append(fam)
 
 			del_deps = set()
@@ -1442,11 +1485,26 @@ class _Configuration:
 			fams -= leaf_fams
 
 		# anything left in the fam set is a topmost node
-		for fam in fams:
+		for fam in self.align_with_original_order(fams):
 			fam_list.append(fam)
 
 		return fam_list
 
+	def align_with_original_order(self, rawUnordered):
+		"""
+		Returns a list version of a supplied set where the items are sorted
+		according to the original request order (if possible)
+		"""
+		unordered = copy.deepcopy(rawUnordered)
+		ordered = []
+		
+		for each in self.rctxt.original_request:
+			if each.name in unordered:
+				ordered.append(each.name)
+				unordered.remove(each.name)
+
+		ordered += list(unordered)
+		return ordered
 
 	def detect_cyclic_dependencies(self):
 		"""
@@ -1568,7 +1626,9 @@ class _Configuration:
 		"""
 		num = 0
 		for pkg_str in pkg_strs:
-			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
+			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache,
+				 self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 			if pkg_req.name not in self.pkgs:
 				num += 1
 
@@ -1584,7 +1644,9 @@ class _Configuration:
 
 		for name, pkg in self.pkgs.iteritems():
 			if (pkg.metadata == None):
-				if pkg.resolve_metafile(self.rctxt.memcache):
+				if ( pkg.resolve_metafile(self.rctxt.memcache, self.rctxt.ignore_archived,
+					self.rctxt.ignore_blacklisted)
+				):
 					num += 1
 
 					if (self.rctxt.verbosity != 0):
@@ -1599,7 +1661,10 @@ class _Configuration:
 
 					if requires:
 						for pkg_str in requires:
-							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache)
+							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.memcache,
+								self.rctxt.ignore_archived,
+								self.rctxt.ignore_blacklisted,
+							)
 
 							if (self.rctxt.verbosity != 0):
 								print
@@ -1639,7 +1704,6 @@ class _Configuration:
 
 		num = 0
 		config2 = None
-
 		for name, pkg in self.pkgs.iteritems():
 			if pkg.is_metafile_resolved():
 				continue
@@ -1649,8 +1713,10 @@ class _Configuration:
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2( \
-				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2(
+				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False,
+				self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 
 			if (not found_path) or (not found_ver):
 				continue
@@ -1659,9 +1725,10 @@ class _Configuration:
 			if not metafile_e:
 				continue
 
-			found_path, found_ver, found_epoch = \
-				self.rctxt.memcache.find_package2( \
-					rez_filesys._g_syspaths, pkg.name, pkg.version_range, True)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2(
+				rez_filesys._g_syspaths, pkg.name, pkg.version_range, True,
+				self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+			)
 
 			if (not found_path) or (not found_ver):
 				continue
@@ -1683,10 +1750,15 @@ class _Configuration:
 				if (pkg_str_e[0] == '!') or (pkg_str_e[0] == '~'):
 					continue
 
-				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.memcache)
+				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.memcache,
+					self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+				)
 
 				for pkg_str_l in requires_l:
-					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.memcache)
+					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.memcache,
+						self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+					)
+
 					if (pkg_req_e.name == pkg_req_l.name):
 						pkg_req = pkg_req_e
 						if (pkg_req_e.version != pkg_req_l.version):
@@ -1700,7 +1772,10 @@ class _Configuration:
 							v.lt = v_l.lt
 							if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 								v.ge = [0]
-							pkg_req = PackageRequest(pkg_req_e.name, str(v))
+							pkg_req = PackageRequest(pkg_req_e.name, str(v),
+								ignore_archived=self.rctxt.ignore_archived,
+								ignore_blacklisted=self.rctxt.ignore_blacklisted,
+							)
 
 						if not config2:
 							config2 = self.copy()
@@ -1720,7 +1795,9 @@ class _Configuration:
 			for variant in (variants_e + variants_l):
 				comm_fams = set()
 				for pkgstr in variant:
-					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+						self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+					)
 					comm_fams.add(pkgreq.name)
 					if pkgreq.name in pkg_vers:
 						pkg_vers[pkgreq.name].append(pkgreq.version)
@@ -1745,8 +1822,10 @@ class _Configuration:
 						if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 							v.ge = [0]
 
-						pkg_req = PackageRequest(pkg_fam, str(v))
-
+						pkg_req = PackageRequest(pkg_fam, str(v),
+							ignore_archived=self.rctxt.ignore_archived,
+							ignore_blacklisted=self.rctxt.ignore_blacklisted,
+						)
 						if not config2:
 							config2 = self.copy()
 						config2.add_package(pkg_req, pkg, _Configuration.PKGCONN_TRANSITIVE)
@@ -1779,7 +1858,9 @@ class _Configuration:
 				conflicting_variants = set()
 				for variant in variants:
 					for pkgstr in variant.metadata:
-						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
 						pkg_conflicting = self.get_conflicting_package(pkg_req_)
 						if pkg_conflicting:
 							pkg_req_conflicting = pkg_conflicting.as_package_request()
@@ -1854,7 +1935,9 @@ class _Configuration:
 					if (len(variant.working_list) > 0):
 						pkgname_set = set()
 						for pkgstr in variant.working_list:
-							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.memcache)
+							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.memcache,
+								self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+							)
 							pkgname_set.add(pkg_req.name)
 							if not (pkg_req.name in pkgname_versions):
 								pkgname_versions[pkg_req.name] = []
@@ -1874,9 +1957,10 @@ class _Configuration:
 					# and remove the packages from the variants' working lists
 					for common_pkgname in common_pkgnames:
 						ored_pkgs_str = common_pkgname + '-' +str('|').join(pkgname_versions[common_pkgname])
-						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.memcache)
+						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.memcache,
+							self.rctxt.ignore_archived, self.rctxt.ignore_blacklisted,
+						)
 
-						normalise_pkg_req(pkg_req_)
 						config2.add_package(pkg_req_, pkg)
 
 						for entry in pkgname_entries[common_pkgname]:
@@ -1992,20 +2076,9 @@ def pkg_to_pkg_req(pkg):
 	"""
 	Helper fn to convert a _Package to a PackageRequest
 	"""
-	return PackageRequest(pkg.name, str(pkg.version_range))
-
-
-# todo remove, this now in pkgReq constr
-def normalise_pkg_req(pkg_req):
-	"""
-	Helper fn to turn a PackageRequest into a regular representation. It is possible
-	to describe a package in a way that is not the same as it will end up in the
-	system. This is perfectly fine, but it can result in confusing dot-graphs. For
-	example, the package 'foo-1|1' is equivalent to 'foo-1'.
-	"""
-	version_range = VersionRange(pkg_req.version)
-	pkg_req.version = str(version_range)
-
+	return PackageRequest(pkg.name, str(pkg.version_range), ignore_archived=pkg.ignore_archived,
+		ignore_blacklisted=pkg.ignore_blacklisted,
+	)
 
 def process_commands(cmds):
 	"""
@@ -2019,10 +2092,13 @@ def process_commands(cmds):
 	This function returns the altered commands. Order of commands is retained.
 	"""
 	set_vars = {}
+	set_functions = {}
+	exported_vars = set([])
 	new_cmds = []
-
+	processed_commands = []
+	
 	for cmd_ in cmds:
-
+		varname = None
 		if type(cmd_) == type([]):
 			cmd = cmd_[0]
 			pkgname = cmd_[1]
@@ -2030,28 +2106,92 @@ def process_commands(cmds):
 			cmd = cmd_
 			pkgname = None
 
-		if cmd.split()[0] == "export":
+		l1 = splitMultipleShellCommands(cmd)
+		for each in l1:
+			processed_commands.append([each, pkgname])
 
-			# parse name, value
-			var_val = cmd[len("export"):].split('=',1)
-			if (len(var_val) != 2):
-				raise PkgCommandError("invalid command:'" + cmd + "'")
-			varname = var_val[0].split()[0]
-			val = var_val[1]
+	for each in processed_commands:
+		cmd = each[0]
+		l = carefulCommandSplit(cmd)
 
+		if ( (l.count('export')) or
+		     (l.count('declare') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) or
+		     (l.count('typeset') and [x for x in l if re.search(r'^-[%s]*x[%s]*' % (string.letters, string.letters), x) is not None]) ):
+			varname = None
+			for token in l[1:]:
+				m = re.search(r'^(?<!-)(\w+)(.*|)$', token)
+				if m is not None: # accepting first non-option token, excluding set values (=\w*), as the identifier
+					varname = m.group(1)
+					break
+
+			exported_vars.add(varname)
+
+	for each in processed_commands:
+		cmd = each[0]
+		pkgname = each[1]
+		varname = None
+		val = None
+		l = carefulCommandSplit(cmd)
+
+		if l.count('=') is 1:
+			i = l.index('=')
+			varname = l[i - 1]
+			val = ''
+			if (i + 1) <= (len(l) - 1):
+				val = ' '.join(l[(i + 1):])
+		elif l.count('=') > 1:
+			raise PkgCommandError("Cannot determine varname and value from '%s'" % (cmd,))
+
+		if l.count('()') > 0 or l.count('function') > 0:
+			# first, check for 'function' style:
+			if l.count('function') > 0:
+				i = l.index('function')
+				try:
+					j = l.index('{')
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+				for token in l[(i + 1):j]:
+					if token == '()':
+						continue
+					varname = token
+					break # should be a formality for well-formed, non-nested function
+			else: # C-style
+				j = l.index('()')
+				try:
+					varname = l[j - 1]
+				except ValueError:
+					raise PkgCommandError("Could not determine function name from command '%s'" % (cmd,))
+
+			if varname in exported_vars:
+				defined = (varname in set_functions)
+				if defined:
+					# this indicates a redefinition
+					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
+						"\noverwrites the exported function defined in a previous command by '" + str(set_functions[varname]) + "'")
+				set_functions[varname] = pkgname
+			new_cmds.append(cmd)
+
+		elif varname in exported_vars:
 			# has value already been set?
 			val_is_set = (varname in set_vars)
 
 			# check for variable self-reference (eg X=$X:foo etc)
-			pos = val.find('$'+varname)
-			if (pos == -1):
+			deref = re.search(r'"?\$\{?%s\}?' % (varname,), val)
+			if deref is None:
 				if val_is_set:
 					# no self-ref but previous val, this is a val overwrite
 					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
-						"\noverwrites the variable set in a previous command by '" + str(set_vars[varname]) + "'")
-			elif not val_is_set:
-				# self-ref but no previous val, so strip self-ref out
-				val = val.replace('$'+varname,'')
+						"\noverwrites the exported variable set in a previous command by '" + str(set_vars[varname]) + "'")
+			elif not val_is_set:	
+				# self-ref but no previous val, so strip self-ref out...
+				m = re.search(r'^"?\$\{?%s\}?"?$' % (varname,), val)
+				if m is not None:
+					val = ''
+				else:
+					m = re.search(r'^("|)\$\{?%s\}?:(.*)$' % (varname,), val)
+					if m is not None:
+						val = '%s%s' % (m.group(1), m.group(2))
 
 			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
 			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
@@ -2059,9 +2199,13 @@ def process_commands(cmds):
 			# in their package.yamls.
 			if(varname == "CMAKE_MODULE_PATH"):
 				val = val.strip(':;')
-				val = val.replace(':', "';'")
+				val = val.replace(':', ';')
+				if re.search(r'''^('|").*?('|")$''', val) is None:
+					val = '"%s"' % (val,)
+				
 
 			set_vars[varname] = pkgname
+
 			new_cmds.append("export " + varname + '=' + val)
 
 		else:
@@ -2070,6 +2214,39 @@ def process_commands(cmds):
 	return new_cmds
 
 
+def splitMultipleShellCommands(commands):
+	"""
+	Break a commandline on (unquoted) semicolons
+	"""
+	pieces = [p for p in re.split(r'''(;|#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|\{.*?\}|\(.*?\))''',
+		commands) if p
+	] # ;-break/comment/quoted/fn def/subshell
+
+	l = []
+	tmp = ''
+	for i in range(len(pieces)):
+		if i == len(pieces) - 1 and pieces[i] != ';':
+			l.append(tmp + pieces[i])
+			break
+		if pieces[i] != ';':
+			tmp += pieces[i]
+		else:
+			l.append(tmp)
+			tmp = ''
+		
+	return l
+
+	
+def carefulCommandSplit(command):
+	"""
+	Correctly splits up an individual shell command into a list
+
+	(to determine varname/value, if available)
+	"""
+	pieces = [p for p in re.split(r'''(#.+$|(?<!\\)\$?'.*?(?<!\\)'|(?<!\\)".*?(?<!\\)"|(?<=$)\{.*?\}|(?<=$)\(.*?\)|=|\s+)''',
+		command) if (p and re.search(r'^\s+$', p) is None)
+	]
+	return pieces
 
 
 

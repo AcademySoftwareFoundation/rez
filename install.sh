@@ -93,7 +93,9 @@ else
     fi
 fi
 
-install_dir=$base_install_dir"/"$rez_version
+# MethodLA: Do not install into versioned directory as tools shed has version already in path
+#install_dir=$base_install_dir"/"$rez_version
+install_dir=$base_install_dir
 if [ -e $install_dir ]; then
 	rm -rf $install_dir/*
 else
@@ -200,7 +202,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     echo "variants:"					>> $py_yaml
     echo "- [ $osname ]"					>> $py_yaml
     echo "commands:" 					>> $py_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'			>> $py_yaml
+    echo '- export PATH=!ROOT!/bin:$PATH'			>> $py_yaml
 
 
     # example package
@@ -219,7 +221,7 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     echo "tools:"                           >> $pkg_yaml
     echo "- hello_world"                    >> $pkg_yaml
     echo "commands:" 						>> $pkg_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
+    echo '- export PATH=!ROOT!/bin:$PATH'	>> $pkg_yaml
 fi
 
 
@@ -237,19 +239,13 @@ cat ./init.sh \
 	> $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
-# install init.csh
+# install init_site.sh
 #-----------------------------------------------------------------------------------------
-cat ./init.csh \
-    | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.csh
-chmod 644 $install_dir/init.csh
+
+if [[ -e ./init_site.sh ]]; then
+    cp ./init_site.sh "$install_dir/init_site.sh"
+    chmod 644 "$install_dir/init_site.sh"
+fi
 
 # install bin/ files
 #-----------------------------------------------------------------------------------------
