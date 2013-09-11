@@ -13,7 +13,7 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez.rez_util import remove_write_perms
+from rez.rez_util import remove_write_perms, copytree
 from rez.rez_metafile import *
 import versions
 
@@ -108,50 +108,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 
 def _expand_path(path):
 	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-def copytree(src, dst, symlinks=False, ignore=None):
-	'''
-	copytree that supports hard-linking
-	'''
-	print "copying directory", src
-	names = os.listdir(src)
-	if ignore is not None:
-		ignored_names = ignore(src, names)
-	else:
-		ignored_names = set()
-
-	os.makedirs(dst)
-	errors = []
-	for name in names:
-		if name in ignored_names:
-			continue
-		srcname = os.path.join(src, name)
-		dstname = os.path.join(dst, name)
-		try:
-			if symlinks and os.path.islink(srcname):
-				linkto = os.readlink(srcname)
-				os.symlink(linkto, dstname)
-			elif os.path.isdir(srcname):
-				copytree(srcname, dstname, symlinks, ignore)
-			else:
-				#shutil.copy2(srcname, dstname)
-				os.link(srcname, dstname)
-		# XXX What about devices, sockets etc.?
-		except (IOError, os.error) as why:
-			errors.append((srcname, dstname, str(why)))
-		# catch the Error from the recursive copytree so that we can
-		# continue with other files
-		except shutil.Error as err:
-			errors.extend(err.args[0])
-	try:
-		shutil.copystat(src, dst)
-	except shutil.WindowsError:
-		# can't copy file access times on Windows
-		pass
-	except OSError as why:
-		errors.extend((src, dst, str(why)))
-	if errors:
-		raise shutil.Error(errors)
 
 def send_release_email(subject, body):
 	from_ = os.getenv("REZ_RELEASE_EMAIL_FROM", "rez")
@@ -475,7 +431,8 @@ class RezReleaseMode(object):
 				return names
 			return [x for x in names if x.startswith('.')]
 
-		copytree(os.getcwd(), build_dir, symlinks=True,
+		print "copying directory", os.getcwd()
+		copytree(os.getcwd(), build_dir, symlinks=True, hardlinks=True,
 				ignore=ignore)
 
 	def get_changelog(self):
