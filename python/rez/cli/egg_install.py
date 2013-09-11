@@ -12,9 +12,12 @@ import os.path
 import shutil
 import tempfile
 import subprocess as sp
+import textwrap
 from rez.cli import error, output
+from rez.rez_util import copytree
 
 _g_r_stat = stat.S_IRUSR|stat.S_IRGRP|stat.S_IROTH
+_g_w_stat = stat.S_IWUSR|stat.S_IWGRP|stat.S_IWOTH
 _g_x_stat = stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH
 
 _g_rez_egg_api_version  = 0
@@ -102,7 +105,7 @@ def _convert_requirement(req, pkg_remappings):
 # some pkg-infos appear to be screwed
 def _repair_pkg_info(s):
     s2 = ''
-    lines = s2.split('\n')
+    lines = s.split('\n')
     for line in lines:
         line = line.strip()
         if line.startswith('[') and not line.endswith(']'):
@@ -127,20 +130,6 @@ def _convert_metadata(distr):
                     meta[k] = v
     return meta
 
-def _find_egg_tools(eggs_path):
-    '''
-    Find any executable files on `eggs_path`
-    '''
-    eggs_tools = set()
-    names = os.listdir(eggs_path)
-    for name in names:
-        fpath = os.path.join(eggs_path, name)
-        if os.path.isfile(fpath):
-            m = os.stat(fpath).st_mode
-            if m & _g_x_stat:
-                eggs_tools.add(name)
-    return eggs_tools
-
 def _get_package_data_from_dist(distr, force_platform, package_remappings,
                                 platform_remappings):
     name = _convert_pkg_name(distr.project_name, package_remappings)
@@ -153,8 +142,17 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
         "unsafe_name":      distr.project_name,
         "version":          ver,
         "unsafe_version":   distr.version,
-        "requires":         ["python-%s+" % pyver]
     }
+    requires = []
+    variant = []
+
+    if distr.has_metadata('native_libs.txt'):
+        # if the package has native libs, then python must be a variant
+        native = True
+        variant.append("python-%s" % pyver)
+    else:
+        native = False
+        requires.append("python-%s+" % pyver)
 
     pkg_d = _convert_metadata(distr)
     d["EGG-INFO"] = pkg_d
@@ -177,27 +175,37 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
     reqs = distr.requires()
     for req in reqs:
         rezreqs = _convert_requirement(req, package_remappings)
-        d["requires"] += rezreqs
+        requires += rezreqs
 
     if force_platform is None:
         v = pkg_d.get("Platform")
-        if v:
+        if native and v.lower() == 'unknown':
+            # cannot allow native lib to be unknown
+            import rez.rez_filesys
+            variant = [rez.rez_filesys._g_os_pkg] + variant
+        elif v:
             platform_pkgs = platform_remappings.get(v.lower())
             if platform_pkgs is None:
-                error("No remappings are present for the platform '%s'. " +
-                      "Please use the --mapping-file option to provide the remapping, or " +
-                      "use the --force-platform option." % v)
+                error(("No remappings are present for the platform '%s'. " +
+                       "Please use the --mapping-file option to provide the remapping, or " +
+                       "use the --force-platform option.") % v)
                 sys.exit(1)
             else:
                 if platform_pkgs:
-                    d["variants"] = platform_pkgs
+                    variant = platform_pkgs + variant
     else:
         toks = force_platform.replace(',',' ').strip().split()
         if toks:
-            d["variants"] = toks
+            variant = toks + variant
+
+    if variant:
+        # add our variant
+        d["variants"] = [variant]
+    if requires:
+        d["requires"] = requires
     return name, d
 
-def _update_package_yaml(yaml_path, data, egg_dir, dry_run):
+def _update_package_yaml(yaml_path, data, dry_run):
     """
     Convert the dictionary of data to yaml. Read existing data from `yaml_path`,
     if it exists.
@@ -224,16 +232,16 @@ def _update_package_yaml(yaml_path, data, egg_dir, dry_run):
         if k not in pkg_d:
             pkg_d[k] = v
 
-    variants = data.get("variants", [])
+    variants = data.get("variants")
     if variants:
         if "variants" not in pkg_d:
             pkg_d["variants"] = []
-        pkg_d["variants"].append(variants)
-    
+        pkg_d["variants"].extend(variants)
+
     if "commands" not in pkg_d:
         pkg_d["commands"] = []
 
-    cmd = "export PYTHONPATH=$PYTHONPATH:!ROOT!/%s" % egg_dir
+    cmd = "export PYTHONPATH=$PYTHONPATH:!ROOT!/lib"
     if cmd not in pkg_d["commands"]:
         pkg_d["commands"].append(cmd)
 
@@ -255,6 +263,206 @@ def _update_package_yaml(yaml_path, data, egg_dir, dry_run):
             f.write(pretty_s)
 
     return updated
+
+def _sandbox_setuptools(tempdir):
+    '''
+    Copy setuptools egg into its own temp directory
+    '''
+    import pkg_resources as pkg_r
+    s = pkg_r.get_distribution('setuptools')
+    path = s.location
+    basename = os.path.basename(path)
+    if os.path.isfile(path):
+        shutil.copy(path, tempdir)
+    else:
+        copytree(path, os.path.join(tempdir, basename))
+
+    pthfile = os.path.join(tempdir, 'easy_instal.pth')
+    with open(pthfile, 'w') as f:
+        f.write(textwrap.dedent("""
+            import sys; sys.__plen = len(sys.path)
+            ./%s
+            import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)
+            """ % basename))
+
+    sitefile = os.path.join(os.path.dirname(path), 'site.py')
+    shutil.copy(sitefile, tempdir)
+
+def install_egg(opts, pkg_name, install_path, setuptools_path,
+                package_remappings, platform_remappings):
+    import pkg_resources as pkg_r
+
+    # install the egg to a temp dir
+    tmpdir = tempfile.mkdtemp(prefix="rez-egg-download-")
+    print "INSTALLING EGG FOR PACKAGE '%s' TO %s..." % (pkg_name, tmpdir)
+    eggs_path = os.path.join(tmpdir, 'lib')
+    bin_path = os.path.join(tmpdir, 'bin')
+    os.makedirs(eggs_path)
+
+    # old style required double dash as separator
+    easy_install_args = [x for x in opts.extra_args if x != '--' and x.startswith('-')]
+    easy_install_args.append(pkg_name)
+
+    try: # Giant try/finally block to ensure that we get a chance to cleanup
+        # find tools, if any
+
+        # prevent easy_install from detecting previously installed packages by
+        # putting only setuptools and install dir on the PYTHONPATH
+        cmd = "export PYTHONPATH=%s:%s ;" % (setuptools_path, eggs_path)
+        # do not install any dependencies. we will recursively install them
+        cmd += "easy_install --no-deps "
+        cmd += "--install-dir='%s' " % eggs_path
+        cmd += "--script-dir='%s' " % bin_path
+        cmd += ' '.join(easy_install_args)
+
+        print "Running: %s" % cmd
+        proc = sp.Popen(cmd, shell=True)
+        proc.wait()
+        if proc.returncode:
+            print
+            error("A problem occurred running easy_install, the command was:\n%s" % cmd)
+            sys.exit(proc.returncode)
+
+        #########################################################################################
+        # extract info from eggs
+        #########################################################################################
+
+        # add eggs to python path
+        sys.path = [eggs_path] + sys.path
+        distrs = list(pkg_r.find_distributions(eggs_path))
+
+        if not distrs:
+            error("easy_install failed to install the package")
+            sys.exit(1)
+        if len(distrs) != 1:
+            error("should have only found one package in install directory")
+            sys.exit(1)
+        distr = distrs[0]
+
+        print
+        print "EXTRACTING DATA FROM %s..." % distr.location
+        egg_name, d = _get_package_data_from_dist(distr, opts.force_platform,
+                                                  package_remappings,
+                                                  platform_remappings)
+
+        tools = os.listdir(bin_path)
+        if tools:
+            d['tools'] = tools
+
+        print
+        print "FOUND EGG: %s" % egg_name
+        if tools:
+            print "FOUND PROGRAMS: %s" % ", ".join(tools)
+
+        #########################################################################################
+        # convert eggs to rez packages
+        #########################################################################################
+
+        destdirs = []
+
+        def _mkdir(path, make_ro=True):
+            if not os.path.exists(path):
+                if opts.verbose:
+                    print "creating %s..." % path
+                if not opts.dry_run:
+                    os.makedirs(path)
+                    if make_ro:
+                        destdirs.append(path)
+
+        def _cpfile(filepath, destdir, make_ro=True):
+            if opts.verbose:
+                print "copying %s to %s..." % (filepath, destdir+'/')
+            if not opts.dry_run:
+                shutil.copy(filepath, destdir)
+                if make_ro:
+                    destfile = os.path.join(destdir, os.path.basename(filepath))
+                    st = os.stat(destfile).st_mode
+                    if make_ro:
+                        # remove write
+                        st ^= _g_w_stat
+                    os.chmod(destfile, st)
+
+        added_pkgs = []
+        updated_pkgs = []
+        existing_pkgs = []
+
+        print
+        print "BUILDING REZ PACKAGE FOR '%s'..." % egg_name
+
+        # NOTE: variants is a list of lists, though at this point, there should
+        # never be more than one entry
+        variants = d.get("variants", [[]])
+
+        pkg_path = os.path.join(install_path, egg_name, d["version"])
+        meta_path = os.path.join(pkg_path, ".metadata")
+        variant_path = os.path.join(pkg_path, *(variants[0]))
+#             bin_path = os.path.join(variant_path, "bin")
+        rezeggfile = os.path.join(meta_path, "rez_egg_info.txt")
+
+        if os.path.exists(variant_path):
+            if not opts.use_non_eggs and os.path.exists(pkg_path) and not os.path.exists(rezeggfile):
+                print
+                error(("package '%s' already exists, but was not created by "
+                      "rez-egg-install. Use the --use-non-eggs option to skip this error, but note "
+                      "that rez doesn't know if this package is properly configured.") % egg_name)
+
+                sys.exit(1)
+
+        if os.path.exists(variant_path):
+            print ("skipping installation of '%s', the current variant appears to exist already " +
+                "- %s already exists. Delete this directory to force a reinstall.") % \
+                (egg_name, variant_path)
+            existing_pkgs.append(egg_name)
+        else:
+#             copytree(tmpdir, variant_path)
+            _mkdir(meta_path, False)
+            _mkdir(variant_path, bool(variants))
+
+            # copy files
+            for root, dirs, files in os.walk(tmpdir):
+                subpath = root[len(tmpdir):].strip('/')
+                dest_root = os.path.join(variant_path, subpath)
+                _mkdir(dest_root)
+ 
+                for name in dirs:
+                    _mkdir(os.path.join(dest_root, name))
+ 
+                # FIXME: for native libs we probably don't want to remove pyc files
+                for name in files:
+                    if not name.endswith(".pyc"):
+                        _cpfile(os.path.join(root, name), dest_root)
+ 
+            for path in reversed(destdirs):
+                os.chmod(path, _g_r_stat | _g_x_stat)
+
+            # create/update yaml
+            print
+            yaml_path = os.path.join(pkg_path, "package.yaml")
+            updated = _update_package_yaml(yaml_path, d, opts.dry_run)
+            if updated:
+                updated_pkgs.append(egg_name)
+            else:
+                added_pkgs.append(egg_name)
+    
+            if not opts.dry_run:
+                # timestamp
+                timefile = os.path.join(meta_path, "release_time.txt")
+                if not os.path.exists(timefile):
+                    with open(timefile, 'w') as f:
+                        f.write(str(int(time.time())))
+    
+                if not os.path.exists(rezeggfile):
+                    with open(rezeggfile, 'w') as f:
+                        f.write(str(_g_rez_egg_api_version))
+    finally:
+        if not opts.no_clean:
+            print
+            print "DELETING %s..." % eggs_path
+            shutil.rmtree(tmpdir)
+
+    for req in distr.requires():
+        install_egg(opts, str(req), install_path, setuptools_path,
+                    package_remappings, platform_remappings)
 
 #########################################################################################
 # cmdlin
@@ -301,12 +509,7 @@ def setup_parser(parser):
 def command(opts):
     import yaml
 
-    pkg_name = opts.pkg
-
-    # old style required double dash as separator
-    easy_install_args = [x for x in opts.extra_args if x != '--']
-    if not easy_install_args:
-        easy_install_args = [pkg_name]
+#     pkg_name = opts.pkg
 
     install_evar = "REZ_EGG_PACKAGES_PATH"
     if opts.local:
@@ -334,218 +537,41 @@ def command(opts):
     #########################################################################################
 
     # find easy_install
-    proc = sp.Popen("which easy_install", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-    proc.communicate()
+    proc = sp.Popen("easy_install --version", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    out, err = proc.communicate()
     if proc.returncode:
         error("could not find easy_install.")
         sys.exit(1)
+    if out.split()[1] < '1.1.0':
+        error("requires setuptools 1.1 or higher")
 
-    # install the egg to a temp dir
-    eggs_path = tempfile.mkdtemp(prefix="rez-egg-download-")
-    print "INSTALLING EGG FOR PACKAGE '%s' TO %s..." % (pkg_name, eggs_path)
+    try:
+        import pkg_resources as pkg_r
+    except ImportError:
+        error("couldn't import pkg_resources. You probably need to install "
+              "the python setuptools package, you can get it at http://pypi.python.org/pypi/setuptools.")
+        sys.exit(1)
 
-    def _clean():
+    setuptools_path = tempfile.mkdtemp(prefix="rez-egg-setuptools-")
+
+    try:
+        _sandbox_setuptools(setuptools_path)
+    
+        install_egg(opts, opts.pkg, install_path, setuptools_path, package_remappings, platform_remappings)
+    finally:
         if not opts.no_clean:
             print
-            print "DELETING %s..." % eggs_path
-            shutil.rmtree(eggs_path)
+            print "DELETING %s..." % setuptools_path
+            shutil.rmtree(setuptools_path)
 
-    try: # Giant try/finally block to ensure that we get a chance to cleanup
-        cmd = "export PYTHONPATH=$PYTHONPATH:%s" % eggs_path
-        cmd += " ; easy_install --always-copy --install-dir=%s %s" % \
-            (eggs_path, str(' ').join(easy_install_args))
-
-        print "Running: %s" % cmd
-        proc = sp.Popen(cmd, shell=True)
-        proc.wait()
-        if proc.returncode:
-            print
-            error("A problem occurred running easy_install, the command was:\n%s" % cmd)
-            sys.exit(proc.returncode)
-
-        #########################################################################################
-        # extract info from eggs
-        #########################################################################################
-
-        # find tools, if any
-        eggs_tools = _find_egg_tools(eggs_path)
-
-        # add eggs to python path
-        sys.path = [eggs_path] + sys.path
-        try:
-            import pkg_resources as pkg_r
-        except ImportError:
-            error("couldn't import pkg_resources. You probably need to install "
-                  "the python setuptools package, you can get it at http://pypi.python.org/pypi/setuptools.")
-            sys.exit(1)
-
-        distrs = pkg_r.find_distributions(eggs_path)
-        eggs = []
-
-        # iterate over eggs
-        for distr in distrs:
-            print
-            print "EXTRACTING DATA FROM %s..." % distr.location
-            name, data = _get_package_data_from_dist(distr, opts.force_platform,
-                                                     package_remappings,
-                                                     platform_remappings)
-            eggs.append((name, distr, data))
-
-        # iterate over tools and assign to eggs. There doesn't seem to be consistency in how eggs specify
-        # their scripts (if at all), so we work it out by looking for the egg name in the script sources.
-        if eggs and eggs_tools:
-            for tool in eggs_tools:
-                with open(os.path.join(eggs_path, tool), 'r') as f:
-                    s = f.read()
-    
-                match_data = None
-                maxcount = 0
-                for egg_name, distr, d in eggs:
-                    n = s.count(d["unsafe_name"])
-                    if n > maxcount:
-                        maxcount = n
-                        match_data = d
-
-                if match_data is None:
-                    error("Could not identify the proper egg for tool %s" % tool)
-
-                if "tools" not in match_data:
-                    match_data["tools"] = []
-                match_data["tools"].append(tool)
-
-        if eggs:
-            print
-            print "FOUND EGGS: %s" % str(", ").join([x[0] for x in eggs])
-            if eggs_tools:
-                print "FOUND PROGRAMS: %s" % str(", ").join(eggs_tools)
-
-        #########################################################################################
-        # convert eggs to rez packages
-        #########################################################################################
-        destdirs = []
-    
-        def _mkdir(path, make_ro=True):
-            if not os.path.exists(path):
-                if opts.verbose:
-                    print "creating %s..." % path
-                if not opts.dry_run:
-                    os.makedirs(path)
-                    if make_ro:
-                        destdirs.append(path)
-
-        def _cpfile(filepath, destdir, make_ro=True, make_x=False):
-            if opts.verbose:
-                print "copying %s to %s..." % (filepath, destdir+'/')
-            if not opts.dry_run:
-                shutil.copy(filepath, destdir)
-                if make_ro or make_x:
-                    st = 0
-                    if make_ro:
-                        st |= _g_r_stat
-                    if make_x: 
-                        st |= _g_x_stat
-                    destfile = os.path.join(destdir, os.path.basename(filepath))
-                    os.chmod(destfile, st)
-
-        if not opts.use_non_eggs:
-            nnoneggs = 0
-            for egg_name, distr, d in eggs:
-                pkg_path = os.path.join(install_path, egg_name, d["version"])
-                meta_path = os.path.join(pkg_path, ".metadata")    
-                rezeggfile = os.path.join(meta_path, "rez_egg_info.txt")
-
-                if os.path.exists(pkg_path) and not os.path.exists(rezeggfile):
-                    print
-                    error("package '%s' already exists, but was not created by " +
-                         "rez-egg-install. Use the --use-non-eggs option to skip this error, but note " +
-                         "that rez doesn't know if this package is properly configured." % egg_name)
-                    nnoneggs += 1
-            if nnoneggs:
-                sys.exit(1)
-
-        added_pkgs = []
-        updated_pkgs = []
-        existing_pkgs = []
-
-        for egg_name, distr, d in eggs:
-            print
-            print "BUILDING REZ PACKAGE FOR '%s'..." % egg_name
-
-            variants = d.get("variants", [])
-            egg_path = distr.location
-            egg_dir = os.path.basename(egg_path)
-            egg_path = os.path.split(egg_path)[0]
-    
-            pkg_path = os.path.join(install_path, egg_name, d["version"])
-            meta_path = os.path.join(pkg_path, ".metadata")    
-            variant_path = os.path.join(pkg_path, *(variants))
-            bin_path = os.path.join(variant_path, "bin")
-            rezeggfile = os.path.join(meta_path, "rez_egg_info.txt")
-
-            if os.path.exists(variant_path):
-                print ("skipping installation of '%s', the current variant appears to exist already " +
-                    "- %s already exists. Delete this directory to force a reinstall.") % \
-                    (egg_name, variant_path)
-                existing_pkgs.append(egg_name)
-                continue
-
-            _mkdir(meta_path, False)
-            _mkdir(variant_path, bool(variants))
-
-            # copy files
-            for root, dirs, files in os.walk(egg_path):
-                subpath = root[len(egg_path):].strip('/')
-                dest_root = os.path.join(variant_path, egg_dir, subpath)
-                _mkdir(dest_root)
-
-                for name in dirs:
-                    _mkdir(os.path.join(dest_root, name))
-
-                for name in files:
-                    if not name.endswith(".pyc"):
-                        _cpfile(os.path.join(root, name), dest_root)
-
-            tools = d.get("tools")
-            if tools:
-                _mkdir(bin_path)
-                for tool in tools:
-                    _cpfile(os.path.join(eggs_path, tool), bin_path,
-                            make_ro=True, make_x=True)
-
-            for path in reversed(destdirs):
-                os.chmod(path, _g_r_stat|_g_x_stat)
-
-            # create/update yaml
-            print
-            yaml_path = os.path.join(pkg_path, "package.yaml")
-            updated = _update_package_yaml(yaml_path, d, egg_dir, opts.dry_run)
-            if updated:
-                updated_pkgs.append(egg_name)
-            else:
-                added_pkgs.append(egg_name)
-
-            if not opts.dry_run:
-                # timestamp
-                timefile = os.path.join(meta_path, "release_time.txt")
-                if not os.path.exists(timefile):
-                    with open(timefile, 'w') as f:
-                        f.write(str(int(time.time())))
-
-                if not os.path.exists(rezeggfile):
-                    with open(rezeggfile, 'w') as f:
-                        f.write(str(_g_rez_egg_api_version))
-    finally:
-        _clean()
-
-    print
-    print "Success! %d packages were installed, %d were updated." % (len(added_pkgs), len(updated_pkgs))
-    if not opts.dry_run:
-        if added_pkgs:
-            print "Newly installed packages: %s" % str(", ").join(added_pkgs)
-        if updated_pkgs:
-            print "Updated packages: %s" % str(", ").join(updated_pkgs)
-        if existing_pkgs:
-            print "Pre-existing packages: %s" % str(", ").join(existing_pkgs)
+#     print "Success! %d packages were installed, %d were updated." % (len(added_pkgs), len(updated_pkgs))
+#     if not opts.dry_run:
+#         if added_pkgs:
+#             print "Newly installed packages: %s" % str(", ").join(added_pkgs)
+#         if updated_pkgs:
+#             print "Updated packages: %s" % str(", ").join(updated_pkgs)
+#         if existing_pkgs:
+#             print "Pre-existing packages: %s" % str(", ").join(existing_pkgs)
 
 
 
