@@ -12,6 +12,7 @@ def setup_shared_parser(parser):
     options shared by config and env
     '''
     import rez.public_enums as enums
+    # also shared by rez-build:
     parser.add_argument("-m", "--mode", dest="mode",
                         default=enums.RESOLVE_MODE_LATEST,
                         choices=[enums.RESOLVE_MODE_LATEST,
@@ -30,15 +31,19 @@ def setup_shared_parser(parser):
     parser.add_argument("--no-cache", dest="no_cache",
                         action="store_true", default=False,
                         help="disable caching [default = %(default)s]")
+    # also shared by rez-build:
     parser.add_argument("-g", "--ignore-archiving", dest="ignore_archiving",
                         action="store_true", default=False,
                         help="silently ignore packages that have been archived [default = %(default)s]")
+    # also shared by rez-build:
     parser.add_argument("-u", "--ignore-blacklist", dest="ignore_blacklist",
                         action="store_true", default=False,
                         help="include packages that are blacklisted [default = %(default)s]")
+    # also shared by rez-build:
     parser.add_argument("-d", "--no-assume-dt", dest="no_assume_dt",
                         action="store_true", default=False,
                         help="do not assume dependency transitivity [default = %(default)s]")
+    # also shared by rez-build (with -t instead of -i):
     parser.add_argument("-i", "--time", dest="time", type=int,
                         default=0,
                         help="ignore packages newer than the given epoch time [default = current time]")

@@ -5,6 +5,7 @@ import stat
 import sys
 import os
 import shutil
+import time
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
@@ -138,3 +139,9 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
         errors.extend((src, dst, str(why)))
     if errors:
         raise shutil.Error(errors)
+
+def get_epoch_time():
+    """
+    get time since the epoch as an int
+    """
+    return int(time.mktime(time.localtime()))

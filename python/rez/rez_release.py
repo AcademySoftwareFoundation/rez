@@ -13,7 +13,7 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez.rez_util import remove_write_perms, copytree
+from rez.rez_util import remove_write_perms, copytree, get_epoch_time
 from rez.rez_metafile import *
 import versions
 
@@ -302,10 +302,8 @@ class RezReleaseMode(object):
 		# used by rez to specify when a package 'officially' comes into existence.
 		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
 									'.metadata' , 'release_time.txt')
-		timef = open(time_metafile, 'w')
-		time_epoch = int(time.mktime(time.localtime()))
-		timef.write(str(time_epoch) + '\n')
-		timef.close()
+		with open(time_metafile, 'w') as f:
+			f.write(str(get_epoch_time()) + '\n')
 
 	def send_email(self):
 		usr = os.getenv("USER", "unknown.user")
