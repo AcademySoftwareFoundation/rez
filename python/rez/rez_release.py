@@ -408,7 +408,7 @@ class RezReleaseMode(object):
 		Could be a url, revision, hash, etc.
 		Cannot contain spaces, dashes, or newlines.
 		'''
-		return self.tag_url
+		return
 
 	@property
 	def last_tagged_version(self):
@@ -836,6 +836,14 @@ class SvnRezReleaseMode(RezReleaseMode):
 		return latest_rev.number, latest_tag_url
 
 	# Overrides ------
+	def get_tag_meta_str(self):
+		'''
+		Return a tag identifier string for this VCS.
+		Could be a url, revision, hash, etc.
+		Cannot contain spaces, dashes, or newlines.
+		'''
+		return self.tag_url
+
 	def get_tags(self):
 		tag_url = self.get_tag_url()
 
@@ -988,8 +996,8 @@ class HgRezReleaseMode(RezReleaseMode):
 			assert hg('root')[0] == self.path
 		except AssertionError:
 			raise RezReleaseUnsupportedMode("'" + self.path + "' is not the root of a mercurial working copy")
-		except:
-			raise RezReleaseUnsupportedMode("failed to call hg")
+		except Exception as err:
+			raise RezReleaseUnsupportedMode("failed to call hg: " + str(err))
 
 		self.patch_path = os.path.join(hgdir, 'patches')
 		if not os.path.isdir(self.patch_path):
