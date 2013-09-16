@@ -161,6 +161,9 @@ class ResolvedPackage(object):
 	def __str__(self):
 		return str([self.name, self.version, self.root])
 
+	def __repr__(self):
+		return "%s(%r, %r, %r)" % (self.__class__.__name__, self.name,
+								   self.version, self.root)
 
 class Resolver(object):
 	"""
