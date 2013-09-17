@@ -6,6 +6,7 @@ A tool for releasing rez - compatible projects centrally
 
 import sys
 import os
+import os.path
 import shutil
 import inspect
 import time
@@ -203,7 +204,7 @@ class RezReleaseMode(object):
 		return a ConfigMetadata instance for this project's package.yaml file.
 		'''
 		# check for ./package.yaml
-		yaml_path = os.path.join(self.path + "package.yaml")
+		yaml_path = os.path.join(self.path, "package.yaml")
 		if not os.access(yaml_path, os.F_OK):
 			raise RezReleaseError(yaml_path + " not found")
 
@@ -250,15 +251,22 @@ class RezReleaseMode(object):
 			chlogf.close()
 
 	def _get_commit_message(self):
+		'''
+		Prompt user for a commit message using the editor specified by
+		$REZ_RELEASE_EDITOR.
+		
+		The starting value of the editor will be the message passed on the
+		command-line, if given.
+		'''
+		
 		tmpf = os.path.join(self.base_dir, RELEASE_COMMIT_FILE)
 		f = open(tmpf, 'w')
 		f.write(self.commit_message)
 		f.close()
 
 		try:
-			pret = subprocess.Popen(self.editor + " " + tmpf, shell=True)
-			pret.wait()
-			if (pret.returncode == 0):
+			returncode = subprocess.call(self.editor + ' ' + tmpf, shell=True)
+			if returncode == 0:
 				print "Got commit message"
 				# if commit file was unchanged, then give a chance to abort the release
 				new_commit_message = open(tmpf).read()
@@ -349,7 +357,7 @@ class RezReleaseMode(object):
 		Could be a url, revision, hash, etc.
 		Cannot contain spaces, dashes, or newlines.
 		'''
-		return self.tag_url
+		return
 
 	@property
 	def last_tagged_version(self):
@@ -511,12 +519,11 @@ class RezReleaseMode(object):
 
 		os.makedirs(self.base_dir)
 
-		# take note of the current time, and use it as the build time for all variants. This ensures
-		# that all variants will find the same packages, in case some new packages are released
-		# during the build.
+		# take note of the current time, and use it as the build time for all
+		# variants. This ensures that all variants will find the same packages, in
+		# case some new packages are released during the build.
 		if str(self.build_time) == "0":
-			self.build_time = subprocess.Popen("date +%s", stdout=subprocess.PIPE, shell=True).communicate()[0]
-			self.build_time = self.build_time.strip()
+			self.build_time = str(int(time.time()))
 
 		if (self.commit_message is None):
 			# get preferred editor for commit message
@@ -648,7 +655,7 @@ class RezReleaseMode(object):
 								  "please see to this immediately - "
 								  "it should probably be removed.")
 
-		self.check_installed_variant()
+		self.check_installed_variant(instpath)
 
 	def post_install(self):
 		'''
@@ -779,6 +786,14 @@ class SvnRezReleaseMode(RezReleaseMode):
 		return latest_rev.number, latest_tag_url
 
 	# Overrides ------
+	def get_tag_meta_str(self):
+		'''
+		Return a tag identifier string for this VCS.
+		Could be a url, revision, hash, etc.
+		Cannot contain spaces, dashes, or newlines.
+		'''
+		return self.tag_url
+
 	def get_tags(self):
 		tag_url = self.get_tag_url()
 
@@ -931,8 +946,8 @@ class HgRezReleaseMode(RezReleaseMode):
 			assert hg('root')[0] == self.path
 		except AssertionError:
 			raise RezReleaseUnsupportedMode("'" + self.path + "' is not the root of a mercurial working copy")
-		except:
-			raise RezReleaseUnsupportedMode("failed to call hg")
+		except Exception as err:
+			raise RezReleaseUnsupportedMode("failed to call hg: " + str(err))
 
 		self.patch_path = os.path.join(hgdir, 'patches')
 		if not os.path.isdir(self.patch_path):
@@ -981,9 +996,10 @@ class HgRezReleaseMode(RezReleaseMode):
 		hg('archive', build_dir)
 
 	def get_changelog(self):
+		start_rev = str(self.last_tagged_version) if self.last_tagged_version else '0'
+		end_rev = 'qparent' if self.patch_path else 'tip'
 		log = hg('log', '-r',
-				'%s..%s and not merge()' % (str(self.last_tagged_version) if self.last_tagged_version else '0',
-											'qparent' if self.patch_path else 'tip'),
+				'%s..%s and not merge()' % (start_rev, end_rev),
 				'--template="{desc}\n\n"')
 		return ''.join(log)
 
