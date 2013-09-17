@@ -284,7 +284,7 @@ def command(opts):
         sys.exit(1)
 
     metadata = _get_package_metadata(os.path.abspath("package.yaml"))
-    reqs = metadata.get_requires(include_build_reqs=True)
+    reqs = metadata.get_requires(include_build_reqs=True) or []
 
     all_variants = metadata.get_variants()
     if all_variants:
