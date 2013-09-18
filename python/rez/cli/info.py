@@ -3,6 +3,7 @@ Print vital information about a package.
 '''
 
 import sys
+import os.path
 from rez.cli import error, output
 
 ##########################################################################################
@@ -32,14 +33,13 @@ def setup_parser(parser):
 
 def command(opts):
     import yaml
-    import subprocess
     import rez.rez_config as dc
     import rez.sigint
+    from rez.rez_util import get_epoch_time
 
     pkg = opts.pkg
 
     # attempt to load the latest
-    fam = pkg.split("=")[0].split("-",1)[0]
     try:
         pkg_base_path = dc.get_base_path(pkg)
     except Exception:
@@ -51,19 +51,21 @@ def command(opts):
 
 
     try:
-        pkg_info = open(pkg_base_path + "/.metadata/info.txt").readlines()
+        infofile = os.path.join(pkg_base_path + ".metadata", "info.txt")
+        pkg_info = open(infofile).readlines()
     except Exception:
         pkg_info = None
-    
-    if(pkg_info):
-        yaml_file = pkg_base_path + "/package.yaml"
+
+    yaml_file = os.path.join(pkg_base_path, "package.yaml")
+
+    if pkg_info:
         try:
             metadict = yaml.load(open(yaml_file).read())
         except Exception:
             error("The package appears to be missing a package.yaml.")
             sys.exit(1)
 
-        print
+        output()
 
         if "description" in metadict:
             output("Description:")
@@ -82,17 +84,15 @@ def command(opts):
         output()
 
         release_date_secs = int(pkg_info[0].split()[-1])
-        now_secs = subprocess.Popen("date +%s", shell=True, stdout=subprocess.PIPE).communicate()[0]
-        now_secs = int(now_secs)
+        now_secs = get_epoch_time()
         days = (now_secs - release_date_secs) / (3600 * 24)
 
         output("Days since last release:")
         output(days)
     else:
-        yaml_file = pkg_base_path + "/package.yaml"
         try:
             metadict = yaml.load(open(yaml_file).read())
-            output("The package appears to be external.\n")
+            output("The package appears to be external.")
             if "description" in metadict:
                 output("Description:")
                 output(str(metadict["description"]).strip())
@@ -101,7 +101,7 @@ def command(opts):
         except Exception:
             output("The package was not released with rez-release.")
 
-    print
+    output()
 
 
 
