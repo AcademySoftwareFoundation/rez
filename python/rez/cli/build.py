@@ -53,6 +53,7 @@ Build the second variant only, and then install it, avoiding a rebuild.
 
 import sys
 import os
+import stat
 import os.path
 import shutil
 import subprocess
@@ -150,6 +151,23 @@ def _get_package_metadata(filepath, quiet=False, no_catch=False):
         sys.exit(1)
     return metadata
 
+def _get_variants(metadata, variant_nums):
+    all_variants = metadata.get_variants()
+    if all_variants:
+        if variant_nums:
+            variants = []
+            for variant_num in variant_nums:
+                try:
+                    variants.append((variant_num, all_variants[variant_num]))
+                except IndexError:
+                    error("Variant #" + str(variant_num) + " does not exist in package.")
+            return variants
+        else:
+            # get all variants
+            return [(i, var) for i, var in enumerate(all_variants)]
+    else:
+        return [(-1, None)]
+
 def _format_bash_command(cmd):
     return textwrap.dedent("""
         echo
@@ -159,6 +177,10 @@ def _format_bash_command(cmd):
             exit 1 ;
         fi
         """ % {'cmd' : cmd})
+
+def _chmod(path, mode):
+    if stat.S_IMODE(os.stat(path).st_mode) != mode:
+        os.chmod(path, mode)
 
 # def foo():
 #     if print_build_requires:
@@ -286,24 +308,7 @@ def command(opts):
     metadata = _get_package_metadata(os.path.abspath("package.yaml"))
     reqs = metadata.get_requires(include_build_reqs=True) or []
 
-    all_variants = metadata.get_variants()
-    if all_variants:
-        if opts.variant_nums:
-            variants = []
-            for variant_num in opts.variant_nums:
-                try:
-                    variants.append((variant_num, all_variants[variant_num]))
-                except IndexError:
-                    error("Variant #" + str(variant_num) + " does not exist in package.")
-        else:
-            # get all variants
-            variants = [(i, var) for i, var in enumerate(all_variants)]
-    else:
-        if opts.print_install_path:
-            output(os.path.join(os.environ['REZ_RELEASE_PACKAGES_PATH'],
-                                metadata.name, metadata.version))
-            sys.exit(0)
-        variants = [(-1, None)]
+    variants = _get_variants(metadata, opts.variant_nums)
 
     #-#################################################################################################
     # Iterate over variants
@@ -333,6 +338,11 @@ def command(opts):
         if variant_num == -1:
             build_dir = build_dir_base
             cmake_dir_arg = "../"
+
+            if opts.print_install_path:
+                output(os.path.join(os.environ['REZ_RELEASE_PACKAGES_PATH'],
+                                    metadata.name, metadata.version))
+                continue
         else:
             build_dir = os.path.join(build_dir_base, str(variant_num))
             cmake_dir_arg = "../../"
@@ -394,7 +404,7 @@ def command(opts):
         print "requested packages: %s" % (', '.join(reqs + variant))
         print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
 
-#         # Note: we pull latest metadata.version of cmake into the env
+#         # Note: we pull latest version of cmake into the env
 #         rez-config
 #             $opts.no_archive
 #             $opts.ignore_blacklist
@@ -505,7 +515,7 @@ def command(opts):
 
             with open(src_file, 'w') as f:
                 f.write(text + '\n')
-            os.chmod(src_file, 0777)
+            _chmod(src_file, 0777)
 
             # run the build
             # TODO: add the 'cd' into the script itself
@@ -523,7 +533,7 @@ def command(opts):
 
             with open(src_file, 'w') as f:
                 f.write(text + '\n')
-            os.chmod(src_file, 0777)
+            _chmod(src_file, 0777)
 
             if variant_num == -1:
                 print "Generated %s, invoke to run cmake for this project." % src_file
