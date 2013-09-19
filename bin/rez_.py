@@ -6,6 +6,7 @@ import inspect
 import argparse
 import pkgutil
 import rez.cli
+import textwrap
 
 def get_parser_defaults(parser):
     return dict((act.dest, act.default) for act in parser._actions)
@@ -33,6 +34,28 @@ def subpackages(packagemod):
             yield modname, mod, ispkg
     else:
         yield packagemod.__name__, packagemod, False
+
+class DescriptionHelpFormatter(argparse.HelpFormatter):
+    """Help message formatter which retains double-newlines in descriptions
+    and adds default values
+    """
+
+    def _fill_text(self, text, width, indent):
+        #text = self._whitespace_matcher.sub(' ', text).strip()
+        text = text.strip()
+        return '\n\n'.join([textwrap.fill(x, width,
+                                          initial_indent=indent,
+                                          subsequent_indent=indent) for x in text.split('\n\n')])
+
+    def _get_help_string(self, action):
+        help = action.help
+        if '%(default)' not in action.help:
+            if action.default is not argparse.SUPPRESS:
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    help += ' (default: %(default)s)'
+        return help
+
 
 @rez.cli.redirect_to_stderr
 def main():
@@ -62,6 +85,7 @@ def main():
         brief = mod.__doc__.strip('\n').split('\n')[0]
         subparser = subparsers[-1].add_parser(cmdname,
                                               description=mod.__doc__,
+                                              formatter_class=DescriptionHelpFormatter,
                                               help=brief)
         mod.setup_parser(subparser)
         subparser.set_defaults(func=mod.command)

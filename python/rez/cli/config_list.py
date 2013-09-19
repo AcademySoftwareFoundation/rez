@@ -13,17 +13,17 @@ from rez.cli import error, output
 
 def setup_parser(parser):
     parser.add_argument("package", metavar="PACKAGE", default=None, nargs='?',
-        help="specific package to list info on [default = %(default)s]")
+        help="specific package to list info on")
     parser.add_argument("-p", "--path", dest="path", default=os.environ["REZ_RELEASE_PACKAGES_PATH"],
-        help="path where packages are located [default = %(default)s]")
+        help="path where packages are located")
     parser.add_argument("-n", "--no-missing", dest="nomissing", action="store_true", default=False,
-        help="don't list packages that are missing any of the requested fields [default = %(default)s]")
+        help="don't list packages that are missing any of the requested fields")
     parser.add_argument("--auth", dest="auth", action="store_true", default=False,
-        help="list package authors [default = %(default)s]")
+        help="list package authors")
     parser.add_argument("--desc", dest="desc", action="store_true", default=False,
-        help="list package description [default = %(default)s]")
+        help="list package description")
     parser.add_argument("--dep", dest="dep", action="store_true", default=False,
-        help="list package dependencies [default = %(default)s]")
+        help="list package dependencies")
 
 def command(opts):
     import yaml

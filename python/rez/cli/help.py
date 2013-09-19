@@ -48,10 +48,10 @@ def setup_parser(parser):
     parser.add_argument("section", type=int, metavar='SECTION', default=0, nargs='?')
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",
                         default=False,
-                        help="Load the rez technical user manual [default = %(default)s]")
+                        help="Load the rez technical user manual")
     parser.add_argument("-e", "--entries", dest="entries", action="store_true",
                         default=False,
-                        help="Just print each help entry [default = %(default)s]")
+                        help="Just print each help entry")
 
 # if (len(sys.argv) == 1):
 #     (opts, args) = p.parse_args(["-h"])

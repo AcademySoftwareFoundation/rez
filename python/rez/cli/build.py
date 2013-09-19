@@ -7,7 +7,8 @@ each variant manually. Note that in the following descriptions, 'make' is used t
 The different usage scenarios are described below.
 
 Usage case 1:
-rez-build [-v <variant_num>] [-m earliest|latest(default)] [-- cmake args]
+
+    rez-build [-v <variant_num>] [-m earliest|latest(default)] [-- cmake args]
 
 This will use the package.yaml to spawn the correct shell for each variant, and create a 'build-env.sh' script (named
 'build-env.0.sh,..., build-env.N.sh for each variant). Invoking one of these scripts will spawn an environment and
@@ -15,7 +16,8 @@ automatically run cmake with the supplied arguments - you can then execute make 
 build the given variant. If zero or one variant exists, then 'build-env.sh' is generated.
 
 Usage case 2:
-rez-build [[-v <variant_num>] [-n]] [-m earliest|latest(default)] -- [cmake args] -- [make args]
+
+    rez-build [[-v <variant_num>] [-n]] [-m earliest|latest(default)] -- [cmake args] -- [make args]
 
 This will use the package.yaml to spawn the correct shell for each variant, invoke cmake, and then invoke make (or
 equivalent). Use rez-build in this way to automatically build the whole build matrix. rez-build does a 'make clean'
@@ -23,30 +25,33 @@ before makeing by default, but the '-n' option suppresses this. Use -n in situat
 and then want to install that variant without rebuilding everything again. This option is only available when one
 variant is being built, otherwise we run the risk of installing code that has been built for a different variant.
 
-
 Examples of use:
 
-rez-build [-h]
-Display this help, and exit.
+Generate 'build-env.#.sh' files and invoke cmake for each variant, but do not invoke make:
 
-rez-build --
-Generate 'build-env.#.sh' files and invoke cmake for each variant, but do not invoke make.
+    rez-build --
 
-rez-build -- --
-Builds all variants of the project, spawning the correct shell for each, and invoking make for each.
+Builds all variants of the project, spawning the correct shell for each, and invoking make for each:
 
-rez-build -v 0 -- --
-Builds only the first variant of the project, spawning the correct shell, and invoking make.
+    rez-build -- --
 
-rez-build -v 0
-Equivalent to 'rez-build -v 0 --'
+Builds only the first variant of the project, spawning the correct shell, and invoking make:
 
-rez-build -v 0 --
-Generate 'build-env.0.sh' and invoke cmake for the first (zeroeth) variant.
+    rez-build -v 0 -- --
 
-rez-build -v 1 -- --
-rez-build -v 1 -n -- -- install
-Build the second variant only, and then install it, avoiding a rebuild.
+Generate 'build-env.0.sh' and invoke cmake for the first (zeroeth) variant:
+
+    rez-build -v 0 --
+
+or:
+
+    rez-build -v 0
+
+Build the second variant only, and then install it, avoiding a rebuild:
+
+    rez-build -v 1 -- --
+    rez-build -v 1 -n -- -- install
+
 """
 
 # FIXME: need to use raw help for text above
@@ -255,7 +260,7 @@ def setup_parser(parser):
                         choices=[enums.RESOLVE_MODE_LATEST,
                                  enums.RESOLVE_MODE_EARLIEST,
                                  enums.RESOLVE_MODE_NONE],
-                        help="set resolution mode [default = %(default)s]")
+                        help="set resolution mode")
     parser.add_argument("-v", "--variant", dest="variant_nums", type=int,
                         action='append',
                         help="individual variant to build")
@@ -264,40 +269,40 @@ def setup_parser(parser):
                         help="ignore packages newer than the given epoch time [default = current time]")
     parser.add_argument("-i", "--install-path", dest="print_install_path",
                         action="store_true", default=False,
-                        help="print the path that the project would be installed to, and exit [default = %(default)s]")
+                        help="print the path that the project would be installed to, and exit")
     parser.add_argument("-g", "--ignore-archiving", dest="ignore_archiving",
                         action="store_true", default=False,
-                        help="silently ignore packages that have been archived [default = %(default)s]")
+                        help="silently ignore packages that have been archived")
     parser.add_argument("-u", "--ignore-blacklist", dest="ignore_blacklist",
                         action="store_true", default=False,
-                        help="include packages that are blacklisted [default = %(default)s]")
+                        help="include packages that are blacklisted")
     parser.add_argument("-d", "--no-assume-dt", dest="no_assume_dt",
                         action="store_true", default=False,
-                        help="do not assume dependency transitivity [default = %(default)s]")
+                        help="do not assume dependency transitivity")
     parser.add_argument("-c", "--changelog", dest="changelog",
                         type=str,
-                        help="VCS changelog [default = %(default)s]")
+                        help="VCS changelog")
     parser.add_argument("-s", "--vcs-metadata", dest="vcs_metadata",
                         type=str,
-                        help="VCS metadata [default = %(default)s]")
+                        help="VCS metadata")
 
     # cmake options
     parser.add_argument("--target", dest="build_target",
                         choices=['Debug', 'Release'],
                         default="Release",
-                        help="build type [default = %(default)s]")
+                        help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
                         type=lambda x: BUILD_SYSTEMS[x],
                         default='eclipse')
     parser.add_argument("-r", "--retain-cache", dest="retain_cache",
                         action="store_true", default=False,
-                        help="retain cmake cache [default = %(default)s]")
+                        help="retain cmake cache")
 
     # make options
     parser.add_argument("-n", "--no-clean", dest="no_clean",
                         action="store_true", default=False,
-                        help="do not run clean prior to building [default = %(default)s]")
+                        help="do not run clean prior to building")
 
     parser.add_argument('extra_args', nargs=argparse.REMAINDER,
                         help="remaining arguments are passed to make and cmake")

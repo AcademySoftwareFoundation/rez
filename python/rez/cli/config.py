@@ -18,31 +18,31 @@ def setup_shared_parser(parser):
                         choices=[enums.RESOLVE_MODE_LATEST,
                                  enums.RESOLVE_MODE_EARLIEST,
                                  enums.RESOLVE_MODE_NONE],
-                        help="set resolution mode [default = %(default)s]")
+                        help="set resolution mode")
     parser.add_argument("-q", "--quiet", dest="quiet",
                         action="store_true", default=False,
-                        help="Suppress unnecessary output [default = %(default)s]")
+                        help="Suppress unnecessary output")
     parser.add_argument("-o", "--no-os", dest="no_os",
                         action="store_true", default=False,
-                        help="stop rez from implicitly requesting the operating system package [default = %(default)s]")
+                        help="stop rez from implicitly requesting the operating system package")
     parser.add_argument("-b", "--build", "--build-requires", dest="buildreqs",
                         action="store_true", default=False,
-                        help="include build-only package requirements [default = %(default)s]")
+                        help="include build-only package requirements")
     parser.add_argument("--no-cache", dest="no_cache",
                         action="store_true", default=False,
-                        help="disable caching [default = %(default)s]")
+                        help="disable caching")
     # also shared by rez-build:
     parser.add_argument("-g", "--ignore-archiving", dest="ignore_archiving",
                         action="store_true", default=False,
-                        help="silently ignore packages that have been archived [default = %(default)s]")
+                        help="silently ignore packages that have been archived")
     # also shared by rez-build:
     parser.add_argument("-u", "--ignore-blacklist", dest="ignore_blacklist",
                         action="store_true", default=False,
-                        help="include packages that are blacklisted [default = %(default)s]")
+                        help="include packages that are blacklisted")
     # also shared by rez-build:
     parser.add_argument("-d", "--no-assume-dt", dest="no_assume_dt",
                         action="store_true", default=False,
-                        help="do not assume dependency transitivity [default = %(default)s]")
+                        help="do not assume dependency transitivity")
     # also shared by rez-build (with -t instead of -i):
     parser.add_argument("-i", "--time", dest="time", type=int,
                         default=0,
@@ -57,10 +57,10 @@ def setup_parser(parser):
                         help='list of package names')
     parser.add_argument("-v", "--verbosity", dest="verbosity", type=int,
                         default=0, choices=[0, 1, 2],
-                        help="set verbosity [default = %(default)s]")
+                        help="set verbosity")
     parser.add_argument("--version", dest="version", action="store_true",
                         default=False,
-                        help="print the rez version number and exit [default = %(default)s]")
+                        help="print the rez version number and exit")
     parser.add_argument("--max-fails", dest="max_fails", type=int,
                         default=-1,
                         help="exit when the number of failed configuration attempts exceeds N [default = no limit]")
@@ -74,26 +74,26 @@ def setup_parser(parser):
                         help="write commands which, if run, would produce the configured environment")
     parser.add_argument("--print-env", dest="print_env", action="store_true",
                         default=False,
-                        help="print commands which, if run, would produce the configured environment [default = %(default)s]")
+                        help="print commands which, if run, would produce the configured environment")
     parser.add_argument("--print-packages", dest="print_pkgs", action="store_true",
                         default=False,
-                        help="print resolved packages for this configuration [default = %(default)s]")
+                        help="print resolved packages for this configuration")
     parser.add_argument("--print-dot", dest="print_dot", action="store_true",
                         default=False,
-                        help="output a dot-graph representation of the configuration resolution [default = %(default)s]")
+                        help="output a dot-graph representation of the configuration resolution")
     parser.add_argument("--meta-info", dest="meta_info", type=str,
                         help="Bake metadata into env-vars. Eg: --meta-info=tools,priority")
     parser.add_argument("--meta-info-shallow", dest="meta_info_shallow", type=str,
                         help="Same as --meta-info, but only bakes data for directly requested packages.")
     parser.add_argument("--wrapper", dest="wrapper", action="store_true",
                         default=False,
-                        help="set to true if creating a wrapper environment [default = %(default)s]")
+                        help="set to true if creating a wrapper environment")
     parser.add_argument("--no-catch", dest="no_catch", action="store_true",
                         default=False,
-                        help="debugging option, turn on to see python exception on error [default = %(default)s]")
+                        help="debugging option, turn on to see python exception on error")
     parser.add_argument("--no-path-append", dest="no_path_append", action="store_true",
                         default=False,
-                        help="don't append system-specific paths to PATH [default = %(default)s]")
+                        help="don't append system-specific paths to PATH")
 
     # settings shared with rez-env
     setup_shared_parser(parser)

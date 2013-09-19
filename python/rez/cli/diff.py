@@ -19,10 +19,10 @@ def setup_parser(parser):
                         help='package name')
     parser.add_argument("--html", dest="html", action="store_true",
                         default=False,
-                        help="output in html format [default = %(default)s]")
+                        help="output in html format")
     parser.add_argument("--view-html", dest="viewhtml", action="store_true",
                         default=False,
-                        help="view the output directly in a browser [default = %(default)s]")
+                        help="view the output directly in a browser")
 
 # TODO: handle this:
 

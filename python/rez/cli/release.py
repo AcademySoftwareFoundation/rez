@@ -14,12 +14,12 @@ def setup_parser(parser):
     parser.add_argument("-m", "--message", dest="message", default=None,
         help="specify commit message, do not prompt user. VCS log will still be appended.")
     parser.add_argument("-n", "--no-message", dest="nomessage", action="store_true", default=False,
-        help="commit with no message. VCS log will still be appended [default = %(default)s].")
+        help="commit with no message. VCS log will still be appended.")
     parser.add_argument("-j", "--jobs", dest="jobs", type=int, default=1,
-        help="specifies the number of jobs (commands) to run simultaneously. [default = %(default)s]")
+        help="specifies the number of jobs (commands) to run simultaneously.")
     parser.add_argument("--allow-not-latest", dest="nolatest", action="store_true", default=False,
         help="allows release of version earlier than the latest release. Do NOT use this option \
-    unless you have to and you have good reason. [default = %(default)s].")
+    unless you have to and you have good reason..")
     parser.add_argument("-t", "--time", dest="time", default="0",
         help="ignore packages newer than the given epoch time [default = current time]")
     

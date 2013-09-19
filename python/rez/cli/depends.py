@@ -8,19 +8,24 @@ latest version of every package is used.
 examples:
 
 to print a list of packages that directly or indirectly use vacuum:
-rez-depends vacuum
+
+    rez-depends vacuum
 
 to print a list of packages that directly use vacuum:
-rez-depends --depth=1 vacuum
+
+    rez-depends --depth=1 vacuum
 
 to check for cyclic dependencies over all packages:
-rez-depends --cyclic-test-only
+
+    rez-depends --cyclic-test-only
 
 to view a dot-graph showing all dependencies of boost:
-rez-depends --show-dot boost
+
+    rez-depends --show-dot boost
 
 to view a dot-graph showing all dependencies of all packages (a BIG image):
-rez-depends --show-dot --all
+
+    rez-depends --show-dot --all
 '''
 import os
 import sys
@@ -55,25 +60,25 @@ def setup_parser(parser):
                         help='list of package names')
     parser.add_argument("-p", "--path", dest="path",
                         default=os.environ["REZ_PACKAGES_PATH"],
-                        help="path where packages are located [default = %(default)s]")
+                        help="path where packages are located")
     parser.add_argument("-d", "--depth", dest="depth", type=int,
                         default=0,
                         help="max recursion depth, defaults to no limit (0)")
     parser.add_argument("-q", "--quiet", dest="quiet", action="store_true",
                         default=False,
-                        help="suppress unnecessary output [default = %(default)s]")
+                        help="suppress unnecessary output")
     parser.add_argument("-a", "--all", dest="all", action="store_true",
                         default=False,
-                        help="select all existing packages (pkg1 .. pkgN will be ignored) [default = %(default)s]")
+                        help="select all existing packages (pkg1 .. pkgN will be ignored)")
     parser.add_argument("--cyclic-test-only", dest="ctest", action="store_true",
                         default=False,
-                        help="just perform cyclic dependency checks, then exit [default = %(default)s]")
+                        help="just perform cyclic dependency checks, then exit")
     parser.add_argument("--print-dot", dest="printdot", action="store_true",
                         default=False,
-                        help="print dependency info in dot notation [default = %(default)s]")
+                        help="print dependency info in dot notation")
     parser.add_argument("--show-dot", dest="showdot", action="store_true",
                         default=False,
-                        help="display dependency info in a dot graph [default = %(default)s]")
+                        help="display dependency info in a dot graph")
 
 def command(opts):
     import yaml

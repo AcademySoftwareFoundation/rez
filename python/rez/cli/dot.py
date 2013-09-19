@@ -20,9 +20,9 @@ def setup_parser(parser):
     parser.add_argument("-v", "--viewer", dest="viewer", type=str, default=default_viewer,
         help="app to view image with [default = "+default_viewer+"]")
     parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
-        help="suppress unnecessary output [default = %(default)s]")
+        help="suppress unnecessary output")
     parser.add_argument("-c", "--conflict-only", dest="conflict_only", action="store_true", default=False,
-        help="only display nodes associated with a conflict [default = %(default)s]")
+        help="only display nodes associated with a conflict")
     parser.add_argument("-p", "--package", dest="package", type=str, default="",
         help="only display nodes dependent (directly or indirectly) on the given package.")
     parser.add_argument("-r", "--ratio", dest="ratio", type=float, default=-1,

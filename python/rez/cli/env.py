@@ -40,19 +40,19 @@ def setup_parser(parser):
                         help="Propogate rcfile into subshells")
     parser.add_argument("-s", "--stdin", dest="stdin",
                         action="store_true", default=False,
-                        help="Read commands from stdin, rather than starting an interactive shell [default = %(default)s]")
+                        help="Read commands from stdin, rather than starting an interactive shell")
     parser.add_argument("-a", "--add-loose",
                         # FIXME: remove this option:
                         "--add_loose",
                         dest="add_loose",
                         action="store_true", default=False,
-                        help="Add mode (loose). Packages will override or add to the existing request list [default = %(default)s]")
+                        help="Add mode (loose). Packages will override or add to the existing request list")
     parser.add_argument("-t", "--add-strict",
                         # FIXME: remove this option:
                         "--add_strict",
                         dest="add_strict",
                         action="store_true", default=False,
-                        help="Add mode (strict). Packages will override or add to the existing resolve list [default = %(default)s]")
+                        help="Add mode (strict). Packages will override or add to the existing resolve list")
     parser.add_argument("-f", "--view-fail", "--view_fail", dest="view_fail", type=int,
                         default=-1,
                         help="View the dotgraph for the Nth failed config attempt")
