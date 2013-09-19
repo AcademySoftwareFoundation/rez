@@ -7,17 +7,17 @@ each variant manually. Note that in the following descriptions, 'make' is used t
 The different usage scenarios are described below.
 
 Usage case 1:
-rez-build [-v <variant_num>] [-m earliest|latest(default)] [-- rez-cmake args]
+rez-build [-v <variant_num>] [-m earliest|latest(default)] [-- cmake args]
 
 This will use the package.yaml to spawn the correct shell for each variant, and create a 'build-env.sh' script (named
 'build-env.0.sh,..., build-env.N.sh for each variant). Invoking one of these scripts will spawn an environment and
-automatically run rez-cmake with the supplied arguments - you can then execute make within this context, and this will
+automatically run cmake with the supplied arguments - you can then execute make within this context, and this will
 build the given variant. If zero or one variant exists, then 'build-env.sh' is generated.
 
 Usage case 2:
-rez-build [[-v <variant_num>] [-n]] [-m earliest|latest(default)] -- [rez-cmake args] -- [make args]
+rez-build [[-v <variant_num>] [-n]] [-m earliest|latest(default)] -- [cmake args] -- [make args]
 
-This will use the package.yaml to spawn the correct shell for each variant, invoke rez-cmake, and then invoke make (or
+This will use the package.yaml to spawn the correct shell for each variant, invoke cmake, and then invoke make (or
 equivalent). Use rez-build in this way to automatically build the whole build matrix. rez-build does a 'make clean'
 before makeing by default, but the '-n' option suppresses this. Use -n in situations where you build a specific variant,
 and then want to install that variant without rebuilding everything again. This option is only available when one
@@ -30,7 +30,7 @@ rez-build [-h]
 Display this help, and exit.
 
 rez-build --
-Generate 'build-env.#.sh' files and invoke rez-cmake for each variant, but do not invoke make.
+Generate 'build-env.#.sh' files and invoke cmake for each variant, but do not invoke make.
 
 rez-build -- --
 Builds all variants of the project, spawning the correct shell for each, and invoking make for each.
@@ -42,7 +42,7 @@ rez-build -v 0
 Equivalent to 'rez-build -v 0 --'
 
 rez-build -v 0 --
-Generate 'build-env.0.sh' and invoke rez-cmake for the first (zeroeth) variant.
+Generate 'build-env.0.sh' and invoke cmake for the first (zeroeth) variant.
 
 rez-build -v 1 -- --
 rez-build -v 1 -n -- -- install
@@ -60,6 +60,11 @@ import subprocess
 import argparse
 import textwrap
 from rez.cli import error, output
+
+BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
+                 'codeblocks' : "CodeBlocks - Unix Makefiles",
+                 'make' : "Unix Makefiles",
+                 'xcode' : "Xcode"}
 
 #
 #-#################################################################################################
@@ -168,15 +173,35 @@ def _get_variants(metadata, variant_nums):
     else:
         return [(-1, None)]
 
-def _format_bash_command(cmd):
+def _format_bash_command(args):
+    def quote(arg):
+        if ' ' in arg:
+            return "'%s'" % arg
+        return arg
+    cmd = ' '.join([quote(arg) for arg in args ])
     return textwrap.dedent("""
         echo
-        echo rez-build: calling %(cmd)s
+        echo rez-build: calling \\'%(cmd)s\\'
         %(cmd)s
         if [ $? -ne 0 ]; then
             exit 1 ;
         fi
         """ % {'cmd' : cmd})
+
+def get_cmake_args(build_system, build_target):
+    cmake_arguments = ["-DCMAKE_SKIP_RPATH=1"]
+
+    # Rez custom module location
+    cmake_arguments.append("-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH")
+
+    # Fetch the initial cache if it's defined
+    if 'CMAKE_INITIAL_CACHE' in os.environ:
+        cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
+
+    cmake_arguments.extend(["-G", build_system])
+
+    cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
+    return cmake_arguments
 
 def _chmod(path, mode):
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
@@ -249,15 +274,31 @@ def setup_parser(parser):
     parser.add_argument("-d", "--no-assume-dt", dest="no_assume_dt",
                         action="store_true", default=False,
                         help="do not assume dependency transitivity [default = %(default)s]")
-    parser.add_argument("-n", "--no-clean", dest="no_clean",
-                        action="store_true", default=False,
-                        help="do not run clean prior to building [default = %(default)s]")
     parser.add_argument("-c", "--changelog", dest="changelog",
                         type=str,
                         help="VCS changelog [default = %(default)s]")
     parser.add_argument("-s", "--vcs-metadata", dest="vcs_metadata",
                         type=str,
                         help="VCS metadata [default = %(default)s]")
+
+    # cmake options
+    parser.add_argument("--target", dest="build_target",
+                        choices=['Debug', 'Release'],
+                        default="Release",
+                        help="build type [default = %(default)s]")
+    parser.add_argument("-b", "--build-system", dest="build_system",
+                        choices=sorted(BUILD_SYSTEMS.keys()),
+                        type=lambda x: BUILD_SYSTEMS[x],
+                        default='eclipse')
+    parser.add_argument("-r", "--retain-cache", dest="retain_cache",
+                        action="store_true", default=False,
+                        help="retain cmake cache [default = %(default)s]")
+
+    # make options
+    parser.add_argument("-n", "--no-clean", dest="no_clean",
+                        action="store_true", default=False,
+                        help="do not run clean prior to building [default = %(default)s]")
+
     parser.add_argument('extra_args', nargs=argparse.REMAINDER,
                         help="remaining arguments are passed to make and cmake")
 
@@ -267,12 +308,13 @@ def command(opts):
     from . import config as rez_cli_config
 
     now_epoch = get_epoch_time()
+    cmake_args = get_cmake_args(opts.build_system, opts.build_target)
 
     # separate out remaining args into cmake and make groups
-    # e.g rez-build [args] -- [rez-cmake args] -- [make args]
+    # e.g rez-build [args] -- [cmake args] -- [make args]
     if opts.extra_args:
         assert opts.extra_args[0] == '--'
-    cmake_args = []
+
     make_args = []
     do_build = False
     if opts.extra_args:
@@ -471,13 +513,13 @@ def command(opts):
             source %(env_bake_file)s
             export REZ_CONTEXT_FILE=%(env_bake_file)s
             env > %(actual_bake)s
-    
+
             # need to expose rez-config's cmake modules in build env
             [[ CMAKE_MODULE_PATH ]] && export CMAKE_MODULE_PATH=%(rez_path)s/cmake';'$CMAKE_MODULE_PATH || export CMAKE_MODULE_PATH=%(rez_path)s/cmake
-    
+
             # make sure we can still use rez-config in the build env!
             export PATH=$PATH:%(rez_path)s/bin
-    
+
             echo
             echo rez-build: in new env:
             rez-context-info
@@ -500,18 +542,20 @@ def command(opts):
             text += "export REZ_BUILD_VARIANT='%s'\n" % variant_str
             text += "export REZ_BUILD_VARIANT_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in variant]))
             text += "export REZ_BUILD_VARIANT_SUBDIR=/%s/\n" % variant_subdir
-    
+
+        if not opts.retain_cache:
+            text += _format_bash_command(["rm", "-f", "CMakeCache.txt"])
+
         # cmake invocation
-        cmd = "rez-cmake -d %s" % (' '.join([cmake_dir_arg] + cmake_args))
-        text += _format_bash_command(cmd)
-    
+        text += _format_bash_command(["cmake", "-d", cmake_dir_arg] + cmake_args)
+
         if do_build:
-            # TODO: determine build tool from rez-cmake args? For now just assume make
+            # TODO: determine build tool from --build-system? For now just assume make
 
-            if opts.no_clean != 1:
-                text += _format_bash_command("make clean")
+            if not opts.no_clean:
+                text += _format_bash_command(["make", "clean"])
 
-            text += _format_bash_command("make %s" % ' '.join(make_args))
+            text += _format_bash_command(["make"] + make_args)
 
             with open(src_file, 'w') as f:
                 f.write(text + '\n')
