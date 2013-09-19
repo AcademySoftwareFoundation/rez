@@ -126,9 +126,9 @@ def command(opts):
     # call rez-config, and write env into bake file
     ##############################################################################
 
-    tmpf = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
-    tmpf2 = tmpf + ".source"
-    tmpf3 = tmpf + ".dot"
+    context_file = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
+    source_file = context_file + ".source"
+    dot_file = context_file + ".dot"
 
     # setup args for rez-config
     # TODO: provide a util which reads defaults for the cli function
@@ -138,8 +138,8 @@ def command(opts):
                   print_dot=False,
                   meta_info='tools',
                   meta_info_shallow='tools',
-                  env_file=tmpf,
-                  dot_file=tmpf3,
+                  env_file=context_file,
+                  dot_file=dot_file,
                   max_fails=opts.view_fail,
                   wrapper=False,
                   no_catch=False,
@@ -163,17 +163,17 @@ def command(opts):
                 from . import dot as rez_cli_dot
                 dot_opts = argparse.Namespace(conflict_only=True,
                                               package="",
-                                              dotfile=tmpf3)
+                                              dotfile=dot_file)
                 rez_cli_dot.command(dot_opts)
             sys.exit(1)
         finally:
-            if os.path.exists(tmpf):
-                os.remove(tmpf)
-            if os.path.exists(tmpf3):
-                os.remove(tmpf3)
+            if os.path.exists(context_file):
+                os.remove(context_file)
+            if os.path.exists(dot_file):
+                os.remove(dot_file)
 
     if autowrappers:
-        with open(tmpf, 'w') as f:
+        with open(context_file, 'w') as f:
             f.write("export REZ_RAW_REQUEST='%s'\n" % packages)
 
     ##############################################################################
@@ -184,11 +184,11 @@ def command(opts):
     if not raw_request:
         cmd += "export REZ_RAW_REQUEST='%s';" % packages
 
-    cmd += "export REZ_CONTEXT_FILE=%s;" % tmpf
+    cmd += "export REZ_CONTEXT_FILE=%s;" % context_file
     cmd += 'export REZ_ENV_PROMPT="%s";' % (os.getenv('REZ_ENV_PROMPT', '') + opts.prompt)
  
     if opts.stdin:
-        cmd += "source %s;" % tmpf
+        cmd += "source %s;" % context_file
         if not opts.rcfile:
             if os.path.exists(os.path.expanduser('~/.bashrc')):
                 cmd += "source ~/.bashrc &> /dev/null;"
@@ -204,8 +204,8 @@ def command(opts):
         cmd += "bash -s;"
         cmd += "ret=$?;"
     else:
-        with open(tmpf2, 'w') as f:
-            f.write("source %s\n" % tmpf)
+        with open(source_file, 'w') as f:
+            f.write("source %s\n" % context_file)
             if opts.rcfile:
                 f.write("source %s\n" % opts.rcfile)
 
@@ -215,12 +215,12 @@ def command(opts):
                 f.write("echo You are now in a new environment.\n")
                 f.write("rez-context-info\n")
  
-        cmd += "bash --rcfile %s;" % tmpf2
+        cmd += "bash --rcfile %s;" % source_file
         cmd += "ret=$?;"
-        cmd += "rm -f %s;" % tmpf2
+        cmd += "rm -f %s;" % source_file
 
-    cmd += "rm -f %s;" % tmpf
-    cmd += "rm -f %s;" % tmpf3
+    cmd += "rm -f %s;" % context_file
+    cmd += "rm -f %s;" % dot_file
     output(cmd)
     #print "exit $ret;"
 
