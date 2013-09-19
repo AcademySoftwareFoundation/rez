@@ -2,7 +2,6 @@
 Install a python egg as a Rez package.
 '''
 
-import optparse
 import sys
 import os
 import re
@@ -264,31 +263,81 @@ def _update_package_yaml(yaml_path, data, dry_run):
 
     return updated
 
-def _sandbox_setuptools(tempdir):
+def _get_safe_pythonpath(pkg_name, pypath):
+    """
+    Filter out unsafe paths from the PYTHONPATH.
+    Paths that might contain other copies of the package being
+    installed, will cause easy_install to skip installation.
+    """
+    safe_paths = []
+    rez_pkgs_path = os.environ['REZ_PACKAGES_PATH'].split(':')
+    for path in pypath:
+        for pkg_path in rez_pkgs_path:
+            # allow rez packages that are not this one: because they contain a 
+            # single application/library, there is little chance they
+            # will contain the python module being installed, and might even
+            # be required by the package being installed
+            if path.startswith(pkg_path) and \
+                    pkg_name not in path.replace(pkg_path, '').split(os.path.sep):
+                safe_paths.append(path)
+                break
+    return safe_paths
+
+def _sandbox_eggs(tempdir, eggs):
     '''
     Copy setuptools egg into its own temp directory
     '''
     import pkg_resources as pkg_r
-    s = pkg_r.get_distribution('setuptools')
-    path = s.location
-    basename = os.path.basename(path)
-    if os.path.isfile(path):
-        shutil.copy(path, tempdir)
-    else:
-        copytree(path, os.path.join(tempdir, basename))
+    sandboxed = []
+    for egg in eggs:
+        distr = pkg_r.get_distribution(egg)
+        location = distr.location
+        if location.endswith('.egg'):
+            paths = [location]
+            sandboxed.append(os.path.join('.', os.path.basename(location)))
+            # easy-install-style egg
+            #print list(distr.get_metadata("installed-files.txt"))
+        else:
+            paths = list(os.path.join(location, x) for x in distr.get_metadata_lines("top_level.txt"))
+             
+            info = os.path.join(location, distr.egg_name() + '.egg-info')
+            paths.append(info)
+#             # pip style
+#             for file in distr.get_metadata_lines("installed-files.txt"):
+#                 srcpath = os.path.abspath(os.path.join(info, file))
+#                 destpath = os.path.relpath(srcpath, path)
+#                 destpath = os.path.join(tempdir, destpath)
+#                 print `file`
+#                 print srcpath
+#                 print destpath
+#                 if os.path.isdir(srcpath):
+#                     os.mkdir(destpath)
+#                 else:
+#                     destdir = os.path.dirname(destpath)
+#                     if not os.path.exists(destdir):
+#                         os.makedirs(destdir)
+#                     shutil.copy(srcpath, destdir)
+#             sys.exit(1)
+        for path in paths:
+            print "sandboxing %s: copying %s to %s" % (egg, path, tempdir)
+            basename = os.path.basename(path)
+            if os.path.isfile(path):
+                shutil.copy(path, tempdir)
+            else:
+                copytree(path, os.path.join(tempdir, basename))
 
     pthfile = os.path.join(tempdir, 'easy_instal.pth')
     with open(pthfile, 'w') as f:
         f.write(textwrap.dedent("""
             import sys; sys.__plen = len(sys.path)
-            ./%s
+            %s
             import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)
-            """ % basename))
+            """ % '\n'.join(sandboxed)))
 
     sitefile = os.path.join(os.path.dirname(path), 'site.py')
     shutil.copy(sitefile, tempdir)
 
-def install_egg(opts, pkg_name, install_path, setuptools_path,
+def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
                 package_remappings, platform_remappings):
     import pkg_resources as pkg_r
 
@@ -304,23 +353,19 @@ def install_egg(opts, pkg_name, install_path, setuptools_path,
     easy_install_args.append(pkg_name)
 
     try: # Giant try/finally block to ensure that we get a chance to cleanup
-        # find tools, if any
+        environ = dict(os.environ)
+        pypath = environ.pop('REZ_ORIG_PYTHONPATH').split(os.path.pathsep)
+        pypath = [setuptools_path, eggs_path] + _get_safe_pythonpath(pkg_name, pypath)
+        environ['PYTHONPATH'] = os.path.pathsep.join(pypath)
 
-        # prevent easy_install from detecting previously installed packages by
-        # putting only setuptools and install dir on the PYTHONPATH
-        cmd = "export PYTHONPATH=%s:%s ;" % (setuptools_path, eggs_path)
-        # do not install any dependencies. we will recursively install them
-        cmd += "easy_install --no-deps "
-        cmd += "--install-dir='%s' " % eggs_path
-        cmd += "--script-dir='%s' " % bin_path
-        cmd += ' '.join(easy_install_args)
-
-        print "Running: %s" % cmd
-        proc = sp.Popen(cmd, shell=True)
+        install_cmd = install_cmd % (tmpdir)
+        install_cmd += ' '.join(easy_install_args)
+        print "Running: %s" % install_cmd
+        proc = sp.Popen(install_cmd, shell=True, env=environ)
         proc.wait()
         if proc.returncode:
             print
-            error("A problem occurred running easy_install, the command was:\n%s" % cmd)
+            error("A problem occurred running easy_install, the command was:\n%s" % install_cmd)
             sys.exit(proc.returncode)
 
         #########################################################################################
@@ -464,6 +509,38 @@ def install_egg(opts, pkg_name, install_path, setuptools_path,
         install_egg(opts, str(req), install_path, setuptools_path,
                     package_remappings, platform_remappings)
 
+def _get_pip_install_cmd():
+    proc = sp.Popen("pip --version", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    out, err = proc.communicate()
+    if proc.returncode:
+        error("could not find pip.")
+        return
+    # do not install any dependencies. we will recursively install them
+    cmd = "pip install --no-deps "
+    cmd += "--install-option='--install-base=""' "
+    cmd += "--install-option='--install-purelib=lib' "
+    cmd += "--install-option='--install-platlib=lib' "
+    cmd += "--install-option='--install-scripts=bin' "
+    cmd += "--install-option='--install-data=data' "
+    cmd += " --root='%s' "
+    return cmd
+
+def _get_easy_install_cmd():
+    # find easy_install
+    proc = sp.Popen("easy_install --version", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+    out, err = proc.communicate()
+    if proc.returncode:
+        error("could not find easy_install.")
+        return
+    if out.split()[1] < '1.1.0':
+        error("requires setuptools 1.1 or higher")
+        return
+    # do not install any dependencies. we will recursively install them
+    cmd = "easy_install --no-deps "
+    cmd += "--install-dir='%s/lib' "
+    cmd += "--script-dir=bin "
+    return cmd
+
 #########################################################################################
 # cmdlin
 ####################################################################################
@@ -507,7 +584,14 @@ def setup_parser(parser):
         help="remaining arguments are passed to easy_install")
 
 def command(opts):
-    import yaml
+    try:
+        import yaml
+    except ImportError:
+        # TODO: save the yaml path gathered on install and import yaml.py directly
+        error("rez-egg-install uses the python binary found on the PATH instead of"
+              "REZ_PYTHON_BINARY. Ensure that this python has yaml installed.")
+        sys.exit(1)
+        # This is required to successfully inspect modules, particularly "compiled extensions.
 
 #     pkg_name = opts.pkg
 
@@ -532,18 +616,15 @@ def command(opts):
     for k,v in platre.iteritems():
         platform_remappings[k.lower()] = v
 
-    #########################################################################################
-    # run easy_install
-    #########################################################################################
-
-    # find easy_install
-    proc = sp.Popen("easy_install --version", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-    out, err = proc.communicate()
-    if proc.returncode:
-        error("could not find easy_install.")
-        sys.exit(1)
-    if out.split()[1] < '1.1.0':
-        error("requires setuptools 1.1 or higher")
+    setuptools = ['setuptools']
+    # find pip
+    install_cmd = _get_pip_install_cmd()
+    if not install_cmd:
+        install_cmd = _get_easy_install_cmd()
+        if not install_cmd:
+            sys.exit(1)
+    else:
+        setuptools.append('pip')
 
     try:
         import pkg_resources as pkg_r
@@ -555,9 +636,10 @@ def command(opts):
     setuptools_path = tempfile.mkdtemp(prefix="rez-egg-setuptools-")
 
     try:
-        _sandbox_setuptools(setuptools_path)
+        _sandbox_eggs(setuptools_path, setuptools)
     
-        install_egg(opts, opts.pkg, install_path, setuptools_path, package_remappings, platform_remappings)
+        install_egg(opts, opts.pkg, install_cmd, install_path, setuptools_path,
+                    package_remappings, platform_remappings)
     finally:
         if not opts.no_clean:
             print

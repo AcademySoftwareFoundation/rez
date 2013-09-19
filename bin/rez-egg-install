@@ -1,7 +1,9 @@
 #!/bin/bash
-
+# egg-install is a special case: it uses the python set by the environment so that
+# it can inspect the installed modules
+pythonbin=`which python`
 . _set-rez-env
-rez_.py egg-install "$@"
+$pythonbin `which rez_.py` egg-install "$@"
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
