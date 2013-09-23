@@ -928,33 +928,32 @@ class SvnRezReleaseMode(RezReleaseMode):
 
 	def get_changelog(self):
 		# Get the changelog.
-		# TODO: read this in directly using pysvn and the latest tag
-# 		import pysvn
-# 		try:
-# 			result = self.get_last_tagged_revision()
-# 		except (ImportError, RezReleaseError):
-# 			log = "Changelog since first revision, tag:(NONE)\n"
-# 			# svn log -r HEAD:1 --stop-on-copy
-# 			end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
-# 		else:
-# 			if result is None:
-# 				log = "Changelog since first branch revision:(NONE)\n"
-# 				# svn log -r HEAD:1 --stop-on-copy
-# 				end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
-# 			else:
-# 				rev, tagurl = result
-# 				log = "Changelog since rev: %d tag: %s\n" % (rev, tagurl)
-# 				# svn log -r HEAD:$rev
-# 				end =  pysvn.Revision(pysvn.opt_revision_kind.number, rev)
-# 		start = pysvn.Revision(pysvn.opt_revision_kind.head)
-# 		log += self.svnc.log(start, end, strict_node_history=True)
-# 		return log
+		import pysvn
+		try:
+			result = self.get_last_tagged_revision()
+		except (ImportError, RezReleaseError):
+			log = "Changelog since first revision, tag:(NONE)\n"
+			# svn log -r HEAD:1 --stop-on-copy
+			end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
+		else:
+			if result is None:
+				log = "Changelog since first branch revision:(NONE)\n"
+				# svn log -r HEAD:1 --stop-on-copy
+				end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
+			else:
+				rev, tagurl = result
+				log = "Changelog since rev: %d tag: %s\n" % (rev, tagurl)
+				# svn log -r HEAD:$rev
+				end =  pysvn.Revision(pysvn.opt_revision_kind.number, rev)
+		start = pysvn.Revision(pysvn.opt_revision_kind.head)
+		log += self.svnc.log(start, end, strict_node_history=True)
+		return log
 
-		pret = subprocess.Popen("rez-svn-changelog",
-							    stdout=subprocess.PIPE,
-							    stderr=subprocess.PIPE)
-		changelog, changelog_err = pret.communicate()
-		return changelog
+# 		pret = subprocess.Popen("rez-svn-changelog",
+# 							    stdout=subprocess.PIPE,
+# 							    stderr=subprocess.PIPE)
+# 		changelog, changelog_err = pret.communicate()
+# 		return changelog
 
 register_release_mode(SvnRezReleaseMode)
 
