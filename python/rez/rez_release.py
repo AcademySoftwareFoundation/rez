@@ -14,7 +14,8 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez_metafile import *
+from rez.rez_util import remove_write_perms, copytree, get_epoch_time
+from rez.rez_metafile import *
 import versions
 
 ##############################################################################
@@ -53,30 +54,43 @@ RELEASE_COMMIT_FILE 	= 		"rez-release-commit.tmp"
 # Public Functions
 ##############################################################################
 
-def register_release_mode(name, cls):
+def register_release_mode(cls):
 	"""
 	Register a subclass of RezReleaseMode for performing a custom release procedure.
 	"""
+	import re
 	assert inspect.isclass(cls) and issubclass(cls, RezReleaseMode), \
 		"Provided class is not a subclass of RezReleaseMode"
-	assert name not in list_release_modes(), \
-		"Mode has already been registered"
+	assert hasattr(cls, 'name'), "Mode must have a name attribute"
+	assert re.match("[a-zA-Z][a-zA-Z0-9_]+$", cls.name),\
+		"Mode name '%s' must begin with a letter and contain no spaces" % cls.name
+	assert cls.name not in list_release_modes(), \
+		"Mode '%s' has already been registered" % cls.name
 	# put new entries at the front
-	_release_classes.insert(0, (name, cls))
+	_release_classes.insert(0, (cls.name, cls))
 
 def list_release_modes():
 	return [name for (name, cls) in _release_classes]
 
-def list_available_release_modes(path):
-	modes = []
+def get_release_mode(path):
+	"""
+	get the best release mode given the root path
+	"""
 	for name, cls in _release_classes:
-		try:
-			cls(path)
-		except:
-			pass
-		else:
-			modes.append(name)
-	return modes
+		if cls.is_valid_root(path):
+			return cls(path)
+
+def list_available_release_modes(path):
+	"""
+	List release modes that work with the given path.
+
+	Note that this does not filter release modes which are broken -- ie. a module
+	fails to import, the VCS binary is unavailable, etc -- so that these issues are
+	not masked and the user can get a chance to fix them. For example, if a
+	root directory contains a .svn directory, 'svn' will be a valid release mode
+	even if the pysvn module is not avaialble.
+	"""
+	return [name for name, cls in _release_classes if cls.is_valid_root(path)]
 
 def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 					  mode='svn'):
@@ -98,7 +112,11 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 		if True, allows for releasing a tag that is not > the latest tag version
 	"""
 	cls = dict(_release_classes)[mode]
-	rel = cls(path)
+	try:
+		rel = cls(path)
+	except RezReleaseUnsupportedMode as err:
+		print err
+		return
 	rel.release(commit_message, njobs, build_time, allow_not_latest)
 
 
@@ -108,56 +126,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 
 def _expand_path(path):
 	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
-
-def remove_write_perms(path):
-	import stat
-	st = os.stat(path)
-	mode = st.st_mode & ~(stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
-	os.chmod(path, mode)
-
-def copytree(src, dst, symlinks=False, ignore=None):
-	'''
-	copytree that supports hard-linking
-	'''
-	print "copying directory", src
-	names = os.listdir(src)
-	if ignore is not None:
-		ignored_names = ignore(src, names)
-	else:
-		ignored_names = set()
-
-	os.makedirs(dst)
-	errors = []
-	for name in names:
-		if name in ignored_names:
-			continue
-		srcname = os.path.join(src, name)
-		dstname = os.path.join(dst, name)
-		try:
-			if symlinks and os.path.islink(srcname):
-				linkto = os.readlink(srcname)
-				os.symlink(linkto, dstname)
-			elif os.path.isdir(srcname):
-				copytree(srcname, dstname, symlinks, ignore)
-			else:
-				#shutil.copy2(srcname, dstname)
-				os.link(srcname, dstname)
-		# XXX What about devices, sockets etc.?
-		except (IOError, os.error) as why:
-			errors.append((srcname, dstname, str(why)))
-		# catch the Error from the recursive copytree so that we can
-		# continue with other files
-		except shutil.Error as err:
-			errors.extend(err.args[0])
-	try:
-		shutil.copystat(src, dst)
-	except shutil.WindowsError:
-		# can't copy file access times on Windows
-		pass
-	except OSError as why:
-		errors.extend((src, dst, str(why)))
-	if errors:
-		raise shutil.Error(errors)
 
 def send_release_email(subject, body):
 	from_ = os.getenv("REZ_RELEASE_EMAIL_FROM", "rez")
@@ -220,6 +188,7 @@ class RezReleaseMode(object):
 		- install
 		- post_install
 	'''
+	name = 'base'
 	def __init__(self, path):
 		self.path = _expand_path(path)
 		
@@ -233,6 +202,13 @@ class RezReleaseMode(object):
 		# for cached property: False indicates it has not been cached
 		# (since it may be None after caching)
 		self._last_tagged_version = False
+
+	@classmethod
+	def is_valid_root(cls, path):
+		"""
+		Return True if this release mode works with the given root path
+		"""
+		return True
 
 	def release(self, commit_message, njobs, build_time, allow_not_latest):
 		'''
@@ -359,10 +335,8 @@ class RezReleaseMode(object):
 		# used by rez to specify when a package 'officially' comes into existence.
 		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
 									'.metadata' , 'release_time.txt')
-		timef = open(time_metafile, 'w')
-		time_epoch = int(time.mktime(time.localtime()))
-		timef.write(str(time_epoch) + '\n')
-		timef.close()
+		with open(time_metafile, 'w') as f:
+			f.write(str(get_epoch_time()) + '\n')
 
 	def send_email(self):
 		usr = os.getenv("USER", "unknown.user")
@@ -480,22 +454,24 @@ class RezReleaseMode(object):
 		This is particularly useful for revision control systems, which can
 		export a clean unmodified copy
 		'''
+		root_build_dir = os.path.dirname(self.base_dir)
 		def ignore(src, names):
 			'''
 			returns a list of names to ignore, given the current list
 			'''
-			if src == self.base_dir:
+			if src == root_build_dir:
 				return names
 			return [x for x in names if x.startswith('.')]
 
-		copytree(os.getcwd(), build_dir, symlinks=True,
+		print "copying directory", os.getcwd()
+		copytree(os.getcwd(), build_dir, symlinks=True, hardlinks=True,
 				ignore=ignore)
 
 	def get_changelog(self):
 		'''
 		get the changelog text since the last release
 		'''
-		return ''
+		return None
 
 	def get_build_cmd(self, vararg):
 		tag_meta_str = self.get_tag_meta_str()
@@ -634,8 +610,8 @@ class RezReleaseMode(object):
 		print("rez-release: building " + varname + " in " + subdir + "...")
 		print("rez-release: invoking: " + build_cmd)
 
-		build_cmd = "cd " + subdir + " ; " + build_cmd
-		pret = subprocess.Popen(build_cmd, shell=True)
+		# TODO: import rez.cli.build
+		pret = subprocess.Popen(build_cmd, shell=True, cwd=subdir)
 		pret.communicate()
 		if (pret.returncode != 0):
 			raise RezReleaseError("rez-release: build failed")
@@ -727,13 +703,13 @@ class RezReleaseMode(object):
 		print("rez-release: your package was released successfully.")
 		print
 
-register_release_mode('base', RezReleaseMode)
+register_release_mode(RezReleaseMode)
 
 ##############################################################################
 # Subversion
 ##############################################################################
 
-class SvnValueCallback:
+class SvnValueCallback(object):
 	"""
 	simple functor class
 	"""
@@ -795,11 +771,16 @@ def getSvnLogin(realm, username, may_save):
 	return True, username, pwd, False
 
 class SvnRezReleaseMode(RezReleaseMode):
+	name = 'svn'
 	def __init__(self, path):
 		super(SvnRezReleaseMode, self).__init__(path)
 
-		self.svnc = svn_get_client()
+		try:
+			import pysvn
+		except ImportError:
+			raise RezReleaseUnsupportedMode("pysvn python module must be installed to properly release a project under subversion.")
 
+		self.svnc = svn_get_client()
 		svn_entry = self.svnc.info(self.path)
 		if not svn_entry:
 			raise RezReleaseUnsupportedMode("'" + self.path + "' is not an svn working copy")
@@ -827,7 +808,7 @@ class SvnRezReleaseMode(RezReleaseMode):
 
 	def get_last_tagged_revision(self):
 		'''
-		Return the revision number and tag url of the last tag
+		Return the revision number as int, and tag url of the last tag
 		'''
 		tag_url = self.get_tag_url()
 		latest_tag_url = tag_url + '/' + str(self.last_tagged_version)
@@ -836,6 +817,13 @@ class SvnRezReleaseMode(RezReleaseMode):
 		return latest_rev.number, latest_tag_url
 
 	# Overrides ------
+	@classmethod
+	def is_valid_root(cls, path):
+		"""
+		Return True if this release mode works with the given root path
+		"""
+		return os.path.isdir(os.path.join(path, '.svn'))
+
 	def get_tag_meta_str(self):
 		'''
 		Return a tag identifier string for this VCS.
@@ -931,9 +919,6 @@ class SvnRezReleaseMode(RezReleaseMode):
 			raise RezReleaseError(self.path + "/package.yaml is not under source control")
 		return result
 
-	def get_tag_meta_str(self):
-		return self.tag_url
-
 	def copy_source(self, build_dir):
 		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.path)' here, hence shell
 		pret = subprocess.Popen(["svn", "export", self.this_url, build_dir])
@@ -944,20 +929,25 @@ class SvnRezReleaseMode(RezReleaseMode):
 	def get_changelog(self):
 		# Get the changelog.
 		# TODO: read this in directly using pysvn and the latest tag
-# 		log = ''
+# 		import pysvn
 # 		try:
 # 			result = self.get_last_tagged_revision()
 # 		except (ImportError, RezReleaseError):
-# 			log = "Changelog since first revision, tag:(NONE)"
-# 			#log += svn log -r HEAD:1 --stop-on-copy
+# 			log = "Changelog since first revision, tag:(NONE)\n"
+# 			# svn log -r HEAD:1 --stop-on-copy
+# 			end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
 # 		else:
 # 			if result is None:
-# 				log = "Changelog since first branch revision:(NONE)"
-# 				#log += svn log -r HEAD:1 --stop-on-copy
+# 				log = "Changelog since first branch revision:(NONE)\n"
+# 				# svn log -r HEAD:1 --stop-on-copy
+# 				end =  pysvn.Revision(pysvn.opt_revision_kind.number, 1)
 # 			else:
 # 				rev, tagurl = result
-# 				log = "Changelog since rev:" + rev + " tag:" + tagurl
-# 				#log += svn log -r HEAD:$rev
+# 				log = "Changelog since rev: %d tag: %s\n" % (rev, tagurl)
+# 				# svn log -r HEAD:$rev
+# 				end =  pysvn.Revision(pysvn.opt_revision_kind.number, rev)
+# 		start = pysvn.Revision(pysvn.opt_revision_kind.head)
+# 		log += self.svnc.log(start, end, strict_node_history=True)
 # 		return log
 
 		pret = subprocess.Popen("rez-svn-changelog",
@@ -966,7 +956,7 @@ class SvnRezReleaseMode(RezReleaseMode):
 		changelog, changelog_err = pret.communicate()
 		return changelog
 
-register_release_mode('svn', SvnRezReleaseMode)
+register_release_mode(SvnRezReleaseMode)
 
 
 ##############################################################################
@@ -985,6 +975,7 @@ def hg(*args):
 	return out.split('\n')
 
 class HgRezReleaseMode(RezReleaseMode):
+	name = 'hg'
 	def __init__(self, path):
 		super(HgRezReleaseMode, self).__init__(path)
 
@@ -997,11 +988,18 @@ class HgRezReleaseMode(RezReleaseMode):
 		except AssertionError:
 			raise RezReleaseUnsupportedMode("'" + self.path + "' is not the root of a mercurial working copy")
 		except Exception as err:
-			raise RezReleaseUnsupportedMode("failed to call hg: " + str(err))
+			raise RezReleaseUnsupportedMode("failed to call hg binary: " + str(err))
 
 		self.patch_path = os.path.join(hgdir, 'patches')
 		if not os.path.isdir(self.patch_path):
 			self.patch_path = None
+
+	@classmethod
+	def is_valid_root(cls, path):
+		"""
+		Return True if this release mode works with the given root path
+		"""
+		return os.path.isdir(os.path.join(path, '.hg'))
 
 	def create_release_tag(self):
 		'''
@@ -1054,7 +1052,7 @@ class HgRezReleaseMode(RezReleaseMode):
 		return ''.join(log)
 
 
-register_release_mode('hg', HgRezReleaseMode)
+register_release_mode(HgRezReleaseMode)
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
