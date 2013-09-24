@@ -505,12 +505,12 @@ class RezReleaseMode(object):
 		else:
 			changelog = ''
 
-		build_cmd = "rez-build -n" + \
+		build_cmd = "rez-build --release -n" + \
 			" -t " + str(self.build_time) + \
 			" " + vararg + \
 			tag_meta_str + \
 			changelog + \
-			" -- -c -- install"
+			" -- -- install"
 		return build_cmd
 
 	# phases ---------

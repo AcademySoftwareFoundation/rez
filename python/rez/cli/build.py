@@ -193,7 +193,7 @@ def _format_bash_command(args):
         fi
         """ % {'cmd' : cmd})
 
-def get_cmake_args(build_system, build_target):
+def get_cmake_args(build_system, build_target, release=False):
     cmake_arguments = ["-DCMAKE_SKIP_RPATH=1"]
 
     # Rez custom module location
@@ -206,6 +206,15 @@ def get_cmake_args(build_system, build_target):
     cmake_arguments.extend(["-G", build_system])
 
     cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
+
+    if release:
+        if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
+            result = raw_input("You are attempting to install centrally outside "
+                               "of rez-release: do you really want to do this (y/n)? ")
+            if result != "y":
+                sys.exit(1)
+        cmake_arguments.append("-DCENTRAL=1")
+
     return cmake_arguments
 
 def _chmod(path, mode):
@@ -282,6 +291,9 @@ def setup_parser(parser):
     parser.add_argument("-c", "--changelog", dest="changelog",
                         type=str,
                         help="VCS changelog")
+    parser.add_argument("-r", "--release", dest="release_install",
+                        action="store_true", default=False,
+                        help="install packages to release directory")
     parser.add_argument("-s", "--vcs-metadata", dest="vcs_metadata",
                         type=str,
                         help="VCS metadata")
@@ -295,7 +307,7 @@ def setup_parser(parser):
                         choices=sorted(BUILD_SYSTEMS.keys()),
                         type=lambda x: BUILD_SYSTEMS[x],
                         default='eclipse')
-    parser.add_argument("-r", "--retain-cache", dest="retain_cache",
+    parser.add_argument("--retain-cache", dest="retain_cache",
                         action="store_true", default=False,
                         help="retain cmake cache")
 
@@ -313,7 +325,8 @@ def command(opts):
     from . import config as rez_cli_config
 
     now_epoch = get_epoch_time()
-    cmake_args = get_cmake_args(opts.build_system, opts.build_target)
+    cmake_args = get_cmake_args(opts.build_system, opts.build_target,
+                                opts.release_install)
 
     # separate out remaining args into cmake and make groups
     # e.g rez-build [args] -- [cmake args] -- [make args]
