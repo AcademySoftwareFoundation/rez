@@ -364,6 +364,13 @@ class RezReleaseMode(object):
 				remove_write_perms(root)
 
 	# VCS and tagging ---------
+	def get_url(self):
+		'''
+		Return a string for the remote url that best identifies the source of
+		this VCS repository.
+		'''
+		return
+
 	def create_release_tag(self):
 		'''
 		On release, it is customary for a VCS to generate a tag
@@ -824,6 +831,13 @@ class SvnRezReleaseMode(RezReleaseMode):
 		"""
 		return os.path.isdir(os.path.join(path, '.svn'))
 
+	def get_url(self):
+		'''
+		Return a string for the remote url that best identifies the source of
+		this VCS repository.
+		'''
+		return self.this_url
+
 	def get_tag_meta_str(self):
 		'''
 		Return a tag identifier string for this VCS.
@@ -963,10 +977,15 @@ register_release_mode(SvnRezReleaseMode)
 ##############################################################################
 
 def hg(*args):
+	"""
+	call the `hg` executable with the list of arguments provided.
+	Return a list of output lines if the call is successful, else raise RezReleaseError
+	"""
 	cmd = ['hg'] + list(args)
 	p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 	out, err = p.communicate()
 	if p.returncode:
+		# TODO: create a new error type and add the error string to an attribute
 		raise RezReleaseError("failed to call: hg " + ' '.join(args) + '\n' + err)
 	out = out.rstrip('\n')
 	if not out:
@@ -999,6 +1018,17 @@ class HgRezReleaseMode(RezReleaseMode):
 		Return True if this release mode works with the given root path
 		"""
 		return os.path.isdir(os.path.join(path, '.hg'))
+
+	def get_url(self):
+		'''
+		Return a string for the remote url that best identifies the source of
+		this VCS repository.
+		'''
+		try:
+			return hg('paths', 'default')
+		except RezReleaseError:
+			# if the 'default' path does not exist, we don't have any valid identifier
+			return
 
 	def create_release_tag(self):
 		'''
