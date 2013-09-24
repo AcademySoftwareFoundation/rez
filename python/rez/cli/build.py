@@ -373,21 +373,16 @@ def command(opts):
     #-#################################################################################################
     # Iterate over variants
     #-#################################################################################################
-    
-    # FIXME: use rez.rez_release for this once rez-*-print-url and rez-*-changelog are converted to python
-    if os.path.isdir('.git'):
-        VCS='git'
-    elif os.path.isdir('.svn'):
-        VCS='svn'
-    elif os.path.isdir('.hg'):
-        VCS='hg'
-    else:
-        VCS = None
 
-    if VCS and not opts.vcs_metadata:
-        pass
-        # TODO:
-        #opts.vcs_metadata=`rez-$VCS-print-url`
+    import rez.rez_release
+    vcs = rez.rez_release.get_release_mode('.')
+    if vcs.name == 'base':
+        # we only care about version control, so ignore the base release mode
+        vcs = None
+
+    if vcs and not opts.vcs_metadata:
+        url = vcs.get_url()
+        opts.vcs_metadata = url if url else "(NONE)"
 
     build_dir_base = os.path.abspath("build")
     build_dir_id = os.path.join(build_dir_base, ".rez-build")
@@ -435,6 +430,7 @@ def command(opts):
         with open(build_dir_id, 'w') as f:
             f.write('')
 
+        # FIXME: use yaml for info.txt?
         meta_file = os.path.join(build_dir, 'info.txt')
         # store build metadata
         with open(meta_file, 'w') as f:
@@ -442,18 +438,19 @@ def command(opts):
             f.write("ACTUAL_BUILD_TIME: %d"  % now_epoch)
             f.write("BUILD_TIME: %d" % opts.time)
             f.write("USER: %s" % getpass.getuser())
+            # FIXME: change entry SVN to VCS
             f.write("SVN: %s" % opts.vcs_metadata)
 
         # store the changelog into a metafile (rez-release will specify one
         # via the -c flag)
         if not opts.changelog:
-            if not VCS:
-                with open(changelog_file, 'w') as f:
-                    f.write('not under version control')
+            if vcs is None:
+                log = 'not under version control'
             else:
-                pass
-                # TODO:
-                #rez-$VCS-changelog > $changelog_file
+                log = vcs.get_changelog()
+                assert log is not None, "RezReleaseMode '%s' has not properly implemented get_changelog()" % vcs.name
+            with open(changelog_file, 'w') as f:
+                f.write(log)
         else:
             shutil.copy(opts.changelog, changelog_file)
 
@@ -507,6 +504,14 @@ def command(opts):
 
         try:
             rez_cli_config.command(config_opts)
+
+            # TODO: call rez_config.Resolver directly
+#             resolver = dc.Resolver(opts.mode,
+#                                    time_epoch=opts.time,
+#                                    assume_dt=not opts.no_assume_dt,
+#                                    caching=not opts.no_cache)
+#             result = resolver.guarded_resolve((reqs + variant + ['cmake=l']),
+#                                               dot_file)
         except Exception, err:
             error("rez-build failed - an environment failed to resolve.\n" + str(err))
             if os.path.exists(dot_file):
