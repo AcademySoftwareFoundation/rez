@@ -5,6 +5,10 @@
 #
 # A convenience tool for running commands inside a given environment.
 #
+# NOTE: There is a known problem where running a command via rez-run, and then killing the rez-run
+# parent process, will leave the child command process running. Until rez-run is updated, you can
+# instead use the new "rez-env --cmd" function, which will correctly kill the child process.
+#
 
 . optparse
 

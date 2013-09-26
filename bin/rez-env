@@ -110,8 +110,8 @@ tmpd=$tmpdir
 if [ "$tmpd" == "" ]; then
 	tmpd="/tmp"
 fi
-tmpf=`mktemp -p $tmpd .rez-context.XXXXXXXXXX`
 
+tmpf=`mktemp -p $tmpd .rez-context.XXXXXXXXXX`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
@@ -164,6 +164,18 @@ if [ "$autowrappers" != "" ]; then
 fi
 
 
+function on_exit {
+	child_procs=`jobs -p`
+	if [ "$child_procs" != "" ]; then
+		kill $child_procs
+	fi
+	rm -f $tmpf
+	rm -f $tmpf2
+	rm -f $tmpf3
+}
+trap 'on_exit' EXIT
+
+
 ##############################################################################
 # spawn the new shell, sourcing the bake file
 ##############################################################################
@@ -196,6 +208,25 @@ if [ $ret -eq 0 ]; then
 
 		bash -s
 		ret=$?
+	elif [ "$_REZ_ENV_OPT_CMD" != "" ]; then
+		source $tmpf
+		if [ "$_REZ_ENV_OPT_RCFILE" == "" ]; then
+			if [ -f ~/.bashrc ]; then
+				source ~/.bashrc &> /dev/null
+			fi
+		else
+			source $_REZ_ENV_OPT_RCFILE
+			if [ $? -ne 0 ]; then
+				exit 1
+			fi
+		fi
+
+		# ensure that rez-config is available no matter what (eg .bashrc might not exist,
+		# rcfile might not source rez-config)
+		source $REZ_PATH/init.sh
+
+		$_REZ_ENV_OPT_CMD
+		ret=$?
 	else
 		echo "source $tmpf" > $tmpf2
 		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
@@ -211,14 +242,11 @@ if [ $ret -eq 0 ]; then
 
 		bash --rcfile $tmpf2
 		ret=$?
-		rm -f $tmpf2
 	fi
 fi
 
-rm -f $tmpf
-rm -f $tmpf3
-
 exit $ret
+
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
