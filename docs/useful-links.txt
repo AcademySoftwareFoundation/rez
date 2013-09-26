@@ -1,3 +1,6 @@
+Rez User Manual:
+http://nerdvegas.github.io/rez
+
 CMake help:
 http://www.cmake.org/cmake/help/cmake-2-8-docs.html
 
