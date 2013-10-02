@@ -75,15 +75,14 @@ def readable_time_duration(secs, approx=True):
     return s
 
 def hide_local_packages():
-    import os
-    localpath = os.getenv("REZ_LOCAL_PACKAGES_PATH").strip()
-    if localpath:
-        pkgpaths = os.getenv("REZ_PACKAGES_PATH","").strip().split(':')
-        if localpath in pkgpaths:
-            pkgpaths.remove(localpath)
- 
+    import rez.rez_filesys
+    rez.rez_filesys._g_syspaths = rez.rez_filesys._g_syspaths_nolocal
+
+def unhide_local_packages():
+    import rez.rez_filesys
+    rez.rez_filesys._g_syspaths = rez.rez_filesys.get_system_package_paths()
+
 def remove_write_perms(path):
-    import os
     st = os.stat(path)
     mode = st.st_mode & ~WRITE_PERMS
     os.chmod(path, mode)
