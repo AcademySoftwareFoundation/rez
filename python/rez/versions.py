@@ -28,7 +28,7 @@ class VersionError(Exception):
 	def __str__(self):
 		return "Invalid version: %s" % self.value
 
-class Version:
+class Version(object):
 	"""
 	A version string. Note that disparate version ranges (separated with '|'s) are not supported -
 	use a VersionRange for this.
@@ -116,8 +116,12 @@ class Version:
 
 	def is_inexact(self):
 		"""
-		Return true if version is inexact. !is_inexact does not imply exact - for
-		eg, the version '10.5' may refer to any version of '10.5.x'.
+		Return true if version is inexact. e.g. '10.5+' or '10.5+<10.7'
+		
+		.. note:: not is_inexact() does not imply exact - for
+		eg, the version '10.5' *may* refer to any version of '10.5.x', but we
+		cannot know this without inspecting the package. Thus, the Version class
+		on its own can only know when it is inexact, and never when it is exact.
 		"""
 		if len(self.lt)==0 and len(self.ge)==0:
 			return True
@@ -138,10 +142,15 @@ class Version:
 		else:
 			return chr(ord(comp) + 1)
 
-	def contains_version(self, ge):
+	def contains_version(self, version):
 		"""
-		Returns True if the exact version ge (eg 1.0.0) is contained within this range.
+		Returns True if the exact version (eg 1.0.0) is contained within this range.
+		
+		accepts a Version instance or a version ge.
 		"""
+		# allow a ge to be passed directly
+		if isinstance(version, Version):
+			ge = version.ge
 		return (ge >= self.ge) and (ge < self.lt)
 
 	def get_union(self, ver):
@@ -189,6 +198,9 @@ class Version:
 		else:
 			return get_str(self.ge)
 
+	def __repr__(self):
+		return "%s('%s')" % (self.__class__.__name__, self)
+
 	def __lt__(self, ver):
 		"""
 		less-than test. Version A is < B if A's ge bound is < B's. If the ge
@@ -204,7 +216,7 @@ class Version:
 		return self.__lt__(ver) or self.__eq__(ver)
 
 
-class VersionRange:
+class VersionRange(object):
 	"""
 	A collection of zero or more inexact versions, which do not overlap. If a
 	VersionRange is initialised with disparate version ranges which do overlap
@@ -227,13 +239,27 @@ class VersionRange:
 	def copy(self):
 		return VersionRange(_versions=self.versions)
 
-	def contains_version(self, ge):
+	def contains_version(self, version):
 		"""
-		Returns True if the exact version ge (eg 1.0.0) is contained within this range.
+		Returns True if the exact version (eg 1.0.0) is contained within this range.
 		"""
 		for ver in self.versions:
-			if ver.contains_version(ge):
+			if ver.contains_version(version):
 				return True
+		return False
+
+	def matches_version(self, ver, allow_inexact=False):
+		"""
+		Returns True if the range matches the Version.
+		
+		If `allow_inexact` is True, considers inexact matches as well. 
+		"""
+		# if the range is not inexact, then there is only one version
+		if not self.is_inexact() and ver == self.versions[0]:
+			return True
+		# Note that VersionRange('').contains_version('10') == True
+		if allow_inexact and self.contains_version(ver):
+			return True
 		return False
 
 	def get_union(self, vers):
@@ -352,6 +378,9 @@ class VersionRange:
 
 	def __str__(self):
 		return "|".join(str(v) for v in self.versions)
+
+	def __repr__(self):
+		return "%s('%s')" % (self.__class__.__name__, self)
 
 	def __eq__(self, ver):
 		"""

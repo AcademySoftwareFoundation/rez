@@ -59,7 +59,7 @@ import rez_util
 # Public Classes
 ##############################################################################
 
-class PackageRequest:
+class PackageRequest(object):
 	"""
 	A request for a package. 'version' may be inexact (for eg '5.4+'). If mode
 	is != NONE then the request will immediately attempt to resolve itself.
@@ -77,28 +77,27 @@ class PackageRequest:
 	def __init__(self, name, version, memcache=None, latest=True):
 		self.name = name
 
+		self.version_range = VersionRange(version)
 		if self.is_weak():
 			# convert into an anti-package
-			vr = VersionRange(version)
-			vr_inv = vr.get_inverse()
-			version = str(vr_inv)
-			self.name = '!' + self.name[1:]
+			self.version_range = self.version_range.get_inverse()
+			self.name = anti_name(self.name)
 
 		if memcache:
 			# goto filesystem and resolve version immediately
 			name_ = self.name
 			if self.is_anti():
 				name_ = name[1:]
-			found_path, found_ver, found_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, name_, VersionRange(version), latest)
+
+			found_path, found_ver, found_epoch = memcache.find_package_in_range(
+				name_, self.version_range, latest)
 
 			if found_ver:
-				self.version = str(found_ver)
+				self.version_range = VersionRange(_versions=[found_ver])
 			else:
 				raise PkgsUnresolvedError( [ PackageRequest(name, version) ] )
-		else:
-			# normalise
-			self.version = str(VersionRange(version))
+
+		self.version = str(self.version_range)
 
 	def is_anti(self):
 		return (self.name[0] == '!')
@@ -118,7 +117,7 @@ class PackageRequest:
 	def __repr__(self):
 		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.version)
 
-class PackageConflict:
+class PackageConflict(object):
 	"""
 	A package conflict. This can occur between a package (possibly a specific
 	variant) and a package request
@@ -136,7 +135,7 @@ class PackageConflict:
 		return tmpstr
 
 
-class ResolvedPackage:
+class ResolvedPackage(object):
 	"""
 	A resolved package
 	"""
@@ -162,12 +161,15 @@ class ResolvedPackage:
 	def __str__(self):
 		return str([self.name, self.version, self.root])
 
+	def __repr__(self):
+		return "%s(%r, %r, %r)" % (self.__class__.__name__, self.name,
+								   self.version, self.root)
 
-class Resolver():
+class Resolver(object):
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
-	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
 		build_requires=False, assume_dt=False, caching=True):
 		"""
 		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
@@ -195,7 +197,7 @@ class Resolver():
 	def get_memcache(self):
 		return self.rctxt.memcache
 
-	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
@@ -244,6 +246,7 @@ class Resolver():
 			sys.stderr.write("\nCyclic dependency(s) were detected:\n")
 			sys.stderr.write(str(e) + "\n")
 
+			import tempfile
 			# write graphs to file
 			tmpf = tempfile.mkstemp(suffix='.dot')
 			os.write(tmpf[0], str(e))
@@ -291,7 +294,7 @@ class Resolver():
 
 		return result
 
-	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None):
 		"""
 		Perform a package resolve.
@@ -368,7 +371,8 @@ class Resolver():
 							target[key] = []
 						target[key].append(pkg_res.name + ':' + val)
 
-			_add_meta_vars(meta_vars, meta_envvars)
+			if meta_vars:
+				_add_meta_vars(meta_vars, meta_envvars)
 
 			if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
 				_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
@@ -390,6 +394,7 @@ class Resolver():
 		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
+			# FIXME: normalising should not be necessary because it's done in PackageReuest.__init__
 			normalise_pkg_req(pkg_req)
 			config.add_package(pkg_req)
 
@@ -480,7 +485,7 @@ class Resolver():
 		return result
 
 	def set_cached_resolve(self, pkg_reqs, result):
-		if not self.rctxt.memcache.mc:
+		if not self.rctxt.memcache.caching_enabled():
 			return
 
 		# if any local packages are involved, don't cache
@@ -494,10 +499,10 @@ class Resolver():
 	def get_cached_resolve(self, pkg_reqs):
 		# the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
 		# here and rctxt.time_epoch, the resolve will be the same.
-		if not self.rctxt.memcache.mc:
+		if not self.rctxt.memcache.caching_enabled():
 			return None
 
-		result, cache_timestamp = self.rctxt.memcache.get_resolve( \
+		result, cache_timestamp = self.rctxt.memcache.get_resolve(
 			rez_filesys._g_syspaths_nolocal, pkg_reqs)
 		
 		if not result:
@@ -548,28 +553,41 @@ def str_to_pkg_req(str_, memcache=None):
 	that immediately resolves to earliest/latest version.
 	"""
 	latest = True
-	memcache2 = None
 	if str_.endswith("=l"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
-		memcache2 = memcache
 	elif str_.endswith("=e"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
-		memcache2 = memcache
-
+	else:
+		# no need for memcache
+		memcache = None
 	str_ = str_.split('=')[0]
 	strs = str_.split('-', 1)
 	dim = len(strs)
 	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
+		return PackageRequest(str_, "", memcache, latest)
 	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
+		return PackageRequest(strs[0], strs[1], memcache, latest)
 	else:
 		raise PkgSystemError("Invalid package string '" + str_ + "'")
 
-
+def anti_name(pkg):
+	"""
+	Return the name of the anti-package for the given package.
+	
+	pkg may be a PackageRequest, _Package, or string
+	"""
+	if isinstance(pkg, (PackageRequest, _Package)):
+		name = pkg.name
+	else:
+		name = pkg
+	if name[0] == '!':
+		raise RezError("Already an anti-package: %r" % name)
+	if name[0] == '~':
+		return '!' + name[1:]
+	return '!' + name
 
 def get_base_path(pkg_str):
 	"""
@@ -592,7 +610,7 @@ def get_base_path(pkg_str):
 		verrange = strs[1]
 
 	path,ver,pkg_epoch = \
-		RezMemCache().find_package2(rez_filesys._g_syspaths, name, VersionRange(verrange), latest)
+		RezMemCache().find_package_in_range(name, VersionRange(verrange), latest)
 	if not path:
 		raise PkgNotFoundError(pkg_str)
 
@@ -624,7 +642,7 @@ def make_random_color_string():
 # Internal Classes
 ##############################################################################
 
-class _ResolvingContext:
+class _ResolvingContext(object):
 	"""
 	Resolving context
 	"""
@@ -641,7 +659,7 @@ class _ResolvingContext:
 		self.memcache = None
 
 
-class _PackageVariant:
+class _PackageVariant(object):
 	"""
 	A package variant. The 'working list' member is a list of dependencies that are
 	removed during config resolution - a variant with an empty working_list is fully
@@ -665,7 +683,7 @@ class _PackageVariant:
 		return str(self.metadata)
 
 
-class _Package:
+class _Package(object):
 	"""
 	Internal package representation
 	"""
@@ -674,7 +692,7 @@ class _Package:
 		self.has_added_transitivity = False
 		if pkg_req:
 			self.name = pkg_req.name
-			self.version_range = VersionRange(pkg_req.version)
+			self.version_range = pkg_req.version_range
 			self.base_path = None
 			self.metadata = None
 			self.variants = None
@@ -682,7 +700,7 @@ class _Package:
 			self.timestamp = None
 
 			if not self.is_anti() and memcache and \
-				not memcache.package_family_exists(rez_filesys._g_syspaths, self.name):
+					not memcache.package_family_exists(self.name):
 				raise PkgFamilyNotFoundError(self.name)
 
 	def copy(self, skip_version_range=False):
@@ -713,6 +731,7 @@ class _Package:
 		"""
 		Return this package as a package-request
 		"""
+		# FIXME: should we pass the memcache too?
 		return PackageRequest(self.name, str(self.version_range))
 
 	def is_anti(self):
@@ -776,11 +795,12 @@ class _Package:
 			return False
 
 		if not self.base_path:
-			fam_path,ver,pkg_epoch = memcache.find_package2( \
-				rez_filesys._g_syspaths, self.name, self.version_range, exact=True)
+			fam_path, ver, pkg_epoch = memcache.find_package_in_range(
+				self.name, self.version_range, exact=True)
 			if ver is not None:
-				base_path = fam_path
-				if not is_any:
+				if is_any:
+					base_path = fam_path
+				else:
 					base_path = os.path.join(fam_path, str(self.version_range))
 				
 				metafile = os.path.join(base_path, PKG_METADATA_FILENAME)
@@ -820,7 +840,7 @@ class _Package:
 
 
 
-class _Configuration:
+class _Configuration(object):
 	"""
 	Internal configuration representation
 	"""
@@ -872,14 +892,22 @@ class _Configuration:
 
 	def test_pkg_req_add(self, pkg_req, create_pkg_add):
 		"""
-		test the water to see what adding a package request would do to the config. Possible results are:
-		(ADDPKG_CONFLICT, pkg_conflicting):
-		The package cannot be added because it would conflict with pkg_conflicting
-		(ADDPKG_NOEFFECT, None):
-		The package doesn't need to be added, there is an identical package already there
-		(ADDPKG_ADD, pkg_add):
-		The package can be added, and the config updated accordingly by adding pkg_add (replacing
-		a package with the same family name if it already exists in the config)
+		test the water to see what adding a package request would do to the config.
+		
+		Returns an ADDPKG_* constant and a _Package instance (or None).
+
+		Possible results are:
+
+		- (ADDPKG_CONFLICT, pkg_conflicting):
+			The package cannot be added because it would conflict with
+			pkg_conflicting
+		- (ADDPKG_NOEFFECT, None):
+			The package doesn't need to be added, there is an identical package
+			already there
+		- (ADDPKG_ADD, pkg_add):
+			The package can be added, and the config updated accordingly by
+			adding pkg_add (replacing a package with the same family name if it
+			already exists in the config)
 
 		.. note::
 			that if 'create_pkg_add' is False, then 'pkg_add' will always be None.
@@ -891,7 +919,7 @@ class _Configuration:
 		# (testing VersionRanges for equality is not trivial)
 		pkg_shortname = pkg_req.short_name()
 
-		pkg_req_ver_range = VersionRange(pkg_req.version)
+		pkg_req_ver_range = pkg_req.version_range
 
 		if pkg_req.is_anti():
 
@@ -929,9 +957,12 @@ class _Configuration:
 					pkg_add.version_range = ver_range_union
 				return (_Configuration.ADDPKG_ADD, pkg_add)
 		else:
-			if ('!' + pkg_req.name) in self.pkgs:
-				config_pkg = self.pkgs['!' + pkg_req.name]
-
+			try:
+				config_pkg = self.pkgs[anti_name(pkg_req)]
+			except KeyError:
+				# does not exist. move on
+				pass
+			else:
 				# if non-anti and existing anti don't overlap then pkg can be added
 				ver_range_intersect = config_pkg.version_range.get_intersection(pkg_req_ver_range)
 				if not ver_range_intersect:
@@ -1000,26 +1031,48 @@ class _Configuration:
 		package (ie the package that requires it), and the type of dot-graph connection,
 		if the pkg has a parent pkg.
 		"""
-		if parent_pkg:
-			connt = _Configuration.PKGCONN_REQUIRES
-			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
-				connt = _Configuration.PKGCONN_TRANSITIVE
-				self.add_dot_graph_verbatim('"' + pkg_req.short_name() + \
-					'" [ shape=octagon ] ;')
-
-			self.dot_graph.append( ( parent_pkg.short_name(), ( pkg_req.short_name(), connt ) ) )
-
 		# test to see what adding this package would do
 		result, pkg = self.test_pkg_req_add(pkg_req, True)
 
-		if (result == _Configuration.ADDPKG_CONFLICT):
+		self._add_package_to_dot_graph(pkg_req.short_name(), pkg, result,
+									   parent_pkg, dot_connection_type)
 
-			self.dot_graph.append( ( pkg.short_name(), ( pkg_req.short_name(), \
+		if (result == _Configuration.ADDPKG_CONFLICT):
+			pkg_conflict = PackageConflict(pkg.as_package_request(), pkg_req)
+			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
+
+		elif (result == _Configuration.ADDPKG_ADD) and pkg:
+			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
+				pkg.is_transitivity = True
+
+			# add pkg, possibly replacing existing pkg. This is to retain order of package addition,
+			# since package resolution is sensitive to this
+			if (not pkg.is_anti()) and (not (pkg.name in self.pkgs)):
+				self.families.append(pkg.name)
+			self.pkgs[pkg.name] = pkg
+
+			# if pkg is non-anti then remove its anti from the config, if it's there. Adding a
+			# non-anti pkg to the config without a conflict occurring always means we can safely
+			# remove the anti pkg, if it exists.
+			if not pkg.is_anti():
+				if anti_name(pkg) in self.pkgs:
+					del self.pkgs[anti_name(pkg)]
+
+	def _add_package_to_dot_graph(self, short_name, pkg, result, parent_pkg=None,
+								  dot_connection_type=0):
+		if parent_pkg:
+			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
+				connt = _Configuration.PKGCONN_TRANSITIVE
+				self.add_dot_graph_verbatim('"' + short_name + \
+					'" [ shape=octagon ] ;')
+			else:
+				connt = _Configuration.PKGCONN_REQUIRES
+			self.dot_graph.append( ( parent_pkg.short_name(), ( short_name, connt ) ) )
+
+		if (result == _Configuration.ADDPKG_CONFLICT):
+			self.dot_graph.append( ( pkg.short_name(), ( short_name, \
 				_Configuration.PKGCONN_CONFLICT ) ) )
 			self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
-
-			pkg_conflict = PackageConflict(pkg_to_pkg_req(pkg), pkg_req)
-			raise PkgConflictError([ pkg_conflict ], self.rctxt.last_fail_dot_graph)
 
 		elif (result == _Configuration.ADDPKG_ADD) and pkg:
 
@@ -1034,27 +1087,10 @@ class _Configuration:
 				# if pkg and pkg-existing have same short-name, then a further-reduced package was already
 				# in the config (eg, we added 'python' to a config with 'python-2.5')
 				if (pkgname_existing == pkgname):
-					self.dot_graph.append( ( pkg_req.short_name(), ( pkgname_existing, connt ) ) )
+					self.dot_graph.append( ( short_name, ( pkgname_existing, connt ) ) )
 				else:
 					self.dot_graph.append( ( pkgname_existing, ( pkgname, connt ) ) )
 			self.dot_graph.append( ( pkgname, None ) )
-
-			if dot_connection_type == _Configuration.PKGCONN_TRANSITIVE:
-				pkg.is_transitivity = True
-
-			# add pkg, possibly replacing existing pkg. This is to retain order of package addition,
-			# since package resolution is sensitive to this
-			if (not pkg.is_anti()) and (not (pkg.name in self.pkgs)):
-				self.families.append(pkg.name)
-			self.pkgs[pkg.name] = pkg
-
-			# if pkg is non-anti then remove its anti from the config, if it's there. Adding a
-			# non-anti pkg to the config without a conflict occurring always means we can safely
-			# remove the anti pkg, if it exists.
-			if not pkg.is_anti():
-				if ('!' + pkg.name) in self.pkgs:
-					del self.pkgs['!' + pkg.name]
-
 
 	def get_dot_graph_as_string(self):
 		"""
@@ -1139,7 +1175,7 @@ class _Configuration:
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
 			if (not pkg.is_resolved()) and (not pkg.is_anti()):
-				pkg_reqs.append(pkg_to_pkg_req(pkg))
+				pkg_reqs.append(pkg.as_package_request())
 		return pkg_reqs
 
 	def get_all_packages_as_package_requests(self):
@@ -1148,7 +1184,7 @@ class _Configuration:
 		"""
 		pkg_reqs = []
 		for name,pkg in self.pkgs.iteritems():
-			pkg_reqs.append(pkg_to_pkg_req(pkg))
+			pkg_reqs.append(pkg.as_package_request())
 		return pkg_reqs
 
 	def resolve_packages(self):
@@ -1644,24 +1680,23 @@ class _Configuration:
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package2( \
-				rez_filesys._g_syspaths, pkg.name, pkg.version_range, False)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+				pkg.name, pkg.version_range, latest=False)
 
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_e = self.rctxt.memcache.get_metafile( \
-				found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_e = self.rctxt.memcache.get_metafile(
+				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
 			if not metafile_e:
 				continue
 
-			found_path, found_ver, found_epoch = \
-				self.rctxt.memcache.find_package2( \
-					rez_filesys._g_syspaths, pkg.name, pkg.version_range, True)
+			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+				pkg.name, pkg.version_range, latest=True)
 
 			if (not found_path) or (not found_ver):
 				continue
-			metafile_l = self.rctxt.memcache.get_metafile( \
-				found_path + "/" + str(found_ver) + "/package.yaml")
+			metafile_l = self.rctxt.memcache.get_metafile(
+				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
 			if not metafile_l:
 				continue
 
