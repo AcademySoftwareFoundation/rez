@@ -127,8 +127,6 @@ BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
 #     done
 # fi
 
-def unversioned(pkgname):
-    return pkgname.split('-')[0]
 
 def _get_package_metadata(filepath, quiet=False, no_catch=False):
     from rez.rez_metafile import ConfigMetadata
@@ -160,66 +158,6 @@ def _get_package_metadata(filepath, quiet=False, no_catch=False):
             error("No 'name' in " + filepath + ".")
         sys.exit(1)
     return metadata
-
-def _get_variants(metadata, variant_nums):
-    all_variants = metadata.get_variants()
-    if all_variants:
-        if variant_nums:
-            variants = []
-            for variant_num in variant_nums:
-                try:
-                    variants.append((variant_num, all_variants[variant_num]))
-                except IndexError:
-                    error("Variant #" + str(variant_num) + " does not exist in package.")
-            return variants
-        else:
-            # get all variants
-            return [(i, var) for i, var in enumerate(all_variants)]
-    else:
-        return [(-1, None)]
-
-def _format_bash_command(args):
-    def quote(arg):
-        if ' ' in arg:
-            return "'%s'" % arg
-        return arg
-    cmd = ' '.join([quote(arg) for arg in args ])
-    return textwrap.dedent("""
-        echo
-        echo rez-build: calling \\'%(cmd)s\\'
-        %(cmd)s
-        if [ $? -ne 0 ]; then
-            exit 1 ;
-        fi
-        """ % {'cmd' : cmd})
-
-def get_cmake_args(build_system, build_target, release=False):
-    cmake_arguments = ["-DCMAKE_SKIP_RPATH=1"]
-
-    # Rez custom module location
-    cmake_arguments.append("-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH")
-
-    # Fetch the initial cache if it's defined
-    if 'CMAKE_INITIAL_CACHE' in os.environ:
-        cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
-
-    cmake_arguments.extend(["-G", build_system])
-
-    cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
-
-    if release:
-        if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
-            result = raw_input("You are attempting to install centrally outside "
-                               "of rez-release: do you really want to do this (y/n)? ")
-            if result != "y":
-                sys.exit(1)
-        cmake_arguments.append("-DCENTRAL=1")
-
-    return cmake_arguments
-
-def _chmod(path, mode):
-    if stat.S_IMODE(os.stat(path).st_mode) != mode:
-        os.chmod(path, mode)
 
 # def foo():
 #     if print_build_requires:
@@ -288,13 +226,13 @@ def setup_parser(parser):
     parser.add_argument("-d", "--no-assume-dt", dest="no_assume_dt",
                         action="store_true", default=False,
                         help="do not assume dependency transitivity")
-    parser.add_argument("-c", "--changelog", dest="changelog",
-                        type=str,
-                        help="VCS changelog")
-    parser.add_argument("-r", "--release", dest="release_install",
-                        action="store_true", default=False,
-                        help="install packages to release directory")
-    parser.add_argument("-s", "--vcs-metadata", dest="vcs_metadata",
+#     parser.add_argument("-c", "--changelog", dest="changelog",
+#                         type=str,
+#                         help="VCS changelog")
+#     parser.add_argument("-r", "--release", dest="release_install",
+#                         action="store_true", default=False,
+#                         help="install packages to release directory")
+    parser.add_argument("-s", "--build_mode-metadata", dest="vcs_metadata",
                         type=str,
                         help="VCS metadata")
 
@@ -305,9 +243,9 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
-                        type=lambda x: BUILD_SYSTEMS[x],
+                        #type=lambda x: BUILD_SYSTEMS[x],
                         default='eclipse')
-    parser.add_argument("--retain-cache", dest="retain_cache",
+    parser.add_argument("--retain-cache", dest="retain_cmake_cache",
                         action="store_true", default=False,
                         help="retain cmake cache")
 
@@ -320,19 +258,12 @@ def setup_parser(parser):
                         help="remaining arguments are passed to make and cmake")
 
 def command(opts):
-    import rez.rez_filesys
-    from rez.rez_util import get_epoch_time
-    from . import config as rez_cli_config
-
-    now_epoch = get_epoch_time()
-    cmake_args = get_cmake_args(opts.build_system, opts.build_target,
-                                opts.release_install)
-
     # separate out remaining args into cmake and make groups
     # e.g rez-build [args] -- [cmake args] -- [make args]
     if opts.extra_args:
         assert opts.extra_args[0] == '--'
 
+    cmake_args = []
     make_args = []
     do_build = False
     if opts.extra_args:
@@ -350,13 +281,6 @@ def command(opts):
         error("-n option is only supported when performing a build, eg 'rez-build -n -- --'")
         sys.exit(1)
 
-    # any packages newer than this time will be ignored. This serves two purposes:
-    # 1) It stops inconsistent builds due to new packages getting released during a build;
-    # 2) It gives us the ability to reproduce a build that happened in the past, ie we can make
-    # it resolve the way that it did, rather than the way it might today
-    if not opts.time:
-        opts.time = now_epoch
-
     #-#################################################################################################
     # Extract info from package.yaml
     #-#################################################################################################
@@ -365,247 +289,39 @@ def command(opts):
         error("rez-build failed - no package.yaml in current directory.")
         sys.exit(1)
 
-    metadata = _get_package_metadata(os.path.abspath("package.yaml"))
-    reqs = metadata.get_requires(include_build_reqs=True) or []
-
-    variants = _get_variants(metadata, opts.variant_nums)
-
     #-#################################################################################################
     # Iterate over variants
     #-#################################################################################################
 
     import rez.rez_release
-    vcs = rez.rez_release.get_release_mode('.')
-    if vcs.name == 'base':
-        # we only care about version control, so ignore the base release mode
-        vcs = None
-
-    if vcs and not opts.vcs_metadata:
-        url = vcs.get_url()
-        opts.vcs_metadata = url if url else "(NONE)"
-
-    build_dir_base = os.path.abspath("build")
-    build_dir_id = os.path.join(build_dir_base, ".rez-build")
-
-    for variant_num, variant in variants:
-        # set variant and create build directories
-        variant_str = ' '.join(variant)
-        if variant_num == -1:
-            build_dir = build_dir_base
-            cmake_dir_arg = "../"
-
-            if opts.print_install_path:
-                output(os.path.join(os.environ['REZ_RELEASE_PACKAGES_PATH'],
-                                    metadata.name, metadata.version))
-                continue
-        else:
-            build_dir = os.path.join(build_dir_base, str(variant_num))
-            cmake_dir_arg = "../../"
-
-            build_dir_symlink = os.path.join(build_dir_base, '_'.join(variant))
-            variant_subdir = os.path.join(*variant)
-
-            if opts.print_install_path:
-                output(os.path.join(os.environ['REZ_RELEASE_PACKAGES_PATH'],
-                                    metadata.name, metadata.version, variant_subdir))
-                continue
-
-            print
-            print "---------------------------------------------------------"
-            print "rez-build: building for variant '%s'" % variant_str
-            print "---------------------------------------------------------"
-
-        if not os.path.exists(build_dir):
-            os.makedirs(build_dir)
-        if variant and not os.path.islink(build_dir_symlink):
-            os.symlink(os.path.basename(build_dir), build_dir_symlink)
-
-        src_file = os.path.join(build_dir, 'build-env.sh')
-        env_bake_file = os.path.join(build_dir, 'build-env.context')
-        actual_bake = os.path.join(build_dir, 'build-env.actual')
-        dot_file = os.path.join(build_dir, 'build-env.context.dot')
-        changelog_file = os.path.join(build_dir, 'changelog.txt')
-
-        # allow the svn pre-commit hook to identify the build directory as such
-        with open(build_dir_id, 'w') as f:
-            f.write('')
-
-        # FIXME: use yaml for info.txt?
-        meta_file = os.path.join(build_dir, 'info.txt')
-        # store build metadata
-        with open(meta_file, 'w') as f:
-            import getpass
-            f.write("ACTUAL_BUILD_TIME: %d"  % now_epoch)
-            f.write("BUILD_TIME: %d" % opts.time)
-            f.write("USER: %s" % getpass.getuser())
-            # FIXME: change entry SVN to VCS
-            f.write("SVN: %s" % opts.vcs_metadata)
-
-        # store the changelog into a metafile (rez-release will specify one
-        # via the -c flag)
-        if not opts.changelog:
-            if vcs is None:
-                log = 'not under version control'
-            else:
-                log = vcs.get_changelog()
-                assert log is not None, "RezReleaseMode '%s' has not properly implemented get_changelog()" % vcs.name
-            with open(changelog_file, 'w') as f:
-                f.write(log)
-        else:
-            shutil.copy(opts.changelog, changelog_file)
-
-        # attempt to resolve env for this variant
-        print
-        print "rez-build: invoking rez-config with args:"
-        #print "$opts.no_archive $opts.ignore_blacklist $opts.no_assume_dt --time=$opts.time"
-        print "requested packages: %s" % (', '.join(reqs + variant))
-        print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
-
-#         # Note: we pull latest version of cmake into the env
-#         rez-config
-#             $opts.no_archive
-#             $opts.ignore_blacklist
-#             --print-env
-#             --time=$opts.time
-#             $opts.no_assume_dt
-#             --dot-file=$dot_file
-#             $reqs $variant cmake=l > $env_bake_file
+    build_mode = rez.rez_release.get_release_mode('.')
+#     if build_mode.name == 'base':
+#         # we only care about version control, so ignore the base release mode
+#         build_mode = None
 # 
-#         if [ $? != 0 ]:
-#             rm -f $env_bake_file
-#             print "rez-build failed - an environment failed to resolve." >&2
-#             sys.exit(1)
+#     if build_mode and not opts.vcs_metadata:
+#         url = build_mode.get_url()
+#         opts.vcs_metadata = url if url else "(NONE)"
 
-        # setup args for rez-config
-        # TODO: provide a util which reads defaults for the cli function
-        kwargs = dict(pkg=(reqs + variant + ['cmake=l']),
-                      verbosity=0,
-                      version=False,
-                      print_env=False,
-                      print_dot=False,
-                      meta_info='tools',
-                      meta_info_shallow='tools',
-                      env_file=env_bake_file,
-                      dot_file=dot_file,
-                      max_fails=-1,
-                      wrapper=False,
-                      no_catch=False,
-                      no_path_append=False,
-                      print_pkgs=False,
-                      quiet=False,
-                      no_local=False,
-                      buildreqs=False,
-                      no_cache=False,
-                      no_os=False)
-        # copy settings that are the same between rez-build and rez-config
-        kwargs.update(vars(opts))
-    
-        config_opts = argparse.Namespace(**kwargs)
+    build_mode.init(central_release=False)
 
-        try:
-            rez_cli_config.command(config_opts)
+    build_mode.build_time = opts.time
 
-            # TODO: call rez_config.Resolver directly
-#             resolver = dc.Resolver(opts.mode,
-#                                    time_epoch=opts.time,
-#                                    assume_dt=not opts.no_assume_dt,
-#                                    caching=not opts.no_cache)
-#             result = resolver.guarded_resolve((reqs + variant + ['cmake=l']),
-#                                               dot_file)
-        except Exception, err:
-            error("rez-build failed - an environment failed to resolve.\n" + str(err))
-            if os.path.exists(dot_file):
-                os.remove(dot_file)
-            if os.path.exists(env_bake_file):
-                os.remove(env_bake_file)
-            sys.exit(1)
+    if not opts.variant_nums:
+        opts.variant_nums = [0]
 
-        # TODO: this shouldn't be a separate step
-        # create dot-file
-        # rez-config --print-dot --time=$opts.time $reqs $variant > $dot_file
-
-        text = textwrap.dedent("""\
-            #!/bin/bash
-
-            # because of how cmake works, you must cd into same dir as script to run it
-            if [ "./build-env.sh" != "$0" ] ; then
-                echo "you must cd into the same directory as this script to use it." >&2
-                exit 1
-            fi
-
-            source %(env_bake_file)s
-            export REZ_CONTEXT_FILE=%(env_bake_file)s
-            env > %(actual_bake)s
-
-            # need to expose rez-config's cmake modules in build env
-            [[ CMAKE_MODULE_PATH ]] && export CMAKE_MODULE_PATH=%(rez_path)s/cmake';'$CMAKE_MODULE_PATH || export CMAKE_MODULE_PATH=%(rez_path)s/cmake
-
-            # make sure we can still use rez-config in the build env!
-            export PATH=$PATH:%(rez_path)s/bin
-
-            echo
-            echo rez-build: in new env:
-            rez-context-info
-
-            # set env-vars that CMakeLists.txt files can reference, in this way
-            # we can drive the build from the package.yaml file
-            export REZ_BUILD_ENV=1
-            export REZ_BUILD_PROJECT_VERSION=%(version)s
-            export REZ_BUILD_PROJECT_NAME=%(name)s
-            """ % dict(env_bake_file=env_bake_file,
-                       actual_bake=actual_bake,
-                       rez_path=rez.rez_filesys._g_rez_path,
-                       version=metadata.version,
-                       name=metadata.name))
-
-        if reqs:
-            text += "export REZ_BUILD_REQUIRES_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in reqs]))
-
-        if variant_num != -1:
-            text += "export REZ_BUILD_VARIANT='%s'\n" % variant_str
-            text += "export REZ_BUILD_VARIANT_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in variant]))
-            text += "export REZ_BUILD_VARIANT_SUBDIR=/%s/\n" % variant_subdir
-
-        if not opts.retain_cache:
-            text += _format_bash_command(["rm", "-f", "CMakeCache.txt"])
-
-        # cmake invocation
-        text += _format_bash_command(["cmake", "-d", cmake_dir_arg] + cmake_args)
-
-        if do_build:
-            # TODO: determine build tool from --build-system? For now just assume make
-
-            if not opts.no_clean:
-                text += _format_bash_command(["make", "clean"])
-
-            text += _format_bash_command(["make"] + make_args)
-
-            with open(src_file, 'w') as f:
-                f.write(text + '\n')
-            _chmod(src_file, 0777)
-
-            # run the build
-            # TODO: add the 'cd' into the script itself
-            p = subprocess.Popen([os.path.join('.', os.path.basename(src_file))],
-                                 cwd=os.path.dirname(src_file))
-            p.communicate()
-            if p.returncode != 0 :
-                error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
-                sys.exit(1)
-
-        else:
-            text += 'export REZ_ENV_PROMPT=">$REZ_ENV_PROMPT"\n'
-            text += "export REZ_ENV_PROMPT='BUILD>'\n"
-            text += "/bin/bash --rcfile %s/bin/rez-env-bashrc\n" % rez.rez_filesys._g_rez_path
-
-            with open(src_file, 'w') as f:
-                f.write(text + '\n')
-            _chmod(src_file, 0777)
-
-            if variant_num == -1:
-                print "Generated %s, invoke to run cmake for this project." % src_file
-            else:
-                print "Generated %s, invoke to run cmake for this project's variant:(%s)" % (src_file, variant_str)
+    for varnum in opts.variant_nums:
+        # set variant and create build directories
+        build_mode._build_variant(varnum,
+                                    build_system=opts.build_system,
+                                    build_target=opts.build_target,
+                                    mode=opts.mode,
+                                    no_assume_dt=opts.no_assume_dt,
+                                    do_build=do_build,
+                                    cmake_args=cmake_args,
+                                    retain_cmake_cache=opts.retain_cmake_cache,
+                                    make_args=make_args,
+                                    make_clean=not opts.no_clean)
 
 
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)

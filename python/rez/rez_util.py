@@ -144,3 +144,8 @@ def get_epoch_time():
     get time since the epoch as an int
     """
     return int(time.mktime(time.localtime()))
+
+def safe_chmod(path, mode):
+    "set the permissions mode on path, but only if it differs from the current mode."
+    if stat.S_IMODE(os.stat(path).st_mode) != mode:
+        os.chmod(path, mode)

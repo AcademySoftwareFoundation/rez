@@ -12,10 +12,12 @@ import inspect
 import time
 import subprocess
 import smtplib
+import textwrap
 from email.mime.text import MIMEText
 
-from rez.rez_util import remove_write_perms, copytree, get_epoch_time
+from rez.rez_util import remove_write_perms, copytree, get_epoch_time, safe_chmod
 from rez.rez_metafile import *
+import rez.public_enums as enums
 import versions
 
 ##############################################################################
@@ -124,6 +126,24 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 # Utilities
 ##############################################################################
 
+def _format_bash_command(args):
+    def quote(arg):
+        if ' ' in arg:
+            return "'%s'" % arg
+        return arg
+    cmd = ' '.join([quote(arg) for arg in args ])
+    return textwrap.dedent("""
+        echo
+        echo rez-build: calling \\'%(cmd)s\\'
+        %(cmd)s
+        if [ $? -ne 0 ]; then
+            exit 1 ;
+        fi
+        """ % {'cmd' : cmd})
+
+def unversioned(pkgname):
+    return pkgname.split('-')[0]
+
 def _expand_path(path):
 	return os.path.abspath(os.path.expandvars(os.path.expanduser(path)))
 
@@ -190,18 +210,29 @@ class RezReleaseMode(object):
 	'''
 	name = 'base'
 	def __init__(self, path):
-		self.path = _expand_path(path)
-		
+		self.release_install = False
+		self.root_dir = _expand_path(path)
+
+		self.changelog = None
+		self.now_epoch = get_epoch_time()
+
 		# variables filled out in pre_build()
 		self.metadata = None
-		self.base_dir = None
-		self.pkg_release_dir = None
+		self.family_install_dir = None
 		self.package_uuid_exists = None
-		self.changelog_file = os.path.abspath('build/rez-release-changelog.txt')
 		self.editor = None
+
 		# for cached property: False indicates it has not been cached
 		# (since it may be None after caching)
 		self._last_tagged_version = False
+
+		# filled in release()
+		self.commit_message = None
+		self.njobs = 1
+		self.build_time = None
+		self.allow_not_latest = False
+
+		self.base_build_dir = None
 
 	@classmethod
 	def is_valid_root(cls, path):
@@ -216,9 +247,17 @@ class RezReleaseMode(object):
 		'''
 		self.commit_message = commit_message
 		self.njobs = njobs
+		# any packages newer than this time will be ignored. This serves two purposes:
+		# 1) It stops inconsistent builds due to new packages getting released during a build;
+		# 2) It gives us the ability to reproduce a build that happened in the past, ie we can make
+		# it resolve the way that it did, rather than the way it might today
 		self.build_time = build_time
+		if str(self.build_time) == "0":
+			self.build_time = self.now_epoch
+
 		self.allow_not_latest = allow_not_latest
 
+		self.init(central_release=True)
 		self.pre_build()
 		self.build()
 		self.install()
@@ -229,7 +268,7 @@ class RezReleaseMode(object):
 		return a ConfigMetadata instance for this project's package.yaml file.
 		'''
 		# check for ./package.yaml
-		yaml_path = os.path.join(self.path, "package.yaml")
+		yaml_path = os.path.join(self.root_dir, "package.yaml")
 		if not os.access(yaml_path, os.F_OK):
 			raise RezReleaseError(yaml_path + " not found")
 
@@ -261,19 +300,19 @@ class RezReleaseMode(object):
 		return metadata
 
 	# utilities  ---------
-	def _write_changelog(self):
-		changelog = self.get_changelog()
-		if changelog:
+	def _write_changelog(self, changelog_file):
+		if self.changelog:
 			if self.commit_message:
-				self.commit_message += '\n' + changelog
+				self.commit_message += '\n' + self.changelog
 			else:
 				# prompt for tag comment, automatically setting to the change-log
-				self.commit_message = "\n\n" + changelog
+				self.commit_message = "\n\n" + self.changelog
 	
 			# write the changelog to file, so that rez-build can install it as metadata
-			chlogf = open(self.changelog_file, 'w')
-			chlogf.write(changelog)
-			chlogf.close()
+			with open(changelog_file, 'w') as chlogf:
+				chlogf.write(self.changelog)
+		else:
+			print "no changelog. not writing %s" % os.path.basename(changelog_file)
 
 	def _get_commit_message(self):
 		'''
@@ -284,7 +323,7 @@ class RezReleaseMode(object):
 		command-line, if given.
 		'''
 		
-		tmpf = os.path.join(self.base_dir, RELEASE_COMMIT_FILE)
+		tmpf = os.path.join(self.base_build_dir, RELEASE_COMMIT_FILE)
 		f = open(tmpf, 'w')
 		f.write(self.commit_message)
 		f.close()
@@ -333,7 +372,7 @@ class RezReleaseMode(object):
 	def write_time_metafile(self):
 		# the very last thing we do is write out the current date-time to a metafile. This is
 		# used by rez to specify when a package 'officially' comes into existence.
-		time_metafile = os.path.join(self.pkg_release_dir, self.metadata.version,
+		time_metafile = os.path.join(self.version_install_dir,
 									'.metadata' , 'release_time.txt')
 		with open(time_metafile, 'w') as f:
 			f.write(str(get_epoch_time()) + '\n')
@@ -461,7 +500,7 @@ class RezReleaseMode(object):
 		This is particularly useful for revision control systems, which can
 		export a clean unmodified copy
 		'''
-		root_build_dir = os.path.dirname(self.base_dir)
+		root_build_dir = os.path.dirname(self.base_build_dir)
 		def ignore(src, names):
 			'''
 			returns a list of names to ignore, given the current list
@@ -478,85 +517,271 @@ class RezReleaseMode(object):
 		'''
 		get the changelog text since the last release
 		'''
-		return None
+		# during release, changelog.txt must always exists, because RezBuild
+		# will blindly try to install it 
+		return 'not under version control'
 
-	def get_build_cmd(self, vararg):
-		tag_meta_str = self.get_tag_meta_str()
-		if tag_meta_str: 
-			tag_meta_str = " -s " + tag_meta_str
+	# building ---------
+	def _get_cmake_args(self, build_system, build_target):
+		BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
+						 'codeblocks' : "CodeBlocks - Unix Makefiles",
+						 'make' : "Unix Makefiles",
+						 'xcode' : "Xcode"}
+
+		cmake_arguments = ["-DCMAKE_SKIP_RPATH=1"]
+		
+		# Rez custom module location
+		cmake_arguments.append("-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH")
+		
+		# Fetch the initial cache if it's defined
+		if 'CMAKE_INITIAL_CACHE' in os.environ:
+			cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
+		
+		cmake_arguments.extend(["-G", BUILD_SYSTEMS[build_system]])
+		
+		cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
+		
+		if self.release_install:
+# 			if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
+# 				result = raw_input("You are attempting to install centrally outside "
+# 								   "of rez-release: do you really want to do this (y/n)? ")
+# 			if result != "y":
+# 				sys.exit(1)
+			cmake_arguments.append("-DCENTRAL=1")
+
+		return cmake_arguments
+
+	def _build_variant(self, variant_num, build_system='eclipse',
+					   build_target='Release', mode=enums.RESOLVE_MODE_LATEST,
+					   no_assume_dt=False, do_build=True, cmake_args=(),
+					   retain_cmake_cache=False, make_args=(), make_clean=True):
+		'''
+		Do the actual build of the variant, by resolving an environment and calling
+		cmake/make.
+		'''
+		variant = self.variants[variant_num]
+		if variant:
+			build_dir = os.path.join(self.base_build_dir, str(variant_num))
+			build_dir_symlink = os.path.join(self.base_build_dir, '_'.join(variant))
+			variant_subdir = os.path.join(*variant)
 		else:
-			tag_meta_str = ''
+			build_dir = self.base_build_dir
 
-		if os.path.exists(self.changelog_file):
-			changelog = " -c " + self.changelog_file
+		cmake_args = self._get_cmake_args(build_system, build_target)
+		cmake_args.extend(cmake_args)
+		make_args = list(make_args)
+		
+# 		# build it
+
+		variant_str = ' '.join(variant)
+		if variant:
+			print
+			print "---------------------------------------------------------"
+			print "rez-build: building for variant '%s'" % variant_str
+			print "---------------------------------------------------------"
+
+		if not os.path.exists(build_dir):
+			os.makedirs(build_dir)
+		if variant and not os.path.islink(build_dir_symlink):
+			os.symlink(os.path.basename(build_dir), build_dir_symlink)
+
+		src_file = os.path.join(build_dir, 'build-env.sh')
+		env_bake_file = os.path.join(build_dir, 'build-env.context')
+		actual_bake = os.path.join(build_dir, 'build-env.actual')
+		dot_file = os.path.join(build_dir, 'build-env.context.dot')
+		changelog_file = os.path.join(build_dir, 'changelog.txt')
+
+		# FIXME: move this to SVN class
+# 		# allow the svn pre-commit hook to identify the build directory as such
+#		build_dir_id = os.path.join(build_dir_base, ".rez-build")
+# 		with open(build_dir_id, 'w') as f:
+# 			f.write('')
+# 
+		if self.release_install:
+			vcs_metadata = self.get_tag_meta_str()
 		else:
-			changelog = ''
+			# TODO: default mode?
+			vcs_metadata = "(NONE)"
 
-		build_cmd = "rez-build" + \
-			" -t " + str(self.build_time) + \
-			" " + vararg + \
-			tag_meta_str + \
-			changelog + \
-			" -- -- -j" + str(self.njobs)
-		return build_cmd
+		# FIXME: use yaml for info.txt?
+		meta_file = os.path.join(build_dir, 'info.txt')
+		# store build metadata
+		with open(meta_file, 'w') as f:
+			import getpass
+			f.write("ACTUAL_BUILD_TIME: %d"  % self.now_epoch)
+			f.write("BUILD_TIME: %s" % self.build_time)
+			f.write("USER: %s" % getpass.getuser())
+			# FIXME: change entry SVN to VCS
+			f.write("SVN: %s" % vcs_metadata)
+# 
+		self._write_changelog(changelog_file)
 
-	def get_install_cmd(self, vararg):
-		tag_meta_str = self.get_tag_meta_str()
-		if tag_meta_str: 
-			tag_meta_str = " -s " + tag_meta_str
+		# attempt to resolve env for this variant
+		print
+		print "rez-build: invoking rez-config with args:"
+		#print "$opts.no_archive $opts.ignore_blacklist $opts.no_assume_dt --time=$opts.time"
+		print "requested packages: %s" % (', '.join(self.requires + variant))
+		print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
+
+		try:
+			import rez.rez_config
+			# TODO: call rez_config.Resolver directly
+			resolver = rez.rez_config.Resolver(mode,
+											   time_epoch=self.build_time,
+											   assume_dt=not no_assume_dt)
+			result = resolver.guarded_resolve((self.requires + variant + ['cmake=l']),
+											  dot_file)
+			# FIXME: raise error here, or use unguarded resolve
+			pkg_ress, env_cmds, dot_graph, num_fails = result
+
+			with open(env_bake_file, 'w') as f:
+				for env_cmd in env_cmds:
+					f.write(env_cmd + '\n')
+		except Exception, err:
+			#error("rez-build failed - an environment failed to resolve.\n" + str(err))
+			if os.path.exists(dot_file):
+				os.remove(dot_file)
+			if os.path.exists(env_bake_file):
+				os.remove(env_bake_file)
+			sys.exit(1)
+
+		# TODO: this shouldn't be a separate step
+		# create dot-file
+		# rez-config --print-dot --time=$opts.time $self.requires $variant > $dot_file
+
+		text = textwrap.dedent("""\
+			#!/bin/bash
+
+			# because of how cmake works, you must cd into same dir as script to run it
+			if [ "./build-env.sh" != "$0" ] ; then
+				echo "you must cd into the same directory as this script to use it." >&2
+				exit 1
+			fi
+
+			source %(env_bake_file)s
+			export REZ_CONTEXT_FILE=%(env_bake_file)s
+			env > %(actual_bake)s
+
+			# need to expose rez-config's cmake modules in build env
+			[[ CMAKE_MODULE_PATH ]] && export CMAKE_MODULE_PATH=%(rez_path)s/cmake';'$CMAKE_MODULE_PATH || export CMAKE_MODULE_PATH=%(rez_path)s/cmake
+
+			# make sure we can still use rez-config in the build env!
+			export PATH=$PATH:%(rez_path)s/bin
+
+			echo
+			echo rez-build: in new env:
+			rez-context-info
+
+			# set env-vars that CMakeLists.txt files can reference, in this way
+			# we can drive the build from the package.yaml file
+			export REZ_BUILD_ENV=1
+			export REZ_BUILD_PROJECT_VERSION=%(version)s
+			export REZ_BUILD_PROJECT_NAME=%(name)s
+			""" % dict(env_bake_file=env_bake_file,
+					   actual_bake=actual_bake,
+					   rez_path=rez.rez_filesys._g_rez_path,
+					   version=self.metadata.version,
+					   name=self.metadata.name))
+
+		if self.requires:
+			text += "export REZ_BUILD_REQUIRES_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in self.requires]))
+
+		if variant:
+			text += "export REZ_BUILD_VARIANT='%s'\n" % variant_str
+			text += "export REZ_BUILD_VARIANT_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in variant]))
+			text += "export REZ_BUILD_VARIANT_SUBDIR=/%s/\n" % variant_subdir
+
+		if not retain_cmake_cache:
+			text += _format_bash_command(["rm", "-f", "CMakeCache.txt"])
+
+		# cmake invocation
+		cmake_dir_arg = os.path.relpath(self.root_dir, build_dir)
+		text += _format_bash_command(["cmake", "-d", cmake_dir_arg] + cmake_args)
+
+		if do_build:
+			# TODO: determine build tool from --build-system? For now just assume make
+
+			if make_clean:
+				text += _format_bash_command(["make", "clean"])
+
+			text += _format_bash_command(["make"] + make_args)
+
+			with open(src_file, 'w') as f:
+				f.write(text + '\n')
+			safe_chmod(src_file, 0777)
+
+			# run the build
+			# TODO: add the 'cd' into the script itself
+			p = subprocess.Popen([os.path.join('.', os.path.basename(src_file))],
+								 cwd=build_dir)
+			p.communicate()
+			if p.returncode != 0 :
+				#error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
+				sys.exit(1)
+
 		else:
-			tag_meta_str = ''
+			text += 'export REZ_ENV_PROMPT=">$REZ_ENV_PROMPT"\n'
+			text += "export REZ_ENV_PROMPT='BUILD>'\n"
+			text += "/bin/bash --rcfile %s/bin/rez-env-bashrc\n" % rez.rez_filesys._g_rez_path
 
-		if os.path.exists(self.changelog_file):
-			changelog = " -c " + self.changelog_file
-		else:
-			changelog = ''
+			with open(src_file, 'w') as f:
+				f.write(text + '\n')
+			safe_chmod(src_file, 0777)
 
-		build_cmd = "rez-build --release -n" + \
-			" -t " + str(self.build_time) + \
-			" " + vararg + \
-			tag_meta_str + \
-			changelog + \
-			" -- -- install"
-		return build_cmd
+			if variant:
+				print "Generated %s, invoke to run cmake for this project's variant:(%s)" % (src_file, variant_str)
+			else:
+				print "Generated %s, invoke to run cmake for this project." % src_file
 
 	# phases ---------
-	def pre_build(self):
+	def init(self, central_release=False):
 		'''
-		Fill out variables and check for problems
+		Fill out variables based on metadata
 		'''
+		self.release_install = central_release
+
+		if self.release_install:
+			self.base_build_dir = os.path.join(self.root_dir, 'build', 'rez-release')
+			install_var = REZ_RELEASE_PATH_ENV_VAR
+		else:
+			self.base_build_dir = os.path.join(self.root_dir, 'build')
+			install_var = "REZ_LOCAL_PACKAGES_PATH"
+
+		self.base_install_dir = os.getenv(install_var)
+		if not self.base_install_dir:
+			raise RezReleaseError("$" + install_var + " is not set.")
+
 		self.metadata = self.get_metadata()
 
-		self.pkg_release_dir = os.getenv(REZ_RELEASE_PATH_ENV_VAR)
-		if not self.pkg_release_dir:
-			raise RezReleaseError("$" + REZ_RELEASE_PATH_ENV_VAR + " is not set.")
-
-		self.pkg_release_dir = os.path.join(self.pkg_release_dir, self.metadata.name)
-		self.package_uuid_file = os.path.join(self.pkg_release_dir,  "package.uuid")
-
-		self.package_uuid_exists = self.check_uuid(self.package_uuid_file)
+		self.family_install_dir = os.path.join(self.base_install_dir, self.metadata.name)
+		self.version_install_dir = os.path.join(self.family_install_dir, self.metadata.version)
 
 		self.variants = self.metadata.get_variants()
 		if not self.variants:
 			self.variants = [ None ]
 
+		self.requires = self.metadata.get_requires(include_build_reqs=True) or []
+
+		self.changelog = self.get_changelog()
+
+	def pre_build(self):
+		'''
+		Fill out variables and check for problems
+		'''
+		self.package_uuid_file = os.path.join(self.family_install_dir,  "package.uuid")
+
+		self.package_uuid_exists = self.check_uuid(self.package_uuid_file)
+
 		# create base dir to do clean builds from
-		self.base_dir = os.path.join(os.getcwd(), "build", "rez-release")
-		if os.path.exists(self.base_dir):
-			if os.path.islink(self.base_dir):
-				os.remove(self.base_dir)
-			elif os.path.isdir(self.base_dir):
-				shutil.rmtree(self.base_dir)
+		if os.path.exists(self.base_build_dir):
+			if os.path.islink(self.base_build_dir):
+				os.remove(self.base_build_dir)
+			elif os.path.isdir(self.base_build_dir):
+				shutil.rmtree(self.base_build_dir)
 			else:
-				os.remove(self.base_dir)
+				os.remove(self.base_build_dir)
 
-		os.makedirs(self.base_dir)
-
-		# take note of the current time, and use it as the build time for all
-		# variants. This ensures that all variants will find the same packages, in
-		# case some new packages are released during the build.
-		if str(self.build_time) == "0":
-			self.build_time = str(int(time.time()))
+		os.makedirs(self.base_build_dir)
 
 		if (self.commit_message is None):
 			# get preferred editor for commit message
@@ -569,8 +794,6 @@ class RezReleaseMode(object):
 		self.validate_repostate()
 
 		self.validate_version()
-
-		self._write_changelog()
 
 		self._get_commit_message()
 
@@ -587,41 +810,27 @@ class RezReleaseMode(object):
 		print("---------------------------------------------------------")
 
 		for varnum, variant in enumerate(self.variants):
-			self.build_variant(variant, varnum)
+			self.build_variant(varnum)
 
-	def build_variant(self, variant, varnum):
+	def build_variant(self, variant_num):
 		'''
 		Build a single variant
 		'''
+		variant = self.variants[variant_num]
 		if variant:
-			varname = "project variant #" + str(varnum)
-			vararg = "-v " + str(varnum)
-			subdir = os.path.join(self.base_dir, str(varnum))
+			build_dir = os.path.join(self.base_build_dir, str(variant_num))
+			varname = "project variant #" + str(variant_num)
 		else:
-			varnum = ''
+			build_dir = self.base_build_dir
 			varname = "project"
-			vararg = ''
-			subdir = self.base_dir
-		print
-		print("rez-release: creating clean copy of " + varname + " to " + subdir + "...")
-
-		if os.path.exists(subdir):
-			shutil.rmtree(subdir)
-
-		self.copy_source(subdir)
-
-		# build it
-		build_cmd = self.get_build_cmd(vararg)
 
 		print
-		print("rez-release: building " + varname + " in " + subdir + "...")
-		print("rez-release: invoking: " + build_cmd)
+		print("rez-release: creating clean copy of " + varname + " to " + build_dir + "...")
+		if os.path.exists(build_dir):
+			shutil.rmtree(build_dir)
+		self.copy_source(build_dir)
 
-		# TODO: import rez.cli.build
-		pret = subprocess.Popen(build_cmd, shell=True, cwd=subdir)
-		pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: build failed")
+		self._build_variant(variant_num)
 
 	def install(self):
 		'''
@@ -635,7 +844,8 @@ class RezReleaseMode(object):
 
 		# create the package.uuid file, if it doesn't exist
 		if not self.package_uuid_exists:
-			os.makedirs(self.pkg_release_dir)
+			if not os.path.exists(self.family_install_dir):
+				os.makedirs(self.family_install_dir)
 
 			f = open(self.package_uuid_file, 'w')
 			f.write(self.metadata.uuid)
@@ -643,32 +853,31 @@ class RezReleaseMode(object):
 
 		# install the variants
 		for varnum, variant in enumerate(self.variants):
-			self.install_variant(variant, varnum)
+			self.install_variant(varnum)
 
-	def install_variant(self, variant, varnum):
+	def install_variant(self, variant_num):
 		'''
 		Install a single variant
 		'''
+		variant = self.variants[variant_num]
 		if variant:
-			varname = "project variant #" + str(varnum)
-			vararg = "-v " + str(varnum)
+			varname = "project variant #" + str(variant_num)
+			install_path = os.path.join(self.version_install_dir, *variant)
 		else:
-			varnum = ''
+			variant_num = ''
 			varname = 'project'
-			vararg = ''
-		subdir = self.base_dir + '/' + str(varnum) + '/'
-
-		# determine install self.path
-		pret = subprocess.Popen("cd " + subdir + " ; rez-build -i " + vararg, \
-			stdout=subprocess.PIPE, shell=True)
-		instpath, instpath_err = pret.communicate()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: install failed!! A partial central installation may " + \
-				"have resulted, please see to this immediately - it should probably be removed.")
-		instpath = instpath.strip()
+			install_path = os.path.join(self.version_install_dir)
+		subdir = os.path.join(self.base_build_dir, str(variant_num))
 
 		print
-		print("rez-release: installing " + varname + " from " + subdir + " to " + instpath + "...")
+		print("rez-release: installing " + varname + " from " + subdir + " to " + install_path + "...")
+
+		# FIXME: ideally we would not re-run _build_variant() here just to install,
+		# because it does a lot of redundant work just for installing: e.g. environment resolution,
+		# cmake discovery. We do this extra work in order to change 'make' to 'make install'.
+		# so, either figure out a way to do that more efficiently, or simply run
+		# 'make install' the first time.
+		self._build_variant(variant_num, make_args=['install'], make_clean=False)
 
 		# run rez-build, and:
 		# * manually specify the svn-url to write into self.metadata;
@@ -676,19 +885,7 @@ class RezReleaseMode(object):
 		# these steps are needed because the code we're building has been svn-exported, thus
 		# we don't have any svn context.
 
-		# TODO: rewrite all of this using pure python:
-
-		build_cmd = self.get_install_cmd(vararg)
-		pret = subprocess.Popen("cd " + subdir + " ; " + build_cmd, shell=True)
-
-		pret.wait()
-		if (pret.returncode != 0):
-			raise RezReleaseError("rez-release: install failed!! A partial "
-								  "central installation may have resulted, "
-								  "please see to this immediately - "
-								  "it should probably be removed.")
-
-		self.check_installed_variant(instpath)
+		self.check_installed_variant(install_path)
 
 	def post_install(self):
 		'''
@@ -788,9 +985,9 @@ class SvnRezReleaseMode(RezReleaseMode):
 			raise RezReleaseUnsupportedMode("pysvn python module must be installed to properly release a project under subversion.")
 
 		self.svnc = svn_get_client()
-		svn_entry = self.svnc.info(self.path)
+		svn_entry = self.svnc.info(self.root_dir)
 		if not svn_entry:
-			raise RezReleaseUnsupportedMode("'" + self.path + "' is not an svn working copy")
+			raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not an svn working copy")
 		self.this_url = str(svn_entry["url"])
 
 		# variables filled out in pre_build()
@@ -802,7 +999,7 @@ class SvnRezReleaseMode(RezReleaseMode):
 		pos_br = self.this_url.find("/branches")
 		pos = max(pos_tr, pos_br)
 		if (pos == -1):
-			raise RezReleaseError(self.path + "is not in a branch or trunk")
+			raise RezReleaseError(self.root_dir + "is not in a branch or trunk")
 		base_url = self.this_url[:pos]
 		tag_url = base_url + "/tags"
 
@@ -904,20 +1101,20 @@ class SvnRezReleaseMode(RezReleaseMode):
 		super(SvnRezReleaseMode, self).validate_version()
 
 	def validate_repostate(self):
-		status_list = self.svnc.status(self.path, get_all=False, update=True)
+		status_list = self.svnc.status(self.root_dir, get_all=False, update=True)
 		status_list_known = []
 		for status in status_list:
 			if status.entry:
 				status_list_known.append(status)
 		if len(status_list_known) > 0:
-			raise RezReleaseError("'" + self.path + "' is not in a state to "
+			raise RezReleaseError("'" + self.root_dir + "' is not in a state to "
 								  "release - you may need to "
 								  "svn-checkin and/or svn-update: " +
 								   str(status_list_known))
 
 		# do an update
 		print("rez-release: svn-updating...")
-		self.svnc.update(self.path)
+		self.svnc.update(self.root_dir)
 
 	def create_release_tag(self):
 		# at this point all variants have built and installed successfully. Copy to the new tag
@@ -930,11 +1127,11 @@ class SvnRezReleaseMode(RezReleaseMode):
 		result = super(SvnRezReleaseMode, self).get_metadata()
 		# check that ./package.yaml is under svn control
 		if not self.svn_url_exists(self.this_url + "/package.yaml"):
-			raise RezReleaseError(self.path + "/package.yaml is not under source control")
+			raise RezReleaseError(self.root_dir + "/package.yaml is not under source control")
 		return result
 
 	def copy_source(self, build_dir):
-		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.path)' here, hence shell
+		# svn-export it. pysvn is giving me some false assertion crap on 'is_canonical(self.root_dir)' here, hence shell
 		pret = subprocess.Popen(["svn", "export", self.this_url, build_dir])
 		pret.communicate()
 		if (pret.returncode != 0):
@@ -997,14 +1194,14 @@ class HgRezReleaseMode(RezReleaseMode):
 	def __init__(self, path):
 		super(HgRezReleaseMode, self).__init__(path)
 
-		hgdir = os.path.join(self.path, '.hg')
+		hgdir = os.path.join(self.root_dir, '.hg')
 		if not os.path.isdir(hgdir):
-			raise RezReleaseUnsupportedMode("'" + self.path + "' is not an mercurial working copy")
+			raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not an mercurial working copy")
 
 		try:
-			assert hg('root')[0] == self.path
+			assert hg('root')[0] == self.root_dir
 		except AssertionError:
-			raise RezReleaseUnsupportedMode("'" + self.path + "' is not the root of a mercurial working copy")
+			raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not the root of a mercurial working copy")
 		except Exception as err:
 			raise RezReleaseUnsupportedMode("failed to call hg binary: " + str(err))
 
@@ -1056,7 +1253,7 @@ class HgRezReleaseMode(RezReleaseMode):
 									  " - please commit outstanding changes: " +
 									  ', '.join(modified))
 
-		_check(hg('status', '-m', '-a'), self.path)
+		_check(hg('status', '-m', '-a'), self.root_dir)
 
 		if self.patch_path:
 			_check(hg('status', '-m', '-a', '--mq'), self.patch_path)
