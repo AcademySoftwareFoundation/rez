@@ -405,9 +405,9 @@ if not opts.use_non_eggs:
 
         if os.path.exists(pkg_path) and not os.path.exists(rezeggfile):
             print
-            print >> sys.stderr, ("package '%s' already exists, but was not created by " + \
+            print >> sys.stderr, (("package '%s' already exists, but was not created by " + \
                 "rez-egg-install. Use the --use-non-eggs option to skip this error, but note " + \
-                "that rez doesn't know if this package is properly configured." % egg_name)
+                "that rez doesn't know if this package is properly configured.") % egg_name)
             nnoneggs += 1
     if nnoneggs:
         sys.exit(1)
