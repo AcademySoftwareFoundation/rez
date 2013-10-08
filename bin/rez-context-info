@@ -17,7 +17,17 @@ if [ ! "$REZ_CONTEXT_FILE" ]; then
 	exit 1
 fi
 
-readable_time=`date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"`
+# Pre python port
+# readable_time=`date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"`
+# $ date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"
+# Thu Aug 15 03:30:29 UTC 2013
+# $ python
+# >>> import datetime
+# >>> print datetime.datetime.fromtimestamp(1376537429).strftime('%a %b %d %H:%M:%S UTC %Y')
+# Thu Aug 15 03:30:29 UTC 2013
+# 
+readable_time=`python -c 'import sys, datetime ; print datetime.datetime.fromtimestamp(float(sys.argv[1])).strftime("%a %b %d %H:%M:%S UTC %Y")' $REZ_REQUEST_TIME`
+
 echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME: $readable_time"):"
 echo $REZ_REQUEST | tr ' ' '\n'
 echo

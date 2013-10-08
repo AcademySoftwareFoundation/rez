@@ -12,9 +12,6 @@ authors:
 description: >
  Simple project to illustrate use of a custom build package.
 
-variants:
-- [ Linux ]
-
 build_requires:
 - buildTools_toupper-3.1
 

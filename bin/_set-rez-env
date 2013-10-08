@@ -5,11 +5,15 @@
 # If you need to, say, set LD_LIBRARY_PATH to get your Rez Python interpreter to work, then put
 # the setting in REZ_PYTHON_LIBRARY_PATH.
 if [ -n "$REZ_PYTHON_LIBRARY_PATH" ]; then
-	export LD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
+	if [ "$(uname)" == "Darwin" ]; then
+		export DYLD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
+	else
+		export LD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
+	fi
 else
-	unset LD_LIBRARY_PATH
+    unset LD_LIBRARY_PATH
+    unset DYLD_LIBRARY_PATH
 fi
-
 
 PATH=$PATH:$REZ_PATH/bin
 export PATH=$PATH

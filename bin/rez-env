@@ -49,14 +49,14 @@ fi
 
 tmpdir=$_REZ_ENV_OPT_TMPDIR
 
-
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
 # TODO patching of wrapper envs is not yet supported.
 ##############################################################################
 if [ "$autowrappers" != "" ]; then
 	if [ "$tmpdir" == "" ]; then
-		tmpdir=`mktemp -d`
+		tmpdir=`python -c 'import tempfile ; print tempfile.mkdtemp()'`
+		echo $tmpdir
 	fi
 	export REZ_TMP_DIR=$tmpdir
     rez-env-autowrappers $tmpdir $*
@@ -111,7 +111,7 @@ if [ "$tmpd" == "" ]; then
 	tmpd="/tmp"
 fi
 
-tmpf=`mktemp -p $tmpd .rez-context.XXXXXXXXXX`
+tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp(suffix="", prefix=".rez-context.", dir=sys.argv[1])' "$tmpd"`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
