@@ -11,8 +11,8 @@ if [ -n "$REZ_PYTHON_LIBRARY_PATH" ]; then
 		export LD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
 	fi
 else
-    unset LD_LIBRARY_PATH
-    unset DYLD_LIBRARY_PATH
+	unset LD_LIBRARY_PATH
+	unset DYLD_LIBRARY_PATH
 fi
 
 PATH=$PATH:$REZ_PATH/bin
