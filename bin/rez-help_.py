@@ -5,9 +5,12 @@ import os.path
 import sys
 import yaml
 import optparse
-import subprocess
+import subprocess as sp
 import rez_config as dc
+import webbrowser
 import sigint
+
+
 
 suppress_notfound_err = False
 
@@ -57,7 +60,7 @@ if (len(sys.argv) == 1):
 (opts, args) = p.parse_args()
 
 if opts.manual:
-	subprocess.Popen("kpdf "+os.environ["REZ_PATH"]+"/docs/technicalUserManual.pdf &", \
+	sp.Popen("kpdf "+os.environ["REZ_PATH"]+"/docs/technicalUserManual.pdf &", \
 		shell=True).communicate()
 	sys.exit(0)
 
@@ -151,10 +154,15 @@ if section == 0:
 cmd = cmds[section-1][1]
 cmd = cmd.replace('!ROOT!', pkgpath)
 cmd = cmd.replace('!BASE!', base_pkgpath)
-cmd += " &"
+cmd = cmd.replace('__ROOT__', pkgpath)
+cmd = cmd.replace('__BASE__', base_pkgpath)
 
-subprocess.Popen(cmd, shell=True).communicate()
-
+if '__BROWSER__' in cmd:
+	url = cmd.split()[-1]
+	webbrowser.open(url)
+else:
+	cmd += " &"
+	sp.Popen(cmd, shell=True).communicate()
 
 
 

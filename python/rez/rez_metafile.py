@@ -159,12 +159,21 @@ class ConfigMetadata:
 
 			new_cmds = []
 			for cmd in self.commands:
+				# backwards compat
 				cmd = cmd.replace("!VERSION!", version)
 				cmd = cmd.replace("!MAJOR_VERSION!", major_version)
 				cmd = cmd.replace("!MINOR_VERSION!", minor_version)
 				cmd = cmd.replace("!BASE!", base)
 				cmd = cmd.replace("!ROOT!", root)
 				cmd = cmd.replace("!USER!", user)
+				# new style - '!' not so great for yaml parser
+				cmd = cmd.replace("__VERSION__", version)
+				cmd = cmd.replace("__MAJOR_VERSION__", major_version)
+				cmd = cmd.replace("__MINOR_VERSION__", minor_version)
+				cmd = cmd.replace("__BASE__", base)
+				cmd = cmd.replace("__ROOT__", root)
+				cmd = cmd.replace("__USER__", user)
+
 				new_cmds.append(cmd)
 			return new_cmds
 		return None

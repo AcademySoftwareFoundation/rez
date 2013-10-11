@@ -120,7 +120,6 @@ proj_version = args[1]
 cwd = os.getcwd()
 proj_types = [opts.type]
 proj_types += _project_template_deps[opts.type] or []
-browser = os.getenv("BROWSER") or "firefox"
 
 
 
@@ -220,7 +219,7 @@ for proj_type in proj_types:
 		str_repl[cmake_code_tok] = cmake_code
 
 	if proj_type == "doxygen":
-		str_repl["HELP"] = "help: %s file://!ROOT!/doc/html/index.html" % browser
+		str_repl["HELP"] = "help: __BROWSER__ file://!ROOT!/doc/html/index.html"
 	elif proj_type == "python":
 		commands.append("export PYTHONPATH=$PYTHONPATH:!ROOT!/python")
 
