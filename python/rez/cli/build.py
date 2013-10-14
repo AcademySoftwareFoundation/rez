@@ -308,7 +308,7 @@ def command(opts):
     build_mode.build_time = opts.time
 
     if not opts.variant_nums:
-        opts.variant_nums = [0]
+        opts.variant_nums = range(len(build_mode.variants))
 
     for varnum in opts.variant_nums:
         # set variant and create build directories
