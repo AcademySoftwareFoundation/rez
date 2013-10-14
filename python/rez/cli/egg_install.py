@@ -299,7 +299,7 @@ def _sandbox_eggs(tempdir, eggs):
             #print list(distr.get_metadata("installed-files.txt"))
         else:
             paths = list(os.path.join(location, x) for x in distr.get_metadata_lines("top_level.txt"))
-             
+
             info = os.path.join(location, distr.egg_name() + '.egg-info')
             paths.append(info)
 #             # pip style
@@ -328,11 +328,11 @@ def _sandbox_eggs(tempdir, eggs):
 
     pthfile = os.path.join(tempdir, 'easy_instal.pth')
     with open(pthfile, 'w') as f:
-        f.write(textwrap.dedent("""
+        f.write(textwrap.dedent("""\
             import sys; sys.__plen = len(sys.path)
             %s
             import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)
-            """ % '\n'.join(sandboxed)))
+            """) % '\n'.join(sandboxed))
 
     sitefile = os.path.join(os.path.dirname(path), 'site.py')
     shutil.copy(sitefile, tempdir)
@@ -593,6 +593,8 @@ def command(opts):
         sys.exit(1)
         # This is required to successfully inspect modules, particularly "compiled extensions.
 
+    print "Using python interpreter: %s" % sys.executable
+
 #     pkg_name = opts.pkg
 
     install_evar = "REZ_EGG_PACKAGES_PATH"
@@ -634,6 +636,8 @@ def command(opts):
         sys.exit(1)
 
     setuptools_path = tempfile.mkdtemp(prefix="rez-egg-setuptools-")
+
+    print "Found pkg_resources: %s" % pkg_r.__file__
 
     try:
         _sandbox_eggs(setuptools_path, setuptools)
