@@ -129,6 +129,15 @@ def _convert_metadata(distr):
                     meta[k] = v
     return meta
 
+def _is_native_library(distr):
+    if distr.has_metadata('native_libs.txt'):
+        return True
+    elif distr.has_metadata('installed-files.txt'):
+        exts = ['.so', '.a', '.dll', '.lib']
+        if any(os.path.splitext(p)[1] in exts for p in distr.get_metadata_lines('installed-files.txt')):
+            return True
+    return False
+
 def _get_package_data_from_dist(distr, force_platform, package_remappings,
                                 platform_remappings):
     name = _convert_pkg_name(distr.project_name, package_remappings)
@@ -145,7 +154,7 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
     requires = []
     variant = []
 
-    if distr.has_metadata('native_libs.txt'):
+    if _is_native_library(distr):
         # if the package has native libs, then python must be a variant
         native = True
         variant.append("python-%s" % pyver)
@@ -297,34 +306,32 @@ def _sandbox_eggs(tempdir, eggs):
             sandboxed.append(os.path.join('.', os.path.basename(location)))
             # easy-install-style egg
             #print list(distr.get_metadata("installed-files.txt"))
-        else:
-            paths = list(os.path.join(location, x) for x in distr.get_metadata_lines("top_level.txt"))
-
-            info = os.path.join(location, distr.egg_name() + '.egg-info')
-            paths.append(info)
-#             # pip style
-#             for file in distr.get_metadata_lines("installed-files.txt"):
-#                 srcpath = os.path.abspath(os.path.join(info, file))
-#                 destpath = os.path.relpath(srcpath, path)
-#                 destpath = os.path.join(tempdir, destpath)
-#                 print `file`
-#                 print srcpath
-#                 print destpath
-#                 if os.path.isdir(srcpath):
-#                     os.mkdir(destpath)
-#                 else:
-#                     destdir = os.path.dirname(destpath)
-#                     if not os.path.exists(destdir):
-#                         os.makedirs(destdir)
-#                     shutil.copy(srcpath, destdir)
-#             sys.exit(1)
-        for path in paths:
-            print "sandboxing %s: copying %s to %s" % (egg, path, tempdir)
-            basename = os.path.basename(path)
-            if os.path.isfile(path):
-                shutil.copy(path, tempdir)
+            print "sandboxing %s: copying %s to %s" % (egg, location, tempdir)
+            basename = os.path.basename(location)
+            if os.path.isfile(location):
+                shutil.copy(location, tempdir)
             else:
-                copytree(path, os.path.join(tempdir, basename))
+                copytree(location, os.path.join(tempdir, basename))
+        else:
+            info = os.path.join(location, distr.egg_name() + '.egg-info')
+            # pip style
+            for file in distr.get_metadata_lines("installed-files.txt"):
+                srcpath = os.path.abspath(os.path.join(info, file))
+                destpath = os.path.relpath(srcpath, location)
+                # can't install files that are above the lib dir, but we 
+                # don't need them anyway
+                if destpath.split(os.path.sep)[0] == '..':
+                    continue
+                destpath = os.path.join(tempdir, destpath)
+                if os.path.isdir(srcpath):
+                    os.mkdir(destpath)
+                else:
+                    print "sandboxing %s: copying %s to %s" % (egg, srcpath, tempdir)
+                    destdir = os.path.dirname(destpath)
+                    if not os.path.exists(destdir):
+                        os.makedirs(destdir)
+                    shutil.copy(srcpath, destdir)
+#             sys.exit(1)
 
     pthfile = os.path.join(tempdir, 'easy_instal.pth')
     with open(pthfile, 'w') as f:
@@ -334,8 +341,85 @@ def _sandbox_eggs(tempdir, eggs):
             import sys; new=sys.path[sys.__plen:]; del sys.path[sys.__plen:]; p=getattr(sys,'__egginsert',0); sys.path[p:p]=new; sys.__egginsert = p+len(new)
             """) % '\n'.join(sandboxed))
 
-    sitefile = os.path.join(os.path.dirname(path), 'site.py')
-    shutil.copy(sitefile, tempdir)
+    sitefile = os.path.join(tempdir, 'site.py')
+    with open(sitefile, 'w') as f:
+        f.write(textwrap.dedent("""\
+            def __boot():
+                import sys, os, os.path
+                PYTHONPATH = os.environ.get('PYTHONPATH')
+                if PYTHONPATH is None or (sys.platform=='win32' and not PYTHONPATH):
+                    PYTHONPATH = []
+                else:
+                    PYTHONPATH = PYTHONPATH.split(os.pathsep)
+
+                pic = getattr(sys,'path_importer_cache',{})
+                stdpath = sys.path[len(PYTHONPATH):]
+                mydir = os.path.dirname(__file__)
+                #print "searching",stdpath,sys.path
+
+                for item in stdpath:
+                    if item==mydir or not item:
+                        continue    # skip if current dir. on Windows, or my own directory
+                    importer = pic.get(item)
+                    if importer is not None:
+                        loader = importer.find_module('site')
+                        if loader is not None:
+                            # This should actually reload the current module
+                            loader.load_module('site')
+                            break
+                    else:
+                        try:
+                            import imp # Avoid import loop in Python >= 3.3
+                            stream, path, descr = imp.find_module('site',[item])
+                        except ImportError:
+                            continue
+                        if stream is None:
+                            continue
+                        try:
+                            # This should actually reload the current module
+                            imp.load_module('site',stream,path,descr)
+                        finally:
+                            stream.close()
+                        break
+                else:
+                    raise ImportError("Couldn't find the real 'site' module")
+
+                #print "loaded", __file__
+
+                known_paths = dict([(makepath(item)[1],1) for item in sys.path]) # 2.2 comp
+
+                oldpos = getattr(sys,'__egginsert',0)   # save old insertion position
+                sys.__egginsert = 0                     # and reset the current one
+
+                for item in PYTHONPATH:
+                    addsitedir(item)
+
+                sys.__egginsert += oldpos           # restore effective old position
+
+                d,nd = makepath(stdpath[0])
+                insert_at = None
+                new_path = []
+
+                for item in sys.path:
+                    p,np = makepath(item)
+
+                    if np==nd and insert_at is None:
+                        # We've hit the first 'system' path entry, so added entries go here
+                        insert_at = len(new_path)
+
+                    if np in known_paths or insert_at is None:
+                        new_path.append(item)
+                    else:
+                        # new path after the insert point, back-insert it
+                        new_path.insert(insert_at, item)
+                        insert_at += 1
+
+                sys.path[:] = new_path
+
+            if __name__=='site':
+                __boot()
+                del __boot"""))
+
 
 def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
                 package_remappings, platform_remappings):
@@ -352,7 +436,8 @@ def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
     easy_install_args = [x for x in opts.extra_args if x != '--' and x.startswith('-')]
     easy_install_args.append(pkg_name)
 
-    try: # Giant try/finally block to ensure that we get a chance to cleanup
+    # Giant try/finally block to ensure that we get a chance to cleanup
+    try:
         environ = dict(os.environ)
         pypath = environ.pop('REZ_ORIG_PYTHONPATH').split(os.path.pathsep)
         pypath = [setuptools_path, eggs_path] + _get_safe_pythonpath(pkg_name, pypath)
@@ -513,7 +598,7 @@ def _get_pip_install_cmd():
     proc = sp.Popen("pip --version", shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
     out, err = proc.communicate()
     if proc.returncode:
-        error("could not find pip.")
+        error("could not find pip: %s" % err)
         return
     # do not install any dependencies. we will recursively install them
     cmd = "pip install --no-deps "
@@ -588,7 +673,7 @@ def command(opts):
         import yaml
     except ImportError:
         # TODO: save the yaml path gathered on install and import yaml.py directly
-        error("rez-egg-install uses the python binary found on the PATH instead of"
+        error("rez-egg-install uses the python binary found on the PATH instead of "
               "REZ_PYTHON_BINARY. Ensure that this python has yaml installed.")
         sys.exit(1)
         # This is required to successfully inspect modules, particularly "compiled extensions.
