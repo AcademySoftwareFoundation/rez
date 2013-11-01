@@ -1,0 +1,36 @@
+Installing deps on the Mac.
+
+OSX ships with cmake 2.8.0 so you don't need to install it.
+
+#
+# Getting python
+#
+
+1. Using a virtualenv
+
+$ virtualenv venv
+$ source venv/bin/activate.csh # for tcsh users, drop the .csh if you use bash
+$ easy_install pip
+$ pip install pyparsing==1.5.1
+$ pip install pydot
+$ pip install pyyaml
+
+2. Using the system python
+
+$ sudo easy_install pip
+$ sudo pip install pyparsing==1.5.1
+$ sudo pip install pydot
+$ sudo pip install pyyaml
+
+#
+# Others
+#
+
+You'll need GNU sed to run examples/demo/run_demo , and to get the dot binaries you'll need graphviz, that I got using Homebrew
+
+http://brew.sh
+
+    brew install graphviz
+    brew install gnu-sed
+
+Now go replace sed with gsed in examples/demo/projects/buildTools_toupper/3.1/buildTools_toupper.cmake 

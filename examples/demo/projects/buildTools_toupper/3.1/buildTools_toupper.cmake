@@ -75,7 +75,7 @@ macro (install_uppercase)
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${fupper_path}
 			COMMAND ${CMAKE_COMMAND} -E copy ${fabs} ${fupper_path}
 			# yes, escaping sed commands in cmake gets a bit nasty
-			COMMAND sed -i 's/\\\(.*\\\)/\\U\\1/' ${local_f}
+			COMMAND gsed -i 's/\\\(.*\\\)/\\U\\1/' ${local_f}
 			COMMENT "Making uppercase file ${CMAKE_CURRENT_BINARY_DIR}/${local_f}"
 		)
 

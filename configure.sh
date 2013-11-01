@@ -68,59 +68,59 @@ rez_dot_image_viewer=
 ###---------------------------------------------------------------------------------------
 
 if [ "$packages_path" == "" ]; then
-	packages_path=$REZCONFIG_PACKAGES_PATH
+    packages_path=$REZCONFIG_PACKAGES_PATH
 fi
 if [ "$local_packages_path" == "" ]; then
-	local_packages_path=$REZCONFIG_LOCAL_PACKAGES_PATH
+    local_packages_path=$REZCONFIG_LOCAL_PACKAGES_PATH
 fi
 if [ "$rezshell" == "" ]; then
     rezshell=$REZCONFIG_SHELL
 fi
 if [ "$osname" == "" ]; then
-	osname=$REZCONFIG_PLATFORM
+    osname=$REZCONFIG_PLATFORM
 fi
 if [ "$distro" == "" ]; then
-	distro=$REZCONFIG_DISTRO
+    distro=$REZCONFIG_DISTRO
 fi
 if [ "$distro_version" == "" ]; then
-	distro_version=$REZCONFIG_DISTRO_VERSION
+    distro_version=$REZCONFIG_DISTRO_VERSION
 fi
 if [ "$sysarch" == "" ]; then
-	sysarch=$REZCONFIG_ARCH
+    sysarch=$REZCONFIG_ARCH
 fi
 if [ "$cmake_binary" == "" ]; then
-	cmake_binary=$REZCONFIG_CMAKE_BINARY
+    cmake_binary=$REZCONFIG_CMAKE_BINARY
 fi
 if [ "$cpp_compiler_binary" == "" ]; then
-	cpp_compiler_binary=$REZCONFIG_CPP_COMPILER_BINARY
+    cpp_compiler_binary=$REZCONFIG_CPP_COMPILER_BINARY
 fi
 if [ "$python_binary" == "" ]; then
-	python_binary=$REZCONFIG_PYTHON_BINARY
+    python_binary=$REZCONFIG_PYTHON_BINARY
 fi
 if [ "$pyyaml_path" == "" ]; then
-	pyyaml_path=$REZCONFIG_PYYAML_PATH
+    pyyaml_path=$REZCONFIG_PYYAML_PATH
 fi
 if [ "$pydot_path" == "" ]; then
-	pydot_path=$REZCONFIG_PYDOT_PATH
+    pydot_path=$REZCONFIG_PYDOT_PATH
 fi
 if [ "$pyparsing_path" == "" ]; then
-	pyparsing_path=$REZCONFIG_PYPARSING_PATH
+    pyparsing_path=$REZCONFIG_PYPARSING_PATH
 fi
 if [ "$pymemcached_path" == "" ]; then
-	pymemcached_path=$REZCONFIG_PYMEMCACHED_PATH
+    pymemcached_path=$REZCONFIG_PYMEMCACHED_PATH
 fi
 if [ "$pysvn_path" == "" ]; then
-	pysvn_path=$REZCONFIG_PYSVN_PATH
+    pysvn_path=$REZCONFIG_PYSVN_PATH
 fi
 if [ "$gitpython_path" == "" ]; then
-	gitpython_path=$REZCONFIG_GITPYTHON_PATH
+    gitpython_path=$REZCONFIG_GITPYTHON_PATH
 fi
 
 if [ "$rez_release_editor" == "" ]; then
-	rez_release_editor=$REZCONFIG_RELEASE_EDITOR
+    rez_release_editor=$REZCONFIG_RELEASE_EDITOR
 fi
 if [ "$rez_dot_image_viewer" == "" ]; then
-	rez_dot_image_viewer=$REZCONFIG_DOT_IMAGE_VIEWER
+    rez_dot_image_viewer=$REZCONFIG_DOT_IMAGE_VIEWER
 fi
 
 
@@ -133,9 +133,9 @@ cd $cwd
 # usage
 #-----------------------------------------------------------------------------------------
 if [ "$1" == "--help" -o "$1" == "--h" -o "$1" == "-h" -o "$1" == "-?" -o "$1" == "--?" -o "$1" == "-help" ]; then
-	echo "You need to open configure.sh and edit the section where you are shown to do so." 1>&2
-	echo "Then run configure.sh with no arguments." 1>&2
-	exit 0
+    echo "You need to open configure.sh and edit the section where you are shown to do so." 1>&2
+    echo "Then run configure.sh with no arguments." 1>&2
+    exit 0
 fi
 
 
@@ -156,33 +156,33 @@ _find_program(){
 # packages path
 #-----------------------------------------------------------------------------------------
 if [ "$packages_path" == "" ]; then
-	echo "You need to set the packages path directory in configure.sh, or set "'$'"REZCONFIG_PACKAGES_PATH" 1>&2
-	echo "This is where your rez packages will be centrally deployed to." 1>&2
-	exit 1
+    echo "You need to set the packages path directory in configure.sh, or set "'$'"REZCONFIG_PACKAGES_PATH" 1>&2
+    echo "This is where your rez packages will be centrally deployed to." 1>&2
+    exit 1
 fi
 
 if [ "`echo $packages_path | grep '^\.'`" != "" ]; then
-	echo "Packages path must be an absolute path, not $packages_path" 1>&2
-	exit 1
+    echo "Packages path must be an absolute path, not $packages_path" 1>&2
+    exit 1
 fi
 
 
 # local packages path
 #-----------------------------------------------------------------------------------------
 if [ "$local_packages_path" == "" ]; then
-	echo "You need to set the local packages path directory in configure.sh, or set "'$'"REZCONFIG_LOCAL_PACKAGES_PATH" 1>&2
-	echo "This is where your rez packages will be locally installed to." 1>&2
-	exit 1
+    echo "You need to set the local packages path directory in configure.sh, or set "'$'"REZCONFIG_LOCAL_PACKAGES_PATH" 1>&2
+    echo "This is where your rez packages will be locally installed to." 1>&2
+    exit 1
 fi
 
 if [ "`echo $local_packages_path | grep '^\.'`" != "" ]; then
-	echo "Local packages path must be an absolute path, not $local_packages_path" 1>&2
-	exit 1
+    echo "Local packages path must be an absolute path, not $local_packages_path" 1>&2
+    exit 1
 fi
 
 if [ "$packages_path" == "$local_packages_path" ]; then
-	echo "The local and central package paths must be different." 1>&2
-	exit 1
+    echo "The local and central package paths must be different." 1>&2
+    exit 1
 fi
 
 or_set="either specify manually in configure.sh, or set "'$'
@@ -202,7 +202,7 @@ if [ "$osname" == "" ]; then
         echo "Could not identify operating system - $or_set""REZCONFIG_PLATFORM" 1>&2
         exit 1
     fi
-    if [ "$osname" == "Linux" ]; then
+    if [ "$osname" == "Linux" -o "osname" == "Darwin" ]; then
         echoerr=$(tput bold)$(tput setaf 1)
         echoreset=$(tput sgr0)
     fi
@@ -223,16 +223,16 @@ if [ "$rezshell" == "" ]; then
         nissues=$(( $nissues + 1 ))
     fi
     case "$rezshell" in
-    "bash") ;;
+        "bash") ;;
     "csh")  ;;
-    "tcsh") ;;
+"tcsh") ;;
     *)      echo $echoerr"Unknown shell '"$rezshell"' - $or_set""REZCONFIG_SHELL" 1>&2
-            echo "Assuming bash!"$echoreset 1>&2
-            rezshell=bash
-            nissues=$(( $nissues + 1 ))
-            ;;
-    esac
-    echo "Shell is: "$rezshell
+        echo "Assuming bash!"$echoreset 1>&2
+        rezshell=bash
+        nissues=$(( $nissues + 1 ))
+        ;;
+esac
+echo "Shell is: "$rezshell
 fi
 
 
@@ -245,6 +245,9 @@ if [ "$distro" == "" ]; then
     if [ "$osname" == "Linux" ]; then
         distro=`lsb_release -i | awk '{print $NF}'`
         if [ $? -ne 0 ]; then distro=; fi
+    fi
+    if [ "$osname" == "Darwin" ]; then
+        distro=Apple
     fi
     if [ "$distro" == "" ]; then
         echo $echoerr"Could not identify OS distribution - $or_set""REZCONFIG_DISTRO" 1>&2
@@ -261,6 +264,10 @@ if [ "$distro_version" == "" ]; then
     echo 'detecting OS distribution version...'
     if [ "$osname" == "Linux" ]; then
         distro_version=`lsb_release -r | awk '{print $NF}'`
+        if [ $? -ne 0 ]; then distro_version=; fi
+    fi
+    if [ "$osname" == "Darwin" ]; then
+        distro_version=`sw_vers -productVersion`
         if [ $? -ne 0 ]; then distro_version=; fi
     fi
     if [ "$distro_version" == "" ]; then
@@ -281,9 +288,9 @@ orset='edit configure.sh, or set $'
 #-----------------------------------------------------------------------------------------
 which make > /dev/null 2>&1
 if [ $? -ne 0 ]; then
-	echo
-	echo "Cannot find make!" 1>&2
-	exit 1
+    echo
+    echo "Cannot find make!" 1>&2
+    exit 1
 fi
 
 
@@ -294,10 +301,10 @@ echo 'detecting cmake...'
 if [ "$cmake_binary" == "" ]; then cmake_binary=cmake; fi
 which $cmake_binary > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-	cmake_binary=`which $cmake_binary`
+    cmake_binary=`which $cmake_binary`
 else
-	echo "rez.configure: $cmake_binary could not be located - $orset""REZCONFIG_CMAKE_BINARY" 1>&2
-	exit 1
+    echo "rez.configure: $cmake_binary could not be located - $orset""REZCONFIG_CMAKE_BINARY" 1>&2
+    exit 1
 fi
 echo "found cmake binary: "$cmake_binary
 
@@ -306,9 +313,9 @@ versplit=`echo $cmakever | tr '.' ' ' | tr '-' ' '`
 cmake_major_ver=`echo $versplit | awk '{print $1}'`
 cmake_minor_ver=`echo $versplit | awk '{print $2}'`
 if (( (cmake_major_ver * 100) + cmake_minor_ver < 208 )); then
-	echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
-	echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
-	exit 1
+    echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
+    echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
+    exit 1
 fi
 
 
@@ -335,50 +342,50 @@ echo 'MESSAGE("REZID "${CMAKE_CXX_COMPILER_ID})'	>> $tmpf
 
 cppcompiler=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | grep '^REZCXX' | grep -v 'NOTFOUND' | awk '{print $NF}'`
 if [ $? -ne 0 ]; then
-	cppcompiler=''
+    cppcompiler=''
 fi
 
 cppcompiler_id=`export CXX=$cpp_compiler_binary ; $cmake_binary -P $tmpf 2>&1 | grep '^REZID' | grep -v 'NOTFOUND' | awk '{print $NF}'`
 if [ $? -ne 0 ]; then
-	cppcompiler_id=''
+    cppcompiler_id=''
 fi
 
 # couldn't find cpp compiler via cmake, let's just look for the binary directly
 if [ "$cppcompiler" == "" ]; then
-	echo $echoerr"couldn't find cpp compiler via cmake!"$echoreset 1>&2
-	nissues=$(( $nissues + 1 ))
-	if [ "$cpp_compiler_binary" == "" ]; then
-		cpp_compiler_binary=gcc
-	fi
-	echo "looking for $cpp_compiler_binary""..." 1>&2
-	cppcompiler=`which $cpp_compiler_binary`
-	if [ $? -ne 0 ]; then
-		echo $echoerr"$cpp_compiler_binary not found."$echoreset 1>&2
-		nissues=$(( $nissues + 1 ))
-		cppcompiler=''
-	else
-		echo "found $cpp_compiler_binary at $cppcompiler."
-	fi
+    echo $echoerr"couldn't find cpp compiler via cmake!"$echoreset 1>&2
+    nissues=$(( $nissues + 1 ))
+    if [ "$cpp_compiler_binary" == "" ]; then
+        cpp_compiler_binary=gcc
+    fi
+    echo "looking for $cpp_compiler_binary""..." 1>&2
+    cppcompiler=`which $cpp_compiler_binary`
+    if [ $? -ne 0 ]; then
+        echo $echoerr"$cpp_compiler_binary not found."$echoreset 1>&2
+        nissues=$(( $nissues + 1 ))
+        cppcompiler=''
+    else
+        echo "found $cpp_compiler_binary at $cppcompiler."
+    fi
 fi
 
 if [ "$cppcompiler" == "" ]; then
-        echo "Couldn't find cpp compiler." 1>&2
-        echo "You need to $orset""REZCONFIG_CPP_COMPILER_BINARY" 1>&2
-        exit 1
+    echo "Couldn't find cpp compiler." 1>&2
+    echo "You need to $orset""REZCONFIG_CPP_COMPILER_BINARY" 1>&2
+    exit 1
 fi
 
 cppcomp_name=`basename $cppcompiler | tr '+' 'p'`
 
 # massage compiler name in some cases
 if [ "$cppcompiler_id" == "GNU" ]; then
-	if [ "$cppcomp_name" == "cpp" -o "$cppcomp_name" == "gpp" ]; then
-		cppcomp_name="gcc"
-	fi
-	# account for distributions that install various flavours of
-	# gcc, each with a different version string appended.
-	if [[ "$cppcomp_name" == gcc-* ]]; then
-		cppcomp_name="gcc"
-	fi
+    if [ "$cppcomp_name" == "cpp" -o "$cppcomp_name" == "gpp" ]; then
+        cppcomp_name="gcc"
+    fi
+    # account for distributions that install various flavours of
+    # gcc, each with a different version string appended.
+    if [[ "$cppcomp_name" == gcc-* ]]; then
+        cppcomp_name="gcc"
+    fi
 fi
 if [ "cppcomp_name" == "gcc" ]; then
     tmp=${cppcompiler/gcc/g++}
@@ -392,15 +399,15 @@ echo "found cpp compiler: "$cppcompiler", id: "$cppcompiler_id
 # detect cpp compiler version
 cppcompiler_ver=''
 if [ "$cppcompiler_id" == "GNU" ]; then
-	ver=`$cppcompiler -dumpversion`
-	if [ $? -eq 0 ]; then
-		cppcompiler_ver=$ver
-	fi
+    ver=`$cppcompiler -dumpversion`
+    if [ $? -eq 0 ]; then
+        cppcompiler_ver=$ver
+    fi
 fi
 if [ "$cppcompiler_ver" == "" ]; then
-	echo $echoerr"Couldn't detect compiler version, assuming 1.0.1..."$echoreset 1>&2
-	cppcompiler_ver='1.0.1'
-	nissues=$(( $nissues + 1 ))
+    echo $echoerr"Couldn't detect compiler version, assuming 1.0.1..."$echoreset 1>&2
+    cppcompiler_ver='1.0.1'
+    nissues=$(( $nissues + 1 ))
 fi
 echo "cpp compiler version: "$cppcompiler_ver
 
@@ -412,52 +419,63 @@ echo 'detecting python...'
 if [ "$python_binary" == "" ]; then python_binary=python; fi
 which $python_binary > /dev/null 2>&1
 if [ $? -eq 0 ]; then
-	python_binary=`which $python_binary`
+    python_binary=`which $python_binary`
 else
-	echo "rez.configure: $python_binary could not be located." 1>&2
-	echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
-	exit 1
+    echo "rez.configure: $python_binary could not be located." 1>&2
+    echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
+    exit 1
 fi
 echo "found python binary: "$python_binary
 
-pyver=`( $python_binary -V 2>&1 | sed 's/\+//' ) | awk '{print $NF}'`
+pyver=`$python_binary -c 'import sys ; v = sys.version_info ; print "%d.%d.%d" % (v[0], v[1], v[2])'`
 pynum=`echo $pyver | sed 's/\.[^\.]*$//' | sed 's/\.//'`
 if (( pynum < 25 )); then
-	echo "python version "$pyver" is too old, you need 2.5 or greater." 1>&2
-	echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
-	exit 1
+    echo "python version "$pyver" is too old, you need 2.5 or greater." 1>&2
+    echo "You need to $orset""REZCONFIG_PYTHON_BINARY" 1>&2
+    exit 1
 fi
 echo "python version: "$pyver
 
+#
+# On the Mac, /usr/bin/python is a special file, and when we create
+# a symlink to it for rezpy, executing rezpy fails with this error:
+# rezpy: realpath couldn't resolve "/usr/bin/rezpy"
+# so if we're using the system python, we go set python_binary to the real python
+# that has a version number (/usr/bin/python2.5, /usr/bin/python2.6 or /usr/bin/python2.7)
+# as of mountain lion.
+#
+if [ "$osname" == "Darwin" -a "$python_binary" == "/usr/bin/python" ]; then
+    python_binary=/usr/bin/python`defaults read com.apple.versioner.python Version`
+fi
 
 # pyyaml
 #-----------------------------------------------------------------------------------------
 echo
 echo 'detecting pyyaml...'
 if [ "$pyyaml_path" == "" ]; then
-	$python_binary -c "import yaml" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		pyyaml_path=`$python_binary -c \
-			"import os.path ; \
-			import yaml ; \
-			s = yaml.__file__.replace('/__init__.pyc','') ; \
-			s = yaml.__file__.replace('/__init__.pyo','') ; \
-			s = s.replace('/__init__.py','') ; \
-			print os.path.dirname(s)"`
-		if [ $? -ne 0 ]; then
-			pyyaml_path=""
-		fi
-	fi
+    $python_binary -c "import yaml" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        pyyaml_path=`$python_binary -c \
+            "import os.path ; \
+            import yaml ; \
+            s = yaml.__file__.replace('/__init__.pyc','') ; \
+            s = yaml.__file__.replace('/__init__.pyo','') ; \
+            s = s.replace('/__init__.py','') ; \
+            print os.path.dirname(s)"`
+        if [ $? -ne 0 ]; then
+            pyyaml_path=""
+        fi
+    fi
 fi
 if [ "$pyyaml_path" == "" ]; then
-	echo "couldn't find yaml python module - $orset""REZCONFIG_PYYAML_PATH" 1>&2
-	exit 1
+    echo "couldn't find yaml python module - $orset""REZCONFIG_PYYAML_PATH" 1>&2
+    exit 1
 else
-	bash -c "export PYTHONPATH=$pyyaml_path ; $python_binary -c 'import yaml' > /dev/null 2>&1"
-	if [ $? -ne 0 ]; then
-		echo "yaml python module not found at "$pyyaml_path 1>&2
-		exit 1
-	fi
+    bash -c "export PYTHONPATH=$pyyaml_path ; $python_binary -c 'import yaml' > /dev/null 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "yaml python module not found at "$pyyaml_path 1>&2
+        exit 1
+    fi
 fi
 echo "found pyyaml at "$pyyaml_path
 
@@ -467,29 +485,29 @@ echo "found pyyaml at "$pyyaml_path
 echo
 echo 'detecting pydot...'
 if [ "$pydot_path" == "" ]; then
-	$python_binary -c "import pydot" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		pydot_path=`$python_binary -c \
-			"import os.path ; \
-			import pydot ; \
-			s = pydot.__file__.replace('/__init__.pyc','') ; \
-			s = pydot.__file__.replace('/__init__.pyo','') ; \
-			s = s.replace('/__init__.py','') ; \
-			print os.path.dirname(s)"`
-		if [ $? -ne 0 ]; then
-			pydot_path=""
-		fi
-	fi
+    $python_binary -c "import pydot" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        pydot_path=`$python_binary -c \
+            "import os.path ; \
+            import pydot ; \
+            s = pydot.__file__.replace('/__init__.pyc','') ; \
+            s = pydot.__file__.replace('/__init__.pyo','') ; \
+            s = s.replace('/__init__.py','') ; \
+            print os.path.dirname(s)"`
+        if [ $? -ne 0 ]; then
+            pydot_path=""
+        fi
+    fi
 fi
 if [ "$pydot_path" == "" ]; then
-	echo "couldn't find pydot python module - $orset""REZCONFIG_PYDOT_PATH" 1>&2
-	exit 1
+    echo "couldn't find pydot python module - $orset""REZCONFIG_PYDOT_PATH" 1>&2
+    exit 1
 else
-	bash -c "export PYTHONPATH=$pydot_path ; $python_binary -c 'import pydot' > /dev/null 2>&1"
-	if [ $? -ne 0 ]; then
-		echo "pydot python module not found at "$pydot_path 1>&2
-		exit 1
-	fi
+    bash -c "export PYTHONPATH=$pydot_path ; $python_binary -c 'import pydot' > /dev/null 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "pydot python module not found at "$pydot_path 1>&2
+        exit 1
+    fi
 fi
 echo "found pydot at "$pydot_path
 
@@ -499,29 +517,29 @@ echo "found pydot at "$pydot_path
 echo
 echo 'detecting pyparsing...'
 if [ "$pyparsing_path" == "" ]; then
-	$python_binary -c "import pyparsing" > /dev/null 2>&1
-	if [ $? -eq 0 ]; then
-		pyparsing_path=`$python_binary -c \
-			"import os.path ; \
-			import pyparsing ; \
-			s = pyparsing.__file__.replace('/__init__.pyc','') ; \
-			s = pyparsing.__file__.replace('/__init__.pyo','') ; \
-			s = s.replace('/__init__.py','') ; \
-			print os.path.dirname(s)"`
-		if [ $? -ne 0 ]; then
-			pyparsing_path=""
-		fi
-	fi
+    $python_binary -c "import pyparsing" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        pyparsing_path=`$python_binary -c \
+            "import os.path ; \
+            import pyparsing ; \
+            s = pyparsing.__file__.replace('/__init__.pyc','') ; \
+            s = pyparsing.__file__.replace('/__init__.pyo','') ; \
+            s = s.replace('/__init__.py','') ; \
+            print os.path.dirname(s)"`
+        if [ $? -ne 0 ]; then
+            pyparsing_path=""
+        fi
+    fi
 fi
 if [ "$pyparsing_path" == "" ]; then
-	echo "couldn't find pyparsing python module - $orset""REZCONFIG_PYPARSING_PATH" 1>&2
-	exit 1
+    echo "couldn't find pyparsing python module - $orset""REZCONFIG_PYPARSING_PATH" 1>&2
+    exit 1
 else
-	bash -c "export PYTHONPATH=$pyparsing_path ; $python_binary -c 'import pyparsing' > /dev/null 2>&1"
-	if [ $? -ne 0 ]; then
-		echo "pyparsing python module not found at "$pyparsing_path 1>&2
-		exit 1
-	fi
+    bash -c "export PYTHONPATH=$pyparsing_path ; $python_binary -c 'import pyparsing' > /dev/null 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "pyparsing python module not found at "$pyparsing_path 1>&2
+        exit 1
+    fi
 fi
 echo "found pyparsing at "$pyparsing_path
 

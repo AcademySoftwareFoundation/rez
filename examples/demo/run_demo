@@ -92,10 +92,11 @@ cp -rf ./projects ./build/projects
 find ./build -type d -name '.svn' | xargs rm -rf
 for yaml in `find ./build/projects -name 'package.yaml'`
 do
-	sed -i -e "s/!OS!/$osname/g" \
+	tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp()'`
+	sed -e "s/!OS!/$osname/g" \
 		-e "s/!CXX!/$_REZ_CPP_COMPILER_NAME-$_REZ_CPP_COMPILER_VER/g" \
-		-e "s/!PYVER!/$_REZ_PYTHON_VER/g" \
-		$yaml
+		-e "s/!PYVER!/$_REZ_PYTHON_VER/g" < $yaml > $tmpf
+	mv $tmpf $yaml
 done
 
 
@@ -211,75 +212,75 @@ rez-info lolcat
 
 echo
 echo "(1)"
-rez run hello_world_py -- test_hello_world_py
+rez-run hello_world_py -- test_hello_world_py
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(2)"
-rez run hello_world_cpp -- test_hello_world_cpp
+rez-run hello_world_cpp -- test_hello_world_cpp
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(3)"
-rez run sup_world=l -- test_ghetto
+rez-run sup_world=l -- test_ghetto
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(4)"
 echo "The next line should read: HELLO, THIS IS A TEST!"
 # note: rez sets REZ_XXX_ROOT and REZ_XXX_VERSION env-vars for all resolve packages...
-rez run toupper-1.0 -- cat '$REZ_TOUPPER_ROOT/data.txt'
+rez-run toupper-1.0 -- cat '$REZ_TOUPPER_ROOT/data.txt'
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(5)"
 # this first run will get the latest patch of translate_lib...
-rez run translated_hello_world -- test_translated_hello_world
+rez-run translated_hello_world -- test_translated_hello_world
 if [ $? -ne 0 ]; then exit 1; fi
 # ...but here we deliberately use an earlier patch
-rez run translated_hello_world translate_lib-2.0.0 -- test_translated_hello_world
+rez-run translated_hello_world translate_lib-2.0.0 -- test_translated_hello_world
 if [ $? -ne 0 ]; then exit 1; fi
 # and again, but in a different way...
-rez run translated_hello_world !translate_lib-2.0.1 -- test_translated_hello_world
+rez-run translated_hello_world !translate_lib-2.0.1 -- test_translated_hello_world
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(6)"
 # this will use latest translate_lib, 2.1...
-rez run lolcat -- test_lolcat
+rez-run lolcat -- test_lolcat
 if [ $? -ne 0 ]; then exit 1; fi
 # ...but see how we can also use an earlier translate_lib...
-rez run lolcat translate_lib-2.0 -- test_lolcat
+rez-run lolcat translate_lib-2.0 -- test_lolcat
 if [ $? -ne 0 ]; then exit 1; fi
 # ...and now we're being even more specific...
-rez run lolcat translate_lib-2.0.0 -- test_lolcat
+rez-run lolcat translate_lib-2.0.0 -- test_lolcat
 if [ $? -ne 0 ]; then exit 1; fi
 # see how rez figures out the right package combo? If you want both lolcat and
 # translated_hello_world, you can only have translate_lib-2.0...
-rez run lolcat translated_hello_world -- 'test_lolcat ; test_translated_hello_world'
+rez-run lolcat translated_hello_world -- 'test_lolcat ; test_translated_hello_world'
 if [ $? -ne 0 ]; then exit 1; fi
 # here, let me show you...
-rez run lolcat translated_hello_world -- rez-context-info
+rez-run lolcat translated_hello_world -- rez-context-info
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(7)"
 # here's the two alias scripts that were generated, one for each wrapper
-rez run my_wrappers -- 'which hey_old ; which hey_new'
+rez-run my_wrappers -- 'which hey_old ; which hey_new'
 if [ $? -ne 0 ]; then exit 1; fi
 # let's run them
-rez run my_wrappers -- 'hey_old ; hey_new'
+rez-run my_wrappers -- 'hey_old ; hey_new'
 if [ $? -ne 0 ]; then exit 1; fi
 # see, they're both separate, pre-resolved shells!
-rez run my_wrappers -- hey_old -- echo '$REZ_RESOLVE'
+rez-run my_wrappers -- hey_old -- echo '$REZ_RESOLVE'
 if [ $? -ne 0 ]; then exit 1; fi
-rez run my_wrappers -- hey_new -- echo '$REZ_RESOLVE'
+rez-run my_wrappers -- hey_new -- echo '$REZ_RESOLVE'
 if [ $? -ne 0 ]; then exit 1; fi
 # look, you can mix wrapper packages and normal packages...
-rez run my_wrappers lolcat -- 'hey_new ; test_lolcat'
+rez-run my_wrappers lolcat -- 'hey_new ; test_lolcat'
 # ...and you can run wrappers inside wrappers!
 echo "using the newhey wrapper from within the oldhey wrapper..."
-rez run my_wrappers -- hey_old -- hey_new
+rez-run my_wrappers -- hey_old -- hey_new
 
 echo
 echo "(8)"
@@ -287,23 +288,23 @@ echo "(8)"
 # feature in the resolution algorithm that produces more complex dotgraphs, this is only
 # done here for the sake of simplicity.
 echo "writing succeed.jpg..."
-rez config --no-assume-dt --dot-file=./succeed.jpg lolcat-1 translated_hello_world hello_world_cpp
+rez-config --no-assume-dt --dot-file=./succeed.jpg lolcat-1 translated_hello_world hello_world_cpp
 if [ $? -ne 0 ]; then exit 1; fi
 
 echo
 echo "(9)"
 echo "the following is intended to fail!"
 # let's deliberately ask for something that won't work...
-rez config my_bundle lolcat
+rez-config my_bundle lolcat
 if [ $? -eq 0 ]; then
-	echo "'rez config sup_world lolcat' succeeded but was not supposed to!" 1>&2
+	echo "'rez-config sup_world lolcat' succeeded but was not supposed to!" 1>&2
 	exit 1
 fi
 # let's do the same thing again but generate a dotgraph showing the problem.
 echo "writing fail.jpg..."
-rez config --no-assume-dt --max-fail=0 --dot-file=./fail.jpg my_bundle lolcat
+rez-config --no-assume-dt --max-fail=0 --dot-file=./fail.jpg my_bundle lolcat
 echo "writing fail.dot..."
-rez config --no-assume-dt --max-fail=0 --dot-file=./fail.dot my_bundle lolcat
+rez-config --no-assume-dt --max-fail=0 --dot-file=./fail.dot my_bundle lolcat
 
 
 echo
@@ -312,7 +313,7 @@ echo "ALL TESTS PASSED SUCCESSFULLY!"
 echo
 echo "Have a look at $cwd/succeed.jpg"
 echo "Have a look at $cwd/fail.jpg"
-echo "Run: rez dot --conflict-only $cwd/fail.dot"
+echo "Run: rez-dot --conflict-only $cwd/fail.dot"
 echo
 exit 0
 

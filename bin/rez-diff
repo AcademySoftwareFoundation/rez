@@ -6,7 +6,7 @@ inbrowser=`echo $* | grep -w '\-\-view\-html'`
 if [ "$inbrowser" == "" ]; then
 	rez_.py diff "$@"
 else
-	tmpf=`mktemp`
+	tmpf=`python -c 'import tempfile ; print tempfile.mktemp()'`
 	rez-diff_.py "$@" > $tmpf
 	firefox $tmpf
 fi
