@@ -444,38 +444,48 @@ class Resolver(object):
 		recorder.setenv("REZ_FAILED_ATTEMPTS", len(self.rctxt.config_fail_list))
 		recorder.setenv("REZ_REQUEST_TIME", self.rctxt.time_epoch)
 
-		env = rex.RoutingDict()
-
-		class pkgs(object):
-			pass
-
 		# the environment dictionary to be passed during execution of python code.
 		# Note that environment variable expansion does not occur until the commands
 		# are passed to an interpreter, so it is not essential to add them now.
+		env = rex.RoutingDict()
+
+		# add special data objects and functions to the namespace
+		class pkgs(object):
+			pass
+
+		class VersionString(str):
+			def part(self, num):
+				num = int(num)
+				if num == 0:
+					print "warning: version.part() got index 0: converting to 1"
+					num = 1
+				return self.split('.')[num - 1]
+
+			def thru(self, num):
+				try:
+					num = int(num)
+				except ValueError:
+					if isinstance(num, basestring):
+						# allow to specify '3' as 'x.x.x'
+						num = len(num.split('.'))
+					else:
+						raise
+				if num == 0:
+					print "warning: version.thru() got index 0: converting to 1"
+					num = 1
+				return '.'.join(self.split('.')[:num])
+
 		env['machine'] = rex.MachineInfo()
 		env['pkgs'] = pkgs
 
-		def make_version(prefix, version):
-			parts = version.split('.')
-			for i, part in enumerate(parts):
-				info = dict(prefix=prefix, i=(i + 1))
-				env['{prefix}version.thru{i}'.format(**info)] = '.'.join(parts[:i])
-				env['{prefix}version.part{i}'.format(**info)] = part
-			# remove pre-existing entries
-			i += 1
-			while True:
-				info = dict(prefix=prefix, i=(i + 1))
-				try:
-					env.pop('{prefix}version.thru{i}'.format(**info))
-					env.pop('{prefix}version.part{i}'.format(**info))
-				except KeyError:
-					break
-				else:
-					i += 1
-
 		for pkg_res in pkg_res_list:
+			pkg_res.version = VersionString(pkg_res.version)
 			setattr(pkgs, pkg_res.name, pkg_res)
-			make_version('pkgs.%s.' % pkg_res.name, pkg_res.version)
+
+		def building():
+			return self.rctxt.build_requires
+
+		env['building'] = building
 
 		recorder.comment("-" * 30)
 		recorder.comment("START of package commands")
@@ -497,12 +507,10 @@ class Resolver(object):
 			# new style:
 			if isinstance(pkg_res.raw_commands, basestring):
 				env['this'] = pkg_res
-				make_version('this.', pkg_res.version)
-
 				env['root'] = pkg_res.root
 				env['base'] = pkg_res.base
-				env['version'] = pkg_res.version
-				make_version('', pkg_res.version)
+				# disable expand because it will convert from VersionString to str
+				env.set('version', pkg_res.version, expand=False)
 
 				try:
 					exec pkg_res.raw_commands in env
@@ -2089,68 +2097,6 @@ def normalise_pkg_req(pkg_req):
 	version_range = VersionRange(pkg_req.version)
 	pkg_req.version = str(version_range)
 
-
-def process_commands(cmds):
-	"""
-	Given a list of commands which represent a configuration context,
-
-	a) Find the first forms of X=$X:<something_else>, and drop the leading $X so
-		that values aren't inherited from the existing environment;
-	b) Find variable overwrites and raise an exception if found (ie, consecutive
-		commands of form "X=something, X=something_else".
-
-	This function returns the altered commands. Order of commands is retained.
-	"""
-	set_vars = {}
-	new_cmds = []
-
-	for cmd_ in cmds:
-
-		if type(cmd_) == type([]):
-			cmd = cmd_[0]
-			pkgname = cmd_[1]
-		else:
-			cmd = cmd_
-			pkgname = None
-
-		if cmd.split()[0] == "export":
-
-			# parse name, value
-			var_val = cmd[len("export"):].split('=')
-			if (len(var_val) != 2):
-				raise PkgCommandError("invalid command:'" + cmd + "'")
-			varname = var_val[0].split()[0]
-			val = var_val[1]
-
-			# has value already been set?
-			val_is_set = (varname in set_vars)
-
-			# check for variable self-reference (eg X=$X:foo etc)
-			pos = val.find('$'+varname)
-			if (pos == -1):
-				if val_is_set:
-					# no self-ref but previous val, this is a val overwrite
-					raise PkgCommandError("the command set by '" + str(pkgname) + "':\n" + cmd + \
-						"\noverwrites the variable set in a previous command by '" + str(set_vars[varname]) + "'")
-			elif not val_is_set:
-				# self-ref but no previous val, so strip self-ref out
-				val = val.replace('$'+varname,'')
-
-			# special case. CMAKE_MODULE_PATH is such a common case, but unusually uses ';' rather
-			# than ':' to delineate, that I just allow ':' and do the switch here. Using ';' causes
-			# probs because in bash it needs to be single-quoted, and users will forget to do that
-			# in their package.yamls.
-			if(varname == "CMAKE_MODULE_PATH"):
-				val = val.strip(':;')
-				val = val.replace(':', "';'")
-
-			set_vars[varname] = pkgname
-			new_cmds.append("export " + varname + '=' + val)
-
-		else:
-			new_cmds.append(cmd)
-	return new_cmds
-
 def parse_export_command(cmd, env_obj):
 	"""
 	parse a bash command and convert it to a EnvironmentVariable action
@@ -2183,10 +2129,9 @@ def parse_export_command(cmd, env_obj):
 					for part in parts[-2::-1]:
 						var_obj.prepend(part)
 				else:
-					raise
-	#                RezPackageError(curr_package.name,
-	#                                       "self-referencing used in middle "
-	#                                       "of list: %s" % value)
+					raise PkgCommandError("%s: self-referencing used in middle "
+										  "of list: %s" % (pkgname, value))
+
 			else:
 				if len(parts) == 1:
 					# use blank values in list to determine if the original

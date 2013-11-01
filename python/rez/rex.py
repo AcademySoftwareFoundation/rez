@@ -9,24 +9,27 @@ import UserDict
 import inspect
 import textwrap
 
-ATTR_REG_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
+ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
+FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
 
 EnvExpand = string.Template
 
 class CustomExpand(string.Template):
-    delimiter = '!'
+    pass
 
 # Add support for {attribute.lookups}
 CustomExpand.pattern = re.compile(r"""
-      (?<![$])(?:                        # delimiter (anything other than $)
+    (?<![$])(?:                          # delimiter (anything other than $)
       (?P<escaped>a^)                |   # Escape sequence (not used)
       (?P<named>a^)                  |   # a Python identifier (not used)
-      {(?P<braced>%(braced)s)}       |   # a braced identifier (with periods), OR...
+      {(?P<braced>%(braced)s             # a braced identifier (with periods), AND...
+        (?:%(func)s)?)}              |   # an optional simple function, OR...
       (?P<invalid>a^)                    # Other ill-formed delimiter exprs (not used)
     )
-    """ % {'braced': ATTR_REG_STR}, re.IGNORECASE | re.VERBOSE)
+    """ % {'braced': ATTR_REGEX_STR,
+           'func': FUNC_REGEX_STR}, re.IGNORECASE | re.VERBOSE)
 
 # # Add support for !{attribute.lookups}
 # CustomExpand.pattern = re.compile(r"""
@@ -37,17 +40,24 @@ CustomExpand.pattern = re.compile(r"""
 #       (?P<invalid>)                    # Other ill-formed delimiter exprs
 #     )
 #     """ % {'delim': re.escape(CustomExpand.delimiter),
-#            'braced': ATTR_REG_STR},
+#            'braced': ATTR_REGEX_STR},
 #     re.IGNORECASE | re.VERBOSE)
 
 class AttrDict(UserDict.UserDict):
     """
     Dictionary for doing attribute-based lookups of objects.
     """
-    ATTR_REG = re.compile(ATTR_REG_STR + '$', re.IGNORECASE)
+    ATTR_REG = re.compile(ATTR_REGEX_STR + '$', re.IGNORECASE)
+    FUNC_REG = re.compile("(" + FUNC_REGEX_STR + ')$', re.IGNORECASE)
 
     def __getitem__(self, key):
         parts = key.split('.')
+        funcparts = self.FUNC_REG.split(parts[-1])
+        if len(funcparts) > 1:
+            parts[-1] = funcparts[0]
+            funcarg = funcparts[1]
+        else:
+            funcarg = None
         attrs = []
         # work our way back through the hierarchy of attributes looking for an
         # object stored directly in the dict with that key.
@@ -70,6 +80,16 @@ class AttrDict(UserDict.UserDict):
                 result = getattr(result, attr)
             except AttributeError:
                 raise KeyError(key)
+        # call the result, if requested
+        if funcarg:
+            # strip ()
+            funcarg = funcarg[1:-1]
+            if not hasattr(result, '__call__'):
+                raise TypeError('%r is not callable' % (result))
+            if funcarg:
+                result = result(funcarg)
+            else:
+                result = result()
         return result
 
     def __setitem__(self, key, value):
@@ -825,7 +845,7 @@ class RoutingDict(dict):
             self.vars[cmd] = func
 
     def expand(self, value):
-        value = CustomExpand(value).safe_substitute(self.custom)
+        value = CustomExpand(value).substitute(self.custom)
         return value
 
     def set_command_recorder(self, recorder):
@@ -836,6 +856,14 @@ class RoutingDict(dict):
     def get_command_recorder(self):
         return self.command_recorder
 
+    def set(self, key, value, expand=True):
+        if self.ALL_CAPS.match(key):
+            self.environ[key] = value
+        else:
+            if expand and isinstance(value, basestring):
+                value = self.expand(value)
+            self.vars[key] = value
+
     def __getitem__(self, key):
         if self.ALL_CAPS.match(key):
             return self.environ[key]
@@ -843,12 +871,7 @@ class RoutingDict(dict):
             return self.vars[key]
 
     def __setitem__(self, key, value):
-        if self.ALL_CAPS.match(key):
-            self.environ[key] = value
-        else:
-            if isinstance(value, basestring):
-                value = self.expand(value)
-            self.vars[key] = value
+        self.set(key, value)
 
 
 class MachineInfo(object):
@@ -912,6 +935,28 @@ class MachineInfo(object):
             self._populate_platform()
         return self._arch
 
+def _test_string_template():
+    print CustomExpand.pattern.search('foo {this.that}').group('braced')
+    # fail
+    print CustomExpand.pattern.search('foo ${this.that}')
+    print CustomExpand.pattern.search('{this.that}').group('braced')
+    print CustomExpand.pattern.search('{this.that(12)}').group('braced')
+    print CustomExpand.pattern.search('{this.that(x.x.x)}').group('braced')
+
+def _test_attr_dict():
+
+    class Foo(str):
+        bar = 'value'
+        def myfunc(self, arg):
+            return arg * 10
+
+    f = Foo('this is the string')
+    custom = AttrDict({'thing.name': 'name',
+                       'thing': f})
+    print custom['thing']
+    print custom['thing.bar']
+    print custom['thing.myfunc(1)']
+
 def _test():
     print "-"  * 40
     print "environ dictionary + sh executor"
@@ -959,40 +1004,3 @@ error("oh noes")
     environ = {}
     pprint.pprint(interpret(g.command_recorder, shell='bash',
                     environ=environ))
-
-    print "-"  * 40
-    print "exec + routing dictionary + attr dictionary"
-    print "-"  * 40
-
-    code = '''
-info("this is the value of !{thing.name} and !{thing.bar}")
-'''
-
-    class Foo(object):
-        bar = 'value'
-
-    custom = AttrDict({'thing.name': 'name',
-                       'thing': Foo})
-    g = RoutingDict(custom=custom)
-    exec code in g
-
-    print interpret(g.command_recorder, shell='bash',
-                    env_sep_map={'SPECIAL': "';'"})
-
-    code = '''
-short_version = '!V1.!V2'
-if package_present('fedora') or package_present('Darwin'):
-  APP = '/apps/!NAME/%short_version'
-elif not package_present('ubuntu'):
-  APP = 'C:/apps/!NAME/%short_version'
-if package_present('python-3') and not REALLY:
-  REALLY = 'yeah'
-PATH.append('$APP/bin')
-if package_present('Linux') and building():
-  LD_LIBRARY_PATH.append('!ROOT/lib')
-alias('!NAME-!VERSION', '$APP/bin/!NAME')
-shell('startserver !NAME')'''
-    custom = dict(V1='1', V2='2',
-                  VERSION='1.2.3',
-                  NAME='my_test_app',
-                  ROOT='/path/to/root')

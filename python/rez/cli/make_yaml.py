@@ -40,6 +40,10 @@ requires:
 - required-package-1
 - required-package-N
 
-commands:
-- export some-sensible-bashism-eg-$PATH=$PATH:!ROOT!/bin
+commands: |
+  MY_DIR = '/usr/local/{name}-{version}'
+  if machine.os == 'Linux':
+    PATH.prepend('$MY_DIR/bin')
+  elif machine.os == 'Darwin':
+    PATH.prepend('$MY_DIR/Foo.framework/Versions/{version.thru(2)}/bin')
 """ % info)
