@@ -52,14 +52,14 @@ fi
 
 tmpdir=$_REZ_ENV_OPT_TMPDIR
 
-
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
 # TODO patching of wrapper envs is not yet supported.
 ##############################################################################
 if [ "$autowrappers" != "" ]; then
 	if [ "$tmpdir" == "" ]; then
-		tmpdir=`mktemp -d`
+		tmpdir=`python -c 'import tempfile ; print tempfile.mkdtemp()'`
+		echo $tmpdir
 	fi
 	export REZ_TMP_DIR=$tmpdir
     rez-env-autowrappers $tmpdir $*
@@ -109,7 +109,12 @@ fi
 ##############################################################################
 # call rez-config, and write env into bake file
 ##############################################################################
-tmpf=`mktemp --tmpdir=$tmpdir .rez-context.XXXXXXXXXX`
+tmpd=$tmpdir
+if [ "$tmpd" == "" ]; then
+	tmpd="/tmp"
+fi
+
+tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp(suffix="", prefix=".rez-context.", dir=sys.argv[1])' "$tmpd"`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
@@ -162,6 +167,18 @@ if [ "$autowrappers" != "" ]; then
 fi
 
 
+function on_exit {
+	child_procs=`jobs -p`
+	if [ "$child_procs" != "" ]; then
+		kill $child_procs
+	fi
+	rm -f $tmpf
+	rm -f $tmpf2
+	rm -f $tmpf3
+}
+trap 'on_exit' EXIT
+
+
 ##############################################################################
 # spawn the new shell, sourcing the bake file
 ##############################################################################
@@ -177,11 +194,7 @@ if [ $ret -eq 0 ]; then
 
 	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then
 		source $tmpf
-		if [ "$_REZ_ENV_OPT_RCFILE" == "" ]; then
-			if [ -f ~/.bashrc ]; then
-				source ~/.bashrc &> /dev/null
-			fi
-		else
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
 			source $_REZ_ENV_OPT_RCFILE
 			if [ $? -ne 0 ]; then
 				exit 1
@@ -193,6 +206,21 @@ if [ $ret -eq 0 ]; then
 		source $REZ_PATH/init.sh
 
 		bash -s
+		ret=$?
+	elif [ "$_REZ_ENV_OPT_CMD" != "" ]; then
+		source $tmpf
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
+			source $_REZ_ENV_OPT_RCFILE
+			if [ $? -ne 0 ]; then
+				exit 1
+			fi
+		fi
+
+		# ensure that rez-config is available no matter what (eg .bashrc might not exist,
+		# rcfile might not source rez-config)
+		source $REZ_PATH/init.sh
+
+		$_REZ_ENV_OPT_CMD
 		ret=$?
 	else
 		echo "source $tmpf" > $tmpf2
@@ -209,14 +237,11 @@ if [ $ret -eq 0 ]; then
 
 		bash --rcfile $tmpf2
 		ret=$?
-		rm -f $tmpf2
 	fi
 fi
 
-rm -f $tmpf
-rm -f $tmpf3
-
 exit $ret
+
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

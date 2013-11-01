@@ -18,3 +18,4 @@ variants:
 commands:
 - export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake
 - export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:!ROOT!/lib
+- export DYLD_LIBRARY_PATH=$DYLD_LIBRARY_PATH:!ROOT!/lib

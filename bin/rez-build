@@ -219,6 +219,12 @@ if [ "$VNUMS" == "" ]; then
 	VNUMS=-1
 fi
 
+# strip the version, dash separated ("-1.2.3") from a list of package
+function unversion
+{
+    # echo $@ | sed 's/-[^ ]\+//g' # this only work with GNU sed
+    python -c 'import sys; print " ".join(arg.partition("-")[0] for arg in sys.argv[1:])' $@
+}
 
 #-#################################################################################################
 # Iterate over variants
@@ -352,12 +358,12 @@ do
 	echo "export REZ_BUILD_PROJECT_NAME="$PKGNAME >> $SCR
 
 	if [ "$REQS" != "" ]; then
-		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`echo $REQS | sed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_REQUIRES_UNVERSIONED='"`unversion $REQS`"'" >> $SCR
 	fi
 
 	if [ $VNUM -ne -1 ]; then
 		echo "export REZ_BUILD_VARIANT='"$VARIANT"'" >> $SCR
-		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`echo $VARIANT | sed 's/-[^ ]\+//g'`"'" >> $SCR
+		echo "export REZ_BUILD_VARIANT_UNVERSIONED='"`unversion $VARIANT`"'" >> $SCR
 		echo "export REZ_BUILD_VARIANT_SUBDIR=/"$VARIANT_SUBDIR"/" >> $SCR
 	fi
 

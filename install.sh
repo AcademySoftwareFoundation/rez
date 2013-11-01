@@ -95,15 +95,15 @@ fi
 
 install_dir=$base_install_dir"/"$rez_version
 if [ -e $install_dir ]; then
-	rm -rf $install_dir/*
+    rm -rf $install_dir/*
 else
-	mkdir -p $install_dir
-  chmod 755 $base_install_dir
-  chmod 755 $install_dir
-	if [ ! -e $install_dir ]; then
-		echo "couldn't create dir $install_dir." 1>&2
-		exit 1
-	fi
+    mkdir -p $install_dir
+    chmod 755 $base_install_dir
+    chmod 755 $install_dir
+    if [ ! -e $install_dir ]; then
+        echo "couldn't create dir $install_dir." 1>&2
+        exit 1
+    fi
 fi
 
 
@@ -135,14 +135,14 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     fi
 
     echo "config_version : 0" 			> $os_yaml
-    echo "name: $osname" 				>> $os_yaml
-    echo "commands:" 					>> $os_yaml
+    echo "name: $osname" 			>> $os_yaml
+    echo "commands:" 				>> $os_yaml
     echo '- export CMAKE_MODULE_PATH=$CMAKE_MODULE_PATH:!ROOT!/cmake'	>> $os_yaml
 
     os_cmake=$os_dir/cmake/$osname.cmake
     echo '' > $os_cmake
     if [ "$osname" == "Linux" ]; then
-        echo "#set(Linux_LIBRARIES dl z)"					    >> $os_cmake
+        echo "#set(Linux_LIBRARIES dl z)"		        >> $os_cmake
         echo "set(Linux_DEFINITIONS -fPIC -m$os_bits -DLINUX)"  >> $os_cmake
     fi
 
@@ -156,12 +156,12 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     ln -s $_REZ_CMAKE_BINARY $cmake_dir/$osname/bin/cmake
     cmake_yaml=$cmake_dir/package.yaml
 
-    echo "config_version : 0" 				> $cmake_yaml
-    echo "name: cmake" 						>> $cmake_yaml
-    echo "version: "$cmake_ver 				>> $cmake_yaml
-    echo "variants:"						>> $cmake_yaml
-    echo "- [ $osname ]"					>> $cmake_yaml
-    echo "commands:" 						>> $cmake_yaml
+    echo "config_version : 0" 			> $cmake_yaml
+    echo "name: cmake" 				>> $cmake_yaml
+    echo "version: "$cmake_ver 			>> $cmake_yaml
+    echo "variants:"				>> $cmake_yaml
+    echo "- [ $osname ]"			>> $cmake_yaml
+    echo "commands:" 				>> $cmake_yaml
     echo '- export PATH=$PATH:!ROOT!/bin'	>> $cmake_yaml
 
 
@@ -175,13 +175,13 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     cpp_binary=$_REZ_CPP_COMPILER
 
     cppcomp_yaml=$cppcomp_dir/package.yaml
-    echo "config_version : 0" 				> $cppcomp_yaml
+    echo "config_version : 0" 			> $cppcomp_yaml
     echo "name: $_REZ_CPP_COMPILER_NAME" 	>> $cppcomp_yaml
     echo "version: "$_REZ_CPP_COMPILER_VER 	>> $cppcomp_yaml
-    echo "variants:"						>> $cppcomp_yaml
-    echo "- [ $osname ]"					>> $cppcomp_yaml
-    echo "commands:" 						>> $cppcomp_yaml
-    echo "- export CXX=$cpp_binary"			>> $cppcomp_yaml
+    echo "variants:"				>> $cppcomp_yaml
+    echo "- [ $osname ]"			>> $cppcomp_yaml
+    echo "commands:" 				>> $cppcomp_yaml
+    echo "- export CXX=$cpp_binary"		>> $cppcomp_yaml
 
 
     # python
@@ -194,13 +194,13 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     ln -s $_REZ_PYTHON_BINARY $py_dir/$osname/bin/python
     py_yaml=$py_dir/package.yaml
 
-    echo "config_version : 0" 				> $py_yaml
-    echo "name: python" 					>> $py_yaml
-    echo "version: "$py_ver 				>> $py_yaml
-    echo "variants:"					>> $py_yaml
-    echo "- [ $osname ]"					>> $py_yaml
-    echo "commands:" 					>> $py_yaml
-    echo '- export PATH=$PATH:!ROOT!/bin'			>> $py_yaml
+    echo "config_version : 0" 		  > $py_yaml
+    echo "name: python" 		  >> $py_yaml
+    echo "version: "$py_ver 		  >> $py_yaml
+    echo "variants:"			  >> $py_yaml
+    echo "- [ $osname ]"		  >> $py_yaml
+    echo "commands:" 			  >> $py_yaml
+    echo '- export PATH=$PATH:!ROOT!/bin' >> $py_yaml
 
 
     # example package
@@ -209,16 +209,16 @@ if [ $create_bootstrap_pkgs -eq 1 ]; then
     make_pkg_dir $pkg_dir
     mkdir -p $pkg_dir/bin
     pkg_sh=$pkg_dir/bin/hello_world
-    echo "#!/bin/bash"			            > $pkg_sh
-    echo "echo 'Hello world!'"				>> $pkg_sh
+    echo "#!/bin/bash"			        > $pkg_sh
+    echo "echo 'Hello world!'"			>> $pkg_sh
     chmod 755 $pkg_sh
 
     pkg_yaml=$pkg_dir/package.yaml
-    echo "config_version : 0" 				> $pkg_yaml
-    echo "name: hello_world" 				>> $pkg_yaml
-    echo "tools:"                           >> $pkg_yaml
-    echo "- hello_world"                    >> $pkg_yaml
-    echo "commands:" 						>> $pkg_yaml
+    echo "config_version : 0" 			> $pkg_yaml
+    echo "name: hello_world" 			>> $pkg_yaml
+    echo "tools:"                               >> $pkg_yaml
+    echo "- hello_world"                        >> $pkg_yaml
+    echo "commands:" 				>> $pkg_yaml
     echo '- export PATH=$PATH:!ROOT!/bin'	>> $pkg_yaml
 fi
 
@@ -227,28 +227,28 @@ fi
 #-----------------------------------------------------------------------------------------
 cat ./init.sh \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.sh
+    | sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+    | sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
+    | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
+    | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
+    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
+    > $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
 # install init.csh
 #-----------------------------------------------------------------------------------------
 cat ./init.csh \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
-	| sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
-	| sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
-	| sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-	| sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-	| sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
-	> $install_dir/init.csh
+    | sed -e 's|!REZ_VERSION!|'$rez_version'|g' \
+    | sed -e 's|!REZ_PLATFORM!|'$osname'|g' \
+    | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
+    | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
+    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
+    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
+    > $install_dir/init.csh
 chmod 644 $install_dir/init.csh
 
 # install bin/ files
@@ -257,25 +257,25 @@ mkdir -p $install_dir/bin
 chmod 755 $install_dir/bin
 cat ./bin/_set-rez-env \
     | sed -e 's|!REZ_PATH!|'$install_dir'|g' \
-	| sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
-	| sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
-	| sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
+    | sed -e 's|!REZ_PYYAML_PATH!|'$_REZ_PYYAML_PATH'|g' \
+    | sed -e 's|!REZ_PYDOT_PATH!|'$_REZ_PYDOT_PATH'|g' \
+    | sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
     | sed -e 's|!REZ_PYMEMCACHED_PATH!|'$_REZ_PYMEMCACHED_PATH'|g' \
-	| sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
-	| sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
-	> $install_dir/bin/_set-rez-env
+    | sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
+    | sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
+    > $install_dir/bin/_set-rez-env
 
 binfiles=`ls ./bin | grep -v '_set-rez-env'`
 for f in $binfiles
 do
-	cat ./bin/$f \
-		| sed -e 's|!REZ_PYTHON_BINARY!|'$_REZ_PYTHON_BINARY'|g' \
-		> $install_dir/bin/$f
+    cat ./bin/$f \
+        | sed -e 's|!REZ_PYTHON_BINARY!|'$_REZ_PYTHON_BINARY'|g' \
+        > $install_dir/bin/$f
 
-	shebang=`cat ./bin/$f | grep -n '^#!' | tr ':' ' ' | awk '{print $1}'`
-	if [ "$shebang" == "1" ]; then
-		chmod 755 $install_dir/bin/$f
-	fi
+    shebang=`cat ./bin/$f | grep -n '^#!' | tr ':' ' ' | awk '{print $1}'`
+    if [ "$shebang" == "1" ]; then
+        chmod 755 $install_dir/bin/$f
+    fi
 done
 
 # install remaining files
