@@ -52,7 +52,7 @@ from rez_metafile import *
 from rez_memcached import *
 import rez_filesys
 import rez_util
-
+import rex
 
 
 ##############################################################################
@@ -144,7 +144,8 @@ class ResolvedPackage(object):
 		self.version = version
 		self.base = base
 		self.root = root
-		self.commands = commands
+		self.raw_commands = commands
+		self.commands = None
 		self.metadata = metadata # original yaml data
 		self.timestamp = timestamp
 
@@ -157,6 +158,7 @@ class ResolvedPackage(object):
 	def strip(self):
 		# remove data that we don't want to cache
 		self.commands = None
+		self.raw_commands = None
 
 	def __str__(self):
 		return str([self.name, self.version, self.root])
@@ -310,7 +312,7 @@ class Resolver(object):
 			requested are baked into the env var REZ_META_SHALLOW_<KEY>.
 		@returns
 		(a) a list of ResolvedPackage objects, representing the resolved config;
-		(b) a list of commands which, when run, should configure the environment;
+		(b) a list of Commands which, when processed by a CommandInterpreter, should configure the environment;
 		(c) a dot-graph representation of the config resolution, as a string;
 		(d) the number of failed config attempts before the successful one was found
 		-OR-
@@ -329,31 +331,27 @@ class Resolver(object):
 			result = self.resolve_base(pkg_reqs)
 			self.set_cached_resolve(pkg_reqs, result)
 
-		env_cmds = []
+		recorder = rex.CommandRecorder()
 
 		if not is_wrapper:
-			env_cmds.append("export REZ_IN_WRAPPER=")
-			env_cmds.append("export REZ_WRAPPER_PATH=")
+			recorder.setenv('REZ_IN_WRAPPER', '')
+			recorder.setenv('REZ_WRAPPER_PATH', '')
 
-		pkg_res_list, env_cmds_, dot_graph, nfails = result
-		env_cmds_ = env_cmds_[:]
+		pkg_res_list, commands, dot_graph, nfails = result
 
 		# we need to inject system paths here. They're not there already because they can't be cached
-		sys_paths = [os.environ["REZ_PATH"]+"/bin"]
+		sys_paths = [os.path.join(os.environ["REZ_PATH"], "bin")]
 		if not no_path_append:
 			sys_paths += rez_filesys._g_os_paths
 
-		sys_paths_added = ("export PATH=" in env_cmds_)
-		if sys_paths_added:
-			i = env_cmds_.index("export PATH=")
-			env_cmds_[i] = "export PATH=%s" % str(':').join(sys_paths)
+		recorder.setenv('PATH', sys_paths)
 
-		env_cmds += env_cmds_
+		recorder.commands.extend(commands)
 
 		# add wrapper stuff
 		if is_wrapper:
-			env_cmds.append("export REZ_IN_WRAPPER=1")
-			env_cmds.append("export PATH=$PATH:$REZ_WRAPPER_PATH")
+			recorder.setenv('REZ_IN_WRAPPER', '1')
+			recorder.appendenv('PATH', '$REZ_WRAPPER_PATH')
 
 		# add meta env vars
 		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
@@ -377,16 +375,12 @@ class Resolver(object):
 			if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
 				_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
 
-		for k,v in meta_envvars.iteritems():
-			env_cmds.append("export REZ_META_" + k.upper() + "='" + str(' ').join(v) + "'")
-		for k,v in shallow_meta_envvars.iteritems():
-			env_cmds.append("export REZ_META_SHALLOW_" + k.upper() + "='" + str(' ').join(v) + "'")
+		for k, v in meta_envvars.iteritems():
+			recorder.setenv('REZ_META_' + k.upper(), ' '.join(v))
+		for k, v in shallow_meta_envvars.iteritems():
+			recorder.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
 
-		# this here for backwards compatibility
-		if not sys_paths_added:
-			env_cmds.append("export PATH=$PATH:%s" % str(':').join(sys_paths))
-
-		return pkg_res_list, env_cmds, dot_graph, nfails
+		return pkg_res_list, recorder.commands, dot_graph, nfails
 
 	def resolve_base(self, pkg_reqs):
 		config = _Configuration(self.rctxt)
@@ -436,50 +430,109 @@ class Resolver(object):
 			print
 
 		# build the environment commands
-		env_cmds = []
 		res_pkg_strs = [x.short_name() for x in pkg_res_list]
 
-		# special case env-vars
-		env_cmds.append("export PATH=")
-		env_cmds.append("export REZ_USED=" + rez_filesys._g_rez_path)
-		env_cmds.append("export REZ_PREV_REQUEST=$REZ_REQUEST")
-		env_cmds.append("export REZ_REQUEST='" + full_req_str + "'")
-		env_cmds.append("export REZ_RAW_REQUEST='" + full_req_str + "'")
-		env_cmds.append("export PYTHONPATH=%s/python" % rez_filesys._g_rez_path)
-		env_cmds.append("export REZ_RESOLVE='"+ str(" ").join(res_pkg_strs)+"'")
-		env_cmds.append("export REZ_RESOLVE_MODE=" + self.rctxt.resolve_mode)
-		env_cmds.append("export REZ_FAILED_ATTEMPTS=" + str(len(self.rctxt.config_fail_list)) )
-		env_cmds.append("export REZ_REQUEST_TIME=" + str(self.rctxt.time_epoch))
+		# master recorder. this holds all of the commands to be interpreted
+		recorder = rex.CommandRecorder()
+		recorder.setenv("REZ_USED", rez_filesys._g_rez_path)
+		recorder.setenv("REZ_PREV_REQUEST", "$REZ_REQUEST")
+		recorder.setenv("REZ_REQUEST", full_req_str)
+		recorder.setenv("REZ_RAW_REQUEST", full_req_str)
+		recorder.setenv("PYTHONPATH", "%s/python" % rez_filesys._g_rez_path)
+		recorder.setenv("REZ_RESOLVE", " ".join(res_pkg_strs))
+		recorder.setenv("REZ_RESOLVE_MODE", self.rctxt.resolve_mode)
+		recorder.setenv("REZ_FAILED_ATTEMPTS", len(self.rctxt.config_fail_list))
+		recorder.setenv("REZ_REQUEST_TIME", self.rctxt.time_epoch)
 
-		# packages: base/root/version, and commands
-		env_cmds.append("#### START of package commands ####")
+		env = rex.RoutingDict()
+
+		class pkgs(object):
+			pass
+
+		# the environment dictionary to be passed during execution of python code.
+		# Note that environment variable expansion does not occur until the commands
+		# are passed to an interpreter, so it is not essential to add them now.
+		env['machine'] = rex.MachineInfo()
+		env['pkgs'] = pkgs
+
+		def make_version(prefix, version):
+			parts = version.split('.')
+			for i, part in enumerate(parts):
+				info = dict(prefix=prefix, i=(i + 1))
+				env['{prefix}version.thru{i}'.format(**info)] = '.'.join(parts[:i])
+				env['{prefix}version.part{i}'.format(**info)] = part
+			# remove pre-existing entries
+			i += 1
+			while True:
+				info = dict(prefix=prefix, i=(i + 1))
+				try:
+					env.pop('{prefix}version.thru{i}'.format(**info))
+					env.pop('{prefix}version.part{i}'.format(**info))
+				except KeyError:
+					break
+				else:
+					i += 1
 
 		for pkg_res in pkg_res_list:
-			env_cmds.append("# Commands from package %s" % pkg_res.name)
+			setattr(pkgs, pkg_res.name, pkg_res)
+			make_version('pkgs.%s.' % pkg_res.name, pkg_res.version)
+
+		recorder.comment("-" * 30)
+		recorder.comment("START of package commands")
+		recorder.comment("-" * 30)
+
+		for pkg_res in pkg_res_list:
+			# reset, so we can isolate recorded commands for this package
+			# master recorder. this holds all of the commands to be interpreted
+			pkg_recorder = rex.CommandRecorder()
+			env.set_command_recorder(pkg_recorder)
+			pkg_recorder.comment("Commands from package %s" % pkg_res.name)
 
 			prefix = "REZ_" + pkg_res.name.upper()
-			env_cmds.append("export " + prefix + "_VERSION=" + pkg_res.version)
-			env_cmds.append("export " + prefix + "_BASE=" + pkg_res.base)
-			env_cmds.append("export " + prefix + "_ROOT=" + pkg_res.root)
 
-			if pkg_res.commands:
-				for cmd in pkg_res.commands:
-					env_cmds.append([cmd, pkg_res.short_name()])
+			env[prefix + "_VERSION"] = pkg_res.version
+			env[prefix + "_BASE"] = pkg_res.base
+			env[prefix + "_ROOT"] = pkg_res.root
 
-		env_cmds.append("#### END of package commands ####")
+			# new style:
+			if isinstance(pkg_res.raw_commands, basestring):
+				env['this'] = pkg_res
+				make_version('this.', pkg_res.version)
 
-		# process the commands
-		env_cmds = process_commands(env_cmds)
+				env['root'] = pkg_res.root
+				env['base'] = pkg_res.base
+				env['version'] = pkg_res.version
+				make_version('', pkg_res.version)
+
+				try:
+					exec pkg_res.raw_commands in env
+				except Exception as err:
+					import traceback
+					raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
+													    traceback.format_exc(err)))
+			# old style:
+			elif isinstance(pkg_res.raw_commands, list):
+				for cmd in pkg_res.raw_commands:
+					# convert to new-style
+					parse_export_command(cmd, env)
+
+			pkg_res.commands = pkg_recorder.get_commands()
+			recorder.commands.extend(pkg_res.commands)
+
+		recorder.comment("-" * 30)
+		recorder.comment("END of package commands")
+		recorder.comment("-" * 30)
 
 		# build the dot-graph representation
 		dot_graph = config.get_dot_graph_as_string()
 
-		# here we remove unnecessary data, because if caching is on then it's gonna be sent over
-		# the network, and we want to minimise traffic.
-		for pkg_res in pkg_res_list:
-			pkg_res.strip()
+		if self.rctxt.memcache.caching_enabled():
+			# here we remove unnecessary data, because if caching is on then it's gonna be sent over
+			# the network, and we want to minimise traffic.
+			for pkg_res in pkg_res_list:
+				pkg_res.strip()
 
-		result = (pkg_res_list, env_cmds, dot_graph, len(self.rctxt.config_fail_list))
+		result = (pkg_res_list, recorder.commands, dot_graph, len(self.rctxt.config_fail_list))
 
 		# we're done
 		return result
@@ -2096,8 +2149,64 @@ def process_commands(cmds):
 
 		else:
 			new_cmds.append(cmd)
-
 	return new_cmds
+
+def parse_export_command(cmd, env_obj):
+	"""
+	parse a bash command and convert it to a EnvironmentVariable action
+	"""
+	if isinstance(cmd, list):
+		cmd = cmd[0]
+		pkgname = cmd[1]
+	else:
+		cmd = cmd
+		pkgname = None
+
+	if cmd.startswith('export'):
+		var, value = cmd.split(' ', 1)[1].split('=', 1)
+		# get an EnvironmentVariable instance
+		var_obj = env_obj[var]
+		parts = value.split(os.pathsep)
+		if len(parts) > 1:
+			orig_parts = parts
+			parts = [x for x in parts if x]
+			if '$' + var in parts:
+				# append / prepend
+				index = parts.index('$' + var)
+				if index == 0:
+					# APPEND   X=$X:foo
+					for part in parts[1:]:
+						var_obj.append(part)
+				elif index == len(parts) - 1:
+					# PREPEND  X=foo:$X
+					# loop in reverse order
+					for part in parts[-2::-1]:
+						var_obj.prepend(part)
+				else:
+					raise
+	#                RezPackageError(curr_package.name,
+	#                                       "self-referencing used in middle "
+	#                                       "of list: %s" % value)
+			else:
+				if len(parts) == 1:
+					# use blank values in list to determine if the original
+					# operation was prepend or append
+					assert len(orig_parts) == 2
+					if orig_parts[0] == '':
+						var_obj.append(parts[0])
+					elif orig_parts[1] == '':
+						var_obj.prepend(parts[0])
+					else:
+						print "only one value", parts
+				else:
+					var_obj.set(os.pathsep.join(parts))
+		else:
+			var_obj.set(value)
+	elif cmd.startswith('#'):
+		env_obj.comment(cmd[1:].lstrip())
+	else:
+		raise PkgCommandError("Cannot convert bash command for %s into shell "
+							  "agnostic action: %s" % (pkgname, cmd))
 
 
 
