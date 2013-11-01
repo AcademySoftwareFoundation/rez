@@ -15,15 +15,15 @@ import textwrap
 from rez.cli import error, output
 from rez.rez_util import copytree
 
-_g_r_stat = stat.S_IRUSR|stat.S_IRGRP|stat.S_IROTH
-_g_w_stat = stat.S_IWUSR|stat.S_IWGRP|stat.S_IWOTH
-_g_x_stat = stat.S_IXUSR|stat.S_IXGRP|stat.S_IXOTH
+_g_r_stat = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+_g_w_stat = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+_g_x_stat = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
-_g_rez_egg_api_version  = 0
-_g_rez_path             = os.getenv("REZ_PATH", "UNKNOWN_REZ_PATH")
-_g_pkginfo_key_re       = re.compile("^[A-Z][a-z_-]+:")
-_g_yaml_prettify_re     = re.compile("^([^: \\n]+):", re.MULTILINE)
-_g_hash_re              = re.compile("[a-z0-9]{8,40}")
+_g_rez_egg_api_version = 0
+_g_rez_path = os.getenv("REZ_PATH", "UNKNOWN_REZ_PATH")
+_g_pkginfo_key_re = re.compile("^[A-Z][a-z_-]+:")
+_g_yaml_prettify_re = re.compile("^([^: \\n]+):", re.MULTILINE)
+_g_hash_re = re.compile("[a-z0-9]{8,40}")
 
 # this is because rez doesn't have alphanumeric version support. It will have though, when
 # ported to Certus. Just not yet. :(
@@ -41,13 +41,13 @@ def _convert_version(txt):
     ver = ''
 
     for ch in txt:
-        if ch>='0' and ch<='9':
+        if ch >= '0' and ch <= '9':
             ver += ch
-        elif ch>='a' and ch<='z':
+        elif ch >= 'a' and ch <= 'z':
             ver += ".%s." % ch
-        elif ch=='.' or ch=='-':
+        elif ch == '.' or ch == '-':
             ver += '.'
-        elif ch=='_':
+        elif ch == '_':
             pass
         else:
             ver += ".%d." % ord(ch)
@@ -61,7 +61,7 @@ def _convert_pkg_name(name, pkg_remappings):
     name2 = pkg_remappings.get(name)
     if name2:
         name = _convert_pkg_name(name2, {})
-    return name.replace('-','_')
+    return name.replace('-', '_')
 
 
 def _convert_requirement(req, pkg_remappings):
@@ -71,7 +71,7 @@ def _convert_requirement(req, pkg_remappings):
 
     rezreqs = []
     for spec in req.specs:
-        op,ver = spec
+        op, ver = spec
         rezver = _convert_version(ver)
         if op == "<":
             r = "%s-0+<%s" % (pkg_name, rezver)
@@ -123,7 +123,7 @@ def _convert_metadata(distr):
             entries = section[1]
             for e in entries:
                 if _g_pkginfo_key_re.match(e):
-                    toks = e.split(':',1)
+                    toks = e.split(':', 1)
                     k = toks[0].strip()
                     v = toks[1].strip()
                     meta[k] = v
@@ -145,11 +145,11 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
     pyver = _convert_version(distr.py_version)
 
     d = {
-        "config_version":   0,
-        "name":             name,
-        "unsafe_name":      distr.project_name,
-        "version":          ver,
-        "unsafe_version":   distr.version,
+        "config_version": 0,
+        "name": name,
+        "unsafe_name": distr.project_name,
+        "version": ver,
+        "unsafe_version": distr.version,
     }
     requires = []
     variant = []
@@ -202,7 +202,7 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
                 if platform_pkgs:
                     variant = platform_pkgs + variant
     else:
-        toks = force_platform.replace(',',' ').strip().split()
+        toks = force_platform.replace(',', ' ').strip().split()
         if toks:
             variant = toks + variant
 
@@ -217,7 +217,7 @@ def _update_package_yaml(yaml_path, data, dry_run):
     """
     Convert the dictionary of data to yaml. Read existing data from `yaml_path`,
     if it exists.
-    
+
     Returns a tuple contain the yaml string and a bool for whether the data was
     updated from disk.
     """
@@ -282,7 +282,7 @@ def _get_safe_pythonpath(pkg_name, pypath):
     rez_pkgs_path = os.environ['REZ_PACKAGES_PATH'].split(':')
     for path in pypath:
         for pkg_path in rez_pkgs_path:
-            # allow rez packages that are not this one: because they contain a 
+            # allow rez packages that are not this one: because they contain a
             # single application/library, there is little chance they
             # will contain the python module being installed, and might even
             # be required by the package being installed
@@ -305,7 +305,7 @@ def _sandbox_eggs(tempdir, eggs):
             paths = [location]
             sandboxed.append(os.path.join('.', os.path.basename(location)))
             # easy-install-style egg
-            #print list(distr.get_metadata("installed-files.txt"))
+            # print list(distr.get_metadata("installed-files.txt"))
             print "sandboxing %s: copying %s to %s" % (egg, location, tempdir)
             basename = os.path.basename(location)
             if os.path.isfile(location):
@@ -318,7 +318,7 @@ def _sandbox_eggs(tempdir, eggs):
             for file in distr.get_metadata_lines("installed-files.txt"):
                 srcpath = os.path.abspath(os.path.join(info, file))
                 destpath = os.path.relpath(srcpath, location)
-                # can't install files that are above the lib dir, but we 
+                # can't install files that are above the lib dir, but we
                 # don't need them anyway
                 if destpath.split(os.path.sep)[0] == '..':
                     continue
@@ -501,7 +501,7 @@ def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
 
         def _cpfile(filepath, destdir, make_ro=True):
             if opts.verbose:
-                print "copying %s to %s..." % (filepath, destdir+'/')
+                print "copying %s to %s..." % (filepath, destdir + '/')
             if not opts.dry_run:
                 shutil.copy(filepath, destdir)
                 if make_ro:
@@ -540,7 +540,7 @@ def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
 
         if os.path.exists(variant_path):
             print ("skipping installation of '%s', the current variant appears to exist already " +
-                "- %s already exists. Delete this directory to force a reinstall.") % \
+                   "- %s already exists. Delete this directory to force a reinstall.") % \
                 (egg_name, variant_path)
             existing_pkgs.append(egg_name)
         else:
@@ -553,15 +553,15 @@ def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
                 subpath = root[len(tmpdir):].strip('/')
                 dest_root = os.path.join(variant_path, subpath)
                 _mkdir(dest_root)
- 
+
                 for name in dirs:
                     _mkdir(os.path.join(dest_root, name))
- 
+
                 # FIXME: for native libs we probably don't want to remove pyc files
                 for name in files:
                     if not name.endswith(".pyc"):
                         _cpfile(os.path.join(root, name), dest_root)
- 
+
             for path in reversed(destdirs):
                 os.chmod(path, _g_r_stat | _g_x_stat)
 
@@ -573,14 +573,14 @@ def install_egg(opts, pkg_name, install_cmd, install_path, setuptools_path,
                 updated_pkgs.append(egg_name)
             else:
                 added_pkgs.append(egg_name)
-    
+
             if not opts.dry_run:
                 # timestamp
                 timefile = os.path.join(meta_path, "release_time.txt")
                 if not os.path.exists(timefile):
                     with open(timefile, 'w') as f:
                         f.write(str(int(time.time())))
-    
+
                 if not os.path.exists(rezeggfile):
                     with open(rezeggfile, 'w') as f:
                         f.write(str(_g_rez_egg_api_version))
@@ -650,23 +650,23 @@ def setup_parser(parser):
 
     parser.add_argument("pkg", metavar='PACKAGE', help="package name")
     parser.add_argument("--verbose", dest="verbose", action="store_true", default=False,
-        help="print out extra information")
+                        help="print out extra information")
     parser.add_argument("--mapping-file", dest="mapping_file", type=str, default=rez_egg_remapping_file,
-        help="yaml file that remaps package names. Set $REZ_EGG_MAPPING_FILE to change the default " +
-        "[default = %(default)s]")
+                        help="yaml file that remaps package names. Set $REZ_EGG_MAPPING_FILE to change the default " +
+                        "[default = %(default)s]")
     parser.add_argument("--force-platform", dest="force_platform", type=str,
-        help="ignore egg platform and force packages (comma-separated). Eg: Linux,x86_64,centos-6.3")
+                        help="ignore egg platform and force packages (comma-separated). Eg: Linux,x86_64,centos-6.3")
     parser.add_argument("--use-non-eggs", dest="use_non_eggs", default=False,
-        help="allow use of rez packages that already exist, but " +
-            "were not created by rez-egg-install")
+                        help="allow use of rez packages that already exist, but " +
+                        "were not created by rez-egg-install")
     parser.add_argument("--dry-run", dest="dry_run", action="store_true", default=False,
-        help="perform a dry run")
+                        help="perform a dry run")
     parser.add_argument("--local", dest="local", action="store_true", default=False,
-        help="install to local packages directory instead")
+                        help="install to local packages directory instead")
     parser.add_argument("--no-clean", dest="no_clean", action="store_true", default=False,
-        help="don't delete temporary egg files afterwards")
+                        help="don't delete temporary egg files afterwards")
     parser.add_argument('extra_args', nargs=argparse.REMAINDER,
-        help="remaining arguments are passed to easy_install")
+                        help="remaining arguments are passed to easy_install")
 
 def command(opts):
     try:
@@ -700,7 +700,7 @@ def command(opts):
 
     platre = remappings.get("platform_mappings", {})
     platform_remappings = {}
-    for k,v in platre.iteritems():
+    for k, v in platre.iteritems():
         platform_remappings[k.lower()] = v
 
     setuptools = ['setuptools']
@@ -726,7 +726,7 @@ def command(opts):
 
     try:
         _sandbox_eggs(setuptools_path, setuptools)
-    
+
         install_egg(opts, opts.pkg, install_cmd, install_path, setuptools_path,
                     package_remappings, platform_remappings)
     finally:

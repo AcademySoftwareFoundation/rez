@@ -66,10 +66,10 @@ import argparse
 import textwrap
 from rez.cli import error, output
 
-BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
-                 'codeblocks' : "CodeBlocks - Unix Makefiles",
-                 'make' : "Unix Makefiles",
-                 'xcode' : "Xcode"}
+BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
+                 'codeblocks': "CodeBlocks - Unix Makefiles",
+                 'make': "Unix Makefiles",
+                 'xcode': "Xcode"}
 
 #
 #-#################################################################################################
@@ -80,15 +80,15 @@ BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
 #     /bin/cat $0 | grep '^##' | sed 's/^## //g' | sed 's/^##//g'
 #     sys.exit(1)
 # }
-# 
+#
 # [[ $# == 0 ]] && usage
 # [[ "$1" == "-h" ]] && usage
-# 
-# 
+#
+#
 # # gather rez-build args
 # ARGS1=
-# 
-# 
+#
+#
 # while [ $# -gt 0 ]; do
 #     if [ "$1" == "--" ]:
 #         shift
@@ -97,7 +97,7 @@ BUILD_SYSTEMS = {'eclipse' : "Eclipse CDT4 - Unix Makefiles",
 #     ARGS1=$ARGS1" "$1
 #     shift
 # done
-# 
+#
 # if [ "$ARGS1" != "" ]:
 #     while getopts iudgm:v:ns:c:t: OPT $ARGS1 ; do
 #         case "$OPT" in
@@ -148,7 +148,7 @@ def _get_package_metadata(filepath, quiet=False, no_catch=False):
 
     if metadata.name:
         # FIXME: this should be handled by ConfigMetadata class
-        bad_chars = [ '-', '.' ]
+        bad_chars = ['-', '.']
         for ch in bad_chars:
             if (metadata.name.find(ch) != -1):
                 error("Package name '" + metadata.name + "' contains illegal character '" + ch + "'.")
@@ -165,13 +165,13 @@ def _get_package_metadata(filepath, quiet=False, no_catch=False):
 #         if build_requires:
 #             strs = str(' ').join(build_requires)
 #             print strs
-#     
+#
 #     if print_requires:
 #         requires = metadata.get_requires()
 #         if requires:
 #             strs = str(' ').join(requires)
 #             print strs
-#     
+#
 #     if print_help:
 #         if metadata.help:
 #             print str(metadata.help)
@@ -179,12 +179,12 @@ def _get_package_metadata(filepath, quiet=False, no_catch=False):
 #             if not quiet:
 #                 error("No 'help' entry specified in " + filepath + ".")
 #             sys.exit(1)
-#     
+#
 #     if print_tools:
 #         tools = metadata.metadict.get("tools")
 #         if tools:
 #             print str(' ').join(tools)
-#     
+#
 #     if (variant_num != None):
 #         variants = metadata.get_variants()
 #         if variants:
@@ -243,7 +243,7 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
-                        #type=lambda x: BUILD_SYSTEMS[x],
+                        # type=lambda x: BUILD_SYSTEMS[x],
                         default='eclipse')
     parser.add_argument("--retain-cache", dest="retain_cmake_cache",
                         action="store_true", default=False,
@@ -298,7 +298,7 @@ def command(opts):
 #     if build_mode.name == 'base':
 #         # we only care about version control, so ignore the base release mode
 #         build_mode = None
-# 
+#
 #     if build_mode and not opts.vcs_metadata:
 #         url = build_mode.get_url()
 #         opts.vcs_metadata = url if url else "(NONE)"
@@ -313,15 +313,15 @@ def command(opts):
     for varnum in opts.variant_nums:
         # set variant and create build directories
         build_mode._build_variant(varnum,
-                                    build_system=opts.build_system,
-                                    build_target=opts.build_target,
-                                    mode=opts.mode,
-                                    no_assume_dt=opts.no_assume_dt,
-                                    do_build=do_build,
-                                    cmake_args=cmake_args,
-                                    retain_cmake_cache=opts.retain_cmake_cache,
-                                    make_args=make_args,
-                                    make_clean=not opts.no_clean)
+                                  build_system=opts.build_system,
+                                  build_target=opts.build_target,
+                                  mode=opts.mode,
+                                  no_assume_dt=opts.no_assume_dt,
+                                  do_build=do_build,
+                                  cmake_args=cmake_args,
+                                  retain_cmake_cache=opts.retain_cmake_cache,
+                                  make_args=make_args,
+                                  make_clean=not opts.no_clean)
 
 
 #    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)

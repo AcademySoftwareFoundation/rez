@@ -17,7 +17,7 @@ def _mkdir(dir):
 
 
 bin_cmake_code_template = \
-"""
+    """
 file(GLOB_RECURSE bin_files "bin/*")
 rez_install_files(
     ${bin_files}
@@ -28,8 +28,8 @@ rez_install_files(
 
 
 _cmake_templates = {
-    "BIN_CMAKE_CODE": \
-"""
+    "BIN_CMAKE_CODE":
+    """
 file(GLOB_RECURSE bin_files "bin/*")
 rez_install_files(
     ${bin_files}
@@ -38,8 +38,8 @@ rez_install_files(
 )
 """,
 
-    "DOXYGEN_CMAKE_CODE": \
-"""
+    "DOXYGEN_CMAKE_CODE":
+    """
 include(RezInstallDoxygen)
 file(GLOB_RECURSE doc_files "docs/*")
 
@@ -49,14 +49,14 @@ rez_install_doxygen(
     DESTINATION doc
     %(DOXYPY)s
 
-    # remove this once your docs have stabilised, then they will only be built and 
+    # remove this once your docs have stabilised, then they will only be built and
     # installed when you're performing a central install (ie a rez-release).
-    FORCE 
+    FORCE
 )
 """,
 
-    "PYTHON_CMAKE_CODE": \
-"""
+    "PYTHON_CMAKE_CODE":
+    """
 file(GLOB_RECURSE py_files "python/*.py")
 rez_install_python(
     py
@@ -74,29 +74,27 @@ _project_types = [
 ]
 
 _project_template_deps = {
-    "empty":    [],
-    "doxygen":    ["empty"],
-    "python":    ["doxygen","empty"]
+    "empty": [],
+    "doxygen": ["empty"],
+    "python": ["doxygen", "empty"]
 }
 
 _project_requires = {
-    "empty":    [],
-    "doxygen":    [],
-    "python":    ["python"]
+    "empty": [],
+    "doxygen": [],
+    "python": ["python"]
 }
 
 _project_build_requires = {
-    "empty":    [],
-    "doxygen":    ["doxygen"],
-    "python":    []
+    "empty": [],
+    "doxygen": ["doxygen"],
+    "python": []
 }
-
 
 
 ###########################################################################
 # cmdlin
 ###########################################################################
-
 def setup_parser(parser):
 #     usage = "usage: rez-make-project <name> <version>"
 #     p = OptionParser(usage=usage)
@@ -111,11 +109,11 @@ def setup_parser(parser):
                         help="Optional set of programs to create, comma-separated.")
 
 # (opts, args) = p.parse_args()
-# 
+#
 # if opts.type not in _project_types:
 #     p.error("'%s' is not a recognised project type. Choose one of: [%s]" \
 #         % opts.type, proj_types_str)
-# 
+#
 # if len(args) != 2:
 #     p.error("Wrong argument count.")
 
@@ -160,28 +158,26 @@ def command(opts):
         code = _cmake_templates["DOXYGEN_CMAKE_CODE"] % string_repl_d
         _cmake_templates["DOXYGEN_CMAKE_CODE"] = code
 
-
     ###########################################################################
     # create files and dirs
     ###########################################################################
-
     print "creating files and directories for %s project %s-%s..." % \
         (opts.type, proj_name, proj_version)
 
     str_repl = {
-        "NAME":                        proj_name,
-        "VERSION":                    proj_version,
-        "USER":                        os.getenv("USER"),
-        "UUID":                        str(uuid.uuid4()),
-        "REZ_PATH":                    os.getenv("REZ_PATH"),
-        "BIN_CMAKE_CODE":            '',
-        "PYTHON_CMAKE_CODE":        '',
-        "DOXYGEN_CMAKE_CODE":        '',
-        "COMMANDS":                    '',
-        "TOOLS":                    '',
-        "REQUIRES":                    '',
-        "BUILD_REQUIRES":            '',
-        "HELP":                        ''
+        "NAME": proj_name,
+        "VERSION": proj_version,
+        "USER": os.getenv("USER"),
+        "UUID": str(uuid.uuid4()),
+        "REZ_PATH": os.getenv("REZ_PATH"),
+        "BIN_CMAKE_CODE": '',
+        "PYTHON_CMAKE_CODE": '',
+        "DOXYGEN_CMAKE_CODE": '',
+        "COMMANDS": '',
+        "TOOLS": '',
+        "REQUIRES": '',
+        "BUILD_REQUIRES": '',
+        "HELP": ''
     }
 
     def _expand(s):
@@ -199,7 +195,6 @@ def command(opts):
             for val in vals:
                 s += "- %s\n" % val
         return s
-
 
     requires = []
     build_requires = []
@@ -230,9 +225,9 @@ def command(opts):
         requires += _project_requires[proj_type]
         build_requires += _project_build_requires[proj_type]
 
-        str_repl["COMMANDS"]         = _gen_list("commands", commands)
-        str_repl["REQUIRES"]         = _gen_list("requires", requires)
-        str_repl["BUILD_REQUIRES"]     = _gen_list("build_requires", build_requires)
+        str_repl["COMMANDS"] = _gen_list("commands", commands)
+        str_repl["REQUIRES"] = _gen_list("requires", requires)
+        str_repl["BUILD_REQUIRES"] = _gen_list("build_requires", build_requires)
 
         template_dir = "%s/template/project_types/%s" % (os.getenv("REZ_PATH"), proj_type)
         if not os.path.exists(template_dir):
@@ -261,7 +256,6 @@ def command(opts):
                 f = open(dest_fpath, 'w')
                 f.write(s)
                 f.close()
-
 
     # add programs, if applicable
     if tools:

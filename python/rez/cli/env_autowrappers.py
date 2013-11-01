@@ -1,5 +1,5 @@
 '''
-Create rez-env wrappers on the fly. 
+Create rez-env wrappers on the fly.
 
 Rez-env automatically switches to this
 mode if it detects the syntax described below...
@@ -18,7 +18,7 @@ Here, one subshell is given a prefix, and another a suffix. After running the ab
 would expect the executables "fx_maya" and "maya_anim" to exist. The prefix/suffix is applied to
 all tools found within that subshell.
 
-Each subshell has a name, by default this name is the pre/postfixed version of the first pkg in 
+Each subshell has a name, by default this name is the pre/postfixed version of the first pkg in
 the shell, so eg 'fx_maya' from above. To set this manually, do this:
 
 ]$ rez-env fx_(mayafx: maya mfx-4.3)
@@ -28,10 +28,10 @@ do this. Later requests override earlier ones. For example, consider:
 
 rez-env (maya foo-1) | (maya foo-2)  # ==> becomes (maya foo-2)
 
-Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the 
+Here, the user was asking for 'foo-1' initially, but this was then overriden to 'foo-2' in the
 second request. This functionality is provided for two reasons - (a) it's used internally when
-using patching; (b) it can be utilised by rez users, who want to implement their own environment 
-management system, and have a need to create a working environment based on a heirarchical series 
+using patching; (b) it can be utilised by rez users, who want to implement their own environment
+management system, and have a need to create a working environment based on a heirarchical series
 of overriding config files.
 
 Lastly, the '^' operator can be used to *remove* packages from the request, eg:
@@ -42,10 +42,10 @@ rez-env (maya foo-1) | (maya ^foo)  # ==> becomes (maya)
 import os
 
 _g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
-_g_context_filename     = 'package.context'
-_g_packages_filename    = 'packages.txt'
-_g_dot_filename         = _g_context_filename + '.dot'
-_g_tools_filename       = _g_context_filename + '.tools'
+_g_context_filename = 'package.context'
+_g_packages_filename = 'packages.txt'
+_g_dot_filename = _g_context_filename + '.dot'
+_g_tools_filename = _g_context_filename + '.tools'
 
 def setup_parser(parser):
     from . import env as rez_cli_env
@@ -112,7 +112,7 @@ def command(opts):
                                caching=not opts.no_cache)
 
         result = resolver.guarded_resolve(d['pkgs'], no_os=opts.no_os, is_wrapper=True,
-            meta_vars=["tools"], shallow_meta_vars=["tools"], dot_file=dotfile)
+                                          meta_vars=["tools"], shallow_meta_vars=["tools"], dot_file=dotfile)
 
         if not result:
             sys.exit(1)
@@ -144,19 +144,19 @@ def command(opts):
             alias = d["prefix"] + tool + d["suffix"]
             aliasfile = os.path.join(pkgdir, alias)
             if os.path.exists(aliasfile):
-                continue # early bird wins
+                continue  # early bird wins
 
             src = wrapper_template_src.replace("#CONTEXT#", _g_context_filename)
             src = src.replace("#CONTEXTNAME#", name)
             src = src.replace("#ALIAS#", tool)
 
             if rcfile_copy:
-                src = src.replace("#RCFILE#", "../rcfile.sh")                
-            
+                src = src.replace("#RCFILE#", "../rcfile.sh")
+
             with open(aliasfile, 'w') as f:
                 f.write(src)
 
-            os.chmod(aliasfile, stat.S_IXUSR|stat.S_IXGRP|stat.S_IRUSR|stat.S_IRGRP)
+            os.chmod(aliasfile, stat.S_IXUSR | stat.S_IXGRP | stat.S_IRUSR | stat.S_IRGRP)
 
         # create the package.yaml
         with open(os.path.join(pkgdir, 'package.yaml'), 'w') as f:
@@ -195,23 +195,3 @@ def command(opts):
 #
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with Rez.  If not, see <http://www.gnu.org/licenses/>.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

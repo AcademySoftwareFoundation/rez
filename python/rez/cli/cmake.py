@@ -101,8 +101,6 @@ def command(opts):
         error("Generation of Xcode project only available on the osx platform")
         sys.exit(1)
 
-
-
     # Append build directory [must be last append before command generation]
     cmake_arguments.append(opts.build_directory)
 

@@ -13,17 +13,17 @@ from rez.cli import error, output
 
 def setup_parser(parser):
     parser.add_argument("package", metavar="PACKAGE", default=None, nargs='?',
-        help="specific package to list info on")
+                        help="specific package to list info on")
     parser.add_argument("-p", "--path", dest="path", default=os.environ["REZ_RELEASE_PACKAGES_PATH"],
-        help="path where packages are located")
+                        help="path where packages are located")
     parser.add_argument("-n", "--no-missing", dest="nomissing", action="store_true", default=False,
-        help="don't list packages that are missing any of the requested fields")
+                        help="don't list packages that are missing any of the requested fields")
     parser.add_argument("--auth", dest="auth", action="store_true", default=False,
-        help="list package authors")
+                        help="list package authors")
     parser.add_argument("--desc", dest="desc", action="store_true", default=False,
-        help="list package description")
+                        help="list package description")
     parser.add_argument("--dep", dest="dep", action="store_true", default=False,
-        help="list package dependencies")
+                        help="list package dependencies")
 
 def command(opts):
     import yaml
@@ -51,7 +51,6 @@ def command(opts):
             fullpath = os.path.join(opts.path, f)
             if os.path.isdir(fullpath):
                 pkg_paths.append(fullpath)
-
 
     for fullpath in pkg_paths:
         vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
@@ -87,7 +86,7 @@ def command(opts):
                     deps = set(map(fn_unver, reqs))
                     for var in vars:
                         deps = deps | set(map(fn_unver, var))
-    
+
                     if len(deps) > 0:
                         ln = ln + "*" + str(" *").join(deps)
 

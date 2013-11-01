@@ -14,21 +14,21 @@ from rez.cli import error, output
 def setup_parser(parser):
 #     usage = "usage: %prog [options] dot-file"
 #     p = optparse.OptionParser(usage=usage)
-    
+
     default_viewer = os.getenv("REZ_DOT_IMAGE_VIEWER", "xnview")
     parser.add_argument("dotfile", help="dot file to display")
     parser.add_argument("-v", "--viewer", dest="viewer", type=str, default=default_viewer,
-        help="app to view image with [default = "+default_viewer+"]")
+                        help="app to view image with [default = " + default_viewer + "]")
     parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
-        help="suppress unnecessary output")
+                        help="suppress unnecessary output")
     parser.add_argument("-c", "--conflict-only", dest="conflict_only", action="store_true", default=False,
-        help="only display nodes associated with a conflict")
+                        help="only display nodes associated with a conflict")
     parser.add_argument("-p", "--package", dest="package", type=str, default="",
-        help="only display nodes dependent (directly or indirectly) on the given package.")
+                        help="only display nodes dependent (directly or indirectly) on the given package.")
     parser.add_argument("-r", "--ratio", dest="ratio", type=float, default=-1,
-        help="image height / image width")
+                        help="image height / image width")
     parser.add_argument("-f", "--filename", dest="filename", type=str,
-        help="write out the image to file and exit (won't delete it)")
+                        help="write out the image to file and exit (won't delete it)")
 
 # if (len(sys.argv) == 1):
 #     (opts, extraArgs) = p.parse_args(["-h"])
@@ -45,16 +45,13 @@ def command(opts):
 
     dotfile = opts.dotfile
 
-
     if not os.path.isfile(dotfile):
         error("File does not exist.")
         sys.exit(1)
 
-
     #########################################################################################
     # strip out all nodes not associated with a conflict / associated with a particular pkg
     #########################################################################################
-
     g = None
 
     if (opts.conflict_only) or (opts.package != ""):
@@ -68,22 +65,22 @@ def command(opts):
 
         oldedges = oldg.get_edge_list()
         for e in oldedges:
-            pkgsrc = e.get_source().replace('"','')
+            pkgsrc = e.get_source().replace('"', '')
             pkgdest = e.get_destination()
-    
+
             if pkgdest in edges:
                 edges[pkgdest].add(e)
             else:
                 s = set()
                 s.add(e)
                 edges[pkgdest] = s
-    
+
             if opts.conflict_only and \
                 "label" in e.get_attributes() and \
-                e.get_attributes()["label"] == "CONFLICT":
+                    e.get_attributes()["label"] == "CONFLICT":
                 seed_pkgs.add(pkgdest)
             elif opts.package != "":
-                pkgdest_ = pkgdest.replace('"','')
+                pkgdest_ = pkgdest.replace('"', '')
                 if pkgdest_.startswith(opts.package):
                     seed_pkgs.add(pkgdest)
                 if pkgsrc.startswith(opts.package):
@@ -123,11 +120,9 @@ def command(opts):
             newg.add_edge(e)
             g = newg
 
-
     #########################################################################################
     # generate dot image
     #########################################################################################
-
     if opts.filename:
         imgfile = opts.filename
     else:
@@ -150,12 +145,10 @@ def command(opts):
         sys.stdout.flush()
 
     g.write_jpg(imgfile)
-    
-    
+
     #########################################################################################
     # view it then delete it or just exit if we're saving to a file
     #########################################################################################
-
     if not opts.filename:
         if not opts.quiet:
             print "loading viewer..."
@@ -164,7 +157,7 @@ def command(opts):
 
         if proc.returncode != 0:
             subprocess.Popen("firefox " + imgfile, shell=True).wait()
-    
+
         os.remove(imgfile)
 
 

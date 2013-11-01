@@ -14,7 +14,7 @@ from rez.cli import error, output
 # command-line
 #########################################################################################
 def setup_parser(parser):
-    #p = optparse.OptionParser(usage="Usage: rez-diff [options] oldpkg1 oldpkgN [ -- newpkg1 newpkgN ]")
+    # p = optparse.OptionParser(usage="Usage: rez-diff [options] oldpkg1 oldpkgN [ -- newpkg1 newpkgN ]")
     parser.add_argument("pkg", nargs='+',
                         help='package name')
     parser.add_argument("--html", dest="html", action="store_true",
@@ -29,11 +29,11 @@ def setup_parser(parser):
 # if (len(sys.argv) == 1):
 #     p.parse_args(["-h"])
 #     sys.exit(0)
-# 
+#
 # # turn all old pkgs into 'pkg=e' to force start from earliest
 # argv = []
 # newgroup = False
-# 
+#
 # for pkg in sys.argv[1:]:
 #     if pkg == "--":
 #         newgroup = True
@@ -41,9 +41,9 @@ def setup_parser(parser):
 #         if (not pkg.endswith("=e")) and (not pkg.endswith("=l")):
 #             pkg += "=e"
 #     argv.append(pkg)
-# 
+#
 # septok = "__SEP__"
-# 
+#
 # # add new pkgs as latest of each if they weren't supplied
 # if "--" in argv:
 #     argv[argv.index("--")] = septok
@@ -83,13 +83,13 @@ def command(opts):
         newpkgs = []
         for pkg in args:
             if pkg[0] != '-':
-                newpkgs.append(pkg.split('-',1)[0])
+                newpkgs.append(pkg.split('-', 1)[0])
         args.append(septok)
         args += newpkgs
 
     pos = args.index(septok)
     old_pkgs_list = args[:pos]
-    new_pkgs_list = args[pos+1:]
+    new_pkgs_list = args[pos + 1:]
 
     opts.html = opts.html or opts.viewhtml
     #########################################################################################
@@ -101,14 +101,14 @@ def command(opts):
     new_pkgs = {}
 
     for pkg in old_pkgs_list:
-        fam = pkg.split('=',1)[0].split("-",1)[0]
+        fam = pkg.split('=', 1)[0].split("-", 1)[0]
         if fam in old_pkgs:
             error("Error: package '" + fam + "' appears more than once in old package group.")
             sys.exit(1)
         old_pkgs[fam] = pkg
 
     for pkg in new_pkgs_list:
-        fam = pkg.split('=',1)[0].split("-",1)[0]
+        fam = pkg.split('=', 1)[0].split("-", 1)[0]
         if fam in new_pkgs:
             error("Error: package '" + fam + "' appears more than once in new package group.")
             sys.exit(1)
@@ -134,21 +134,18 @@ def command(opts):
         old_path = dc.get_base_path(old_pkgs[fam])
         new_path = dc.get_base_path(new_pkgs[fam])
         if old_path != new_path:
-            oldverstr = old_path.rsplit("/",1)[-1]
-            newverstr = new_path.rsplit("/",1)[-1]
+            oldverstr = old_path.rsplit("/", 1)[-1]
+            newverstr = new_path.rsplit("/", 1)[-1]
             oldver = dc.Version(oldverstr)
             newver = dc.Version(newverstr)
             if oldver < newver:
-                updated_pkgs.append( (fam, old_path, new_path) )
+                updated_pkgs.append((fam, old_path, new_path))
             else:
-                rolledback_pkgs.append( (fam, new_path, old_path) )
-
+                rolledback_pkgs.append((fam, new_path, old_path))
 
     #########################################################################################
     # generate output
     #########################################################################################
-
-
     outputter = Outputter(opts.html)
     outputter.print_added_packages(removed_pkgs, False)
     outputter.print_added_packages(added_pkgs, True)
@@ -161,23 +158,23 @@ class Outputter(object):
     def __init__(self, html):
         self.html = html
         self.rowcolindex3 = 0
-        
+
         if self.html:
             self.big_line_sep = ""
             self.small_line_sep = ""
             self.br = "<br>"
-        
+
             self.table_bgcolor2 = "DDDDDD"
             self.table_bgcolor = "888888"
-            self.rowcols3 = [ "FFE920", "FFBE28" ]
-            self.rowcols = [ "7CE098", "86BCFF" ]
-            self.rowcols2 = [ [ "A4F0B7", "BDF4CB" ], [ "A8CFFF", "99C7FF" ] ]
-        
+            self.rowcols3 = ["FFE920", "FFBE28"]
+            self.rowcols = ["7CE098", "86BCFF"]
+            self.rowcols2 = [["A4F0B7", "BDF4CB"], ["A8CFFF", "99C7FF"]]
+
         else:
-            self.big_line_sep   = "#########################################################################################"
+            self.big_line_sep = "#########################################################################################"
             self.small_line_sep = "========================================================================================="
             self.br = ""
-    
+
         if self.html:
             output('<font face="Arial">')
             output('<table border="0" cellpadding="0" bgcolor=#' + self.table_bgcolor2 + '>')
@@ -194,23 +191,22 @@ class Outputter(object):
 
             pkgs_ = []
             for pkg in pkgs:
-                pkg_ = pkg.rsplit("=",1)[0]
+                pkg_ = pkg.rsplit("=", 1)[0]
                 pkgs_.append(pkg_)
 
             pkglist = str(", ").join(pkgs_)
             if self.html:
                 output("<tr>")
-                output( '  <td align="center"><font size="2">' + tok + '</font></td>')
+                output('  <td align="center"><font size="2">' + tok + '</font></td>')
                 output('  <td bgcolor=#' + self.rowcols3[self.rowcolindex3] + '>')
                 output('      <table border="0" cellpadding="5" bgcolor=#' + self.rowcols3[self.rowcolindex3] + '><tr><td>')
                 output("         <font size='2'>" + pkglist + "</font>")
                 output("      </td></tr></table>")
-                output( "  </td>")
+                output("  </td>")
                 output("</tr>")
                 rowcolindex3 = 1 - self.rowcolindex3
             else:
                 output(tok + "\t" + pkglist)
-
 
     def print_altered_packages(self, pkgs, are_updated):
 
@@ -236,10 +232,10 @@ class Outputter(object):
                     output('<table cellspacing="5" border="0"><tr><td align="center"><font size=2>')
                     rowcolindex3 = 1 - self.rowcolindex3
 
-                path = pkg[1].rsplit("/",1)[0]
+                path = pkg[1].rsplit("/", 1)[0]
                 fam = pkg[0]
-                oldverstr = pkg[1].rsplit("/",1)[-1]
-                newverstr = pkg[2].rsplit("/",1)[-1]
+                oldverstr = pkg[1].rsplit("/", 1)[-1]
+                newverstr = pkg[2].rsplit("/", 1)[-1]
                 oldver = dc.Version(oldverstr)
                 newver = dc.Version(newverstr)
 
@@ -250,18 +246,18 @@ class Outputter(object):
 
                 if self.html:
                     output('</font></td></tr></table></td><td width="100%"><table border="0" bgcolor=#' +
-                        self.table_bgcolor + ' cellpadding="0" cellspacing="1" width="100%">')
+                           self.table_bgcolor + ' cellpadding="0" cellspacing="1" width="100%">')
 
                 # list all changelogs between versions
                 pkgpath = dc.get_base_path(fam + "-" + str(newver))
-                currver = dc.Version(pkgpath.rsplit("/",1)[-1])
+                currver = dc.Version(pkgpath.rsplit("/", 1)[-1])
 
                 while currver > oldver:
 
                     if self.html:
                         rowcolindex = 1 - rowcolindex
                         output('<tr bgcolor=#' + self.rowcols[rowcolindex] +
-                            '><td align="center" width="5%"><font size=2>&nbsp;' + str(currver) + "&nbsp;</font></td><td>")
+                               '><td align="center" width="5%"><font size=2>&nbsp;' + str(currver) + "&nbsp;</font></td><td>")
                     else:
                         output("\n" + fam + "-" + str(currver) + ":")
 
@@ -315,7 +311,7 @@ class Outputter(object):
                         output("</td></tr>")
 
                     pkgpath = dc.get_base_path(fam + "-0+<" + str(currver))
-                    currver = dc.Version(pkgpath.rsplit("/",1)[-1])
+                    currver = dc.Version(pkgpath.rsplit("/", 1)[-1])
 
                 if self.html:
                     output("</table></td></tr>")

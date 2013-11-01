@@ -18,9 +18,9 @@ def setup_parser(parser):
 # if (len(sys.argv) == 1):
 #     (opts, args) = p.parse_args(["-h"])
 #     sys.exit(0)
-# 
+#
 # (opts, args) = p.parse_args()
-# 
+#
 # if len(args) == 1:
 #     pkg = args[0]
 # else:
@@ -48,7 +48,6 @@ def command(opts):
 
     output()
     output("info @ " + pkg_base_path + ":")
-
 
     try:
         infofile = os.path.join(pkg_base_path + ".metadata", "info.txt")
