@@ -13,9 +13,9 @@ def command(opts):
 
     yamlpath = os.path.join(opts.path, "package.yaml")
 
-    info = {'user' : getuser(),
-            'platform' : os.getenv('REZ_PLATFORM', system()),
-            'uuid' : str(uuid4())}
+    info = {'user': getuser(),
+            'platform': os.getenv('REZ_PLATFORM', system()),
+            'uuid': str(uuid4())}
 
     with open(yamlpath, 'w') as f:
         f.write("""config_version : 0
@@ -26,7 +26,7 @@ version: 0.0.0
 
 uuid:  %(uuid)s
 
-authors: 
+authors:
 - %(user)s
 
 description: >
@@ -43,4 +43,3 @@ requires:
 commands:
 - export some-sensible-bashism-eg-$PATH=$PATH:!ROOT!/bin
 """ % info)
-

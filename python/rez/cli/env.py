@@ -121,11 +121,9 @@ def command(opts):
         quotedpkgs = ["'%s'" % pkg for pkg in pkg_list.split()]
         print "request: %s" % ' '.join(quotedpkgs)
 
-
     ##############################################################################
     # call rez-config, and write env into bake file
     ##############################################################################
-
     context_file = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
     source_file = context_file + ".source"
     dot_file = context_file + ".dot"
@@ -186,7 +184,7 @@ def command(opts):
 
     cmd += "export REZ_CONTEXT_FILE=%s;" % context_file
     cmd += 'export REZ_ENV_PROMPT="%s";' % (os.getenv('REZ_ENV_PROMPT', '') + opts.prompt)
- 
+
     if opts.stdin:
         cmd += "source %s;" % context_file
         if not opts.rcfile:
@@ -197,7 +195,7 @@ def command(opts):
 #                 if [ $? -ne 0 ]; then
 #                     exit 1
 #                 fi
- 
+
         # ensure that rez-config is available no matter what (eg .bashrc might not exist,
         # rcfile might not source rez-config)
         cmd += "source $REZ_PATH/init.sh;"
@@ -214,7 +212,7 @@ def command(opts):
                 f.write("echo\n")
                 f.write("echo You are now in a new environment.\n")
                 f.write("rez-context-info\n")
- 
+
         cmd += "bash --rcfile %s;" % source_file
         cmd += "ret=$?;"
         cmd += "rm -f %s;" % source_file
@@ -222,7 +220,7 @@ def command(opts):
     cmd += "rm -f %s;" % context_file
     cmd += "rm -f %s;" % dot_file
     output(cmd)
-    #print "exit $ret;"
+    # print "exit $ret;"
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

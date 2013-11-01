@@ -55,7 +55,7 @@ def detect_cycle(pkg, pkgmap):
     return _detect_cycle(pkgmap, [pkg], set(pkg))
 
 def setup_parser(parser):
-    #usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
+    # usage = "usage: %prog [options] pkg1 pkg2 ... pkgN"
     parser.add_argument("pkg", nargs='+',
                         help='list of package names')
     parser.add_argument("-p", "--path", dest="path",
@@ -161,12 +161,10 @@ def command(opts):
     if opts.all:
         packages_set = all_packages
 
-
     #----------------------------------------------------------------------------------------
     # detect cyclic dependencies. Note that this has to be done over all packages, since we
     # can't know ahead of time what packages will end up in the dependency tree
     #----------------------------------------------------------------------------------------
-
     cycles = set()
     cycle_pkgs = set()
 
@@ -215,7 +213,7 @@ def command(opts):
     #----------------------------------------------------------------------------------------
     # find pkgs dependent on the given pkgs
     #----------------------------------------------------------------------------------------
-    
+
     if not opts.quiet:
         print("identifying dependencies...")
 
@@ -280,7 +278,6 @@ def command(opts):
             pret = subprocess.Popen(cmd, shell=True)
             pret.communicate()
             os.remove(jpgpath)
-
 
     # print dependent packages
     if not dotout:

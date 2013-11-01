@@ -18,7 +18,7 @@ def output(msg=''):
 def redirect_to_stderr(func):
     '''
     decorator to redirect output to stderr.
-    This is useful 
+    This is useful
     '''
     def wrapper(*args, **kwargs):
         try:
