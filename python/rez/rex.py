@@ -83,52 +83,86 @@ class AttrDict(UserDict.UserDict):
 # Commands
 #===============================================================================
 
-class Command(object):
+class BaseCommand(object):
+    _registry = []
+
     def __init__(self, *args):
         self.args = args
-
-    @property
-    def name(self):
-        return self.__class__.__name__.lower()
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__,
                            ', '.join(repr(x) for x in self.args))
 
-class Setenv(Command):
+    @classmethod
+    def register_command_type(cls, name, klass):
+        cls._registry.append((name, klass))
+
+    @classmethod
+    def register(cls):
+        cls.register_command_type(cls.name, cls)
+
+    @classmethod
+    def get_command_types(cls):
+        return tuple(cls._registry)
+
+class EnvCommand(BaseCommand):
     pass
 
-class Unsetenv(Command):
-    pass
+class Unsetenv(EnvCommand):
+    name = 'unsetenv'
+Unsetenv.register()
 
-class Prependenv(Command):
-    pass
+class Setenv(EnvCommand):
+    name = 'setenv'
 
-class Appendenv(Command):
-    pass
+    def pre_exec(self, interpreter):
+        key, value = self.args
+        if isinstance(value, (list, tuple)):
+            value = interpreter._env_sep(key).join(value)
+            self.args = key, value
 
-class Alias(Command):
-    pass
+    def post_exec(self, interpreter, result):
+        key = self.args[0]
+        interpreter._set_env_vars.add(key)
+        return result
 
-class Info(Command):
-    pass
+Unsetenv.register()
 
-class Error(Command):
-    pass
+class Prependenv(Setenv):
+    name = 'prependenv'
+Unsetenv.register()
 
-# TODO: need to determine name of the subprocess/command/shell command
-# class Command(Command):
-#     pass
+class Appendenv(Setenv):
+    name = 'appendenv'
+Unsetenv.register()
 
-class Comment(Command):
-    pass
+class Alias(BaseCommand):
+    name = 'alias'
+Unsetenv.register()
 
-class Source(Command):
-    pass
+class Info(BaseCommand):
+    name = 'info'
+Unsetenv.register()
+
+class Error(BaseCommand):
+    name = 'error'
+Unsetenv.register()
+
+class Command(BaseCommand):
+    name = 'command'
+Unsetenv.register()
+
+class Comment(BaseCommand):
+    name = 'comment'
+Unsetenv.register()
+
+class Source(BaseCommand):
+    name = 'source'
+Unsetenv.register()
 
 class CommandRecorder(object):
     """
-    Utility class for generating a list of `Command` instances and performing string
+    Utility class for generating a list of `BaseCommand` instances and performing string
     variable expansion on their arguments (For local variables, not for
     environment variables)
     """
@@ -142,9 +176,8 @@ class CommandRecorder(object):
     def get_commands(self):
         return self.commands[:]
 
-#     @staticmethod
-#     def get_command_classes():
-#         pass
+    def get_command_funcs(self):
+        return [(name, getattr(self, name)) for name, _ in BaseCommand.get_command_types()]
 
     def _expand(self, value):
         if self._expandfunc:
@@ -189,7 +222,7 @@ class CommandRecorder(object):
 #===============================================================================
 
 class CommandInterpreter(object):
-    def __init__(self, respect_parent_env=False, env_sep_map=None):
+    def __init__(self, respect_parent_env=False, env_sep_map=None, verbose=False):
         '''
         respect_parent_env : bool
             If True, appendenv and prependenv will respect inherited
@@ -197,32 +230,66 @@ class CommandInterpreter(object):
         env_sep_map : dict
             If provided, allows for custom separators for certain environment
             variables.  Should be a map of variable name to path separator.
+        verbose : bool or list of str
+            set to True to cause commands to print additional feedback (using info()).
+            set to a list of strings matching command names to add verbosity to
+            only those commands.
         '''
         self._respect_parent_env = respect_parent_env
         self._env_sep_map = env_sep_map if env_sep_map is not None else {}
         self._set_env_vars = set([])
+        self._verbose = verbose
+
+    def get_command_funcs(self):
+        return [(name, getattr(self, name)) for name, _ in BaseCommand.get_command_types()]
 
     def _reset(self):
         self._set_env_vars = set([])
 
+    def _is_verbose(self, command):
+        if isinstance(self._verbose, (list, tuple)):
+            return command in self._verbose
+        else:
+            return bool(self._verbose)
+
     def _execute(self, command_list):
         lines = []
+        header = self.begin()
+        if header:
+            lines.append(header)
+
         for cmd in command_list:
             func = getattr(self, cmd.name)
+            pre_func = getattr(cmd, 'pre_exec', None)
+            if pre_func:
+                pre_func(self)
+            if self._is_verbose(cmd.name):
+                self.info("running %s: %s" % (cmd.name, ' '.join(cmd.args)))
             result = func(*cmd.args)
-            if cmd.name in ['setenv', 'prependenv', 'appendenv']:
-                self._set_env_vars.add(cmd.args[0])
+            post_func = getattr(cmd, 'post_exec', None)
+            if post_func:
+                result = post_func(self, result)
             if result is not None:
                 lines.append(result)
+        footer = self.end()
+        if footer:
+            lines.append(footer)
         return '\n'.join(lines)
 
     def _env_sep(self, name):
         return self._env_sep_map.get(name, os.pathsep)
 
-    def setenv(self, key, value):
-        raise NotImplementedError
+    # --- callbacks
 
-    def setenvs(self, key, *values):
+    def begin(self):
+        pass
+
+    def end(self):
+        pass
+
+    # --- commands
+
+    def setenv(self, key, value):
         raise NotImplementedError
 
     def unsetenv(self, key):
@@ -243,6 +310,9 @@ class CommandInterpreter(object):
     def error(self, value):
         raise NotImplementedError
 
+    def command(self, value):
+        raise NotImplementedError
+
     def comment(self, value):
         raise NotImplementedError
 
@@ -253,17 +323,16 @@ class Shell(CommandInterpreter):
     pass
 
 class SH(Shell):
+    def begin(self):
+        return '# stop on error:\nset -e'
+
     def setenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         return 'export %s="%s"' % (key, value)
 
     def unsetenv(self, key):
         return "unset %s" % (key,)
 
     def prependenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         if key in self._set_env_vars:
             return 'export {key}="{value}{sep}${key}"'.format(key=key,
                                                               sep=self._env_sep(key),
@@ -281,8 +350,6 @@ class SH(Shell):
                          value=value))
 
     def appendenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         if key in self._set_env_vars:
             return 'export {key}="${key}{sep}{value}"'.format(key=key,
                                                               sep=self._env_sep(key),
@@ -313,6 +380,12 @@ class SH(Shell):
         # TODO: handle newlines
         return 'echo "%s" 1>&2' % value
 
+    def command(self, value):
+        if isinstance(value, (list, tuple)):
+            import pipes
+            value = ' '.join(pipes.quote(x) for x in value)
+        return str(value)
+
     def comment(self, value):
         # TODO: handle newlines
         return "# %s" % value
@@ -321,17 +394,17 @@ class SH(Shell):
         return 'source "%s"' % value
 
 class CSH(SH):
+    def begin(self):
+        # override so we don't use 'set -e' from SH
+        pass
+
     def setenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         return 'setenv %s "%s"' % (key, value)
 
     def unsetenv(self, key):
         return "unsetenv %s" % (key,)
 
     def prependenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         if key in self._set_env_vars:
             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
                                                               sep=self._env_sep(key),
@@ -348,8 +421,6 @@ class CSH(SH):
                             value=value))
 
     def appendenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         if key in self._set_env_vars:
             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
                                                               sep=self._env_sep(key),
@@ -388,16 +459,12 @@ class Python(CommandInterpreter):
         return self._environ
 
     def setenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         self._environ[key] = self._expand(value)
 
     def unsetenv(self, key):
         self._environ.pop(key)
 
     def prependenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         value = self._expand(value)
         if key in self._set_env_vars or (self._respect_parent_env and key in self._environ):
             parts = self._get_env_list(key)
@@ -407,8 +474,6 @@ class Python(CommandInterpreter):
             self._environ[key] = value
 
     def appendenv(self, key, value):
-        if isinstance(value, (list, tuple)):
-            value = self._env_sep(key).join(value)
         value = self._expand(value)
         if key in self._set_env_vars or (self._respect_parent_env and key in self._environ):
             parts = self._get_env_list(key)
@@ -425,6 +490,14 @@ class Python(CommandInterpreter):
 
     def error(self, value):
         print>>sys.stderr, str(self._expand(value))
+
+    def command(self, value):
+        if not isinstance(value, (list, tuple)):
+            import shlex
+            value = shlex.split(value)
+        p = subprocess.Popen(value,
+                             env=self._environ)
+        p.communicate()
 
     def comment(self, value):
         pass
@@ -506,6 +579,7 @@ shells = { 'bash' : SH,
            'tcsh' : CSH,
            'csh'  : CSH,
            '-csh' : CSH, # For some reason, inside of 'screen', ps -o args reports -csh...
+           'python' : Python,
            'DOS' : WinShell}
 
 def get_shell_name():
@@ -523,6 +597,8 @@ def interpret(commands, shell=None, **kwargs):
     """
     Convenience function which acts as a main entry point for interpreting commands
     """
+    if isinstance(commands, CommandRecorder):
+        commands = commands.commands
     kwargs.setdefault('env_sep_map', DEFAULT_ENV_SEP_MAP)
     return get_command_interpreter(shell)(**kwargs)._execute(commands)
 
@@ -745,9 +821,8 @@ class RoutingDict(dict):
         self.custom.data = self.vars # assigning to data directly keeps a live link
 
         # load commands into environment
-        for cmd, obj in inspect.getmembers(self.command_recorder):
-            if not cmd.startswith('_') and inspect.ismethod(obj):
-                self.vars[cmd] = obj
+        for cmd, func in self.command_recorder.get_command_funcs():
+            self.vars[cmd] = func
 
     def expand(self, value):
         value = CustomExpand(value).safe_substitute(self.custom)
@@ -848,24 +923,24 @@ def _test():
     d['SIMPLESET'].prepend('dddd')
     d['SPECIAL'] = 'eeee'
     d['SPECIAL'].append('ffff')
-    sh = SH(env_sep_map={'SPECIAL' : "';'"})
-    print sh._execute(d.commands._commands)
+    print interpret(d.command_recorder, shell='bash',
+                    env_sep_map={'SPECIAL': "';'"})
 
     print "-"  * 40
-    print "exec + routing dictionary + reused sh executor"
+    print "exec + routing dictionary + sh executor"
     print "-"  * 40
-    sh._reset()
+
     code = '''
 localvar = 'AAAA'
 FOO = 'bar'
-SIMPLESET = 'aaaaa-!localvar'
-APPEND.append('bbbbb/!custom1')
-EXPAND = '$SIMPLESET/cccc-!custom2'
+SIMPLESET = 'aaaaa-{localvar}'
+APPEND.append('bbbbb/{custom1}')
+EXPAND = '$SIMPLESET/cccc-{custom2}'
 SIMPLESET.prepend('dddd')
 SPECIAL = 'eeee'
 SPECIAL.append('${FOO}/ffff')
 comment("testing commands:")
-info("the value of localvar is !localvar")
+info("the value of localvar is {localvar}")
 error("oh noes")
 '''
     g = RoutingDict()
@@ -873,7 +948,8 @@ error("oh noes")
     g['custom2'] = 'two'
     exec code in g
 
-    print sh._execute(g.commands)
+    print interpret(g.command_recorder, shell='bash',
+                    env_sep_map={'SPECIAL': "';'"})
 
     print "-"  * 40
     print "re-execute record with python executor"
@@ -881,13 +957,13 @@ error("oh noes")
 
     import pprint
     environ = {}
-    py = Python(environ=environ)
-    pprint.pprint(py._execute(g.commands._commands))
+    pprint.pprint(interpret(g.command_recorder, shell='bash',
+                    environ=environ))
 
     print "-"  * 40
     print "exec + routing dictionary + attr dictionary"
     print "-"  * 40
-    sh._reset()
+
     code = '''
 info("this is the value of !{thing.name} and !{thing.bar}")
 '''
@@ -900,7 +976,8 @@ info("this is the value of !{thing.name} and !{thing.bar}")
     g = RoutingDict(custom=custom)
     exec code in g
 
-    print sh._execute(g.commands)
+    print interpret(g.command_recorder, shell='bash',
+                    env_sep_map={'SPECIAL': "';'"})
 
     code = '''
 short_version = '!V1.!V2'
