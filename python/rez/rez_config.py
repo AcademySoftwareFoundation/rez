@@ -450,16 +450,49 @@ class Resolver(object):
 		env = rex.RoutingDict()
 
 		# add special data objects and functions to the namespace
-		class pkgs(object):
-			pass
+		class Packages(object):
+			def __init__(self, pkg_res_list):
+				for pkg_res in pkg_res_list:
+					pkg_res.version = VersionString(pkg_res.version)
+					setattr(self, pkg_res.name, pkg_res)
+
+			def __getattr__(self, attr):
+				"""
+				return an empty string for non-existent packages to provide an
+				easy way to test package existence
+				"""
+				# For things like '__class__', for instance
+				if attr.startswith('__') and attr.endswith('__'):
+					try:
+						self.__dict__[attr]
+					except KeyError:
+						raise AttributeError("'%s' object has no attribute "
+											 "'%s'" % (self.__class__.__name__,
+													   attr))
+				return ''
 
 		class VersionString(str):
+			@property
+			def major(self):
+				return self.part(1)
+
+			@property
+			def minor(self):
+				return self.part(2)
+
+			@property
+			def patch(self):
+				return self.part(3)
+
 			def part(self, num):
 				num = int(num)
 				if num == 0:
 					print "warning: version.part() got index 0: converting to 1"
 					num = 1
-				return self.split('.')[num - 1]
+				try:
+					return self.split('.')[num - 1]
+				except IndexError:
+					return ''
 
 			def thru(self, num):
 				try:
@@ -473,14 +506,13 @@ class Resolver(object):
 				if num == 0:
 					print "warning: version.thru() got index 0: converting to 1"
 					num = 1
-				return '.'.join(self.split('.')[:num])
+				try:
+					return '.'.join(self.split('.')[:num])
+				except IndexError:
+					return ''
 
 		env['machine'] = rex.MachineInfo()
-		env['pkgs'] = pkgs
-
-		for pkg_res in pkg_res_list:
-			pkg_res.version = VersionString(pkg_res.version)
-			setattr(pkgs, pkg_res.name, pkg_res)
+		env['pkgs'] = Packages(pkg_res_list)
 
 		def building():
 			return self.rctxt.build_requires
