@@ -19,6 +19,7 @@ from rez.rez_util import remove_write_perms, copytree, get_epoch_time, safe_chmo
 from rez.rez_metafile import *
 import rez.public_enums as enums
 import versions
+import rex
 
 ##############################################################################
 # Globals
@@ -618,12 +619,11 @@ class RezReleaseMode(object):
                                                assume_dt=not no_assume_dt)
             result = resolver.guarded_resolve((self.requires + variant + ['cmake=l']),
                                               dot_file)
-            # FIXME: raise error here, or use unguarded resolve
-            pkg_ress, commands, dot_graph, num_fails = result
+            # FIXME: raise error here if result is None, or use unguarded resolve
+            commands = result[1]
 
-            import rez.rex
             # TODO: support other shells
-            script = rez.rex.interpret(commands, shell='bash')
+            script = rex.interpret(commands, shell='bash')
             with open(env_bake_file, 'w') as f:
                 f.write(script)
         except Exception, err:
@@ -654,8 +654,7 @@ class RezReleaseMode(object):
             """ % dict(env_bake_file=env_bake_file,
                        actual_bake=actual_bake))
 
-        import rez.rex
-        recorder = rez.rex.CommandRecorder()
+        recorder = rex.CommandRecorder()
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
                             os.path.join(rez.rez_filesys._g_rez_path, 'cmake'))
@@ -697,13 +696,11 @@ class RezReleaseMode(object):
                 recorder.command(["make", "clean"])
             recorder.command(["make"] + make_args)
 
-            script = rez.rex.interpret(recorder, shell='bash',
-                                       respect_parent_env=True,
-                                       verbose=['command'])
-            text = text + script
+            script = rex.interpret(recorder, shell='bash',
+                                   verbose=['command'])
 
             with open(src_file, 'w') as f:
-                f.write(text + '\n')
+                f.write(text + script)
             safe_chmod(src_file, 0777)
 
             # run the build
@@ -719,14 +716,12 @@ class RezReleaseMode(object):
             # which? this is from the original code...
             recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
             recorder.setenv('REZ_ENV_PROMPT', "BUILD>")
-            script = rez.rex.interpret(recorder, shell='bash',
-                                       respect_parent_env=True,
-                                       verbose=['command'])
-            text = text + script
-            text += "\n/bin/bash --rcfile %s/bin/rez-env-bashrc\n" % rez.rez_filesys._g_rez_path
+            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % rez.rez_filesys._g_rez_path)
+            script = rex.interpret(recorder, shell='bash',
+                                   verbose=['command'])
 
             with open(src_file, 'w') as f:
-                f.write(text + '\n')
+                f.write(text + script)
             safe_chmod(src_file, 0777)
 
             if variant:

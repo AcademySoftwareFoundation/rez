@@ -8,6 +8,7 @@ import re
 import UserDict
 import inspect
 import textwrap
+import pipes
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
@@ -126,7 +127,14 @@ class BaseCommand(object):
         return tuple(cls._registry)
 
 class EnvCommand(BaseCommand):
-    pass
+    @property
+    def key(self):
+        return self.args[0]
+
+    @property
+    def value(self):
+        if len(self.args) == 2:
+            return self.args[1]
 
 class Unsetenv(EnvCommand):
     name = 'unsetenv'
@@ -142,8 +150,7 @@ class Setenv(EnvCommand):
             self.args = key, value
 
     def post_exec(self, interpreter, result):
-        key = self.args[0]
-        interpreter._set_env_vars.add(key)
+        interpreter._set_env_vars.add(self.key)
         return result
 Setenv.register()
 
@@ -225,7 +232,7 @@ class CommandRecorder(object):
     def alias(self, key, value):
         self.commands.append(Alias(key, self._expand(value)))
 
-    def info(self, value):
+    def info(self, value=''):
         self.commands.append(Info(self._expand(value)))
 
     def error(self, value):
@@ -245,24 +252,34 @@ class CommandRecorder(object):
 #===============================================================================
 
 class CommandInterpreter(object):
+    """
+    Interpret a list of commands into output for a particular shell or application.
+
+    Usually the convenience function `interpret` is used rather than accessing
+    this class directly.
+    """
     def __init__(self, output_style='file', env_sep_map=None, verbose=False):
         '''
-        respect_parent_env : bool
-            If True, appendenv and prependenv will respect inherited
-            environment variables, otherwise they will override them.
+        output_style : str
+            the style of the output string.  currently only 'file' and 'eval' are
+            supported.  'file' is intended to be more human-readable, while 'eval' is
+            intended to work in a shell `eval` statement. pratically, this means the
+            former is separated by newlines, while the latter is separated by
+            semi-colons.
         env_sep_map : dict
             If provided, allows for custom separators for certain environment
             variables.  Should be a map of variable name to path separator.
         verbose : bool or list of str
-            set to True to cause commands to print additional feedback (using info()).
-            set to a list of strings matching command names to add verbosity to
-            only those commands.
+            if True, causes commands to print additional feedback (using info()).
+            can also be set to a list of strings matching command names to add
+            verbosity to only those commands.
         '''
-        self._respect_parent_env = True
         self._output_style = output_style
         self._env_sep_map = env_sep_map if env_sep_map is not None else {}
-        self._set_env_vars = set([])
         self._verbose = verbose
+        # TODO: will probably remove these two options
+        self._respect_parent_env = True
+        self._set_env_vars = set([])
 
     def get_command_methods(self):
         """
@@ -292,7 +309,7 @@ class CommandInterpreter(object):
             if pre_func:
                 pre_func(self)
             if self._is_verbose(cmd.name):
-                self.info("running %s: %s" % (cmd.name, ' '.join(cmd.args)))
+                self.info("running %s: %s" % (cmd.name, ' '.join(str(x) for x in cmd.args)))
             result = func(*cmd.args)
             post_func = getattr(cmd, 'post_exec', None)
             if post_func:
@@ -303,7 +320,9 @@ class CommandInterpreter(object):
         if footer:
             lines.append(footer)
         line_sep = '\n' if self._output_style == 'file' else ';'
-        return line_sep.join(lines)
+        script = line_sep.join(lines)
+        script += line_sep
+        return script
 
     def _env_sep(self, name):
         return self._env_sep_map.get(name, os.pathsep)
@@ -373,7 +392,6 @@ class SH(Shell):
         #                                                       value=value)
         # if not self._respect_parent_env:
         #     return self.setenv(key, value)
-
         # if self._output_style == 'file':
         #     return textwrap.dedent('''\
         #         if [[ ${key} ]]; then
@@ -398,7 +416,6 @@ class SH(Shell):
         #                                                       value=value)
         # if not self._respect_parent_env:
         #     return self.setenv(key, value)
-
         # if self._output_style == 'file':
         #     return textwrap.dedent('''\
         #         if [[ ${key} ]]; then
@@ -428,9 +445,12 @@ class SH(Shell):
         return 'echo "%s" 1>&2' % value
 
     def command(self, value):
+        def quote(s):
+            if '$' not in s:
+                return pipes.quote(s)
+            return s
         if isinstance(value, (list, tuple)):
-            import pipes
-            value = ' '.join(pipes.quote(x) for x in value)
+            value = ' '.join(quote(x) for x in value)
         return str(value)
 
     def comment(self, value):
@@ -448,36 +468,42 @@ class CSH(SH):
         return "unsetenv %s" % (key,)
 
     def prependenv(self, key, value):
-        if key in self._set_env_vars:
-            return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
-                                                              sep=self._env_sep(key),
-                                                              value=value)
-        if not self._respect_parent_env:
-            return self.setenv(key, value)
-        return textwrap.dedent('''\
-            if ( ! $?{key} ) then
-                setenv {key} "{value}"
-            else
-                setenv {key} "{value}{sep}${key}"
-            endif'''.format(key=key,
-                            sep=self._env_sep(key),
-                            value=value))
+        return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
+                                                          sep=self._env_sep(key),
+                                                          value=value)
+#         if key in self._set_env_vars:
+#             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
+#                                                               sep=self._env_sep(key),
+#                                                               value=value)
+#         if not self._respect_parent_env:
+#             return self.setenv(key, value)
+#         return textwrap.dedent('''\
+#             if ( ! $?{key} ) then
+#                 setenv {key} "{value}"
+#             else
+#                 setenv {key} "{value}{sep}${key}"
+#             endif'''.format(key=key,
+#                             sep=self._env_sep(key),
+#                             value=value))
 
     def appendenv(self, key, value):
-        if key in self._set_env_vars:
-            return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
-                                                              sep=self._env_sep(key),
-                                                              value=value)
-        if not self._respect_parent_env:
-            return self.setenv(key, value)
-        return textwrap.dedent('''\
-            if ( ! $?{key} ) then
-                setenv {key} "{value}"
-            else
-                setenv {key} "${key}{sep}{value}"
-            endif'''.format(key=key,
-                            sep=self._env_sep(key),
-                            value=value))
+        return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
+                                                          sep=self._env_sep(key),
+                                                          value=value)
+#         if key in self._set_env_vars:
+#             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
+#                                                               sep=self._env_sep(key),
+#                                                               value=value)
+#         if not self._respect_parent_env:
+#             return self.setenv(key, value)
+#         return textwrap.dedent('''\
+#             if ( ! $?{key} ) then
+#                 setenv {key} "{value}"
+#             else
+#                 setenv {key} "${key}{sep}{value}"
+#             endif'''.format(key=key,
+#                             sep=self._env_sep(key),
+#                             value=value))
 
     def alias(self, key, value):
         return "alias %s '%s';" % (key, value)
@@ -548,6 +574,7 @@ class Python(CommandInterpreter):
     def source(self, value):
         pass
 
+# FIMXE: this is not in working order!!! It is only here for reference
 class WinShell(Shell):
     # These are variables where windows will construct the value from the value
     # from system + user + volatile environment values (in that order)
@@ -617,13 +644,14 @@ class WinShell(Shell):
 #     def system_env(self, key):
 #         return executable_output(['setenv', '-m', key])
 
-shells = { 'bash' : SH,
-           'sh'   : SH,
-           'tcsh' : CSH,
-           'csh'  : CSH,
-           '-csh' : CSH, # For some reason, inside of 'screen', ps -o args reports -csh...
-           'python' : Python,
-           'DOS' : WinShell}
+shells = {'bash': SH,
+          'sh': SH,
+          'tcsh': CSH,
+          'csh': CSH,
+          '-csh': CSH, # For some reason, inside of 'screen', ps -o args reports -csh...
+          'python': Python,
+#          'DOS': WinShell
+          }
 
 def get_shell_name():
     proc = subprocess.Popen(['ps', '-o', 'args=', '-p', str(os.getppid())],
@@ -743,6 +771,12 @@ class EnvironRecorderDict(UserDict.DictMixin):
     raise a KeyError.
     """
     def __init__(self, command_recorder=None, environ=None, override_existing_lists=False):
+        """
+        override_existing_lists : bool
+            If True, the first call to append or prepend will override the
+            value in `environ` and effectively act as a setenv operation.
+            If False, pre-existing values will be appended/prepended to as usual.
+        """
         self.command_recorder = command_recorder if command_recorder is not None else CommandRecorder()
         self.environ = environ if environ is not None else os.environ
         self.python_interpreter = Python(environ=self.environ)
@@ -885,12 +919,25 @@ class RexNamespace(dict):
     ALL_CAPS = re.compile('[_A-Z][_A-Z0-9]*$')
 
     def __init__(self, vars=None, environ=None, env_overrides_existing_lists=False):
+        """
+        vars : dict or None
+            dictionary which comprises the primary data of the `RexNamespace`
+            and will form the main namespace when it is used with `exec`.
+            if None, defaults to empty dict.
+        environ : dict or None
+            dictionary of environment variables, used as reference by `EnvironRecorderDict`
+            if None, defaults to `os.environ`.
+        env_overrides_existing_lists: bool
+            If True, the first call to append or prepend will override the
+            value in `environ` and effectively act as a setenv operation.
+            If False, pre-existing values will be appended/prepended to as usual.
+        """
         self.command_recorder = CommandRecorder()
         self.command_recorder._expandfunc = self.expand
         self.environ = EnvironRecorderDict(self.command_recorder,
                                            environ,
                                            override_existing_lists=env_overrides_existing_lists)
-        self.vars = vars if vars is not None else globals()
+        self.vars = vars if vars is not None else {}
         self.custom = AttrDict()
         self.custom.data = self.vars # assigning to data directly keeps a live link
 

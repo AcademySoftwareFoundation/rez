@@ -134,6 +134,10 @@ class PackageConflict(object):
 		tmpstr += " <--!--> " + str(self.pkg_req_conflicting)
 		return tmpstr
 
+##############################################################################
+# Resolved Classes
+##############################################################################
+
 class VersionString(str):
 	@property
 	def major(self):
@@ -207,6 +211,15 @@ class ResolvedPackage(object):
 								   self.version, self.root)
 
 class ResolvedPackages(object):
+	"""
+	Class intended for use with rex which provides attribute-based lookups for
+	`ResolvedPacakge` instances.
+
+	If the package does not exist, the attribute value will be an empty string.
+	This allows for attributes to be used to test the presence of a package and
+	for non-existent packages to be used in string formatting without causing an
+	error.
+	"""
 	def __init__(self, pkg_res_list):
 		for pkg_res in pkg_res_list:
 			setattr(self, pkg_res.name, pkg_res)
@@ -225,6 +238,25 @@ class ResolvedPackages(object):
 									 "'%s'" % (self.__class__.__name__,
 											   attr))
 		return ''
+
+def get_execution_namespace(pkg_res_list):
+	env = rex.RexNamespace(env_overrides_existing_lists=True)
+
+	# add special data objects and functions to the namespace
+	env['machine'] = rex.MachineInfo()
+	env['pkgs'] = ResolvedPackages(pkg_res_list)
+
+# 	# FIXME: build_requires does not actually indicate that we're building
+# 	# since it seem like rez-build does not pass this flag (not sure if anything does).
+# 	def building():
+# 		return self.rctxt.build_requires
+# 
+# 	env['building'] = building
+	return env
+
+##############################################################################
+# Resolver
+##############################################################################
 
 class Resolver(object):
 	"""
@@ -509,8 +541,7 @@ class Resolver(object):
 		full_req_str = ' '.join([x.short_name() for x in pkg_reqs_list])
 
 		# the environment dictionary to be passed during execution of python code.
-		env = rex.RexNamespace(environ=os.environ,
-							   env_overrides_existing_lists=True)
+		env = get_execution_namespace(pkg_res_list)
 
 		env["REZ_USED"] = rez_filesys._g_rez_path
 		env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
@@ -525,20 +556,11 @@ class Resolver(object):
 		# master recorder. this holds all of the commands to be interpreted
 		recorder = env.get_command_recorder()
 
-		# add special data objects and functions to the namespace
-		env['machine'] = rex.MachineInfo()
-		env['pkgs'] = ResolvedPackages(pkg_res_list)
-
-		# FIXME: build_requires does not actually indicate that we're building
-		# since it seem like rez-build does not pass this flag (not sure if anything does).
-		def building():
-			return self.rctxt.build_requires
-
-		env['building'] = building
-
 		recorder.comment("-" * 30)
 		recorder.comment("START of package commands")
 		recorder.comment("-" * 30)
+
+		set_vars = {}
 
 		for pkg_res in pkg_res_list:
 			# reset, so we can isolate recorded commands for this package
@@ -558,7 +580,7 @@ class Resolver(object):
 				env['this'] = pkg_res
 				env['root'] = pkg_res.root
 				env['base'] = pkg_res.base
-				# disable expand because it will convert from VersionString to str
+				# FIXME: must disable expand because it will convert from VersionString to str
 				env.set('version', pkg_res.version, expand=False)
 
 				try:
@@ -574,6 +596,16 @@ class Resolver(object):
 					parse_export_command(cmd, env)
 
 			pkg_res.commands = pkg_recorder.get_commands()
+
+			# check for variables set by multiple packages
+			for cmd in pkg_res.commands:
+				if cmd.name == 'setenv':
+					if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
+						raise PkgCommandError("Package %s overwrote value set by "
+											  "package %s" % (pkg_res.name,
+															  set_vars[cmd.key]))
+					set_vars[cmd.key] = pkg_res.name
+
 			# add commands from current package to master recorder
 			recorder.commands.extend(pkg_res.commands)
 
