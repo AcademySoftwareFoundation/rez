@@ -9,8 +9,10 @@ fi
 
 # source same scripts that interactive bash shell would have
 if [ "$(uname)" == "Darwin" ]; then
-	if [ -f /etc/bashrc ]; then source /etc/bashrc; fi
-	# this does not agree with bash man page, but mac seems to do it anyway
+	if [ -f /etc/bashrc ]; then
+		source /etc/bashrc;
+	fi
+	# every shell on osx is a login shell, which sources .(bash_)profile instead of .bashrc
 	if [ -f ~/.bash_profile ]; then
 		source ~/.bash_profile
 	elif [ -f ~/.profile ]; then
