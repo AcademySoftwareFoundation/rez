@@ -139,17 +139,21 @@ class PackageConflict(object):
 ##############################################################################
 
 class VersionString(str):
+	LABELS = {'major': 1,
+			  'minor': 2,
+			  'patch': 3}
+
 	@property
 	def major(self):
-		return self.part(1)
+		return self.part(self.LABELS['major'])
 
 	@property
 	def minor(self):
-		return self.part(2)
+		return self.part(self.LABELS['minor'])
 
 	@property
 	def patch(self):
-		return self.part(3)
+		return self.part(self.LABELS['patch'])
 
 	def part(self, num):
 		num = int(num)
@@ -166,8 +170,11 @@ class VersionString(str):
 			num = int(num)
 		except ValueError:
 			if isinstance(num, basestring):
-				# allow to specify '3' as 'x.x.x'
-				num = len(num.split('.'))
+				try:
+					num = self.LABELS[num]
+				except KeyError:
+					# allow to specify '3' as 'x.x.x'
+					num = len(num.split('.'))
 			else:
 				raise
 		if num == 0:
