@@ -134,6 +134,45 @@ class PackageConflict(object):
 		tmpstr += " <--!--> " + str(self.pkg_req_conflicting)
 		return tmpstr
 
+class VersionString(str):
+	@property
+	def major(self):
+		return self.part(1)
+
+	@property
+	def minor(self):
+		return self.part(2)
+
+	@property
+	def patch(self):
+		return self.part(3)
+
+	def part(self, num):
+		num = int(num)
+		if num == 0:
+			print "warning: version.part() got index 0: converting to 1"
+			num = 1
+		try:
+			return self.split('.')[num - 1]
+		except IndexError:
+			return ''
+
+	def thru(self, num):
+		try:
+			num = int(num)
+		except ValueError:
+			if isinstance(num, basestring):
+				# allow to specify '3' as 'x.x.x'
+				num = len(num.split('.'))
+			else:
+				raise
+		if num == 0:
+			print "warning: version.thru() got index 0: converting to 1"
+			num = 1
+		try:
+			return '.'.join(self.split('.')[:num])
+		except IndexError:
+			return ''
 
 class ResolvedPackage(object):
 	"""
@@ -141,7 +180,7 @@ class ResolvedPackage(object):
 	"""
 	def __init__(self, name, version, base, root, commands, metadata, timestamp):
 		self.name = name
-		self.version = version
+		self.version = VersionString(version)
 		self.base = base
 		self.root = root
 		self.raw_commands = commands
@@ -166,6 +205,26 @@ class ResolvedPackage(object):
 	def __repr__(self):
 		return "%s(%r, %r, %r)" % (self.__class__.__name__, self.name,
 								   self.version, self.root)
+
+class ResolvedPackages(object):
+	def __init__(self, pkg_res_list):
+		for pkg_res in pkg_res_list:
+			setattr(self, pkg_res.name, pkg_res)
+
+	def __getattr__(self, attr):
+		"""
+		return an empty string for non-existent packages to provide an
+		easy way to test package existence
+		"""
+		# For things like '__class__', for instance
+		if attr.startswith('__') and attr.endswith('__'):
+			try:
+				self.__dict__[attr]
+			except KeyError:
+				raise AttributeError("'%s' object has no attribute "
+									 "'%s'" % (self.__class__.__name__,
+											   attr))
+		return ''
 
 class Resolver(object):
 	"""
@@ -385,7 +444,6 @@ class Resolver(object):
 	def resolve_base(self, pkg_reqs):
 		config = _Configuration(self.rctxt)
 		pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
-		full_req_str = str(' ').join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
 			# FIXME: normalising should not be necessary because it's done in PackageReuest.__init__
@@ -429,91 +487,50 @@ class Resolver(object):
 			config.dump()
 			print
 
+		command_recorder = self.record_commands(pkg_reqs, pkg_res_list)
+
+		# build the dot-graph representation
+		dot_graph = config.get_dot_graph_as_string()
+
+		if self.rctxt.memcache.caching_enabled():
+			# here we remove unnecessary data, because if caching is on then it's gonna be sent over
+			# the network, and we want to minimise traffic.
+			for pkg_res in pkg_res_list:
+				pkg_res.strip()
+
+		result = (pkg_res_list, command_recorder.commands, dot_graph, len(self.rctxt.config_fail_list))
+
+		# we're done
+		return result
+
+	def record_commands(self, pkg_reqs_list, pkg_res_list):
 		# build the environment commands
 		res_pkg_strs = [x.short_name() for x in pkg_res_list]
-
-		# master recorder. this holds all of the commands to be interpreted
-		recorder = rex.CommandRecorder()
-		recorder.setenv("REZ_USED", rez_filesys._g_rez_path)
-		recorder.setenv("REZ_PREV_REQUEST", "$REZ_REQUEST")
-		recorder.setenv("REZ_REQUEST", full_req_str)
-		recorder.setenv("REZ_RAW_REQUEST", full_req_str)
-		recorder.setenv("PYTHONPATH", "%s/python" % rez_filesys._g_rez_path)
-		recorder.setenv("REZ_RESOLVE", " ".join(res_pkg_strs))
-		recorder.setenv("REZ_RESOLVE_MODE", self.rctxt.resolve_mode)
-		recorder.setenv("REZ_FAILED_ATTEMPTS", len(self.rctxt.config_fail_list))
-		recorder.setenv("REZ_REQUEST_TIME", self.rctxt.time_epoch)
+		full_req_str = ' '.join([x.short_name() for x in pkg_reqs_list])
 
 		# the environment dictionary to be passed during execution of python code.
-		# Note that environment variable expansion does not occur until the commands
-		# are passed to an interpreter, so it is not essential to add them now.
-		env = rex.RoutingDict()
+		env = rex.RexNamespace(environ=os.environ,
+							   env_overrides_existing_lists=True)
+
+		env["REZ_USED"] = rez_filesys._g_rez_path
+		env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
+		env["REZ_REQUEST"] = full_req_str
+		env["REZ_RAW_REQUEST"] = full_req_str
+		env["PYTHONPATH"] = "%s/python" % rez_filesys._g_rez_path
+		env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
+		env["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
+		env["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
+		env["REZ_REQUEST_TIME"] = self.rctxt.time_epoch
+
+		# master recorder. this holds all of the commands to be interpreted
+		recorder = env.get_command_recorder()
 
 		# add special data objects and functions to the namespace
-		class Packages(object):
-			def __init__(self, pkg_res_list):
-				for pkg_res in pkg_res_list:
-					pkg_res.version = VersionString(pkg_res.version)
-					setattr(self, pkg_res.name, pkg_res)
-
-			def __getattr__(self, attr):
-				"""
-				return an empty string for non-existent packages to provide an
-				easy way to test package existence
-				"""
-				# For things like '__class__', for instance
-				if attr.startswith('__') and attr.endswith('__'):
-					try:
-						self.__dict__[attr]
-					except KeyError:
-						raise AttributeError("'%s' object has no attribute "
-											 "'%s'" % (self.__class__.__name__,
-													   attr))
-				return ''
-
-		class VersionString(str):
-			@property
-			def major(self):
-				return self.part(1)
-
-			@property
-			def minor(self):
-				return self.part(2)
-
-			@property
-			def patch(self):
-				return self.part(3)
-
-			def part(self, num):
-				num = int(num)
-				if num == 0:
-					print "warning: version.part() got index 0: converting to 1"
-					num = 1
-				try:
-					return self.split('.')[num - 1]
-				except IndexError:
-					return ''
-
-			def thru(self, num):
-				try:
-					num = int(num)
-				except ValueError:
-					if isinstance(num, basestring):
-						# allow to specify '3' as 'x.x.x'
-						num = len(num.split('.'))
-					else:
-						raise
-				if num == 0:
-					print "warning: version.thru() got index 0: converting to 1"
-					num = 1
-				try:
-					return '.'.join(self.split('.')[:num])
-				except IndexError:
-					return ''
-
 		env['machine'] = rex.MachineInfo()
-		env['pkgs'] = Packages(pkg_res_list)
+		env['pkgs'] = ResolvedPackages(pkg_res_list)
 
+		# FIXME: build_requires does not actually indicate that we're building
+		# since it seem like rez-build does not pass this flag (not sure if anything does).
 		def building():
 			return self.rctxt.build_requires
 
@@ -557,25 +574,13 @@ class Resolver(object):
 					parse_export_command(cmd, env)
 
 			pkg_res.commands = pkg_recorder.get_commands()
+			# add commands from current package to master recorder
 			recorder.commands.extend(pkg_res.commands)
 
 		recorder.comment("-" * 30)
 		recorder.comment("END of package commands")
 		recorder.comment("-" * 30)
-
-		# build the dot-graph representation
-		dot_graph = config.get_dot_graph_as_string()
-
-		if self.rctxt.memcache.caching_enabled():
-			# here we remove unnecessary data, because if caching is on then it's gonna be sent over
-			# the network, and we want to minimise traffic.
-			for pkg_res in pkg_res_list:
-				pkg_res.strip()
-
-		result = (pkg_res_list, recorder.commands, dot_graph, len(self.rctxt.config_fail_list))
-
-		# we're done
-		return result
+		return recorder
 
 	def set_cached_resolve(self, pkg_reqs, result):
 		if not self.rctxt.memcache.caching_enabled():
@@ -2034,7 +2039,7 @@ class _Configuration(object):
 				if (len(variant.working_list) == 0):
 
 					# check resolved path exists
-					root_path = pkg.base_path + '/' + str('/').join(variant.metadata)
+					root_path = os.path.join(pkg.base_path, *variant.metadata)
 					if not os.path.isdir(root_path):
 						pkg_req_ = pkg.as_package_request()
 
@@ -2182,8 +2187,8 @@ def parse_export_command(cmd, env_obj):
 	elif cmd.startswith('#'):
 		env_obj.comment(cmd[1:].lstrip())
 	else:
-		raise PkgCommandError("Cannot convert bash command for %s into shell "
-							  "agnostic action: %s" % (pkgname, cmd))
+		# assume we can execute this as a straight command
+		env_obj.command(cmd)
 
 
 
