@@ -1,5 +1,6 @@
 import sys
 import os
+from contextlib import contextmanager
 from collections import defaultdict
 import rez_filesys
 import rez_metafile
@@ -36,6 +37,36 @@ if _g_caching_enabled:
     if not mc.set("test_set", "success"):
         _g_caching_enabled = False
     mc = None
+
+_memcache = None
+
+@contextmanager
+def memcaching(time_epoch=0, use_caching=True):
+    global _memcache
+    if not _memcache:
+        _memcache = RezMemCache(time_epoch, use_caching)
+        created = True
+    else:
+        # inside a nested context manager
+        created = False
+        # check that current request is compatible
+        if time_epoch and _memcache.epoch is not sys.maxint:
+            raise RezError("Requested memcache epoch value conflicts with existing")
+        if (use_caching and _g_caching_enabled) and _memcache.mc:
+            raise RezError("Requested memcache caching value conflicts with existing")
+
+    yield _memcache
+
+    # reset
+    # if we created it, remove it. otherwise the context manager above us should remove it
+    if created:
+        _memcache = None
+
+def get_memcache():
+    global _memcache
+    if not _memcache:
+        raise RezError("Memcache does not exist. use memcaching() context manager to create")
+    return _memcache
 
 def cached_path(key, default=None, postfilter=None):
     """
