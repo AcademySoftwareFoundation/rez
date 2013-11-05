@@ -130,8 +130,7 @@ def command(opts):
                            not opts.no_cache)
 
     if opts.no_catch:
-        pkg_reqs = [dc.str_to_pkg_req(x) for x in opts.pkg]
-        result = resolver.resolve(pkg_reqs, opts.no_os,
+        result = resolver.resolve(opts.pkg, opts.no_os,
                                   opts.no_path_append, opts.wrapper,
                                   meta_vars, shallow_meta_vars)
     else:
