@@ -89,7 +89,7 @@ class PackageRequest(object):
 			if self.is_anti():
 				name_ = name[1:]
 
-			found_path, found_ver, found_epoch = memcache.find_package_in_range(
+			_, found_ver, _ = memcache.find_package_in_range(
 				name_, self.version_range, latest)
 
 			if found_ver:
@@ -609,18 +609,13 @@ def get_base_path(pkg_str):
 	else:
 		verrange = strs[1]
 
-	path,ver,pkg_epoch = \
-		RezMemCache().find_package_in_range(name, VersionRange(verrange), latest)
+	path, ver, _ = RezMemCache().find_package_in_range(name,
+													   VersionRange(verrange),
+													   latest)
 	if not path:
 		raise PkgNotFoundError(pkg_str)
 
-	verstr = str(ver)
-	if len(verstr) > 0:
-		return path + '/' + verstr
-	else:
-		return path
-
-
+	return path
 
 def make_random_color_string():
 	cols = []
@@ -795,17 +790,11 @@ class _Package(object):
 			return False
 
 		if not self.base_path:
-			fam_path, ver, pkg_epoch = memcache.find_package_in_range(
+			metafile, ver, pkg_epoch = memcache.find_package_in_range(
 				self.name, self.version_range, exact=True)
 			if ver is not None:
-				if is_any:
-					base_path = fam_path
-				else:
-					base_path = os.path.join(fam_path, str(self.version_range))
-				
-				metafile = os.path.join(base_path, PKG_METADATA_FILENAME)
 				self.timestamp = pkg_epoch
-				self.base_path = base_path
+				self.base_path = os.path.dirname(metafile)
 				self.metadata = memcache.get_metafile(metafile)
 				metafile_variants = self.metadata.get_variants()
 				if metafile_variants:
@@ -1680,23 +1669,21 @@ class _Configuration(object):
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+			found_file, found_ver, _ = self.rctxt.memcache.find_package_in_range(
 				pkg.name, pkg.version_range, latest=False)
 
-			if (not found_path) or (not found_ver):
+			if (not found_file) or (not found_ver):
 				continue
-			metafile_e = self.rctxt.memcache.get_metafile(
-				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
+			metafile_e = self.rctxt.memcache.get_metafile(found_file)
 			if not metafile_e:
 				continue
 
-			found_path, found_ver, found_epoch = self.rctxt.memcache.find_package_in_range(
+			found_path, found_ver, _ = self.rctxt.memcache.find_package_in_range(
 				pkg.name, pkg.version_range, latest=True)
 
-			if (not found_path) or (not found_ver):
+			if (not found_file) or (not found_ver):
 				continue
-			metafile_l = self.rctxt.memcache.get_metafile(
-				os.path.join(found_path, str(found_ver), PKG_METADATA_FILENAME))
+			metafile_l = self.rctxt.memcache.get_metafile(found_file)
 			if not metafile_l:
 				continue
 
@@ -1941,7 +1928,7 @@ class _Configuration(object):
 				if (len(variant.working_list) == 0):
 
 					# check resolved path exists
-					root_path = pkg.base_path + '/' + str('/').join(variant.metadata)
+					root_path = os.path.join(pkg.base_path, *variant.metadata)
 					if not os.path.isdir(root_path):
 						pkg_req_ = pkg.as_package_request()
 

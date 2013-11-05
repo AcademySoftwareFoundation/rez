@@ -1,14 +1,11 @@
 import sys
 import os
-import time
 from collections import defaultdict
 import rez_filesys
 import rez_metafile
 from versions import *
 from public_enums import *
 from rez_exceptions import *
-
-
 
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"
@@ -106,7 +103,7 @@ class RezMemCache(object):
     Cache for filesystem access and resolves.
     """
     def __init__(self, time_epoch=0, use_caching=True):
-        self.epoch = time_epoch or int(time.time())
+        self.epoch = time_epoch or sys.maxint
         self.cache = defaultdict(dict)
         self.families = set()
         self.mc = None
@@ -167,29 +164,37 @@ class RezMemCache(object):
 
         return None
 
-    def iter_packages(self, family_name, paths=None):
+    def iter_packages(self, family_name=None, paths=None):
         """
-        Given a family name and a `VersionRange`, iterate through
-        (family path, resolved `Version`, epoch) for all versions found.
+        Iterate through (metafile, resolved `Version`, epoch) for all versions found.
         """
         if paths is None:
             paths = rez_filesys._g_syspaths
 
         for pkg_path in paths:
-            family_path = os.path.join(pkg_path, family_name)
-            vers = self.get_versions_in_directory(family_path)
-            if vers:
-                for ver, timestamp in vers:
-                    yield family_path, ver, timestamp
-            elif os.path.isfile(os.path.join(family_path, PKG_METADATA_FILENAME)):
-                # check for special case - unversioned package.
-                # only allowed when no versioned packages exist.
-                yield family_path, Version(""), 0
+            if family_name:
+                family_paths = [os.path.join(pkg_path, family_name)]
+            else:
+                family_paths = [os.path.join(pkg_path, x) for x in os.listdir(pkg_path)\
+                                if not x.startswith('.') and x not in ['rez']]
+            for family_path in family_paths:
+                vers = self.get_versions_in_directory(family_path)
+                if vers:
+                    for ver, timestamp in vers:
+                        metafile = os.path.join(family_path, str(ver), PKG_METADATA_FILENAME)
+                        if os.path.isfile(metafile):
+                            yield metafile, ver, timestamp
+                else:
+                    metafile = os.path.join(family_path, PKG_METADATA_FILENAME)
+                    if os.path.isfile(metafile):
+                        # check for special case - unversioned package.
+                        # only allowed when no versioned packages exist.
+                        yield metafile, Version(""), 0
 
     def find_package_in_range(self, family_name, ver_range, latest=True, exact=False,
-                    paths=None):
+                              paths=None):
         """
-        Given a family name and a `VersionRange`, return (family path, resolved
+        Given a family name and a `VersionRange`, return (metafile, resolved
         `Version`, epoch), or (None, None, None) if no matches are found.
         
         If two versions in two different paths are the same, then the package in
@@ -320,7 +325,7 @@ class RezMemCache(object):
 
         # store
         self.mc.update_add_to_set(k_no_timestamp, max_epoch)
-        self.mc.set(k_timestamped, (self.epoch,result))
+        self.mc.set(k_timestamped, (self.epoch, result))
 
     def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
         for path in paths:
@@ -343,11 +348,11 @@ class RezMemCache(object):
         k_no_timestamp = ("RESOLVE-NO-TS", k_base)
         timestamps = self.mc.get(k_no_timestamp)
         if not timestamps:
-            return None,None
+            return None, None
 
         older_timestamps = [x for x in timestamps if x < self.epoch]
         if not older_timestamps:
-            return None,None
+            return None, None
 
         cache_timestamp = sorted(older_timestamps)[-1]
         k_timestamped = ("RESOLVE", cache_timestamp, k_base)
@@ -356,7 +361,7 @@ class RezMemCache(object):
             return None,None
 
         # trim down list of resolve pkgs to those that may invalidate the cache
-        result_epoch,result = t
+        result_epoch, result = t
 
         # cache cannot be stale in this case
         if self.epoch <= result_epoch:
