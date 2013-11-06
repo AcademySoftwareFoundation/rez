@@ -393,10 +393,10 @@ class Resolver(object):
 		for pkg_res in pkg_res_list:
 			def _add_meta_vars(mvars, target):
 				for key in mvars:
-					if key in pkg_res.metadata.metadict:
-						val = pkg_res.metadata.metadict[key]
-						if type(val) == list:
-							val = str(',').join(val)
+					if key in pkg_res.core_metadata.metadict:
+						val = pkg_res.core_metadata.metadict[key]
+						if isinstance(val, list):
+							val = ','.join(val)
 						if key not in target:
 							target[key] = []
 						target[key].append(pkg_res.name + ':' + val)
@@ -464,7 +464,7 @@ class Resolver(object):
 		# build the dot-graph representation
 		dot_graph = config.get_dot_graph_as_string()
 
-		if self.rctxt.memcache.caching_enabled():
+		if get_memcache().caching_enabled():
 			# here we remove unnecessary data, because if caching is on then it's gonna be sent over
 			# the network, and we want to minimise traffic.
 			for pkg_res in pkg_res_list:
