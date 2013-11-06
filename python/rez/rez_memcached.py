@@ -1,6 +1,5 @@
 import sys
 import os
-from contextlib import contextmanager
 from collections import defaultdict
 import rez_filesys
 import rez_metafile
@@ -22,9 +21,6 @@ def _create_client():
 def print_cache_warning(msg):
     print >> sys.stderr, "Cache Warning: %s" % msg
 
-def _filter_epoch(vers, cache):
-    return [x for x in vers if x[1] <= cache.epoch]
-
 # init
 _g_caching_enabled = not os.getenv("REZ_DISABLE_CACHING")
 if _g_caching_enabled:
@@ -41,32 +37,11 @@ if _g_caching_enabled:
 
 _memcache = None
 
-@contextmanager
-def memcaching(time_epoch=0, use_caching=True):
-    global _memcache
-    if not _memcache:
-        _memcache = RezMemCache(time_epoch, use_caching)
-        created = True
-    else:
-        # inside a nested context manager
-        created = False
-        # check that current request is compatible
-        if time_epoch and _memcache.epoch is not sys.maxint:
-            raise RezError("Requested memcache epoch value conflicts with existing")
-        if (use_caching and _g_caching_enabled) and _memcache.mc:
-            raise RezError("Requested memcache caching value conflicts with existing")
-
-    yield _memcache
-
-    # reset
-    # if we created it, remove it. otherwise the context manager above us should remove it
-    if created:
-        _memcache = None
-
 def get_memcache():
     global _memcache
     if not _memcache:
-        raise RezError("Memcache does not exist. use memcaching() context manager to create")
+        _memcache = RezMemCache()
+        #raise RezError("Memcache does not exist. use memcaching() context manager to create")
     return _memcache
 
 def cached_path(key, default=None, postfilter=None):
@@ -138,8 +113,7 @@ class RezMemCache(object):
     """
     Cache for filesystem access and resolves.
     """
-    def __init__(self, time_epoch=0, use_caching=True):
-        self.epoch = time_epoch or sys.maxint
+    def __init__(self, use_caching=True):
         self.cache = defaultdict(dict)
         self.families = set()
         self.mc = None
@@ -162,7 +136,7 @@ class RezMemCache(object):
         d.delete_nonessentials()
         return d
 
-    @cached_path("VERSIONS", default=(), postfilter=_filter_epoch)
+    @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
         """
         For a given directory, return a list of (Version,epoch), which match version directories 
@@ -213,6 +187,8 @@ class RezMemCache(object):
         # store the generator. no paths have been walked yet
         results = self.iter_packages(family_name, paths)
 
+        if timestamp:
+            results = [x for x in results if x.timestamp <= timestamp]
         # sort 
         if latest:
             results = sorted(results, key=lambda x: x.version, reverse=True)
@@ -356,7 +332,7 @@ class RezMemCache(object):
 
     # --- direct memcache usage
 
-    def store_resolve(self, paths, pkg_reqs, result):
+    def store_resolve(self, paths, pkg_reqs, result, timestamp):
         """
         Store a resolve in the cache.
         """
@@ -377,9 +353,9 @@ class RezMemCache(object):
 
         # store
         self.mc.update_add_to_set(k_no_timestamp, max_epoch)
-        self.mc.set(k_timestamped, (self.epoch, result))
+        self.mc.set(k_timestamped, (timestamp, result))
 
-    def get_resolve(self, paths, pkg_reqs):
+    def get_resolve(self, paths, pkg_reqs, timestamp):
         """
         Return a cached resolve, or None if the resolve is not found or possibly stale.
         """
@@ -394,15 +370,16 @@ class RezMemCache(object):
         if not timestamps:
             return None, None
 
-        older_timestamps = [x for x in timestamps if x < self.epoch]
-        if not older_timestamps:
-            return None, None
+        if timestamp:
+            timestamps = [x for x in timestamps if x < timestamp]
+            if not timestamps:
+                return None, None
 
-        cache_timestamp = sorted(older_timestamps)[-1]
+        cache_timestamp = sorted(timestamps)[-1]
         k_timestamped = ("RESOLVE", cache_timestamp, k_base)
         t = self.mc.get(k_timestamped)
         if not t:
-            return None,None
+            return None, None
 
         # trim down list of resolve pkgs to those that may invalidate the cache
         result_epoch, result = t
