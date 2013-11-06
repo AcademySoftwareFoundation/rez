@@ -348,10 +348,10 @@ class Resolver(object):
 		for pkg_res in pkg_res_list:
 			def _add_meta_vars(mvars, target):
 				for key in mvars:
-					if key in pkg_res.metadata.metadict:
-						val = pkg_res.metadata.metadict[key]
-						if type(val) == list:
-							val = str(',').join(val)
+					if key in pkg_res.core_metadata.metadict:
+						val = pkg_res.core_metadata.metadict[key]
+						if isinstance(val, list):
+							val = ','.join(val)
 						if key not in target:
 							target[key] = []
 						target[key].append(pkg_res.name + ':' + val)
