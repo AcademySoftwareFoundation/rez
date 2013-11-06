@@ -26,71 +26,42 @@ def setup_parser(parser):
                         help="list package dependencies")
 
 def command(opts):
-    import yaml
     import rez.sigint as sigint
-    import rez.rez_filesys as fs
+    from rez.rez_memcached import get_memcache
+    from rez.packages import pkg_name
 
     #(opts, args) = p.parse_args()
     if not os.path.isdir(opts.path):
         sys.stderr.write("'" + opts.path + "' is not a directory.\n")
         sys.exit(1)
 
-    pkg_paths = []
+    for pkg in get_memcache().iter_packages(opts.package, opts.path):
+        ln = pkg.base
+        if opts.auth:
+            ln = ln + " | "
+            if "authors" in pkg.metadata:
+                ln += " ".join(pkg.metadata["authors"])
 
-    if opts.package:
-        fullpath = os.path.join(opts.path, opts.package)
-        if not os.path.isdir(fullpath):
-            sys.stderr.write("'" + fullpath + "' is not a directory.\n")
-            sys.exit(1)
-        pkg_paths = [fullpath]
-    else:
-        for f in os.listdir(opts.path):
-            if (f == "rez"):
-                continue
+        if opts.desc:
+            ln = ln + " | "
+            if "description" in pkg.metadata:
+                descr = str(pkg.metadata["description"]).strip()
+                descr = descr.replace('\n', "\\n")
+                ln += descr
 
-            fullpath = os.path.join(opts.path, f)
-            if os.path.isdir(fullpath):
-                pkg_paths.append(fullpath)
+        if opts.dep:
+            ln = ln + " | "
+            reqs = pkg.metadata.get("requires", [])
+            variants = pkg.metadata.get("variants", [])
+            if len(reqs) + len(vars) > 0:
+                deps = set([pkg_name(pkg) for pkg in reqs])
+                for pkg_list in variants:
+                    deps = deps | set([pkg_name(pkg) for pkg in pkg_list])
 
-    for fullpath in pkg_paths:
-        vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
-        if vers:
-            filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
-            metadict = yaml.load(open(filename).read())
+                if len(deps) > 0:
+                    ln += "*" + " *".join(deps)
 
-            ln = fullpath.split('/')[-1]
-
-            if opts.auth:
-                ln = ln + " | "
-                if "authors" in metadict:
-                    ln = ln + str(" ").join(metadict["authors"])
-                else:
-                    continue
-
-            if opts.desc:
-                ln = ln + " | "
-                if "description" in metadict:
-                    descr = str(metadict["description"]).strip()
-                    descr = descr.replace('\n', "\\n")
-                    ln = ln + descr
-                else:
-                    continue
-
-            if opts.dep:
-                ln = ln + " | "
-                reqs = metadict["requires"] if ("requires" in metadict) else []
-                vars = metadict["variants"] if ("variants" in metadict) else []
-                if len(reqs) + len(vars) > 0:
-
-                    fn_unver = lambda pkg: pkg.split('-')[0]
-                    deps = set(map(fn_unver, reqs))
-                    for var in vars:
-                        deps = deps | set(map(fn_unver, var))
-
-                    if len(deps) > 0:
-                        ln = ln + "*" + str(" *").join(deps)
-
-            output(ln)
+        output(ln)
 
 
 

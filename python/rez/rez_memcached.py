@@ -1,14 +1,12 @@
 import sys
 import os
-import time
 from collections import defaultdict
 import rez_filesys
 import rez_metafile
+from packages import Package
 from versions import *
 from public_enums import *
 from rez_exceptions import *
-
-
 
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"
@@ -22,9 +20,6 @@ def _create_client():
 
 def print_cache_warning(msg):
     print >> sys.stderr, "Cache Warning: %s" % msg
-
-def _filter_epoch(vers, cache):
-    return [x for x in vers if x[1] <= cache.epoch]
 
 # init
 _g_caching_enabled = not os.getenv("REZ_DISABLE_CACHING")
@@ -40,14 +35,27 @@ if _g_caching_enabled:
         _g_caching_enabled = False
     mc = None
 
+_memcache = None
+
+def get_memcache():
+    global _memcache
+    if not _memcache:
+        _memcache = RezMemCache()
+        #raise RezError("Memcache does not exist. use memcaching() context manager to create")
+    return _memcache
+
 def cached_path(key, default=None, postfilter=None):
     """
-    A decorator to aid in automatically caching functions
+    A decorator to aid in automatically caching functions that take a path as
+    an argument.
 
-    key : unique key used to identify the data to cache with the memcache client
-    default : value to return if the path does not exist
-    postfilter : filter function to apply to after retrieving data from the memcache client.
-        should take the data and an instance of the memcache as arguments and
+    key : str
+        unique key used to identify the data to cache with the memcache client
+    default : any
+        value to return if the path does not exist
+    postfilter : function
+        filter function to apply to data after retrieving it from the memcache client.
+        should take the data and an instance of the RezMemCache as arguments and
         return a modified copy of data.
     """
     def decorator(func):
@@ -60,7 +68,7 @@ def cached_path(key, default=None, postfilter=None):
             data = cache.get(path)
             if data is not None:
                 return data
- 
+
             try:
                 path_modtime = os.path.getmtime(path)
             except OSError:
@@ -79,7 +87,7 @@ def cached_path(key, default=None, postfilter=None):
                         data = d
 
             if not data:
-                # get data
+                # cached data does not exist or is stale: get the data
                 data = func(self, path, *args, **kwargs)
 
             assert data is not None, "Cached function must not return None"
@@ -90,7 +98,7 @@ def cached_path(key, default=None, postfilter=None):
 
             if postfilter:
                 data = postfilter(data, self)
-            
+
             # cache result to local instance cache
             cache[path] = data
             return data
@@ -105,8 +113,7 @@ class RezMemCache(object):
     """
     Cache for filesystem access and resolves.
     """
-    def __init__(self, time_epoch=0, use_caching=True):
-        self.epoch = time_epoch or int(time.time())
+    def __init__(self, use_caching=True):
         self.cache = defaultdict(dict)
         self.families = set()
         self.mc = None
@@ -123,19 +130,105 @@ class RezMemCache(object):
     @cached_path("PKGYAML")
     def get_metafile(self, path):
         """
-        Load the yaml metadata in the given file.
+        Load the *essential* yaml metadata in the given file.
         """
         d = rez_metafile.ConfigMetadata(path)
         d.delete_nonessentials()
         return d
 
-    @cached_path("VERSIONS", default=(), postfilter=_filter_epoch)
+    @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
         """
         For a given directory, return a list of (Version,epoch), which match version directories 
         found in the given directory.
         """
         return rez_filesys.get_versions_in_directory(path, warnings)
+
+    def iter_packages(self, family_name=None, paths=None):
+        """
+        Iterate through (name, resolved `Version`, base path, epoch) for all versions found.
+        """
+        if paths is None:
+            paths = rez_filesys._g_syspaths
+        elif isinstance(paths, basestring):
+            paths = [paths]
+
+        for pkg_path in paths:
+            if family_name:
+                family_names = [family_name]
+            else:
+                # FIXME: (?) this is not cached:
+                family_names = [x for x in os.listdir(pkg_path) \
+                                if not x.startswith('.') and x not in ['rez']]
+            for family_name in family_names:
+                family_path = os.path.join(pkg_path, family_name)
+                if os.path.isdir(family_path):
+                    vers = self.get_versions_in_directory(family_path)
+                    if vers:
+                        for ver, timestamp in vers:
+                            metafile = os.path.join(family_path, str(ver), PKG_METADATA_FILENAME)
+                            yield Package(family_name, ver, metafile, timestamp)
+                    else:
+                        metafile = os.path.join(family_path, PKG_METADATA_FILENAME)
+                        if os.path.isfile(metafile):
+                            # check for special case - unversioned package.
+                            # only allowed when no versioned packages exist.
+                            yield Package(family_name, Version(""), metafile, 0)
+
+    def find_package_in_range(self, family_name, ver_range, latest=True, exact=False,
+                              paths=None, timestamp=0):
+        """
+        Given a family name and a `VersionRange`, return (resolved
+        `Version`, base path, epoch), or (None, None, None) if no matches are found.
+
+        If two versions in two different paths are the same, then the package in
+        the first path is returned in preference.
+        """
+        # store the generator. no paths have been walked yet
+        results = self.iter_packages(family_name, paths)
+
+        if timestamp:
+            results = [x for x in results if x.timestamp <= timestamp]
+        # sort 
+        if latest:
+            results = sorted(results, key=lambda x: x.version, reverse=True)
+        else:
+            results = sorted(results, key=lambda x: x.version, reverse=False)
+
+        # find the best match
+        for result in results:
+            if ver_range.matches_version(result.version, allow_inexact=not exact):
+                return result
+
+        return None
+
+    def package_family_exists(self, family_name, paths=None):
+        """
+        Determines if the package family exists. This involves only quite light file system 
+        access, so isn't memcached.
+        """
+        if family_name in self.families:
+            return True
+
+        if paths is None:
+            paths = rez_filesys._g_syspaths
+
+        for path in paths:
+            if os.path.isdir(os.path.join(path, family_name)):
+                self.families.add(family_name)
+                return True
+
+        return False
+
+    def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
+        for path in paths:
+            famp = os.path.join(path, family_name)
+            if os.path.isdir(famp):
+                mtime = int(os.path.getmtime(famp))
+                if mtime >= start_epoch and mtime <= end_epoch:
+                    return famp
+
+    # --- deprecated
 
     def _find_package(self, path, ver_range, latest=True, exact=False):
         """
@@ -166,50 +259,6 @@ class RezMemCache(object):
                 return ver
 
         return None
-
-    def iter_packages(self, family_name, paths=None):
-        """
-        Given a family name and a `VersionRange`, iterate through
-        (family path, resolved `Version`, epoch) for all versions found.
-        """
-        if paths is None:
-            paths = rez_filesys._g_syspaths
-
-        for pkg_path in paths:
-            family_path = os.path.join(pkg_path, family_name)
-            vers = self.get_versions_in_directory(family_path)
-            if vers:
-                for ver, timestamp in vers:
-                    yield family_path, ver, timestamp
-            elif os.path.isfile(os.path.join(family_path, PKG_METADATA_FILENAME)):
-                # check for special case - unversioned package.
-                # only allowed when no versioned packages exist.
-                yield family_path, Version(""), 0
-
-    def find_package_in_range(self, family_name, ver_range, latest=True, exact=False,
-                    paths=None):
-        """
-        Given a family name and a `VersionRange`, return (family path, resolved
-        `Version`, epoch), or (None, None, None) if no matches are found.
-        
-        If two versions in two different paths are the same, then the package in
-        the first path is returned in preference.
-        """
-        # store the generator. no paths have been walked yet
-        results = self.iter_packages(family_name, paths)
-
-        # sort 
-        if latest:
-            results = sorted(results, key=lambda x: x[1], reverse=True)
-        else:
-            results = sorted(results, key=lambda x: x[1], reverse=False)
-
-        # find the best match
-        for ver in results:
-            if ver_range.matches_version(ver[1], allow_inexact=not exact):
-                return ver
-
-        return (None, None, None)
 
     def find_package(self, path, ver_range, latest=True, exact=False):
         """
@@ -281,25 +330,9 @@ class RezMemCache(object):
         else:
             return (None,None,None)
 
-    def package_family_exists(self, family_name, paths=None):
-        """
-        Determines if the package family exists. This involves only quite light file system 
-        access, so isn't memcached.
-        """
-        if family_name in self.families:
-            return True
+    # --- direct memcache usage
 
-        if paths is None:
-            paths = rez_filesys._g_syspaths
-
-        for path in paths:
-            if os.path.isdir(os.path.join(path, family_name)):
-                self.families.add(family_name)
-                return True
-
-        return False
-
-    def store_resolve(self, paths, pkg_reqs, result):
+    def store_resolve(self, paths, pkg_reqs, result, timestamp):
         """
         Store a resolve in the cache.
         """
@@ -320,17 +353,9 @@ class RezMemCache(object):
 
         # store
         self.mc.update_add_to_set(k_no_timestamp, max_epoch)
-        self.mc.set(k_timestamped, (self.epoch,result))
+        self.mc.set(k_timestamped, (timestamp, result))
 
-    def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
-        for path in paths:
-            famp = os.path.join(path, family_name)
-            if os.path.isdir(famp):
-                mtime = int(os.path.getmtime(famp))
-                if mtime >= start_epoch and mtime <= end_epoch:
-                    return famp
-
-    def get_resolve(self, paths, pkg_reqs):
+    def get_resolve(self, paths, pkg_reqs, timestamp):
         """
         Return a cached resolve, or None if the resolve is not found or possibly stale.
         """
@@ -343,20 +368,21 @@ class RezMemCache(object):
         k_no_timestamp = ("RESOLVE-NO-TS", k_base)
         timestamps = self.mc.get(k_no_timestamp)
         if not timestamps:
-            return None,None
+            return None, None
 
-        older_timestamps = [x for x in timestamps if x < self.epoch]
-        if not older_timestamps:
-            return None,None
+        if timestamp:
+            timestamps = [x for x in timestamps if x < timestamp]
+            if not timestamps:
+                return None, None
 
-        cache_timestamp = sorted(older_timestamps)[-1]
+        cache_timestamp = sorted(timestamps)[-1]
         k_timestamped = ("RESOLVE", cache_timestamp, k_base)
         t = self.mc.get(k_timestamped)
         if not t:
-            return None,None
+            return None, None
 
         # trim down list of resolve pkgs to those that may invalidate the cache
-        result_epoch,result = t
+        result_epoch, result = t
 
         # cache cannot be stale in this case
         if self.epoch <= result_epoch:

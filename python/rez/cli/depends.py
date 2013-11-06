@@ -138,7 +138,7 @@ def command(opts):
 
         vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
         if vers:
-            filename = fullpath + '/' + str(vers[-1][0]) + "/package.yaml"
+            filename = os.path.join(fullpath, str(vers[-1][0]), "package.yaml")
             metadict = yaml.load(open(filename).read())
 
             reqs = metadict["requires"] if ("requires" in metadict) else []
