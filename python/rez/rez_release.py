@@ -606,16 +606,18 @@ class RezReleaseMode(object):
             # TODO: default mode?
             vcs_metadata = "(NONE)"
 
-        # FIXME: use yaml for info.txt?
+        import getpass
+        import yaml
         meta_file = os.path.join(build_dir, 'info.txt')
+        info_dict = {}
+        info_dict["ACTUAL_BUILD_TIME"] = self.now_epoch
+        info_dict["BUILD_TIME"] = self.build_time
+        info_dict["USER"] = getpass.getuser()
+        # FIXME: change entry SVN to VCS
+        info_dict["SVN"] = vcs_metadata
         # store build metadata
         with open(meta_file, 'w') as f:
-            import getpass
-            f.write("ACTUAL_BUILD_TIME: %d" % self.now_epoch)
-            f.write("BUILD_TIME: %s" % self.build_time)
-            f.write("USER: %s" % getpass.getuser())
-            # FIXME: change entry SVN to VCS
-            f.write("SVN: %s" % vcs_metadata)
+            f.write(yaml.dump(info_dict, default_flow_style=False))
 #
         self._write_changelog(changelog_file)
 

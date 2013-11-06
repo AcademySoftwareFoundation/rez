@@ -87,7 +87,7 @@ def get_versions_in_directory(path, warnings):
 
             timestamp = 0
             if not is_local_pkgs:
-                release_time_f = fullpath + '/.metadata/release_time.txt'
+                release_time_f = os.path.join(fullpath, '.metadata', 'release_time.txt')
                 if os.path.isfile(release_time_f):
                     with open(release_time_f, 'r') as f:
                         timestamp = int(f.read().strip())

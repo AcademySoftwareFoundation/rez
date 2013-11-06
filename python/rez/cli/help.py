@@ -10,33 +10,6 @@ import rez.sigint
 
 suppress_notfound_err = False
 
-def get_help(pkg):
-    import yaml
-    import rez.rez_config as dc
-    global suppress_notfound_err
-
-    try:
-        pkg_base_path = dc.get_base_path(pkg)
-    except Exception:
-        if not suppress_notfound_err:
-            sys.stderr.write("Package not found: '" + pkg + "'\n")
-        sys.exit(1)
-
-    yaml_file = pkg_base_path + "/package.yaml"
-    try:
-        metadict = yaml.load(open(yaml_file).read())
-    except Exception:
-        return (pkg_base_path, pkg_base_path, None)
-
-    pkg_path = pkg_base_path
-    if "variants" in metadict:
-        # just pick first variant, they should all have the same copy of docs...
-        v0 = metadict["variants"][0]
-        pkg_path = os.path.join(pkg_path, *v0)
-
-    return (pkg_base_path, pkg_path, metadict.get("help"), metadict.get("description"))
-
-
 ##########################################################################################
 # parse arguments
 ##########################################################################################
@@ -83,46 +56,48 @@ def command(opts):
     ##########################################################################################
     # find pkg and load help metadata
     ##########################################################################################
-    descr_printed = False
-
-    def _print_descr(descr):
-        global descr_printed
-        if descr and not descr_printed:
-            print
-            print "Description:"
-            print descr.strip()
-            print
-            descr_printed = True
 
     # attempt to load the latest
-    fam = pkg.split("=")[0].split("-", 1)[0]
-    base_pkgpath, pkgpath, help, descr = get_help(pkg)
-    _print_descr(descr)
-    suppress_notfound_err = True
+    from rez.packages import pkg_name
+    from rez.rez_memcached import get_memcache
+    name = pkg_name(opts.pkg)
+    found_pkg = None
+    for pkg in get_memcache().iter_packages(name):
+        if pkg.metadata is None:
+            continue
+        if "help" in pkg.metadata:
+            found_pkg = pkg
+            break
 
-    while not help:
-        sys.stderr.write("Help not found in " + pkgpath + '\n')
-        ver = pkgpath.rsplit('/')[-1]
-        base_pkgpath, pkgpath, help, descr = get_help(fam + "-0+<" + ver)
-        _print_descr(descr)
+    if found_pkg is None:
+        error("Could not find a package with help for %s" % opts.pkg)
+        sys.exit(1)
 
-    print "help found for " + pkgpath
+    help = pkg.metadata.get("help")
+    descr = pkg.metadata.get("description")
+    if descr:
+        print
+        print "Description:"
+        print descr.strip()
+        print
+
+    print "help found for " + pkg.base
 
     ##########################################################################################
     # determine help command
     ##########################################################################################
     cmds = []
 
-    if isinstance(help, type('')):
+    if isinstance(help, basestring):
         cmds.append(["", help])
     elif isinstance(help, type([])):
         for entry in help:
-            if (isinstance(entry, type([]))) and (len(entry) == 2) \
-                    and (isinstance(entry[0], type(''))) and (isinstance(entry[1], type(''))):
+            if (isinstance(entry, list)) and (len(entry) == 2) \
+                    and (isinstance(entry[0], basestring)) and (isinstance(entry[1], basestring)):
                 cmds.append(entry)
 
     if len(cmds) == 0:
-        print "Malformed help info in '" + yaml_file + "'"
+        print "Malformed help info in '" + pkg.metafile + "'"
         sys.exit(1)
 
     if section > len(cmds):
@@ -147,9 +122,16 @@ def command(opts):
     ##########################################################################################
     # run help command
     ##########################################################################################
+    if "variants" in pkg.metadata:
+        # just pick first variant, they should all have the same copy of docs...
+        v0 = pkg.metadata["variants"][0]
+        pkg_path = os.path.join(pkg.base, *v0)
+    else:
+        pkg_path = pkg.base
+
     cmd = cmds[section - 1][1]
-    cmd = cmd.replace('!ROOT!', pkgpath)
-    cmd = cmd.replace('!BASE!', base_pkgpath)
+    cmd = cmd.replace('!ROOT!', pkg_path)
+    cmd = cmd.replace('!BASE!', pkg.base)
     cmd += " &"
 
     subprocess.Popen(cmd, shell=True).communicate()
