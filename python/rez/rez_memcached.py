@@ -44,7 +44,7 @@ def get_memcache():
         #raise RezError("Memcache does not exist. use memcaching() context manager to create")
     return _memcache
 
-def cached_path(key, default=None, postfilter=None):
+def cached_path(key, default=None, postfilter=None, local_only=False):
     """
     A decorator to aid in automatically caching functions that take a path as
     an argument.
@@ -57,6 +57,9 @@ def cached_path(key, default=None, postfilter=None):
         filter function to apply to data after retrieving it from the memcache client.
         should take the data and an instance of the RezMemCache as arguments and
         return a modified copy of data.
+    local_only : bool
+        if True, only store the results in the local instance cache. this is useful
+        for data that is too big to store in the remote memcache.
     """
     def decorator(func):
         def wrapped_func(self, path, *args, **kwargs):
@@ -130,11 +133,9 @@ class RezMemCache(object):
     @cached_path("PKGYAML")
     def get_metafile(self, path):
         """
-        Load the *essential* yaml metadata in the given file.
+        Load the *essential* metadata in the given file.
         """
-        d = rez_metafile.ConfigMetadata(path)
-        d.delete_nonessentials()
-        return d
+        return rez_metafile.load_metadata(path, strip=True)
 
     @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
@@ -143,6 +144,34 @@ class RezMemCache(object):
         found in the given directory.
         """
         return rez_filesys.get_versions_in_directory(path, warnings)
+
+    def package_family_exists(self, family_name, paths=None):
+        """
+        Determines if the package family exists. This involves only quite light file system 
+        access, so isn't memcached.
+        """
+        if family_name in self.families:
+            return True
+
+        if paths is None:
+            paths = rez_filesys._g_syspaths
+
+        for path in paths:
+            if os.path.isdir(os.path.join(path, family_name)):
+                self.families.add(family_name)
+                return True
+
+        return False
+
+    def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
+        for path in paths:
+            famp = os.path.join(path, family_name)
+            if os.path.isdir(famp):
+                mtime = int(os.path.getmtime(famp))
+                if mtime >= start_epoch and mtime <= end_epoch:
+                    return famp
+
+    # --- deprecated:
 
     def iter_packages(self, family_name=None, paths=None):
         """
@@ -201,34 +230,6 @@ class RezMemCache(object):
                 return result
 
         return None
-
-    def package_family_exists(self, family_name, paths=None):
-        """
-        Determines if the package family exists. This involves only quite light file system 
-        access, so isn't memcached.
-        """
-        if family_name in self.families:
-            return True
-
-        if paths is None:
-            paths = rez_filesys._g_syspaths
-
-        for path in paths:
-            if os.path.isdir(os.path.join(path, family_name)):
-                self.families.add(family_name)
-                return True
-
-        return False
-
-    def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
-        for path in paths:
-            famp = os.path.join(path, family_name)
-            if os.path.isdir(famp):
-                mtime = int(os.path.getmtime(famp))
-                if mtime >= start_epoch and mtime <= end_epoch:
-                    return famp
-
-    # --- deprecated
 
     def _find_package(self, path, ver_range, latest=True, exact=False):
         """
