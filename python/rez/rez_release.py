@@ -269,37 +269,9 @@ class RezReleaseMode(object):
         '''
         return a ConfigMetadata instance for this project's package.yaml file.
         '''
-        # check for ./package.yaml
-        yaml_path = os.path.join(self.root_dir, "package.yaml")
-        if not os.access(yaml_path, os.F_OK):
-            raise RezReleaseError(yaml_path + " not found")
-
-        # load the package metadata
-        metadata = ConfigMetadata(yaml_path + "")
-        if (not metadata.version):
-            raise RezReleaseError(yaml_path + " does not specify a version")
-        try:
-            self.this_version = versions.Version(metadata.version)
-        except versions.VersionError:
-            raise RezReleaseError(yaml_path + " contains illegal version number")
-
-        # metadata must have name
-        if not metadata.name:
-            raise RezReleaseError(yaml_path + " is missing name")
-
-        # metadata must have uuid
-        if not metadata.uuid:
-            raise RezReleaseError(yaml_path + " is missing uuid")
-
-        # .metadata must have description
-        if not metadata.description:
-            raise RezReleaseError(yaml_path + " is missing a description")
-
-        # metadata must have authors
-        if not metadata.authors:
-            raise RezReleaseError(yaml_path + " is missing authors")
-
-        return metadata
+        import rez_metafile as metafile
+        return metafile.load_metadata(os.path.join(self.root_dir, "package.yaml"),
+                                      key='built_package')
 
     # utilities  ---------
     def _write_changelog(self, changelog_file):
@@ -761,11 +733,11 @@ class RezReleaseMode(object):
         self.family_install_dir = os.path.join(self.base_install_dir, self.metadata.name)
         self.version_install_dir = os.path.join(self.family_install_dir, self.metadata.version)
 
-        self.variants = self.metadata.get_variants()
+        self.variants = self.metadata.variants
         if not self.variants:
             self.variants = [None]
 
-        self.requires = self.metadata.get_requires(include_build_reqs=True) or []
+        self.requires = (self.metadata.build_requires or []) + (self.metadata.requires or [])
 
         self.changelog = self.get_changelog()
 

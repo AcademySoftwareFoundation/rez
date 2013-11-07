@@ -6,6 +6,8 @@ import sys
 import os
 import shutil
 import time
+import posixpath
+import ntpath
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
@@ -149,3 +151,12 @@ def safe_chmod(path, mode):
     "set the permissions mode on path, but only if it differs from the current mode."
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
         os.chmod(path, mode)
+
+def to_nativepath(path):
+    return os.path.join(path.split('/'))
+
+def to_ntpath(path):
+    return ntpath.sep.join(path.split(posixpath.sep))
+
+def to_posixpath(path):
+    return posixpath.sep.join(path.split(ntpath.sep))

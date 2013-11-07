@@ -45,7 +45,7 @@ import yaml
 import sys
 import random
 import subprocess as sp
-from packages import ResolvedPackage, split_name
+from packages import ResolvedPackage, split_name, package_family
 from versions import *
 from public_enums import *
 from rez_exceptions import *
@@ -99,10 +99,10 @@ class PackageRequest(object):
 			if self.is_anti():
 				name_ = name[1:]
 
-			pkg = get_memcache().find_package_in_range(name_,
-													   self.version_range,
-													   latest=latest,
-													   timestamp=timestamp)
+			pkg = package_family(name_).version_package(
+				self.version_range,
+				latest=latest,
+				timestamp=timestamp)
 
 			if pkg:
 				self.version_range = VersionRange(_versions=[pkg.version])
@@ -348,8 +348,8 @@ class Resolver(object):
 		for pkg_res in pkg_res_list:
 			def _add_meta_vars(mvars, target):
 				for key in mvars:
-					if key in pkg_res.core_metadata.metadict:
-						val = pkg_res.core_metadata.metadict[key]
+					if key in pkg_res.stripped_metadata:
+						val = pkg_res.stripped_metadata[key]
 						if isinstance(val, list):
 							val = ','.join(val)
 						if key not in target:
@@ -589,9 +589,9 @@ def get_pkg(pkg_str):
 	# TODO: prevent anti and weak package strings?
 	name, verrange, latest = parse_pkg_req_str(pkg_str)
 	latest = True if latest is None else latest
-	pkg = get_memcache().find_package_in_range(name,
-											   VersionRange(verrange),
-											   latest)
+	pkg = package_family(name).version_package(
+		VersionRange(verrange),
+		latest)
 	if not pkg:
 		raise PkgNotFoundError(pkg_str)
 
@@ -752,19 +752,35 @@ class _Package(object):
 	# Get commands with string-replacement
 	def get_resolved_commands(self):
 		"""
+		NOTE: this is deprecated with the addition of the python rex execution language
+
+		Get commands with string replacement
 		"""
-		if self.is_resolved():
-			cmds = self.metadata.get_string_replace_commands(str(self.version_range), \
-				self.base_path, self.root_path)
-			return cmds
+		if self.is_resolved() and self.metadata.commands:
+			version = str(self.version_range)
+			vernums = version.split('.') + ['', '']
+			major_version = vernums[0]
+			minor_version = vernums[1]
+			user = os.getenv("USER", "UNKNOWN_USER")
+
+			new_cmds = []
+			for cmd in self.metadata.commands:
+				cmd = cmd.replace("!VERSION!", version)
+				cmd = cmd.replace("!MAJOR_VERSION!", major_version)
+				cmd = cmd.replace("!MINOR_VERSION!", minor_version)
+				cmd = cmd.replace("!BASE!", self.base_path)
+				cmd = cmd.replace("!ROOT!", self.root_path)
+				cmd = cmd.replace("!USER!", user)
+				new_cmds.append(cmd)
+			return new_cmds
 		else:
 			return None
 
 	def get_package(self, latest=True, exact=False, timestamp=0):
-		return get_memcache().find_package_in_range(self.name,
-													self.version_range,
-													timestamp=timestamp,
-													latest=latest, exact=exact)
+		return package_family(self.name).version_package(
+			self.version_range,
+			timestamp=timestamp,
+			latest=latest, exact=exact)
 
 	def resolve_metafile(self, timestamp=0):
 		"""
@@ -781,8 +797,8 @@ class _Package(object):
 			if pkg is not None:
 				self.timestamp = pkg.timestamp
 				self.base_path = pkg.base
-				self.metadata = get_memcache().get_metafile(pkg.metafile)
-				metafile_variants = self.metadata.get_variants()
+				self.metadata = pkg.stripped_metadata
+				metafile_variants = self.metadata.variants
 				if metafile_variants:
 					# convert variants from metafile into _PackageVariants
 					self.variants = []
@@ -795,13 +811,12 @@ class _Package(object):
 
 		return (self.base_path != None)
 
-	def get_metafile(self, latest=True, timestamp=0):
+	def get_metadata(self, latest=True, timestamp=0):
 		pkg = self.get_package(latest=latest, exact=False, timestamp=timestamp)
 
 		if not pkg:
 			return
-		metafile = get_memcache().get_metafile(pkg.metafile)
-		return metafile
+		return pkg.stripped_metadata
 
 	def __str__(self):
 		l = [ self.short_name() ]
@@ -1611,7 +1626,10 @@ class _Configuration(object):
 
 					# add required packages to the configuration, this may
 					# reduce wrt existing packages (eg: foo-1 -> foo-1.2 is a reduction)
-					requires = pkg.metadata.get_requires(self.rctxt.build_requires)
+					if self.rctxt.build_requires:
+						requires = (pkg.metadata.build_requires or []) + (pkg.metadata.requires or [])
+					else:
+						requires = pkg.metadata.requires
 
 					if requires:
 						for pkg_str in requires:
@@ -1665,18 +1683,18 @@ class _Configuration(object):
 				continue
 
 			# get the requires lists for the earliest and latest versions of this pkg
-			metafile_e = pkg.get_metafile(latest=False, timestamp=self.rctxt.time_epoch)
+			metafile_e = pkg.get_metadata(latest=False, timestamp=self.rctxt.time_epoch)
 			if not metafile_e:
 				continue
 
-			metafile_l = pkg.get_metafile(latest=True, timestamp=self.rctxt.time_epoch)
+			metafile_l = pkg.get_metadata(latest=True, timestamp=self.rctxt.time_epoch)
 			if not metafile_l:
 				continue
 
 			pkg.has_added_transitivity = True
 
-			requires_e = metafile_e.get_requires()
-			requires_l = metafile_l.get_requires()
+			requires_e = metafile_e.requires
+			requires_l = metafile_l.requires
 			if (not requires_e) or (not requires_l):
 				continue
 
@@ -1712,8 +1730,8 @@ class _Configuration(object):
 
 			# find common variants that exist in both. Note that this code is somewhat redundant,
 			# v similar work is done in resolve_common_variants - fix this in rez V2
-			variants_e = metafile_e.get_variants()
-			variants_l = metafile_l.get_variants()
+			variants_e = metafile_e.variants
+			variants_l = metafile_l.variants
 			if (not variants_e) or (not variants_l):
 				continue
 

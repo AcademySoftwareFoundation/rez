@@ -58,11 +58,10 @@ def command(opts):
     ##########################################################################################
 
     # attempt to load the latest
-    from rez.packages import pkg_name
-    from rez.rez_memcached import get_memcache
+    from rez.packages import pkg_name, iter_version_packages
     name = pkg_name(opts.pkg)
     found_pkg = None
-    for pkg in get_memcache().iter_packages(name):
+    for pkg in iter_version_packages(name):
         if pkg.metadata is None:
             continue
         if "help" in pkg.metadata:

@@ -1,7 +1,16 @@
+"""
+rez packages
+"""
 import os.path
+import re
 from public_enums import PKG_METADATA_FILENAME
-import rez_metafile as metafile
+import rez_metafile
+import rez_filesys
 from rez_exceptions import PkgSystemError
+from versions import Version
+
+PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
+PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
 
 def split_name(pkg_str):
     strs = pkg_str.split('-')
@@ -16,6 +25,43 @@ def split_name(pkg_str):
 
 def pkg_name(pkg_str):
     return split_name(pkg_str)[0]
+
+# TODO: move this to RezMemCache
+def get_family_paths(path):
+    return [(x, os.path.join(path, x)) for x in os.listdir(path) \
+            if not PACKAGE_NAME_REGEX.match(x) and x not in ['rez']]
+
+def iter_package_families(name=None, paths=None):
+    """
+    Iterate through top-level `PackageFamily` instances.
+    """
+    if paths is None:
+        paths = rez_filesys._g_syspaths
+    elif isinstance(paths, basestring):
+        paths = [paths]
+
+    for pkg_path in paths:
+        if name is not None:
+            family_path = os.path.join(pkg_path, name)
+            if os.path.isdir(family_path):
+                yield PackageFamily(name, family_path)
+        else:
+            # FIXME: (?) this is not cached:
+            for family_name, family_path in get_family_paths(pkg_path):
+                yield PackageFamily(family_name, family_path)
+
+def iter_version_packages(name=None, paths=None):
+    for pkg_fam in iter_package_families(name, paths):
+        for pkg in pkg_fam.iter_version_pacakges():
+            yield pkg
+
+def package_family(name, paths=None):
+    """
+    Return the first `FamilyPackage` found on the search path.
+    """
+    result = iter_package_families(name, paths)
+    if result is not None:
+        return next(result)
 
 class VersionString(str):
     LABELS = {'major': 1,
@@ -64,13 +110,73 @@ class VersionString(str):
         except IndexError:
             return ''
 
+class PackageFamily(object):
+    """
+    A package family contains versioned packages of the same name.
+
+    A package family has a single root directory, and there may be multiple
+    package families on the rez search path with the same name.
+    """
+    def __init__(self, name, path):
+        self.name = name
+        self.path = path
+
+    def iter_version_packages(self):
+        from rez_memcached import get_memcache
+        vers = get_memcache().get_versions_in_directory(self.path)
+        if vers:
+            for ver, timestamp in vers:
+                metafile = os.path.join(self.path, str(ver), PKG_METADATA_FILENAME)
+                # no need to check if metafile is exists, already done in `get_versions_in_directory`
+                yield Package(self.name, ver, metafile, timestamp)
+        else:
+            metafile = os.path.join(self.path, PKG_METADATA_FILENAME)
+            if os.path.isfile(metafile):
+                # check for special case - unversioned package.
+                # only allowed when no versioned packages exist.
+                yield Package(self.name, Version(""), metafile, 0)
+
+#     def iter_version_packages(self, paths=None):
+#         from rez_memcached import get_memcache
+#         return get_memcache().iter_packages(self.name, paths)
+# 
+#     def find_package_in_range(self, ver_range, latest=True, exact=False,
+#                               paths=None, timestamp=0):
+#         from rez_memcached import get_memcache
+#         get_memcache().find_package_in_range(self.name, ver_range, latest, exact,
+#                               paths, timestamp)
+
+    def version_package(self, ver_range, latest=True, exact=False, timestamp=0):
+        """
+        Given a a `VersionRange`, return a `Package` instance, or None if no
+        matches are found.
+        """
+        # store the generator. no paths have been walked yet
+        results = self.iter_version_packages()
+
+        if timestamp:
+            results = [x for x in results if x.timestamp <= timestamp]
+        # sort 
+        if latest:
+            results = sorted(results, key=lambda x: x.version, reverse=True)
+        else:
+            results = sorted(results, key=lambda x: x.version, reverse=False)
+
+        # find the best match
+        for result in results:
+            if ver_range.matches_version(result.version, allow_inexact=not exact):
+                return result
+
+        return None
+
 class Package(object):
     """
-    Class that represents an unresolved package.
+    an unresolved package.
 
-    An unresolved package may contain a list of variant requirements, which,
-    once resolved to an individual variant based on a given context, gives the
-    full path to the package root.
+    An unresolved package has a version, but may have inexplicit or "variant"
+    requirements, which can only be determined once its co-packages
+    are known. When the exact list of requirements is determined, the package
+    is considered resolved and the full path to the package root is known.
     """
     def __init__(self, name, version, base, timestamp):
         self.name = name
@@ -84,22 +190,24 @@ class Package(object):
             self.metafile = os.path.join(self.base, PKG_METADATA_FILENAME)
         self.timestamp = timestamp
         self._metadata = None
-        self._core_metdata = None
+        self._stripped_metdata = None
 
     @property
     def metadata(self):
         # bypass the memcache so that non-essentials are not stripped
         if self._metadata is None:
-            import yaml
-            self._metadata = yaml.load(open(self.metafile, 'r'))
+            self._metadata = rez_metafile.load_metadata(self.metafile)
         return self._metadata
 
     @property
-    def core_metadata(self):
-        if self._core_metdata is None:
+    def stripped_metadata(self):
+        """
+        only the essential metadata
+        """
+        if self._stripped_metdata is None:
             from rez_memcached import get_memcache
-            self._core_metdata = get_memcache().get_metafile(self.metafile)
-        return self._core_metdata
+            self._stripped_metdata = get_memcache().get_metafile(self.metafile)
+        return self._stripped_metdata
 
     def short_name(self):
         if (len(self.version) == 0):
@@ -116,7 +224,12 @@ class Package(object):
 
 class ResolvedPackage(Package):
     """
-    A resolved package
+    A resolved package.
+
+    An unresolved package has a version, but may have inexplicit or "variant"
+    requirements, which can only be determined once its co-packages
+    are known. When the exact list of requirements is determined, the package
+    is considered resolved and the full path to the package root is known.
     """
     def __init__(self, name, version, base, root, commands, metadata, timestamp):
         Package.__init__(self, name, version, base, timestamp)

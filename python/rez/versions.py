@@ -18,6 +18,9 @@ in one case, but may represent the superset of all versions '10.5.x' in another.
 
 import re
 
+# can't be zero padded
+VERSION_COMPONENT_REGSTR = '([0-9a-z]|[1-9][0-9]+)'
+EXACT_VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
 class VersionError(Exception):
 	"""

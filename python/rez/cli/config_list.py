@@ -27,15 +27,14 @@ def setup_parser(parser):
 
 def command(opts):
     import rez.sigint as sigint
-    from rez.rez_memcached import get_memcache
-    from rez.packages import pkg_name
+    from rez.packages import pkg_name, iter_version_packages
 
     #(opts, args) = p.parse_args()
     if not os.path.isdir(opts.path):
         sys.stderr.write("'" + opts.path + "' is not a directory.\n")
         sys.exit(1)
 
-    for pkg in get_memcache().iter_packages(opts.package, opts.path):
+    for pkg in iter_version_packages(opts.package, opts.path):
         ln = pkg.base
         if opts.auth:
             ln = ln + " | "

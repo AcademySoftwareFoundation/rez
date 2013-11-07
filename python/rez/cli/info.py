@@ -35,6 +35,7 @@ def command(opts):
     import rez.rez_config as dc
     import rez.sigint
     from rez.rez_util import get_epoch_time
+    from rez.rez_metafile import load_metadata
 
     # attempt to load the latest
     pkg = dc.get_pkg(opts.pkg)
@@ -46,13 +47,8 @@ def command(opts):
         error("The package appears to be missing a package.yaml.")
         sys.exit(1)
 
-    try:
-        import yaml
-        infofile = os.path.join(pkg.base, ".metadata", "info.txt")
-        with open(infofile) as f:
-            pkg_info = yaml.load(f)
-    except Exception:
-        pkg_info = None
+    infofile = os.path.join(pkg.base, ".metadata", "info.txt")
+    pkg_info = load_metadata(infofile, force_config_version=0)
 
     output()
 
