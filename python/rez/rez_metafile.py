@@ -216,7 +216,7 @@ class Metadata(object):
         """
         check a node against the reference node. checks type and existence.
         """
-        if type(node) != type(refnode):
+        if node is not None and type(node) != type(refnode):
             yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
         else:
             if isinstance(refnode, dict):
