@@ -778,7 +778,9 @@ class EnvironRecorderDict(UserDict.DictMixin):
             If False, pre-existing values will be appended/prepended to as usual.
         """
         self.command_recorder = command_recorder if command_recorder is not None else CommandRecorder()
-        self.environ = environ if environ is not None else os.environ
+        # make a copy of os.environ so we don't change the current environment.
+        # if that is desired the changes can be played back with the Python CommandInterpreter
+        self.environ = environ if environ is not None else dict(os.environ)
         self.python_interpreter = Python(environ=self.environ)
         self._override_existing_lists = override_existing_lists
         self._var_cache = {}
