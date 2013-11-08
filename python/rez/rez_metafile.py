@@ -68,6 +68,9 @@ class AttrDict(dict):
         except KeyError:
             raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
 
+    def copy(self):
+        return AttrDict(dict.copy(self))
+
 class AttrDictYamlLoader(yaml.Loader):
     """
     A YAML loader that loads mappings into attribute dictionaries.
@@ -106,6 +109,29 @@ def _filename_is_match(config_info, filename):
         config_info['pattern'] = pattern
     return pattern.search(to_posixpath(filename))
 
+def _get_map_id(parent_id, key):
+    return (parent_id + '.' if parent_id else '') + key
+
+def _get_list_id(parent_id, i):
+    return '%s[%s]' % (parent_id, i)
+
+def _id_match(id, match_id):
+    if id == match_id:
+        return True
+
+    match_parts = re.findall('\[(\d*:\d*)\]', match_id)
+    parts = re.findall('\[(\d+)\]', id)
+    if not len(parts) or (len(parts) != len(match_parts)):
+        return False
+    for part, match_part in zip(parts, match_parts):
+        i = int(part)
+        start, stop = match_part.split(':')
+        if start and i < int(start):
+            return False
+        if stop and i >= int(stop):
+            return False
+    return True
+
 #------------------------------------------------------------------------------
 # Base Classes and Functions
 #------------------------------------------------------------------------------
@@ -120,7 +146,7 @@ def load(stream, type):
         except yaml.composer.ComposerError as err:
             if err.context == 'expected a single document in the stream':
                 # automatically switch to multi-doc
-                return yaml.load_all(stream, AttrDictYamlLoader)
+                return list(yaml.load_all(stream, AttrDictYamlLoader))
             raise
     raise MetadataError("Unknown metadata storage type: %r" % type)
 
@@ -135,7 +161,7 @@ def load_file(filename):
     if ext == '.txt':
         ext = '.yaml'
     with open(filename, 'r') as f:
-        return load(f, ext.strip('.'))
+        return load(f.read(), ext.strip('.'))
 
 def register_config(config_version, resource_key, cls, path=None):
     """
@@ -212,32 +238,38 @@ class Metadata(object):
             cls._refdocs = [load(textwrap.dedent(d), cls.SERIALIZER) for d in docs]
         return cls._refdocs
 
-    def check_node(self, node, refnode, id='root'):
+    def check_node(self, node, refnode, id=''):
         """
         check a node against the reference node. checks type and existence.
         """
-        if type(node) != type(refnode):
+        if node is not None and type(node) != type(refnode):
             yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
         else:
             if isinstance(refnode, dict):
                 for key in refnode:
+                    key_id = _get_map_id(id, key)
                     if key in node:
                         for res in self.check_node(node[key],
                                                    refnode[key],
-                                                   id='%s.%s' % (id, key)):
+                                                   id=key_id):
                             yield res
-                    elif key in self.REQUIRED:
-                        yield (id, MetadataKeyError(self.filename, id))
+                    elif any([_id_match(key_id, m) for m in self.REQUIRED]):
+                        yield (id, MetadataKeyError(self.filename, key))
                     else:
                         # add it to the dictionary
                         node[key] = None
             elif isinstance(refnode, list):
-                refitem = refnode[0]
-                for i, item in enumerate(node):
-                    for res in self.check_node(item,
-                                               refitem,
-                                               id='%s[%s]' % (id, i)):
-                        yield res
+                if len(refnode):
+                    for i, item in enumerate(node):
+                        try:
+                            refitem = refnode[i]
+                        except IndexError:
+                            # repeat the last found reference item
+                            pass
+                        for res in self.check_node(item,
+                                                   refitem,
+                                                   id=_get_list_id(id, i)):
+                            yield res
             yield (id, None)
 
     def validate_document_structure(self, doc, refdocs):
@@ -313,16 +345,12 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         if not re.match(versions.EXACT_VERSION_REGSTR + '$', metadata['version']):
             raise MetadataValueError(self.filename, 'version', metadata['version'])
 
-# class PackageConfig(VersionedMetadata):
-#     VERSIONS = {0: PackageConfig0}
-
 class PackageBuildConfig_0(VersionPackageConfig_0):
     """
     A package that is built with the intention to release is stricter about
     the existence of certain metadata values
     """
     REQUIRED = ('config_version', 'name', 'version', 'uuid', 'description', 'authors')
-
 
 register_config(0,
                 'version_package',
@@ -366,13 +394,19 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
         used for legacy config files that do not store a configuration version
     """
     metadata = load_file(filename)
-    if 'config_version' not in metadata:
+    if isinstance(metadata, list):
+        config_version = metadata[0].get('config_version', None)
+    elif isinstance(metadata, dict):
+        config_version = metadata.get('config_version', None)
+    else:
+        raise MetadataError("Unknown type at metadata root")
+
+    if config_version is None:
         if force_config_version is not None:
             config_version = force_config_version
         else:
             raise MetadataKeyError(filename, 'config_version')
     else:
-        config_version = metadata['config_version']
         if config_version < min_config_version:
             raise MetadataError('configuration version %d '
                                 'is less than minimum requested: %d' % (config_version,

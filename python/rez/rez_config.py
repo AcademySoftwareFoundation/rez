@@ -759,7 +759,7 @@ class _Package(object):
 			self.name = pkg_req.name
 			self.version_range = pkg_req.version_range
 
-			if not self.is_anti() and not get_memcache().package_family_exists(self.name):
+			if not self.is_anti() and not package_family(self.name):
 				raise PkgFamilyNotFoundError(self.name)
 		else:
 			self.name = None
@@ -1688,7 +1688,7 @@ class _Configuration(object):
 		"""
 		num = 0
 		for pkg_str in pkg_strs:
-			pkg_req = str_to_pkg_req(pkg_str)
+			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch)
 			if pkg_req.name not in self.pkgs:
 				num += 1
 

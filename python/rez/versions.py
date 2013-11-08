@@ -154,6 +154,8 @@ class Version(object):
 		# allow a ge to be passed directly
 		if isinstance(version, Version):
 			ge = version.ge
+		else:
+			ge = version
 		return (ge >= self.ge) and (ge < self.lt)
 
 	def get_union(self, ver):
@@ -218,6 +220,8 @@ class Version(object):
 	def __le__(self, ver):
 		return self.__lt__(ver) or self.__eq__(ver)
 
+	def __contains__(self, version):
+		return self.contains_version(Version(version))
 
 class VersionRange(object):
 	"""
@@ -424,6 +428,57 @@ def get_versions_union(versions):
 			idx += 1
 		return new_versions
 
+# This class is currently only used the ResolvedPackage and the rex command language
+# but it would be great to merge its functionality into the Version class
+class VersionString(str):
+	"""
+	Provide access to version parts and perform common reformatting
+	"""
+	LABELS = {'major': 1,
+			  'minor': 2,
+			  'patch': 3}
+
+	@property
+	def major(self):
+		return self.part(self.LABELS['major'])
+
+	@property
+	def minor(self):
+		return self.part(self.LABELS['minor'])
+
+	@property
+	def patch(self):
+		return self.part(self.LABELS['patch'])
+
+	def part(self, num):
+		num = int(num)
+		if num == 0:
+			print "warning: version.part() got index 0: converting to 1"
+			num = 1
+		try:
+			return self.split('.')[num - 1]
+		except IndexError:
+			return ''
+
+	def thru(self, num):
+		try:
+			num = int(num)
+		except ValueError:
+			if isinstance(num, basestring):
+				try:
+					num = self.LABELS[num]
+				except KeyError:
+					# allow to specify '3' as 'x.x.x'
+					num = len(num.split('.'))
+			else:
+				raise
+		if num == 0:
+			print "warning: version.thru() got index 0: converting to 1"
+			num = 1
+		try:
+			return '.'.join(self.split('.')[:num])
+		except IndexError:
+			return ''
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
