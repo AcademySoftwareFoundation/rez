@@ -8,6 +8,7 @@ import textwrap
 import re
 from collections import defaultdict
 from rez_util import to_posixpath
+import rez.versions as versions
 
 _configs = defaultdict(list)
 
@@ -34,7 +35,7 @@ class MetadataTypeError(MetadataError, TypeError):
         self.actual_type = actual_type
 
     def __str__(self):
-        return ("'%s': entry %s has incorrect data type: "
+        return ("'%s': entry %r has incorrect data type: "
                 "expected %s. got %s" % (self.filename, self.entry_id,
                                          self.expected_type.__name__,
                                          self.actual_type.__name__))
@@ -46,7 +47,7 @@ class MetadataValueError(MetadataError, ValueError):
         self.value = value
 
     def __str__(self):
-        return ("'%s': entry %s has invalid value: %r" % (self.filename,
+        return ("'%s': entry %r has invalid value: %r" % (self.filename,
                                                           self.entry_id,
                                                           self.value))
 
@@ -86,6 +87,12 @@ class AttrDictYamlLoader(yaml.Loader):
         yield data
         value = self.construct_mapping(node)
         data.update(value)
+
+def version_constructor(loader, node):
+    value = loader.construct_scalar(node)
+    return versions.Version(str(value))
+
+yaml.add_constructor(u'!ver', version_constructor)
 
 def _expand_pattern(pattern):
     "expand variables in a search pattern with regular expressions"
@@ -242,8 +249,17 @@ class Metadata(object):
         """
         check a node against the reference node. checks type and existence.
         """
-        if node is not None and type(node) != type(refnode):
-            yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
+        if type(node) != type(refnode):
+            if node is None:
+                yield (id, None)
+            elif type(refnode).__module__ != '__builtin__':
+                # refnode requested a custom type. we use this opportunity to attempt
+                # to cast node to this type. 
+                try:
+                    type(refnode)(node)
+                    yield (id, None)
+                except:
+                    yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
         else:
             if isinstance(refnode, dict):
                 for key in refnode:
@@ -319,7 +335,7 @@ class BasePackageConfig_0(Metadata):
         config_version : 0
         uuid : str
         description : str
-        version : str
+        version : !ver 1.2
         name : str
         help : str
         authors : [str]
@@ -336,12 +352,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
     REQUIRED = ('config_version', 'name', 'version')
 
     def validate(self, metadata):
-        # versions that look like floats will raise an error.
-        # should we require these to be quoted in the yaml file?
-        if 'version' in metadata:
-            metadata['version'] = str(metadata['version'])
         Metadata.validate(self, metadata)
-        import versions
         if not re.match(versions.EXACT_VERSION_REGSTR + '$', metadata['version']):
             raise MetadataValueError(self.filename, 'version', metadata['version'])
 
