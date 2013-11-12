@@ -180,12 +180,7 @@ class Version(object):
 		
 		accepts a Version instance or a version ge.
 		"""
-		# allow a ge to be passed directly
-		if isinstance(version, Version):
-			ge = version.ge
-		else:
-			ge = version
-		return (ge >= self.ge) and (ge < self.lt)
+		return (version.ge >= self.ge) and (version.lt <= self.lt)
 
 	def get_union(self, ver):
 		"""
