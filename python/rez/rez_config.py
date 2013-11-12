@@ -105,7 +105,7 @@ class PackageRequest(object):
 				timestamp=timestamp)
 
 			if pkg:
-				self.version_range = VersionRange(_versions=[pkg.version])
+				self.version_range = VersionRange([pkg.version])
 			else:
 				raise PkgsUnresolvedError([PackageRequest(name, version_range)])
 

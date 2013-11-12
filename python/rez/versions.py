@@ -266,21 +266,24 @@ class VersionRange(object):
 	(eg '10.5+|10.5.2'), these will be resolved at initialization.
 	"""
 
-	def __init__(self, v="", _versions=None):
-		if _versions:
-			self.versions = [x.copy() for x in _versions]
-		else:
+	def __init__(self, version):
+		if isinstance(version, (list, tuple)):
+			self.versions = tuple(sorted(version))
+		elif isinstance(version, Version):
+			self.versions = (version,)
+		elif isinstance(version, VersionRange):
+			self.versions = version.versions
+		elif isinstance(version, basestring):
 			# just make sure it's a string, because sometimes we pass in a Version instance
-			version_str = str(v)
-			version_strs = version_str.split("|")
-			versions = []
-			for vstr in version_strs:
-				versions.append(Version(vstr))
-
-			self.versions = get_versions_union(versions)
+			versions = [Version(v) for v in version.split("|")]
+			self.versions = tuple(get_versions_union(versions))
+		else:
+			raise VersionError("Version range must be initialized with string, "
+							   "list, tuple, or Version instance. got %s" % type(version).__name__)
 
 	def copy(self):
-		return VersionRange(_versions=self.versions)
+		# is immutable, no need to copy
+		return self
 
 	def contains_version(self, version):
 		"""
@@ -310,7 +313,7 @@ class VersionRange(object):
 		get union
 		"""
 		union = get_versions_union(self.versions + vers.versions)
-		return VersionRange(_versions=sorted(union))
+		return VersionRange(union)
 
 	def get_intersection(self, vers):
 		"""
@@ -326,7 +329,7 @@ class VersionRange(object):
 		if (len(vers_int) == 0):
 			return None
 		else:
-			return VersionRange(_versions=sorted(vers_int))
+			return VersionRange(vers_int)
 
 	def get_inverse(self):
 		"""
@@ -334,7 +337,7 @@ class VersionRange(object):
 		"""
 		# inverse of any is none
 		if self.is_any():
-			return VersionRange(_versons=[])
+			return VersionRange([])
 
 		# the inverse of none is any
 		if self.is_none():
@@ -370,7 +373,7 @@ class VersionRange(object):
 				if vers_inv[0].lt == vers_inv[0].ge:
 					vers_inv.pop(0)
 
-		return VersionRange(_versions=vers_inv)
+		return VersionRange(vers_inv)
 
 	def is_greater_no_overlap(self, ver):
 		"""
@@ -435,17 +438,18 @@ class VersionRange(object):
 		return self.contains_version(version)
 
 def get_versions_union(versions):
+	"""Returns a sorted list of Version instances"""
 	nvers = len(versions)
 	if nvers == 0:
 		return []
 	elif nvers == 1:
-		return [x.copy() for x in versions]
+		return list(versions)
 	elif nvers == 2:
 		return versions[0].get_union(versions[1])
 	else:
 		new_versions = []
 		idx = 1
-		versions_tmp = sorted([x.copy() for x in versions])
+		versions_tmp = sorted(versions)
 		for ver1 in versions_tmp:
 			overlap = False
 			for ver2 in versions_tmp[idx:]:
@@ -457,7 +461,7 @@ def get_versions_union(versions):
 			if not overlap:
 				new_versions.append(ver1)
 			idx += 1
-		return new_versions
+		return sorted(new_versions)
 
 
 # This class is currently only used the ResolvedPackage and the rex command language
