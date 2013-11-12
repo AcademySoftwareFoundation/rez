@@ -1716,11 +1716,12 @@ class _Configuration(object):
 							v_l = Version(pkg_req_l.version)
 							if(not v_e.ge < v_l.lt):
 								continue
-							v = Version()
-							v.ge = v_e.ge
-							v.lt = v_l.lt
-							if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
-								v.ge = [0]
+							ge = v_e.ge
+							lt = v_l.lt
+							if (ge == Version.NEG_INF) and (lt != Version.INF):
+								v = Version([Version.ZERO, lt])
+							else:
+								v = Version([ge, lt])
 							pkg_req = PackageRequest(pkg_req_e.name, str(v))
 
 						if not config2:
@@ -1759,12 +1760,13 @@ class _Configuration(object):
 			if (common_pkg_fams != None):
 				for pkg_fam in common_pkg_fams:
 					ver_range = VersionRange(str("|").join(pkg_vers[pkg_fam]))
-					v = Version()
 					if len(ver_range.versions) > 0:
-						v.ge = ver_range.versions[0].ge
-						v.lt = ver_range.versions[-1].lt
-						if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
-							v.ge = [0]
+						ge = ver_range.versions[0].ge
+						lt = ver_range.versions[-1].lt
+						if (ge == Version.NEG_INF) and (lt != Version.INF):
+							v = Version([Version.ZERO, lt])
+						else:
+							v = Version([ge, lt])
 
 						pkg_req = PackageRequest(pkg_fam, str(v))
 

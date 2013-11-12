@@ -16,11 +16,64 @@ this is true depends on context - for example the version '10.5' may represent a
 in one case, but may represent the superset of all versions '10.5.x' in another.
 """
 
-import re
-
 # can't be zero padded
-VERSION_COMPONENT_REGSTR = '([0-9a-z]|[1-9][0-9]+)'
+VERSION_COMPONENT_REGSTR = '(?:[0-9a-z]|[1-9][0-9]+)'
 EXACT_VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
+
+def is_character(tok):
+	"""
+	tests whether a string is a single lowercase character
+	"""
+	return len(tok) == 1 and tok.islower()
+
+def to_component(tok, version_str):
+	if len(tok) == 0:
+		raise VersionError("Version string resulted in empty token: '%s'" % version_str)
+
+	if (tok[0] == '0') and (tok != '0'):  # zero-padding is not allowed, eg '03'
+		raise VersionError("Version components cannot have padding: '%s' (%s')" % (tok, version_str))
+
+	try:
+		i = int(tok)
+		if i < 0:
+			raise VersionError("Version components cannot be negative: '%s' (%s')" % (tok, version_str))
+		return i
+	except ValueError:
+		if is_character(tok):
+			return tok
+		else:
+			raise VersionError("Invalid version: '%s'" % version_str)
+
+def parse_exact_version(version):
+	"""
+	Parse an exact version into a tuple of component integers
+	"""
+	# FIXME: do we still need to support dash separators?
+	tokens = version.replace('-', '.').split('.')
+	return tuple(to_component(tok, version) for tok in tokens)
+
+def strip_trailing_zeros(bound):
+	bound = list(bound)
+	while (len(bound) > 1) and (bound[-1] == 0):
+		bound.pop()
+	return tuple(bound)
+
+def incr_component(comp):
+	"""
+	increment a number or single character by 1
+	"""
+	if isinstance(comp, int):
+		return comp + 1
+	elif isinstance(comp, basestring) and is_character(comp):
+		return chr(ord(comp) + 1)
+	else:
+		raise VersionError("Component must be an int or a single character: %r" % comp)
+
+def incr_bound(bound):
+	"""
+	increment the last component of a bound by 1
+	"""
+	return bound[:-1] + tuple([incr_component(bound[-1])])
 
 class VersionError(Exception):
 	"""
@@ -33,89 +86,77 @@ class VersionError(Exception):
 
 class Version(object):
 	"""
-	A version string. Note that disparate version ranges (separated with '|'s) are not supported -
-	use a VersionRange for this.
+	Interprets a version string representing a single contiguous range of versions.
+
+	For a union of disparate version ranges (separated with '|'s)
+	use a VersionRange.
 	"""
 
-	INF 	= [  999999 ]
-	NEG_INF = [ -999999 ]
-	valid_char = re.compile("^[a-z]$")
+	INF 	= (999999,)
+	NEG_INF = (-999999,)
+	ZERO	= (0,)
+	def __init__(self, version=None):
+		if isinstance(version, (list, tuple)):
+			self._ge = tuple(version[0])
+			self._lt = tuple(version[1])
+			assert len(self._ge)
+			assert len(self._lt)
 
-	def __init__(self, version_str=None, ge_lt=None):
-		if version_str:
+		elif version:
 			try:
-				version_str = str(version_str)
+				version = str(version)
 			except UnicodeEncodeError:
 				raise VersionError("Non-ASCII characters in version string")
 
-			rangepos = version_str.find("+<")
+			rangepos = version.find("+<")
 			if (rangepos == -1):
-				plus = version_str.endswith('+')
-				tokens = version_str.rstrip('+').replace('-', '.').split('.')
-				self.ge = []
-				for tok in tokens:
-					self.to_comp(tok, version_str)
+				plus = version.endswith('+')
+				tokens = version.rstrip('+').replace('-', '.').split('.')
+				self._ge = tuple([to_component(x, version) for x in tokens])
 
 				if plus:
-					self.lt = Version.INF
+					self._lt = Version.INF
 				else:
-					self.lt = self.get_ge_plus_one()
+					self._lt = self.get_ge_plus_one()
 
-				if len(self.ge) == 0:
-					self.ge = Version.NEG_INF
+				if len(self._ge) == 0:
+					self._ge = Version.NEG_INF
 
 			else:
-				v1 = Version(version_str[:rangepos])
-				v2 = Version(version_str[rangepos+2:])
-				self.ge = v1.ge
-				self.lt = v2.ge
+				v1 = Version(version[:rangepos])
+				v2 = Version(version[rangepos+2:])
+				self._ge = v1.ge
+				self._lt = v2.ge
 
 				# remove trailing zeros on lt bound (think: 'A < 1.0.0' == 'A < 1')
 				# this also makes this version invalid: '1+<1.0.0'
-				while (len(self.lt) > 1) and (self.lt[-1] == 0):
-					self.lt.pop()
+				self._lt = strip_trailing_zeros(self._lt)
 
-				if self.lt <= self.ge:
-					raise VersionError("lt<=ge: "+version_str)
-		elif ge_lt:
-			self.ge = ge_lt[0][:]
-			self.lt = ge_lt[1][:]
+				if self._lt <= self._ge:
+					raise VersionError("lt<=ge: "+version)
 		else:
-			self.ge = Version.NEG_INF
-			self.lt = Version.INF
+			# empty string or none results in an unbounded version
+			self._ge = Version.NEG_INF
+			self._lt = Version.INF
+
+	@property
+	def ge(self):
+		return self._ge
+
+	@property
+	def lt(self):
+		return self._lt
 
 	def copy(self):
-		return Version(ge_lt=(self.ge, self.lt))
-
-	def to_comp(self, tok, version_str):
-		if len(tok) == 0:
-			raise VersionError(version_str)
-
-		if (tok[0] == '0') and (tok != '0'):  # zero-padding is not allowed, eg '03'
-			raise VersionError(version_str)
-
-		try:
-			i = int(tok)
-			if i < 0:
-				raise VersionError("Can't have negative components: "+version_str)
-			self.ge.append(i)
-		except ValueError:
-			if self.is_tok_single_letter(tok):
-				self.ge.append(tok)
-			else:
-				raise VersionError("Invalid version '%s'" % version_str)
-
-	def is_tok_single_letter(self, tok):
-		return Version.valid_char.match(tok) is not None
+		# Version is immutable. no need to copy
+		return self
 
 	def get_ge_plus_one(self):
 		if len(self.ge) == 0:
 			return Version.INF
 		if self.ge == Version.NEG_INF:
 			return Version.INF
-		v = self.ge[:]
-		v.append(self.inc_comp(v.pop()))
-		return v
+		return incr_bound(self.ge)
 
 	def is_inexact(self):
 		"""
@@ -136,15 +177,6 @@ class Version(object):
 		"""
 		return self.ge == Version.NEG_INF and self.lt == Version.INF
 
-	def inc_comp(self,comp):
-		"""
-		increment a number or single character by 1
-		"""
-		if type(comp) == type(1):
-			return comp + 1
-		else:
-			return chr(ord(comp) + 1)
-
 	def contains_version(self, version):
 		"""
 		Returns True if the exact version (eg 1.0.0) is contained within this range.
@@ -164,10 +196,10 @@ class Version(object):
 		The result may be more than one version, so a version list is returned.
 		"""
 		if self.ge >= ver.lt or self.lt <= ver.ge:
-			return [ self.copy(), ver.copy() ]
-		v = Version('')
-		v.ge = min( [self.ge, ver.ge] )[:]
-		v.lt = max( [self.lt, ver.lt] )[:]
+			return sorted([self, ver])
+		# FIXME: if the lt of the new Version is not INF, should we set ge to ZERO?
+		v = Version([min(self.ge, ver.ge),
+			         max(self.lt, ver.lt)])
 		return [v]
 
 	def get_intersection(self, ver):
@@ -178,16 +210,15 @@ class Version(object):
 		if ver.ge >= self.lt or ver.lt <= self.ge:
 			return None
 
-		ver_int = Version('')
 		if ver.ge > self.ge:
-			ver_int.ge = ver.ge[:]
+			ge = ver.ge
 		else:
-			ver_int.ge = self.ge[:]
+			ge = self.ge
 		if ver.lt < self.lt:
-			ver_int.lt = ver.lt[:]
+			lt = ver.lt
 		else:
-			ver_int.lt = self.lt[:]
-		return ver_int
+			vlt = self.lt
+		return Version([ge, lt])
 
 	def __str__(self):
 		def get_str(parts):
@@ -212,7 +243,10 @@ class Version(object):
 		bounds are the same, the lt bounds are then tested, and A is < B if its
 		lt bound is < B's.
 		"""
-		return self.lt < ver.lt if self.ge == ver.ge else self.ge < ver.ge
+		if self.ge == ver.ge:
+			return self.lt < ver.lt
+		else:
+			return self.ge < ver.ge
 
 	def __eq__(self, ver):
 		return self.ge == ver.ge and self.lt == ver.lt
@@ -275,77 +309,68 @@ class VersionRange(object):
 		"""
 		get union
 		"""
-		vers_union = VersionRange('')
-		vers_union.versions = get_versions_union(self.versions + vers.versions)
-		vers_union.versions.sort()
-		return vers_union
+		union = get_versions_union(self.versions + vers.versions)
+		return VersionRange(_versions=sorted(union))
 
 	def get_intersection(self, vers):
 		"""
 		get intersection, return None if there are no intersections
 		"""
-		vers_int = VersionRange('')
-		vers_int.versions = []
+		vers_int = []
 		for ver in self.versions:
 			for ver2 in vers.versions:
 				vint = ver.get_intersection(ver2)
 				if vint:
-					vers_int.versions.append(vint)
+					vers_int.append(vint)
 
-		if (len(vers_int.versions) == 0):
+		if (len(vers_int) == 0):
 			return None
 		else:
-			vers_int.versions.sort()
-			return vers_int
+			return VersionRange(_versions=sorted(vers_int))
 
 	def get_inverse(self):
 		"""
 		get the inverse of this version range
 		"""
+		# inverse of any is none
 		if self.is_any():
-			vers_none = VersionRange('')
-			vers_none.versions = []
-			return vers_none
+			return VersionRange(_versons=[])
 
 		# the inverse of none is any
 		if self.is_none():
 			return VersionRange('')
 
 		# inverse is the ranges between existing ranges
-		vers_inv = VersionRange('')
-		vers_inv.versions = []
+		vers_inv = []
 
-		ver_front = Version("")
-		ver_front.ge = Version.NEG_INF
-		ver_front.lt = [Version.NEG_INF[0] + 1]
-		ver_back = Version("")
-		ver_back.ge = Version.INF
-		ver_back.lt = [Version.INF[0] + 1]
+		ver_front = Version([Version.NEG_INF,
+							 incr_bound(Version.NEG_INF)])
 
-		vers = [ver_front] + self.versions + [ver_back]
+		ver_back = Version([Version.INF,
+							incr_bound(Version.INF)])
+
+		vers = [ver_front] + list(self.versions) + [ver_back]
 		for i in range(0, len(vers)-1):
 			v0 = vers[i]
 			v1 = vers[i+1]
 			if v0.lt < v1.ge:
-				v = Version("")
-				v.ge, v.lt = v0.lt, v1.ge
-				vers_inv.versions.append(v)
+				v = Version([v0.lt, v1.ge])
+				vers_inv.append(v)
 
-		if len(vers_inv.versions) > 0:
+		if len(vers_inv) > 0:
 			# clamp ge limits back to zero
-			if vers_inv.versions[0].lt <= [0]:
-				vers_inv.versions = vers_inv.versions[1:]
+			if vers_inv[0].lt <= Version.ZERO:
+				vers_inv = vers_inv[1:]
 
-			if len(vers_inv.versions) > 0 and vers_inv.versions[0].ge < [0]:
-				vers_inv.versions[0].ge = [0]
+			if len(vers_inv) > 0 and vers_inv[0].ge < Version.ZERO:
+				vers_inv[0] = Version([Version.ZERO,
+									   strip_trailing_zeros(vers_inv[0].lt)])
 				# we may get something like this when clamping: 0+<0.0, which
 				# is not valid, so detect it and remove it
-				while (len(vers_inv.versions[0].lt) > 1) and (vers_inv.versions[0].lt[-1] == 0):
-					vers_inv.versions[0].lt.pop()
-				if vers_inv.versions[0].lt == vers_inv.versions[0].ge:
-					vers_inv.versions.pop(0)
+				if vers_inv[0].lt == vers_inv[0].ge:
+					vers_inv.pop(0)
 
-		return vers_inv
+		return VersionRange(_versions=vers_inv)
 
 	def is_greater_no_overlap(self, ver):
 		"""
@@ -433,6 +458,7 @@ def get_versions_union(versions):
 				new_versions.append(ver1)
 			idx += 1
 		return new_versions
+
 
 # This class is currently only used the ResolvedPackage and the rex command language
 # but it would be great to merge its functionality into the Version class

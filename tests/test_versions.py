@@ -15,9 +15,9 @@ class TestVersion(object):
     INVALID = ['1.02',  # padded
                '3.5+<',  # missing upper bound
                '3.5+4',  # invalid
-                '4.0+<3',  # upper bound is lower than lower bound
-                '1+<1.0',  # upper bound is lower than lower bound (somewhat confusing case)
-                ]
+               '4.0+<3',  # upper bound is lower than lower bound
+               '1+<1.0',  # upper bound is lower than lower bound (somewhat confusing case)
+               ]
 
     def valid_init(self, s):
         Version(s)
@@ -29,19 +29,19 @@ class TestVersion(object):
     def test_valid_init(self):
         for s in self.VALID:
             yield self.valid_init, s
-    
+
     def test_invalid_init(self):
         for s in self.INVALID:
             yield self.invalid_init, s
-    
+
     def test_comparision(self):
         assert Version('1.0') < Version('1.1')
         assert Version('1') < Version('1.0')
         assert Version('0') < Version('1')
-    
+
         assert Version('1.1') > Version('1.0')
         assert Version('1.0') > Version('1')
-    
+
         assert (Version('1.2') < Version('1.0+')) is False
         # FIXME: shouldn't > test upper bounds?
         assert Version('1.2') > Version('1.0+')
@@ -52,16 +52,15 @@ class TestVersion(object):
         assert Version('') < Version('1')
         # FIXME: shouldn't > test upper bounds?
         assert (Version('') > Version('1')) is False
-    
+
     def test_contains(self):
         assert Version('1.0') in Version('1')
         assert Version('1') in Version('1')
-    
+
         assert Version('1') not in Version('1.0')
         assert Version('1.2') in Version('1.0+')
-    
-        # FIXME: this should almost certainly be False
-        assert Version('1.0+') in Version('1.0')
+
+        assert Version('1.0+') not in Version('1.0')
 
 class TestVersionRange(object):
     VALID = ['1|2', '1+<1.5|2.1', '1.0|2+<3.0']
@@ -85,7 +84,10 @@ class TestVersionRange(object):
         # invalid version strings should be invalid for ranges too
         for s in TestVersion.INVALID:
             yield self.invalid_init, s
-    
+
+    def test_comparision(self):
+        assert VersionRange('1|2') == VersionRange('2|1')
+
     def test_contains(self):
         # overlapping
         assert Version('3.0') in VersionRange('2.0|1+<4')
