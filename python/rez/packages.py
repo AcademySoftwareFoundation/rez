@@ -49,19 +49,61 @@ def iter_package_families(name=None, paths=None):
             for family_name, family_path in get_family_paths(pkg_path):
                 yield PackageFamily(family_name, family_path)
 
-def iter_version_packages(name=None, paths=None):
-    """
-    Iterate through all packages
-    """
-    for pkg_fam in iter_package_families(name, paths):
-        for pkg in pkg_fam.iter_version_pacakges():
-            yield pkg
-
 def package_family(name, paths=None):
     """
     Return the first `FamilyPackage` found on the search path.
     """
     result = iter_package_families(name, paths)
+    try:
+        # return first item in generator
+        return next(result)
+    except StopIteration:
+        return None
+
+def iter_packages(name=None, paths=None):
+    """
+    Iterate through all packages
+    """
+    for pkg_fam in iter_package_families(name, paths):
+        for pkg in pkg_fam.iter_version_packages():
+            yield pkg
+
+def iter_packages_in_range(family_name, ver_range, latest=True, exact=False,
+                           paths=None, timestamp=0):
+    """
+    Given a family name and a `VersionRange`, return (resolved
+    `Version`, base path, epoch), or (None, None, None) if no matches are found.
+
+    If two versions in two different paths are the same, then the package in
+    the first path is returned in preference.
+    """
+    # store the generator. no paths have been walked yet
+    results = iter_packages(family_name, paths)
+
+    if timestamp:
+        results = [x for x in results if x.timestamp <= timestamp]
+    # sort
+    if latest:
+        results = sorted(results, key=lambda x: x.version, reverse=True)
+    else:
+        results = sorted(results, key=lambda x: x.version, reverse=False)
+
+    # find the best match, skipping dupes
+    done = set()
+    for result in results:
+        if result.version in done:
+            continue
+        if ver_range.matches_version(result.version, allow_inexact=not exact):
+            done.add(result.version)
+            yield result
+
+def package_in_range(family_name, ver_range, latest=True, exact=False,
+                           paths=None, timestamp=0):
+    """
+    Return the first `Package` found on the search path.
+    """
+    result = iter_packages_in_range(family_name, ver_range, latest, exact,
+                                    paths, timestamp)
     try:
         # return first item in generator
         return next(result)

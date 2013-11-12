@@ -45,7 +45,7 @@ import yaml
 import sys
 import random
 import subprocess as sp
-from packages import ResolvedPackage, split_name, package_family
+from packages import ResolvedPackage, split_name, package_in_range, package_family
 from versions import *
 from public_enums import *
 from rez_exceptions import *
@@ -99,10 +99,8 @@ class PackageRequest(object):
 			if self.is_anti():
 				name_ = name[1:]
 
-			pkg = package_family(name_).version_package(
-				self.version_range,
-				latest=latest,
-				timestamp=timestamp)
+			pkg = package_in_range(name_, self.version_range, latest=latest,
+								   timestamp=timestamp)
 
 			if pkg:
 				self.version_range = VersionRange(_versions=[pkg.version])
@@ -589,9 +587,7 @@ def get_pkg(pkg_str):
 	# TODO: prevent anti and weak package strings?
 	name, verrange, latest = parse_pkg_req_str(pkg_str)
 	latest = True if latest is None else latest
-	pkg = package_family(name).version_package(
-		VersionRange(verrange),
-		latest)
+	pkg = package_in_range(name, VersionRange(verrange), latest)
 	if not pkg:
 		raise PkgNotFoundError(pkg_str)
 
@@ -777,10 +773,9 @@ class _Package(object):
 			return None
 
 	def get_package(self, latest=True, exact=False, timestamp=0):
-		return package_family(self.name).version_package(
-			self.version_range,
-			timestamp=timestamp,
-			latest=latest, exact=exact)
+		return package_in_range(self.name, self.version_range,
+								timestamp=timestamp,
+								latest=latest, exact=exact)
 
 	def resolve_metafile(self, timestamp=0):
 		"""
