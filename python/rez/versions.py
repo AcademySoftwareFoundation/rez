@@ -221,7 +221,9 @@ class Version(object):
 		return self.__lt__(ver) or self.__eq__(ver)
 
 	def __contains__(self, version):
-		return self.contains_version(Version(version))
+		if isinstance(version, basestring):
+			version = Version(version)
+		return self.contains_version(version)
 
 class VersionRange(object):
 	"""
@@ -295,7 +297,6 @@ class VersionRange(object):
 		else:
 			vers_int.versions.sort()
 			return vers_int
-
 
 	def get_inverse(self):
 		"""
@@ -402,6 +403,11 @@ class VersionRange(object):
 		inequality test
 		"""
 		return not self == ver
+
+	def __contains__(self, version):
+		if isinstance(version, basestring):
+			version = Version(version)
+		return self.contains_version(version)
 
 def get_versions_union(versions):
 	nvers = len(versions)
