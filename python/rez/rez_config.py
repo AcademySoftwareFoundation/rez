@@ -708,7 +708,7 @@ class _Package(object):
 		Return this package as a package-request
 		"""
 		# FIXME: should we pass the memcache too?
-		return PackageRequest(self.name, str(self.version_range))
+		return PackageRequest(self.name, self.version_range)
 
 	def is_anti(self):
 		"""
@@ -1259,7 +1259,7 @@ class _Configuration(object):
 					# resolve package to as closely desired as possible
 					try:
 						pkg_req_ = PackageRequest(pkg.name,
-												  str(ver_range_valid),
+												  ver_range_valid,
 												  self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
 												  self.rctxt.time_epoch)
 					except PkgsUnresolvedError, e:
@@ -1722,7 +1722,7 @@ class _Configuration(object):
 								v = Version([Version.ZERO, lt])
 							else:
 								v = Version([ge, lt])
-							pkg_req = PackageRequest(pkg_req_e.name, str(v))
+							pkg_req = PackageRequest(pkg_req_e.name, v)
 
 						if not config2:
 							config2 = self.copy()
@@ -1762,7 +1762,7 @@ class _Configuration(object):
 					ver_range = VersionRange(pkg_vers[pkg_fam])
 					v = ver_range.get_span()
 					if v:
-						pkg_req = PackageRequest(pkg_fam, str(v))
+						pkg_req = PackageRequest(pkg_fam, v)
 
 						if not config2:
 							config2 = self.copy()
@@ -2009,7 +2009,7 @@ def pkg_to_pkg_req(pkg):
 	"""
 	Helper fn to convert a _Package to a PackageRequest
 	"""
-	return PackageRequest(pkg.name, str(pkg.version_range))
+	return PackageRequest(pkg.name, pkg.version_range)
 
 
 # todo remove, this now in pkgReq constr
