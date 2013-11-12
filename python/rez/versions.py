@@ -194,6 +194,16 @@ class Version(object):
 			         max(self.lt, ver.lt)])
 		return [v]
 
+	def get_span(self, version):
+		""""
+		Return a single version spanning the low bound of the current version,
+		and the high bound of the passed version.
+		"""
+		if (self.ge == Version.NEG_INF) and (version.lt != Version.INF):
+			return Version([Version.ZERO, version.lt])
+		else:
+			return Version([self.ge, version.lt])
+
 	def get_intersection(self, ver):
 		"""
 		Return a new version representing the intersection between this and
@@ -260,7 +270,8 @@ class VersionRange(object):
 
 	def __init__(self, version):
 		if isinstance(version, (list, tuple)):
-			self.versions = tuple(sorted(version))
+			versions = [Version(v) for v in version]
+			self.versions = tuple(get_versions_union(versions))
 		elif isinstance(version, Version):
 			self.versions = (version,)
 		elif isinstance(version, VersionRange):
@@ -306,6 +317,14 @@ class VersionRange(object):
 		"""
 		union = get_versions_union(self.versions + vers.versions)
 		return VersionRange(union)
+
+	def get_span(self):
+		""""
+		Return a single version spanning the low and high versions of the range,
+		Or None if range contains no versions.
+		"""
+		if len(self.versions) > 0:
+			return self.versions[0].get_span(self.versions[-1])
 
 	def get_intersection(self, vers):
 		"""

@@ -1759,15 +1759,9 @@ class _Configuration(object):
 
 			if (common_pkg_fams != None):
 				for pkg_fam in common_pkg_fams:
-					ver_range = VersionRange(str("|").join(pkg_vers[pkg_fam]))
-					if len(ver_range.versions) > 0:
-						ge = ver_range.versions[0].ge
-						lt = ver_range.versions[-1].lt
-						if (ge == Version.NEG_INF) and (lt != Version.INF):
-							v = Version([Version.ZERO, lt])
-						else:
-							v = Version([ge, lt])
-
+					ver_range = VersionRange(pkg_vers[pkg_fam])
+					v = ver_range.get_span()
+					if v:
 						pkg_req = PackageRequest(pkg_fam, str(v))
 
 						if not config2:
