@@ -108,32 +108,33 @@ class Version(object):
 			except UnicodeEncodeError:
 				raise VersionError("Non-ASCII characters in version string")
 
-			rangepos = version.find("+<")
-			if (rangepos == -1):
+			parts = version.split("+<")
+			if len(parts) == 1:
 				plus = version.endswith('+')
-				tokens = version.rstrip('+').replace('-', '.').split('.')
-				self._ge = tuple([to_component(x, version) for x in tokens])
+				self._ge = parse_exact_version(version.rstrip('+'))
 
 				if plus:
+					# no upper bound
 					self._lt = Version.INF
 				else:
-					self._lt = self.get_ge_plus_one()
-
-				if len(self._ge) == 0:
-					self._ge = Version.NEG_INF
+					# upper bound is one higher than lower bound
+					# Note: we can be sure that self.ge is bounded here (not infinity),
+					# because empty version string routes elsewhere.
+					self._lt = incr_bound(self._ge)
 
 			else:
-				v1 = Version(version[:rangepos])
-				v2 = Version(version[rangepos+2:])
-				self._ge = v1.ge
-				self._lt = v2.ge
-
+				# lower bound is the lower bound of first version:
+				self._ge = parse_exact_version(parts[0])
+				# upper bound is the non-inclusive lower bound of second version:
 				# remove trailing zeros on lt bound (think: 'A < 1.0.0' == 'A < 1')
 				# this also makes this version invalid: '1+<1.0.0'
-				self._lt = strip_trailing_zeros(self._lt)
+				self._lt = strip_trailing_zeros(parse_exact_version(parts[1]))
 
-				if self._lt <= self._ge:
-					raise VersionError("lt<=ge: "+version)
+				if self.lt <= self.ge:
+					raise VersionError("Upper bound '%s' is less than or equal "
+									   "to lower bound '%s': '%s'" % (parts[0],
+																	   parts[1],
+																	   version))
 		else:
 			# empty string or none results in an unbounded version
 			self._ge = Version.NEG_INF
@@ -152,8 +153,6 @@ class Version(object):
 		return self
 
 	def get_ge_plus_one(self):
-		if len(self.ge) == 0:
-			return Version.INF
 		if self.ge == Version.NEG_INF:
 			return Version.INF
 		return incr_bound(self.ge)
@@ -167,8 +166,6 @@ class Version(object):
 		cannot know this without inspecting the package. Thus, the Version class
 		on its own can only know when it is inexact, and never when it is exact.
 		"""
-		if len(self.lt)==0 and len(self.ge)==0:
-			return True
 		return self.lt != self.get_ge_plus_one()
 
 	def is_any(self):
