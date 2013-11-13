@@ -41,11 +41,10 @@ then the following cases break the assumption:
 
 import os
 import time
-import yaml
 import sys
 import random
-import subprocess as sp
-from packages import ResolvedPackage, split_name, package_in_range, package_family
+import itertools
+from packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from versions import *
 from public_enums import *
 from rez_exceptions import *
@@ -84,7 +83,7 @@ class PackageRequest(object):
 		the value of 'latest': if True, the package with the latest version is
 		returned, otherwise, the earliest.
 	"""
-	def __init__(self, name, version_range, latest=None, timestamp=0):
+	def __init__(self, name, version_range, latest=True, timestamp=0):
 		self.name = name
 
 		self.version_range = VersionRange(version_range)
@@ -92,21 +91,8 @@ class PackageRequest(object):
 			# convert into an anti-package
 			self.version_range = self.version_range.get_inverse()
 			self.name = anti_name(self.name)
-
-		if latest is not None:
-			# goto filesystem and resolve version immediately
-			name_ = self.name
-			if self.is_anti():
-				name_ = name[1:]
-
-			pkg = package_in_range(name_, self.version_range, latest=latest,
-								   timestamp=timestamp)
-
-			if pkg:
-				self.version_range = VersionRange(_versions=[pkg.version])
-			else:
-				raise PkgsUnresolvedError([PackageRequest(name, version_range)])
-
+		self.timestamp = timestamp
+		self.latest = latest
 		self.version = str(self.version_range)
 
 	def is_anti(self):
@@ -376,8 +362,6 @@ class Resolver(object):
 		full_req_str = ' '.join([x.short_name() for x in pkg_reqs])
 
 		for pkg_req in pkg_reqs:
-			# FIXME: normalising should not be necessary because it's done in PackageReuest.__init__
-			normalise_pkg_req(pkg_req)
 			config.add_package(pkg_req)
 
 		for pkg_req in pkg_reqs:
@@ -555,6 +539,23 @@ def pkg_request(req, timestamp):
 		return req
 	return str_to_pkg_req(req, timestamp)
 
+# temp utility
+def _get_immediate_pkg_req(name, verrange, latest, timestamp):
+	if latest is not None:
+		# goto filesystem and resolve version immediately
+		name_ = name.lstrip('!')
+
+		pkg = package_in_range(name_, verrange, latest=latest,
+							   timestamp=timestamp)
+
+		if pkg is None:
+			raise PkgsUnresolvedError([PackageRequest(name, verrange)])
+
+		verrange = VersionRange(_versions=[pkg.version])
+	else:
+		latest = True
+	return PackageRequest(name, verrange, latest, timestamp)
+
 def str_to_pkg_req(pkg_str, timestamp):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
@@ -562,7 +563,7 @@ def str_to_pkg_req(pkg_str, timestamp):
 	that immediately resolves to earliest/latest version.
 	"""
 	name, verrange, latest = parse_pkg_req_str(pkg_str)
-	return PackageRequest(name, verrange, latest, timestamp)
+	return _get_immediate_pkg_req(name, verrange, latest, timestamp)
 
 def anti_name(pkg):
 	"""
@@ -668,12 +669,17 @@ class _Package(object):
 		if pkg_req:
 			self.name = pkg_req.name
 			self.version_range = pkg_req.version_range
-
+			self.pkg_req = pkg_req
+			self.pkg_iter = iter_packages_in_range(self.name, self.version_range,
+												   self.pkg_req.latest,
+												   self.pkg_req.timestamp)
 			if not self.is_anti() and not package_family(self.name):
 				raise PkgFamilyNotFoundError(self.name)
 		else:
 			self.name = None
 			self.version_range = None
+			self.pkg_req = None
+			self.pkg_iter = None
 
 	def copy(self, skip_version_range=False):
 		p = _Package(None)
@@ -684,7 +690,9 @@ class _Package(object):
 		p.root_path = self.root_path
 		p.metadata = self.metadata
 		p.timestamp = self.timestamp
-
+		p.pkg_req = self.pkg_req
+		# split the iterator
+		self.pkg_iter, p.pkg_iter = itertools.tee(self.pkg_iter)
 		if not skip_version_range:
 			p.version_range = self.version_range.copy()
 
@@ -692,6 +700,15 @@ class _Package(object):
 		if self.variants is not None:
 			p.variants = [x.copy() for x in self.variants]
 		return p
+
+	def next_request(self):
+		try:
+			pkg = next(self.pkg_iter)
+			return PackageRequest(pkg.name, pkg.version,
+								  self.pkg_req.latest,
+								  self.pkg_req.timestamp)
+		except StopIteration:
+			return None
 
 	def get_variants(self):
 		"""
@@ -703,8 +720,7 @@ class _Package(object):
 		"""
 		Return this package as a package-request
 		"""
-		# FIXME: should we pass the memcache too?
-		return PackageRequest(self.name, str(self.version_range))
+		return self.pkg_req
 
 	def is_anti(self):
 		"""
@@ -1253,8 +1269,9 @@ class _Configuration(object):
 
 					# resolve package to as closely desired as possible
 					try:
-						pkg_req_ = PackageRequest(pkg.name,
-												  str(ver_range_valid),
+						# temp replacement for PackageRequest
+						pkg_req_ = _get_immediate_pkg_req(pkg.name,
+												  ver_range_valid,
 												  self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
 												  self.rctxt.time_epoch)
 					except PkgsUnresolvedError, e:
@@ -1274,6 +1291,7 @@ class _Configuration(object):
 							raise PkgNotFoundError(e.pkg_reqs[0])
 
 						if (self.uid == 0):
+							print "BREAK!"
 							# we're the topmost configuration, and there are no more packages to try -
 							# all possible configuration attempts have failed at this point
 							break
@@ -1291,6 +1309,11 @@ class _Configuration(object):
 							ver_range_valid = ver_range_valid.get_intersection(VersionRange(str(ver_inc) + '+'))
 					except VersionError:
 						ver_range_valid = None
+
+					print self.uid
+					print "orig:", pkg_req_.name, pkg_req_.version, `ver_range_valid`
+					test_pkg_req_ = pkg.next_request()
+					print "new: ", test_pkg_req_.name, test_pkg_req_.version
 
 					# create config copy, bit of fiddling though cause we want a proper guid
 					config2 =_Configuration(self.rctxt, True)
@@ -1892,7 +1915,6 @@ class _Configuration(object):
 						ored_pkgs_str = common_pkgname + '-' + '|'.join(pkgname_versions[common_pkgname])
 						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.time_epoch)
 
-						normalise_pkg_req(pkg_req_)
 						config2.add_package(pkg_req_, pkg)
 
 						for entry in pkgname_entries[common_pkgname]:
@@ -2002,26 +2024,6 @@ class _Configuration(object):
 ##############################################################################
 # Internal Functions
 ##############################################################################
-
-
-def pkg_to_pkg_req(pkg):
-	"""
-	Helper fn to convert a _Package to a PackageRequest
-	"""
-	return PackageRequest(pkg.name, str(pkg.version_range))
-
-
-# todo remove, this now in pkgReq constr
-def normalise_pkg_req(pkg_req):
-	"""
-	Helper fn to turn a PackageRequest into a regular representation. It is possible
-	to describe a package in a way that is not the same as it will end up in the
-	system. This is perfectly fine, but it can result in confusing dot-graphs. For
-	example, the package 'foo-1|1' is equivalent to 'foo-1'.
-	"""
-	version_range = VersionRange(pkg_req.version)
-	pkg_req.version = str(version_range)
-
 
 def process_commands(cmds):
 	"""
