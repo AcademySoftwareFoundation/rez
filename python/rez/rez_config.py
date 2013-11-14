@@ -165,7 +165,7 @@ class Resolver():
 	"""
 	Where all the action happens. This class performs a package resolve.
 	"""
-	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0, \
+	def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
 		build_requires=False, assume_dt=False, caching=True):
 		"""
 		resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
@@ -193,7 +193,7 @@ class Resolver():
 	def get_memcache(self):
 		return self.rctxt.memcache
 
-	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
 		"""
 		Just a wrapper for resolve() which does some command-line friendly stuff and has some 
@@ -201,8 +201,7 @@ class Resolver():
 		@return None on failure, same as resolve() otherwise.
 		"""
 		try:
-			pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache) for x in pkg_req_strs]
-			result = self.resolve(pkg_reqs, no_os, no_path_append, is_wrapper, \
+			result = self.resolve(pkg_req_strs, no_os, no_path_append, is_wrapper, \
 				meta_vars, shallow_meta_vars)
 
 		except PkgSystemError, e:
@@ -289,7 +288,7 @@ class Resolver():
 
 		return result
 
-	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False, \
+	def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
 		meta_vars=None, shallow_meta_vars=None):
 		"""
 		Perform a package resolve.
@@ -311,6 +310,7 @@ class Resolver():
 		-OR-
 		raise the relevant exception, if config resolution is not possible
 		"""
+		pkg_reqs = [str_to_pkg_req(x, self.rctxt.memcache) for x in pkg_reqs]
 		if not no_os:
 			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg)
 			pkg_reqs = [os_pkg_req] + pkg_reqs
@@ -366,7 +366,8 @@ class Resolver():
 							target[key] = []
 						target[key].append(pkg_res.name + ':' + val)
 
-			_add_meta_vars(meta_vars, meta_envvars)
+			if meta_vars:
+				_add_meta_vars(meta_vars, meta_envvars)
 
 			if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
 				_add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
@@ -502,7 +503,7 @@ class Resolver():
 		if not self.rctxt.memcache.mc:
 			return None
 
-		result, cache_timestamp = self.rctxt.memcache.get_resolve( \
+		result, cache_timestamp = self.rctxt.memcache.get_resolve(
 			rez_filesys._g_syspaths_nolocal, pkg_reqs)
 		
 		if not result:
@@ -546,6 +547,11 @@ class Resolver():
 # Public Functions
 ##############################################################################
 
+def to_pkg_req(str_or_pkg, memcache=None):
+	if isinstance(str_or_pkg, PackageRequest):
+		return str_or_pkg
+	return str_to_pkg_req(str_or_pkg, memcache)
+
 def str_to_pkg_req(str_, memcache=None):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a PackageRequest.
@@ -553,24 +559,23 @@ def str_to_pkg_req(str_, memcache=None):
 	that immediately resolves to earliest/latest version.
 	"""
 	latest = True
-	memcache2 = None
 	if str_.endswith("=l"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
-		memcache2 = memcache
 	elif str_.endswith("=e"):
 		if not memcache:
 			raise Exception("Need memcache to resolve '%s'" % str_)
 		latest = False
-		memcache2 = memcache
-
+	else:
+		# no need for memcache
+		memcache = None
 	str_ = str_.split('=')[0]
 	strs = str_.split('-', 1)
 	dim = len(strs)
 	if (dim == 1):
-		return PackageRequest(str_, "", memcache2, latest)
+		return PackageRequest(str_, "", memcache, latest)
 	elif (dim == 2):
-		return PackageRequest(strs[0], strs[1], memcache2, latest)
+		return PackageRequest(strs[0], strs[1], memcache, latest)
 	else:
 		raise PkgSystemError("Invalid package string '" + str_ + "'")
 
