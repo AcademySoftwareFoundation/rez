@@ -13,6 +13,7 @@ def check_basic_resolve(pkgs, assertions,
                         resolve_args={}):
     resolver = rez.rez_config.Resolver(**resolver_args)
     result = resolver.resolve(pkgs, **resolve_args)
+    # TODO: reset cached resolves
     assert_resolve_result(result, assertions)
 
 def assert_resolve_result(result, assertions):

@@ -285,13 +285,13 @@ class Resolver(object):
 		raise the relevant exception, if config resolution is not possible
 		"""
 		if not no_os:
-			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg, self.rctxt.time_epoch)
+			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 			pkg_reqs = [os_pkg_req] + pkg_reqs
 
 		if not pkg_reqs:
 			return ([], [], "digraph g{}", 0)
 
-		pkg_reqs = [pkg_request(x, self.rctxt.time_epoch) for x in pkg_reqs]
+		pkg_reqs = [pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST) for x in pkg_reqs]
 		# get the resolve, possibly read/write cache
 		result = self.get_cached_resolve(pkg_reqs)
 		if not result:
@@ -529,7 +529,7 @@ def parse_pkg_req_str(pkg_str):
 	name, verrange = split_name(pkg_str)
 	return name, verrange, latest
 
-def pkg_request(req, timestamp):
+def pkg_request(req, timestamp, latest=True):
 	"""
 	Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
 	Note that a version string ending in '=e','=l' will result in a package request
@@ -537,33 +537,28 @@ def pkg_request(req, timestamp):
 	"""
 	if isinstance(req, PackageRequest):
 		return req
-	return str_to_pkg_req(req, timestamp)
+	return str_to_pkg_req(req, timestamp, latest)
 
-# temp utility
-def _get_immediate_pkg_req(name, verrange, latest, timestamp):
-	if latest is not None:
+def str_to_pkg_req(pkg_str, timestamp, latest=True):
+	"""
+	Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
+	Note that a version string ending in '=e','=l' will result in a package request
+	that immediately resolves to earliest/latest version.
+	"""
+	name, verrange, latest_override = parse_pkg_req_str(pkg_str)
+	if latest_override is not None:
 		# goto filesystem and resolve version immediately
 		name_ = name.lstrip('!')
 
-		pkg = package_in_range(name_, verrange, latest=latest,
+		pkg = package_in_range(name_, verrange, latest=latest_override,
 							   timestamp=timestamp)
 
 		if pkg is None:
 			raise PkgsUnresolvedError([PackageRequest(name, verrange)])
 
 		verrange = VersionRange(_versions=[pkg.version])
-	else:
-		latest = True
+		latest = latest_override
 	return PackageRequest(name, verrange, latest, timestamp)
-
-def str_to_pkg_req(pkg_str, timestamp):
-	"""
-	Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
-	Note that a version string ending in '=e','=l' will result in a package request
-	that immediately resolves to earliest/latest version.
-	"""
-	name, verrange, latest = parse_pkg_req_str(pkg_str)
-	return _get_immediate_pkg_req(name, verrange, latest, timestamp)
 
 def anti_name(pkg):
 	"""
@@ -629,7 +624,6 @@ class _ResolvingContext(object):
 		self.quiet = False
 		self.build_requires = False
 		self.assume_dt = False
-
 
 class _PackageVariant(object):
 	"""
@@ -1252,7 +1246,6 @@ class _Configuration(object):
 
 			else:
 
-				ver_range_valid = pkg.version_range
 				valid_config_found = False
 
 				# attempt to resolve a copy of the current config with this package resolved
@@ -1260,34 +1253,28 @@ class _Configuration(object):
 				# work down). The first config to resolve represents the most desirable. Note
 				# that resolve_packages will be called recursively
 				num_version_searches = 0
-				while (not (ver_range_valid == None)) and \
-		            ((self.rctxt.max_fails == -1) or \
+				while ((self.rctxt.max_fails == -1) or \
 		            	(len(self.rctxt.config_fail_list) <= self.rctxt.max_fails)):
 
 					num_version_searches += 1
 
 					# resolve package to as closely desired as possible
-					try:
-						# temp replacement for PackageRequest
-						pkg_req_ = _get_immediate_pkg_req(pkg.name,
-												  ver_range_valid,
-												  self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
-												  self.rctxt.time_epoch)
-					except PkgsUnresolvedError, e:
-
+					pkg_req_ = pkg.next_request()
+					if pkg_req_ is None:
+						# FIXME: don't have easy access to the sub-version-range that we failed on
 						if(num_version_searches == 1):
-							# this means that rather than running out of versions of this lib to try, there
-							# were never any versions found at all - which means this package doesn't exist
-							self.add_dot_graph_verbatim('"' + \
-								e.pkg_reqs[0].short_name() + ' NOT FOUND' + \
-								'" [style=filled fillcolor="orangered"] ;')
-							self.add_dot_graph_verbatim('"' + \
-								e.pkg_reqs[0].short_name() + '" -> "' + \
-								e.pkg_reqs[0].short_name() + ' NOT FOUND" ;')
-							self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
-
-							sys.stderr.write("Warning! Package not found: " + str(e.pkg_reqs[0]) + "\n")
-							raise PkgNotFoundError(e.pkg_reqs[0])
+# 							# this means that rather than running out of versions of this lib to try, there
+# 							# were never any versions found at all - which means this package doesn't exist
+# 							self.add_dot_graph_verbatim('"' + \
+# 								pkg_req_.short_name() + ' NOT FOUND' + \
+# 								'" [style=filled fillcolor="orangered"] ;')
+# 							self.add_dot_graph_verbatim('"' + \
+# 								pkg_req_.short_name() + '" -> "' + \
+# 								pkg_req_.short_name() + ' NOT FOUND" ;')
+# 							self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+# 
+# 							sys.stderr.write("Warning! Package not found: " + str(pkg_req_) + "\n")
+							raise PkgNotFoundError(pkg.as_package_request())
 
 						if (self.uid == 0):
 							print "BREAK!"
@@ -1295,31 +1282,14 @@ class _Configuration(object):
 							# all possible configuration attempts have failed at this point
 							break
 						else:
-							raise e
+							raise PkgsUnresolvedError([pkg.as_package_request()])
 
 					pkg_resolve_str = pkg.short_name() + " --> " + pkg_req_.short_name()
 
-					# restrict next package search to one version less desirable
-					try:
-						if (self.rctxt.resolve_mode == RESOLVE_MODE_LATEST):
-							ver_range_valid = ver_range_valid.get_intersection(VersionRange("0+<" + pkg_req_.version))
-						else:
-							ver_inc = Version(pkg_req_.version).get_inc()
-							ver_range_valid = ver_range_valid.get_intersection(VersionRange(str(ver_inc) + '+'))
-					except VersionError:
-						ver_range_valid = None
-
-					print self.uid
-					print "orig:", pkg_req_.name, pkg_req_.version, `ver_range_valid`
-					test_pkg_req_ = pkg.next_request()
-					print "new: ", test_pkg_req_.name, test_pkg_req_.version
-
 					# create config copy, bit of fiddling though cause we want a proper guid
-					config2 =_Configuration(self.rctxt, True)
-					guid_ = config2.uid
-
+					config2 =_Configuration(self.rctxt, inc_uid=True)
 					config2 = self.deep_copy()
-					config2.uid = guid_
+					config2.uid = config2.uid
 
 					if (self.rctxt.verbosity != 0):
 						print
@@ -1616,7 +1586,7 @@ class _Configuration(object):
 		"""
 		num = 0
 		for pkg_str in pkg_strs:
-			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch)
+			pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 			if pkg_req.name not in self.pkgs:
 				num += 1
 
@@ -1650,7 +1620,7 @@ class _Configuration(object):
 
 					if requires:
 						for pkg_str in requires:
-							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch)
+							pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 
 							if (self.rctxt.verbosity != 0):
 								print
@@ -1721,10 +1691,10 @@ class _Configuration(object):
 				if (pkg_str_e[0] == '!') or (pkg_str_e[0] == '~'):
 					continue
 
-				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.time_epoch)
+				pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 
 				for pkg_str_l in requires_l:
-					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.time_epoch)
+					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 					if (pkg_req_e.name == pkg_req_l.name):
 						pkg_req = pkg_req_e
 						if (pkg_req_e.version != pkg_req_l.version):
@@ -1738,7 +1708,9 @@ class _Configuration(object):
 							v.lt = v_l.lt
 							if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 								v.ge = [0]
-							pkg_req = PackageRequest(pkg_req_e.name, str(v))
+							pkg_req = PackageRequest(pkg_req_e.name, str(v),
+													 self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+													 self.rctxt.time_epoch)
 
 						if not config2:
 							config2 = self.copy()
@@ -1758,7 +1730,7 @@ class _Configuration(object):
 			for variant in (variants_e + variants_l):
 				comm_fams = set()
 				for pkgstr in variant:
-					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.time_epoch)
+					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 					comm_fams.add(pkgreq.name)
 					if pkgreq.name in pkg_vers:
 						pkg_vers[pkgreq.name].append(pkgreq.version)
@@ -1783,7 +1755,9 @@ class _Configuration(object):
 						if (v.ge == Version.NEG_INF) and (v.lt != Version.INF):
 							v.ge = [0]
 
-						pkg_req = PackageRequest(pkg_fam, str(v))
+						pkg_req = PackageRequest(pkg_fam, str(v),
+												 self.rctxt.resolve_mode==RESOLVE_MODE_LATEST,
+												 self.rctxt.time_epoch)
 
 						if not config2:
 							config2 = self.copy()
@@ -1817,7 +1791,7 @@ class _Configuration(object):
 				conflicting_variants = set()
 				for variant in variants:
 					for pkgstr in variant.metadata:
-						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.time_epoch)
+						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 						pkg_conflicting = self.get_conflicting_package(pkg_req_)
 						if pkg_conflicting:
 							pkg_req_conflicting = pkg_conflicting.as_package_request()
@@ -1892,7 +1866,7 @@ class _Configuration(object):
 					if (len(variant.working_list) > 0):
 						pkgname_set = set()
 						for pkgstr in variant.working_list:
-							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.time_epoch)
+							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 							pkgname_set.add(pkg_req.name)
 							if not (pkg_req.name in pkgname_versions):
 								pkgname_versions[pkg_req.name] = []
@@ -1912,7 +1886,7 @@ class _Configuration(object):
 					# and remove the packages from the variants' working lists
 					for common_pkgname in common_pkgnames:
 						ored_pkgs_str = common_pkgname + '-' + '|'.join(pkgname_versions[common_pkgname])
-						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.time_epoch)
+						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.time_epoch, self.rctxt.resolve_mode==RESOLVE_MODE_LATEST)
 
 						config2.add_package(pkg_req_, pkg)
 
