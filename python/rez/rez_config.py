@@ -1711,12 +1711,7 @@ class _Configuration(object):
 							v_l = Version(pkg_req_l.version)
 							if(not v_e.ge < v_l.lt):
 								continue
-							ge = v_e.ge
-							lt = v_l.lt
-							if (ge == Version.NEG_INF) and (lt != Version.INF):
-								v = Version([Version.ZERO, lt])
-							else:
-								v = Version([ge, lt])
+							v = v_e.get_span(v_l)
 							pkg_req = PackageRequest(pkg_req_e.name, v)
 
 						if not config2:
