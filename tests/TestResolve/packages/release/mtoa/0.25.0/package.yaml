@@ -1,0 +1,7 @@
+config_version: 0
+name: mtoa
+requires: [arnold-4.0.16]
+variants:
+- [maya-2014]
+- [maya-2013]
+version: 0.25.0

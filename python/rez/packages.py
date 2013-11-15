@@ -60,19 +60,24 @@ def package_family(name, paths=None):
     except StopIteration:
         return None
 
-def iter_packages(name=None, paths=None):
+def iter_packages(name=None, paths=None, skip_dupes=True):
     """
     Iterate through all packages
     """
+    done = set()
     for pkg_fam in iter_package_families(name, paths):
         for pkg in pkg_fam.iter_version_packages():
-            yield pkg
+            if skip_dupes:
+                if pkg.version not in done:
+                    done.add(pkg.version)
+                    yield pkg
+            else:
+                yield pkg
 
-def iter_packages_in_range(family_name, ver_range, latest=True, exact=False,
-                           paths=None, timestamp=0):
+def iter_packages_in_range(family_name, ver_range, latest=True, timestamp=0,
+                           exact=False, paths=None):
     """
-    Given a family name and a `VersionRange`, return (resolved
-    `Version`, base path, epoch), or (None, None, None) if no matches are found.
+    Given a family name and a `VersionRange`, iterate over `Package` instances.
 
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
@@ -89,21 +94,17 @@ def iter_packages_in_range(family_name, ver_range, latest=True, exact=False,
         results = sorted(results, key=lambda x: x.version, reverse=False)
 
     # find the best match, skipping dupes
-    done = set()
     for result in results:
-        if result.version in done:
-            continue
         if ver_range.matches_version(result.version, allow_inexact=not exact):
-            done.add(result.version)
             yield result
 
-def package_in_range(family_name, ver_range, latest=True, exact=False,
-                           paths=None, timestamp=0):
+def package_in_range(family_name, ver_range, latest=True, timestamp=0,
+                     exact=False, paths=None):
     """
     Return the first `Package` found on the search path.
     """
-    result = iter_packages_in_range(family_name, ver_range, latest, exact,
-                                    paths, timestamp)
+    result = iter_packages_in_range(family_name, ver_range, latest, timestamp,
+                                    exact, paths)
     try:
         # return first item in generator
         return next(result)
