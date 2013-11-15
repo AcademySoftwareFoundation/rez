@@ -622,6 +622,7 @@ class _ResolvingContext(object):
 		self.verbosity = 0
 		self.max_fails = -1
 		self.config_fail_list = []
+		self.config_uid = 0
 		self.last_fail_dot_graph = None
 		self.time_epoch = 0
 		self.quiet = False
@@ -837,8 +838,6 @@ class _Configuration(object):
 	"""
 	Internal configuration representation
 	"""
-	s_uid = 0
-
 	def __init__(self, rctxt, inc_uid = False):
 		# resolving context
 		self.rctxt = rctxt
@@ -850,8 +849,8 @@ class _Configuration(object):
 		self.dot_graph = []
 		# uid
 		if inc_uid:
-			_Configuration.s_uid += 1
-		self.uid = _Configuration.s_uid
+			rctxt.config_uid += 1
+		self.uid = rctxt.config_uid
 
 	def get_num_packages(self):
 		"""

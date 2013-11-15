@@ -76,9 +76,10 @@ class TestResolve(utils.RezTest):
     def test_failures(self):
         for ins, exc in [(['python-2.7', 'python-2.6'], PkgConflictError), # straight conflict
                          (['nuke-6'], PkgNotFoundError), # does not exist
-                         # I dont understand the practical difference between these:
+                         # I dont understand the practical difference between
+                         # PkgsUnresolvedError and PkgConfigNotResolvedError
                          (['maya-2014', 'nuke-7'], PkgConfigNotResolvedError),
-                         (['maya-2014', 'nuke-7+'], PkgsUnresolvedError),
+                         (['maya-2014', 'nuke-7+'], PkgConfigNotResolvedError),
                          ]:
             # `raises` is a decorator that returns a modified test function that
             # passes the test if the exception is raised
