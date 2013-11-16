@@ -507,7 +507,6 @@ class ExactVersion(Version):
 			self.version = str(version)
 		except UnicodeEncodeError:
 			raise VersionError("Non-ASCII characters in version string")
-		print "exact", `self.version`
 		if LABEL_VERSION_REG.match(self.version):
 			self._ge = Version.NEG_INF
 			self._lt = Version.NEG_INF

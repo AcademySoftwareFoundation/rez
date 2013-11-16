@@ -14,7 +14,7 @@ def check_basic_resolve(pkgs, assertions,
     resolver = rez.rez_config.Resolver(**resolver_args)
     result = resolver.resolve(pkgs, **resolve_args)
     # TODO: reset cached resolves
-    assert_resolve_result(result, assertions)
+    assert_resolve_result(result, [OS_PKG] + assertions)
 
 def assert_resolve_result(result, assertions):
     assert result is not None
@@ -26,16 +26,26 @@ def assert_resolve_result(result, assertions):
 class TestResolve(utils.RezTest):
     def setUp(self):
         self.cleanup()
-        self.make_release_package('Linux')
         # real world examples are so much easier to follow
-        self.make_local_package('python', '2.7.4')
-        self.make_release_package('python', '2.6.4')
-        self.make_release_package('python', '2.6.1')
-        self.make_release_package('maya', '2012', requires=['python-2.6'])
-        self.make_release_package('maya', '2013', requires=['python-2.6'])
-        self.make_release_package('maya', '2014', requires=['python-2.7'])
-        self.make_release_package('nuke', '7.1.2', requires=['python-2.6'])
-        self.make_release_package('arnold', '4.0.16.0', requires=['python'])
+        self.make_local_package('python', '2.7.4',
+                                variants=[['os-linux'],
+                                          ['os-darwin']])
+        self.make_release_package('python', '2.6.4',
+                                  variants=[['os-linux'],
+                                            ['os-darwin']])
+        self.make_release_package('python', '2.6.1',
+                                  variants=[['os-linux'],
+                                            ['os-darwin']])
+        self.make_release_package('maya', '2012',
+                                  requires=['python-2.6'])
+        self.make_release_package('maya', '2013',
+                                  requires=['python-2.6'])
+        self.make_release_package('maya', '2014',
+                                  requires=['python-2.7'])
+        self.make_release_package('nuke', '7.1.2',
+                                  requires=['python-2.6'])
+        self.make_release_package('arnold', '4.0.16.0',
+                                  requires=['python'])
         self.make_release_package('mtoa', '0.25.0',
                                   requires=['arnold-4.0.16'],
                                   variants=[['maya-2014'], ['maya-2013']]
@@ -46,35 +56,35 @@ class TestResolve(utils.RezTest):
     def test_latest(self):
         for ins, outs in [
                           (['python'],
-                           ['python-2.7.4', OS_PKG]),
+                           ['python-2.7.4']),
                           (['python-2.6'],
-                           ['python-2.6.4', OS_PKG]),
+                           ['python-2.6.4']),
                           (['maya'],
-                           ['python-2.7.4', 'maya-2014', OS_PKG]),
+                           ['python-2.7.4', 'maya-2014']),
                           (['maya', 'python-2.6'],
-                           ['python-2.6.4', 'maya-2013', OS_PKG]),
+                           ['python-2.6.4', 'maya-2013']),
                           (['maya', 'nuke-7'],
-                           ['python-2.6.4', 'nuke-7.1.2', 'maya-2013', OS_PKG]),
+                           ['python-2.6.4', 'nuke-7.1.2', 'maya-2013']),
                           (['nuke-7'],
-                           ['python-2.6.4', 'nuke-7.1.2', OS_PKG]),
+                           ['python-2.6.4', 'nuke-7.1.2']),
                           (['mtoa'],
-                           ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0', OS_PKG]),
-                          (['os-linux'],
-                           ['os-linux', OS_PKG])
+                           ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0']),
+                          ([OS_PKG],
+                           [])
                           ]:
             yield check_basic_resolve, ins, outs
 
     def test_earliest(self):
         for ins, outs in [(['python'],
-                           ['python-2.6.1', OS_PKG]),
+                           ['python-2.6.1']),
                           (['python-2.6'],
-                           ['python-2.6.1', OS_PKG]),
+                           ['python-2.6.1']),
                           (['maya'],
-                           ['python-2.6.1', 'maya-2012', OS_PKG]),
+                           ['python-2.6.1', 'maya-2012']),
                           (['maya', 'python-2.6'],
-                           ['python-2.6.1', 'maya-2012', OS_PKG]),
+                           ['python-2.6.1', 'maya-2012']),
                           (['maya', 'nuke'],
-                           ['python-2.6.1', 'nuke-7.1.2', 'maya-2012', OS_PKG]),
+                           ['python-2.6.1', 'nuke-7.1.2', 'maya-2012']),
                           ]:
             yield check_basic_resolve, ins, outs, dict(resolve_mode=RESOLVE_MODE_EARLIEST)
 
