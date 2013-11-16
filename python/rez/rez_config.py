@@ -85,8 +85,13 @@ class PackageRequest(object):
 	"""
 	def __init__(self, name, version_range, resolve_mode=None, timestamp=0):
 		self.name = name
-
-		self.version_range = VersionRange(version_range)
+		if isinstance(version_range, ExactVersion):
+			self.version_range = version_range
+		else:
+			try:
+				self.version_range = VersionRange(version_range)
+			except VersionError:
+				self.version_range = ExactVersionSet(version_range)
 		if self.is_weak():
 			# convert into an anti-package
 			self.version_range = self.version_range.get_inverse()
@@ -557,7 +562,7 @@ def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST):
 		if pkg is None:
 			raise PkgsUnresolvedError([PackageRequest(name, verrange)])
 
-		verrange = VersionRange(_versions=[pkg.version])
+		verrange = pkg.version
 		mode = mode_override
 	return PackageRequest(name, verrange, mode, timestamp)
 
@@ -576,22 +581,6 @@ def anti_name(pkg):
 	if name[0] == '~':
 		return '!' + name[1:]
 	return '!' + name
-
-def get_pkg(pkg_str):
-	"""
-	Return a `Package` instance for the given package string
-	"""
-	# TODO: prevent anti and weak package strings?
-	name, verrange, mode = parse_pkg_req_str(pkg_str)
-	if mode is None:
-		latest = True
-	else:
-		mode == RESOLVE_MODE_LATEST
-	pkg = package_in_range(name, VersionRange(verrange), latest)
-	if not pkg:
-		raise PkgNotFoundError(pkg_str)
-
-	return pkg
 
 def make_random_color_string():
 	cols = []

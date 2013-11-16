@@ -4,7 +4,7 @@ import os
 import sys
 import os.path
 import subprocess as sp
-from versions import *
+from versions import ExactVersion
 from public_enums import *
 from rez_exceptions import *
 
@@ -74,7 +74,7 @@ def get_versions_in_directory(path, warnings):
         fullpath = os.path.join(path, f)
         if os.path.isdir(fullpath):
             try:
-                ver = Version(f)
+                ver = ExactVersion(f)
             except:
                 continue
 

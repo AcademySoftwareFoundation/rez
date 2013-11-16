@@ -15,10 +15,14 @@ A version is said to be 'inexact' if it definitely describes a range of versions
 this is true depends on context - for example the version '10.5' may represent an exact version
 in one case, but may represent the superset of all versions '10.5.x' in another.
 """
+import re
 
 # can't be zero padded
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-z]|[1-9][0-9]+)'
 EXACT_VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
+LABEL_VERSION_REGSTR = '[a-zA-Z][a-zA-Z0-9_]+'
+EXACT_VERSION_REG = re.compile(EXACT_VERSION_REGSTR + "$")
+LABEL_VERSION_REG = re.compile(LABEL_VERSION_REGSTR + "$")
 
 def is_character(tok):
 	"""
@@ -219,7 +223,7 @@ class Version(object):
 		if ver.lt < self.lt:
 			lt = ver.lt
 		else:
-			vlt = self.lt
+			lt = self.lt
 		return Version([ge, lt])
 
 	def __str__(self):
@@ -331,8 +335,12 @@ class VersionRange(object):
 		get intersection, return None if there are no intersections
 		"""
 		vers_int = []
+		if isinstance(vers, Version):
+			vers = [vers]
+		else:
+			vers = vers.versions
 		for ver in self.versions:
-			for ver2 in vers.versions:
+			for ver2 in vers:
 				vint = ver.get_intersection(ver2)
 				if vint:
 					vers_int.append(vint)
@@ -477,13 +485,47 @@ def get_versions_union(versions):
 
 # This class is currently only used the ResolvedPackage and the rex command language
 # but it would be great to merge its functionality into the Version class
-class VersionString(str):
+class ExactVersion(Version):
 	"""
 	Provide access to version parts and perform common reformatting
 	"""
 	LABELS = {'major': 1,
 			  'minor': 2,
 			  'patch': 3}
+
+# 	def __new__(self, s):
+# 		if EXACT_VERSION_REG.match(s):
+# 			self.numeric = True
+# 		elif LABEL_VERSION_REG.match(s):
+# 			self.numeric = False
+# 		else:
+# 			raise ValueError("Not a valid exact version: %r" % s)
+# 		return str.__new__(self, s)
+
+	def __init__(self, version):
+		try:
+			self.version = str(version)
+		except UnicodeEncodeError:
+			raise VersionError("Non-ASCII characters in version string")
+		print "exact", `self.version`
+		if LABEL_VERSION_REG.match(self.version):
+			self._ge = Version.NEG_INF
+			self._lt = Version.NEG_INF
+		else:
+			self._ge = parse_exact_version(self.version)
+			# upper bound is one higher than lower bound
+			# Note: we can be sure that self.ge is bounded here (not infinity),
+			# because empty version string routes elsewhere.
+			self._lt = incr_bound(self._ge)
+
+	def __hash__(self):
+		return hash(str(self))
+
+	def contains_version(self, version):
+		"""
+		Returns True if the exact version (eg 1.0.0) is equal.
+		"""
+		return self == version
 
 	@property
 	def major(self):
@@ -526,6 +568,107 @@ class VersionString(str):
 			return '.'.join(self.split('.')[:num])
 		except IndexError:
 			return ''
+
+	def __eq__(self, other):
+		return self.version == str(other)
+
+	def __str__(self):
+		return self.version
+
+	def matches_version(self, other, allow_inexact=False):
+		return self == other
+
+	def is_inexact(self):
+		return False
+
+	def get_intersection(self, ver):
+		"""
+		Return a new version representing the intersection between this and
+		another version, or None if the versions do not overlap
+		"""
+		if self == ver:
+			return self
+		else:
+			return None
+
+class ExactVersionSet(VersionRange):
+	def __init__(self, version):
+		if isinstance(version, (list, tuple)):
+			versions = [ExactVersion(v) for v in version]
+			self.versions = tuple(get_versions_union(versions))
+		elif isinstance(version, ExactVersion):
+			self.versions = (version,)
+		elif isinstance(version, ExactVersionSet):
+			self.versions = version.versions
+		elif isinstance(version, basestring):
+			# just make sure it's a string, because sometimes we pass in a Version instance
+			self.versions = [ExactVersion(v) for v in version.split("|")]
+		else:
+			raise VersionError("Version range must be initialized with string, "
+							   "list, tuple, or ExactVersion instance. got %s" % type(version).__name__)
+
+	def contains_version(self, version):
+		return version in self.versions
+
+	def matches_version(self, ver, allow_inexact=False):
+		"""
+		Returns True if the range matches the Version.
+		
+		If `allow_inexact` is True, considers inexact matches as well. 
+		"""
+		# if the range is not inexact, then there is only one version
+		if not self.is_inexact() and ver == self.versions[0]:
+			return True
+		# Note that VersionRange('').contains_version('10') == True
+		if allow_inexact and self.contains_version(ver):
+			return True
+		return False
+
+	def get_union(self, vers):
+		"""
+		get union
+		"""
+		versions = set(self.versions)
+		if isinstance(vers, ExactVersion):
+			vers = [vers]
+		else:
+			vers = vers.versions
+		return ExactVersionSet(sorted(versions.union(vers)))
+
+	def get_span(self):
+		""""
+		Return a single version spanning the low and high versions of the range,
+		Or None if range contains no versions.
+		"""
+		raise NotImplementedError
+
+	def get_intersection(self, vers):
+		"""
+		get intersection, return None if there are no intersections
+		"""
+		versions = set(self.versions)
+		if isinstance(vers, ExactVersion):
+			vers = [vers]
+		else:
+			vers = vers.versions
+		return ExactVersionSet(sorted(versions.intersection(vers)))
+
+	def get_inverse(self):
+		"""
+		get the inverse of this version range
+		"""
+		raise NotImplementedError
+
+# 	def is_greater_no_overlap(self, ver):
+# 		"""
+# 		return True if the given version range is greater than this one,
+# 		and there is no overlap
+# 		"""
+# 		if len(self.versions) == 0 and len(ver.versions) == 0:
+# 			return False
+# 		elif len(self.versions) == 0 or len(ver.versions) == 0:
+# 			return True
+# 		return ver.versions[0].ge >= self.versions[-1].lt
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

@@ -7,7 +7,7 @@ from public_enums import PKG_METADATA_FILENAME
 import rez_metafile
 import rez_filesys
 from rez_exceptions import PkgSystemError
-from versions import Version, VersionString
+from versions import Version, ExactVersion
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
@@ -137,28 +137,27 @@ class PackageFamily(object):
                 # only allowed when no versioned packages exist.
                 yield Package(self.name, Version(""), metafile, 0)
 
-    def version_package(self, ver_range, latest=True, exact=False, timestamp=0):
-        """
-        Given a a `VersionRange`, return a `Package` instance, or None if no
-        matches are found.
-        """
-        # store the generator. no paths have been walked yet
-        results = self.iter_version_packages()
-
-        if timestamp:
-            results = [x for x in results if x.timestamp <= timestamp]
-        # sort 
-        if latest:
-            results = sorted(results, key=lambda x: x.version, reverse=True)
-        else:
-            results = sorted(results, key=lambda x: x.version, reverse=False)
-
-        # find the best match
-        for result in results:
-            if ver_range.matches_version(result.version, allow_inexact=not exact):
-                return result
-
-        return None
+#     def version_package(self, ver_range, latest=True, exact=False, timestamp=0):
+#         """
+#         Given a a `VersionRange`, return a `Package` instance, or None if no
+#         matches are found.
+#         """
+#         # store the generator. no paths have been walked yet
+#         results = self.iter_version_packages()
+# 
+#         if timestamp:
+#             results = [x for x in results if x.timestamp <= timestamp]
+#         # sort 
+#         if latest:
+#             results = sorted(results, key=lambda x: x.version, reverse=True)
+#         else:
+#             results = sorted(results, key=lambda x: x.version, reverse=False)
+# 
+#         # find the best match
+#         for result in results:
+#             if ver_range.matches_version(result.version, allow_inexact=not exact):
+#                 return result
+#         return None
 
 class Package(object):
     """
@@ -226,9 +225,9 @@ class ResolvedPackage(Package):
     def __init__(self, name, version, base, root, commands, metadata, timestamp):
         Package.__init__(self, name, version, base, timestamp, stripped_metadata=metadata)
         # FIXME: this is primarily here for rex. i don't like the fact that
-        # Package.version is a Version, and ResolvedPackage.version is a VersionString.
-        # look into moving functionality of VersionString onto Version
-        self.version = VersionString(version)
+        # Package.version is a Version, and ResolvedPackage.version is a ExactVersion.
+        # look into moving functionality of ExactVersion onto Version
+        self.version = version
         self.root = root
         self.raw_commands = commands
         self.commands = None

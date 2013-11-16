@@ -90,7 +90,7 @@ class AttrDictYamlLoader(yaml.Loader):
 
 def version_constructor(loader, node):
     value = loader.construct_scalar(node)
-    return versions.Version(str(value))
+    return versions.ExactVersion(str(value))
 
 yaml.add_constructor(u'!ver', version_constructor)
 

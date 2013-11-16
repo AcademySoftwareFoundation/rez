@@ -40,6 +40,8 @@ class TestResolve(utils.RezTest):
                                   requires=['arnold-4.0.16'],
                                   variants=[['maya-2014'], ['maya-2013']]
                                   )
+        self.make_release_package('os', 'linux')
+        self.make_release_package('os', 'darwin')
 
     def test_latest(self):
         for ins, outs in [
@@ -57,6 +59,8 @@ class TestResolve(utils.RezTest):
                            ['python-2.6.4', 'nuke-7.1.2', OS_PKG]),
                           (['mtoa'],
                            ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0', OS_PKG]),
+                          (['os-linux'],
+                           ['os-linux', OS_PKG])
                           ]:
             yield check_basic_resolve, ins, outs
 
