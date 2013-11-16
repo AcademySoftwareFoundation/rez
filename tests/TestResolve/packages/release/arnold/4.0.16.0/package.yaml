@@ -1,4 +1,0 @@
-config_version: 0
-name: arnold
-requires: [python]
-version: 4.0.16.0
