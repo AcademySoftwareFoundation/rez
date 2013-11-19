@@ -3,6 +3,7 @@
 import os
 import sys
 import os.path
+import platform
 import subprocess as sp
 from versions import ExactVersion
 from public_enums import *
@@ -15,21 +16,31 @@ _g_local_pkgs_path          = os.getenv("REZ_LOCAL_PACKAGES_PATH")
 _g_new_timestamp_behaviour  = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
 _g_os_paths                 = []
 
-def get_platform_package():
+def get_platform():
     osname = os.getenv("REZ_PLATFORM")
     if osname:
         print ("Warning: REZ_PLATFORM is no longer supported. Please modify "
                "'%s' to require one of %s" % (osname,
                                               ', '.join(['platform-' + plat for plat in VALID_PLATFORMS])))
-
-    import platform
     plat = platform.system().lower()
 
     if plat not in VALID_PLATFORMS:
         sys.stderr.write("Rez warning: Unknown operating system '" + plat + "'\n")
-    return 'platform-' + plat
+    return plat
 
-_g_os_pkg = get_platform_package()
+def get_arch():
+    # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
+    if os.name == 'nt' and sys.version_info[:2] < (2,7):
+        arch = os.environ.get("PROCESSOR_ARCHITEW6432",
+               os.environ.get('PROCESSOR_ARCHITECTURE', ''))
+        if not arch:
+            sys.stderr.write("Rez warning: Could not determine architecture\n")
+        return arch
+    else:
+        return platform.machine()
+
+_g_os_pkg = 'platform-' + get_platform()
+_g_arch_pkg = 'arch-' + get_arch()
 
 # get os-specific paths
 try:

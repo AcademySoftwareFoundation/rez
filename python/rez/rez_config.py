@@ -291,7 +291,8 @@ class Resolver(object):
 		"""
 		if not no_os:
 			os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-			pkg_reqs = [os_pkg_req] + pkg_reqs
+			arch_pkg_req = str_to_pkg_req(rez_filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+			pkg_reqs = [os_pkg_req, arch_pkg_req] + pkg_reqs
 
 		if not pkg_reqs:
 			return ([], [], "digraph g{}", 0)

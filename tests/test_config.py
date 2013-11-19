@@ -1,12 +1,13 @@
 import nose
 from nose.tools import raises
 import utils
-utils.setup_pythonpath
+utils.setup_pythonpath()
 import rez.rez_config
 from rez.rez_config import Resolver
 from rez.rez_exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
 from rez.rez_filesys import _g_os_pkg as OS_PKG
+from rez.rez_filesys import _g_arch_pkg as ARCH_PKG
 
 def check_basic_resolve(pkgs, assertions,
                         resolver_args=dict(resolve_mode=RESOLVE_MODE_LATEST),
@@ -14,7 +15,7 @@ def check_basic_resolve(pkgs, assertions,
     resolver = rez.rez_config.Resolver(**resolver_args)
     result = resolver.resolve(pkgs, **resolve_args)
     # TODO: reset cached resolves
-    assert_resolve_result(result, [OS_PKG] + assertions)
+    assert_resolve_result(result, [OS_PKG] + assertions + [ARCH_PKG])
 
 def assert_resolve_result(result, assertions):
     assert result is not None
@@ -52,6 +53,8 @@ class TestResolve(utils.RezTest):
                                   )
         self.make_release_package('platform', 'linux')
         self.make_release_package('platform', 'darwin')
+        self.make_release_package('arch', 'x86_64')
+        self.make_release_package('arch', 'i386')
 
     def test_latest(self):
         for ins, outs in [
