@@ -1,15 +1,11 @@
 import sys
 import os
 import inspect
-# hack this until we get a top-level test util module
-curr_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-sys.path.insert(0, os.path.join(curr_dir, '..', 'python'))
+import unittest
+import utils
+utils.setup_pythonpath()
 from rez.versions import Version, VersionRange, ExactVersion, VersionError
 import rez.versions
-print rez.versions.__file__
-import nose
-from nose.tools import raises
-import unittest
 
 class VersionBaseTest(unittest.TestCase):
     @classmethod
@@ -138,6 +134,7 @@ class TestLabelVersion(VersionBaseTest):
         ExactVersion(s)
 
     def test_comparision(self):
+        # FIXME: need to add basic comparision for label versions
         self.assertTrue(ExactVersion('aaa') < ExactVersion('bbb'))
         self.assertTrue(ExactVersion('Foo') == ExactVersion('Foo'))
 

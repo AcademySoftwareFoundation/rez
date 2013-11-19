@@ -9,7 +9,8 @@ _test_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 def get_test_dir():
     return _test_dir
 
-sys.path.insert(0, os.path.join(_test_dir, '..', 'python'))
+def setup_pythonpath():
+    sys.path.insert(0, os.path.join(_test_dir, '..', 'python'))
 
 def make_version(path, name, version=None, requires=None, variants=None):
     data = {}

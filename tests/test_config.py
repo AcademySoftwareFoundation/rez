@@ -1,7 +1,7 @@
 import nose
 from nose.tools import raises
 import utils
-
+utils.setup_pythonpath
 import rez.rez_config
 from rez.rez_config import Resolver
 from rez.rez_exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
@@ -28,14 +28,14 @@ class TestResolve(utils.RezTest):
         self.cleanup()
         # real world examples are so much easier to follow
         self.make_local_package('python', '2.7.4',
-                                variants=[['os-linux'],
-                                          ['os-darwin']])
+                                variants=[['platform-linux'],
+                                          ['platform-darwin']])
         self.make_release_package('python', '2.6.4',
-                                  variants=[['os-linux'],
-                                            ['os-darwin']])
+                                  variants=[['platform-linux'],
+                                            ['platform-darwin']])
         self.make_release_package('python', '2.6.1',
-                                  variants=[['os-linux'],
-                                            ['os-darwin']])
+                                  variants=[['platform-linux'],
+                                            ['platform-darwin']])
         self.make_release_package('maya', '2012',
                                   requires=['python-2.6'])
         self.make_release_package('maya', '2013',
@@ -50,8 +50,8 @@ class TestResolve(utils.RezTest):
                                   requires=['arnold-4.0.16'],
                                   variants=[['maya-2014'], ['maya-2013']]
                                   )
-        self.make_release_package('os', 'linux')
-        self.make_release_package('os', 'darwin')
+        self.make_release_package('platform', 'linux')
+        self.make_release_package('platform', 'darwin')
 
     def test_latest(self):
         for ins, outs in [

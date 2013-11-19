@@ -8,31 +8,28 @@ from versions import ExactVersion
 from public_enums import *
 from rez_exceptions import *
 
+VALID_PLATFORMS = ['darwin', 'linux', 'windows']
 
 _g_rez_path                 = os.getenv("REZ_PATH")
 _g_local_pkgs_path          = os.getenv("REZ_LOCAL_PACKAGES_PATH")
 _g_new_timestamp_behaviour  = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
 _g_os_paths                 = []
 
+def get_platform_package():
+    osname = os.getenv("REZ_PLATFORM")
+    if osname:
+        print ("Warning: REZ_PLATFORM is no longer supported. Please modify "
+               "'%s' to require one of %s" % (osname,
+                                              ', '.join(['platform-' + plat for plat in VALID_PLATFORMS])))
 
-# get os
-_g_os_pkg = None
-osname = os.getenv("REZ_PLATFORM")
-if osname:
-    _g_os_pkg = 'os-' + osname.lower()
-else:
     import platform
-    osname = platform.system()
-    _g_os_pkg = ""
+    plat = platform.system().lower()
 
-    if osname == "Linux":
-        _g_os_pkg = "os-linux"
-    elif osname == "darwin":
-        _g_os_pkg = "os-darwin"
+    if plat not in VALID_PLATFORMS:
+        sys.stderr.write("Rez warning: Unknown operating system '" + plat + "'\n")
+    return 'platform-' + plat
 
-if _g_os_pkg == "":
-    sys.stderr.write("Rez warning: Unknown operating system '" + _g_os_pkg + "'\n")
-
+_g_os_pkg = get_platform_package()
 
 # get os-specific paths
 try:
