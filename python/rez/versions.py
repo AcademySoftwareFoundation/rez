@@ -265,6 +265,9 @@ class Version(object):
 			version = Version(version)
 		return self.contains_version(version)
 
+	def __hash__(self):
+		return hash(str(self))
+
 class VersionRange(object):
 	"""
 	A collection of zero or more inexact versions, which do not overlap. If a
@@ -456,6 +459,9 @@ class VersionRange(object):
 			version = Version(version)
 		return self.contains_version(version)
 
+	def __hash__(self):
+		return hash(str(self))
+
 def get_versions_union(versions):
 	"""Returns a sorted list of Version instances"""
 	nvers = len(versions)
@@ -516,9 +522,6 @@ class ExactVersion(Version):
 			# Note: we can be sure that self.ge is bounded here (not infinity),
 			# because empty version string routes elsewhere.
 			self._lt = incr_bound(self._ge)
-
-	def __hash__(self):
-		return hash(str(self))
 
 	def contains_version(self, version):
 		"""
