@@ -549,7 +549,7 @@ class ExactVersion(Version):
             print "warning: version.part() got index 0: converting to 1"
             num = 1
         try:
-            return self.split('.')[num - 1]
+            return self.version.split('.')[num - 1]
         except IndexError:
             return ''
 
@@ -569,7 +569,7 @@ class ExactVersion(Version):
             print "warning: version.thru() got index 0: converting to 1"
             num = 1
         try:
-            return '.'.join(self.split('.')[:num])
+            return '.'.join(self.version.split('.')[:num])
         except IndexError:
             return ''
 

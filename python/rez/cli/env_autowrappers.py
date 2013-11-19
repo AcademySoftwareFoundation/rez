@@ -117,11 +117,15 @@ def command(opts):
         if not result:
             sys.exit(1)
 
+        import rez.rex
         commands = result[1]
-        commands.append("export REZ_CONTEXT_FILE=%s" % contextfile)
+        commands.append(rez.rex.Setenv("REZ_CONTEXT_FILE", contextfile))
+
+        # TODO: support other shells
+        script = rez.rex.interpret(commands, shell='bash')
 
         with open(contextfile, 'w') as f:
-            f.write(str('\n').join(commands))
+            f.write(script)
 
         # extract the tools from the context file, create the alias scripts
         tools = []

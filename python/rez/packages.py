@@ -201,7 +201,7 @@ class Package(object):
         return self._stripped_metdata
 
     def short_name(self):
-        if (len(self.version) == 0):
+        if (len(str(self.version)) == 0):
             return self.name
         else:
             return self.name + '-' + str(self.version)
@@ -227,7 +227,10 @@ class ResolvedPackage(Package):
         # FIXME: this is primarily here for rex. i don't like the fact that
         # Package.version is a Version, and ResolvedPackage.version is a ExactVersion.
         # look into moving functionality of ExactVersion onto Version
-        self.version = version
+        if version:
+            self.version = ExactVersion(version)
+        else:
+            self.version = ''
         self.root = root
         self.raw_commands = commands
         self.commands = None

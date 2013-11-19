@@ -19,6 +19,7 @@ from rez.rez_util import remove_write_perms, copytree, get_epoch_time, safe_chmo
 from rez.rez_metafile import *
 import rez.public_enums as enums
 import versions
+import rex
 
 ##############################################################################
 # Globals
@@ -126,21 +127,6 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
 ##############################################################################
 # Utilities
 ##############################################################################
-
-def _format_bash_command(args):
-    def quote(arg):
-        if ' ' in arg:
-            return "'%s'" % arg
-        return arg
-    cmd = ' '.join([quote(arg) for arg in args])
-    return textwrap.dedent("""
-        echo
-        echo rez-build: calling \\'%(cmd)s\\'
-        %(cmd)s
-        if [ $? -ne 0 ]; then
-            exit 1 ;
-        fi
-        """ % {'cmd' : cmd})
 
 def unversioned(pkgname):
     return pkgname.split('-')[0]
@@ -602,18 +588,18 @@ class RezReleaseMode(object):
 
         try:
             import rez.rez_config
-            # TODO: call rez_config.Resolver directly
             resolver = rez.rez_config.Resolver(mode,
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
             result = resolver.guarded_resolve((self.requires + variant + ['cmake=l']),
                                               dot_file)
-            # FIXME: raise error here, or use unguarded resolve
-            pkg_ress, env_cmds, dot_graph, num_fails = result
+            # FIXME: raise error here if result is None, or use unguarded resolve
+            commands = result[1]
 
+            # TODO: support other shells
+            script = rex.interpret(commands, shell='bash')
             with open(env_bake_file, 'w') as f:
-                for env_cmd in env_cmds:
-                    f.write(env_cmd + '\n')
+                f.write(script)
         except Exception, err:
             # error("rez-build failed - an environment failed to resolve.\n" + str(err))
             if os.path.exists(dot_file):
@@ -626,65 +612,69 @@ class RezReleaseMode(object):
         # create dot-file
         # rez-config --print-dot --time=$opts.time $self.requires $variant > $dot_file
 
+        # TODO: simplify and convert this opening section to rex
         text = textwrap.dedent("""\
-			#!/bin/bash
+            #!/bin/bash
 
-			# because of how cmake works, you must cd into same dir as script to run it
-			if [ "./build-env.sh" != "$0" ] ; then
-				echo "you must cd into the same directory as this script to use it." >&2
-				exit 1
-			fi
+            # because of how cmake works, you must cd into same dir as script to run it
+            if [ "./build-env.sh" != "$0" ] ; then
+                echo "you must cd into the same directory as this script to use it." >&2
+                exit 1
+            fi
 
-			source %(env_bake_file)s
-			export REZ_CONTEXT_FILE=%(env_bake_file)s
-			env > %(actual_bake)s
+            source %(env_bake_file)s
+            export REZ_CONTEXT_FILE=%(env_bake_file)s
+            env > %(actual_bake)s
+            """ % dict(env_bake_file=env_bake_file,
+                       actual_bake=actual_bake))
 
-			# need to expose rez-config's cmake modules in build env
-			[[ CMAKE_MODULE_PATH ]] && export CMAKE_MODULE_PATH=%(rez_path)s/cmake';'$CMAKE_MODULE_PATH || export CMAKE_MODULE_PATH=%(rez_path)s/cmake
+        recorder = rex.CommandRecorder()
+        # need to expose rez-config's cmake modules in build env
+        recorder.prependenv('CMAKE_MODULE_PATH',
+                            os.path.join(rez.rez_filesys._g_rez_path, 'cmake'))
+        # make sure we can still use rez-config in the build env!
+        recorder.appendenv('PATH',
+                            os.path.join(rez.rez_filesys._g_rez_path, 'bin'))
 
-			# make sure we can still use rez-config in the build env!
-			export PATH=$PATH:%(rez_path)s/bin
+        recorder.info()
+        recorder.info('rez-build: in new env:')
+        recorder.command('rez-context-info')
 
-			echo
-			echo rez-build: in new env:
-			rez-context-info
-
-			# set env-vars that CMakeLists.txt files can reference, in this way
-			# we can drive the build from the package.yaml file
-			export REZ_BUILD_ENV=1
-			export REZ_BUILD_PROJECT_VERSION=%(version)s
-			export REZ_BUILD_PROJECT_NAME=%(name)s
-			""" % dict(env_bake_file=env_bake_file,
-              actual_bake=actual_bake,
-              rez_path=rez.rez_filesys._g_rez_path,
-              version=self.metadata.version,
-              name=self.metadata.name))
+        # set env-vars that CMakeLists.txt files can reference, in this way
+        # we can drive the build from the package.yaml file
+        recorder.setenv('REZ_BUILD_ENV', '1')
+        recorder.setenv('REZ_BUILD_PROJECT_VERSION', self.metadata.version)
+        recorder.setenv('REZ_BUILD_PROJECT_NAME', self.metadata.name)
 
         if self.requires:
-            text += "export REZ_BUILD_REQUIRES_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in self.requires]))
+            recorder.setenv('REZ_BUILD_REQUIRES_UNVERSIONED',
+                            ' '.join([unversioned(x) for x in self.requires]))
 
         if variant:
-            text += "export REZ_BUILD_VARIANT='%s'\n" % variant_str
-            text += "export REZ_BUILD_VARIANT_UNVERSIONED='%s'\n" % (' '.join([unversioned(x) for x in variant]))
-            text += "export REZ_BUILD_VARIANT_SUBDIR=/%s/\n" % variant_subdir
+            recorder.setenv('REZ_BUILD_VARIANT', variant_str)
+            recorder.setenv('REZ_BUILD_VARIANT_UNVERSIONED',
+                            ' '.join([unversioned(x) for x in variant]))
+            recorder.setenv('REZ_BUILD_VARIANT_SUBDIR', '/%s/' % variant_subdir)
 
         if not retain_cmake_cache:
-            text += _format_bash_command(["rm", "-f", "CMakeCache.txt"])
+            recorder.command(["rm", "-f", "CMakeCache.txt"])
 
         # cmake invocation
         cmake_dir_arg = os.path.relpath(self.root_dir, build_dir)
-        text += _format_bash_command(["cmake", "-d", cmake_dir_arg] + cmake_args)
+        recorder.command(["cmake", "-d", cmake_dir_arg] + cmake_args)
 
         if do_build:
             # TODO: determine build tool from --build-system? For now just assume make
 
             if make_clean:
-                text += _format_bash_command(["make", "clean"])
+                recorder.command(["make", "clean"])
+            recorder.command(["make"] + make_args)
 
-            text += _format_bash_command(["make"] + make_args)
+            script = rex.interpret(recorder, shell='bash',
+                                   verbose=['command'])
 
             with open(src_file, 'w') as f:
-                f.write(text + '\n')
+                f.write(text + script)
             safe_chmod(src_file, 0777)
 
             # run the build
@@ -697,12 +687,15 @@ class RezReleaseMode(object):
                 sys.exit(1)
 
         else:
-            text += 'export REZ_ENV_PROMPT=">$REZ_ENV_PROMPT"\n'
-            text += "export REZ_ENV_PROMPT='BUILD>'\n"
-            text += "/bin/bash --rcfile %s/bin/rez-env-bashrc\n" % rez.rez_filesys._g_rez_path
+            # which? this is from the original code...
+            recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
+            recorder.setenv('REZ_ENV_PROMPT', "BUILD>")
+            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % rez.rez_filesys._g_rez_path)
+            script = rex.interpret(recorder, shell='bash',
+                                   verbose=['command'])
 
             with open(src_file, 'w') as f:
-                f.write(text + '\n')
+                f.write(text + script)
             safe_chmod(src_file, 0777)
 
             if variant:

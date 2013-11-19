@@ -125,35 +125,61 @@ def command(opts):
     # call rez-config, and write env into bake file
     ##############################################################################
     context_file = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
-    source_file = context_file + ".source"
     dot_file = context_file + ".dot"
 
-    # setup args for rez-config
-    # TODO: provide a util which reads defaults for the cli function
-    kwargs = dict(verbosity=0,
-                  version=False,
-                  print_env=False,
-                  print_dot=False,
-                  meta_info='tools',
-                  meta_info_shallow='tools',
-                  env_file=context_file,
-                  dot_file=dot_file,
-                  max_fails=opts.view_fail,
-                  wrapper=False,
-                  no_catch=False,
-                  no_path_append=False,
-                  print_pkgs=False)
-    # copy settings that are the same between rez-env and rez-config
-    kwargs.update(vars(opts))
-    # override values that differ
-    kwargs['quiet'] = True
-    kwargs['pkg'] = pkg_list.split()
+    # # setup args for rez-config
+    # # TODO: convert to use rez.rez_config directly
+    # kwargs = dict(verbosity=0,
+    #               version=False,
+    #               print_env=False,
+    #               print_dot=False,
+    #               meta_info='tools',
+    #               meta_info_shallow='tools',
+    #               env_file=context_file,
+    #               dot_file=dot_file,
+    #               max_fails=opts.view_fail,
+    #               wrapper=False,
+    #               no_catch=False,
+    #               no_path_append=False,
+    #               print_pkgs=False)
+    # # copy settings that are the same between rez-env and rez-config
+    # kwargs.update(vars(opts))
+    # # override values that differ
+    # kwargs['quiet'] = True
+    # kwargs['pkg'] = pkg_list.split()
 
-    config_opts = argparse.Namespace(**kwargs)
-    try:
-        rez_cli_config.command(config_opts)
-    except Exception, err:
-        error(err)
+    # config_opts = argparse.Namespace(**kwargs)
+    # try:
+    #     rez_cli_config.command(config_opts)
+    # except Exception, err:
+    #     error(err)
+    #     try:
+    #         # TODO: change cli convention so that commands do not call sys.exit
+    #         # and we can actually catch this exception
+    #         if opts.view_fail != "-1":
+    #             from . import dot as rez_cli_dot
+    #             dot_opts = argparse.Namespace(conflict_only=True,
+    #                                           package="",
+    #                                           dotfile=dot_file)
+    #             rez_cli_dot.command(dot_opts)
+    #         sys.exit(1)
+    #     finally:
+    #         if os.path.exists(context_file):
+    #             os.remove(context_file)
+    #         if os.path.exists(dot_file):
+    #             os.remove(dot_file)
+
+    import rez.rez_config as dc
+    resolver = dc.Resolver(opts.mode, True, 0, opts.view_fail,
+                           opts.time, opts.buildreqs, not opts.no_assume_dt,
+                           not opts.no_cache)
+
+    pkgs = pkg_list.split()
+    result = resolver.guarded_resolve(pkgs, opts.no_os,
+                                      dot_file=dot_file,
+                                      meta_vars=['tools'], shallow_meta_vars=['tools'])
+
+    if not result:
         try:
             # TODO: change cli convention so that commands do not call sys.exit
             # and we can actually catch this exception
@@ -170,55 +196,68 @@ def command(opts):
             if os.path.exists(dot_file):
                 os.remove(dot_file)
 
+    pkg_ress, commands, dot_graph, num_fails = result
+
+    import rez.rex as rex
     if autowrappers:
-        with open(context_file, 'w') as f:
-            f.write("export REZ_RAW_REQUEST='%s'\n" % packages)
+        commands.append(rex.Setenv('REZ_RAW_REQUEST', packages))
+
+    # TODO: support other shells
+    script = rex.interpret(commands, shell='bash')
+    with open(context_file, 'w') as f:
+        f.write(script)
 
     ##############################################################################
     # spawn the new shell, sourcing the bake file
     ##############################################################################
 
-    cmd = ''
+    recorder = rex.CommandRecorder()
     if not raw_request:
-        cmd += "export REZ_RAW_REQUEST='%s';" % packages
+        recorder.setenv('REZ_RAW_REQUEST', packages)
 
-    cmd += "export REZ_CONTEXT_FILE=%s;" % context_file
-    cmd += 'export REZ_ENV_PROMPT="%s";' % (os.getenv('REZ_ENV_PROMPT', '') + opts.prompt)
+    recorder.setenv('REZ_CONTEXT_FILE', context_file)
+    recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % opts.prompt)
 
     if opts.stdin:
-        cmd += "source %s;" % context_file
+        recorder.command("source %s" % context_file)
         if not opts.rcfile:
+            # (bash-specific):
             if os.path.exists(os.path.expanduser('~/.bashrc')):
-                cmd += "source ~/.bashrc &> /dev/null;"
+                recorder.command("source ~/.bashrc &> /dev/null")
         else:
-            cmd += "source %s;" % opts.rcfile
+            recorder.command("source %s" % opts.rcfile)
 #                 if [ $? -ne 0 ]; then
 #                     exit 1
 #                 fi
 
         # ensure that rez-config is available no matter what (eg .bashrc might not exist,
         # rcfile might not source rez-config)
-        cmd += "source $REZ_PATH/init.sh;"
-        cmd += "bash -s;"
-        cmd += "ret=$?;"
+        # (bash-specific):
+        recorder.command("source $REZ_PATH/init.sh")
+        recorder.command("bash -s")
+        #cmd += "ret=$?;"
     else:
+        source_file = context_file + ".source"
         with open(source_file, 'w') as f:
             f.write("source %s\n" % context_file)
             if opts.rcfile:
                 f.write("source %s\n" % opts.rcfile)
 
+            # (bash-specific):
             f.write("source rez-env-bashrc\n")
             if not opts.quiet:
                 f.write("echo\n")
                 f.write("echo You are now in a new environment.\n")
                 f.write("rez-context-info\n")
 
-        cmd += "bash --rcfile %s;" % source_file
-        cmd += "ret=$?;"
-        cmd += "rm -f %s;" % source_file
+        # (bash-specific):
+        recorder.command("bash --rcfile %s" % source_file)
+        #cmd += "ret=$?;"
+        recorder.command("rm -f %s" % source_file)
 
-    cmd += "rm -f %s;" % context_file
-    cmd += "rm -f %s;" % dot_file
+    recorder.command("rm -f %s" % context_file)
+    recorder.command("rm -f %s" % dot_file)
+    cmd = rex.interpret(recorder, shell='bash', output_style='eval')
     output(cmd)
     # print "exit $ret;"
 

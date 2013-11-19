@@ -186,23 +186,36 @@ def register_config(config_version, resource_key, cls, path=None):
         a string pattern identifying where the resource file resides relative to
         the rez search path
     """
+    version_configs = _configs[config_version]
     config_info = {}
-    config_info['key'] = resource_key
     assert issubclass(cls, Metadata)
     config_info['class'] = cls
     if path:
         config_info['pattern'] = path
-    _configs[config_version].append(config_info)
 
-def get_config(config_version, filename, key=None):
-    file_configs = _configs.get(config_version)
-    if file_configs:
-        for config_info in file_configs:
-            if key and key == config_info['key']:
-                return config_info['class'](filename)
-            elif 'pattern' in config_info and _filename_is_match(config_info, filename):
-                return config_info['class'](filename)
-    raise MetadataError("Could not find registered metadata configuration for %r" % filename)
+    # version_configs is a list and not a dict so that it stays ordered
+    try:
+        config_list = dict(version_configs)[resource_key]
+    except KeyError:
+        config_list = []
+        version_configs.append((resource_key, config_list))
+    config_list.append(config_info)
+
+def get_configs(config_version, filename, key=None):
+    version_configs = _configs.get(config_version)
+    if version_configs:
+        if key:
+            # narrow the search
+            configs = dict(version_configs).get(key, [])
+            for config_info in configs:
+                yield config_info['class'](filename)
+        else:
+            for _, configs in version_configs:
+                for config_info in configs:
+                    if 'pattern' in config_info and _filename_is_match(config_info, filename):
+                        yield config_info['class'](filename)
+    else:
+        raise MetadataValueError(filename, 'config_version', config_version)
 
 def list_registered_keys(config_version):
     return [info['key'] for info in _configs[config_version]]
@@ -260,6 +273,8 @@ class Metadata(object):
                     yield (id, None)
                 except:
                     yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
+            else:
+                yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
         else:
             if isinstance(refnode, dict):
                 for key in refnode:
@@ -422,13 +437,17 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
             raise MetadataError('configuration version %d '
                                 'is less than minimum requested: %d' % (config_version,
                                                                         min_config_version))
-    config = get_config(config_version, filename, resource_key)
-    if config is None:
-        raise MetadataValueError(filename, 'config_version', metadata.config_version)
-    config.validate(metadata)
-    if strip:
-        config.strip(metadata)
-    return metadata
+
+    for config in get_configs(config_version, filename, resource_key):
+        try:
+            config.validate(metadata)
+        except MetadataError:
+            print "failed", config
+            continue
+        if strip:
+            config.strip(metadata)
+        return metadata
+    raise MetadataError("Could not find registered metadata configuration for %r" % filename)
 
 
 
