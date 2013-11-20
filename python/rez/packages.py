@@ -124,18 +124,18 @@ class PackageFamily(object):
 
     def iter_version_packages(self):
         from rez_memcached import get_memcache
-        vers = get_memcache().get_versions_in_directory(self.path)
-        if vers:
-            for ver, timestamp in vers:
-                metafile = os.path.join(self.path, str(ver), PKG_METADATA_FILENAME)
-                # no need to check if metafile is exists, already done in `get_versions_in_directory`
-                yield Package(self.name, ver, metafile, timestamp)
+        metafile = os.path.join(self.path, PKG_METADATA_FILENAME)
+        if os.path.isfile(metafile):
+            # check for special case - unversioned package.
+            # only allowed when no versioned packages exist.
+            yield Package(self.name, Version(""), metafile, 0)
         else:
-            metafile = os.path.join(self.path, PKG_METADATA_FILENAME)
-            if os.path.isfile(metafile):
-                # check for special case - unversioned package.
-                # only allowed when no versioned packages exist.
-                yield Package(self.name, Version(""), metafile, 0)
+            vers = get_memcache().get_versions_in_directory(self.path)
+            if vers:
+                for ver, timestamp in vers:
+                    metafile = os.path.join(self.path, str(ver), PKG_METADATA_FILENAME)
+                    # no need to check if metafile is exists, already done in `get_versions_in_directory`
+                    yield Package(self.name, ver, metafile, timestamp)
 
 #     def version_package(self, ver_range, latest=True, exact=False, timestamp=0):
 #         """
