@@ -117,6 +117,55 @@ class TestResolve(ResolveBaseTest):
             # passes the test if the exception is raised
             yield raises(exc)(check_basic_resolve), ins, None
 
+class TestCommands(TestResolve):
+    PYTHON_COMMANDS = '''
+REZ_PYTHON_MAJOR_VERSION = '{version.part(1)}'
+REZ_PYTHON_MINOR_VERSION = '{version.part(2)}'
+
+if machine.os == 'Linux':
+    PYTHON_DIR = '/usr/local/python-{version}'
+    PATH.prepend('$PYTHON_DIR/bin')
+elif machine.os == 'Darwin':
+    PYTHON_DIR = '/usr/local/python-{version}'
+    PATH.prepend('$PYTHON_DIR/Python.framework/Versions/{version.thru(2)}/bin')
+else:
+    PYTHON_DIR = 'C:/Python{version.part(1)}{version.part(2)}'
+    PATH.prepend('$PYTHON_DIR')
+    PATH.prepend('$PYTHON_DIR/Scripts')'''
+
+    def add_packages(self):
+        super(TestCommands, self).add_packages()
+        # overrides:
+        with self.add_package('python-2.7.4', local=True) as pkg:
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
+            # new style:
+            pkg.commands = self.PYTHON_COMMANDS
+
+        with self.add_package('python-2.6.4') as pkg:
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
+            # new style:
+            pkg.commands = self.PYTHON_COMMANDS
+
+        with self.add_package('arnold-4.0.16.0') as pkg:
+            pkg.requires = ['python']
+            # old-style:
+            pkg.commands = ['export CMAKE_MODULE_PATH=!ROOT!/cmake:$CMAKE_MODULE_PATH'
+                            'export ARNOLD_HOME=/usr/local/solidAngle/arnold-!VERSION!'
+                            'export PATH=$ARNOLD_HOME/bin:$PATH'
+                            'export PYTHONPATH=$ARNOLD_HOME/python:$PYTHONPATH']
+
+    def test_commands(self):
+        for ins, outs in [
+                          (['python'],
+                           ['python-2.7.4']),
+                          (['python-2.6'],
+                           ['python-2.6.4']),
+                          (['mtoa'],
+                           ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0']),
+                          ]:
+            yield check_basic_resolve, ins, outs
 
 if __name__ == '__main__':
     nose.main()
