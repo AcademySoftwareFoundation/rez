@@ -24,38 +24,52 @@ def assert_resolve_result(result, assertions):
     res = [p.short_name() for p in pkg_ress]
     assert res == assertions, res
 
-class TestResolve(utils.RezTest):
+class ResolveBaseTest(utils.BaseTest):
     def setUp(self):
         self.cleanup()
-        # real world examples are so much easier to follow
-        self.make_local_package('python', '2.7.4',
-                                variants=[['platform-linux'],
-                                          ['platform-darwin']])
-        self.make_release_package('python', '2.6.4',
-                                  variants=[['platform-linux'],
-                                            ['platform-darwin']])
-        self.make_release_package('python', '2.6.1',
-                                  variants=[['platform-linux'],
-                                            ['platform-darwin']])
-        self.make_release_package('maya', '2012',
-                                  requires=['python-2.6'])
-        self.make_release_package('maya', '2013',
-                                  requires=['python-2.6'])
-        self.make_release_package('maya', '2014',
-                                  requires=['python-2.7'])
-        self.make_release_package('nuke', '7.1.2',
-                                  requires=['python-2.6'])
-        self.make_release_package('arnold', '4.0.16.0',
-                                  requires=['python'])
-        self.make_release_package('mtoa', '0.25.0',
-                                  requires=['arnold-4.0.16'],
-                                  variants=[['maya-2014'], ['maya-2013']]
-                                  )
-        self.make_release_package('platform', 'linux')
-        self.make_release_package('platform', 'darwin')
-        self.make_release_package('arch', 'x86_64')
-        self.make_release_package('arch', 'i386')
+        self.add_packages()
+        self.make_packages()
 
+    def add_packages(self):
+        # real world examples are so much easier to follow
+        with self.add_package('python-2.7.4', local=True) as pkg:
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
+
+        with self.add_package('python-2.6.4') as pkg:
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
+
+        with self.add_package('python-2.6.1') as pkg:
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
+
+        with self.add_package('maya-2012') as pkg:
+            pkg.requires = ['python-2.6']
+
+        with self.add_package('maya-2013') as pkg:
+            pkg.requires = ['python-2.6']
+
+        with self.add_package('maya-2014') as pkg:
+            pkg.requires = ['python-2.7']
+
+        with self.add_package('nuke-7.1.2') as pkg:
+            pkg.requires = ['python-2.6']
+
+        with self.add_package('arnold-4.0.16.0') as pkg:
+            pkg.requires = ['python']
+
+        with self.add_package('mtoa-0.25.0') as pkg:
+            pkg.requires = ['arnold-4.0.16']
+            pkg.variants = [['maya-2014'], ['maya-2013']]
+
+        self.add_package('platform-linux')
+        self.add_package('platform-darwin')
+
+        self.add_package('arch-x86_64')
+        self.add_package('arch-i386')
+
+class TestResolve(ResolveBaseTest):
     def test_latest(self):
         for ins, outs in [
                           (['python'],
