@@ -46,7 +46,7 @@ def to_component(tok, version_str):
         if is_character(tok):
             return tok
         else:
-            raise VersionError("Invalid version: '%s'" % version_str)
+            raise VersionError("'%s'" % version_str)
 
 def parse_exact_version(version):
     """
@@ -285,13 +285,15 @@ class VersionRange(object):
             self.versions = (version,)
         elif isinstance(version, VersionRange):
             self.versions = version.versions
-        elif isinstance(version, basestring):
-            # just make sure it's a string, because sometimes we pass in a Version instance
-            versions = [Version(v) for v in version.split("|")]
-            self.versions = tuple(get_versions_union(versions))
         else:
-            raise VersionError("Version range must be initialized with string, "
-                               "list, tuple, or Version instance. got %s" % type(version).__name__)
+            try:
+                version = str(version)
+            except:
+                raise VersionError("Version range must be initialized with string, "
+                                   "list, tuple, or Version instance. got %s" % type(version).__name__)
+            else:
+                versions = [Version(v) for v in version.split("|")]
+                self.versions = tuple(get_versions_union(versions))
 
     def copy(self):
         # is immutable, no need to copy
@@ -337,7 +339,7 @@ class VersionRange(object):
 
     def get_intersection(self, vers):
         """
-        get intersection, return None if there are no intersections
+        get intersection
         """
         vers_int = []
         if isinstance(vers, Version):
@@ -351,7 +353,7 @@ class VersionRange(object):
                     vers_int.append(vint)
 
         if (len(vers_int) == 0):
-            return None
+            return VersionRange([])
         else:
             return VersionRange(vers_int)
 
@@ -440,6 +442,9 @@ class VersionRange(object):
         return "|".join(str(v) for v in self.versions)
 
     def __repr__(self):
+        # differential between any and none
+        if self.is_none():
+            return "%s([])" % (self.__class__.__name__,)
         return "%s('%s')" % (self.__class__.__name__, self)
 
     def __eq__(self, ver):
@@ -464,6 +469,9 @@ class VersionRange(object):
     def __hash__(self):
         return hash(str(self))
 
+    def __nonzero__(self):
+        return not self.is_none()
+
 def get_versions_union(versions):
     """Returns a sorted list of Version instances"""
     nvers = len(versions)
@@ -479,10 +487,11 @@ def get_versions_union(versions):
         versions_tmp = sorted(versions)
         for ver1 in versions_tmp:
             overlap = False
-            for ver2 in versions_tmp[idx:]:
+            for i, ver2 in enumerate(versions_tmp[idx:]):
                 ver_union = ver1.get_union(ver2)
                 if len(ver_union) == 1:
-                    ver2.ge, ver2.lt = ver_union[0].ge, ver_union[0].lt
+                    # replace
+                    versions_tmp[idx + i] = ver_union[0]
                     overlap = True
                     break
             if not overlap:
@@ -573,8 +582,20 @@ class ExactVersion(Version):
         except IndexError:
             return ''
 
+    def __lt__(self, ver):
+        if self.ge == Version.NEG_INF:
+            return self.version < str(ver)
+        else:
+            return super(ExactVersion, self).__lt__(ver)
+
     def __eq__(self, other):
         return self.version == str(other)
+
+    def __le__(self, ver):
+        if self.ge == Version.NEG_INF:
+            return self.version <= str(ver)
+        else:
+            return super(ExactVersion, self).__le__(ver)
 
     def __str__(self):
         return self.version
@@ -598,15 +619,14 @@ class ExactVersion(Version):
 class ExactVersionSet(VersionRange):
     def __init__(self, version):
         if isinstance(version, (list, tuple)):
-            versions = [ExactVersion(v) for v in version]
-            self.versions = tuple(get_versions_union(versions))
+            self.versions = sorted([ExactVersion(v) for v in version])
         elif isinstance(version, ExactVersion):
             self.versions = (version,)
         elif isinstance(version, ExactVersionSet):
             self.versions = version.versions
         elif isinstance(version, basestring):
             # just make sure it's a string, because sometimes we pass in a Version instance
-            self.versions = [ExactVersion(v) for v in version.split("|")]
+            self.versions = sorted([ExactVersion(v) for v in version.split("|")])
         else:
             raise VersionError("Version range must be initialized with string, "
                                "list, tuple, or ExactVersion instance. got %s" % type(version).__name__)
@@ -655,7 +675,7 @@ class ExactVersionSet(VersionRange):
             vers = [vers]
         else:
             vers = vers.versions
-        return ExactVersionSet(sorted(versions.intersection(vers)))
+        return ExactVersionSet(list(versions.intersection(vers)))
 
     def get_inverse(self):
         """

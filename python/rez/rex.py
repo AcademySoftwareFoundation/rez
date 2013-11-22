@@ -74,13 +74,14 @@ class AttrDict(UserDict.UserDict):
         if not found:
             raise KeyError(key)
 
+        attrs.reverse()
         # work our way forward through the attribute hierarchy looking up
         # attributes on the found object
         for attr in attrs:
             try:
                 result = getattr(result, attr)
             except AttributeError:
-                raise KeyError(key)
+                raise AttributeError("Failed to retreive attribute '%s' of '%s' from %r" % (attr, '.'.join(attrs), result))
         # call the result, if requested
         if funcarg:
             # strip ()
@@ -211,10 +212,10 @@ class CommandRecorder(object):
 
     def _expand(self, value):
         if self._expandfunc:
-            if isinstance(value, basestring):
-                return self._expandfunc(value)
             if isinstance(value, (list, tuple)):
-                return [self._expandfunc(v) for v in value]
+                return [self._expandfunc(str(v)) for v in value]
+            else:
+                return self._expandfunc(str(value))
         return value
 
     def setenv(self, key, value):
@@ -853,7 +854,7 @@ class EnvironmentVariable(object):
     # --- the following methods all require knowledge of the current environment
 
     def value(self):
-        return self.environ.get(self._name, None)
+        return self.environ.get(self._name, '')
 
     def split(self):
         # FIXME: if value is None should we return empty list or raise an error?

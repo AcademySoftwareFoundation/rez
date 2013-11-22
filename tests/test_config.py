@@ -46,22 +46,33 @@ class ResolveBaseTest(utils.BaseTest):
 
         with self.add_package('maya-2012') as pkg:
             pkg.requires = ['python-2.6']
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
 
         with self.add_package('maya-2013') as pkg:
             pkg.requires = ['python-2.6']
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
 
         with self.add_package('maya-2014') as pkg:
             pkg.requires = ['python-2.7']
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
 
         with self.add_package('nuke-7.1.2') as pkg:
             pkg.requires = ['python-2.6']
 
         with self.add_package('arnold-4.0.16.0') as pkg:
             pkg.requires = ['python']
+            pkg.variants = [['platform-linux'],
+                            ['platform-darwin']]
 
         with self.add_package('mtoa-0.25.0') as pkg:
-            pkg.requires = ['arnold-4.0.16']
-            pkg.variants = [['maya-2014'], ['maya-2013']]
+            #pkg.requires = ['arnold-4.0.16']
+            pkg.variants = [['platform-linux', 'maya-2014', 'arnold-4.0.15+'],
+                            ['platform-linux', 'maya-2013', 'arnold-4.0.15+'],
+                            ['platform-darwin', 'maya-2014', 'arnold-4.0.15+'],
+                            ['platform-darwin', 'maya-2013', 'arnold-4.0.15+']]
 
         self.add_package('platform-linux')
         self.add_package('platform-darwin')

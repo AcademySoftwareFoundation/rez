@@ -135,6 +135,13 @@ class PackageConflict(object):
 		tmpstr += " <--!--> " + str(self.pkg_req_conflicting)
 		return tmpstr
 
+class MissingPackage(object):
+	def __init__(self, name):
+		self.name = name
+	def __repr__(self):
+		return '%s(%r)' % (self.__class__.__name__, self.name)
+	def __nonzero__(self):
+		return False
 
 class ResolvedPackages(object):
 	"""
@@ -163,7 +170,7 @@ class ResolvedPackages(object):
 				raise AttributeError("'%s' object has no attribute "
 									 "'%s'" % (self.__class__.__name__,
 											   attr))
-		return ''
+		return MissingPackage(attr)
 
 def get_execution_namespace(pkg_res_list):
 	env = rex.RexNamespace(env_overrides_existing_lists=True)
@@ -511,8 +518,10 @@ class Resolver(object):
 				# FIXME: must disable expand because it will convert from VersionString to str
 				env.set('version', pkg_res.version, expand=False)
 
+				# compile to get tracebacks with line numbers and file
+				code = compile(pkg_res.raw_commands, pkg_res.metafile, 'exec')
 				try:
-					exec pkg_res.raw_commands in env
+					exec code in env
 				except Exception as err:
 					import traceback
 					raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
@@ -741,6 +750,7 @@ class _Package(object):
 		self.variants = None
 		self.root_path = None
 		self.timestamp = None
+		self.metafile = None
 		if pkg_req:
 			self.name = pkg_req.name
 			self.version_range = pkg_req.version_range
@@ -764,6 +774,7 @@ class _Package(object):
 		p.base_path = self.base_path
 		p.root_path = self.root_path
 		p.metadata = self.metadata
+		p.metafile = self.metafile
 		p.timestamp = self.timestamp
 		p.pkg_req = self.pkg_req
 		# split the iterator
@@ -887,6 +898,7 @@ class _Package(object):
 				self.timestamp = pkg.timestamp
 				self.base_path = pkg.base
 				self.metadata = pkg.stripped_metadata
+				self.metafile = pkg.metafile
 				metafile_variants = self.metadata.variants
 				if metafile_variants:
 					# convert variants from metafile into _PackageVariants
@@ -1023,7 +1035,7 @@ class _Configuration(object):
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = config_pkg.copy(True)
+						pkg_add = config_pkg.copy(skip_version_range=True)
 						pkg_add.version_range = ver_range_intersect
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -1038,7 +1050,7 @@ class _Configuration(object):
 				ver_range_union = config_pkg.version_range.get_union(pkg_req_ver_range)
 				pkg_add = None
 				if create_pkg_add:
-					pkg_add = config_pkg.copy(True)
+					pkg_add = config_pkg.copy(skip_version_range=True)
 					pkg_add.version_range = ver_range_union
 				return (_Configuration.ADDPKG_ADD, pkg_add)
 		else:
@@ -1079,7 +1091,7 @@ class _Configuration(object):
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = config_pkg.copy(True)
+						pkg_add = config_pkg.copy(skip_version_range=True)
 						pkg_add.version_range = ver_range_intersect
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
@@ -1360,7 +1372,6 @@ class _Configuration(object):
 							raise PkgNotFoundError(pkg.as_package_request())
 
 						if (self.uid == 0):
-							print "BREAK!"
 							# we're the topmost configuration, and there are no more packages to try -
 							# all possible configuration attempts have failed at this point
 							break
@@ -1483,8 +1494,8 @@ class _Configuration(object):
 			pkg = self.pkgs[name]
 			if not pkg.is_anti():
 				resolved_cmds = pkg.get_resolved_commands()
-				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path, \
-                    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp)
+				pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path,
+                    pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp, pkg.metafile)
 				pkg_ress.append(pkg_res)
 
 		return pkg_ress
@@ -1740,7 +1751,6 @@ class _Configuration(object):
 
 
 	def _add_transitive_dependencies(self):
-
 		num = 0
 		config2 = None
 

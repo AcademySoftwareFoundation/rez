@@ -255,9 +255,8 @@ class RezReleaseMode(object):
         '''
         return a ConfigMetadata instance for this project's package.yaml file.
         '''
-        import rez_metafile as metafile
-        return metafile.load_metadata(os.path.join(self.root_dir, "package.yaml"),
-                                      key='built_package')
+        return load_metadata(os.path.join(self.root_dir, "package.yaml"),
+                             resource_key='built_package')
 
     # utilities  ---------
     def _write_changelog(self, changelog_file):
@@ -339,7 +338,7 @@ class RezReleaseMode(object):
 
     def send_email(self):
         usr = os.getenv("USER", "unknown.user")
-        pkgname = "%s-%s" % (self.metadata.name, str(self.this_version))
+        pkgname = "%s-%s" % (self.metadata.name, str(self.metadata.version))
         subject = "[rez] [release] %s released %s" % (usr, pkgname)
         if len(self.variants) > 1:
             subject += " (%d variants)" % len(self.variants)
@@ -442,7 +441,7 @@ class RezReleaseMode(object):
         # FIXME: is the tag put under version control really our most reliable source
         # for previous released versions? Can't we query the versions of our package
         # on $REZ_RELEASE_PACKAGES_PATH?
-        if self.this_version <= self.last_tagged_version:
+        if self.metadata.version <= self.last_tagged_version:
             raise RezReleaseError("cannot release: current version '" + self.metadata.version +
                                   "' is not greater than the latest tag '" + last_tag_str +
                                   "'. Version up or pass --allow-not-latest.")
@@ -591,8 +590,8 @@ class RezReleaseMode(object):
             resolver = rez.rez_config.Resolver(mode,
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
-            result = resolver.guarded_resolve((self.requires + variant + ['cmake=l']),
-                                              dot_file)
+            result = resolver.resolve((self.requires + variant + ['cmake=l']),
+                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]
 
@@ -863,7 +862,7 @@ class RezReleaseMode(object):
         '''
         self.write_time_metafile()
 
-        self.send_email()
+#         self.send_email()
 
         print
         print("---------------------------------------------------------")
@@ -1206,12 +1205,12 @@ class HgRezReleaseMode(RezReleaseMode):
         '''
         if self.patch_path:
             # patch queue
-            hg('tag', '-f', str(self.this_version),
+            hg('tag', '-f', str(self.metadata.version),
                '--message', self.commit_message, '--mq')
             # use a bookmark on the main repo since we can't change it
-            hg('bookmark', '-f', str(self.this_version))
+            hg('bookmark', '-f', str(self.metadata.version))
         else:
-            hg('tag', '-f', str(self.this_version))
+            hg('tag', '-f', str(self.metadata.version))
 
     def get_tags(self):
         tags = [line.split()[0] for line in hg('tags')]

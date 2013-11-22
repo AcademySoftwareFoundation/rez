@@ -4,7 +4,7 @@ import inspect
 import unittest
 import utils
 utils.setup_pythonpath()
-from rez.versions import Version, VersionRange, ExactVersion, VersionError
+from rez.versions import Version, VersionRange, ExactVersion, ExactVersionSet, VersionError
 import rez.versions
 
 class VersionBaseTest(unittest.TestCase):
@@ -46,7 +46,7 @@ class TestVersion(VersionBaseTest):
         self.assertTrue(Version('1.1') > Version('1.0'))
         self.assertTrue(Version('1.0') > Version('1'))
 
-        self.assertTrue((Version('1.2') < Version('1.0+')) is False)
+        self.assertFalse(Version('1.2') < Version('1.0+'))
         # FIXME: shouldn't > test upper bounds?
         self.assertTrue(Version('1.2') > Version('1.0+'))
     
@@ -55,7 +55,7 @@ class TestVersion(VersionBaseTest):
     
         self.assertTrue(Version('') < Version('1'))
         # FIXME: shouldn't > test upper bounds?
-        self.assertTrue((Version('') > Version('1')) is False)
+        self.assertFalse(Version('') > Version('1'))
 
     def test_contains(self):
         self.assertTrue(Version('1.0') in Version('1'))
@@ -87,6 +87,14 @@ class TestVersionRange(VersionBaseTest):
         self.assertFalse(Version('1') in VersionRange('1.0'))
         self.assertTrue(Version('1.2') in VersionRange('1.0+'))
 
+    def test_boolean(self):
+        self.assertEqual(VersionRange('1+<3').get_intersection(VersionRange('2+<4')),
+                         VersionRange('2+<3'))
+        no_intersect = VersionRange('1+<2').get_intersection(VersionRange('3+<4'))
+        self.assertFalse(no_intersect.is_any())
+        self.assertTrue(no_intersect.is_none())
+        self.assertFalse(no_intersect)
+
 class TestExactVersion(VersionBaseTest):
     VALID = ['1', '1.2.3', '1.2.a']
     INVALID = ['',
@@ -114,6 +122,16 @@ class TestExactVersion(VersionBaseTest):
         self.assertTrue(ExactVersion('1.0') > ExactVersion('1'))
 
         self.assertTrue(ExactVersion('1.0') == ExactVersion('1.0'))
+
+
+        self.assertTrue(ExactVersion('1.0') < Version('1.1'))
+        self.assertTrue(ExactVersion('1') < Version('1.0'))
+        self.assertTrue(ExactVersion('0') < Version('1'))
+
+        self.assertTrue(ExactVersion('1.1') > Version('1.0'))
+        self.assertTrue(ExactVersion('1.0') > Version('1'))
+
+        self.assertTrue(ExactVersion('1.0') == Version('1.0'))
 
     def test_contains(self):
         # an exact version contains only itself
@@ -147,6 +165,35 @@ class TestLabelVersion(VersionBaseTest):
 #         self.assertFalse(ExactVersion('1.0') in ExactVersion('1'))
 #         self.assertTrue(ExactVersion('1') in ExactVersion('1'))
 #         self.assertFalse(ExactVersion('1') in ExactVersion('1.0'))
+
+class TestExactVersionSet(VersionBaseTest):
+    VALID = ['foo|Bar', ['foo', 'bar']] + TestLabelVersion.VALID + TestExactVersion.VALID
+    INVALID = TestLabelVersion.INVALID + TestExactVersion.INVALID
+
+    def valid_init(self, s):
+        ExactVersionSet(s)
+
+    def invalid_init(self, s):
+        ExactVersionSet(s)
+
+    def test_comparision(self):
+        self.assertTrue(ExactVersionSet('foo|Bar') == ExactVersionSet('Bar|foo'))
+
+    def test_contains(self):
+        # overlapping
+        self.assertTrue(ExactVersion('3.0') in ExactVersionSet('2.0|3.0'))
+        self.assertTrue(ExactVersion('2') in ExactVersionSet('1|2'))
+
+        self.assertFalse(ExactVersion('1') in ExactVersionSet('1.0'))
+        self.assertTrue(ExactVersion('foo') in ExactVersionSet('foo'))
+
+    def test_boolean(self):
+        self.assertEqual(ExactVersionSet('foo|Bar').get_intersection(ExactVersionSet('foo')),
+                         ExactVersionSet('foo'))
+        no_intersect = ExactVersionSet('foo').get_intersection(ExactVersionSet('bar'))
+        self.assertFalse(no_intersect.is_any())
+        self.assertTrue(no_intersect.is_none())
+        self.assertFalse(no_intersect)
 
 # if __name__ == '__main__':
 #     nose.main()

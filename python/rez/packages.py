@@ -7,7 +7,7 @@ from public_enums import PKG_METADATA_FILENAME
 import rez_metafile
 import rez_filesys
 from rez_exceptions import PkgSystemError
-from versions import Version, ExactVersion
+from versions import Version, ExactVersion, VersionRange
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
@@ -28,8 +28,8 @@ def pkg_name(pkg_str):
 
 # TODO: move this to RezMemCache
 def get_family_paths(path):
-    return [(x, os.path.join(path, x)) for x in os.listdir(path) \
-            if not PACKAGE_NAME_REGEX.match(x) and x not in ['rez']]
+    return [(os.path.splitext(x)[0], os.path.join(path, x)) for x in os.listdir(path) \
+            if PACKAGE_NAME_REGEX.match(os.path.splitext(x)[0]) and x not in ['rez']]
 
 def iter_package_families(name=None, paths=None):
     """
@@ -77,11 +77,30 @@ def iter_packages(name=None, paths=None, skip_dupes=True):
 def iter_packages_in_range(family_name, ver_range, latest=True, timestamp=0,
                            exact=False, paths=None):
     """
-    Given a family name and a `VersionRange`, iterate over `Package` instances.
+    Iterate over `Package` instances.
+
+    Parameters
+    ----------
+    family_name : str
+        name of the package without a version
+    ver_range : VersionRange
+        range of versions in package to iterate over
+    latest : bool
+        whether to sort by latest (default) or earliest
+    timestamp : int
+        time since epoch: any packages newer than this will be ignored. 0 means
+        no effect.
+    exact : bool
+        only match if ver_range represents an exact version
+    paths : list of str
+        search path. defaults to REZ_PACKAGES_PATH
 
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
     """
+    if not isinstance(ver_range, VersionRange):
+        ver_range = VersionRange(ver_range)
+
     # store the generator. no paths have been walked yet
     results = iter_packages(family_name, paths)
 
@@ -102,6 +121,23 @@ def package_in_range(family_name, ver_range, latest=True, timestamp=0,
                      exact=False, paths=None):
     """
     Return the first `Package` found on the search path.
+
+    Parameters
+    ----------
+    family_name : str
+        name of the package without a version
+    ver_range : VersionRange
+        range of versions in package to iterate over
+    latest : bool
+        whether to sort by latest (default) or earliest
+    timestamp : int
+        time since epoch: any packages newer than this will be ignored. 0 means
+        no effect.
+    exact : bool
+        only match if ver_range represents an exact version
+    paths : list of str
+        search path. defaults to REZ_PACKAGES_PATH
+
     """
     result = iter_packages_in_range(family_name, ver_range, latest, timestamp,
                                     exact, paths)
@@ -222,7 +258,7 @@ class ResolvedPackage(Package):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, base, root, commands, metadata, timestamp):
+    def __init__(self, name, version, base, root, commands, metadata, timestamp, metafile):
         Package.__init__(self, name, version, base, timestamp, stripped_metadata=metadata)
         # FIXME: this is primarily here for rex. i don't like the fact that
         # Package.version is a Version, and ResolvedPackage.version is a ExactVersion.
@@ -234,6 +270,7 @@ class ResolvedPackage(Package):
         self.root = root
         self.raw_commands = commands
         self.commands = None
+        self.metafile = metafile
 
     def strip(self):
         # remove data that we don't want to cache

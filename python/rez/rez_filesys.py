@@ -79,6 +79,8 @@ def get_versions_in_directory(path, warnings):
     vers = []
 
     for f in os.listdir(path):
+        if f.startswith('.'):
+            continue
         fullpath = os.path.join(path, f)
         if os.path.isdir(fullpath):
             try:
