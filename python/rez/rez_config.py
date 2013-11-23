@@ -1814,17 +1814,14 @@ class _Configuration(object):
 				continue
 
 			common_pkg_fams = None
-			pkg_vers = {}
+			pkg_vers = defaultdict(list)
 
 			for variant in (variants_e + variants_l):
 				comm_fams = set()
 				for pkgstr in variant:
 					pkgreq = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode)
 					comm_fams.add(pkgreq.name)
-					if pkgreq.name in pkg_vers:
-						pkg_vers[pkgreq.name].append(pkgreq.version)
-					else:
-						pkg_vers[pkgreq.name] = [ pkgreq.version ]
+					pkg_vers[pkgreq.name].append(pkgreq.version_range)
 
 				if (common_pkg_fams == None):
 					common_pkg_fams = comm_fams
@@ -1836,7 +1833,9 @@ class _Configuration(object):
 
 			if (common_pkg_fams != None):
 				for pkg_fam in common_pkg_fams:
-					ver_range = VersionRange(pkg_vers[pkg_fam])
+					versions = pkg_vers[pkg_fam]
+					ver_range = to_range(versions)
+
 					v = ver_range.get_span()
 					if v:
 						pkg_req = PackageRequest(pkg_fam, v,

@@ -100,7 +100,9 @@ class TestResolve(ResolveBaseTest):
                           ([OS_PKG],
                            [])
                           ]:
-            yield check_basic_resolve, ins, outs
+            yield check_basic_resolve, ins, outs, dict(resolve_mode=RESOLVE_MODE_LATEST)
+            yield check_basic_resolve, ins, outs, dict(resolve_mode=RESOLVE_MODE_LATEST,
+                                                       assume_dt=True)
 
     def test_earliest(self):
         for ins, outs in [(['python'],

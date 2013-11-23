@@ -79,6 +79,16 @@ def incr_bound(bound):
     """
     return bound[:-1] + tuple([incr_component(bound[-1])])
 
+def to_range(versions):
+    if not versions:
+        return VersionRange([])
+    num_exact = len([v for v in versions if isinstance(v, (ExactVersion, ExactVersionSet))])
+    if num_exact > 0:
+        if num_exact != len(versions):
+            raise VersionError("Cannot mix exact and inexact versions: %s" % versions)
+        return ExactVersionSet(versions)
+    return VersionRange(versions)
+
 class VersionError(Exception):
     """
     Exception
@@ -583,7 +593,7 @@ class ExactVersion(Version):
             return ''
 
     def __lt__(self, ver):
-        if self.ge == Version.NEG_INF:
+        if self.is_label():
             return self.version < str(ver)
         else:
             return super(ExactVersion, self).__lt__(ver)
@@ -592,7 +602,7 @@ class ExactVersion(Version):
         return self.version == str(other)
 
     def __le__(self, ver):
-        if self.ge == Version.NEG_INF:
+        if self.is_label():
             return self.version <= str(ver)
         else:
             return super(ExactVersion, self).__le__(ver)
@@ -605,6 +615,9 @@ class ExactVersion(Version):
 
     def is_inexact(self):
         return False
+
+    def is_label(self):
+        return self.ge == Version.NEG_INF
 
     def get_intersection(self, ver):
         """
@@ -664,7 +677,7 @@ class ExactVersionSet(VersionRange):
         Return a single version spanning the low and high versions of the range,
         Or None if range contains no versions.
         """
-        raise NotImplementedError
+        return None
 
     def get_intersection(self, vers):
         """
