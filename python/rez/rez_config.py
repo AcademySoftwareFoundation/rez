@@ -98,7 +98,7 @@ class PackageRequest(object):
 			self.name = anti_name(self.name)
 		self.timestamp = timestamp
 		self.resolve_mode = resolve_mode if resolve_mode is not None else RESOLVE_MODE_LATEST
-		self.version = str(self.version_range)
+		self._version_str = str(self.version_range)
 
 	def is_anti(self):
 		return (self.name[0] == '!')
@@ -107,16 +107,16 @@ class PackageRequest(object):
 		return (self.name[0] == '~')
 
 	def short_name(self):
-		if (len(self.version) == 0):
+		if (len(self._version_str) == 0):
 			return self.name
 		else:
-			return self.name + '-' + self.version
+			return self.name + '-' + self._version_str
 
 	def __str__(self):
-		return str((self.name, self.version))
+		return str((self.name, self._version_str))
 
 	def __repr__(self):
-		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self.version)
+		return '%s(%r, %r)' % (self.__class__.__name__, self.name, self._version_str)
 
 class PackageConflict(object):
 	"""
@@ -718,24 +718,32 @@ class _PackageVariant(object):
 	"""
 	A package variant. The 'working list' member is a list of dependencies that are
 	removed during config resolution - a variant with an empty working_list is fully
-	resolved. This class has been written with foward compatibility in mind - currently
+	resolved. This class has been written with forward compatibility in mind - currently
 	a variant is just a list of dependencies, but it may later become a dict, with
 	more info than just dependencies.
 	"""
-	def __init__(self, metadata_node, _working_list=None):
-		self.metadata = metadata_node
-		if _working_list is not None:
-			self.working_list = _working_list[:]
-		elif type(self.metadata) == list:
-			self.working_list = self.metadata[:]
-		else:
-			raise PkgSystemError("malformed variant metadata: " + str(self.metadata))
+	def __init__(self, pkg_reqs):
+		self.all_requests = tuple(pkg_reqs)
+		seen = set([])
+		for x in self.all_requests:
+			if x.name in seen:
+				raise RezError("Variants cannot contain more than one occurrance of the same package: %s" % x.name)
+			seen.add(x.name)
+		self.unresolved_requests = self.all_requests[:]
+
+	def get_request(self, name):
+		return dict((x.name, x) for x in self.all_requests).get(name, None)
+
+	def remove_request(self, pkg_name):
+		self.unresolved_requests = [x for x in self.unresolved_requests if x.name != pkg_name]
 
 	def copy(self):
-		return _PackageVariant(self.metadata, self.working_list)
+		var = _PackageVariant(self.all_requests)
+		var.unresolved_requests = self.unresolved_requests[:]
+		return var
 
 	def __str__(self):
-		return str(self.metadata)
+		return str(self.all_requests)
 
 
 class _Package(object):
@@ -753,11 +761,8 @@ class _Package(object):
 		self.metafile = None
 		if pkg_req:
 			self.name = pkg_req.name
-			self.version_range = pkg_req.version_range
 			self.pkg_req = pkg_req
-			self.pkg_iter = iter_packages_in_range(self.name, self.version_range,
-												   self.pkg_req.resolve_mode==RESOLVE_MODE_LATEST,
-												   self.pkg_req.timestamp)
+			self.set_version_range(pkg_req.version_range)
 			if not self.is_anti() and not package_family(self.name):
 				raise PkgFamilyNotFoundError(self.name)
 		else:
@@ -766,7 +771,7 @@ class _Package(object):
 			self.pkg_req = None
 			self.pkg_iter = None
 
-	def copy(self, skip_version_range=False):
+	def copy(self):
 		p = _Package(None)
 		p.is_transitivity = self.is_transitivity
 		p.has_added_transitivity = self.has_added_transitivity
@@ -779,17 +784,25 @@ class _Package(object):
 		p.pkg_req = self.pkg_req
 		# split the iterator
 		self.pkg_iter, p.pkg_iter = itertools.tee(self.pkg_iter)
-		if not skip_version_range:
-			p.version_range = self.version_range.copy()
+		p.version_range = self.version_range
 
 		p.variants = None
 		if self.variants is not None:
 			p.variants = [x.copy() for x in self.variants]
 		return p
 
+	def set_version_range(self, version_range):
+		self.version_range = version_range
+		# recreate the iterator.
+		# NOTE: not entirely sure this is safe if iteration has already begun.
+		self.pkg_iter = iter_packages_in_range(self.name, self.version_range,
+											   self.pkg_req.resolve_mode==RESOLVE_MODE_LATEST,
+											   self.pkg_req.timestamp)
+
 	def next_request(self):
 		try:
 			pkg = next(self.pkg_iter)
+			# NOTE: this is always an exact package. no ranges involved
 			return PackageRequest(pkg.name, pkg.version,
 								  self.pkg_req.resolve_mode,
 								  self.pkg_req.timestamp)
@@ -855,7 +868,7 @@ class _Package(object):
 		Get commands with string replacement
 		"""
 		if self.is_resolved():
-			if isinstance(self.metadata.commands, list):
+			if isinstance(self.metadata['commands'], list):
 				version = str(self.version_range)
 				vernums = version.split('.') + ['', '']
 				major_version = vernums[0]
@@ -863,7 +876,7 @@ class _Package(object):
 				user = os.getenv("USER", "UNKNOWN_USER")
 	
 				new_cmds = []
-				for cmd in self.metadata.commands:
+				for cmd in self.metadata['commands']:
 					cmd = cmd.replace("!VERSION!", version)
 					cmd = cmd.replace("!MAJOR_VERSION!", major_version)
 					cmd = cmd.replace("!MINOR_VERSION!", minor_version)
@@ -873,7 +886,7 @@ class _Package(object):
 					new_cmds.append(cmd)
 				return new_cmds
 			else:
-				return self.metadata.commands
+				return self.metadata['commands']
 		else:
 			return None
 
@@ -899,12 +912,14 @@ class _Package(object):
 				self.base_path = pkg.base
 				self.metadata = pkg.stripped_metadata
 				self.metafile = pkg.metafile
-				metafile_variants = self.metadata.variants
+				metafile_variants = self.metadata['variants']
 				if metafile_variants:
 					# convert variants from metafile into _PackageVariants
 					self.variants = []
 					for metavar in metafile_variants:
-						pkg_var = _PackageVariant(metavar)
+						requests = [str_to_pkg_req(p, self.pkg_req.timestamp,
+												   self.pkg_req.resolve_mode) for p in metavar]
+						pkg_var = _PackageVariant(requests)
 						self.variants.append(pkg_var)
 				else:
 					# no variants, we're fully resolved
@@ -932,7 +947,7 @@ class _Package(object):
 		if (variants):
 			vars = []
 			for var in variants:
-				vars.append(var.working_list)
+				vars.append(var.unresolved_requests)
 			l.append("working_vars:" + str(vars))
 		return str(l)
 
@@ -1035,8 +1050,8 @@ class _Configuration(object):
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = config_pkg.copy(skip_version_range=True)
-						pkg_add.version_range = ver_range_intersect
+						pkg_add = config_pkg.copy()
+						pkg_add.set_version_range(ver_range_intersect)
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
 					return (_Configuration.ADDPKG_CONFLICT, config_pkg)
@@ -1050,8 +1065,8 @@ class _Configuration(object):
 				ver_range_union = config_pkg.version_range.get_union(pkg_req_ver_range)
 				pkg_add = None
 				if create_pkg_add:
-					pkg_add = config_pkg.copy(skip_version_range=True)
-					pkg_add.version_range = ver_range_union
+					pkg_add = config_pkg.copy()
+					pkg_add.set_version_range(ver_range_union)
 				return (_Configuration.ADDPKG_ADD, pkg_add)
 		else:
 			try:
@@ -1076,7 +1091,7 @@ class _Configuration(object):
 					pkg_add = None
 					if create_pkg_add:
 						pkg_add = _Package(pkg_req)
-						pkg_add.version_range = ver_range_intersect
+						pkg_add.set_version_range(ver_range_intersect)
 						return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
 					return (_Configuration.ADDPKG_CONFLICT, config_pkg)
@@ -1091,8 +1106,8 @@ class _Configuration(object):
 				if ver_range_intersect:
 					pkg_add = None
 					if create_pkg_add:
-						pkg_add = config_pkg.copy(skip_version_range=True)
-						pkg_add.version_range = ver_range_intersect
+						pkg_add = config_pkg.copy()
+						pkg_add.set_version_range(ver_range_intersect)
 					return (_Configuration.ADDPKG_ADD, pkg_add)
 				else:
 					return (_Configuration.ADDPKG_CONFLICT, config_pkg)
@@ -1660,7 +1675,7 @@ class _Configuration(object):
 		for name,pkg in self.pkgs.iteritems():
 			if (not pkg.is_resolved()) and (not pkg.is_anti()):
 				for variant in pkg.get_variants():
-					sc = self.get_num_unknown_pkgs(variant.working_list)
+					sc = self.get_num_unknown_pkgs(variant.unresolved_requests)
 					if (sc > bad_variant_score):
 						bad_pkg = pkg
 						bad_variant = variant
@@ -1708,9 +1723,9 @@ class _Configuration(object):
 					# add required packages to the configuration, this may
 					# reduce wrt existing packages (eg: foo-1 -> foo-1.2 is a reduction)
 					if self.rctxt.build_requires:
-						requires = (pkg.metadata.build_requires or []) + (pkg.metadata.requires or [])
+						requires = (pkg.metadata['build_requires'] or []) + (pkg.metadata['requires'] or [])
 					else:
-						requires = pkg.metadata.requires
+						requires = pkg.metadata['requires']
 
 					if requires:
 						for pkg_str in requires:
@@ -1773,8 +1788,8 @@ class _Configuration(object):
 
 			pkg.has_added_transitivity = True
 
-			requires_e = metafile_e.requires
-			requires_l = metafile_l.requires
+			requires_e = metafile_e['requires']
+			requires_l = metafile_l['requires']
 			if (not requires_e) or (not requires_l):
 				continue
 
@@ -1790,13 +1805,18 @@ class _Configuration(object):
 					pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.time_epoch, self.rctxt.resolve_mode)
 					if (pkg_req_e.name == pkg_req_l.name):
 						pkg_req = pkg_req_e
-						if (pkg_req_e.version != pkg_req_l.version):
+						if (pkg_req_e.version_range != pkg_req_l.version_range):
 							# calc version range
-							v_e = Version(pkg_req_e.version)
-							v_l = Version(pkg_req_l.version)
+							# FIXME: big assumption here that these ranges can be Versions (will break for e.g. '1.0|2.0'):
+							v_e = Version(str(pkg_req_e.version_range))
+							v_l = Version(str(pkg_req_l.version_range))
 							if(not v_e.ge < v_l.lt):
 								continue
 							v = v_e.get_span(v_l)
+							# TODO: test this alternate code:
+# 							v_union = pkg_req_e.version_range.get_union(pkg_req_l.version_range)
+# 							v = v_union.get_span()
+
 							pkg_req = PackageRequest(pkg_req_e.name, v,
 													 self.rctxt.resolve_mode,
 													 self.rctxt.time_epoch)
@@ -1808,8 +1828,8 @@ class _Configuration(object):
 
 			# find common variants that exist in both. Note that this code is somewhat redundant,
 			# v similar work is done in resolve_common_variants - fix this in rez V2
-			variants_e = metafile_e.variants
-			variants_l = metafile_l.variants
+			variants_e = metafile_e['variants']
+			variants_l = metafile_l['variants']
 			if (not variants_e) or (not variants_l):
 				continue
 
@@ -1873,13 +1893,12 @@ class _Configuration(object):
 
 				conflicting_variants = set()
 				for variant in variants:
-					for pkgstr in variant.metadata:
-						pkg_req_ = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+					for pkg_req_ in variant.all_requests:
 						pkg_conflicting = self.get_conflicting_package(pkg_req_)
 						if pkg_conflicting:
 							pkg_req_conflicting = pkg_conflicting.as_package_request()
 							pkg_req_this = pkg.as_package_request()
-							pc = PackageConflict(pkg_req_conflicting, pkg_req_this, variant.metadata)
+							pc = PackageConflict(pkg_req_conflicting, pkg_req_this, variant.all_requests)
 							conflicts.append(pc)
 							conflicting_variants.add(variant)
 							num += 1
@@ -1896,13 +1915,13 @@ class _Configuration(object):
 
 						# show all variants and conflicts in dot-graph
 						for variant in variants:
-							varstr = str(", ").join(variant.metadata)
+							varstr = ", ".join([x.short_name() for x in variant.all_requests])
 							self.add_dot_graph_verbatim('"' + varstr + '" [style=filled fillcolor="white"] ;')
 
 						self.add_dot_graph_verbatim('}')
 
 						for variant in variants:
-							varstr = str(", ").join(variant.metadata)
+							varstr = ", ".join([x.short_name() for x in variant.all_requests])
 							self.dot_graph.append( ( pkg_req_this.short_name(), \
 								( varstr, _Configuration.PKGCONN_VARIANT ) ) )
 							self.dot_graph.append( ( pkg_req_conflicting.short_name(), \
@@ -1941,40 +1960,34 @@ class _Configuration(object):
 			if variants != None:
 
 				# find common package families
-				pkgname_sets = []
-				pkgname_versions = {}
-				pkgname_entries = {}
-
+				common_pkgnames = None
 				for variant in variants:
-					if (len(variant.working_list) > 0):
-						pkgname_set = set()
-						for pkgstr in variant.working_list:
-							pkg_req = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-							pkgname_set.add(pkg_req.name)
-							if not (pkg_req.name in pkgname_versions):
-								pkgname_versions[pkg_req.name] = []
-								pkgname_entries[pkg_req.name] = []
-							pkgname_versions[pkg_req.name].append(pkg_req.version)
-							pkgname_entries[pkg_req.name].append([ variant.working_list, pkgstr ])
-						pkgname_sets.append(pkgname_set)
+					if variant.unresolved_requests:
+						pkgnames = [p.name for p in variant.unresolved_requests]
+						if common_pkgnames is None:
+							common_pkgnames = set(pkgnames)
+						else:
+							common_pkgnames.intersection_update(pkgnames)
 
-				if (len(pkgname_sets) > 0):
-					common_pkgnames = pkgname_sets[0]
-					for pkgname_set in pkgname_sets[1:]:
-						common_pkgnames = common_pkgnames.intersection(pkgname_set)
-
+				if common_pkgnames:
 					num += len(common_pkgnames)
 
 					# add the union of each common package to the configuration,
 					# and remove the packages from the variants' working lists
 					for common_pkgname in common_pkgnames:
-						ored_pkgs_str = common_pkgname + '-' + '|'.join(pkgname_versions[common_pkgname])
-						pkg_req_ = str_to_pkg_req(ored_pkgs_str, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+						version_range = None
+						for variant in variants:
+							this_range = variant.get_request(common_pkgname).version_range
+							if version_range is None:
+								version_range = this_range
+							else:
+								version_range = version_range.get_union(this_range)
 
+						pkg_req_ = PackageRequest(common_pkgname, version_range)
 						config2.add_package(pkg_req_, pkg)
 
-						for entry in pkgname_entries[common_pkgname]:
-							entry[0].remove(entry[1])
+						for variant in variants:
+							variant.remove_request(common_pkgname)
 
 						if (self.rctxt.verbosity != 0):
 							print
@@ -2002,10 +2015,10 @@ class _Configuration(object):
 			variants = pkg.get_variants()
 			if (variants != None) and (len(variants) == 1):
 				variant = variants[0]
-				if (len(variant.working_list) == 0):
+				if (len(variant.unresolved_requests) == 0):
 
 					# check resolved path exists
-					root_path = os.path.join(pkg.base_path, *variant.metadata)
+					root_path = os.path.join(pkg.base_path, *[x.short_name() for x in variant.all_requests])
 					if not os.path.isdir(root_path):
 						pkg_req_ = pkg.as_package_request()
 

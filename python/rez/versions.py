@@ -19,9 +19,10 @@ import re
 
 # can't be zero padded
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-z]|[1-9][0-9]+)'
-EXACT_VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
+VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 LABEL_VERSION_REGSTR = '[a-zA-Z][a-zA-Z0-9_]+'
-EXACT_VERSION_REG = re.compile(EXACT_VERSION_REGSTR + "$")
+EXACT_VERSION_REGSTR = '(%s)|(%s)' % (VERSION_REGSTR, LABEL_VERSION_REGSTR)
+VERSION_REG = re.compile(VERSION_REGSTR + "$")
 LABEL_VERSION_REG = re.compile(LABEL_VERSION_REGSTR + "$")
 
 def is_character(tok):
@@ -481,6 +482,9 @@ class VersionRange(object):
 
     def __nonzero__(self):
         return not self.is_none()
+
+    def __iter__(self):
+        return self.versions.__iter__()
 
 def get_versions_union(versions):
     """Returns a sorted list of Version instances"""

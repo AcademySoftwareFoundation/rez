@@ -1,14 +1,33 @@
 """
-Class for loading and verifying rez metafiles
+Utilities for registering, finding, loading, and verifying rez resources.
+
+Resources are an abstraction of rez's file and directory structure. Currently,
+a resource can be a file or directory (with eventual support for other types).
+A resource is given a hierarchical name and a file path pattern (like
+"{name}/{version}/package.yaml") and are collected under a particular
+configuration version.
+
+If the resource is a file, an optional metadata validator can be provided to
+validate the contents (e.g. enforce data types and document structure) of the
+data. This validation is run after the data is deserialized, so it is decoupled
+from the storage format. New resource formats can be added and share the same
+validators.
+
+The upshot is that once a resource is registered, instances of the resource can
+be iterated over using `iter_resources` without the higher level code requiring
+an understanding of the underlying file and folder structure.  This ensures that
+the addition of new resources is localized to the registration functions
+provided by this module.
 """
 
 import yaml
 import os
-import textwrap
+import inspect
 import re
 from collections import defaultdict
 from rez_util import to_posixpath
 import rez.versions as versions
+from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
 
@@ -52,8 +71,15 @@ class MetadataValueError(MetadataError, ValueError):
                                                           self.value))
 
 #------------------------------------------------------------------------------
-# Utilities
+# Internal Utilities
 #------------------------------------------------------------------------------
+
+def update_copy(source, updates):
+    """Returns a copy of source_dict, updated with the new key-value
+       pairs in diffs."""
+    result = dict(source)
+    result.update(updates)
+    return result
 
 class AttrDict(dict):
     """
@@ -88,34 +114,6 @@ class AttrDictYamlLoader(yaml.Loader):
         value = self.construct_mapping(node)
         data.update(value)
 
-def version_constructor(loader, node):
-    value = loader.construct_scalar(node)
-    return versions.ExactVersion(str(value))
-
-yaml.add_constructor(u'!ver', version_constructor)
-
-def _expand_pattern(pattern):
-    "expand variables in a search pattern with regular expressions"
-    import versions
-    import packages
-    import rez_filesys as filesys
-    if not pattern.startswith('/'):
-        pattern = '/' + pattern
-    pattern = re.escape(pattern)
-    expansions = [('version', versions.EXACT_VERSION_REGSTR),
-                  ('name', packages.PACKAGE_NAME_REGSTR),
-                  ('search_path', '|'.join('(%s)' % p for p in filesys._g_syspaths))]
-    for key, value in expansions:
-        pattern = pattern.replace(r'\{%s\}' % key, '(%s)' % value)
-    return pattern + '$'
-
-def _filename_is_match(config_info, filename):
-    pattern = config_info['pattern']
-    if isinstance(pattern, basestring):
-        pattern = re.compile(_expand_pattern(pattern))
-        config_info['pattern'] = pattern
-    return pattern.search(to_posixpath(filename))
-
 def _get_map_id(parent_id, key):
     return (parent_id + '.' if parent_id else '') + key
 
@@ -143,18 +141,25 @@ def _id_match(id, match_id):
 # Base Classes and Functions
 #------------------------------------------------------------------------------
 
+def load_yaml(stream):
+    if hasattr(stream, 'read'):
+        text = stream.read()
+    else:
+        text = stream
+    try:
+        return yaml.load(text) or {}
+    except yaml.composer.ComposerError as err:
+        if err.context == 'expected a single document in the stream':
+            # automatically switch to multi-doc
+            return list(yaml.load_all(text))
+        raise
+
 def load(stream, type):
     """
     return the metadata from a stream given the serialization "type".
     """
     if type == 'yaml':
-        try:
-            return yaml.load(stream, AttrDictYamlLoader) or {}
-        except yaml.composer.ComposerError as err:
-            if err.context == 'expected a single document in the stream':
-                # automatically switch to multi-doc
-                return list(yaml.load_all(stream, AttrDictYamlLoader))
-            raise
+        return load_yaml(stream)
     raise MetadataError("Unknown metadata storage type: %r" % type)
 
 def load_file(filename):
@@ -168,57 +173,210 @@ def load_file(filename):
     if ext == '.txt':
         ext = '.yaml'
     with open(filename, 'r') as f:
-        return load(f.read(), ext.strip('.'))
+        return load(f, ext.strip('.'))
 
-def register_config(config_version, resource_key, cls, path=None):
+#------------------------------------------------------------------------------
+# Resources and Configurations
+#------------------------------------------------------------------------------
+
+class ResourceInfo(object):
+    def __init__(self, path_pattern, metadata_classes=None):
+        if metadata_classes:
+            if not isinstance(metadata_classes, list):
+                metadata_classes = [metadata_classes]
+            for cls in metadata_classes:
+                assert issubclass(cls, Metadata)
+        else:
+            metadata_classes = []
+        self.metadata_classes = metadata_classes
+        self.is_dir = path_pattern.endswith('/')
+        self.path_pattern = path_pattern.rstrip('/')
+        self.compiled_pattern = None
+
+    def __repr__(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_classes, self.path_pattern)
+
+    @staticmethod
+    def _expand_pattern(pattern):
+        "expand variables in a search pattern with regular expressions"
+        import versions
+        import packages
+        import rez_filesys as filesys
+
+        pattern = re.escape(pattern)
+        expansions = [('version', versions.EXACT_VERSION_REGSTR),
+                      ('name', packages.PACKAGE_NAME_REGSTR),
+                      ('search_path', '|'.join('(%s)' % p for p in filesys._g_syspaths))]
+        for key, value in expansions:
+            pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
+        return pattern + '$'
+
+    def filename_is_match(self, filename):
+        "test if filename matches the configuration's path pattern"
+        assert self.path_pattern, "ResourceInfo does not have a path pattern"
+        if self.compiled_pattern:
+            regex = self.compiled_patterm
+        else:
+            pattern = self.path_pattern
+            if not pattern.startswith('/'):
+                pattern = '/' + self.path_pattern
+            regex = re.compile(self._expand_pattern(pattern))
+            self.compiled_patterm = regex
+        return regex.search(to_posixpath(filename))
+
+def register_resource(config_version, resource_key, path_patterns, classes=None):
     """
-    register a config file. this informs rez what the config file is used for,
-    how to validate its data and optionally, where to find it relative to the
-    rez search path.
+    register a resource. this informs rez where to find it relative to the
+    rez search path, and optionally how to validate its data.
 
     resource_key : str
         unique name used to identify the resource. when retrieving metadata from
         a file, the resource type can be automatically determined from the
         optional path string, or explicitly using the resource_key.
-    cls : Metadata class
-        class used to validate metadata
-    path : str (optional)
+    path_patterns : str or list of str
         a string pattern identifying where the resource file resides relative to
         the rez search path
+    cls : Metadata class or list of Metadata classes
+        class(es) used to validate metadata
     """
     version_configs = _configs[config_version]
-    config_info = {}
-    assert issubclass(cls, Metadata)
-    config_info['class'] = cls
-    if path:
-        config_info['pattern'] = path
 
     # version_configs is a list and not a dict so that it stays ordered
-    try:
-        config_list = dict(version_configs)[resource_key]
-    except KeyError:
-        config_list = []
-        version_configs.append((resource_key, config_list))
-    config_list.append(config_info)
+    if resource_key in dict(version_configs):
+        raise MetadataError("resource already exists: %r" % resource_key)
 
-def get_configs(config_version, filename, key=None):
-    version_configs = _configs.get(config_version)
-    if version_configs:
+    if isinstance(path_patterns, basestring):
+        path_patterns = [path_patterns]
+    resources = [ResourceInfo(path, classes) for path in path_patterns]
+    version_configs.append((resource_key, resources))
+
+def get_resources(config_version, key=None):
+    """
+    Get a list of ResourceInfo instances.
+    """
+    config_resources = _configs.get(config_version)
+    if config_resources:
         if key:
-            # narrow the search
-            configs = dict(version_configs).get(key, [])
-            for config_info in configs:
-                yield config_info['class'](filename)
-        else:
-            for _, configs in version_configs:
-                for config_info in configs:
-                    if 'pattern' in config_info and _filename_is_match(config_info, filename):
-                        yield config_info['class'](filename)
-    else:
+            if isinstance(key, basestring):
+                keys = set([key])
+            else:
+                keys = set(key)
+        # narrow the search
+        result = []
+        for resource_key, resources in config_resources:
+            if not key or resource_key in keys:
+                result.extend(resources)
+        return result
+
+def get_metadata_validators(config_version, filename, key=None):
+    """
+    find any resources whose path pattern matches the given filename and yield
+    a list of Metadata instances.
+    """
+    resources = get_resources(config_version, key)
+    if resources is None:
         raise MetadataValueError(filename, 'config_version', config_version)
 
-def list_registered_keys(config_version):
+    for resource in resources:
+        if resource.filename_is_match(filename):
+            for cls in resource.metadata_classes:
+                yield cls(filename)
+
+def list_resource_keys(config_version):
     return [info['key'] for info in _configs[config_version]]
+
+# tmp:
+class PathCache(object):
+    _cache = {}
+    @classmethod
+    def listdir(cls, path):
+        try:
+            return cls._cache[path]
+        except KeyError:
+            contents = os.listdir(path)
+            cls._cache[path] = contents
+            return contents
+
+class ResourceIterator(object):
+    """
+    Iterates over all occurrences of a resource, given a path pattern such as
+    '{name}/{version}/package.yaml'.
+
+    For each item found, yields the path to the resource and a dictionary of any
+    variables in the path pattern that were expanded.
+    """
+    def __init__(self, path_pattern, variables):
+        self.path_pattern = path_pattern
+        self.path_parts = self.path_pattern.split('/')
+        self.variables = variables.copy()
+        self.current_part = None
+        self.next_part()
+
+    def expand_part(self, part):
+        """
+        Path pattern will be split on directory separator, parts requiring
+        non-constant expansion will be converted to regular expression, and parts with no
+        expansion will remain string literals
+        """
+        for key, value in self.variables.iteritems():
+            part = part.replace('{%s}' % key, '%s' % value)
+        if '{' in part:
+            return re.compile(ResourceInfo._expand_pattern(part))
+        else:
+            return part
+
+    def copy(self):
+        new = ResourceIterator(self.path_pattern, self.variables.copy())
+        new.path_parts = self.path_parts[:]
+        return new
+
+    def next_part(self):
+        try:
+#             print self.path_pattern, "compiling:", self.path_parts[0]
+            self.current_part = self.expand_part(self.path_parts.pop(0))
+#             print self.path_pattern, "result:", self.current_part
+        except IndexError:
+            pass
+
+    def is_final_part(self):
+        return len(self.path_parts) == 0
+
+    def list_matches(self, path):
+        if isinstance(self.current_part, basestring):
+            fullpath = os.path.join(path, self.current_part)
+            # TODO: check file vs dir here
+            if os.path.exists(fullpath):
+                yield fullpath
+        else:
+            for name in PathCache.listdir(path):
+                match = self.current_part.match(name)
+                if match:
+                    # TODO: add match to variables
+                    self.variables.update(match.groupdict())
+                    yield os.path.join(path, name)
+
+    def walk(self, root):
+        for fullpath in self.list_matches(root):
+            if self.is_final_part():
+                yield fullpath, self.variables
+            else:
+                child = self.copy()
+                child.next_part()
+                for res in child.walk(fullpath):
+                    yield res
+
+def iter_resources(config_version, resource_keys, search_paths, **expansion_variables):
+    resources = get_resources(config_version, key=resource_keys)
+    for path in search_paths:
+        for resource in resources:
+            pattern = ResourceIterator(resource.path_pattern, expansion_variables)
+            for path, variables in pattern.walk(path):
+                yield path, variables, resource
+
+
+#------------------------------------------------------------------------------
+# Base Metadata
+#------------------------------------------------------------------------------
 
 class Metadata(object):
     """
@@ -231,9 +389,7 @@ class Metadata(object):
     list of documents. If it is a list, the additional documents provide
     a subset of the original with alternate types for particular items.
     """
-    SERIALIZER = 'yaml'
-    # string showing a reference implementation of the file:
-    STRUCTURE = None
+    REFERENCE = None
     # list of required nodes:
     REQUIRED = ()
     # list of optional nodes which should not be stripped
@@ -245,85 +401,81 @@ class Metadata(object):
     def __init__(self, filename):
         self.filename = filename
 
-    @classmethod
-    def get_reference_docs(cls):
-        if cls._refdocs is None:
-            if cls.STRUCTURE is None:
-                raise NotImplementedError("Configuration must provide a structure string: %r" % (cls))
-            if isinstance(cls.STRUCTURE, basestring):
-                docs = [cls.STRUCTURE]
-            else:
-                docs = cls.STRUCTURE
-            # the dedent may not be safe for serializers other than yaml
-            cls._refdocs = [load(textwrap.dedent(d), cls.SERIALIZER) for d in docs]
-        return cls._refdocs
-
     def check_node(self, node, refnode, id=''):
         """
         check a node against the reference node. checks type and existence.
         """
-        if type(node) != type(refnode):
-            if node is None:
-                yield (id, None)
-            elif type(refnode).__module__ != '__builtin__':
-                # refnode requested a custom type. we use this opportunity to attempt
-                # to cast node to this type. 
-                try:
-                    type(refnode)(node)
+        if isinstance(refnode, OneOf):
+            for option in refnode.options:
+                for res in self.check_node(node, option, id=id):
+                    yield res
+        else:
+            if type(node) != type(refnode):
+                if node is None:
                     yield (id, None)
-                except:
+                elif inspect.isfunction(node) and not any(inspect.getargspec(node)):
+                    new_node = node()
+                    for res in self.check_node(new_node, refnode, id=id):
+                        yield res
+                elif type(refnode).__module__ != '__builtin__':
+                    # refnode requested a custom type. we use this opportunity to attempt
+                    # to cast node to this type. 
+                    try:
+                        # TODO: assign new value to parent container?
+                        type(refnode)(node)
+                        yield (id, None)
+                    except:
+                        yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
+                else:
                     yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
             else:
-                yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
-        else:
-            if isinstance(refnode, dict):
-                for key in refnode:
-                    key_id = _get_map_id(id, key)
-                    if key in node:
-                        for res in self.check_node(node[key],
-                                                   refnode[key],
-                                                   id=key_id):
-                            yield res
-                    elif any([_id_match(key_id, m) for m in self.REQUIRED]):
-                        yield (id, MetadataKeyError(self.filename, key))
-                    else:
-                        # add it to the dictionary
-                        node[key] = None
-            elif isinstance(refnode, list):
-                if len(refnode):
-                    for i, item in enumerate(node):
-                        try:
-                            refitem = refnode[i]
-                        except IndexError:
-                            # repeat the last found reference item
-                            pass
-                        for res in self.check_node(item,
-                                                   refitem,
-                                                   id=_get_list_id(id, i)):
-                            yield res
-            yield (id, None)
+                if isinstance(refnode, dict):
+                    for key in refnode:
+                        key_id = _get_map_id(id, key)
+                        if key in node:
+                            for res in self.check_node(node[key],
+                                                       refnode[key],
+                                                       id=key_id):
+                                yield res
+                        elif any([_id_match(key_id, m) for m in self.REQUIRED]):
+                            yield (id, MetadataKeyError(self.filename, key))
+                        else:
+                            # add it to the dictionary
+                            node[key] = None
+                elif isinstance(refnode, list):
+                    if len(refnode):
+                        for i, item in enumerate(node):
+                            try:
+                                refitem = refnode[i]
+                            except IndexError:
+                                # repeat the last found reference item
+                                pass
+                            for res in self.check_node(item,
+                                                       refitem,
+                                                       id=_get_list_id(id, i)):
+                                yield res
+                yield (id, None)
 
-    def validate_document_structure(self, doc, refdocs):
+    def validate_document_structure(self, doc, refdoc):
         prev_results = {}
-        for refdoc in refdocs:
-            curr_results = dict(self.check_node(doc, refdoc))
-            # an id fails if all runs fail.
-            for id, value in curr_results.iteritems():
-                if id not in prev_results:
-                    prev_results[id] = value
-                elif value is not None and prev_results[id] is not None:
-                    # failure
-                    prev_results[id] = value
-                else:
-                    prev_results[id] = None
+        # an id fails if all runs fail.
+        for id, value in self.check_node(doc, refdoc):
+            if id not in prev_results:
+                prev_results[id] = value
+            elif value is not None and prev_results[id] is not None:
+                # failure
+                prev_results[id] = value
+            else:
+                prev_results[id] = None
         failures = [val for id, val in prev_results.items() if val is not None]
         if failures:
             print "%d failures" % len(failures)
             raise failures[0]
 
     def validate(self, metadata):
+        "validate the metadata"
         self.validate_document_structure(metadata,
-                                         self.get_reference_docs())
+                                         self.REFERENCE)
 
     def strip(self, metadata):
         """
@@ -333,43 +485,62 @@ class Metadata(object):
         for key in remove:
             metadata.pop(key, None)
 
+class OneOf(object):
+    '''
+    Utility class for storing optional types in a reference document
+    '''
+    def __init__(self, *options):
+        self.options = options
+
 #------------------------------------------------------------------------------
-# Configurations
+# Metadata Implementations
 #------------------------------------------------------------------------------
 
 class ReleaseInfo(Metadata):
-    STRUCTURE = ('''\
-        ACTUAL_BUILD_TIME : 0
-        BUILD_TIME : 0
-        USER : str
-        SVN : str''')
+    REFERENCE = {
+        'ACTUAL_BUILD_TIME': 0,
+        'BUILD_TIME': 0,
+        'USER': 'str',
+        'SVN': 'str'
+        }
     REQUIRED = ('ACTUAL_BUILD_TIME', 'BUILD_TIME', 'USER')
 
 class BasePackageConfig_0(Metadata):
-    STRUCTURE = ('''\
-        config_version : 0
-        uuid : str
-        description : str
-        version : !ver 1.2
-        name : str
-        help : str
-        authors : [str]
-        requires : [str]
-        build_requires : [str]
-        variants : [[str]]
-        commands : [str]''',
-        '''\
-        commands: str''')
+    REFERENCE = {
+        'config_version': 0,
+        'uuid': 'str',
+        'description': 'str',
+        'name': 'str',
+        'help': 'str',
+        'authors': ['str'],
+        'requires': ['name-1.2'],
+        'build_requires': ['name-1.2'],
+        'variants': [['name-1.2']],
+        'commands': OneOf('str',
+                          ['str'],
+                          lambda pkg, pkgs, env, recorder: None)
+        }
+
     REQUIRED = ('config_version', 'name')
     PROTECTED = ('requires', 'build_requires', 'variants', 'commands')
 
 class VersionPackageConfig_0(BasePackageConfig_0):
+    REFERENCE = {
+        'config_version': 0,
+        'uuid': 'str',
+        'description': 'str',
+        'name': 'str',
+        'version': ExactVersion('1.2'),
+        'help': 'str',
+        'authors': ['str'],
+        'requires': ['name-1.2'],
+        'build_requires': ['name-1.2'],
+        'variants': [['name-1.2']],
+        'commands': OneOf('str',
+                          ['str'],
+                          lambda pkg, pkgs, env, recorder: None)
+        }
     REQUIRED = ('config_version', 'name', 'version')
-
-    def validate(self, metadata):
-        Metadata.validate(self, metadata)
-        if not re.match(versions.EXACT_VERSION_REGSTR + '$', metadata['version']):
-            raise MetadataValueError(self.filename, 'version', metadata['version'])
 
 class PackageBuildConfig_0(VersionPackageConfig_0):
     """
@@ -378,24 +549,28 @@ class PackageBuildConfig_0(VersionPackageConfig_0):
     """
     REQUIRED = ('config_version', 'name', 'version', 'uuid', 'description', 'authors')
 
-register_config(0,
-                'version_package',
-                VersionPackageConfig_0,
-                path='{name}/{version}/package.yaml')
+register_resource(0,
+                  'package.versioned',
+                  ['{name}/{version}/package.yaml'],
+                  [VersionPackageConfig_0])
 
-register_config(0,
-                'versionless_package',
-                BasePackageConfig_0,
-                path='{name}/package.yaml')
+register_resource(0,
+                  'package.versionless',
+                  ['{name}/package.yaml'],
+                  [BasePackageConfig_0])
 
-register_config(0,
-                'release_info',
-                ReleaseInfo,
-                path='{name}/{version}/.metadata/info.txt')
+# register_resource(0,
+#                 'package.built',
+#                 PackageBuildConfig_0)
 
-register_config(0,
-                'built_package',
-                PackageBuildConfig_0)
+register_resource(0,
+                  'release.info',
+                  ['{name}/{version}/.metadata/info.txt'],
+                  [ReleaseInfo])
+
+register_resource(0,
+                  'package_family.folder',
+                  ['{name}/'])
 
 #------------------------------------------------------------------------------
 # Main Entry Point
@@ -438,220 +613,16 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
                                 'is less than minimum requested: %d' % (config_version,
                                                                         min_config_version))
 
-    for config in get_configs(config_version, filename, resource_key):
+    for validator in get_metadata_validators(config_version, filename, resource_key):
         try:
-            config.validate(metadata)
-        except MetadataError:
-            print "failed", config
+            validator.validate(metadata)
+        except MetadataError as err:
+            print "failed", validator, str(err)
             continue
         if strip:
-            config.strip(metadata)
+            validator.strip(metadata)
         return metadata
     raise MetadataError("Could not find registered metadata configuration for %r" % filename)
-
-
-
-
-
-# Original code, left for easy reference for the time being:
-
-
-# # TODO this class is too heavy
-# class ConfigMetadata(object):
-#     """
-#     metafile. An incorrectly-formatted file will result in either a yaml exception (if
-#     the syntax is wrong) or a MetadataError (if the content is wrong). An empty
-#     metafile is acceptable, and is supported for fast integration of 3rd-party packages
-#     """
-# 
-#     # file format versioning, only update this if the package.yamls have to change
-#     # format in a way that is not backwards compatible
-#     METAFILE_VERSION = 0
-# 
-#     def __init__(self, filename):
-#         self.filename = filename
-#         self.config_version = ConfigMetadata.METAFILE_VERSION
-#         self.uuid = None
-#         self.authors = None
-#         self.description = None
-#         self.name = None
-#         self.version = None
-#         self.help = None
-#         self.requires = None
-#         self.build_requires = None
-#         self.variants = None
-#         self.commands = None
-# 
-#         with open(filename) as f:
-#             self.metadict = yaml.load(f.read()) or {}
-# 
-#         if self.metadict:
-#             ###############################
-#             # Common content
-#             ###############################
-# 
-#             if (type(self.metadict) != dict):
-#                 raise MetadataError("package metafile '" + self.filename + \
-#                     "' contains non-dictionary root node")
-# 
-#             # config_version
-#             self.config_version = self._get_int("config_version",
-#                                                       required=True)
-# 
-#             if (self.config_version < 0) or (self.config_version > ConfigMetadata.METAFILE_VERSION):
-#                 raise MetadataError("package metafile '" + self.filename + \
-#                     "' contains invalid config version '" + str(self.config_version) + "'")
-# 
-#             self.uuid            = self._get_str("uuid")
-#             self.description     = self._get_str("description")
-#             self.version         = self._get_str("version")
-#             self.name             = self._get_str("name")
-#             self.help             = self._get_str("help")
-#             self.authors        = self._get_list("authors", subtype=str)
-# 
-#             # config-version-specific content
-#             if (self.config_version == 0):
-#                 self.load_0();
-# 
-#     def _get_list(self, label, subtype=None, required=False):
-#         value = self.metadict.get(label)
-#         if value is None:
-#             if required:
-#                 raise MetadataError("package metafile '%s' "
-#                                           "is missing required '%s' entry" %
-#                                           (self.filename, label))
-#             return None
-# 
-#         if not isinstance(value, list):
-#             raise MetadataError("package metafile '%s' "
-#                                       "contains non-list '%s' entry" %
-#                                       (self.filename, label))
-#         if len(value) == 0:
-#             return None
-#         elif subtype is not None:
-#             if not isinstance(value[0], subtype):
-#                 raise MetadataError("package metafile '%s' "
-#                                           "contains non-%s '%s' entries" %
-#                                           (self.filename, subtype.__name__, label))
-#         return value
-# 
-#     def _get_str(self, label, required=False):
-#         value = self.metadict.get(label)
-#         if value is None:
-#             if required:
-#                 raise MetadataError("package metafile '%s' "
-#                                           "is missing required '%s' entry" %
-#                                           (self.filename, label))
-#             return None
-#         return str(value).strip()
-# 
-#     def _get_int(self, label, required=False):
-#         value = self.metadict.get(label)
-#         if value is None:
-#             if required:
-#                 raise MetadataError("package metafile '%s' "
-#                                           "is missing required '%s' entry" %
-#                                           (self.filename, label))
-#             return None
-# 
-#         try:
-#             return int(value)
-#         except (ValueError, TypeError):
-#             raise MetadataError("package metafile '%s' "
-#                                       "contains non-int '%s' entry" %
-#                                       (self.filename, label))
-# 
-#     def delete_nonessentials(self):
-#         """
-#         Delete everything not needed for package resolving.
-#         """
-#         if self.uuid:
-#             del self.metadict["uuid"]
-#             self.uuid = None
-#         if self.description:
-#             del self.metadict["description"]
-#             self.description = None
-#         if self.help:
-#             del self.metadict["help"]
-#             self.help = None
-#         if self.authors:
-#             del self.metadict["authors"]
-#             self.authors = None
-# 
-#     def get_requires(self, include_build_reqs = False):
-#         """
-#         Returns the required package names, if any
-#         """
-#         if include_build_reqs:
-#             reqs = []
-#             # add build-reqs beforehand since they will tend to be more specifically-
-#             # versioned, this will speed up resolution times
-#             if self.build_requires:
-#                 reqs += self.build_requires
-#             if self.requires:
-#                 reqs += self.requires
-# 
-#             if len(reqs) > 0:
-#                 return reqs
-#             else:
-#                 return None
-#         else:
-#             return self.requires
-# 
-#     def get_build_requires(self):
-#         """
-#         Returns the build-required package names, if any
-#         """
-#         return self.build_requires
-# 
-#     def get_variants(self):
-#         """
-#         Returns the variants, if any
-#         """
-#         return self.variants
-# 
-#     def get_commands(self):
-#         """
-#         Returns the commands, if any
-#         """
-#         return self.commands
-# 
-#     def get_string_replace_commands(self, version, base, root):
-#         """
-#         Get commands with string replacement
-#         """
-#         if self.commands:
-# 
-#             vernums = version.split('.') + [ '', '' ]
-#             major_version = vernums[0]
-#             minor_version = vernums[1]
-#             user = os.getenv("USER", "UNKNOWN_USER")
-# 
-#             new_cmds = []
-#             for cmd in self.commands:
-#                 cmd = cmd.replace("!VERSION!", version)
-#                 cmd = cmd.replace("!MAJOR_VERSION!", major_version)
-#                 cmd = cmd.replace("!MINOR_VERSION!", minor_version)
-#                 cmd = cmd.replace("!BASE!", base)
-#                 cmd = cmd.replace("!ROOT!", root)
-#                 cmd = cmd.replace("!USER!", user)
-#                 new_cmds.append(cmd)
-#             return new_cmds
-#         return None
-# 
-#     def load_0(self):
-#         """
-#         Load config_version=0
-#         """
-#         self.requires = self._get_list("requires", subtype=str)
-#         self.build_requires = self._get_list("build_requires", subtype=str)
-#         self.variants = self._get_list("variants", subtype=list)
-#         try:
-#             self.commands = self._get_list("commands", subtype=str)
-#         except MetadataError:
-#             # allow use of yaml multi-line strings
-#             self.commands = [x for x in self._get_str("commands").split('\n') if x]
-
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
