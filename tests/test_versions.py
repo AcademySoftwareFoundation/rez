@@ -81,11 +81,15 @@ class TestVersionRange(VersionBaseTest):
 
     def test_contains(self):
         # overlapping
-        self.assertTrue(Version('3.0') in VersionRange('2.0|1+<4'))
-        self.assertTrue(Version('2') in VersionRange('1|2'))
-
-        self.assertFalse(Version('1') in VersionRange('1.0'))
-        self.assertTrue(Version('1.2') in VersionRange('1.0+'))
+        for cls in [Version, ExactVersion]:
+            self.assertTrue(cls('3.0') in VersionRange('2.0|1+<4'))
+            self.assertTrue(cls('2') in VersionRange('1|2'))
+    
+            self.assertFalse(cls('1') in VersionRange('1.0'))
+            self.assertTrue(cls('1.2') in VersionRange('1.0+'))
+    
+            self.assertTrue(cls('1') in VersionRange(''))
+            self.assertTrue(cls('') in VersionRange(''))
 
     def test_boolean(self):
         self.assertEqual(VersionRange('1+<3').get_intersection(VersionRange('2+<4')),
@@ -96,9 +100,8 @@ class TestVersionRange(VersionBaseTest):
         self.assertFalse(no_intersect)
 
 class TestExactVersion(VersionBaseTest):
-    VALID = ['1', '1.2.3', '1.2.a']
-    INVALID = ['',
-               '3.5+',
+    VALID = ['1', '1.2.3', '1.2.a', '']
+    INVALID = ['3.5+',
                '3.5+<4',
                '1.02',  # padded
                '3.5+<',  # missing upper bound

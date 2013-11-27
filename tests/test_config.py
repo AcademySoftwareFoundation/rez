@@ -80,6 +80,10 @@ class ResolveBaseTest(utils.BaseTest):
         self.add_package('arch-x86_64')
         self.add_package('arch-i386')
 
+        # versionless
+        with self.add_package('site') as pkg:
+            pkg.requires = ['maya', 'nuke-7']
+
 class TestResolve(ResolveBaseTest):
     def test_latest(self):
         for ins, outs in [
@@ -93,6 +97,8 @@ class TestResolve(ResolveBaseTest):
                            ['python-2.6.4', 'maya-2013']),
                           (['maya', 'nuke-7'],
                            ['python-2.6.4', 'nuke-7.1.2', 'maya-2013']),
+                          (['site'],
+                           ['python-2.6.4', 'nuke-7.1.2', 'maya-2013', 'site']),
                           (['nuke-7'],
                            ['python-2.6.4', 'nuke-7.1.2']),
                           (['mtoa'],

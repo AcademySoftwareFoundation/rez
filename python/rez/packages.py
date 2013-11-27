@@ -156,7 +156,8 @@ class PackageFamily(object):
                                   [os.path.dirname(self.path)],
                                   name=self.name)
         for metafile, variables, resource_info in pkg_iter:
-            yield Package(self.name, ExactVersion(variables['version']), metafile, 0)
+            yield Package(self.name, ExactVersion(variables.get('version', '')),
+                          metafile, 0)
 
 class Package(object):
     """
