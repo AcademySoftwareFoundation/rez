@@ -285,18 +285,6 @@ def get_metadata_validators(config_version, filename, key=None):
 def list_resource_keys(config_version):
     return [info['key'] for info in _configs[config_version]]
 
-# tmp:
-class PathCache(object):
-    _cache = {}
-    @classmethod
-    def listdir(cls, path):
-        try:
-            return cls._cache[path]
-        except KeyError:
-            contents = os.listdir(path)
-            cls._cache[path] = contents
-            return contents
-
 class ResourceIterator(object):
     """
     Iterates over all occurrences of a resource, given a path pattern such as
@@ -342,13 +330,14 @@ class ResourceIterator(object):
         return len(self.path_parts) == 0
 
     def list_matches(self, path):
+        import rez.rez_memcached
         if isinstance(self.current_part, basestring):
             fullpath = os.path.join(path, self.current_part)
             # TODO: check file vs dir here
             if os.path.exists(fullpath):
                 yield fullpath
         else:
-            for name in PathCache.listdir(path):
+            for name in rez.rez_memcached.get_memcache().list_directory(path):
                 match = self.current_part.match(name)
                 if match:
                     # TODO: add match to variables
@@ -496,6 +485,13 @@ class OneOf(object):
 # Metadata Implementations
 #------------------------------------------------------------------------------
 
+# FIXME: come up with something better than this.
+# Why is the release_time in a different file than the release info?
+# Does it store something meaningfully different than ACTUAL_BUILD_TIME and BUILD_TIME? 
+# Why isn't the name of the release metadata more informative than info.txt?
+# Why does it assume SVN?
+# Why is it all caps whereas other metadata files use lowercase? 
+# Why was it using .txt with custom parsing instead of YAML?
 class ReleaseInfo(Metadata):
     REFERENCE = {
         'ACTUAL_BUILD_TIME': 0,

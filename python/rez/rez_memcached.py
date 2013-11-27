@@ -145,6 +145,14 @@ class RezMemCache(object):
         """
         return rez_filesys.get_versions_in_directory(path, warnings)
 
+    @cached_path("LISTDIR", default=())
+    def list_directory(self, path, warnings=True):
+        """
+        For a given directory, return a list of (Version,epoch), which match version directories 
+        found in the given directory.
+        """
+        return os.listdir(path)
+
     def package_family_exists(self, family_name, paths=None):
         """
         Determines if the package family exists. This involves only quite light file system 

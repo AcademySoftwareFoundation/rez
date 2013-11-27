@@ -3,6 +3,7 @@ rez packages
 """
 import os.path
 import re
+import sys
 from public_enums import PKG_METADATA_FILENAME
 from rez_metafile import iter_resources, load_metadata
 import rez_filesys
@@ -157,7 +158,7 @@ class PackageFamily(object):
                                   name=self.name)
         for metafile, variables, resource_info in pkg_iter:
             yield Package(self.name, ExactVersion(variables.get('version', '')),
-                          metafile, 0)
+                          metafile)
 
 class Package(object):
     """
@@ -168,14 +169,14 @@ class Package(object):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, path, timestamp, metadata=None,
+    def __init__(self, name, version, path, timestamp=None, metadata=None,
                  stripped_metadata=None):
         self.name = name
         self.version = version
         assert os.path.splitext(path)[1], "%s: %s" % (self.name, path)
         self.base = os.path.dirname(path)
         self.metafile = path
-        self.timestamp = timestamp
+        self._timestamp = timestamp
         self._metadata = metadata
         self._stripped_metdata = stripped_metadata
 
@@ -196,11 +197,30 @@ class Package(object):
             self._stripped_metdata = get_memcache().get_metafile(self.metafile)
         return self._stripped_metdata
 
+    @property
+    def timestamp(self):
+        if self._timestamp is None:
+            self._timestamp = 0
+            if not self.is_local():
+                # TODO: replace this with package resources
+                release_time_f = os.path.join(self.base, '.metadata', 'release_time.txt')
+                if os.path.isfile(release_time_f):
+                    with open(release_time_f, 'r') as f:
+                        self._timestamp = int(f.read().strip())
+                elif rez_filesys._g_new_timestamp_behaviour:
+                    s = ("Warning: The package at %s is not timestamped and will be ignored. " +
+                         "To timestamp it manually, use the rez-timestamp utility.")
+                    print >> sys.stderr, s % self.base
+        return self._timestamp
+
     def short_name(self):
         if (len(str(self.version)) == 0):
             return self.name
         else:
             return self.name + '-' + str(self.version)
+
+    def is_local(self):
+        return self.base.startswith(rez_filesys._g_local_pkgs_path)
 
     def __str__(self):
         return str([self.name, self.version, self.base])
@@ -220,13 +240,7 @@ class ResolvedPackage(Package):
     """
     def __init__(self, name, version, base, root, commands, metadata, timestamp, metafile):
         Package.__init__(self, name, version, metafile, timestamp, stripped_metadata=metadata)
-        # FIXME: this is primarily here for rex. i don't like the fact that
-        # Package.version is a Version, and ResolvedPackage.version is a ExactVersion.
-        # look into moving functionality of ExactVersion onto Version
-        if version:
-            self.version = ExactVersion(version)
-        else:
-            self.version = ''
+        self.version = ExactVersion(version)
         self.base = base
         self.root = root
         self.raw_commands = commands
