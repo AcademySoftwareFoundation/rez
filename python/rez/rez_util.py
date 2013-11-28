@@ -8,6 +8,7 @@ import shutil
 import time
 import posixpath
 import ntpath
+import UserDict
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
@@ -160,3 +161,44 @@ def to_ntpath(path):
 
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
+
+class AttrDict(dict):
+    """
+    A dictionary with attribute-based lookup.
+    """
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            d = self.__dict__
+        else:
+            d = self
+        try:
+            return d[attr]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
+
+    def copy(self):
+        return AttrDict(dict.copy(self))
+
+class AttrDictWrapper(UserDict.UserDict):
+    """
+    Wrap a custom dictionary with attribute-based lookup.
+    """
+    def __init__(self, data):
+        self.__dict__['data'] = data
+
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            d = self.__dict__
+        else:
+            d = self.data
+        try:
+            return d[attr]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
+
+    def __setattr__(self, attr, value):
+        # For things like '__class__', for instance
+        if attr.startswith('__') and attr.endswith('__'):
+            super(AttrDictWrapper, self).__setattr__(attr, value)
+        self.data[attr] = value
+

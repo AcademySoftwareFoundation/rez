@@ -25,8 +25,7 @@ import os
 import inspect
 import re
 from collections import defaultdict
-from rez_util import to_posixpath
-import rez.versions as versions
+from rez_util import to_posixpath, AttrDict
 from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
@@ -70,6 +69,11 @@ class MetadataValueError(MetadataError, ValueError):
                                                           self.entry_id,
                                                           self.value))
 
+class MetadataUpdate(object):
+    def __init__(self, old_value, new_value):
+        self.old_value = old_value
+        self.new_value = new_value
+
 #------------------------------------------------------------------------------
 # Internal Utilities
 #------------------------------------------------------------------------------
@@ -80,23 +84,6 @@ def update_copy(source, updates):
     result = dict(source)
     result.update(updates)
     return result
-
-class AttrDict(dict):
-    """
-    A dictionary with attribute-based lookup
-    """
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
-
-    def copy(self):
-        return AttrDict(dict.copy(self))
 
 class AttrDictYamlLoader(yaml.Loader):
     """
@@ -355,11 +342,15 @@ class ResourceIterator(object):
                     yield res
 
 def iter_resources(config_version, resource_keys, search_paths, **expansion_variables):
+    # convenience:
+    for k, v in expansion_variables.items():
+        if v is None:
+            expansion_variables.pop(k)
     resources = get_resources(config_version, key=resource_keys)
-    for path in search_paths:
+    for search_path in search_paths:
         for resource in resources:
             pattern = ResourceIterator(resource.path_pattern, expansion_variables)
-            for path, variables in pattern.walk(path):
+            for path, variables in pattern.walk(search_path):
                 yield path, variables, resource
 
 
@@ -404,28 +395,34 @@ class Metadata(object):
                     yield (id, None)
                 elif inspect.isfunction(node) and not any(inspect.getargspec(node)):
                     new_node = node()
+                    yield (id, MetadataUpdate(node, new_node))
                     for res in self.check_node(new_node, refnode, id=id):
                         yield res
                 elif type(refnode).__module__ != '__builtin__':
                     # refnode requested a custom type. we use this opportunity to attempt
-                    # to cast node to this type. 
+                    # to cast node to this type.
                     try:
-                        # TODO: assign new value to parent container?
-                        type(refnode)(node)
-                        yield (id, None)
+                        new_node = type(refnode)(node)
                     except:
                         yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
+                    else:
+                        yield (id, MetadataUpdate(node, new_node))
+                        for res in self.check_node(new_node, refnode, id=id):
+                            yield res
                 else:
                     yield (id, MetadataTypeError(self.filename, id, type(refnode), type(node)))
             else:
                 if isinstance(refnode, dict):
                     for key in refnode:
                         key_id = _get_map_id(id, key)
-                        if key in node:
+                        if key in node.keys():
                             for res in self.check_node(node[key],
                                                        refnode[key],
                                                        id=key_id):
-                                yield res
+                                if isinstance(res[1], MetadataUpdate):
+                                    node[key] = res[1].new_value
+                                else:
+                                    yield res
                         elif any([_id_match(key_id, m) for m in self.REQUIRED]):
                             yield (id, MetadataKeyError(self.filename, key))
                         else:
@@ -442,7 +439,10 @@ class Metadata(object):
                             for res in self.check_node(item,
                                                        refitem,
                                                        id=_get_list_id(id, i)):
-                                yield res
+                                if isinstance(res[1], MetadataUpdate):
+                                    node[i] = res[1].new_value
+                                else:
+                                    yield res
                 yield (id, None)
 
     def validate_document_structure(self, doc, refdoc):

@@ -44,7 +44,7 @@ CustomExpand.pattern = re.compile(r"""
 #            'braced': ATTR_REGEX_STR},
 #     re.IGNORECASE | re.VERBOSE)
 
-class AttrDict(UserDict.UserDict):
+class ObjectNameDict(UserDict.UserDict):
     """
     Dictionary for doing attribute-based lookups of objects.
     """
@@ -81,7 +81,7 @@ class AttrDict(UserDict.UserDict):
             try:
                 result = getattr(result, attr)
             except AttributeError:
-                raise AttributeError("Failed to retreive attribute '%s' of '%s' from %r" % (attr, '.'.join(attrs), result))
+                raise AttributeError("Failed to retrieve attribute '%s' of '%s' from %r" % (attr, '.'.join(attrs), result))
         # call the result, if requested
         if funcarg:
             # strip ()
@@ -941,7 +941,7 @@ class RexNamespace(dict):
                                            environ,
                                            override_existing_lists=env_overrides_existing_lists)
         self.vars = vars if vars is not None else {}
-        self.custom = AttrDict()
+        self.custom = ObjectNameDict()
         self.custom.data = self.vars # assigning to data directly keeps a live link
 
         # load commands into environment
@@ -1055,8 +1055,8 @@ def _test_attr_dict():
             return arg * 10
 
     f = Foo('this is the string')
-    custom = AttrDict({'thing.name': 'name',
-                       'thing': f})
+    custom = ObjectNameDict({'thing.name': 'name',
+                             'thing': f})
     print custom['thing']
     print custom['thing.bar']
     print custom['thing.myfunc(1)']
