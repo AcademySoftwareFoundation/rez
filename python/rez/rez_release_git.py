@@ -10,7 +10,7 @@ import time
 import re
 import git
 import subprocess
-from rez_metafile import *
+from resources import *
 from rez_release import send_release_email
 import versions
 

@@ -16,7 +16,7 @@ import textwrap
 from email.mime.text import MIMEText
 
 from rez.rez_util import remove_write_perms, copytree, get_epoch_time, safe_chmod
-from rez.rez_metafile import *
+from rez.resources import *
 import rez.public_enums as enums
 import versions
 import rex

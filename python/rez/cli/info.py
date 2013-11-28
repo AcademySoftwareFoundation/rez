@@ -35,7 +35,7 @@ def command(opts):
     import rez.rez_config as dc
     import rez.sigint
     from rez.rez_util import get_epoch_time
-    from rez.rez_metafile import load_metadata
+    from rez.resources import load_metadata
 
     # attempt to load the latest
     pkg = dc.get_pkg(opts.pkg)

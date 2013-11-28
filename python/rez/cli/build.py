@@ -129,7 +129,7 @@ BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
 
 
 def _get_package_metadata(filepath, quiet=False, no_catch=False):
-    from rez.rez_metafile import ConfigMetadata
+    from rez.resources import ConfigMetadata
     # load yaml
     if no_catch:
         metadata = ConfigMetadata(filepath)

@@ -48,7 +48,7 @@ from packages import ResolvedPackage, split_name, package_in_range, package_fami
 from versions import *
 from public_enums import *
 from rez_exceptions import *
-from rez_metafile import *
+from resources import *
 from rez_memcached import *
 import rez_filesys
 import rez_util

@@ -5,7 +5,7 @@ import os.path
 import re
 import sys
 from public_enums import PKG_METADATA_FILENAME
-from rez_metafile import iter_resources, load_metadata
+from resources import iter_resources, load_metadata
 import rez_filesys
 from rez_exceptions import PkgSystemError
 from versions import Version, ExactVersion, VersionRange, ExactVersionSet
@@ -259,9 +259,3 @@ class ResolvedPackage(Package):
     def __repr__(self):
         return "%s(%r, %r, %r)" % (self.__class__.__name__, self.name,
                                    self.version, self.root)
-
-# metafile_to_package_class = {rez_metafile.BasePackageConfig_0: Package,
-#                              rez_metafile.VersionPackageConfig_0: Package,
-#                              rez_metafile.ExternalPackageConfigList_0: ExternalPackageFamily,
-#                              rez_metafile.ExternalPackageConfig_0: ExternalPackageFamily,
-#                             }

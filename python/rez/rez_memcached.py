@@ -2,7 +2,7 @@ import sys
 import os
 from collections import defaultdict
 import rez_filesys
-import rez_metafile
+import resources
 from packages import Package
 from versions import *
 from public_enums import *
@@ -135,7 +135,7 @@ class RezMemCache(object):
         """
         Load the *essential* metadata in the given file.
         """
-        return rez_metafile.load_metadata(path, strip=True)
+        return resources.load_metadata(path, strip=True)
 
     @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
