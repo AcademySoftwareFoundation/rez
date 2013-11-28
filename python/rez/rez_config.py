@@ -526,6 +526,10 @@ class Resolver(object):
 					import traceback
 					raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
 													    traceback.format_exc(err)))
+			elif inspect.isfunction(pkg_res.raw_commands):
+				pkg_res.raw_commands(pkg_res, env['pkgs'],
+									 rez_util.AttrDictWrapper(env), pkg_recorder)
+
 			# old style:
 			elif isinstance(pkg_res.raw_commands, list):
 				for cmd in pkg_res.raw_commands:
