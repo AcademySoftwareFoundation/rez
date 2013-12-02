@@ -4,16 +4,15 @@ rez packages
 import os.path
 import re
 import sys
-from public_enums import PKG_METADATA_FILENAME
-from resources import iter_resources, load_metadata
-import rez_filesys
-from rez_exceptions import PkgSystemError
-from versions import Version, ExactVersion, VersionRange, ExactVersionSet
+from rez.resources import iter_resources, load_metadata
+import rez.rez_filesys as rez_filesys
+from rez.rez_exceptions import PkgSystemError
+from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
 
-def split_name(pkg_str):
+def split_name(pkg_str, exact=False):
     strs = pkg_str.split('-')
     if len(strs) > 2:
         PkgSystemError("Invalid package string '" + pkg_str + "'")
@@ -22,10 +21,14 @@ def split_name(pkg_str):
         verrange = ""
     else:
         verrange = strs[1]
+    if exact:
+        verrange = ExactVersion(verrange)
+    else:
+        verrange = VersionRange(verrange)
     return name, verrange
 
 def pkg_name(pkg_str):
-    return split_name(pkg_str)[0]
+    return pkg_str.split('-')[0]
 
 def iter_package_families(name=None, paths=None):
     """

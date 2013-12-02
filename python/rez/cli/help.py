@@ -7,6 +7,7 @@ import os.path
 import sys
 import subprocess
 import rez.sigint
+from rez.cli import error, output
 
 suppress_notfound_err = False
 
@@ -58,10 +59,10 @@ def command(opts):
     ##########################################################################################
 
     # attempt to load the latest
-    from rez.packages import pkg_name, iter_version_packages
+    from rez.packages import pkg_name, iter_packages
     name = pkg_name(opts.pkg)
     found_pkg = None
-    for pkg in iter_version_packages(name):
+    for pkg in iter_packages(name):
         if pkg.metadata is None:
             continue
         if "help" in pkg.metadata:

@@ -16,10 +16,10 @@ import textwrap
 from email.mime.text import MIMEText
 
 from rez.rez_util import remove_write_perms, copytree, get_epoch_time, safe_chmod
-from rez.resources import *
+from rez.resources import load_metadata
 import rez.public_enums as enums
-import versions
-import rex
+import rez.versions as versions
+import rez.rex as rex
 
 ##############################################################################
 # Globals

@@ -42,17 +42,17 @@ then the following cases break the assumption:
 import os
 import time
 import sys
+import inspect
 import random
 import itertools
-from packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
-from versions import *
-from public_enums import *
-from rez_exceptions import *
-from resources import *
-from rez_memcached import *
-import rez_filesys
-import rez_util
-import rex
+from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
+from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError
+from rez.public_enums import *
+from rez.rez_exceptions import *
+from rez.rez_memcached import *
+import rez.rez_filesys as rez_filesys
+from rez.rez_util import AttrDictWrapper, gen_dotgraph_image
+import rez.rex as rex
 
 
 ##############################################################################
@@ -253,7 +253,7 @@ class Resolver(object):
             # we still produce a dot-graph on failure
             if e.last_dot_graph:
                 if dot_file:
-                    rez_util.gen_dotgraph_image(e.last_dot_graph, dot_file)
+                    gen_dotgraph_image(e.last_dot_graph, dot_file)
                 if print_dot:
                     print(e.last_dot_graph)
             return None
@@ -286,7 +286,7 @@ class Resolver(object):
 
             # we still produce a dot-graph on failure
             if dot_file:
-                rez_util.gen_dotgraph_image(e.dot_graph, dot_file)
+                gen_dotgraph_image(e.dot_graph, dot_file)
             if print_dot:
                 print(e.dot_graph)
 
@@ -302,7 +302,7 @@ class Resolver(object):
 
             # we still produce a dot-graph on failure
             if dot_file:
-                rez_util.gen_dotgraph_image(e.last_dot_graph, dot_file)
+                gen_dotgraph_image(e.last_dot_graph, dot_file)
             if print_dot:
                 print(e.last_dot_graph)
 
@@ -314,7 +314,7 @@ class Resolver(object):
             print(dot_graph)
 
         if dot_file:
-            rez_util.gen_dotgraph_image(dot_graph, dot_file)
+            gen_dotgraph_image(dot_graph, dot_file)
 
         return result
 
@@ -530,7 +530,7 @@ class Resolver(object):
                                                         traceback.format_exc(err)))
             elif inspect.isfunction(pkg_res.raw_commands):
                 pkg_res.raw_commands(pkg_res, env['pkgs'],
-                                     rez_util.AttrDictWrapper(env), pkg_recorder)
+                                     AttrDictWrapper(env), pkg_recorder)
 
             # old style:
             elif isinstance(pkg_res.raw_commands, list):

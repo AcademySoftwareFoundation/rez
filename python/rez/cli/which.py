@@ -10,13 +10,14 @@ def setup_parser(parser):
 # pkg = sys.argv[1]
 
 def command(opts):
-    import rez.rez_config as rc
+    from rez.packages import split_name, package_in_range
     try:
-        output(rc.get_base_path(opts.pkg))
+        pkg = package_in_range(*split_name(opts.pkg))
     except Exception:
         output("package not found: '" + opts.pkg + "'")
         sys.exit(1)
-
+    else:
+        output(pkg.base)
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

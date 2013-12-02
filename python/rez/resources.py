@@ -26,7 +26,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez_util import to_posixpath, AttrDict
-from rez.versions import ExactVersion, VersionRange
+from rez.versions import ExactVersion
 
 _configs = defaultdict(list)
 

@@ -58,12 +58,8 @@ Build the second variant only, and then install it, avoiding a rebuild:
 
 import sys
 import os
-import stat
 import os.path
-import shutil
-import subprocess
 import argparse
-import textwrap
 from rez.cli import error, output
 
 BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",

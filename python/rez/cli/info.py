@@ -32,13 +32,13 @@ def setup_parser(parser):
 ##########################################################################################
 
 def command(opts):
-    import rez.rez_config as dc
+    from rez.packages import split_name, package_in_range
     import rez.sigint
     from rez.rez_util import get_epoch_time
     from rez.resources import load_metadata
 
     # attempt to load the latest
-    pkg = dc.get_pkg(opts.pkg)
+    pkg = package_in_range(*split_name(opts.pkg))
 
     output()
     output("info @ " + pkg.base + ":")
