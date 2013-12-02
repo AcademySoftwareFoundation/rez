@@ -12,6 +12,7 @@ class RezError(Exception):
     """
     def __init__(self, value=None):
         self.value = value
+
     def __str__(self):
         return str(self.value)
 
@@ -31,6 +32,7 @@ class PkgFamilyNotFoundError(RezError):
     def __init__(self, family_name=None):
         RezError.__init__(self)
         self.family_name = family_name
+
     def __str__(self):
         return str(self.family_name)
 
@@ -43,8 +45,9 @@ class PkgNotFoundError(RezError):
         RezError.__init__(self)
         self.pkg_req = pkg_req
         self.resolve_path = resolve_path
+
     def __str__(self):
-        return str( (str(self.pkg_req), self.resolve_path) )
+        return str((str(self.pkg_req), self.resolve_path))
 
 
 class PkgConflictError(RezError):
@@ -57,6 +60,7 @@ class PkgConflictError(RezError):
         RezError.__init__(self)
         self.pkg_conflicts = pkg_conflicts
         self.last_dot_graph = last_dot_graph
+
     def __str__(self):
         strs = []
         for pkg_conflict in self.pkg_conflicts:
@@ -71,6 +75,7 @@ class PkgsUnresolvedError(RezError):
     def __init__(self, pkg_reqs=None):
         RezError.__init__(self)
         self.pkg_reqs = pkg_reqs
+
     def __str__(self):
         strs = []
         for pkg_req in self.pkg_reqs:
@@ -88,6 +93,7 @@ class PkgConfigNotResolvedError(RezError):
         self.pkg_reqs = pkg_reqs
         self.fail_config_list = fail_config_list
         self.last_dot_graph = last_dot_graph
+
     def __str__(self):
         strs = []
         for pkg_req in self.pkg_reqs:

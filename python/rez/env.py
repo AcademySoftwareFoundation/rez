@@ -9,6 +9,7 @@ from rez_exceptions import PkgFamilyNotFoundError
 class RezError(Exception):
     def __init__(self, value):
         self.value = value
+
     def __str__(self):
         return str(self.value)
 
@@ -25,8 +26,10 @@ def get_request(as_dict=False, parent_env=False):
         evar = "REZ_PREV_REQUEST"
     s = _get_rez_env_var(evar)
     pkgs = s.strip().split()
-    if as_dict:     return _get_pkg_dict(pkgs)
-    else:           return pkgs
+    if as_dict:
+        return _get_pkg_dict(pkgs)
+    else:
+        return pkgs
 
 
 def in_wrapper_env():
@@ -43,8 +46,10 @@ def get_resolve(as_dict=False):
     """
     s = _get_rez_env_var("REZ_RESOLVE")
     pkgs = s.strip().split()
-    if as_dict:     return _get_pkg_dict(pkgs)
-    else:           return pkgs
+    if as_dict:
+        return _get_pkg_dict(pkgs)
+    else:
+        return pkgs
 
 
 def get_resolve_timestamp():
@@ -90,7 +95,7 @@ def _get_rez_env_var(var):
 def _get_pkg_dict(pkgs):
     d = {}
     for pkg in pkgs:
-        toks = pkg.split('-',1)
+        toks = pkg.split('-', 1)
         fam = toks[0]
         ver = ""
         if len(toks) > 1:

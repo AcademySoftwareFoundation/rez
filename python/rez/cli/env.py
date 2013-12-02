@@ -235,7 +235,7 @@ def command(opts):
         # (bash-specific):
         recorder.command("source $REZ_PATH/init.sh")
         recorder.command("bash -s")
-        #cmd += "ret=$?;"
+        # cmd += "ret=$?;"
     else:
         source_file = context_file + ".source"
         with open(source_file, 'w') as f:
@@ -252,7 +252,7 @@ def command(opts):
 
         # (bash-specific):
         recorder.command("bash --rcfile %s" % source_file)
-        #cmd += "ret=$?;"
+        # cmd += "ret=$?;"
         recorder.command("rm -f %s" % source_file)
 
     recorder.command("rm -f %s" % context_file)

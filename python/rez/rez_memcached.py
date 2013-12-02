@@ -41,7 +41,7 @@ def get_memcache():
     global _memcache
     if not _memcache:
         _memcache = RezMemCache()
-        #raise RezError("Memcache does not exist. use memcaching() context manager to create")
+        # raise RezError("Memcache does not exist. use memcaching() context manager to create")
     return _memcache
 
 def cached_path(key, default=None, postfilter=None, local_only=False):
@@ -140,7 +140,7 @@ class RezMemCache(object):
     @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
         """
-        For a given directory, return a list of (Version,epoch), which match version directories 
+        For a given directory, return a list of (Version,epoch), which match version directories
         found in the given directory.
         """
         return rez_filesys.get_versions_in_directory(path, warnings)
@@ -148,14 +148,14 @@ class RezMemCache(object):
     @cached_path("LISTDIR", default=())
     def list_directory(self, path, warnings=True):
         """
-        For a given directory, return a list of (Version,epoch), which match version directories 
+        For a given directory, return a list of (Version,epoch), which match version directories
         found in the given directory.
         """
         return os.listdir(path)
 
     def package_family_exists(self, family_name, paths=None):
         """
-        Determines if the package family exists. This involves only quite light file system 
+        Determines if the package family exists. This involves only quite light file system
         access, so isn't memcached.
         """
         if family_name in self.families:
@@ -195,7 +195,7 @@ class RezMemCache(object):
                 family_names = [family_name]
             else:
                 # FIXME: (?) this is not cached:
-                family_names = [x for x in os.listdir(pkg_path) \
+                family_names = [x for x in os.listdir(pkg_path)
                                 if not x.startswith('.') and x not in ['rez']]
             for family_name in family_names:
                 family_path = os.path.join(pkg_path, family_name)
@@ -226,7 +226,7 @@ class RezMemCache(object):
 
         if timestamp:
             results = [x for x in results if x.timestamp <= timestamp]
-        # sort 
+        # sort
         if latest:
             results = sorted(results, key=lambda x: x.version, reverse=True)
         else:
@@ -305,7 +305,7 @@ class RezMemCache(object):
         Deprecated: use find_package_in_range()
 
         Given a list of package paths, a family name and a version range, return (family path,
-        resolved version, epoch), or (None,None,None) if not found. If two versions in two different 
+        resolved version, epoch), or (None,None,None) if not found. If two versions in two different
         paths are the same, then the package in the first path is returned in preference.
         """
         maxminver = None
@@ -337,7 +337,7 @@ class RezMemCache(object):
         if maxminver:
             return fpath, maxminver[0], maxminver[1]
         else:
-            return (None,None,None)
+            return (None, None, None)
 
     # --- direct memcache usage
 
@@ -369,7 +369,7 @@ class RezMemCache(object):
         Return a cached resolve, or None if the resolve is not found or possibly stale.
         """
         if not self.mc:
-            return None,None
+            return None, None
 
         k_base = (paths, pkg_reqs)
 
@@ -404,7 +404,7 @@ class RezMemCache(object):
 
         # check for new package versions released before the current resolve time, but after the
         # cache resolve time. These may invalidate the cache.
-        for pkg_name,pkg in pkgs.items():
+        for pkg_name, pkg in pkgs.items():
             if not self.package_fam_modified_during(paths, pkg_name, result_epoch, self.epoch):
                 del pkgs[pkg_name]
 
@@ -412,19 +412,18 @@ class RezMemCache(object):
             return result, result_epoch
 
         # remove pkgs where new versions have been released after the cache was written, but none
-        # of these versions fall within the 'max bounds' of that pkg. This can be simplified to 
+        # of these versions fall within the 'max bounds' of that pkg. This can be simplified to
         # checking only the earliest version in this set.
         # TODO NOT YET IMPLEMENTED
-        #for pkg_name,pkg in pkgs.items():
+        # for pkg_name,pkg in pkgs.items():
         #    pass
 
         if pkgs:
-            print_cache_warning("Newer released package(s) caused cache miss: %s" % \
-                str(", ").join(pkgs.keys()))
-            return None,None
+            print_cache_warning("Newer released package(s) caused cache miss: %s" %
+                                str(", ").join(pkgs.keys()))
+            return None, None
         else:
             return result, cache_timestamp
-
 
         """
         # check if there are any versions of the resolved packages that are newer than the resolved

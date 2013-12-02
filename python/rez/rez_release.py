@@ -591,7 +591,7 @@ class RezReleaseMode(object):
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
             result = resolver.resolve((self.requires + variant + ['cmake=l']),
-                                       dot_file)
+                                      dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]
 
@@ -633,7 +633,7 @@ class RezReleaseMode(object):
                             os.path.join(rez.rez_filesys._g_rez_path, 'cmake'))
         # make sure we can still use rez-config in the build env!
         recorder.appendenv('PATH',
-                            os.path.join(rez.rez_filesys._g_rez_path, 'bin'))
+                           os.path.join(rez.rez_filesys._g_rez_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')

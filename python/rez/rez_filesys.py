@@ -11,10 +11,10 @@ from rez_exceptions import *
 
 VALID_PLATFORMS = ['darwin', 'linux', 'windows']
 
-_g_rez_path                 = os.getenv("REZ_PATH")
-_g_local_pkgs_path          = os.getenv("REZ_LOCAL_PACKAGES_PATH")
-_g_new_timestamp_behaviour  = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
-_g_os_paths                 = []
+_g_rez_path = os.getenv("REZ_PATH")
+_g_local_pkgs_path = os.getenv("REZ_LOCAL_PACKAGES_PATH")
+_g_new_timestamp_behaviour = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
+_g_os_paths = []
 
 def get_platform():
     osname = os.getenv("REZ_PLATFORM")
@@ -30,9 +30,9 @@ def get_platform():
 
 def get_arch():
     # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
-    if os.name == 'nt' and sys.version_info[:2] < (2,7):
+    if os.name == 'nt' and sys.version_info[:2] < (2, 7):
         arch = os.environ.get("PROCESSOR_ARCHITEW6432",
-               os.environ.get('PROCESSOR_ARCHITECTURE', ''))
+                              os.environ.get('PROCESSOR_ARCHITECTURE', ''))
         if not arch:
             sys.stderr.write("Rez warning: Could not determine architecture\n")
         return arch
@@ -45,7 +45,7 @@ _g_arch_pkg = 'arch-' + get_arch()
 # get os-specific paths
 try:
     p = sp.Popen("_rez_get_PATH", stdout=sp.PIPE, stderr=sp.PIPE)
-    out,err = p.communicate()
+    out, err = p.communicate()
     _g_os_paths = out.strip().split(':')
 except:
     pass
@@ -91,8 +91,8 @@ def get_versions_in_directory(path, warnings):
             yaml_file = os.path.join(fullpath, PKG_METADATA_FILENAME)
             if not os.path.isfile(yaml_file):
                 if warnings:
-                    sys.stderr.write("Warning: ignoring package with missing " + \
-                        PKG_METADATA_FILENAME + ": " + fullpath + '\n')
+                    sys.stderr.write("Warning: ignoring package with missing " +
+                                     PKG_METADATA_FILENAME + ": " + fullpath + '\n')
                 continue
 
             timestamp = 0

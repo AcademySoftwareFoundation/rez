@@ -29,7 +29,7 @@ def gen_dotgraph_image(dot_data, out_file):
         ext = out_file.split('.')[-1]
 
     try:
-        fn = getattr(graph, "write_"+ext)
+        fn = getattr(graph, "write_" + ext)
     except Exception:
         sys.stderr.write("could not write to '" + out_file + "': unknown format specified")
         sys.exit(1)
@@ -38,7 +38,7 @@ def gen_dotgraph_image(dot_data, out_file):
 
 
 def readable_time_duration(secs, approx=True):
-    divs = ((24*60*60, "days"), (60*60, "hours"), (60, "minutes"), (1, "seconds"))
+    divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
 
     if secs == 0:
         return "0 seconds"
@@ -47,32 +47,32 @@ def readable_time_duration(secs, approx=True):
         secs = -secs
 
     if approx:
-        for i,s in enumerate([x[0] for x in divs[:-1]]):
+        for i, s in enumerate([x[0] for x in divs[:-1]]):
             ss = float(s) * 0.9
             if secs >= ss:
                 n = secs / s
-                frac = float((secs+s) % s) / float(s)
+                frac = float((secs + s) % s) / float(s)
                 if frac < 0.1:
                     secs = n * s
                 elif frac > 0.9:
-                    secs = (n+1) * s
+                    secs = (n + 1) * s
                 else:
-                    s2 = divs[i+1][0]
+                    s2 = divs[i + 1][0]
                     secs -= secs % s2
                 break
 
     toks = []
     for d in divs:
         if secs >= d[0]:
-            n = secs/d[0]
-            count = n*d[0]
+            n = secs / d[0]
+            count = n * d[0]
             label = d[1]
             if n == 1:
                 label = label[:-1]
             toks.append((n, label))
             secs -= count
 
-    s = str(", ").join([("%d %s" % (x[0],x[1])) for x in toks])
+    s = str(", ").join([("%d %s" % (x[0], x[1])) for x in toks])
     if neg:
         s = '-' + s
     return s
@@ -201,4 +201,3 @@ class AttrDictWrapper(UserDict.UserDict):
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
-

@@ -11,7 +11,7 @@ class RequestParser(object):
 
         _subshell_label = pp.Regex("[a-zA-Z0-9_]+")
         _subshell_label_decl = (_subshell_label + ':').setParseAction(self._parse_subshell_label)
-        _subshell_body = (_subshell_label_decl * (0,1)) + pp.OneOrMore(_pkg)
+        _subshell_body = (_subshell_label_decl * (0, 1)) + pp.OneOrMore(_pkg)
         _subshell_prefix = (pp.Regex("[a-zA-Z0-9_]+\\(") ^ '(').setParseAction(self._parse_subshell_prefix)
         _subshell_suffix = (pp.Regex("\\)[a-zA-Z0-9_]+") ^ ')').setParseAction(self._parse_subshell_suffix)
         _subshell = _subshell_prefix + _subshell_body + _subshell_suffix
@@ -66,7 +66,7 @@ class RequestParser(object):
 
     def _parse_subshell_request(self, s, loc, toks):
         self.merged_base_pkgs = merge_pkgs(self.merged_base_pkgs,
-                                            self.base_pkgs)
+                                           self.base_pkgs)
         self.merged_subshells = _merge_subshells(self.merged_subshells,
                                                  self.subshells)
         self.base_pkgs = []
@@ -80,7 +80,7 @@ class RequestParser(object):
 def parse_request(request):
     """
     Parses any request string, including parenthesised form, and merging (pipe operator).
-    @return (base_pkgs, subshells). base_pkgs is a list of packages in the 'master' shell, ie 
+    @return (base_pkgs, subshells). base_pkgs is a list of packages in the 'master' shell, ie
         outside of any parenthesised subshell. 'subshells' is a dict of subshells, keyed on the
         subshell name.
     """
@@ -107,7 +107,7 @@ def merge_pkgs(pkgs, override_pkgs):
     opkgs = {}
     for pkg in override_pkgs:
         name, rm = _parse_pkg(pkg)
-        opkgs[name] = (pkg,rm)
+        opkgs[name] = (pkg, rm)
 
     for pkg in pkgs:
         name, rm = _parse_pkg(pkg)

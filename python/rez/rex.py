@@ -435,7 +435,7 @@ class SH(Shell):
         # bash aliases don't export to subshells; so instead define a function,
         # then export that function
         return "{key}() { {value}; };export -f {key};".format(key=key,
-                                                                value=value)
+                                                              value=value)
 
     def info(self, value):
         # TODO: handle newlines
@@ -641,7 +641,7 @@ class WinShell(Shell):
 
 #     def user_env(self, key):
 #         return executable_output(['setenv', '-u', key])
-# 
+#
 #     def system_env(self, key):
 #         return executable_output(['setenv', '-m', key])
 
@@ -649,9 +649,9 @@ shells = {'bash': SH,
           'sh': SH,
           'tcsh': CSH,
           'csh': CSH,
-          '-csh': CSH, # For some reason, inside of 'screen', ps -o args reports -csh...
+          '-csh': CSH,  # For some reason, inside of 'screen', ps -o args reports -csh...
           'python': Python,
-#          'DOS': WinShell
+          #          'DOS': WinShell
           }
 
 def get_shell_name():
@@ -716,11 +716,11 @@ if sys.version_info < (2, 7, 4):
                 # The symlink is not resolved, so we must have a symlink loop.
                 # Return already resolved part + rest of the path unchanged.
                 return join(newpath, rest), False
-            seen[newpath] = None # not resolved symlink
+            seen[newpath] = None  # not resolved symlink
             path, ok = _joinrealpath(path, os.readlink(newpath), seen)
             if not ok:
                 return join(path, rest), False
-            seen[newpath] = path # resolved symlink
+            seen[newpath] = path  # resolved symlink
 
         return path, True
 else:
@@ -729,8 +729,8 @@ else:
 def _abspath(root, value):
     # not all variables are paths: only absolutize if it looks like a relative path
     if root and \
-        (value.startswith('./') or \
-        ('/' in value and not (posixpath.isabs(value) or ntpath.isabs(value)))):
+        (value.startswith('./') or
+         ('/' in value and not (posixpath.isabs(value) or ntpath.isabs(value)))):
         value = os.path.join(root, value)
     return value
 
@@ -942,7 +942,7 @@ class RexNamespace(dict):
                                            override_existing_lists=env_overrides_existing_lists)
         self.vars = vars if vars is not None else {}
         self.custom = ObjectNameDict()
-        self.custom.data = self.vars # assigning to data directly keeps a live link
+        self.custom.data = self.vars  # assigning to data directly keeps a live link
 
         # load commands into environment
         for cmd, func in self.command_recorder.get_command_methods():
@@ -1001,7 +1001,7 @@ class MachineInfo(object):
         self._os_version = platform.version()
         self._arch = platform.machine()
 
-    # provide read-only properties to prevent accidental overwrites and to 
+    # provide read-only properties to prevent accidental overwrites and to
     # lazily lookup values
     @property
     def name(self):
@@ -1051,6 +1051,7 @@ def _test_attr_dict():
 
     class Foo(str):
         bar = 'value'
+
         def myfunc(self, arg):
             return arg * 10
 
@@ -1062,9 +1063,9 @@ def _test_attr_dict():
     print custom['thing.myfunc(1)']
 
 def _test():
-    print "-"  * 40
+    print "-" * 40
     print "environ dictionary + sh executor"
-    print "-"  * 40
+    print "-" * 40
     d = EnvironRecorderDict()
     d['SIMPLESET'] = 'aaaaa'
     d['APPEND'].append('bbbbb')
@@ -1075,9 +1076,9 @@ def _test():
     print interpret(d.command_recorder, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
-    print "-"  * 40
+    print "-" * 40
     print "exec + routing dictionary + sh executor"
-    print "-"  * 40
+    print "-" * 40
 
     code = '''
 localvar = 'AAAA'
@@ -1100,11 +1101,11 @@ error("oh noes")
     print interpret(g.command_recorder, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
-    print "-"  * 40
+    print "-" * 40
     print "re-execute record with python executor"
-    print "-"  * 40
+    print "-" * 40
 
     import pprint
     environ = {}
     pprint.pprint(interpret(g.command_recorder, shell='bash',
-                    environ=environ))
+                            environ=environ))
