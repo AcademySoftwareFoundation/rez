@@ -46,7 +46,7 @@ import inspect
 import random
 import itertools
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
-from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError
+from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
 from rez.rez_exceptions import *
 from rez.rez_memcached import *
@@ -596,18 +596,18 @@ class Resolver(object):
                     return None
 
         """
-		# if any version of any resolved packages also appear in a local package path, and that
-		# path has been modified since the cache timestamp, then discard the cached resolve.
-		# TODO incorrect, time has no effect. Can only discard based on 'pkg max bounds'
-		if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
-			for pkg_res in pkg_res_list:
-				fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
-				if os.path.isdir(fam_path):
-					path_modtime = int(os.path.getmtime(fam_path))
-					if path_modtime >= cache_timestamp:
-						print >> sys.stderr, "LOCAL package forced no cache resolve!"
-						return None
-		"""
+        # if any version of any resolved packages also appear in a local package path, and that
+        # path has been modified since the cache timestamp, then discard the cached resolve.
+        # TODO incorrect, time has no effect. Can only discard based on 'pkg max bounds'
+        if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
+            for pkg_res in pkg_res_list:
+                fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
+                if os.path.isdir(fam_path):
+                    path_modtime = int(os.path.getmtime(fam_path))
+                    if path_modtime >= cache_timestamp:
+                        print >> sys.stderr, "LOCAL package forced no cache resolve!"
+                        return None
+        """
 
         env_cmds = result[1]
         env_cmds.append("export REZ_RESOLVE_FROM_CACHE=1")
@@ -981,7 +981,8 @@ class _Configuration(object):
         return number of packages
         """
         num = 0
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if not pkg.is_anti():
                 num += 1
         return num
@@ -991,7 +992,8 @@ class _Configuration(object):
         return number of resolved packages
         """
         num = 0
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if pkg.is_resolved():
                 num += 1
         return num
@@ -1289,7 +1291,8 @@ class _Configuration(object):
         return a list of unresolved packages as package requests
         """
         pkg_reqs = []
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if (not pkg.is_resolved()) and (not pkg.is_anti()):
                 pkg_reqs.append(pkg.as_package_request())
         return pkg_reqs
@@ -1299,18 +1302,19 @@ class _Configuration(object):
         return a list of all packages as package requests
         """
         pkg_reqs = []
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             pkg_reqs.append(pkg.as_package_request())
         return pkg_reqs
 
     def resolve_packages(self):
         """
-        resolve the current configuration - all the action happens here. On success,
-        a resolved package list is returned. This function should only fail via an
-        exception - if an infinite loop results then there is a bug somewheres.
-        Please note that the returned list order is important. Required packages appear
-        first, and requirees later... since a package's commands may refer to env-vars set
-        in a required package's commands.
+        resolve the current configuration - all the action happens here. On
+        success, a resolved package list is returned. This function should only
+        fail via an exception - if an infinite loop results then there is a bug
+        somewheres. Please note that the returned list order is important.
+        Required packages appear first, and requirees later... since a package's
+        commands may refer to env-vars set in a required package's commands.
         """
 
         while (not self.all_resolved()) and \
@@ -1377,17 +1381,16 @@ class _Configuration(object):
                     if pkg_req_ is None:
                         # FIXME: don't have easy access to the sub-version-range that we failed on
                         if(num_version_searches == 1):
-# 							# this means that rather than running out of versions of this lib to try, there
-# 							# were never any versions found at all - which means this package doesn't exist
-# 							self.add_dot_graph_verbatim('"' + \
-# 								pkg_req_.short_name() + ' NOT FOUND' + \
-# 								'" [style=filled fillcolor="orangered"] ;')
-# 							self.add_dot_graph_verbatim('"' + \
-# 								pkg_req_.short_name() + '" -> "' + \
-# 								pkg_req_.short_name() + ' NOT FOUND" ;')
-# 							self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
-#
-# 							sys.stderr.write("Warning! Package not found: " + str(pkg_req_) + "\n")
+#                             # this means that rather than running out of versions of this lib to try, there
+#                             # were never any versions found at all - which means this package doesn't exist
+#                             self.add_dot_graph_verbatim('"' +
+#                                 pkg_req_.short_name() + ' NOT FOUND' +
+#                                 '" [style=filled fillcolor="orangered"] ;')
+#                             self.add_dot_graph_verbatim('"' +
+#                                 pkg_req_.short_name() + '" -> "' +
+#                                 pkg_req_.short_name() + ' NOT FOUND" ;')
+#                             self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
+#                             sys.stderr.write("Warning! Package not found: " + str(pkg_req_) + "\n")
                             raise PkgNotFoundError(pkg.as_package_request())
 
                         if (self.uid == 0):
@@ -1675,7 +1678,8 @@ class _Configuration(object):
         bad_variant = None
         bad_variant_score = -1
 
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if (not pkg.is_resolved()) and (not pkg.is_anti()):
                 for variant in pkg.get_variants():
                     sc = self.get_num_unknown_pkgs(variant.unresolved_requests)
@@ -1712,7 +1716,8 @@ class _Configuration(object):
         num = 0
         config2 = None
 
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if (pkg.metadata == None):
                 if pkg.resolve_metafile(self.rctxt.time_epoch):
                     num += 1
@@ -1770,7 +1775,8 @@ class _Configuration(object):
         num = 0
         config2 = None
 
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if pkg.is_metafile_resolved():
                 continue
             if pkg.is_anti():
@@ -1885,7 +1891,8 @@ class _Configuration(object):
 
         num = 0
 
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
 
             variants = pkg.get_variants()
             if variants != None:
@@ -1942,18 +1949,20 @@ class _Configuration(object):
 
     def resolve_common_variants(self):
         """
-        for each package, find common package families within its variants, and add these to
-        the configuration. For eg, if a pkg has 2 variants 'python-2.5' and 'python-2.6',
-        then the inexact package 'python-2.5|2.6' will be added to the configuration
-        (but only if ALL variants reference a 'python' package). Return the number of
-        common package families resolved. Note that if a package contains a single variant,
-        this this function will add every package in the variant to the configuration.
+        for each package, find common package families within its variants, and
+        add these to the configuration. For eg, if a pkg has 2 variants
+        'python-2.5' and 'python-2.6', then the inexact package 'python-2.5|2.6'
+        will be added to the configuration (but only if ALL variants reference a
+        'python' package). Return the number of common package families
+        resolved. Note that if a package contains a single variant, this this
+        function will add every package in the variant to the configuration.
         """
 
         num = 0
         config2 = self.copy()
 
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
 
             variants = pkg.get_variants()
             if variants != None:
@@ -1990,8 +1999,10 @@ class _Configuration(object):
 
                         if (self.rctxt.verbosity != 0):
                             print
-                            print "removed common package family '" + common_pkgname + "' from " + pkg.short_name() + \
-                                "'s variants; config after adding " + pkg_req_.short_name() + ':'
+                            print ("removed common package family '" +
+                                   common_pkgname + "' from " +
+                                   pkg.short_name() + "'s variants; config after adding " +
+                                   pkg_req_.short_name() + ':')
                         if (self.rctxt.verbosity == 1):
                             print str(config2)
                         elif (self.rctxt.verbosity == 2):
@@ -2007,7 +2018,8 @@ class _Configuration(object):
         """
 
         num = 0
-        for name, pkg in self.pkgs.iteritems():
+        # FIXME: if order matters here, we should not be using a dictionary
+        for pkg in self.pkgs.itervalues():
             if pkg.is_resolved():
                 continue
 
