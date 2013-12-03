@@ -7,7 +7,7 @@ import sys
 from rez.resources import iter_resources, load_metadata
 import rez.rez_filesys as rez_filesys
 from rez.rez_exceptions import PkgSystemError
-from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet
+from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
@@ -24,7 +24,10 @@ def split_name(pkg_str, exact=False):
     if exact:
         verrange = ExactVersion(verrange)
     else:
-        verrange = VersionRange(verrange)
+        try:
+            verrange = VersionRange(verrange)
+        except VersionError:
+            verrange = ExactVersionSet(verrange)
     return name, verrange
 
 def pkg_name(pkg_str):

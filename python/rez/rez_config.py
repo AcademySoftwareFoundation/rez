@@ -85,7 +85,7 @@ class PackageRequest(object):
     """
     def __init__(self, name, version_range, resolve_mode=None, timestamp=0):
         self.name = name
-        if isinstance(version_range, ExactVersion):
+        if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange)):
             self.version_range = version_range
         else:
             try:

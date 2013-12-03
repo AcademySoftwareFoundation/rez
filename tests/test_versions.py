@@ -30,6 +30,7 @@ class TestVersion(VersionBaseTest):
                '3.5+4',  # invalid
                '4.0+<3',  # upper bound is lower than lower bound
                '1+<1.0',  # upper bound is lower than lower bound (somewhat confusing case)
+               'alpha',  # more than a single character
                ]
 
     def valid_init(self, s):
@@ -49,10 +50,10 @@ class TestVersion(VersionBaseTest):
         self.assertFalse(Version('1.2') < Version('1.0+'))
         # FIXME: shouldn't > test upper bounds?
         self.assertTrue(Version('1.2') > Version('1.0+'))
-    
+
         self.assertTrue(Version('1.0') == Version('1.0'))
         self.assertTrue(Version('') == Version(''))
-    
+
         self.assertTrue(Version('') < Version('1'))
         # FIXME: shouldn't > test upper bounds?
         self.assertFalse(Version('') > Version('1'))
@@ -84,10 +85,10 @@ class TestVersionRange(VersionBaseTest):
         for cls in [Version, ExactVersion]:
             self.assertTrue(cls('3.0') in VersionRange('2.0|1+<4'))
             self.assertTrue(cls('2') in VersionRange('1|2'))
-    
+
             self.assertFalse(cls('1') in VersionRange('1.0'))
             self.assertTrue(cls('1.2') in VersionRange('1.0+'))
-    
+
             self.assertTrue(cls('1') in VersionRange(''))
             self.assertTrue(cls('') in VersionRange(''))
 
@@ -125,7 +126,6 @@ class TestExactVersion(VersionBaseTest):
         self.assertTrue(ExactVersion('1.0') > ExactVersion('1'))
 
         self.assertTrue(ExactVersion('1.0') == ExactVersion('1.0'))
-
 
         self.assertTrue(ExactVersion('1.0') < Version('1.1'))
         self.assertTrue(ExactVersion('1') < Version('1.0'))
