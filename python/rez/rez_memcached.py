@@ -130,11 +130,11 @@ class RezMemCache(object):
         return bool(self.mc)
 
     @cached_path("PKGYAML")
-    def get_metafile(self, path):
+    def get_metadata(self, path):
         """
         Load the *essential* metadata in the given file.
         """
-        return resources.load_metadata(path, strip=True)
+        return resources.load_metadata(path)
 
     @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):

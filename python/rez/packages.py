@@ -175,8 +175,7 @@ class Package(object):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, path, timestamp=None, metadata=None,
-                 stripped_metadata=None):
+    def __init__(self, name, version, path, timestamp=None, metadata=None):
         self.name = name
         self.version = version
         assert os.path.splitext(path)[1], "%s: %s" % (self.name, path)
@@ -184,24 +183,13 @@ class Package(object):
         self.metafile = path
         self._timestamp = timestamp
         self._metadata = metadata
-        self._stripped_metdata = stripped_metadata
 
     @property
     def metadata(self):
-        # bypass the memcache so that non-essentials are not stripped
         if self._metadata is None:
-            self._metadata = load_metadata(self.metafile)
-        return self._metadata
-
-    @property
-    def stripped_metadata(self):
-        """
-        only the essential metadata
-        """
-        if self._stripped_metdata is None:
             from rez_memcached import get_memcache
-            self._stripped_metdata = get_memcache().get_metafile(self.metafile)
-        return self._stripped_metdata
+            self._metadata = get_memcache().get_metadata(self.metafile)
+        return self._metadata
 
     @property
     def timestamp(self):
@@ -245,7 +233,7 @@ class ResolvedPackage(Package):
     is considered resolved and the full path to the package root is known.
     """
     def __init__(self, name, version, base, root, commands, metadata, timestamp, metafile):
-        Package.__init__(self, name, version, metafile, timestamp, stripped_metadata=metadata)
+        Package.__init__(self, name, version, metafile, timestamp, metadata=metadata)
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
@@ -257,7 +245,7 @@ class ResolvedPackage(Package):
         # remove data that we don't want to cache
         self.commands = None
         self.raw_commands = None
-        self._metadata = None
+#         self._metadata = None
 
     def __str__(self):
         return str([self.name, self.version, self.root])

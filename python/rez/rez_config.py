@@ -392,8 +392,8 @@ class Resolver(object):
         for pkg_res in pkg_res_list:
             def _add_meta_vars(mvars, target):
                 for key in mvars:
-                    if key in pkg_res.stripped_metadata:
-                        val = pkg_res.stripped_metadata[key]
+                    if key in pkg_res.metadata:
+                        val = pkg_res.metadata[key]
                         if isinstance(val, list):
                             val = ','.join(val)
                         if key not in target:
@@ -916,7 +916,7 @@ class _Package(object):
             if pkg is not None:
                 self.timestamp = pkg.timestamp
                 self.base_path = pkg.base
-                self.metadata = pkg.stripped_metadata
+                self.metadata = pkg.metadata
                 self.metafile = pkg.metafile
                 metafile_variants = self.metadata['variants']
                 if metafile_variants:
@@ -938,7 +938,7 @@ class _Package(object):
 
         if not pkg:
             return
-        return pkg.stripped_metadata
+        return pkg.metadata
 
     def __str__(self):
         l = [self.short_name()]
