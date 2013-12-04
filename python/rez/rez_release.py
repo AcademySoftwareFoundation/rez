@@ -256,7 +256,7 @@ class RezReleaseMode(object):
         return a ConfigMetadata instance for this project's package.yaml file.
         '''
         return load_metadata(os.path.join(self.root_dir, "package.yaml"),
-                             resource_key='built_package')
+                             resource_key='package.built')
 
     # utilities  ---------
     def _write_changelog(self, changelog_file):
@@ -318,11 +318,11 @@ class RezReleaseMode(object):
             existing_uuid = open(package_uuid_file).read().strip()
         except Exception:
             package_uuid_exists = False
-            existing_uuid = self.metadata.uuid
+            existing_uuid = self.metadata['uuid']
         else:
             package_uuid_exists = True
 
-        if existing_uuid != self.metadata.uuid:
+        if existing_uuid != self.metadata['uuid']:
             raise RezReleaseError("the uuid in '" + package_uuid_file +
                                   "' does not match this package's uuid - you may have a package "
                                   "name clash. All package names must be unique.")
@@ -338,7 +338,7 @@ class RezReleaseMode(object):
 
     def send_email(self):
         usr = os.getenv("USER", "unknown.user")
-        pkgname = "%s-%s" % (self.metadata.name, str(self.metadata.version))
+        pkgname = "%s-%s" % (self.metadata['name'], str(self.metadata['version']))
         subject = "[rez] [release] %s released %s" % (usr, pkgname)
         if len(self.variants) > 1:
             subject += " (%d variants)" % len(self.variants)
@@ -441,8 +441,8 @@ class RezReleaseMode(object):
         # FIXME: is the tag put under version control really our most reliable source
         # for previous released versions? Can't we query the versions of our package
         # on $REZ_RELEASE_PACKAGES_PATH?
-        if self.metadata.version <= self.last_tagged_version:
-            raise RezReleaseError("cannot release: current version '" + self.metadata.version +
+        if self.metadata['version'] <= self.last_tagged_version:
+            raise RezReleaseError("cannot release: current version '" + self.metadata['version'] +
                                   "' is not greater than the latest tag '" + last_tag_str +
                                   "'. Version up or pass --allow-not-latest.")
 
@@ -642,8 +642,8 @@ class RezReleaseMode(object):
         # set env-vars that CMakeLists.txt files can reference, in this way
         # we can drive the build from the package.yaml file
         recorder.setenv('REZ_BUILD_ENV', '1')
-        recorder.setenv('REZ_BUILD_PROJECT_VERSION', self.metadata.version)
-        recorder.setenv('REZ_BUILD_PROJECT_NAME', self.metadata.name)
+        recorder.setenv('REZ_BUILD_PROJECT_VERSION', self.metadata['version'])
+        recorder.setenv('REZ_BUILD_PROJECT_NAME', self.metadata['name'])
 
         if self.requires:
             recorder.setenv('REZ_BUILD_REQUIRES_UNVERSIONED',
@@ -722,14 +722,15 @@ class RezReleaseMode(object):
 
         self.metadata = self.get_metadata()
 
-        self.family_install_dir = os.path.join(self.base_install_dir, self.metadata.name)
-        self.version_install_dir = os.path.join(self.family_install_dir, self.metadata.version)
+        self.family_install_dir = os.path.join(self.base_install_dir, self.metadata['name'])
+        self.version_install_dir = os.path.join(self.family_install_dir, str(self.metadata['version']))
 
-        self.variants = self.metadata.variants
+        self.variants = self.metadata['variants']
         if not self.variants:
             self.variants = [None]
 
-        self.requires = (self.metadata.build_requires or []) + (self.metadata.requires or [])
+        # these default to None, which is a bit of a pain
+        self.requires = (self.metadata['build_requires'] or []) + (self.metadata['requires'] or [])
 
         self.changelog = self.get_changelog()
 
@@ -817,7 +818,7 @@ class RezReleaseMode(object):
                 os.makedirs(self.family_install_dir)
 
             f = open(self.package_uuid_file, 'w')
-            f.write(self.metadata.uuid)
+            f.write(self.metadata['uuid'])
             f.close()
 
         # install the variants
@@ -1205,12 +1206,12 @@ class HgRezReleaseMode(RezReleaseMode):
         '''
         if self.patch_path:
             # patch queue
-            hg('tag', '-f', str(self.metadata.version),
+            hg('tag', '-f', str(self.metadata['version']),
                '--message', self.commit_message, '--mq')
             # use a bookmark on the main repo since we can't change it
-            hg('bookmark', '-f', str(self.metadata.version))
+            hg('bookmark', '-f', str(self.metadata['version']))
         else:
-            hg('tag', '-f', str(self.metadata.version))
+            hg('tag', '-f', str(self.metadata['version']))
 
     def get_tags(self):
         tags = [line.split()[0] for line in hg('tags')]

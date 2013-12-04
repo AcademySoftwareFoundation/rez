@@ -167,7 +167,8 @@ def load_file(filename):
 #------------------------------------------------------------------------------
 
 class ResourceInfo(object):
-    def __init__(self, path_pattern, metadata_classes=None):
+    def __init__(self, name, path_pattern=None, metadata_classes=None):
+        self.name = name
         if metadata_classes:
             if not isinstance(metadata_classes, list):
                 metadata_classes = [metadata_classes]
@@ -176,12 +177,17 @@ class ResourceInfo(object):
         else:
             metadata_classes = []
         self.metadata_classes = metadata_classes
-        self.is_dir = path_pattern.endswith('/')
-        self.path_pattern = path_pattern.rstrip('/')
-        self.compiled_pattern = None
+        if path_pattern:
+            self.is_dir = path_pattern.endswith('/')
+            self.path_pattern = path_pattern.rstrip('/')
+        else:
+            self.is_dir = False
+            self.path_pattern = None
+        self._compiled_pattern = None
 
     def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_classes, self.path_pattern)
+        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_classes,
+                               self.path_pattern)
 
     @staticmethod
     def _expand_pattern(pattern):
@@ -200,18 +206,19 @@ class ResourceInfo(object):
 
     def filename_is_match(self, filename):
         "test if filename matches the configuration's path pattern"
-        assert self.path_pattern, "ResourceInfo does not have a path pattern"
-        if self.compiled_pattern:
-            regex = self.compiled_patterm
+        if not self.path_pattern:
+            return False
+        if self._compiled_pattern:
+            regex = self._compiled_pattern
         else:
             pattern = self.path_pattern
             if not pattern.startswith('/'):
                 pattern = '/' + self.path_pattern
             regex = re.compile(self._expand_pattern(pattern))
-            self.compiled_patterm = regex
+            self._compiled_pattern = regex
         return regex.search(to_posixpath(filename))
 
-def register_resource(config_version, resource_key, path_patterns, classes=None):
+def register_resource(config_version, resource_key, path_patterns=None, classes=None):
     """
     register a resource. this informs rez where to find it relative to the
     rez search path, and optionally how to validate its data.
@@ -232,9 +239,12 @@ def register_resource(config_version, resource_key, path_patterns, classes=None)
     if resource_key in dict(version_configs):
         raise MetadataError("resource already exists: %r" % resource_key)
 
-    if isinstance(path_patterns, basestring):
-        path_patterns = [path_patterns]
-    resources = [ResourceInfo(path, classes) for path in path_patterns]
+    if path_patterns:
+        if isinstance(path_patterns, basestring):
+            path_patterns = [path_patterns]
+        resources = [ResourceInfo(resource_key, path, classes) for path in path_patterns]
+    else:
+        resources = [ResourceInfo(resource_key, metadata_classes=classes)]
     version_configs.append((resource_key, resources))
 
 def get_resources(config_version, key=None):
@@ -265,7 +275,7 @@ def get_metadata_validators(config_version, filename, key=None):
         raise MetadataValueError(filename, 'config_version', config_version)
 
     for resource in resources:
-        if resource.filename_is_match(filename):
+        if (key and not resource.path_pattern) or resource.filename_is_match(filename):
             for cls in resource.metadata_classes:
                 yield cls(filename)
 
@@ -349,9 +359,10 @@ def iter_resources(config_version, resource_keys, search_paths, **expansion_vari
     resources = get_resources(config_version, key=resource_keys)
     for search_path in search_paths:
         for resource in resources:
-            pattern = ResourceIterator(resource.path_pattern, expansion_variables)
-            for path, variables in pattern.walk(search_path):
-                yield path, variables, resource
+            if resource.path_pattern:
+                pattern = ResourceIterator(resource.path_pattern, expansion_variables)
+                for path, variables in pattern.walk(search_path):
+                    yield path, variables, resource
 
 
 #------------------------------------------------------------------------------
@@ -555,9 +566,9 @@ register_resource(0,
                   ['{name}/package.yaml'],
                   [BasePackageConfig_0])
 
-# register_resource(0,
-#                 'package.built',
-#                 PackageBuildConfig_0)
+register_resource(0,
+                  'package.built',
+                  classes=[PackageBuildConfig_0])
 
 register_resource(0,
                   'release.info',
