@@ -85,7 +85,7 @@ def get_source_retrievers(metadata):
     url entries in the external_build section
     '''
     retrievers = []
-    package = metadata.name
+    package = metadata['name']
     build_data = metadata.get('external_build')
     if build_data:
         url = _get_url(build_data)
@@ -1191,7 +1191,7 @@ def get_source(metadata):
 def patch_source(metadata, srcdir):
     build_data = metadata.get('external_build')
     for patch in build_data.get('patches', []):
-        _apply_patch(metadata.name, patch, srcdir)
+        _apply_patch(metadata['name'], patch, srcdir)
 
 def write_build_script(metadata, srcdir):
     build_data = metadata.get('external_build')
@@ -1205,6 +1205,9 @@ def write_build_script(metadata, srcdir):
         _write_cmakelist(install_commands, srcdir, working_dir)
 
 def get_patched_source(metadata):
+    '''
+    Main entry point for retrieving source code and patching it
+    '''
     srcdir = get_source(metadata)
     if srcdir:
         patch_source(metadata, srcdir)
