@@ -1695,18 +1695,12 @@ class _Configuration(object):
             print "removed least suitable variant:"
             print bad_pkg.short_name() + " variant:" + str(bad_variant)
 
-    def get_num_unknown_pkgs(self, pkg_strs):
+    def get_num_unknown_pkgs(self, pkg_reqs):
         """
-        given a list of package strings, return the number of packages in the list
+        given a list of package requests, return the number of packages in the list
         which do not appear in the current configuration
         """
-        num = 0
-        for pkg_str in pkg_strs:
-            pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            if pkg_req.name not in self.pkgs:
-                num += 1
-
-        return num
+        return len([pkg_req for pkg_req in pkg_reqs if pkg_req.name not in self.pkgs])
 
     def resolve_metafiles(self):
         """
