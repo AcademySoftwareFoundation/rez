@@ -197,7 +197,8 @@ class Resolver(object):
     """
     Where all the action happens. This class performs a package resolve.
     """
-    def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
+    def __init__(self, resolve_mode=RESOLVE_MODE_LATEST, quiet=False,
+                 verbosity=0, max_fails=-1, time_epoch=0,
                  build_requires=False, assume_dt=False, caching=True):
         """
         resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST

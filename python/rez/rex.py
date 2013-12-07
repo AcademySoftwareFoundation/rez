@@ -254,7 +254,8 @@ class CommandRecorder(object):
 
 class CommandInterpreter(object):
     """
-    Interpret a list of commands into output for a particular shell or application.
+    Abstract base class to interpret a list of commands, usually as a commands
+    for a shell.
 
     Usually the convenience function `interpret` is used rather than accessing
     this class directly.
@@ -765,11 +766,12 @@ def _posixpath(path):
 
 class EnvironRecorderDict(UserDict.DictMixin):
     """
-    Provides a mapping interface that wraps requested keys in `EnvironmentVariable` instances.
-    which provide an object-oriented interface for recording environment variable manipulations.
+    Provides a mapping interface to `EnvironmentVariable` instances,
+    which provide an object-oriented interface for recording environment
+    variable manipulations.
 
-    `__getitem__` is always guaranteed to return an `EnvironmentVariable` instance; it will not
-    raise a KeyError.
+    `__getitem__` is always guaranteed to return an `EnvironmentVariable`
+    instance: it will not raise a KeyError.
     """
     def __init__(self, command_recorder=None, environ=None, override_existing_lists=False):
         """
@@ -782,6 +784,7 @@ class EnvironRecorderDict(UserDict.DictMixin):
         # make a copy of os.environ so we don't change the current environment.
         # if that is desired the changes can be played back with the Python CommandInterpreter
         self.environ = environ if environ is not None else dict(os.environ)
+        # use a python command interpreter to track updates to self.environ
         self.python_interpreter = Python(environ=self.environ)
         self._override_existing_lists = override_existing_lists
         self._var_cache = {}
