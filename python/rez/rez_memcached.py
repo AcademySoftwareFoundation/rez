@@ -1,7 +1,7 @@
 import sys
 import os
 from collections import defaultdict
-import rez.rez_filesys as rez_filesys
+import rez.filesys as filesys
 import rez.resources as resources
 from rez.packages import Package
 from rez.public_enums import *
@@ -142,7 +142,7 @@ class RezMemCache(object):
         For a given directory, return a list of (Version,epoch), which match version directories
         found in the given directory.
         """
-        return rez_filesys.get_versions_in_directory(path, warnings)
+        return filesys.get_versions_in_directory(path, warnings)
 
     @cached_path("LISTDIR", default=())
     def list_directory(self, path, warnings=True):
@@ -161,7 +161,7 @@ class RezMemCache(object):
             return True
 
         if paths is None:
-            paths = rez_filesys._g_syspaths
+            paths = filesys._g_syspaths
 
         for path in paths:
             if os.path.isdir(os.path.join(path, family_name)):

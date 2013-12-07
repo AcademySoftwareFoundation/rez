@@ -5,7 +5,7 @@ import os.path
 import re
 import sys
 from rez.resources import iter_resources, load_metadata
-import rez.rez_filesys as rez_filesys
+import rez.filesys as filesys
 from rez.rez_exceptions import PkgSystemError
 from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
 
@@ -38,7 +38,7 @@ def iter_package_families(name=None, paths=None):
     Iterate through top-level `PackageFamily` instances.
     """
     if paths is None:
-        paths = rez_filesys._g_syspaths
+        paths = filesys._g_syspaths
     elif isinstance(paths, basestring):
         paths = [paths]
 
@@ -201,7 +201,7 @@ class Package(object):
                 if os.path.isfile(release_time_f):
                     with open(release_time_f, 'r') as f:
                         self._timestamp = int(f.read().strip())
-                elif rez_filesys._g_new_timestamp_behaviour:
+                elif filesys._g_new_timestamp_behaviour:
                     s = ("Warning: The package at %s is not timestamped and will be ignored. " +
                          "To timestamp it manually, use the rez-timestamp utility.")
                     print >> sys.stderr, s % self.base
@@ -214,7 +214,7 @@ class Package(object):
             return self.name + '-' + str(self.version)
 
     def is_local(self):
-        return self.base.startswith(rez_filesys._g_local_pkgs_path)
+        return self.base.startswith(filesys._g_local_pkgs_path)
 
     def __str__(self):
         return str([self.name, self.version, self.base])

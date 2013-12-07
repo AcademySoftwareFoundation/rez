@@ -189,8 +189,8 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
         v = pkg_d.get("Platform")
         if native and v.lower() == 'unknown':
             # cannot allow native lib to be unknown
-            import rez.rez_filesys
-            variant = [rez.rez_filesys._g_os_pkg] + variant
+            import rez.filesys
+            variant = [rez.filesys._g_os_pkg] + variant
         elif v:
             platform_pkgs = platform_remappings.get(v.lower())
             if platform_pkgs is None:

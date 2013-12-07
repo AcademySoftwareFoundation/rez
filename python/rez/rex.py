@@ -546,9 +546,9 @@ class Python(CommandInterpreter):
         # special case: update current python process
         if key == 'REZ_PACKAGES_PATH':
             print "PREPENDING", value
-            import rez.rez_filesys
-            rez.rez_filesys._g_syspaths.insert(0, value)
-            rez.rez_filesys._g_syspaths_nolocal.insert(0, value)
+            import rez.filesys
+            rez.filesys._g_syspaths.insert(0, value)
+            rez.filesys._g_syspaths_nolocal.insert(0, value)
         elif key == 'PYTHONPATH':
             sys.path.insert(0, value)
 
@@ -563,9 +563,9 @@ class Python(CommandInterpreter):
         # special case: update current python process
         if key == 'REZ_PACKAGES_PATH':
             print "APPENDING", value
-            import rez.rez_filesys
-            rez.rez_filesys._g_syspaths.append(value)
-            rez.rez_filesys._g_syspaths_nolocal.append(value)
+            import rez.filesys
+            rez.filesys._g_syspaths.append(value)
+            rez.filesys._g_syspaths_nolocal.append(value)
         elif key == 'PYTHONPATH':
             sys.path.append(value)
 

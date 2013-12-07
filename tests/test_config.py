@@ -6,8 +6,8 @@ import rez.rez_config
 from rez.rez_config import Resolver
 from rez.rez_exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
-from rez.rez_filesys import _g_os_pkg as OS_PKG
-from rez.rez_filesys import _g_arch_pkg as ARCH_PKG
+from rez.filesys import _g_os_pkg as OS_PKG
+from rez.filesys import _g_arch_pkg as ARCH_PKG
 
 def check_basic_resolve(pkgs, assertions,
                         resolver_args=dict(resolve_mode=RESOLVE_MODE_LATEST),

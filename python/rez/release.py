@@ -630,10 +630,10 @@ class RezReleaseMode(object):
         recorder = rex.CommandRecorder()
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
-                            os.path.join(rez.rez_filesys._g_rez_path, 'cmake'))
+                            os.path.join(rez.filesys._g_rez_path, 'cmake'))
         # make sure we can still use rez-config in the build env!
         recorder.appendenv('PATH',
-                           os.path.join(rez.rez_filesys._g_rez_path, 'bin'))
+                           os.path.join(rez.filesys._g_rez_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -689,7 +689,7 @@ class RezReleaseMode(object):
             # which? this is from the original code...
             recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
             recorder.setenv('REZ_ENV_PROMPT', "BUILD>")
-            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % rez.rez_filesys._g_rez_path)
+            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % rez.filesys._g_rez_path)
             script = rex.interpret(recorder, shell='bash',
                                    verbose=['command'])
 

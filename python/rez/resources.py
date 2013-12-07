@@ -194,7 +194,7 @@ class ResourceInfo(object):
         "expand variables in a search pattern with regular expressions"
         import versions
         import packages
-        import rez_filesys as filesys
+        import rez.filesys as filesys
 
         pattern = re.escape(pattern)
         expansions = [('version', versions.EXACT_VERSION_REGSTR),
