@@ -5,7 +5,7 @@ import rez.filesys as filesys
 import rez.resources as resources
 from rez.packages import Package
 from rez.public_enums import *
-from rez.rez_exceptions import *
+from rez.exceptions import *
 
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"

@@ -4,7 +4,7 @@ import utils
 utils.setup_pythonpath()
 import rez.config
 from rez.config import Resolver
-from rez.rez_exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
+from rez.exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
 from rez.filesys import _g_os_pkg as OS_PKG
 from rez.filesys import _g_arch_pkg as ARCH_PKG

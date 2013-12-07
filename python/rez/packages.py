@@ -6,7 +6,7 @@ import re
 import sys
 from rez.resources import iter_resources, load_metadata
 import rez.filesys as filesys
-from rez.rez_exceptions import PkgSystemError
+from rez.exceptions import PkgSystemError
 from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'

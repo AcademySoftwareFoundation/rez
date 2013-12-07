@@ -48,7 +48,7 @@ import itertools
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
-from rez.rez_exceptions import *
+from rez.exceptions import *
 from rez.memcached import *
 import rez.filesys as filesys
 from rez.util import AttrDictWrapper, gen_dotgraph_image

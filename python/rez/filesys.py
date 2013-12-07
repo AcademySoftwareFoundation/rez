@@ -7,7 +7,7 @@ import platform
 import subprocess as sp
 from rez.versions import ExactVersion
 from rez.public_enums import REZ_PACKAGES_PATH_ENVVAR, PKG_METADATA_FILENAME
-from rez.rez_exceptions import *
+from rez.exceptions import *
 
 VALID_PLATFORMS = ['darwin', 'linux', 'windows']
 
