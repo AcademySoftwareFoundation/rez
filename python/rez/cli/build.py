@@ -218,7 +218,7 @@ def command(opts):
     # Iterate over variants
     #-#################################################################################################
 
-    import rez._release
+    import rez.release
     build_mode = rez.release.get_release_mode('.')
 #     if build_mode.name == 'base':
 #         # we only care about version control, so ignore the base release mode
