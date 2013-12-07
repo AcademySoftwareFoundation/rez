@@ -113,7 +113,7 @@ def command(opts):
     if not ctxt_pkg_list:
         pkg_list = packages
     else:
-        import rez.rez_parse_request as rpr
+        import rez.parse_request as rpr
         base_pkgs, subshells = rpr.parse_request(ctxt_pkg_list + " | " + packages)
         pkg_list = rpr.encode_request(base_pkgs, subshells)
 

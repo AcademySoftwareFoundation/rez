@@ -60,7 +60,7 @@ def command(opts):
     import subprocess
     import tempfile
     import pyparsing as pp
-    import rez.rez_parse_request as rpr
+    import rez.parse_request as rpr
 #     (opts, args) = p.parse_args(sys.argv[2:])
 
     pkgs_str = str(' ').join(opts.pkg).strip()
