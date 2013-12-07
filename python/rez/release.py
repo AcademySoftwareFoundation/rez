@@ -586,8 +586,8 @@ class RezReleaseMode(object):
         print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
 
         try:
-            import rez.rez_config
-            resolver = rez.rez_config.Resolver(mode,
+            import rez.config
+            resolver = rez.config.Resolver(mode,
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
             result = resolver.resolve((self.requires + variant + ['cmake=l']),

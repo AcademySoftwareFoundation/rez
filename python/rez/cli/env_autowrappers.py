@@ -69,7 +69,7 @@ def command(opts):
         import rez.util
         rez.util.hide_local_packages()
 
-    import rez.rez_config as rc
+    import rez.config as rc
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]

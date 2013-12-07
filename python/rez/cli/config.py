@@ -121,7 +121,7 @@ def command(opts):
         import rez.util
         rez.util.hide_local_packages()
 
-    import rez.rez_config as dc
+    import rez.config as dc
     ##########################################################################################
     # construct package request
     ##########################################################################################

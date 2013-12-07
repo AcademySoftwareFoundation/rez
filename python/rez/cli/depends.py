@@ -230,7 +230,7 @@ def command(opts):
         dotout = cStringIO.StringIO()
 
     if dotout:
-        from rez.rez_config import make_random_color_string
+        from rez.config import make_random_color_string
         dotout.write("digraph g { \n")
         dotpairs = set()
 
