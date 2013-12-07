@@ -327,14 +327,14 @@ class ResourceIterator(object):
         return len(self.path_parts) == 0
 
     def list_matches(self, path):
-        import rez.rez_memcached
+        import rez.memcached
         if isinstance(self.current_part, basestring):
             fullpath = os.path.join(path, self.current_part)
             # TODO: check file vs dir here
             if os.path.exists(fullpath):
                 yield fullpath
         else:
-            for name in rez.rez_memcached.get_memcache().list_directory(path):
+            for name in rez.memcached.get_memcache().list_directory(path):
                 match = self.current_part.match(name)
                 if match:
                     # TODO: add match to variables

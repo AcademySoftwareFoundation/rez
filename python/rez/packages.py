@@ -187,7 +187,7 @@ class Package(object):
     @property
     def metadata(self):
         if self._metadata is None:
-            from rez_memcached import get_memcache
+            from rez.memcached import get_memcache
             self._metadata = get_memcache().get_metadata(self.metafile)
         return self._metadata
 
