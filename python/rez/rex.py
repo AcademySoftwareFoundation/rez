@@ -254,7 +254,8 @@ class CommandRecorder(object):
 
 class CommandInterpreter(object):
     """
-    Interpret a list of commands into output for a particular shell or application.
+    Abstract base class to interpret a list of commands, usually as a commands
+    for a shell.
 
     Usually the convenience function `interpret` is used rather than accessing
     this class directly.
@@ -542,6 +543,14 @@ class Python(CommandInterpreter):
             self._set_env_list(key, parts)
         else:
             self._environ[key] = value
+        # special case: update current python process
+        if key == 'REZ_PACKAGES_PATH':
+            print "PREPENDING", value
+            import rez.filesys
+            rez.filesys._g_syspaths.insert(0, value)
+            rez.filesys._g_syspaths_nolocal.insert(0, value)
+        elif key == 'PYTHONPATH':
+            sys.path.insert(0, value)
 
     def appendenv(self, key, value):
         value = self._expand(value)
@@ -551,6 +560,14 @@ class Python(CommandInterpreter):
             self._set_env_list(key, parts)
         else:
             self._environ[key] = value
+        # special case: update current python process
+        if key == 'REZ_PACKAGES_PATH':
+            print "APPENDING", value
+            import rez.filesys
+            rez.filesys._g_syspaths.append(value)
+            rez.filesys._g_syspaths_nolocal.append(value)
+        elif key == 'PYTHONPATH':
+            sys.path.append(value)
 
     def alias(self, key, value):
         pass
@@ -765,11 +782,12 @@ def _posixpath(path):
 
 class EnvironRecorderDict(UserDict.DictMixin):
     """
-    Provides a mapping interface that wraps requested keys in `EnvironmentVariable` instances.
-    which provide an object-oriented interface for recording environment variable manipulations.
+    Provides a mapping interface to `EnvironmentVariable` instances,
+    which provide an object-oriented interface for recording environment
+    variable manipulations.
 
-    `__getitem__` is always guaranteed to return an `EnvironmentVariable` instance; it will not
-    raise a KeyError.
+    `__getitem__` is always guaranteed to return an `EnvironmentVariable`
+    instance: it will not raise a KeyError.
     """
     def __init__(self, command_recorder=None, environ=None, override_existing_lists=False):
         """
@@ -782,6 +800,7 @@ class EnvironRecorderDict(UserDict.DictMixin):
         # make a copy of os.environ so we don't change the current environment.
         # if that is desired the changes can be played back with the Python CommandInterpreter
         self.environ = environ if environ is not None else dict(os.environ)
+        # use a python command interpreter to track updates to self.environ
         self.python_interpreter = Python(environ=self.environ)
         self._override_existing_lists = override_existing_lists
         self._var_cache = {}

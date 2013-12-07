@@ -48,10 +48,10 @@ import itertools
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
-from rez.rez_exceptions import *
-from rez.rez_memcached import *
-import rez.rez_filesys as rez_filesys
-from rez.rez_util import AttrDictWrapper, gen_dotgraph_image
+from rez.exceptions import *
+from rez.memcached import *
+import rez.filesys as filesys
+from rez.util import AttrDictWrapper, gen_dotgraph_image
 import rez.rex as rex
 
 
@@ -197,7 +197,8 @@ class Resolver(object):
     """
     Where all the action happens. This class performs a package resolve.
     """
-    def __init__(self, resolve_mode, quiet=False, verbosity=0, max_fails=-1, time_epoch=0,
+    def __init__(self, resolve_mode=RESOLVE_MODE_LATEST, quiet=False,
+                 verbosity=0, max_fails=-1, time_epoch=0,
                  build_requires=False, assume_dt=False, caching=True):
         """
         resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
@@ -348,8 +349,8 @@ class Resolver(object):
         raise the relevant exception, if config resolution is not possible
         """
         if not no_os:
-            os_pkg_req = str_to_pkg_req(rez_filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            arch_pkg_req = str_to_pkg_req(rez_filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+            os_pkg_req = str_to_pkg_req(filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+            arch_pkg_req = str_to_pkg_req(filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
             pkg_reqs = [os_pkg_req, arch_pkg_req] + pkg_reqs
 
         if not pkg_reqs:
@@ -373,7 +374,7 @@ class Resolver(object):
         # we need to inject system paths here. They're not there already because they can't be cached
         sys_paths = [os.path.join(os.environ["REZ_PATH"], "bin")]
         if not no_path_append:
-            sys_paths += rez_filesys._g_os_paths
+            sys_paths += filesys._g_os_paths
 
         recorder.setenv('PATH', sys_paths)
 
@@ -392,8 +393,8 @@ class Resolver(object):
         for pkg_res in pkg_res_list:
             def _add_meta_vars(mvars, target):
                 for key in mvars:
-                    if key in pkg_res.stripped_metadata:
-                        val = pkg_res.stripped_metadata[key]
+                    if key in pkg_res.metadata:
+                        val = pkg_res.metadata[key]
                         if isinstance(val, list):
                             val = ','.join(val)
                         if key not in target:
@@ -480,11 +481,11 @@ class Resolver(object):
         # the environment dictionary to be passed during execution of python code.
         env = get_execution_namespace(pkg_res_list)
 
-        env["REZ_USED"] = rez_filesys._g_rez_path
+        env["REZ_USED"] = filesys._g_rez_path
         env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
         env["REZ_REQUEST"] = full_req_str
         env["REZ_RAW_REQUEST"] = full_req_str
-        env["PYTHONPATH"] = "%s/python" % rez_filesys._g_rez_path
+        env["PYTHONPATH"] = "%s/python" % filesys._g_rez_path
         env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
         env["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
         env["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
@@ -564,10 +565,10 @@ class Resolver(object):
         # if any local packages are involved, don't cache
         pkg_res_list = result[0]
         for pkg_res in pkg_res_list:
-            if pkg_res.base.startswith(rez_filesys._g_local_pkgs_path):
+            if pkg_res.base.startswith(filesys._g_local_pkgs_path):
                 return
 
-        get_memcache().store_resolve(rez_filesys._g_syspaths_nolocal, pkg_reqs,
+        get_memcache().store_resolve(filesys._g_syspaths_nolocal, pkg_reqs,
                                      result, self.rctxt.time_epoch)
 
     def get_cached_resolve(self, pkg_reqs):
@@ -577,7 +578,7 @@ class Resolver(object):
             return None
 
         result, cache_timestamp = get_memcache().get_resolve(
-            rez_filesys._g_syspaths_nolocal, pkg_reqs, self.rctxt.time_epoch)
+            filesys._g_syspaths_nolocal, pkg_reqs, self.rctxt.time_epoch)
 
         if not result:
             return None
@@ -586,9 +587,9 @@ class Resolver(object):
 
         # discard cache if any version of any resolved pkg is also present as a local pkg,
         # unless the versions fall outside of that pkg's max bounds.
-        if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
+        if filesys._g_local_pkgs_path in filesys._g_syspaths:
             for pkg_res in pkg_res_list:
-                fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
+                fam_path = os.path.join(filesys._g_local_pkgs_path, pkg_res.name)
                 if os.path.isdir(fam_path):
                     # todo max bounds check
                     print_cache_warning(("Presence of local package directory %s " +
@@ -599,9 +600,9 @@ class Resolver(object):
         # if any version of any resolved packages also appear in a local package path, and that
         # path has been modified since the cache timestamp, then discard the cached resolve.
         # TODO incorrect, time has no effect. Can only discard based on 'pkg max bounds'
-        if rez_filesys._g_local_pkgs_path in rez_filesys._g_syspaths:
+        if filesys._g_local_pkgs_path in filesys._g_syspaths:
             for pkg_res in pkg_res_list:
-                fam_path = os.path.join(rez_filesys._g_local_pkgs_path, pkg_res.name)
+                fam_path = os.path.join(filesys._g_local_pkgs_path, pkg_res.name)
                 if os.path.isdir(fam_path):
                     path_modtime = int(os.path.getmtime(fam_path))
                     if path_modtime >= cache_timestamp:
@@ -916,7 +917,7 @@ class _Package(object):
             if pkg is not None:
                 self.timestamp = pkg.timestamp
                 self.base_path = pkg.base
-                self.metadata = pkg.stripped_metadata
+                self.metadata = pkg.metadata
                 self.metafile = pkg.metafile
                 metafile_variants = self.metadata['variants']
                 if metafile_variants:
@@ -938,7 +939,7 @@ class _Package(object):
 
         if not pkg:
             return
-        return pkg.stripped_metadata
+        return pkg.metadata
 
     def __str__(self):
         l = [self.short_name()]
@@ -1695,18 +1696,12 @@ class _Configuration(object):
             print "removed least suitable variant:"
             print bad_pkg.short_name() + " variant:" + str(bad_variant)
 
-    def get_num_unknown_pkgs(self, pkg_strs):
+    def get_num_unknown_pkgs(self, pkg_reqs):
         """
-        given a list of package strings, return the number of packages in the list
+        given a list of package requests, return the number of packages in the list
         which do not appear in the current configuration
         """
-        num = 0
-        for pkg_str in pkg_strs:
-            pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            if pkg_req.name not in self.pkgs:
-                num += 1
-
-        return num
+        return len([pkg_req for pkg_req in pkg_reqs if pkg_req.name not in self.pkgs])
 
     def resolve_metafiles(self):
         """

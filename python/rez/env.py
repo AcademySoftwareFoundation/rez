@@ -3,7 +3,7 @@ Simple API to extract information about the current rez-configured environment.
 """
 
 import os
-from rez_exceptions import PkgFamilyNotFoundError
+from rez.exceptions import PkgFamilyNotFoundError
 
 
 class RezError(Exception):

@@ -13,7 +13,7 @@ import tempfile
 import subprocess as sp
 import textwrap
 from rez.cli import error, output
-from rez.rez_util import copytree
+from rez.util import copytree
 
 _g_r_stat = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
 _g_w_stat = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
@@ -189,8 +189,8 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
         v = pkg_d.get("Platform")
         if native and v.lower() == 'unknown':
             # cannot allow native lib to be unknown
-            import rez.rez_filesys
-            variant = [rez.rez_filesys._g_os_pkg] + variant
+            import rez.filesys
+            variant = [rez.filesys._g_os_pkg] + variant
         elif v:
             platform_pkgs = platform_remappings.get(v.lower())
             if platform_pkgs is None:

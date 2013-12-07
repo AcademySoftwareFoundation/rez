@@ -3,7 +3,7 @@ Build and release a rez package.
 '''
 import sys
 import os
-import rez.rez_release as rezr
+import rez.release as rezr
 import rez.sigint
 
 #

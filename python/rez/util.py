@@ -78,12 +78,12 @@ def readable_time_duration(secs, approx=True):
     return s
 
 def hide_local_packages():
-    import rez.rez_filesys
-    rez.rez_filesys._g_syspaths = rez.rez_filesys._g_syspaths_nolocal
+    import rez.filesys
+    rez.filesys._g_syspaths = rez.filesys._g_syspaths_nolocal
 
 def unhide_local_packages():
-    import rez.rez_filesys
-    rez.rez_filesys._g_syspaths = rez.rez_filesys.get_system_package_paths()
+    import rez.filesys
+    rez.filesys._g_syspaths = rez.filesys.get_system_package_paths()
 
 def remove_write_perms(path):
     st = os.stat(path)

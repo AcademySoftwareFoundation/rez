@@ -58,7 +58,7 @@ class BaseTest(object):
         self.local_packages = {}
         self.release_packages = {}
 
-        import rez.rez_filesys as fs
+        import rez.filesys as fs
         fs._g_local_pkgs_path = self.local_path
         fs._g_syspaths = [self.release_path, self.local_path]
         fs._g_syspaths_nolocal = [self.release_path]

@@ -1,11 +1,11 @@
 import sys
 import os
 from collections import defaultdict
-import rez.rez_filesys as rez_filesys
+import rez.filesys as filesys
 import rez.resources as resources
 from rez.packages import Package
 from rez.public_enums import *
-from rez.rez_exceptions import *
+from rez.exceptions import *
 
 _g_caching_enabled = True
 _g_memcached_server = os.getenv("REZ_MEMCACHED_SERVER") or "127.0.0.1:11211"
@@ -130,11 +130,11 @@ class RezMemCache(object):
         return bool(self.mc)
 
     @cached_path("PKGYAML")
-    def get_metafile(self, path):
+    def get_metadata(self, path):
         """
         Load the *essential* metadata in the given file.
         """
-        return resources.load_metadata(path, strip=True)
+        return resources.load_metadata(path)
 
     @cached_path("VERSIONS", default=())
     def get_versions_in_directory(self, path, warnings=True):
@@ -142,7 +142,7 @@ class RezMemCache(object):
         For a given directory, return a list of (Version,epoch), which match version directories
         found in the given directory.
         """
-        return rez_filesys.get_versions_in_directory(path, warnings)
+        return filesys.get_versions_in_directory(path, warnings)
 
     @cached_path("LISTDIR", default=())
     def list_directory(self, path, warnings=True):
@@ -161,7 +161,7 @@ class RezMemCache(object):
             return True
 
         if paths is None:
-            paths = rez_filesys._g_syspaths
+            paths = filesys._g_syspaths
 
         for path in paths:
             if os.path.isdir(os.path.join(path, family_name)):

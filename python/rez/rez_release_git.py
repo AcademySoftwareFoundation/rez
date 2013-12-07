@@ -11,7 +11,7 @@ import re
 import git
 import subprocess
 from resources import *
-from rez_release import send_release_email
+from rez.release import send_release_email
 import versions
 
 

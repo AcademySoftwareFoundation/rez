@@ -5,8 +5,8 @@ import os.path
 import re
 import sys
 from rez.resources import iter_resources, load_metadata
-import rez.rez_filesys as rez_filesys
-from rez.rez_exceptions import PkgSystemError
+import rez.filesys as filesys
+from rez.exceptions import PkgSystemError
 from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
@@ -38,7 +38,7 @@ def iter_package_families(name=None, paths=None):
     Iterate through top-level `PackageFamily` instances.
     """
     if paths is None:
-        paths = rez_filesys._g_syspaths
+        paths = filesys._g_syspaths
     elif isinstance(paths, basestring):
         paths = [paths]
 
@@ -175,8 +175,7 @@ class Package(object):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, path, timestamp=None, metadata=None,
-                 stripped_metadata=None):
+    def __init__(self, name, version, path, timestamp=None, metadata=None):
         self.name = name
         self.version = version
         assert os.path.splitext(path)[1], "%s: %s" % (self.name, path)
@@ -184,24 +183,13 @@ class Package(object):
         self.metafile = path
         self._timestamp = timestamp
         self._metadata = metadata
-        self._stripped_metdata = stripped_metadata
 
     @property
     def metadata(self):
-        # bypass the memcache so that non-essentials are not stripped
         if self._metadata is None:
-            self._metadata = load_metadata(self.metafile)
+            from rez.memcached import get_memcache
+            self._metadata = get_memcache().get_metadata(self.metafile)
         return self._metadata
-
-    @property
-    def stripped_metadata(self):
-        """
-        only the essential metadata
-        """
-        if self._stripped_metdata is None:
-            from rez_memcached import get_memcache
-            self._stripped_metdata = get_memcache().get_metafile(self.metafile)
-        return self._stripped_metdata
 
     @property
     def timestamp(self):
@@ -213,7 +201,7 @@ class Package(object):
                 if os.path.isfile(release_time_f):
                     with open(release_time_f, 'r') as f:
                         self._timestamp = int(f.read().strip())
-                elif rez_filesys._g_new_timestamp_behaviour:
+                elif filesys._g_new_timestamp_behaviour:
                     s = ("Warning: The package at %s is not timestamped and will be ignored. " +
                          "To timestamp it manually, use the rez-timestamp utility.")
                     print >> sys.stderr, s % self.base
@@ -226,7 +214,7 @@ class Package(object):
             return self.name + '-' + str(self.version)
 
     def is_local(self):
-        return self.base.startswith(rez_filesys._g_local_pkgs_path)
+        return self.base.startswith(filesys._g_local_pkgs_path)
 
     def __str__(self):
         return str([self.name, self.version, self.base])
@@ -245,7 +233,7 @@ class ResolvedPackage(Package):
     is considered resolved and the full path to the package root is known.
     """
     def __init__(self, name, version, base, root, commands, metadata, timestamp, metafile):
-        Package.__init__(self, name, version, metafile, timestamp, stripped_metadata=metadata)
+        Package.__init__(self, name, version, metafile, timestamp, metadata=metadata)
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
@@ -257,7 +245,7 @@ class ResolvedPackage(Package):
         # remove data that we don't want to cache
         self.commands = None
         self.raw_commands = None
-        self._metadata = None
+#         self._metadata = None
 
     def __str__(self):
         return str([self.name, self.version, self.root])

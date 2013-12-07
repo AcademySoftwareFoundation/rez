@@ -58,9 +58,9 @@ def setup_parser(parser):
 
 def command(opts):
     import rez.sigint as sigint
-    import rez.rez_config as dc
-    import rez.rez_util
-    rez.rez_util.hide_local_packages()
+    import rez.config as dc
+    import rez.util
+    rez.util.hide_local_packages()
 
     # turn all old pkgs into 'pkg=e' to force start from earliest
     args = []
@@ -180,7 +180,7 @@ class Outputter(object):
             output('<table border="0" cellpadding="0" bgcolor=#' + self.table_bgcolor2 + '>')
 
     def print_added_packages(self, pkgs, are_added):
-        import rez.rez_config as dc
+        import rez.config as dc
 
         if len(pkgs) > 0:
             output(self.big_line_sep)
@@ -210,7 +210,7 @@ class Outputter(object):
 
     def print_altered_packages(self, pkgs, are_updated):
 
-        import rez.rez_config as dc
+        import rez.config as dc
         if len(pkgs) > 0:
             print self.big_line_sep
             if are_updated:

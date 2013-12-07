@@ -7,7 +7,7 @@ import platform
 import subprocess as sp
 from rez.versions import ExactVersion
 from rez.public_enums import REZ_PACKAGES_PATH_ENVVAR, PKG_METADATA_FILENAME
-from rez.rez_exceptions import *
+from rez.exceptions import *
 
 VALID_PLATFORMS = ['darwin', 'linux', 'windows']
 
@@ -58,12 +58,7 @@ def get_system_package_paths():
     """
     syspathstr = os.getenv(REZ_PACKAGES_PATH_ENVVAR)
     if syspathstr:
-        toks = syspathstr.split(':')
-        syspaths = []
-        for tok in toks:
-            if tok:
-                syspaths.append(tok.strip())
-        return syspaths
+        return [tok.strip() for tok in syspathstr.split(':') if tok]
     else:
         raise PkgSystemError(REZ_PACKAGES_PATH_ENVVAR + " is not set")
 

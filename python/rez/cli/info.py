@@ -34,7 +34,7 @@ def setup_parser(parser):
 def command(opts):
     from rez.packages import split_name, package_in_range
     import rez.sigint
-    from rez.rez_util import get_epoch_time
+    from rez.util import get_epoch_time
     from rez.resources import load_metadata
 
     # attempt to load the latest

@@ -60,16 +60,16 @@ def command(opts):
     import subprocess
     import tempfile
     import pyparsing as pp
-    import rez.rez_parse_request as rpr
+    import rez.parse_request as rpr
 #     (opts, args) = p.parse_args(sys.argv[2:])
 
     pkgs_str = str(' ').join(opts.pkg).strip()
 
     if opts.no_local:
-        import rez.rez_util
-        rez.rez_util.hide_local_packages()
+        import rez.util
+        rez.util.hide_local_packages()
 
-    import rez.rez_config as rc
+    import rez.config as rc
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]

@@ -113,7 +113,7 @@ def command(opts):
     if not ctxt_pkg_list:
         pkg_list = packages
     else:
-        import rez.rez_parse_request as rpr
+        import rez.parse_request as rpr
         base_pkgs, subshells = rpr.parse_request(ctxt_pkg_list + " | " + packages)
         pkg_list = rpr.encode_request(base_pkgs, subshells)
 
@@ -128,7 +128,7 @@ def command(opts):
     dot_file = context_file + ".dot"
 
     # # setup args for rez-config
-    # # TODO: convert to use rez.rez_config directly
+    # # TODO: convert to use rez.config directly
     # kwargs = dict(verbosity=0,
     #               version=False,
     #               print_env=False,
@@ -169,7 +169,7 @@ def command(opts):
     #         if os.path.exists(dot_file):
     #             os.remove(dot_file)
 
-    import rez.rez_config as dc
+    import rez.config as dc
     resolver = dc.Resolver(opts.mode, True, 0, opts.view_fail,
                            opts.time, opts.buildreqs, not opts.no_assume_dt,
                            not opts.no_cache)
