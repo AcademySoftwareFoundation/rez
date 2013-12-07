@@ -13,7 +13,7 @@ import tempfile
 import subprocess as sp
 import textwrap
 from rez.cli import error, output
-from rez.rez_util import copytree
+from rez.util import copytree
 
 _g_r_stat = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
 _g_w_stat = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH

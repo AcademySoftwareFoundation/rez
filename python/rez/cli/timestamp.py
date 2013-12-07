@@ -36,6 +36,6 @@ def command(opts):
     with open(timepath, 'w') as f:
         f.write(str(int(time.time())))
 
-    from rez.rez_util import remove_write_perms
+    from rez.util import remove_write_perms
     remove_write_perms(timepath)
     print "Success: Package has been timestamped. See %s" % timepath

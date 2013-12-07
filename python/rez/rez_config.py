@@ -51,7 +51,7 @@ from rez.public_enums import *
 from rez.rez_exceptions import *
 from rez.memcached import *
 import rez.filesys as filesys
-from rez.rez_util import AttrDictWrapper, gen_dotgraph_image
+from rez.util import AttrDictWrapper, gen_dotgraph_image
 import rez.rex as rex
 
 

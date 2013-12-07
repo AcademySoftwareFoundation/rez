@@ -59,8 +59,8 @@ def setup_parser(parser):
 def command(opts):
     import rez.sigint as sigint
     import rez.rez_config as dc
-    import rez.rez_util
-    rez.rez_util.hide_local_packages()
+    import rez.util
+    rez.util.hide_local_packages()
 
     # turn all old pkgs into 'pkg=e' to force start from earliest
     args = []

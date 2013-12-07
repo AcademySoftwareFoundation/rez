@@ -66,8 +66,8 @@ def command(opts):
     pkgs_str = str(' ').join(opts.pkg).strip()
 
     if opts.no_local:
-        import rez.rez_util
-        rez.rez_util.hide_local_packages()
+        import rez.util
+        rez.util.hide_local_packages()
 
     import rez.rez_config as rc
 
