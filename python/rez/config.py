@@ -223,6 +223,9 @@ class Resolver(object):
         self.rctxt.time_epoch = time_epoch
         self.rctxt.caching = caching
 
+        self.raw_pkg_reqs = None
+        self.pkg_reqs = None
+
     def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
                         meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
         """
@@ -348,20 +351,23 @@ class Resolver(object):
         -OR-
         raise the relevant exception, if config resolution is not possible
         """
+        self.raw_pkg_reqs = tuple([pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs])
+
         if not no_os:
             os_pkg_req = str_to_pkg_req(filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
             arch_pkg_req = str_to_pkg_req(filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            pkg_reqs = [os_pkg_req, arch_pkg_req] + pkg_reqs
+            self.pkg_reqs = tuple([os_pkg_req, arch_pkg_req]) + self.raw_pkg_reqs
+        else:
+            self.pkg_reqs = self.raw_pkg_reqs
 
-        if not pkg_reqs:
+        if not self.pkg_reqs:
             return ([], [], "digraph g{}", 0)
 
-        pkg_reqs = [pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs]
         # get the resolve, possibly read/write cache
-        result = self.get_cached_resolve(pkg_reqs)
+        result = self.get_cached_resolve()
         if not result:
-            result = self.resolve_base(pkg_reqs)
-            self.set_cached_resolve(pkg_reqs, result)
+            result = self.resolve_base()
+            self.set_cached_resolve(result)
 
         recorder = rex.CommandRecorder()
 
@@ -388,7 +394,7 @@ class Resolver(object):
             recorder.appendenv('PATH', '$REZ_WRAPPER_PATH')
 
         # add meta env vars
-        pkg_req_fam_set = set([x.name for x in pkg_reqs if not x.is_anti()])
+        pkg_req_fam_set = set([x.name for x in self.pkg_reqs if not x.is_anti()])
         meta_envvars = {}
         shallow_meta_envvars = {}
 
@@ -416,13 +422,13 @@ class Resolver(object):
 
         return pkg_res_list, recorder.commands, dot_graph, nfails
 
-    def resolve_base(self, pkg_reqs):
+    def resolve_base(self):
         config = _Configuration(self.rctxt)
 
-        for pkg_req in pkg_reqs:
+        for pkg_req in self.pkg_reqs:
             config.add_package(pkg_req)
 
-        for pkg_req in pkg_reqs:
+        for pkg_req in self.pkg_reqs:
             name = pkg_req.short_name()
             if name.startswith("__wrapper_"):
                 name2 = name.replace("__wrapper_", "")
@@ -459,7 +465,7 @@ class Resolver(object):
             config.dump()
             print
 
-        command_recorder = self.record_commands(pkg_reqs, pkg_res_list)
+        command_recorder = self.record_commands(pkg_res_list)
 
         # build the dot-graph representation
         dot_graph = config.get_dot_graph_as_string()
@@ -475,10 +481,11 @@ class Resolver(object):
         # we're done
         return result
 
-    def record_commands(self, pkg_reqs_list, pkg_res_list):
+    def record_commands(self, pkg_res_list):
         # build the environment commands
         res_pkg_strs = [x.short_name() for x in pkg_res_list]
-        full_req_str = ' '.join([x.short_name() for x in pkg_reqs_list])
+        full_req_str = ' '.join([x.short_name() for x in self.pkg_reqs])
+        raw_req_str = ' '.join([x.short_name() for x in self.raw_pkg_reqs])
 
         # the environment dictionary to be passed during execution of python code.
         env = get_execution_namespace(pkg_res_list)
@@ -486,8 +493,8 @@ class Resolver(object):
         env["REZ_USED"] = filesys._g_rez_path
         env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
         env["REZ_REQUEST"] = full_req_str
-        env["REZ_RAW_REQUEST"] = full_req_str
-        env["PYTHONPATH"] = "%s/python" % filesys._g_rez_path
+        env["REZ_RAW_REQUEST"] = raw_req_str
+        env["PYTHONPATH"] = os.path.join(filesys._g_rez_path, 'python')
         env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
         env["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
         env["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
@@ -560,7 +567,7 @@ class Resolver(object):
         recorder.comment("-" * 30)
         return recorder
 
-    def set_cached_resolve(self, pkg_reqs, result):
+    def set_cached_resolve(self, result):
         if not get_memcache().caching_enabled():
             return
 
@@ -570,17 +577,17 @@ class Resolver(object):
             if pkg_res.base.startswith(filesys._g_local_pkgs_path):
                 return
 
-        get_memcache().store_resolve(filesys._g_syspaths_nolocal, pkg_reqs,
+        get_memcache().store_resolve(filesys._g_syspaths_nolocal, self.pkg_reqs,
                                      result, self.rctxt.time_epoch)
 
-    def get_cached_resolve(self, pkg_reqs):
+    def get_cached_resolve(self):
         # the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
         # here and rctxt.time_epoch, the resolve will be the same.
         if not get_memcache().caching_enabled():
             return None
 
         result, cache_timestamp = get_memcache().get_resolve(
-            filesys._g_syspaths_nolocal, pkg_reqs, self.rctxt.time_epoch)
+            filesys._g_syspaths_nolocal, self.pkg_reqs, self.rctxt.time_epoch)
 
         if not result:
             return None
