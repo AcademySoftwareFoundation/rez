@@ -172,9 +172,9 @@ function on_exit {
 	if [ "$child_procs" != "" ]; then
 		kill $child_procs
 	fi
-	rm -f $tmpf
-	rm -f $tmpf2
-	rm -f $tmpf3
+	rm -f $context_file
+	rm -f $source_file
+	rm -f $dot_file
 }
 trap 'on_exit' EXIT
 
@@ -188,12 +188,12 @@ if [ $ret -eq 0 ]; then
 	if [ "$REZ_RAW_REQUEST" == "" ]; then
 		export REZ_RAW_REQUEST="$@"
 	fi
-	export REZ_CONTEXT_FILE=$tmpf
+	export REZ_CONTEXT_FILE=$context_file
 
 	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT$_REZ_ENV_OPT_PROMPT"
 
 	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then
-		source $tmpf
+		source $context_file
 		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
 			source $_REZ_ENV_OPT_RCFILE
 			if [ $? -ne 0 ]; then
@@ -208,7 +208,7 @@ if [ $ret -eq 0 ]; then
 		bash -s
 		ret=$?
 	elif [ "$_REZ_ENV_OPT_CMD" != "" ]; then
-		source $tmpf
+		source $context_file
 		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
 			source $_REZ_ENV_OPT_RCFILE
 			if [ $? -ne 0 ]; then
@@ -223,19 +223,19 @@ if [ $ret -eq 0 ]; then
 		$_REZ_ENV_OPT_CMD
 		ret=$?
 	else
-		echo "source $tmpf" > $tmpf2
+		echo "source $context_file" > $source_file
 		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
-			echo "source $_REZ_ENV_OPT_RCFILE" >> $tmpf2
+			echo "source $_REZ_ENV_OPT_RCFILE" >> $source_file
 		fi
 
-		echo "source rez-env-bashrc" >> $tmpf2
+		echo "source rez-env-bashrc" >> $source_file
 		if [ "$_REZ_ENV_OPT_QUIET" == "False" ]; then
-			echo "echo" >> $tmpf2
-			echo "echo You are now in a new environment." >> $tmpf2
-			echo "rez-context-info" >> $tmpf2
+			echo "echo" >> $source_file
+			echo "echo You are now in a new environment." >> $source_file
+			echo "rez-context-info" >> $source_file
 		fi
 
-		bash --rcfile $tmpf2
+		bash --rcfile $source_file
 		ret=$?
 	fi
 fi

@@ -1,5 +1,5 @@
 #!/bin/bash
-# egg-install is a special case: it uses the python set by the environment so that
+# egg-install is a special case: it must use the python binary found on PATH so
 # it can inspect the installed modules
 pythonbin=`which python`
 . _set-rez-env

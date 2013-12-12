@@ -365,6 +365,7 @@ class Resolver(object):
 
         recorder = rex.CommandRecorder()
 
+        # FIXME: move to rez-env command
         if not is_wrapper:
             recorder.setenv('REZ_IN_WRAPPER', '')
             recorder.setenv('REZ_WRAPPER_PATH', '')
@@ -381,6 +382,7 @@ class Resolver(object):
         recorder.commands.extend(commands)
 
         # add wrapper stuff
+        # FIXME: move to rez-env command
         if is_wrapper:
             recorder.setenv('REZ_IN_WRAPPER', '1')
             recorder.appendenv('PATH', '$REZ_WRAPPER_PATH')
