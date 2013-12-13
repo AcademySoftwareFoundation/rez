@@ -226,7 +226,7 @@ class Resolver(object):
         self.raw_pkg_reqs = None
         self.pkg_reqs = None
 
-    def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False, is_wrapper=False,
+    def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False,
                         meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
         """
         Just a wrapper for resolve() which does some command-line friendly stuff and has some
@@ -234,7 +234,7 @@ class Resolver(object):
         @return None on failure, same as resolve() otherwise.
         """
         try:
-            result = self.resolve(pkg_req_strs, no_os, no_path_append, is_wrapper,
+            result = self.resolve(pkg_req_strs, no_os, no_path_append,
                                   meta_vars, shallow_meta_vars)
 
         except PkgSystemError, e:
@@ -322,7 +322,7 @@ class Resolver(object):
 
         return result
 
-    def resolve(self, pkg_reqs, no_os=False, no_path_append=False, is_wrapper=False,
+    def resolve(self, pkg_reqs, no_os=False, no_path_append=False,
                 meta_vars=None, shallow_meta_vars=None):
         """
         Perform a package resolve.
@@ -334,9 +334,6 @@ class Resolver(object):
                 whether to include the OS package.
         no_path_append: bool
                 whether to append OS-specific paths to PATH when printing an environment
-        is_wrapper: bool
-                If this env is being resolved for a wrapper, then some very slight changes
-                are needed to a normal env, so that wrappers can see one another.
         meta_vars: list of str
                 each string is a key whos value will be saved into an
                 env-var named REZ_META_<KEY> (lists are comma-separated).
@@ -371,11 +368,6 @@ class Resolver(object):
 
         recorder = rex.CommandRecorder()
 
-        # FIXME: move to rez-env command
-        if not is_wrapper:
-            recorder.setenv('REZ_IN_WRAPPER', '')
-            recorder.setenv('REZ_WRAPPER_PATH', '')
-
         pkg_res_list, commands, dot_graph, nfails = result
 
         # we need to inject system paths here. They're not there already because they can't be cached
@@ -386,12 +378,6 @@ class Resolver(object):
         recorder.setenv('PATH', sys_paths)
 
         recorder.commands.extend(commands)
-
-        # add wrapper stuff
-        # FIXME: move to rez-env command
-        if is_wrapper:
-            recorder.setenv('REZ_IN_WRAPPER', '1')
-            recorder.appendenv('PATH', '$REZ_WRAPPER_PATH')
 
         # add meta env vars
         pkg_req_fam_set = set([x.name for x in self.pkg_reqs if not x.is_anti()])

@@ -5,6 +5,7 @@ Invoke a shell based on a configuration request.
 import argparse
 import sys
 import os
+import textwrap
 from rez.cli import error, output
 from . import config as rez_cli_config
 
@@ -18,11 +19,11 @@ from . import config as rez_cli_config
 #         sys.exit(1)
 
 # autowrapper constants:
-_g_alias_context_filename = os.getenv('REZ_PATH') + '/template/wrapper.sh'
 _g_context_filename = 'package.context'
 _g_packages_filename = 'packages.txt'
 _g_dot_filename = _g_context_filename + '.dot'
 _g_tools_filename = _g_context_filename + '.tools'
+_g_wrapper_pkg_prefix = '__wrapper_'
 
 def setup_parser(parser):
 
@@ -78,7 +79,8 @@ def get_tools_from_commands(commands):
                 values = tok.split(':', 1)[1]
                 aliases = values.split(',')
                 tools.extend(aliases)
-            return tools
+            break
+    return tools
 
 def _contains_autowrappers(pkglist):
     return any([pkg for pkg in pkglist if '(' in pkg])
@@ -145,40 +147,34 @@ def resolve_autowrappers(opts):
         import rez.util
         rez.util.hide_local_packages()
 
-
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
 
-    tmpdir = opts.tmpdir
     if not opts.quiet and not opts.stdin:
-        print 'Building into ' + tmpdir + '...'
+        print 'Building into ' + opts.tmpdir + '...'
 
     # make a copy of rcfile, if specified. We need to propagate this into the subshells
     rcfile_copy = None
     if opts.rcfile and opts.prop_rcfile and os.path.isfile(opts.rcfile):
-        rcfile_copy = os.path.join(tmpdir, "rcfile.sh")
+        rcfile_copy = os.path.join(opts.tmpdir, "rcfile.sh")
         shutil.copy(opts.rcfile, rcfile_copy)
-
-    with open(_g_alias_context_filename, 'r') as f:
-        wrapper_template_src = f.read()
 
     # create the local subshell packages
     for name, d in subshells.iteritems():
         s = name
         if d['prefix']:
-            s += '(prefix:' + d['prefix'] + ')'
+            s += '(prefix:%s)' % d['prefix']
         if d['suffix']:
-            s += '(suffix:' + d['suffix'] + ')'
+            s += '(suffix:%s)' % d['suffix']
         if not opts.stdin:
-            print "Building subshell: " + s + ': ' + str(' ').join(d['pkgs'])
+            print "Building subshell: " + s + ': ' + ' '.join(d['pkgs'])
 
-        pkgname = '__wrapper_' + name
-        pkgdir = os.path.join(tmpdir, pkgname)
+        pkgname = _g_wrapper_pkg_prefix + name
+        pkgdir = os.path.join(opts.tmpdir, pkgname)
         os.mkdir(pkgdir)
-        all_pkgs.append(pkgname)
 
         # do the resolve, creates the context and dot files
-        contextfile = os.path.join(pkgdir, _g_context_filename)
+        context_file = os.path.join(pkgdir, _g_context_filename)
         dot_file = os.path.join(pkgdir, _g_dot_filename)
 
         resolver = dc.Resolver(opts.mode,
@@ -190,7 +186,6 @@ def resolve_autowrappers(opts):
 
         result = resolver.guarded_resolve(d['pkgs'],
                                           no_os=opts.no_os,
-                                          is_wrapper=True,
                                           meta_vars=["tools"],
                                           shallow_meta_vars=["tools"],
                                           dot_file=dot_file)
@@ -199,13 +194,39 @@ def resolve_autowrappers(opts):
             sys.exit(1)
 
         commands = result[1]
-        commands.append(rex.Setenv("REZ_CONTEXT_FILE", contextfile))
+        commands.append(rex.Setenv("REZ_CONTEXT_FILE", context_file))
 
-        # TODO: support other shells
+        # add wrapper stuff
+        commands.append(rex.Setenv('REZ_IN_WRAPPER', '1'))
+        # NOTE: the purpose of REZ_WRAPPER_PATH is to circumvent the resetting
+        # of the PATH variable that occurs with each new subshell.
+        # 1. The user enters a subshell
+        #    1a. the package.yaml for each tool adds its root directory to both
+        #        PATH and REZ_WRAPPER_PATH. This ensures that the wrapper scripts are
+        #        accessible.
+        # 2. The user runs the tool wrapper script
+        #    2a. the context file for that tool is sourced, which begins by
+        #        resetting the PATH
+        #    2b. the last line in the context file *appends* REZ_WRAPPER_PATH to
+        #        the PATH. Appending ensures that the wrapper scripts are found
+        #        *after* the real tools that they wrap.
+        # TODO: try getting rid of REZ_WRAPPER_PATH altogether. Instead, add
+        # the wrapper packages themselves to each resolve to ensure
+        # the PATH is setup. ex.
+        #    rez-env (maya foo) (nuke bar) would yield these sub-resolves:
+        #        maya: maya-2014 foo-1 __wrapper_maya __wrapper_nuke
+        #        nuke: nuke-7.0.1 bar-2 __wrapper_maya __wrapper_nuke
+        commands.append(rex.Appendenv('PATH', '$REZ_WRAPPER_PATH'))
+
         script = rex.interpret(commands, shell=opts.shell)
 
-        with open(contextfile, 'w') as f:
+        with open(context_file, 'w') as f:
             f.write(script)
+
+        write_shell_resource(pkgdir, '.bashrc',
+                             context_file, rcfile_copy, quiet=True)
+        write_shell_resource(pkgdir, '.bash_profile',
+                             context_file, rcfile_copy, quiet=True)
 
         # extract the tools from the context file, create the alias scripts
         tools = get_tools_from_commands(commands)
@@ -215,38 +236,37 @@ def resolve_autowrappers(opts):
             alias = d["prefix"] + tool + d["suffix"]
             if alias in seen:
                 continue  # early bird wins
+
             seen.add(alias)
             aliasfile = os.path.join(pkgdir, alias)
-            src = wrapper_template_src.replace("#CONTEXT#", _g_context_filename)
-            src = src.replace("#CONTEXTNAME#", name)
-            src = src.replace("#ALIAS#", tool)
 
-            if rcfile_copy:
-                src = src.replace("#RCFILE#", "../rcfile.sh")
+            write_tool_wrapper_script(name, tool, aliasfile)
 
-            with open(aliasfile, 'w') as f:
-                f.write(src)
-
-            os.chmod(aliasfile, stat.S_IXUSR | stat.S_IXGRP | stat.S_IRUSR | stat.S_IRGRP)
-
-        # create the package.yaml
+        # create the package.yaml that will put the tool wrappers on the PATH.
+        # the package will resolved immediately following return of this function.
         with open(os.path.join(pkgdir, 'package.yaml'), 'w') as f:
             f.write(
                 'config_version : 0\n'
                 'name: ' + pkgname + '\n'
-                'commands:\n'
-                '- export PATH=$PATH:!ROOT!\n'
-                '- export REZ_WRAPPER_PATH=$REZ_WRAPPER_PATH:!ROOT!\n')
+                'commands: |\n'
+                '  PATH.append("{root}")\n'
+                '  REZ_WRAPPER_PATH.append("{root}")\n')
 
             if tools:
                 f.write("tools:\n")
                 for tool in tools:
                     alias = d["prefix"] + tool + d["suffix"]
                     f.write("- %s\n" % alias)
+        # add to list of packages to resolve
+        all_pkgs.append(pkgname)
 
-    fpath = os.path.join(tmpdir, _g_packages_filename)
+    # FIXME: originally this file was used to pass results between rez-env-autowrappers
+    # and rez-env bash scripts.  now that things are converted to python
+    # I don't think it is needed anymore.
+    fpath = os.path.join(opts.tmpdir, _g_packages_filename)
     with open(fpath, 'w') as f:
         f.write(' '.join(all_pkgs))
+
     return all_pkgs
 
 def command(opts):
@@ -270,20 +290,23 @@ def command(opts):
             error("Patching from auto-wrapper environments is not yet supported.")
             sys.exit(1)
 
+    if not opts.tmpdir:
+        opts.tmpdir = tempfile.mkdtemp()
+
     ##############################################################################
     # switch to auto-wrapper rez-env if bracket syntax is detected
     # TODO patching of wrapper envs is not yet supported.
     ##############################################################################
     if autowrappers:
-        if not opts.tmpdir:
-            opts.tmpdir = tempfile.mkdtemp()
-
+        # resolve_autowrappers() replaces any subshells in the package requests
+        # with a newly created temporary package wrapping the packages in that subshell.
+        # ex. ['maya', '(nuke bar)'] --> ['maya', '__wrapper_nuke']
         packages = resolve_autowrappers(opts)
 
         # make rez.config aware of the location of our new packages
         # FIXME: provide a way to pass paths to resolve()
-        filesys._g_syspaths.insert(1, opts.tmpdir)
-        filesys._g_syspaths_nolocal.insert(1, opts.tmpdir)
+        filesys._g_syspaths.insert(0, opts.tmpdir)
+        filesys._g_syspaths_nolocal.insert(0, opts.tmpdir)
         opts.no_cache = True
     else:
         packages = opts.pkg
@@ -315,64 +338,24 @@ def command(opts):
     ##############################################################################
     # call rez-config, and write env into bake file
     ##############################################################################
-    context_file = tempfile.mktemp(dir=opts.tmpdir, prefix='.rez-context.')
-    dot_file = context_file + ".dot"
+    dot_file = os.path.join(opts.tmpdir, _g_dot_filename)
+    context_file = os.path.join(opts.tmpdir, _g_context_filename)
 
-    # # setup args for rez-config
-    # # TODO: convert to use rez.config directly
-    # kwargs = dict(verbosity=0,
-    #               version=False,
-    #               print_env=False,
-    #               print_dot=False,
-    #               meta_info='tools',
-    #               meta_info_shallow='tools',
-    #               env_file=context_file,
-    #               dot_file=dot_file,
-    #               max_fails=opts.view_fail,
-    #               wrapper=False,
-    #               no_catch=False,
-    #               no_path_append=False,
-    #               print_pkgs=False)
-    # # copy settings that are the same between rez-env and rez-config
-    # kwargs.update(vars(opts))
-    # # override values that differ
-    # kwargs['quiet'] = True
-    # kwargs['pkg'] = pkg_list.split()
-
-    # config_opts = argparse.Namespace(**kwargs)
-    # try:
-    #     rez_cli_config.command(config_opts)
-    # except Exception, err:
-    #     error(err)
-    #     try:
-    #         # TODO: change cli convention so that commands do not call sys.exit
-    #         # and we can actually catch this exception
-    #         if opts.view_fail != "-1":
-    #             from . import dot as rez_cli_dot
-    #             dot_opts = argparse.Namespace(conflict_only=True,
-    #                                           package="",
-    #                                           dot_file=dot_file)
-    #             rez_cli_dot.command(dot_opts)
-    #         sys.exit(1)
-    #     finally:
-    #         if os.path.exists(context_file):
-    #             os.remove(context_file)
-    #         if os.path.exists(dot_file):
-    #             os.remove(dot_file)
-
-    resolver = dc.Resolver(opts.mode, True, 0, opts.view_fail,
-                           opts.time, opts.buildreqs, not opts.no_assume_dt,
-                           not opts.no_cache)
+    resolver = dc.Resolver(opts.mode,
+                           quiet=True,
+                           max_fails=opts.view_fail,
+                           time_epoch=opts.time,
+                           build_requires=opts.buildreqs,
+                           assume_dt=not opts.no_assume_dt,
+                           caching=not opts.no_cache)
 
     result = resolver.guarded_resolve(pkg_list, opts.no_os,
                                       dot_file=dot_file,
                                       meta_vars=['tools'],
                                       shallow_meta_vars=['tools'])
 
-    if autowrappers:
-        # remove tempdir
-        filesys._g_syspaths = filesys._g_syspaths[1:]
-        filesys._g_syspaths_nolocal = filesys._g_syspaths_nolocal[1:]
+    if not result:
+        sys.exit(1)
 
     if not result:
         try:
@@ -386,20 +369,18 @@ def command(opts):
                 rez_cli_dot.command(dot_opts)
             sys.exit(1)
         finally:
-            if os.path.exists(context_file):
-                os.remove(context_file)
-            if os.path.exists(dot_file):
-                os.remove(dot_file)
+            if os.path.exists(opts.tmpdir):
+                os.removedirs(opts.tmpdir)
 
-    pkg_ress, commands, dot_graph, num_fails = result
-
-    pkgs_str = ' '.join(packages)
+    commands = result[1]
 
     if autowrappers:
-        # override REZ_RAW_REQUEST set in the context file with result from resolve_autowrappers()
-        # FIXME: i think this should be the same was what's already in the context file...
-        # the value in packages is passed to the resolver above (via `pkg_list`) 
-        commands.append(rex.Setenv('REZ_RAW_REQUEST', pkgs_str))
+        # cleanup: remove tempdir from REZ_PACKAGES_PATH
+        filesys._g_syspaths = filesys._g_syspaths[1:]
+        filesys._g_syspaths_nolocal = filesys._g_syspaths_nolocal[1:]
+    else:
+        commands = [rex.Setenv('REZ_IN_WRAPPER', ''),
+                    rex.Setenv('REZ_WRAPPER_PATH', '')] + commands
 
     script = rex.interpret(commands, shell=opts.shell)
     with open(context_file, 'w') as f:
@@ -407,21 +388,110 @@ def command(opts):
 
     recorder = rex.CommandRecorder()
 
-    if not raw_request:
-        # is this necessary? REZ_RAW_REQUEST is set in the context file...
-        recorder.setenv('REZ_RAW_REQUEST', pkgs_str)
-
     # FIXME: can these be added to the context file like it is for autowrappers?
     # this gets set *prior* to spawining the subshell and relies on the fact that
     # the env will be inhereted by the subshell.
     recorder.setenv('REZ_CONTEXT_FILE', context_file)
     recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % opts.prompt)
 
-    spawn_subshell(recorder, context_file, opts.stdin, opts.rcfile)
+    spawn_child_shell(recorder, opts.tmpdir, context_file, opts.stdin, opts.rcfile)
+    recorder.command("rm -rf %s" % opts.tmpdir)
+
     cmd = rex.interpret(recorder, shell=opts.shell, output_style='eval')
     output(cmd)
 
-def spawn_subshell(recorder, context_file, stdin=False, rcfile=None, quiet=False):
+# bash utilities
+# TODO: Add to an appropriate base-class
+def write_tool_wrapper_script(pkg_name, tool_name, filepath):
+    """
+    write an executable shell script which wraps a "tool" (any executable registered
+    by a package).
+    By default, the wrapper script will source a rez context file and then run
+    the tool.
+    """
+    import stat
+    script = textwrap.dedent("""\
+        #!/bin/bash
+
+        export REZ_WRAPPER_NAME='%(pkg_name)s'
+        export REZ_WRAPPER_ALIAS='%(tool_name)s'
+        context_file=`dirname $0`/%(context_file)s
+
+        source $REZ_PATH/init.sh
+
+        if [ "${!#}" == "---i" ]; then
+            # interactive mode: drop into a new shell
+            export REZ_ENV_PROMPT="${REZ_ENV_PROMPT}%(pkg_name)s>"
+            export HOME=`dirname $0`
+            /bin/bash
+            exit $?
+        fi
+
+        source $context_file
+
+        if [ "${!#}" == "---s" ]; then
+            /bin/bash -s
+            exit $?
+        else
+            # run the actual tool
+            %(tool_name)s $*
+            exit $?
+        fi
+        """ % {'pkg_name': pkg_name,
+               'tool_name': tool_name,
+               'context_file': _g_context_filename})
+
+    with open(filepath, 'w') as f:
+        f.write(script)
+
+    os.chmod(filepath, stat.S_IXUSR | stat.S_IXGRP | stat.S_IRUSR | stat.S_IRGRP)
+
+def write_shell_resource(tmpdir, filename, context_file, rcfile=None, quiet=False):
+    """
+    Write a shell script which should get sourced on initialization of a new shell
+    and perform the necessary steps to setup the rez environment.
+
+    The script must be named after an automatically sourced resource file for
+    this shell (e.g. .bashrc, .bash_profile, .tcshrc, etc)
+
+    Before spawn_child_resource() creates the new shell, it should set $HOME
+    to the directory where this script resides. This should ensure that the
+    shell will source it.  The script will restore the $HOME variable, and call
+    the real resource script after which it was named.
+    """
+    script = textwrap.dedent("""\
+        # reset HOME directory
+        export HOME=%(home)s
+
+        # source overridden script
+        [[ -f ~/%(filename)s ]] && source ~/%(filename)s
+
+        # source rez context file
+        source %(context_file)s
+
+        source $REZ_PATH/init.sh
+        source $REZ_PATH/bin/_complete
+
+        PS1="\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] $PS1"
+        """ % {'home': os.environ['HOME'],
+               'filename': filename,
+               'context_file': context_file})
+
+    if rcfile:
+        script += "source %s\n" % rcfile
+
+    if not quiet:
+        script += "echo\n"
+        script += "echo You are now in a new environment.\n"
+        script += "rez-context-info\n"
+
+    fullpath = os.path.join(tmpdir, filename)
+    with open(fullpath, 'w') as f:
+        f.write(script)
+    return fullpath
+
+def spawn_child_shell(recorder, tmpdir, context_file, stdin=False, rcfile=None,
+                      quiet=False):
     """
     spawn the new shell, sourcing the bake file
     """
@@ -441,25 +511,14 @@ def spawn_subshell(recorder, context_file, stdin=False, rcfile=None, quiet=False
         recorder.command("bash -s")
 
     else:
-        source_file = context_file + ".source"
-        with open(source_file, 'w') as f:
-            f.write("source %s\n" % context_file)
-            if rcfile:
-                f.write("source %s\n" % rcfile)
+        write_shell_resource(tmpdir, '.bashrc',
+                             context_file, rcfile, quiet=quiet)
+        write_shell_resource(tmpdir, '.bash_profile',
+                             context_file, rcfile, quiet=quiet)
 
-            # (bash-specific):
-            f.write("source rez-env-bashrc\n")
-            if not quiet:
-                f.write("echo\n")
-                f.write("echo You are now in a new environment.\n")
-                f.write("rez-context-info\n")
-
+        recorder.setenv("HOME", tmpdir)
         # (bash-specific):
-        recorder.command("bash --rcfile %s" % source_file)
-
-    recorder.command("rm -f %s*" % context_file)
-
-    # print "exit $ret;"
+        recorder.command("bash")
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
