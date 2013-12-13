@@ -85,6 +85,37 @@ def get_tools_from_commands(commands):
 def _contains_autowrappers(pkglist):
     return any([pkg for pkg in pkglist if '(' in pkg])
 
+def resolve(opts, pkg_list, dot_file):
+    import rez.config as dc
+    resolver = dc.Resolver(opts.mode,
+                           quiet=opts.quiet,
+                           max_fails=opts.view_fail,
+                           time_epoch=opts.time,
+                           build_requires=opts.buildreqs,
+                           assume_dt=not opts.no_assume_dt,
+                           caching=not opts.no_cache)
+
+    result = resolver.guarded_resolve(pkg_list, opts.no_os,
+                                      dot_file=dot_file,
+                                      meta_vars=['tools'],
+                                      shallow_meta_vars=['tools'])
+
+    if not result:
+        try:
+            # TODO: change cli convention so that commands do not call sys.exit
+            # and we can actually catch this exception
+            if opts.view_fail != "-1":
+                from . import dot as rez_cli_dot
+                dot_opts = argparse.Namespace(conflict_only=True,
+                                              package="",
+                                              dotfile=dot_file)
+                rez_cli_dot.command(dot_opts)
+            sys.exit(1)
+        finally:
+            if os.path.exists(opts.tmpdir):
+                os.removedirs(opts.tmpdir)
+    return result
+
 def resolve_autowrappers(opts):
     '''
     Create rez-env wrappers on the fly.
@@ -137,7 +168,6 @@ def resolve_autowrappers(opts):
     import pyparsing as pp
     import rez.parse_request as rpr
     import rez.rex as rex
-    import rez.config as dc
 
 #     (opts, args) = p.parse_args(sys.argv[2:])
 
@@ -177,21 +207,7 @@ def resolve_autowrappers(opts):
         context_file = os.path.join(pkgdir, _g_context_filename)
         dot_file = os.path.join(pkgdir, _g_dot_filename)
 
-        resolver = dc.Resolver(opts.mode,
-                               quiet=opts.quiet,
-                               time_epoch=opts.time,
-                               build_requires=opts.buildreqs,
-                               assume_dt=not opts.no_assume_dt,
-                               caching=not opts.no_cache)
-
-        result = resolver.guarded_resolve(d['pkgs'],
-                                          no_os=opts.no_os,
-                                          meta_vars=["tools"],
-                                          shallow_meta_vars=["tools"],
-                                          dot_file=dot_file)
-
-        if not result:
-            sys.exit(1)
+        result = resolve(opts, d['pkgs'], dot_file)
 
         commands = result[1]
         commands.append(rex.Setenv("REZ_CONTEXT_FILE", context_file))
@@ -272,7 +288,6 @@ def resolve_autowrappers(opts):
 def command(opts):
     import tempfile
     import rez.parse_request as rpr
-    import rez.config as dc
     import rez.rex as rex
     import rez.filesys as filesys
 
@@ -341,36 +356,7 @@ def command(opts):
     dot_file = os.path.join(opts.tmpdir, _g_dot_filename)
     context_file = os.path.join(opts.tmpdir, _g_context_filename)
 
-    resolver = dc.Resolver(opts.mode,
-                           quiet=True,
-                           max_fails=opts.view_fail,
-                           time_epoch=opts.time,
-                           build_requires=opts.buildreqs,
-                           assume_dt=not opts.no_assume_dt,
-                           caching=not opts.no_cache)
-
-    result = resolver.guarded_resolve(pkg_list, opts.no_os,
-                                      dot_file=dot_file,
-                                      meta_vars=['tools'],
-                                      shallow_meta_vars=['tools'])
-
-    if not result:
-        sys.exit(1)
-
-    if not result:
-        try:
-            # TODO: change cli convention so that commands do not call sys.exit
-            # and we can actually catch this exception
-            if opts.view_fail != "-1":
-                from . import dot as rez_cli_dot
-                dot_opts = argparse.Namespace(conflict_only=True,
-                                              package="",
-                                              dotfile=dot_file)
-                rez_cli_dot.command(dot_opts)
-            sys.exit(1)
-        finally:
-            if os.path.exists(opts.tmpdir):
-                os.removedirs(opts.tmpdir)
+    result = resolve(opts, pkg_list, dot_file)
 
     commands = result[1]
 
