@@ -141,12 +141,41 @@ def load_yaml(stream):
             return list(yaml.load_all(text))
         raise
 
+def load_py(stream):
+    """
+    load a python module into a metadata dictionary
+
+    - module-level attributes become root entries in the dictionary.
+    - module-level functions which take no arguments will be called immediately
+        and the returned value will be stored in the dictionary
+
+    for example::
+
+        config_version = 0
+        name = 'foo'
+        def requires():
+            return ['bar']
+    """
+    # TODO: support class-based design, where the attributes and methods of the
+    # class become values in the dictionary
+    g = __builtins__.copy()
+    exec stream in g
+    result = {}
+    for k, v in g.iteritems():
+        if k != '__builtins__' and (k not in __builtins__ or __builtins__[k] != v):
+            if inspect.isfunction(v) and not any(inspect.getargspec(v)):
+                v = v()
+            result[k] = v
+    return result
+
 def load(stream, type):
     """
     return the metadata from a stream given the serialization "type".
     """
     if type == 'yaml':
         return load_yaml(stream)
+    elif type == 'py':
+        return load_py(stream)
     raise MetadataError("Unknown metadata storage type: %r" % type)
 
 def load_file(filename):
@@ -458,7 +487,7 @@ class Metadata(object):
 
     def validate_document_structure(self, doc, refdoc):
         prev_results = {}
-        # an id fails if all runs fail.
+        # OneOf instance means an id fails only if all runs fail.
         for id, value in self.check_node(doc, refdoc):
             if id not in prev_results:
                 prev_results[id] = value
@@ -469,7 +498,8 @@ class Metadata(object):
                 prev_results[id] = None
         failures = [val for id, val in prev_results.items() if val is not None]
         if failures:
-            print "%d failures" % len(failures)
+            # TODO: either raise error immediately when first encountered, or devise
+            # a way to raise a failure here that provides feedback on a list of failures
             raise failures[0]
 
     def validate(self, metadata):
@@ -620,15 +650,17 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
                                 'is less than minimum requested: %d' % (config_version,
                                                                         min_config_version))
 
+    errors = []
     for validator in get_metadata_validators(config_version, filename, resource_key):
         try:
             validator.validate(metadata)
         except MetadataError as err:
-            print "failed", validator, str(err)
+            errors.append(err)
             continue
         if strip:
             validator.strip(metadata)
         return metadata
+    # TODO: print detailed error messages
     raise MetadataError("Could not find registered metadata configuration for %r" % filename)
 
 
