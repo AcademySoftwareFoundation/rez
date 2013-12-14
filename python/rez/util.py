@@ -25,8 +25,8 @@ def gen_dotgraph_image(dot_data, out_file):
 
     # assume write format from image extension
     ext = "jpg"
-    if(out_file.rfind('.') != -1):
-        ext = out_file.split('.')[-1]
+    if '.' in out_file:
+        ext = out_file.rsplit('.', 1)[-1]
 
     try:
         fn = getattr(graph, "write_" + ext)
@@ -37,7 +37,7 @@ def gen_dotgraph_image(dot_data, out_file):
     fn(out_file)
 
 
-def readable_time_duration(secs, approx=True):
+def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
 
     if secs == 0:
@@ -46,33 +46,17 @@ def readable_time_duration(secs, approx=True):
     if neg:
         secs = -secs
 
-    if approx:
-        for i, s in enumerate([x[0] for x in divs[:-1]]):
-            ss = float(s) * 0.9
-            if secs >= ss:
-                n = secs / s
-                frac = float((secs + s) % s) / float(s)
-                if frac < 0.1:
-                    secs = n * s
-                elif frac > 0.9:
-                    secs = (n + 1) * s
-                else:
-                    s2 = divs[i + 1][0]
-                    secs -= secs % s2
+    results = []
+    remainder = secs
+    for seconds, label in divs:
+        value, remainder = divmod(remainder, seconds)
+        if value:
+            results.append((value, label))
+            if approx and (float(remainder) / secs) >= approx_thresh:
+                # quit if remainder drops below threshold
                 break
+    s = ', '.join(['%d %s' % x for x in results])
 
-    toks = []
-    for d in divs:
-        if secs >= d[0]:
-            n = secs / d[0]
-            count = n * d[0]
-            label = d[1]
-            if n == 1:
-                label = label[:-1]
-            toks.append((n, label))
-            secs -= count
-
-    s = str(", ").join([("%d %s" % (x[0], x[1])) for x in toks])
     if neg:
         s = '-' + s
     return s
