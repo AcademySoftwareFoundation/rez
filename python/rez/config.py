@@ -112,6 +112,12 @@ class PackageRequest(object):
         else:
             return self.name + '-' + self._version_str
 
+    def __eq__(self, other):
+        return self.name == other.name and \
+            self.version_range == other.version_range and \
+            self.timestamp == other.timestamp and \
+            self.resolve_mode == other.resolve_mode
+
     def __str__(self):
         return str((self.name, self._version_str))
 
@@ -348,12 +354,16 @@ class Resolver(object):
         -OR-
         raise the relevant exception, if config resolution is not possible
         """
-        self.raw_pkg_reqs = tuple([pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs])
+        self.raw_pkg_reqs = [pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs]
 
         if not no_os:
-            os_pkg_req = str_to_pkg_req(filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            arch_pkg_req = str_to_pkg_req(filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
-            self.pkg_reqs = tuple([os_pkg_req, arch_pkg_req]) + self.raw_pkg_reqs
+            to_add = []
+            for os_pkg_str in [filesys._g_os_pkg, filesys._g_arch_pkg]:
+                os_pkg_req = str_to_pkg_req(os_pkg_str, self.rctxt.time_epoch,
+                                            self.rctxt.resolve_mode)
+                if os_pkg_req not in self.raw_pkg_reqs:
+                    to_add.append(os_pkg_req)
+            self.pkg_reqs = to_add + self.raw_pkg_reqs
         else:
             self.pkg_reqs = self.raw_pkg_reqs
 
