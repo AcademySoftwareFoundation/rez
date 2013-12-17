@@ -25,7 +25,12 @@ _software_packages()
 		for path in `echo $REZ_PACKAGES_PATH | /usr/bin/tr ':' ' '`
 		do
 			if [ -d $path/$fam ]; then
-				entries=`echo $entries ; /bin/ls $path/$fam | /usr/bin/tr ' ' '\n' | grep -v 'package.uuid' | awk '{print "'$fam'-"$1}'`
+			    if [ `uname` == 'Linux' ]; then
+				    entries=`echo $entries ; /usr/bin/find $path/$fam -mindepth 2 -maxdepth 2 -name package.yaml -exec dirname {} \; | tr '/' ' ' | awk '{print "'$fam'-"$NF}'`
+                else
+                    # FIXME this incorrectly gives non-pkg-subdirs as completion options
+			        entries=`echo $entries ; /bin/ls $path/$fam | /usr/bin/tr ' ' '\n' | grep -v 'package.uuid' | awk '{print "'$fam'-"$1}'`
+			    fi
 			fi
 		done
     else
