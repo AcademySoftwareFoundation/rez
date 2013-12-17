@@ -12,12 +12,12 @@ PKG_METADATA_FILENAME = "package.yaml"
 #
 # Check the file system - if packages exist within the inexact version range,
 # then use the latest to disambiguate
-RESOLVE_MODE_LATEST = 	0
+RESOLVE_MODE_LATEST = 'latest'
 # Check the file system - if packages exist within the inexact version range,
 # then use the earliest to disambiguate
-RESOLVE_MODE_EARLIEST =	1
+RESOLVE_MODE_EARLIEST = 'earliest'
 # don't try and resolve further, and raise an exception
-RESOLVE_MODE_NONE = 	2
+RESOLVE_MODE_NONE = 'none'
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

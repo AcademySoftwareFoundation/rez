@@ -1,52 +1,21 @@
 #!/bin/bash
 
-function usage {
-	echo "usage: rez-timestamp <package_install_directory>"
-	echo
-	echo "This utility sets a timestamp on a package, so that it works correctly with rez's"
-	echo "timestamping feature (see the user manual). If a package is not timestamped then rez"
-	echo "treats it as though it does not exist."
-}
+. _set-rez-env
+rez_.py timestamp "$@"
 
-if [ $# -ne 1 ]; then
-	usage
-	exit 1
-fi
-
-if [ "$1" == "-h" -o "$1" == "--h" -o "$1" == "-help" -o "$1" == "--help" -o "$1" == "-?" ]; then
-	usage
-	exit 1
-fi
-
-yamlpath=$1/package.yaml
-if [ ! -e $yamlpath ]; then
-	echo "Error: Target package does not contain a package.yaml file." >&2
-	exit 1
-fi
-
-metapath=$1/".metadata"
-timepath=$metapath/"release_time.txt"
-
-if [ -e $timepath ]; then
-	echo "Error: Target package is already timestamped:" >&2
-	echo $timepath >&2
-	exit 1
-fi
-
-if [ ! -e $metapath ]; then
-	mkdir $metapath
-	if [ $? -ne 0 ]; then
-		echo "Error: Could not create dir: $metapath" >&2
-		exit 1
-	fi
-fi
-
-date +%s > $timepath
-if [ $? -ne 0 ]; then
-	echo "Error: Failed to create file: $timepath" >&2
-	exit 1
-fi
-
-chmod a-w $timepath
-
-echo "Success: Package has been timestamped. See $timepath"
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

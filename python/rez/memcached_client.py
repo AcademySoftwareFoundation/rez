@@ -5,7 +5,7 @@ import sys
 import copy
 
 
-class MemCacheClient():
+class MemCacheClient(object):
     """
     Wrapper for memcache.Client class.
     """
@@ -15,12 +15,12 @@ class MemCacheClient():
 
     def _get_key(self, k):
         if isinstance(k, basestring) and len(k) < self.mc.server_max_key_length:
-            return k.replace(' ','_')
+            return k.replace(' ', '_')
         else:
             return hashlib.sha512(pickle.dumps(k)).hexdigest()
 
     def _set(self, k, v, fn):
-        return fn(self._get_key(k), v, min_compress_len=self.mc.server_max_value_length/2)        
+        return fn(self._get_key(k), v, min_compress_len=self.mc.server_max_value_length / 2)
 
     def set(self, k, v):
         return self._set(k, v, self.mc.set)

@@ -7,59 +7,7 @@
 #
 
 . _set-rez-env
-
-echo
-echo "running rez-config v$REZ_VERSION"
-echo
-
-if [ ! "$REZ_CONTEXT_FILE" ]; then
-	echo "not in a resolved environment context."
-	exit 1
-fi
-
-readable_time=`date -d "1970-01-01 $REZ_REQUEST_TIME sec GMT"`
-echo "requested packages (mode="$REZ_RESOLVE_MODE", time="$REZ_REQUEST_TIME: $readable_time"):"
-echo $REZ_REQUEST | tr ' ' '\n'
-echo
-
-if [ "$REZ_RAW_REQUEST" != "" ]; then
-	reqmatch=`echo $REZ_REQUEST | grep "$REZ_RAW_REQUEST"`
-	if [ "$reqmatch" == "" ]; then
-		echo "raw request:"
-		echo $REZ_RAW_REQUEST
-		echo
-	fi
-fi
-
-tbl=''
-
-REZ_RESOLVE=`echo $REZ_RESOLVE | /usr/bin/tr ' ' '\n' | sort | /usr/bin/tr '\n' ' '`
-
-tbl=$tbl'#resolved%packages:#'
-for pkg in $REZ_RESOLVE
-do
-	upkg=`echo $pkg | sed 's/-.*//g' | /usr/bin/tr 'a-z' 'A-Z'`
-	root=`eval 'echo $REZ_'"$upkg"'_ROOT'`
-
-	if [ "`echo $root | grep $USER`" == "" ]; then
-		tbl="$tbl # $pkg $root"
-	else
-		tbl="$tbl # $pkg $root"" (local)"
-	fi
-done
-
-echo $tbl | /usr/bin/tr '#' '\n' | column -t | /usr/bin/tr '%' ' '
-
-
-echo
-echo "number of failed attempts: "$REZ_FAILED_ATTEMPTS
-
-echo
-echo "context file:"
-echo $REZ_CONTEXT_FILE
-
-echo
-
+rez_.py context-info "$@"
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

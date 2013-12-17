@@ -7,4 +7,4 @@
 
 . _set-rez-env
 
-rez-merge-requests_.py "$@"
+rez_.py merge-requests "$@"

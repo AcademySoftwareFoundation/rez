@@ -9,92 +9,20 @@
 #
 
 import sys
-
-try:
-	import pysvn
-except:
-	sys.exit(1)
-
 import versions
-from rez_release import getSvnLogin, svn_url_exists, get_last_changed_revision
-
-
-#----------------------------------------------------------------------------------------
-# check we're in an svn working copy
-#----------------------------------------------------------------------------------------
-
-svnc = pysvn.Client()
-svnc.set_interactive( True )
-svnc.set_auth_cache( False )
-svnc.set_store_passwords( False )
-svnc.callback_get_login = getSvnLogin
+from rez_release import SvnRezReleaseMode
 
 try:
-	svn_entry = svnc.info('.')
-	this_url = str(svn_entry["url"])
-except pysvn.ClientError:
-	sys.exit(2)
-
-latest_ver = versions.Version("0")
-
-#----------------------------------------------------------------------------------------
-# find the svn tags dir in svn
-#----------------------------------------------------------------------------------------
-
-p = this_url.find("/trunk")
-if p == -1:
-	p = this_url.find("/branches")
-	if p >= 0:
-		try:
-			# create a Version instance from the branch we are on this makes sure it's
-			# a Well Formed Version, and also puts the base version in 'latest_ver'
-			latest_ver = versions.Version(this_url[p+len("/branches")+1:])
-		except:
-			sys.exit(4)
-
-if p == -1:
-	sys.exit(1)
-
-tag_url = this_url[:p] + "/tags"
-
-if not svn_url_exists(svnc, tag_url):
-	sys.exit(1)
-
-
-#----------------------------------------------------------------------------------------
-# read all the tags (if any) and find the most recent
-#----------------------------------------------------------------------------------------
-
-tags = svnc.ls(tag_url)
-if len(tags) == 0:
-	sys.exit(1)
-
-found_tag = False
-for tag_entry in tags:
-	tag = tag_entry["name"].split('/')[-1]
-	if tag[0] == 'v':
-		# old launcher-style vXX_XX_XX
-		nums = tag[1:].split('_')
-		tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
-
-	try:
-		ver = versions.Version(tag)
-	except Exception:
-		continue
-
-	if ver > latest_ver:
-		latest_ver = ver
-		found_tag = True
-
-if not found_tag:
-	sys.exit(3)
-
-latest_tag_url = tag_url + '/' + str(latest_ver)
-latest_rev = get_last_changed_revision(svnc, latest_tag_url)
-
-print str(latest_rev.number) + " " + latest_tag_url
-
-
+    result = SvnRezRelease('.').get_last_tagged_revision()
+except RezReleaseUnsupportedMode:
+    sys.exit(2)
+except (ImportError, RezReleaseError):
+    sys.exit(1)
+except versions.VersionError:
+    sys.exit(4)
+if result is None:
+    sys.exit(3)
+print str(result[0]) + ' ' + result[1]
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

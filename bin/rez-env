@@ -7,6 +7,8 @@
 #
 
 . _set-rez-env
+eval `rez_.py env "$@"`
+exit $?
 
 ##############################################################################
 # parse args
@@ -33,6 +35,7 @@ done
 
 unset IFS
 
+
 autowrappers=`echo $* | grep '('`
 
 if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" -o "$_REZ_ENV_OPT_ADD_STRICT" == "True" ]; then
@@ -49,14 +52,14 @@ fi
 
 tmpdir=$_REZ_ENV_OPT_TMPDIR
 
-
 ##############################################################################
 # switch to auto-wrapper rez-env if bracket syntax is detected
 # TODO patching of wrapper envs is not yet supported.
 ##############################################################################
 if [ "$autowrappers" != "" ]; then
 	if [ "$tmpdir" == "" ]; then
-		tmpdir=`mktemp -d`
+		tmpdir=`python -c 'import tempfile ; print tempfile.mkdtemp()'`
+		echo $tmpdir
 	fi
 	export REZ_TMP_DIR=$tmpdir
     rez-env-autowrappers $tmpdir $*
@@ -111,7 +114,7 @@ if [ "$tmpd" == "" ]; then
 	tmpd="/tmp"
 fi
 
-tmpf=`mktemp -p $tmpd .rez-context.XXXXXXXXXX`
+tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp(suffix="", prefix=".rez-context.", dir=sys.argv[1])' "$tmpd"`
 tmpf2=$tmpf".source"
 tmpf3=$tmpf".dot"
 
@@ -191,11 +194,7 @@ if [ $ret -eq 0 ]; then
 
 	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then
 		source $tmpf
-		if [ "$_REZ_ENV_OPT_RCFILE" == "" ]; then
-			if [ -f ~/.bashrc ]; then
-				source ~/.bashrc &> /dev/null
-			fi
-		else
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
 			source $_REZ_ENV_OPT_RCFILE
 			if [ $? -ne 0 ]; then
 				exit 1
@@ -210,11 +209,7 @@ if [ $ret -eq 0 ]; then
 		ret=$?
 	elif [ "$_REZ_ENV_OPT_CMD" != "" ]; then
 		source $tmpf
-		if [ "$_REZ_ENV_OPT_RCFILE" == "" ]; then
-			if [ -f ~/.bashrc ]; then
-				source ~/.bashrc &> /dev/null
-			fi
-		else
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
 			source $_REZ_ENV_OPT_RCFILE
 			if [ $? -ne 0 ]; then
 				exit 1

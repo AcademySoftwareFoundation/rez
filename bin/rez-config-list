@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . _set-rez-env
-rez-config-list_.py "$@"
+rez_.py config-list "$@"
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -4,8 +4,8 @@ import signal
 
 # exit gracefully on ctrl-C
 def sigint_handler(signum, frame):
-	sys.stderr.write('\nInterrupted by user\n')
-	sys.exit(1)
+    sys.stderr.write('\nInterrupted by user\n')
+    sys.exit(1)
 
 signal.signal(signal.SIGINT, sigint_handler)
 

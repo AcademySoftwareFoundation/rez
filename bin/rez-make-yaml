@@ -6,53 +6,8 @@
 # A helper tool for creating a template 'package.yaml' file
 #
 
-f="./package.yaml"
-
-platform=Linux
-if [ "$REZ_PLATFORM" != "" ]; then
-	platform=$REZ_PLATFORM
-fi
-
-echo "config_version : 0" > $f
-echo >> $f
-echo "name: enter-package-name" >> $f
-echo >> $f
-echo "version: 0.0.0" >> $f
-echo >> $f
-_uuid=`python -c 'import uuid ; print str(uuid.uuid4())'`
-echo "uuid: "$_uuid >> $f
-echo >> $f
-echo "authors:" >> $f
-echo "- $USER" >> $f
-echo >> $f
-echo "description: >" >> $f
-echo " Enter description here. Multiline is ok, but make sure" >> $f
-echo " that you leave the single leading space on each line." >> $f
-echo >> $f
-echo "variants:" >> $f
-echo "- [ $platform ]" >> $f
-echo >> $f
-echo "requires:" >> $f
-echo "- required-package-1" >> $f
-echo "- required-package-N" >> $f
-echo >> $f
-echo "commands:" >> $f
-echo '- export some-sensible-bashism-eg-$PATH=$PATH:!ROOT!/bin' >> $f
-echo >> $f
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+. _set-rez-env
+rez_.py make-yaml "$@"
 
 
 

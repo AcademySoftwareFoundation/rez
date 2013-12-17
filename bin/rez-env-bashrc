@@ -7,9 +7,23 @@ if [ "$__REZ_RCFILE" != "" ]; then
 	source $__REZ_RCFILE
 fi
 
-if [ -f ~/.bashrc ]; then
-	source ~/.bashrc
+# source same scripts that interactive bash shell would have
+if [ "$(uname)" == "Darwin" ]; then
+	if [ -f /etc/bashrc ]; then
+		source /etc/bashrc;
+	fi
+	# every shell on osx is a login shell, which sources .(bash_)profile instead of .bashrc
+	if [ -f ~/.bash_profile ]; then
+		source ~/.bash_profile
+	elif [ -f ~/.profile ]; then
+		source ~/.profile
+	fi
+else
+	if [ -f /etc/bash.bashrc ]; then source /etc/bash.bashrc; fi
 fi
+
+if [ -f ~/.bashrc ]; then source ~/.bashrc; fi
+
 
 source $REZ_PATH/init.sh
 source $REZ_PATH/bin/_complete
