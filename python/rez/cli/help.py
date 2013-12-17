@@ -16,7 +16,7 @@ suppress_notfound_err = False
 
 def setup_parser(parser):
     parser.add_argument("pkg", metavar='PACKAGE',
-                        help="package name")
+                        help="package name", nargs='?')
     parser.add_argument("section", type=int, metavar='SECTION', default=0, nargs='?')
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",
                         default=False,
@@ -27,7 +27,7 @@ def setup_parser(parser):
 
 
 def command(opts):
-    if opts.manual:
+    if opts.manual or not opts.pkg:
         webbrowser.open("http://nerdvegas.github.io/rez/")
         sys.exit(0)
 
@@ -39,10 +39,10 @@ def command(opts):
     ##########################################################################################
 
     # attempt to load the latest
-    from rez.packages import pkg_name, iter_packages
+    from rez.packages import pkg_name, iter_packages_in_range
     name = pkg_name(opts.pkg)
     found_pkg = None
-    for pkg in iter_packages(name):
+    for pkg in iter_packages_in_range(name):
         if pkg.metadata is None:
             continue
         if "help" in pkg.metadata:
@@ -102,10 +102,10 @@ def command(opts):
     ##########################################################################################
     # run help command
     ##########################################################################################
-    if "variants" in pkg.metadata:
-        print pkg.metadata
+    variants = pkg.metadata.get("variants")
+    if variants:
         # just pick first variant, they should all have the same copy of docs...
-        v0 = pkg.metadata["variants"][0]
+        v0 = variants[0]
         pkg_path = os.path.join(pkg.base, *v0)
     else:
         pkg_path = pkg.base

@@ -474,8 +474,7 @@ class Metadata(object):
 
     def validate(self, metadata):
         "validate the metadata"
-        self.validate_document_structure(metadata,
-                                         self.REFERENCE)
+        self.validate_document_structure(metadata, self.REFERENCE)
 
     def strip(self, metadata):
         """

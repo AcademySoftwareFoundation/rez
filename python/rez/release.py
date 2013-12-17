@@ -531,9 +531,8 @@ class RezReleaseMode(object):
         make_args = list(make_args)
 
 # 		# build it
-
-        variant_str = ' '.join(variant)
         if variant:
+            variant_str = ' '.join(variant)
             print
             print "---------------------------------------------------------"
             print "rez-build: building for variant '%s'" % variant_str
@@ -574,14 +573,13 @@ class RezReleaseMode(object):
         # store build metadata
         with open(meta_file, 'w') as f:
             f.write(yaml.dump(info_dict, default_flow_style=False))
-#
+
         self._write_changelog(changelog_file)
 
         # attempt to resolve env for this variant
         print
         print "rez-build: invoking rez-config with args:"
-        # print "$opts.no_archive $opts.ignore_blacklist $opts.no_assume_dt --time=$opts.time"
-        print "requested packages: %s" % (', '.join(self.requires + variant))
+        print "requested packages: %s" % (', '.join(self.requires + (variant or [])))
         print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
 
         try:
@@ -589,7 +587,7 @@ class RezReleaseMode(object):
             resolver = rez.config.Resolver(mode,
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
-            result = resolver.resolve((self.requires + variant + ['cmake=l']),
+            result = resolver.resolve((self.requires + (variant or []) + ['cmake=l']),
                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]

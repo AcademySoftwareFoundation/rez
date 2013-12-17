@@ -61,33 +61,34 @@ def package_family(name, paths=None):
     except StopIteration:
         return None
 
-def iter_packages(name=None, paths=None, skip_dupes=True):
+def _iter_packages(family_name, paths=None, skip_dupes=True):
     """
-    Iterate through all packages
+    Iterate through all packages in UNSORTED order.
     """
     done = set()
-    for pkg_fam in iter_package_families(name, paths):
+    for pkg_fam in iter_package_families(family_name, paths):
         for pkg in pkg_fam.iter_version_packages():
             if skip_dupes:
-                if pkg.short_name() not in done:
-                    done.add(pkg.short_name())
+                pkgname = pkg.short_name()
+                if pkgname not in done:
+                    done.add(pkgname)
                     yield pkg
             else:
                 yield pkg
 
-def iter_packages_in_range(family_name, ver_range, latest=True, timestamp=0,
+def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0,
                            exact=False, paths=None):
     """
-    Iterate over `Package` instances.
+    Iterate over `Package` instances, sorted by version.
 
     Parameters
     ----------
     family_name : str
         name of the package without a version
     ver_range : VersionRange
-        range of versions in package to iterate over
+        range of versions in package to iterate over, or all if None
     latest : bool
-        whether to sort by latest (default) or earliest
+        whether to sort by latest version (default) or earliest
     timestamp : int
         time since epoch: any packages newer than this will be ignored. 0 means
         no effect.
@@ -99,26 +100,24 @@ def iter_packages_in_range(family_name, ver_range, latest=True, timestamp=0,
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
     """
-    if not isinstance(ver_range, VersionRange):
+    if (ver_range is not None) and (not isinstance(ver_range, VersionRange)):
         ver_range = VersionRange(ver_range)
 
     # store the generator. no paths have been walked yet
-    results = iter_packages(family_name, paths)
+    results = _iter_packages(family_name, paths)
 
     if timestamp:
         results = [x for x in results if x.timestamp <= timestamp]
     # sort
-    if latest:
-        results = sorted(results, key=lambda x: x.version, reverse=True)
-    else:
-        results = sorted(results, key=lambda x: x.version, reverse=False)
+    results = sorted(results, key=lambda x: x.version, reverse=latest)
 
-    # find the best match, skipping dupes
+    # yield versions only inside range
     for result in results:
-        if ver_range.matches_version(result.version, allow_inexact=not exact):
+        if ver_range is None or \
+                ver_range.matches_version(result.version, allow_inexact=not exact):
             yield result
 
-def package_in_range(family_name, ver_range, latest=True, timestamp=0,
+def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
                      exact=False, paths=None):
     """
     Return the first `Package` found on the search path.
@@ -128,7 +127,7 @@ def package_in_range(family_name, ver_range, latest=True, timestamp=0,
     family_name : str
         name of the package without a version
     ver_range : VersionRange
-        range of versions in package to iterate over
+        range of versions in package to iterate over, or all if None
     latest : bool
         whether to sort by latest (default) or earliest
     timestamp : int
