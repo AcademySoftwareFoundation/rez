@@ -216,8 +216,7 @@ def render_template(template, **variables):
     templ = _templates.get(template)
     if not templ:
         import rez
-        path = os.path.join(rez.__path__[0], "..", "..", "template", \
-            os.path.join(*(template.split('/'))))
+        path = os.path.join(rez.module_root_path, "template", os.path.join(*(template.split('/'))))
         if os.path.exists(path):
             with open(path) as f:
                 templ = f.read()

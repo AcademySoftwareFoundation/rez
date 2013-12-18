@@ -178,7 +178,8 @@ def get_execution_namespace(pkg_res_list):
     env = rex.RexNamespace(env_overrides_existing_lists=True)
 
     # add special data objects and functions to the namespace
-    env['machine'] = rex.MachineInfo()
+    import rez.platform_ as plat
+    env['machine'] = plat.Platform()
     env['pkgs'] = ResolvedPackages(pkg_res_list)
 
 # 	# FIXME: build_requires does not actually indicate that we're building
@@ -349,7 +350,7 @@ class Resolver(object):
         raise the relevant exception, if config resolution is not possible
         """
         if not no_os:
-            os_pkg_req = str_to_pkg_req(filesys._g_os_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+            os_pkg_req = str_to_pkg_req(filesys._g_platform_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
             arch_pkg_req = str_to_pkg_req(filesys._g_arch_pkg, self.rctxt.time_epoch, self.rctxt.resolve_mode)
             pkg_reqs = [os_pkg_req, arch_pkg_req] + pkg_reqs
 

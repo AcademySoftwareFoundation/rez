@@ -1,4 +1,5 @@
 # TODO add blacklisting/archiving, is anyone using that though?
+# TODO DEPRECATE this file.
 
 import os
 import sys
@@ -16,6 +17,12 @@ _g_local_pkgs_path = os.getenv("REZ_LOCAL_PACKAGES_PATH")
 _g_new_timestamp_behaviour = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
 _g_os_paths = []
 
+# TODO move elsewhere
+import rez.platform_ as plat
+_g_platform_pkg = 'platform-' + plat.get_platform()
+_g_arch_pkg = 'arch-' + plat.get_arch()
+
+"""
 def get_platform():
     osname = os.getenv("REZ_PLATFORM")
     if osname:
@@ -41,6 +48,7 @@ def get_arch():
 
 _g_os_pkg = 'platform-' + get_platform()
 _g_arch_pkg = 'arch-' + get_arch()
+"""
 
 # get os-specific paths
 try:
