@@ -85,9 +85,6 @@ def setup_parser(parser):
                         help="Bake metadata into env-vars. Eg: --meta-info=tools,priority")
     parser.add_argument("--meta-info-shallow", dest="meta_info_shallow", type=str,
                         help="Same as --meta-info, but only bakes data for directly requested packages.")
-    parser.add_argument("--wrapper", dest="wrapper", action="store_true",
-                        default=False,
-                        help="set to true if creating a wrapper environment")
     parser.add_argument("--no-catch", dest="no_catch", action="store_true",
                         default=False,
                         help="debugging option, turn on to see python exception on error")
@@ -131,11 +128,11 @@ def command(opts):
 
     if opts.no_catch:
         result = resolver.resolve(opts.pkg, opts.no_os,
-                                  opts.no_path_append, opts.wrapper,
+                                  opts.no_path_append,
                                   meta_vars, shallow_meta_vars)
     else:
         result = resolver.guarded_resolve(opts.pkg, opts.no_os,
-                                          opts.no_path_append, opts.wrapper,
+                                          opts.no_path_append,
                                           meta_vars, shallow_meta_vars,
                                           opts.dot_file, opts.print_dot)
 
