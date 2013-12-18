@@ -81,7 +81,8 @@ class ObjectNameDict(UserDict.UserDict):
             try:
                 result = getattr(result, attr)
             except AttributeError:
-                raise AttributeError("Failed to retrieve attribute '%s' of '%s' from %r" % (attr, '.'.join(attrs), result))
+                raise AttributeError("Failed to retrieve attribute '%s' of '%s' from %r" \
+                                     % (attr, '.'.join(attrs), result))
         # call the result, if requested
         if funcarg:
             # strip ()

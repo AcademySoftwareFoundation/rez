@@ -12,10 +12,9 @@ import inspect
 import time
 import subprocess
 import smtplib
-import textwrap
 from email.mime.text import MIMEText
 
-from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod
+from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod, render_template
 from rez.resources import load_metadata
 import rez.public_enums as enums
 import rez.versions as versions
@@ -609,28 +608,16 @@ class RezReleaseMode(object):
         # rez-config --print-dot --time=$opts.time $self.requires $variant > $dot_file
 
         # TODO: simplify and convert this opening section to rex
-        text = textwrap.dedent("""\
-            #!/bin/bash
-
-            # because of how cmake works, you must cd into same dir as script to run it
-            if [ "./build-env.sh" != "$0" ] ; then
-                echo "you must cd into the same directory as this script to use it." >&2
-                exit 1
-            fi
-
-            source %(env_bake_file)s
-            export REZ_CONTEXT_FILE=%(env_bake_file)s
-            env > %(actual_bake)s
-            """ % dict(env_bake_file=env_bake_file,
-                       actual_bake=actual_bake))
+        text = render_template("build-env.sh", \
+            env_bake_file=env_bake_file,
+            actual_bake=actual_bake)
 
         recorder = rex.CommandRecorder()
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
                             os.path.join(rez.filesys._g_rez_path, 'cmake'))
         # make sure we can still use rez-config in the build env!
-        recorder.appendenv('PATH',
-                           os.path.join(rez.filesys._g_rez_path, 'bin'))
+        recorder.appendenv('PATH', os.path.join(rez.filesys._g_rez_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -667,8 +654,7 @@ class RezReleaseMode(object):
                 recorder.command(["make", "clean"])
             recorder.command(["make"] + make_args)
 
-            script = rex.interpret(recorder, shell='bash',
-                                   verbose=['command'])
+            script = rex.interpret(recorder, shell='bash', verbose=['command'])
 
             with open(src_file, 'w') as f:
                 f.write(text + script)
@@ -679,7 +665,7 @@ class RezReleaseMode(object):
             p = subprocess.Popen([os.path.join('.', os.path.basename(src_file))],
                                  cwd=build_dir)
             p.communicate()
-            if p.returncode != 0:
+            if p.returncode:
                 # error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
                 sys.exit(1)
 

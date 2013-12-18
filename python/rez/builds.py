@@ -6,6 +6,7 @@ import traceback
 import os.path
 import subprocess
 import abc
+from rez.util import render_template
 from rez.cli import error, output
 
 SOURCE_ROOT = 'src'
@@ -1128,40 +1129,16 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
     if variables or env_variables:
         extra_cmake_commands.append('message("")')
 
-    text = """\
-CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
+    content = render_template("external_build.cmake", \
+        source_dir=srcdir,
+        source_root=SOURCE_ROOT,
+        extra_cmake_commands='\n'.join(extra_cmake_commands),
+        target_commands='\n'.join(lines),
+        working_dir=working_dir)
 
-include(RezBuild)
-
-rez_find_packages(PREFIX pkgs AUTO)
-
-set(REZ_BUILD_DIR ${CMAKE_BINARY_DIR}/rez-external)
-file(MAKE_DIRECTORY ${REZ_BUILD_DIR})
-
-# copy CMAKE_INSTALL_PREFIX to a rez variable for future proofing
-set(REZ_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX})
-
-set(REZ_SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/%s)
-set(REZ_SOURCE_ROOT ${CMAKE_CURRENT_SOURCE_DIR}/%s)
-
-%s
-
-add_custom_target(
-  %s
-  WORKING_DIRECTORY %s
-)
-
-# Create Cmake file
-rez_install_cmake(AUTO)
-""" % (srcdir,
-        SOURCE_ROOT,
-        '\n'.join(extra_cmake_commands),
-        '\n'.join(lines),
-        working_dir)
-
-    print "writing CMakeLists.txt"
+    print "Writing CMakeLists.txt"
     with open('CMakeLists.txt', 'w') as f:
-        f.write(text)
+        f.write(content)
 
 def get_source(metadata):
     build_data = metadata.get('external_build')
