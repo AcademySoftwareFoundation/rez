@@ -6,6 +6,7 @@ import argparse
 import sys
 import os
 import textwrap
+import shutil
 from rez.cli import error, output
 from . import config as rez_cli_config
 
@@ -113,7 +114,7 @@ def resolve(opts, pkg_list, dot_file):
             sys.exit(1)
         finally:
             if os.path.exists(opts.tmpdir):
-                os.removedirs(opts.tmpdir)
+                shutil.rmtree(opts.tmpdir)
     return result
 
 def resolve_autowrappers(opts):
@@ -380,7 +381,8 @@ def command(opts):
     recorder.setenv('REZ_CONTEXT_FILE', context_file)
     recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % opts.prompt)
 
-    spawn_child_shell(recorder, opts.tmpdir, context_file, opts.stdin, opts.rcfile)
+    spawn_child_shell(recorder, opts.tmpdir, context_file, opts.stdin,
+                      opts.rcfile, opts.quiet)
     recorder.command("rm -rf %s" % opts.tmpdir)
 
     cmd = rex.interpret(recorder, shell=opts.shell, output_style='eval')
@@ -401,26 +403,24 @@ def write_tool_wrapper_script(pkg_name, tool_name, filepath):
 
         export REZ_WRAPPER_NAME='%(pkg_name)s'
         export REZ_WRAPPER_ALIAS='%(tool_name)s'
-        context_file=`dirname $0`/%(context_file)s
-
-        source $REZ_PATH/init.sh
 
         if [ "${!#}" == "---i" ]; then
             # interactive mode: drop into a new shell
+            # the wrapped .bashrc/.bash_profile resource files will source the context file
             export REZ_ENV_PROMPT="${REZ_ENV_PROMPT}%(pkg_name)s>"
             export HOME=`dirname $0`
             /bin/bash
             exit $?
         fi
 
-        source $context_file
+        source `dirname $0`/.bashrc
 
         if [ "${!#}" == "---s" ]; then
             /bin/bash -s
             exit $?
         else
             # run the actual tool
-            %(tool_name)s $*
+            %(tool_name)s "$@"
             exit $?
         fi
         """ % {'pkg_name': pkg_name,
@@ -454,10 +454,10 @@ def write_shell_resource(tmpdir, filename, context_file, rcfile=None, quiet=Fals
 
         # source rez context file
         source %(context_file)s
-
         source $REZ_PATH/init.sh
-        source $REZ_PATH/bin/_complete
 
+        # setup prompt
+        source $REZ_PATH/bin/_complete
         PS1="\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] $PS1"
         """ % {'home': os.environ['HOME'],
                'filename': filename,
