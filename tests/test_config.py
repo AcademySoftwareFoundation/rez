@@ -44,6 +44,11 @@ class ResolveBaseTest(utils.BaseTest):
             pkg.variants = [['platform-linux'],
                             ['platform-darwin']]
 
+        with self.add_package('mercurial-3.0') as pkg:
+            pkg.variants = [['platform-linux', 'python-2.7'],
+                            ['platform-linux', 'python-2.6'],
+                            ['platform-darwin', 'python-2.7']]
+
         with self.add_package('maya-2012') as pkg:
             pkg.requires = ['python-2.6']
             pkg.variants = [['platform-linux'],
@@ -53,19 +58,23 @@ class ResolveBaseTest(utils.BaseTest):
             pkg.requires = ['python-2.6']
             pkg.variants = [['platform-linux'],
                             ['platform-darwin']]
+            pkg.tools = ['maya', 'mayapy']
 
         with self.add_package('maya-2014') as pkg:
             pkg.requires = ['python-2.7']
             pkg.variants = [['platform-linux'],
                             ['platform-darwin']]
+            pkg.tools = ['maya', 'mayapy']
 
         with self.add_package('nuke-7.1.2') as pkg:
             pkg.requires = ['python-2.6']
+            pkg.tools = ['Nuke']
 
         with self.add_package('arnold-4.0.16.0') as pkg:
             pkg.requires = ['python']
             pkg.variants = [['platform-linux'],
                             ['platform-darwin']]
+            pkg.tools = ['kick']
 
         with self.add_package('mtoa-0.25.0') as pkg:
             #pkg.requires = ['arnold-4.0.16']
@@ -103,6 +112,8 @@ class TestResolve(ResolveBaseTest):
                            ['python-2.6.4', 'nuke-7.1.2']),
                           (['mtoa'],
                            ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0']),
+                          (['python', 'mercurial'],
+                           ['python-2.7.4', 'mercurial-3.0']),
                           ([OS_PKG],
                            [])
                           ]:
