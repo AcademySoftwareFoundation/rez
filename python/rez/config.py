@@ -119,7 +119,7 @@ class PackageRequest(object):
             self.resolve_mode == other.resolve_mode
 
     def __str__(self):
-        return str((self.name, self._version_str))
+        return self.short_name()
 
     def __repr__(self):
         return '%s(%r, %r)' % (self.__class__.__name__, self.name, self._version_str)
@@ -137,7 +137,7 @@ class PackageConflict(object):
     def __str__(self):
         tmpstr = str(self.pkg_req)
         if self.variant:
-            tmpstr += " variant:" + str(self.variant)
+            tmpstr +=" " + str(self.variant)
         tmpstr += " <--!--> " + str(self.pkg_req_conflicting)
         return tmpstr
 
@@ -179,21 +179,6 @@ class ResolvedPackages(object):
                                      "'%s'" % (self.__class__.__name__,
                                                attr))
         return MissingPackage(attr)
-
-def get_execution_namespace(pkg_res_list):
-    env = rex.RexNamespace(env_overrides_existing_lists=True)
-
-    # add special data objects and functions to the namespace
-    env['machine'] = rex.MachineInfo()
-    env['pkgs'] = ResolvedPackages(pkg_res_list)
-
-# 	# FIXME: build_requires does not actually indicate that we're building
-# 	# since it seem like rez-build does not pass this flag (not sure if anything does).
-# 	def building():
-# 		return self.rctxt.build_requires
-#
-# 	env['building'] = building
-    return env
 
 ##############################################################################
 # Resolver
@@ -477,6 +462,21 @@ class Resolver(object):
         # we're done
         return result
 
+    def get_execution_namespace(self, pkg_res_list):
+        env = rex.RexNamespace(env_overrides_existing_lists=True)
+
+        # add special data objects and functions to the namespace
+        env['machine'] = rex.MachineInfo()
+        env['pkgs'] = ResolvedPackages(pkg_res_list)
+
+#         # FIXME: build_requires does not actually indicate that we're building
+#         # since it seem like rez-build does not pass this flag (not sure if anything does).
+#         def building():
+#             return self.rctxt.build_requires
+#
+#         env['building'] = building
+        return env
+
     def record_commands(self, pkg_res_list):
         # build the environment commands
         res_pkg_strs = [x.short_name() for x in pkg_res_list]
@@ -484,7 +484,7 @@ class Resolver(object):
         raw_req_str = ' '.join([x.short_name() for x in self.raw_pkg_reqs])
 
         # the environment dictionary to be passed during execution of python code.
-        env = get_execution_namespace(pkg_res_list)
+        env = self.get_execution_namespace(pkg_res_list)
 
         env["REZ_USED"] = filesys._g_rez_path
         env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
@@ -755,8 +755,10 @@ class _PackageVariant(object):
         return var
 
     def __str__(self):
-        return str(self.all_requests)
+        return 'variant(%s)' % (', '.join([str(x) for x in self.all_requests]))
 
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.all_requests)
 
 class _Package(object):
     """
@@ -1905,7 +1907,7 @@ class _Configuration(object):
                         if pkg_conflicting:
                             pkg_req_conflicting = pkg_conflicting.as_package_request()
                             pkg_req_this = pkg.as_package_request()
-                            pc = PackageConflict(pkg_req_conflicting, pkg_req_this, variant.all_requests)
+                            pc = PackageConflict(pkg_req_conflicting, pkg_req_this, variant)
                             conflicts.append(pc)
                             conflicting_variants.add(variant)
                             num += 1

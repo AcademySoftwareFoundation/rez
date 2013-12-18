@@ -62,10 +62,7 @@ class PkgConflictError(RezError):
         self.last_dot_graph = last_dot_graph
 
     def __str__(self):
-        strs = []
-        for pkg_conflict in self.pkg_conflicts:
-            strs.append(str(pkg_conflict))
-        return str(strs)
+        return '\n' + '\n'.join([str(x) for x in self.pkg_conflicts])
 
 
 class PkgsUnresolvedError(RezError):
