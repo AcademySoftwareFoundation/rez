@@ -1,6 +1,9 @@
 """
 rez packages
 """
+
+from __future__ import with_statement
+
 import os.path
 import re
 import sys
@@ -57,7 +60,7 @@ def package_family(name, paths=None):
     result = iter_package_families(name, paths)
     try:
         # return first item in generator
-        return next(result)
+        return result.next()
     except StopIteration:
         return None
 
@@ -144,7 +147,7 @@ def package_in_range(family_name, ver_range, latest=True, timestamp=0,
                                     exact, paths)
     try:
         # return first item in generator
-        return next(result)
+        return result.next()
     except StopIteration:
         return None
 
