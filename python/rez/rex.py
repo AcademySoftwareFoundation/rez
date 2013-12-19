@@ -435,7 +435,7 @@ class SH(Shell):
     def alias(self, key, value):
         # bash aliases don't export to subshells; so instead define a function,
         # then export that function
-        return "{key}() { {value}; };export -f {key};".format(key=key,
+        return "{key}() {{ {value}; }};export -f {key};".format(key=key,
                                                               value=value)
 
     def info(self, value):
@@ -464,15 +464,27 @@ class SH(Shell):
 
 class CSH(SH):
     def setenv(self, key, value):
-        return 'setenv %s "%s"' % (key, value)
+        if re.search("^\${?[A-Z_]+}?$", value):
+            return """if ($?{value_}) then
+    setenv {key} "{value}"
+else
+    setenv {key}
+endif
+""".format(key=key, sep=self._env_sep(key), value=value, value_=value[1:])
+        else:
+            return 'setenv %s "%s"' % (key, value)
 
     def unsetenv(self, key):
         return "unsetenv %s" % (key,)
 
     def prependenv(self, key, value):
-        return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return """if ($?{key}) then
+    setenv {key} "{value}{sep}${key}"
+else
+    setenv {key} "{value}"
+endif
+""".format(key=key, sep=self._env_sep(key), value=value)
+
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
@@ -489,9 +501,13 @@ class CSH(SH):
 #                             value=value))
 
     def appendenv(self, key, value):
-        return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return """if ($?{key}) then
+    setenv {key} "${key}{sep}{value}"
+else
+    setenv {key} "{value}"
+endif
+""".format(key=key, sep=self._env_sep(key), value=value)
+
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
@@ -512,12 +528,13 @@ class CSH(SH):
 
 class Python(CommandInterpreter):
     '''Execute commands in the current python session'''
-    def __init__(self, respect_parent_env=False, environ=None):
-        CommandInterpreter.__init__(self, respect_parent_env)
+    def __init__(self, respect_parent_env=False, environ=None, output_style='file', env_sep_map=None, verbose=False):
+        CommandInterpreter.__init__(self, output_style=output_style, env_sep_map=env_sep_map, verbose=verbose)
         self._environ = os.environ if environ is None else environ
 
     def _expand(self, value):
-        return EnvExpand(value).safe_substitute(**self._environ)
+        e = self._environ if isinstance(self._environ, dict) else dict(self._environ.items())
+        return EnvExpand(value).safe_substitute(**e)
 
     def _get_env_list(self, key):
         return self._environ[key].split(self._env_sep(key))
