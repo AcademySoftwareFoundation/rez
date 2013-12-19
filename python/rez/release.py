@@ -15,6 +15,7 @@ import time
 import subprocess
 import smtplib
 import textwrap
+import re
 from email.mime.text import MIMEText
 
 from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod
@@ -1322,13 +1323,13 @@ class GitRezReleaseMode(RezReleaseMode):
         except KeyError:
             raise RezReleaseError(package + " is not under source control")
 
-        if self.repo.is_dirty() or git_ahead_of_remote(self.repo):
+        if self.repo.is_dirty() or self.git_ahead_of_remote(self.repo):
             raise RezReleaseError("'" + self.root_dir + "' is not in a state to release - you may need to " + \
                 "git commit and/or git push and/or git pull:\n" + self.repo.git.status())
 
         try:
-            tag = self.repo.tags[self.metadata['version']]
-            raise RezReleaseError("cannot release: the tag '" + self.metadata['version'] + "' already exists in git." + \
+            tag = self.repo.tags[self.metadata['version'].version]
+            raise RezReleaseError("cannot release: the tag '" + self.metadata['version'].version + "' already exists in git." + \
                 " You may need to up your version, git-commit and try again.")
         except IndexError, e:
             pass
@@ -1342,9 +1343,9 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def create_release_tag(self):
         remote = self.repo.remote()
-        print("rez-release: creating project tag: " + self.metadata['version'] + " and pushing to: " + remote.url + "...")
+        print("rez-release: creating project tag: " + self.metadata['version'].version + " and pushing to: " + remote.url + "...")
 
-        self.repo.create_tag(self.metadata['version'], a=True, m=self.commit_message)
+        self.repo.create_tag(self.metadata['version'].version, a=True, m=self.commit_message)
 
         push_result = remote.push()
         if len(push_result) == 0:
@@ -1358,7 +1359,7 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def get_tag_meta_str(self):
         return self.repo.remote().url + "#" + self.repo.active_branch.tracking_branch().name.split("/")[-1] \
-            + "#" + self.repo.head.reference.commit.hexsha + "#(refs/tags/" + self.metadata['version'] + ")"
+            + "#" + self.repo.head.reference.commit.hexsha + "#(refs/tags/" + self.metadata['version'].version + ")"
 
     def copy_source(self, build_dir):
         try:
