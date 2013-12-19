@@ -86,7 +86,8 @@ macro(rez_install_cmake)
 	add_custom_command(
 			OUTPUT ${dest_dir}/${cmake_file}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
-			COMMAND echo set(${projname}_INCLUDE_DIRS ${inc_dirs}) > ${dest_dir}/${cmake_file}
+			COMMAND echo set(${projname}_ROOT ${root_dir}) > ${dest_dir}/${cmake_file}
+			COMMAND echo set(${projname}_INCLUDE_DIRS ${inc_dirs}) >> ${dest_dir}/${cmake_file}
 			COMMAND echo set(${projname}_LIBRARY_DIRS ${lib_dirs}) >> ${dest_dir}/${cmake_file}
 			COMMAND echo set(${projname}_LIBRARIES ${INSTCM_LIBRARIES}) >> ${dest_dir}/${cmake_file}
 			COMMAND echo set(${projname}_DEFINITIONS ${INSTCM_DEFINITIONS}) >> ${dest_dir}/${cmake_file}
