@@ -2,6 +2,8 @@
 Invoke a shell based on a configuration request.
 '''
 
+from __future__ import with_statement
+
 import argparse
 import sys
 import os
