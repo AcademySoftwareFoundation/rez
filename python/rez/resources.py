@@ -20,6 +20,8 @@ the addition of new resources is localized to the registration functions
 provided by this module.
 """
 
+from __future__ import with_statement
+
 import yaml
 import os
 import inspect
@@ -135,7 +137,7 @@ def load_yaml(stream):
         text = stream
     try:
         return yaml.load(text) or {}
-    except yaml.composer.ComposerError as err:
+    except yaml.composer.ComposerError, err:
         if err.context == 'expected a single document in the stream':
             # automatically switch to multi-doc
             return list(yaml.load_all(text))
@@ -548,7 +550,7 @@ class BasePackageConfig_0(Metadata):
         'uuid': 'str',
         'description': 'str',
         'name': 'str',
-        'help': 'str',
+        'help': [['str']],
         'authors': ['str'],
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
@@ -568,7 +570,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'description': 'str',
         'name': 'str',
         'version': ExactVersion('1.2'),
-        'help': 'str',
+        'help': [['str']],
         'authors': ['str'],
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
@@ -654,7 +656,7 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
     for validator in get_metadata_validators(config_version, filename, resource_key):
         try:
             validator.validate(metadata)
-        except MetadataError as err:
+        except MetadataError, err:
             errors.append(err)
             continue
         if strip:
