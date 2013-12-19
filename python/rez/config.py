@@ -45,6 +45,7 @@ import sys
 import inspect
 import random
 import itertools
+import re
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
@@ -54,6 +55,7 @@ import rez.filesys as filesys
 from rez.util import AttrDictWrapper, gen_dotgraph_image
 import rez.rex as rex
 
+DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 
 ##############################################################################
 # Public Classes
@@ -530,7 +532,7 @@ class Resolver(object):
                 code = compile(pkg_res.raw_commands, pkg_res.metafile, 'exec')
                 try:
                     exec code in env
-                except Exception as err:
+                except Exception, err:
                     import traceback
                     raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
                                                         traceback.format_exc(err)))
@@ -813,7 +815,7 @@ class _Package(object):
 
     def next_request(self):
         try:
-            pkg = next(self.pkg_iter)
+            pkg = self.pkg_iter.next()
             # NOTE: this is always an exact package. no ranges involved
             return PackageRequest(pkg.name, pkg.version,
                                   self.pkg_req.resolve_mode,
@@ -2114,11 +2116,11 @@ def parse_export_command(cmd, env_obj):
         cmd = cmd
         pkgname = None
 
-    if cmd.startswith('export'):
+    if cmd.startswith('export '):
         var, value = cmd.split(' ', 1)[1].split('=', 1)
         # get an EnvironmentVariable instance
-        var_obj = env_obj[var]
-        parts = value.split(os.pathsep)
+        var_obj = env_obj.environ[var]
+        parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
         if len(parts) > 1:
             orig_parts = parts
             parts = [x for x in parts if x]
@@ -2155,6 +2157,9 @@ def parse_export_command(cmd, env_obj):
             var_obj.set(value)
     elif cmd.startswith('#'):
         env_obj.command_recorder.comment(cmd[1:].lstrip())
+    elif cmd.startswith('alias '):
+        match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+        env_obj.command_recorder.alias(match.groupdict()['key'], match.groupdict()['value'])
     else:
         # assume we can execute this as a straight command
         env_obj.command_recorder.command(cmd)
