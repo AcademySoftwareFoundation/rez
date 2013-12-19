@@ -6,6 +6,8 @@ timestamping feature (see the user manual). If a package is not timestamped then
 treats it as though it does not exist.
 '''
 
+from __future__ import with_statement
+
 import os.path
 import sys
 from rez.cli import error, output

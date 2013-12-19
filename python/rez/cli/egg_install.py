@@ -2,6 +2,8 @@
 Install a python egg as a Rez package.
 '''
 
+from __future__ import with_statement
+
 import sys
 import os
 import re
