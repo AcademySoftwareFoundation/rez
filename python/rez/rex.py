@@ -1006,10 +1006,10 @@ class RexNamespace(dict):
             value in `environ` and effectively act as a setenv operation.
             If False, pre-existing values will be appended/prepended to as usual.
         """
+        self.vars = vars if vars is not None else {}
         self.environ = EnvironRecorderDict(environ=environ,
                                            override_existing_lists=env_overrides_existing_lists)
-        self.set_command_recorder(self, CommandRecorder())
-        self.vars = vars if vars is not None else {}
+        self.set_command_recorder(CommandRecorder())
         self.custom = ObjectNameDict()
         self.custom.data = self.vars  # assigning to data directly keeps a live link
 
