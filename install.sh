@@ -1,6 +1,7 @@
 #!/bin/bash
 #
 # Installation script for rez.
+# Rez version is parsed from python/rez/__init__.py
 #
 # usage: install.sh [options] [install_path]
 # example: install.sh /centralsvr/software/ext/rez
@@ -35,7 +36,8 @@ absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
 cwd=`dirname $absfpath`
 cd $cwd
 
-. ./version.sh
+verstr=`cat ./python/rez/__init__.py | grep '^__version__' | awk '{print $NF}'`
+rez_version=${verstr//\"/}
 
 reinstall=0
 create_bootstrap_pkgs=1
