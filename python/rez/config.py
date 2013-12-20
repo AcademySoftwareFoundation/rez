@@ -552,8 +552,8 @@ class Resolver(object):
             for cmd in pkg_res.commands:
                 if cmd.name == 'setenv':
                     if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
-                        raise PkgCommandError("Package %s overwrote value %s set by "
-                                              "package %s" % (pkg_res.name, cmd.key,
+                        raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+                                              "package '%s'" % (pkg_res.name, cmd.key,
                                                               set_vars[cmd.key]))
                     set_vars[cmd.key] = pkg_res.name
 
@@ -561,8 +561,8 @@ class Resolver(object):
                     prev_pkg_name = set_vars.get(cmd.key, None)
                     if cmd.friends:
                         if prev_pkg_name not in cmd.friends:
-                            raise PkgCommandError("Package %s overwrote value '%s' set by "
-                                                  "package %s, and is not in the list "
+                            raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+                                                  "package '%s', and is not in the list "
                                                   "of friends %s" % (pkg_res.name, cmd.key,
                                                                      prev_pkg_name, cmd.friends))
                     set_vars[cmd.key] = pkg_res.name
