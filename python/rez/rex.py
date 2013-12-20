@@ -155,6 +155,25 @@ class Setenv(EnvCommand):
         return result
 Setenv.register()
 
+class Replace(EnvCommand):
+    name = 'replace'
+
+    @property
+    def friends(self):
+         if len(self.args) == 3:
+            return self.args[2]
+
+    def pre_exec(self, interpreter):
+        key, value, friends = self.args
+        if isinstance(value, (list, tuple)):
+            value = interpreter._env_sep(key).join(value)
+            self.args = key, value, friends
+
+    def post_exec(self, interpreter, result):
+        interpreter._set_env_vars.add(self.key)
+        return result
+Replace.register()
+
 class Prependenv(Setenv):
     name = 'prependenv'
 Prependenv.register()
@@ -223,6 +242,9 @@ class CommandRecorder(object):
 
     def unsetenv(self, key):
         self.commands.append(Unsetenv(key))
+
+    def replace(self, key, value, friends=None):
+        self.commands.append(Replace(key, self._expand(value), friends))
 
     def prependenv(self, key, value):
         self.commands.append(Prependenv(key, self._expand(value)))
@@ -345,6 +367,9 @@ class CommandInterpreter(object):
     def unsetenv(self, key):
         raise NotImplementedError
 
+    def replace(self, key, value, friends=None):
+        raise NotImplementedError
+
     def prependenv(self, key, value):
         raise NotImplementedError
 
@@ -382,6 +407,9 @@ class SH(Shell):
 
     def unsetenv(self, key):
         return "unset %s" % (key,)
+
+    def replace(self, key, value, friends=None):
+        return self.setenv(key, value)
 
     def prependenv(self, key, value):
         return 'export {key}="{value}{sep}${key}"'.format(key=key,
@@ -477,6 +505,9 @@ endif
     def unsetenv(self, key):
         return "unsetenv %s" % (key,)
 
+    def replace(self, key, value, friends=None):
+        return self.setenv(key, value)
+
     def prependenv(self, key, value):
         return """if ($?{key}) then
     setenv {key} "{value}{sep}${key}"
@@ -551,6 +582,9 @@ class Python(CommandInterpreter):
 
     def unsetenv(self, key):
         self._environ.pop(key)
+
+    def replace(self, key, value, friends=None):
+        self.setenv(key, value)
 
     def prependenv(self, key, value):
         value = self._expand(value)
@@ -661,6 +695,9 @@ class WinShell(Shell):
             cmd = ''
         cmd += 'set %s=%s\n' % (key, value)
         return cmd
+
+    def replace(self, key, value, friends=None):
+        return self.setenv(key, value)
 
     def unsetenv(self, key):
         # env vars are not cleared until restart!
@@ -969,18 +1006,12 @@ class RexNamespace(dict):
             value in `environ` and effectively act as a setenv operation.
             If False, pre-existing values will be appended/prepended to as usual.
         """
-        self.command_recorder = CommandRecorder()
-        self.command_recorder._expandfunc = self.expand
-        self.environ = EnvironRecorderDict(self.command_recorder,
-                                           environ,
+        self.environ = EnvironRecorderDict(environ=environ,
                                            override_existing_lists=env_overrides_existing_lists)
+        self.set_command_recorder(self, CommandRecorder())
         self.vars = vars if vars is not None else {}
         self.custom = ObjectNameDict()
         self.custom.data = self.vars  # assigning to data directly keeps a live link
-
-        # load commands into environment
-        for cmd, func in self.command_recorder.get_command_methods():
-            self.vars[cmd] = func
 
     def expand(self, value):
         value = CustomExpand(value).substitute(self.custom)
@@ -990,6 +1021,8 @@ class RexNamespace(dict):
         self.command_recorder = recorder
         self.command_recorder._expandfunc = self.expand
         self.environ.set_command_recorder(recorder)
+        for cmd, func in self.command_recorder.get_command_methods():
+            self.vars[cmd] = func
 
     def get_command_recorder(self):
         return self.command_recorder
