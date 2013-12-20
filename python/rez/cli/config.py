@@ -138,7 +138,7 @@ def command(opts):
                                   meta_vars, shallow_meta_vars)
     else:
         result = resolver.guarded_resolve(opts.pkg, opts.no_os,
-                                          opts.no_path_append, opts.wrapper,
+                                          opts.no_path_append,
                                           meta_vars, shallow_meta_vars,
                                           opts.dot_file, opts.print_dot)
 
