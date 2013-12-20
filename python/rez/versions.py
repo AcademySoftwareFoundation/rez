@@ -364,6 +364,11 @@ class VersionRange(object):
         """
         get intersection
         """
+        if isinstance(vers, ExactVersionSet) and self.is_any():
+            return vers
+        elif isinstance(vers, ExactVersion) and vers.is_label() and self.is_any():
+            return ExactVersionSet([vers])
+
         vers_int = []
         if isinstance(vers, Version):
             vers = [vers]
@@ -699,6 +704,9 @@ class ExactVersionSet(VersionRange):
         """
         get intersection, return None if there are no intersections
         """
+        if isinstance(vers, VersionRange) and vers.is_any():
+            return self
+
         versions = set(self.versions)
         if isinstance(vers, ExactVersion):
             vers = [vers]

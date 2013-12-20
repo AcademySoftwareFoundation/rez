@@ -157,6 +157,10 @@ class PackageFamily(object):
         self.name = name
         self.path = path
 
+    def __repr__(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self.name,
+                               self.path)
+
     def iter_version_packages(self):
         pkg_iter = iter_resources(0,  # configuration version
                                   ['package.versionless', 'package.versioned'],

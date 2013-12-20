@@ -79,6 +79,7 @@ class TestVersionRange(VersionBaseTest):
 
     def test_comparision(self):
         self.assertTrue(VersionRange('1|2') == VersionRange('2|1'))
+        self.assertFalse(VersionRange('1.1+<1.5|2.1') == VersionRange('1+<1.5|2.1'))
 
     def test_contains(self):
         # overlapping
@@ -99,6 +100,34 @@ class TestVersionRange(VersionBaseTest):
         self.assertFalse(no_intersect.is_any())
         self.assertTrue(no_intersect.is_none())
         self.assertFalse(no_intersect)
+
+    def intersect(self, ver1, ver2, result):
+        'the intersection should be the same regardless of order'
+        self.assertEqual(ver1.get_intersection(ver2),
+                         result)
+        self.assertEqual(ver2.get_intersection(ver1),
+                         result)
+
+    def test_intersection(self):
+        ver_range = VersionRange('1+<1.5|2.1')
+        self.intersect(ver_range,
+                       VersionRange('1.1'),
+                       VersionRange('1.1'))
+        self.intersect(ver_range,
+                       VersionRange('1.1+'),
+                       VersionRange('1.1+<1.5|2.1'))
+
+        any_range = VersionRange('')
+        self.intersect(any_range,
+                       VersionRange('1.1+'),
+                       VersionRange('1.1+'))
+        self.intersect(any_range,
+                       ExactVersionSet('name'),
+                       ExactVersionSet('name'))
+
+        self.assertEqual(any_range.get_intersection(ExactVersion('name')),
+                         ExactVersionSet('name'))
+
 
 class TestExactVersion(VersionBaseTest):
     VALID = ['1', '1.2.3', '1.2.a', '']
