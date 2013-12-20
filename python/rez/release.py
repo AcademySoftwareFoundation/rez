@@ -197,6 +197,8 @@ class RezReleaseMode(object):
             - build
             - install
             - post_install
+            - get_tag
+            - get_version_from_tag
     '''
     name = 'base'
 
@@ -216,6 +218,7 @@ class RezReleaseMode(object):
         # for cached property: False indicates it has not been cached
         # (since it may be None after caching)
         self._last_tagged_version = False
+        self._tag_name = False
 
         # filled in release()
         self.commit_message = None
@@ -365,6 +368,28 @@ class RezReleaseMode(object):
                 remove_write_perms(root)
 
     # VCS and tagging ---------
+    @property
+    def tag_name(self):
+        '''
+        Cached property for the tag name.
+        '''
+        if self._tag_name is False:
+            # False means the value has not been cached yet
+            self._tag_name = self.get_tag_name()
+        return self._tag_name
+
+    def get_tag_name(self):
+        '''
+        Return the tag name for the current release as a string.
+        '''
+        return str(self.metadata['version'].version)
+
+    def get_version_from_tag(self, tag):
+        '''
+        Return the version (as a Version object) from the tag.
+        '''
+        return versions.Version(tag)
+
     def get_url(self):
         '''
         Return a string for the remote url that best identifies the source of
@@ -412,7 +437,7 @@ class RezReleaseMode(object):
         found_tag = False
         for tag in self.get_tags():
             try:
-                ver = versions.Version(tag)
+                ver = self.get_version_from_tag(tag)
             except Exception:
                 continue
             if ver > latest_ver:
@@ -968,7 +993,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         # variables filled out in pre_build()
         self.tag_url = None
 
-    def get_tag_url(self, version=None):
+    def get_tag_url(self, tag_name=None):
         # find the base path, ie where 'trunk', 'branches', 'tags' should be
         pos_tr = self.this_url.find("/trunk")
         pos_br = self.this_url.find("/branches")
@@ -979,7 +1004,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         tag_url = base_url + "/tags"
 
         if version:
-            tag_url += '/' + str(version)
+            tag_url += '/' + tag_name
         return tag_url
 
     def svn_url_exists(self, url):
@@ -1066,7 +1091,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         return latest_ver
 
     def validate_version(self):
-        self.tag_url = self.get_tag_url(self.version)
+        self.tag_url = self.get_tag_url(tag_name=self.tag_name)
         # check that this tag does not already exist
         if self.svn_url_exists(self.tag_url):
             raise RezReleaseError("cannot release: the tag '"
@@ -1209,12 +1234,12 @@ class HgRezReleaseMode(RezReleaseMode):
         '''
         if self.patch_path:
             # patch queue
-            hg('tag', '-f', str(self.metadata['version']),
+            hg('tag', '-f', self.tag_name,
                '--message', self.commit_message, '--mq')
             # use a bookmark on the main repo since we can't change it
-            hg('bookmark', '-f', str(self.metadata['version']))
+            hg('bookmark', '-f', self.tag_name)
         else:
-            hg('tag', '-f', str(self.metadata['version']))
+            hg('tag', '-f', self.tag_name)
 
     def get_tags(self):
         tags = [line.split()[0] for line in hg('tags')]
@@ -1328,8 +1353,8 @@ class GitRezReleaseMode(RezReleaseMode):
                 "git commit and/or git push and/or git pull:\n" + self.repo.git.status())
 
         try:
-            tag = self.repo.tags[self.metadata['version'].version]
-            raise RezReleaseError("cannot release: the tag '" + self.metadata['version'].version + "' already exists in git." + \
+            tag = self.repo.tags[self.tag_name]
+            raise RezReleaseError("cannot release: the tag '" + self.tag_name + "' already exists in git." + \
                 " You may need to up your version, git-commit and try again.")
         except IndexError, e:
             pass
@@ -1343,9 +1368,9 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def create_release_tag(self):
         remote = self.repo.remote()
-        print("rez-release: creating project tag: " + self.metadata['version'].version + " and pushing to: " + remote.url + "...")
+        print("rez-release: creating project tag: " + self.tag_name + " and pushing to: " + remote.url + "...")
 
-        self.repo.create_tag(self.metadata['version'].version, a=True, m=self.commit_message)
+        self.repo.create_tag(self.tag_name, a=True, m=self.commit_message)
 
         push_result = remote.push()
         if len(push_result) == 0:
@@ -1359,7 +1384,7 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def get_tag_meta_str(self):
         return self.repo.remote().url + "#" + self.repo.active_branch.tracking_branch().name.split("/")[-1] \
-            + "#" + self.repo.head.reference.commit.hexsha + "#(refs/tags/" + self.metadata['version'].version + ")"
+            + "#" + self.repo.head.reference.commit.hexsha + "#(refs/tags/" + self.tag_name + ")"
 
     def copy_source(self, build_dir):
         try:
