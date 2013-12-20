@@ -1,0 +1,6 @@
+commands: ['export CMAKE_MODULE_PATH=!ROOT!/cmake:$CMAKE_MODULE_PATHexport ARNOLD_HOME=/usr/local/solidAngle/arnold-!VERSION!export
+    PATH=$ARNOLD_HOME/bin:$PATHexport PYTHONPATH=$ARNOLD_HOME/python:$PYTHONPATH']
+config_version: 0
+name: arnold
+requires: [python]
+version: 4.0.16.0

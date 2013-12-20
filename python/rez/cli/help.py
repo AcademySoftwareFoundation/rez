@@ -6,17 +6,17 @@ import os
 import os.path
 import sys
 import subprocess
+import webbrowser
 import rez.sigint
 from rez.cli import error, output
 
+
 suppress_notfound_err = False
 
-##########################################################################################
-# parse arguments
-##########################################################################################
+
 def setup_parser(parser):
     parser.add_argument("pkg", metavar='PACKAGE',
-                        help="package name")
+                        help="package name", nargs='?')
     parser.add_argument("section", type=int, metavar='SECTION', default=0, nargs='?')
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",
                         default=False,
@@ -25,44 +25,24 @@ def setup_parser(parser):
                         default=False,
                         help="Just print each help entry")
 
-# if (len(sys.argv) == 1):
-#     (opts, args) = p.parse_args(["-h"])
-#     sys.exit(0)
-#
-# (opts, args) = p.parse_args()
 
 def command(opts):
-    if opts.manual:
-        subprocess.Popen("kpdf " + os.environ["REZ_PATH"] + "/docs/technicalUserManual.pdf &",
-                         shell=True).communicate()
+    if opts.manual or not opts.pkg:
+        webbrowser.open("http://nerdvegas.github.io/rez/")
         sys.exit(0)
 
     pkg = opts.pkg
     section = opts.section
-#     section = 0
-#
-#     if len(args) == 1:
-#         pkg = args[0]
-#     elif len(args) == 2:
-#         pkg = args[1]
-#         try:
-#             section = int(args[0])
-#         except Exception:
-#             pass
-#         if section < 1:
-#             p.error("invalid section '" + args[0] + "': must be a number >= 1")
-#     else:
-#         p.error("incorrect number of arguments")
 
     ##########################################################################################
     # find pkg and load help metadata
     ##########################################################################################
 
     # attempt to load the latest
-    from rez.packages import pkg_name, iter_packages
+    from rez.packages import pkg_name, iter_packages_in_range
     name = pkg_name(opts.pkg)
     found_pkg = None
-    for pkg in iter_packages(name):
+    for pkg in iter_packages_in_range(name):
         if pkg.metadata is None:
             continue
         if "help" in pkg.metadata:
@@ -90,7 +70,7 @@ def command(opts):
 
     if isinstance(help, basestring):
         cmds.append(["", help])
-    elif isinstance(help, type([])):
+    elif isinstance(help, list):
         for entry in help:
             if (isinstance(entry, list)) and (len(entry) == 2) \
                     and (isinstance(entry[0], basestring)) and (isinstance(entry[1], basestring)):
@@ -122,9 +102,10 @@ def command(opts):
     ##########################################################################################
     # run help command
     ##########################################################################################
-    if "variants" in pkg.metadata:
+    variants = pkg.metadata.get("variants")
+    if variants:
         # just pick first variant, they should all have the same copy of docs...
-        v0 = pkg.metadata["variants"][0]
+        v0 = variants[0]
         pkg_path = os.path.join(pkg.base, *v0)
     else:
         pkg_path = pkg.base
@@ -132,10 +113,11 @@ def command(opts):
     cmd = cmds[section - 1][1]
     cmd = cmd.replace('!ROOT!', pkg_path)
     cmd = cmd.replace('!BASE!', pkg.base)
-    cmd += " &"
-
-    subprocess.Popen(cmd, shell=True).communicate()
-
+    if len(cmd.split()) == 1:
+        webbrowser.open(cmd)
+    else:
+        cmd += " &"
+        subprocess.Popen(cmd, shell=True).communicate()
 
 
 

@@ -6,7 +6,7 @@ import rez.config
 from rez.config import Resolver
 from rez.exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
-from rez.filesys import _g_os_pkg as OS_PKG
+from rez.filesys import _g_platform_pkg as PLATFORM_PKG
 from rez.filesys import _g_arch_pkg as ARCH_PKG
 
 def check_basic_resolve(pkgs, assertions,
@@ -15,7 +15,7 @@ def check_basic_resolve(pkgs, assertions,
     resolver = rez.config.Resolver(**resolver_args)
     result = resolver.resolve(pkgs, **resolve_args)
     # TODO: reset cached resolves
-    assert_resolve_result(result, [OS_PKG] + assertions + [ARCH_PKG])
+    assert_resolve_result(result, [PLATFORM_PKG] + assertions + [ARCH_PKG])
 
 def assert_resolve_result(result, assertions):
     assert result is not None
@@ -114,7 +114,7 @@ class TestResolve(ResolveBaseTest):
                            ['python-2.7.4', 'maya-2014', 'arnold-4.0.16.0', 'mtoa-0.25.0']),
                           (['python', 'mercurial'],
                            ['python-2.7.4', 'mercurial-3.0']),
-                          ([OS_PKG],
+                          ([PLATFORM_PKG],
                            [])
                           ]:
             yield check_basic_resolve, ins, outs, dict(resolve_mode=RESOLVE_MODE_LATEST)

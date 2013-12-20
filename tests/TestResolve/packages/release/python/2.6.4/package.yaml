@@ -1,0 +1,6 @@
+config_version: 0
+name: python
+variants:
+- [platform-linux]
+- [platform-darwin]
+version: 2.6.4

@@ -10,6 +10,8 @@ import posixpath
 import ntpath
 import UserDict
 
+
+
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 def gen_dotgraph_image(dot_data, out_file):
@@ -129,6 +131,7 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
 def get_epoch_time():
     """
     get time since the epoch as an int
+    TODO switch everything to UTC
     """
     return int(time.mktime(time.localtime()))
 
@@ -185,3 +188,25 @@ class AttrDictWrapper(UserDict.UserDict):
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
+
+
+_templates = {}
+
+# Note this is the vert start of adding support for pluggable project template, ala rez-make-project.
+def render_template(template, **variables):
+    """
+    Returns template from template/<template>, rendered with the given variables.
+    """
+    templ = _templates.get(template)
+    if not templ:
+        import rez
+        path = os.path.join(rez.module_root_path, "template", os.path.join(*(template.split('/'))))
+        if os.path.exists(path):
+            with open(path) as f:
+                templ = f.read()
+                _templates[template] = templ
+        else:
+            # TODO support template plugins, probably using Jinja2
+            raise Exception("Unknown template '%s'" % template)
+
+    return templ % variables

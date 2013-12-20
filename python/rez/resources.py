@@ -1,5 +1,5 @@
 """
-Utilities for registering, finding, loading, and verifying rez resources.
+Class for loading and verifying rez metafiles
 
 Resources are an abstraction of rez's file and directory structure. Currently,
 a resource can be a file or directory (with eventual support for other types).
@@ -26,7 +26,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez.util import to_posixpath, AttrDict
-from rez.versions import ExactVersion
+from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
 
@@ -504,8 +504,7 @@ class Metadata(object):
 
     def validate(self, metadata):
         "validate the metadata"
-        self.validate_document_structure(metadata,
-                                         self.REFERENCE)
+        self.validate_document_structure(metadata, self.REFERENCE)
 
     def strip(self, metadata):
         """

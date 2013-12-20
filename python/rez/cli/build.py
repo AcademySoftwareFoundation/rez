@@ -124,78 +124,6 @@ BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
 # fi
 
 
-def _get_package_metadata(filepath, quiet=False, no_catch=False):
-    from rez.resources import ConfigMetadata
-    # load yaml
-    if no_catch:
-        metadata = ConfigMetadata(filepath)
-    else:
-        try:
-            metadata = ConfigMetadata(filepath)
-        except Exception as e:
-            if not quiet:
-                error("Malformed package.yaml: '" + filepath + "'." + str(e))
-            sys.exit(1)
-
-    if not metadata.version:
-        if not quiet:
-            error("No 'metadata.version' in " + filepath + ".\n")
-        sys.exit(1)
-
-    if metadata.name:
-        # FIXME: this should be handled by ConfigMetadata class
-        bad_chars = ['-', '.']
-        for ch in bad_chars:
-            if (metadata.name.find(ch) != -1):
-                error("Package name '" + metadata.name + "' contains illegal character '" + ch + "'.")
-                sys.exit(1)
-    else:
-        if not quiet:
-            error("No 'name' in " + filepath + ".")
-        sys.exit(1)
-    return metadata
-
-# def foo():
-#     if print_build_requires:
-#         build_requires = metadata.get_build_requires()
-#         if build_requires:
-#             strs = str(' ').join(build_requires)
-#             print strs
-#
-#     if print_requires:
-#         requires = metadata.get_requires()
-#         if requires:
-#             strs = str(' ').join(requires)
-#             print strs
-#
-#     if print_help:
-#         if metadata.help:
-#             print str(metadata.help)
-#         else:
-#             if not quiet:
-#                 error("No 'help' entry specified in " + filepath + ".")
-#             sys.exit(1)
-#
-#     if print_tools:
-#         tools = metadata.metadict.get("tools")
-#         if tools:
-#             print str(' ').join(tools)
-#
-#     if (variant_num != None):
-#         variants = metadata.get_variants()
-#         if variants:
-#             if (variant_num >= len(variants)):
-#                 if not quiet:
-#                     error("Variant #" + str(variant_num) + " does not exist in package.")
-#                 sys.exit(1)
-#             else:
-#                 strs = str(' ').join(variants[variant_num])
-#                 print strs
-#         else:
-#             if not quiet:
-#                 error("Variant #" + str(variant_num) + " does not exist in package.")
-#             sys.exit(1)
-
 def setup_parser(parser):
     import rez.public_enums as enums
     parser.add_argument("-m", "--mode", dest="mode",
@@ -210,6 +138,7 @@ def setup_parser(parser):
     parser.add_argument("-t", "--time", dest="time", type=int,
                         default=0,
                         help="ignore packages newer than the given epoch time [default = current time]")
+    # FIXME: --install-path is only used by rez-release. now that they are both python, we need to bring them closer together.
     parser.add_argument("-i", "--install-path", dest="print_install_path",
                         action="store_true", default=False,
                         help="print the path that the project would be installed to, and exit")
@@ -302,6 +231,8 @@ def command(opts):
     build_mode.init(central_release=False)
 
     build_mode.build_time = opts.time
+
+    build_mode.get_source()
 
     if not opts.variant_nums:
         opts.variant_nums = range(len(build_mode.variants))

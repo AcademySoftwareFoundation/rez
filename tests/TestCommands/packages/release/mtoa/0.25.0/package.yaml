@@ -1,0 +1,8 @@
+config_version: 0
+name: mtoa
+variants:
+- [platform-linux, maya-2014, arnold-4.0.15+]
+- [platform-linux, maya-2013, arnold-4.0.15+]
+- [platform-darwin, maya-2014, arnold-4.0.15+]
+- [platform-darwin, maya-2013, arnold-4.0.15+]
+version: 0.25.0

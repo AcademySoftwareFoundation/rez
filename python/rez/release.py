@@ -12,14 +12,14 @@ import inspect
 import time
 import subprocess
 import smtplib
-import textwrap
 from email.mime.text import MIMEText
 
-from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod
+from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod, render_template
 from rez.resources import load_metadata
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
+import rez.builds as builds
 
 ##############################################################################
 # Globals
@@ -469,8 +469,8 @@ class RezReleaseMode(object):
                 return names
             return [x for x in names if x.startswith('.')]
 
-        print "copying directory", os.getcwd()
-        copytree(os.getcwd(), build_dir, symlinks=True, hardlinks=True,
+        print "copying directory", self.root_dir
+        copytree(self.root_dir, build_dir, symlinks=True, hardlinks=True,
                  ignore=ignore)
 
     def get_changelog(self):
@@ -488,10 +488,8 @@ class RezReleaseMode(object):
                          'make': "Unix Makefiles",
                          'xcode': "Xcode"}
 
-        cmake_arguments = ["-DCMAKE_SKIP_RPATH=1"]
-
-        # Rez custom module location
-        cmake_arguments.append("-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH")
+        cmake_arguments = ["-DCMAKE_SKIP_RPATH=1",
+                           "-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"]
 
         # Fetch the initial cache if it's defined
         if 'CMAKE_INITIAL_CACHE' in os.environ:
@@ -532,9 +530,8 @@ class RezReleaseMode(object):
         make_args = list(make_args)
 
 # 		# build it
-
-        variant_str = ' '.join(variant)
         if variant:
+            variant_str = ' '.join(variant)
             print
             print "---------------------------------------------------------"
             print "rez-build: building for variant '%s'" % variant_str
@@ -575,14 +572,13 @@ class RezReleaseMode(object):
         # store build metadata
         with open(meta_file, 'w') as f:
             f.write(yaml.dump(info_dict, default_flow_style=False))
-#
+
         self._write_changelog(changelog_file)
 
         # attempt to resolve env for this variant
         print
         print "rez-build: invoking rez-config with args:"
-        # print "$opts.no_archive $opts.ignore_blacklist $opts.no_assume_dt --time=$opts.time"
-        print "requested packages: %s" % (', '.join(self.requires + variant))
+        print "requested packages: %s" % (', '.join(self.requires + (variant or [])))
         print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
 
         try:
@@ -590,7 +586,7 @@ class RezReleaseMode(object):
             resolver = rez.config.Resolver(mode,
                                                time_epoch=self.build_time,
                                                assume_dt=not no_assume_dt)
-            result = resolver.resolve((self.requires + variant + ['cmake=l']),
+            result = resolver.resolve((self.requires + (variant or []) + ['cmake=l']),
                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]
@@ -605,35 +601,23 @@ class RezReleaseMode(object):
                 os.remove(dot_file)
             if os.path.exists(env_bake_file):
                 os.remove(env_bake_file)
-            sys.exit(1)
+            raise
 
         # TODO: this shouldn't be a separate step
         # create dot-file
         # rez-config --print-dot --time=$opts.time $self.requires $variant > $dot_file
 
         # TODO: simplify and convert this opening section to rex
-        text = textwrap.dedent("""\
-            #!/bin/bash
-
-            # because of how cmake works, you must cd into same dir as script to run it
-            if [ "./build-env.sh" != "$0" ] ; then
-                echo "you must cd into the same directory as this script to use it." >&2
-                exit 1
-            fi
-
-            source %(env_bake_file)s
-            export REZ_CONTEXT_FILE=%(env_bake_file)s
-            env > %(actual_bake)s
-            """ % dict(env_bake_file=env_bake_file,
-                       actual_bake=actual_bake))
+        text = render_template("build-env.sh", \
+            env_bake_file=env_bake_file,
+            actual_bake=actual_bake)
 
         recorder = rex.CommandRecorder()
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
                             os.path.join(rez.filesys._g_rez_path, 'cmake'))
         # make sure we can still use rez-config in the build env!
-        recorder.appendenv('PATH',
-                           os.path.join(rez.filesys._g_rez_path, 'bin'))
+        recorder.appendenv('PATH', os.path.join(rez.filesys._g_rez_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -659,8 +643,9 @@ class RezReleaseMode(object):
             recorder.command(["rm", "-f", "CMakeCache.txt"])
 
         # cmake invocation
-        cmake_dir_arg = os.path.relpath(self.root_dir, build_dir)
-        recorder.command(["cmake", "-d", cmake_dir_arg] + cmake_args)
+        # FIXME: the source is exported to a new location, not self.root_dir
+        # cmake_dir_arg = os.path.relpath(self.root_dir, build_dir)
+        recorder.command(["cmake", "-d", self.root_dir] + cmake_args)
 
         if do_build:
             # TODO: determine build tool from --build-system? For now just assume make
@@ -669,8 +654,7 @@ class RezReleaseMode(object):
                 recorder.command(["make", "clean"])
             recorder.command(["make"] + make_args)
 
-            script = rex.interpret(recorder, shell='bash',
-                                   verbose=['command'])
+            script = rex.interpret(recorder, shell='bash', verbose=['command'])
 
             with open(src_file, 'w') as f:
                 f.write(text + script)
@@ -681,7 +665,7 @@ class RezReleaseMode(object):
             p = subprocess.Popen([os.path.join('.', os.path.basename(src_file))],
                                  cwd=build_dir)
             p.communicate()
-            if p.returncode != 0:
+            if p.returncode:
                 # error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
                 sys.exit(1)
 
@@ -701,6 +685,9 @@ class RezReleaseMode(object):
                 print "Generated %s, invoke to run cmake for this project's variant:(%s)" % (src_file, variant_str)
             else:
                 print "Generated %s, invoke to run cmake for this project." % src_file
+
+    def get_source(self):
+        return builds.get_patched_source(self.metadata)
 
     # phases ---------
     def init(self, central_release=False):
@@ -747,6 +734,7 @@ class RezReleaseMode(object):
             if os.path.islink(self.base_build_dir):
                 os.remove(self.base_build_dir)
             elif os.path.isdir(self.base_build_dir):
+                print "deleting pre-existing build directory: %s" % self.base_build_dir
                 shutil.rmtree(self.base_build_dir)
             else:
                 os.remove(self.base_build_dir)
@@ -779,8 +767,18 @@ class RezReleaseMode(object):
         print("rez-release: building...")
         print("---------------------------------------------------------")
 
-        for varnum, variant in enumerate(self.variants):
-            self.build_variant(varnum)
+        # TODO: merge get_source and copy_source.
+        # copy_source is meant to be "clean" (i.e. no accidental edits)
+        # and get_source should already meet this requirement. It would be good to add a
+        # non-dev(e.g.release) mode to get_source which causes it to use 'hg archive',
+        # 'git archive', 'svn export' from the cached repos.
+        # lastly, it would be nice to not have to get/copy source for each variant,
+        # as this can take awhile, and the source should be guaranteed to be the
+        # same for all variants anyway.
+        self.get_source()
+
+# 		for varnum, variant in enumerate(self.variants):
+# 			self.build_variant(varnum)
 
     def build_variant(self, variant_num):
         '''
@@ -794,11 +792,11 @@ class RezReleaseMode(object):
             build_dir = self.base_build_dir
             varname = "project"
 
-        print
-        print("rez-release: creating clean copy of " + varname + " to " + build_dir + "...")
-        if os.path.exists(build_dir):
-            shutil.rmtree(build_dir)
-        self.copy_source(build_dir)
+# 		print
+# 		print("rez-release: creating clean copy of " + varname + " to " + build_dir + "...")
+# 		if os.path.exists(build_dir):
+# 			shutil.rmtree(build_dir)
+# 		self.copy_source(build_dir)
 
         self._build_variant(variant_num)
 

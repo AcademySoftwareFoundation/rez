@@ -147,8 +147,7 @@ class RezMemCache(object):
     @cached_path("LISTDIR", default=())
     def list_directory(self, path, warnings=True):
         """
-        For a given directory, return a list of (Version,epoch), which match version directories
-        found in the given directory.
+        For a given directory, return the list of files and dirs within.
         """
         return os.listdir(path)
 

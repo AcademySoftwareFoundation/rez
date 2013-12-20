@@ -343,7 +343,7 @@ class Resolver(object):
 
         if not no_os:
             to_add = []
-            for os_pkg_str in [filesys._g_os_pkg, filesys._g_arch_pkg]:
+            for os_pkg_str in [filesys._g_platform_pkg, filesys._g_arch_pkg]:
                 os_pkg_req = str_to_pkg_req(os_pkg_str, self.rctxt.time_epoch,
                                             self.rctxt.resolve_mode)
                 if os_pkg_req not in self.raw_pkg_reqs:
@@ -466,7 +466,8 @@ class Resolver(object):
         env = rex.RexNamespace(env_overrides_existing_lists=True)
 
         # add special data objects and functions to the namespace
-        env['machine'] = rex.MachineInfo()
+        import rez.platform_ as plat
+        env['machine'] = plat.Platform()
         env['pkgs'] = ResolvedPackages(pkg_res_list)
 
 #         # FIXME: build_requires does not actually indicate that we're building

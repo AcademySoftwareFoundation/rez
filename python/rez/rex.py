@@ -7,8 +7,10 @@ import string
 import re
 import UserDict
 import inspect
-import textwrap
+#import textwrap
 import pipes
+import rez.platform_ as plat
+
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
@@ -81,7 +83,8 @@ class ObjectNameDict(UserDict.UserDict):
             try:
                 result = getattr(result, attr)
             except AttributeError:
-                raise AttributeError("Failed to retrieve attribute '%s' of '%s' from %r" % (attr, '.'.join(attrs), result))
+                raise AttributeError("Failed to retrieve attribute '%s' of '%s' from %r" \
+                                     % (attr, '.'.join(attrs), result))
         # call the result, if requested
         if funcarg:
             # strip ()
@@ -994,67 +997,6 @@ class RexNamespace(dict):
     def __setitem__(self, key, value):
         self.set(key, value)
 
-
-class MachineInfo(object):
-    def __init__(self):
-        self._fqdn = None
-        self._name = None
-        self._domain = None
-        self._os = None
-        self._os_version = None
-        self._arch = None
-
-    def __str__(self):
-        return self.name
-
-    def _populate_fqdn(self):
-        import socket
-        self._fqdn = socket.getfqdn()
-        self._name, self._domain = self._fqdn.split('.', 1)
-
-    def _populate_platform(self):
-        import platform
-        self._os = platform.system()
-        self._os_version = platform.version()
-        self._arch = platform.machine()
-
-    # provide read-only properties to prevent accidental overwrites and to
-    # lazily lookup values
-    @property
-    def name(self):
-        if self._name is None:
-            self._populate_fqdn()
-        return self._name
-
-    @property
-    def fdqn(self):
-        if self._fdqn is None:
-            self._populate_fqdn()
-        return self._fdqn
-
-    @property
-    def domain(self):
-        if self._domain is None:
-            self._populate_fqdn()
-        return self._domain
-
-    @property
-    def os(self):
-        if self._os is None:
-            self._populate_platform()
-        return self._os
-
-    @property
-    def os_version(self):
-        if self._os_version is None:
-            self._populate_platform()
-        return self._os_version
-
-    @property
-    def arch(self):
-        if self._arch is None:
-            self._populate_platform()
-        return self._arch
 
 def _test_string_template():
     print CustomExpand.pattern.search('foo {this.that}').group('braced')

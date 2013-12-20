@@ -1,11 +1,10 @@
 #
 # Current version of rez. To release new versions (ie if you're developing rez), change the
-# version number in this file, then run ./install.sh again, but with no arguments. See comments
-# at the top of ./install.sh for more details.
+# version number in ./python/rez/__init__.py.
 #
 
-rez_version='2.0.0'
-
+verstr=`cat ./python/rez/__init__.py | grep '^__version__' | awk '{print $NF}'`
+rez_version=${verstr//\"/}
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
