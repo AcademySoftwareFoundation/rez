@@ -9,7 +9,6 @@ import UserDict
 import inspect
 #import textwrap
 import pipes
-import rez.platform_ as plat
 
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
@@ -662,7 +661,7 @@ class WinShell(Shell):
 #
 #     def system_env(self, key):
 #         return executable_output(['setenv', '-m', key])
-
+"""
 shells = {'bash': SH,
           'sh': SH,
           'tcsh': CSH,
@@ -682,6 +681,23 @@ def get_command_interpreter(shell=None):
     if shell is None:
         shell = get_shell_name()
     return shells[os.path.basename(shell)]
+"""
+
+shells = dict( \
+    bash=SH,
+    sh=SH,
+    tcsh=CSH,
+    csh=CSH,
+    python=Python)
+
+def get_command_interpreter(shell=None):
+    if shell is None:
+        from rez.system import system
+        shell = system.shell
+    if shell in shells:
+        return shells[shell]
+    else:
+        raise ValueError("Unknown shell '%s'" % shell)
 
 def interpret(commands, shell=None, **kwargs):
     """

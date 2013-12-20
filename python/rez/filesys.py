@@ -18,37 +18,10 @@ _g_new_timestamp_behaviour = os.getenv("REZ_NEW_TIMESTAMP_BEHAVIOUR")
 _g_os_paths = []
 
 # TODO move elsewhere
-import rez.platform_ as plat
-_g_platform_pkg = 'platform-' + plat.get_platform()
-_g_arch_pkg = 'arch-' + plat.get_arch()
+from rez.system import system
+_g_platform_pkg = 'platform-' + system.platform
+_g_arch_pkg = 'arch-' + system.arch
 
-"""
-def get_platform():
-    osname = os.getenv("REZ_PLATFORM")
-    if osname:
-        print ("Warning: REZ_PLATFORM is no longer supported. Please modify "
-               "'%s' to require one of %s" % (osname,
-                                              ', '.join(['platform-' + plat for plat in VALID_PLATFORMS])))
-    plat = platform.system().lower()
-
-    if plat not in VALID_PLATFORMS:
-        sys.stderr.write("Rez warning: Unknown operating system '" + plat + "'\n")
-    return plat
-
-def get_arch():
-    # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
-    if os.name == 'nt' and sys.version_info[:2] < (2, 7):
-        arch = os.environ.get("PROCESSOR_ARCHITEW6432",
-                              os.environ.get('PROCESSOR_ARCHITECTURE', ''))
-        if not arch:
-            sys.stderr.write("Rez warning: Could not determine architecture\n")
-        return arch
-    else:
-        return platform.machine()
-
-_g_os_pkg = 'platform-' + get_platform()
-_g_arch_pkg = 'arch-' + get_arch()
-"""
 
 # get os-specific paths
 try:

@@ -141,10 +141,10 @@ class TestCommands(TestResolve):
 REZ_PYTHON_MAJOR_VERSION = '{version.part(1)}'
 REZ_PYTHON_MINOR_VERSION = '{version.part(2)}'
 
-if machine.os == 'Linux':
+if machine.platform == 'linux':
     PYTHON_DIR = '/usr/local/python-{version}'
     PATH.prepend('$PYTHON_DIR/bin')
-elif machine.os == 'Darwin':
+elif machine.platform == 'darwin':
     PYTHON_DIR = '/usr/local/python-{version}'
     PATH.prepend('$PYTHON_DIR/Python.framework/Versions/{version.thru(2)}/bin')
 else:

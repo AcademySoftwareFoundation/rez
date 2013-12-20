@@ -178,8 +178,8 @@ def get_execution_namespace(pkg_res_list):
     env = rex.RexNamespace(env_overrides_existing_lists=True)
 
     # add special data objects and functions to the namespace
-    import rez.platform_ as plat
-    env['machine'] = plat.Platform()
+    from rez.system import system
+    env['machine'] = system  # FIXME make this env['system']?
     env['pkgs'] = ResolvedPackages(pkg_res_list)
 
 # 	# FIXME: build_requires does not actually indicate that we're building

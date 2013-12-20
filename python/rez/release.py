@@ -3,7 +3,7 @@ rez-release
 
 A tool for releasing rez - compatible projects centrally
 """
-
+from __future__ import with_statement
 import sys
 import os
 import os.path
@@ -16,10 +16,12 @@ from email.mime.text import MIMEText
 
 from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod, render_template
 from rez.resources import load_metadata
+from rez.settings import settings
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
 import rez.builds as builds
+
 
 ##############################################################################
 # Globals
@@ -50,7 +52,6 @@ class RezReleaseUnsupportedMode(RezReleaseError):
 ##############################################################################
 
 REZ_RELEASE_PATH_ENV_VAR = "REZ_RELEASE_PACKAGES_PATH"
-EDITOR_ENV_VAR = "REZ_RELEASE_EDITOR"
 RELEASE_COMMIT_FILE = "rez-release-commit.tmp"
 
 
@@ -106,8 +107,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
             filepath containing the project to be released
     commit_message:
             None, or message string to write to svn, along with changelog.
-            If 'commit_message' None, the user will be prompted for input using the
-            editor specified by $REZ_RELEASE_EDITOR.
+            If 'commit_message' None, the user will be prompted for input.
     njobs:
             number of threads to build with; passed to make via -j flag
     build_time:
@@ -275,8 +275,7 @@ class RezReleaseMode(object):
 
     def _get_commit_message(self):
         '''
-        Prompt user for a commit message using the editor specified by
-        $REZ_RELEASE_EDITOR.
+        Prompt user for a commit message using the configured editor.
 
         The starting value of the editor will be the message passed on the
         command-line, if given.
@@ -742,10 +741,7 @@ class RezReleaseMode(object):
         os.makedirs(self.base_build_dir)
 
         if (self.commit_message is None):
-            # get preferred editor for commit message
-            self.editor = os.getenv(EDITOR_ENV_VAR)
-            if not self.editor:
-                raise RezReleaseError("rez-release: $" + EDITOR_ENV_VAR + " is not set.")
+            self.editor = settings.editor
             self.commit_message = ''
 
         # check we're in a state to release (no modified/out-of-date files etc)

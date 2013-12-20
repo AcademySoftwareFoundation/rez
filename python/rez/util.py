@@ -1,6 +1,7 @@
 """
 Misc useful stuff.
 """
+from __future__ import with_statement
 import stat
 import sys
 import os
@@ -9,6 +10,7 @@ import time
 import posixpath
 import ntpath
 import UserDict
+import subprocess as sp
 
 
 
@@ -38,6 +40,13 @@ def gen_dotgraph_image(dot_data, out_file):
 
     fn(out_file)
 
+def which(*programs):
+    for prog in programs:
+        p = sp.Popen("which "+prog, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        s_out,s_err = p.communicate()
+        if not p.returncode:
+            return s_out.strip()
+    return None
 
 def readable_time_duration(secs, approx=True):
     divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
