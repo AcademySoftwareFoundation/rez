@@ -1,3 +1,5 @@
+# TODO deprecate when we move completely to setup.py
+
 # Author: Steven J. Bethard <steven.bethard@gmail.com>.
 
 """Command-line parsing library

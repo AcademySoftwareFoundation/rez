@@ -1,0 +1,6 @@
+[Core]
+Name = hg
+Module = hg
+
+[Documentation]
+Description = Clones and updates from mercurial repositories.

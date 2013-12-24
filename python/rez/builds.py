@@ -1,3 +1,8 @@
+
+# TODO deprecate this file, it has been replaced by: build_utils.py, source_retrieval.py,
+# (TODO) and the plugins found under plugins/source_retriever. Remaining code here should go
+# (TODO) into a 'build_package.py' file.
+
 import sys
 import os
 import re
@@ -245,7 +250,6 @@ class SourceRetriever(object):
         source_path : str
             path to which the source code directory should be extracted
         '''
-
         raise NotImplementedError
 
     def _source_cache_path(self, url):

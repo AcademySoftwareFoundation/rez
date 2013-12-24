@@ -264,6 +264,7 @@ cat ./bin/_set-rez-env \
     | sed -e 's|!REZ_PYPARSING_PATH!|'$_REZ_PYPARSING_PATH'|g' \
     | sed -e 's|!REZ_PYMEMCACHED_PATH!|'$_REZ_PYMEMCACHED_PATH'|g' \
     | sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
+    | sed -e 's|!REZ_YAPSY_PATH!|'$_REZ_YAPSY_PATH'|g' \
     | sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
     > $install_dir/bin/_set-rez-env
 
@@ -282,6 +283,7 @@ done
 
 # install remaining files
 #-----------------------------------------------------------------------------------------
+cp -rf ./plugins $install_dir
 cp -rf ./python $install_dir
 chmod 755 `find $install_dir/python -type d`
 chmod 644 `find $install_dir/python -type f`
