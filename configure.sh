@@ -53,6 +53,7 @@ pyparsing_path=
 pymemcached_path=
 pysvn_path=
 gitpython_path=
+yapsy_path=
 
 # Your preferred text editor for writing package release notes. You can change this at any
 # time by setting $REZ_RELEASE_EDITOR appropriately.
@@ -114,6 +115,9 @@ if [ "$pysvn_path" == "" ]; then
 fi
 if [ "$gitpython_path" == "" ]; then
     gitpython_path=$REZCONFIG_GITPYTHON_PATH
+fi
+if [ "$yapsy_path" == "" ]; then
+    yapsy_path=$REZCONFIG_YAPSY_PATH
 fi
 
 if [ "$rez_release_editor" == "" ]; then
@@ -544,6 +548,38 @@ fi
 echo "found pyparsing at "$pyparsing_path
 
 
+# yapsy
+#-----------------------------------------------------------------------------------------
+echo
+echo 'detecting yapsy...'
+if [ "$yapsy_path" == "" ]; then
+    $python_binary -c "import yapsy" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        yapsy_path=`$python_binary -c \
+            "import os.path ; \
+            import yapsy ; \
+            s = yapsy.__file__.replace('/__init__.pyc','') ; \
+            s = yapsy.__file__.replace('/__init__.pyo','') ; \
+            s = s.replace('/__init__.py','') ; \
+            print os.path.dirname(s)"`
+        if [ $? -ne 0 ]; then
+            yapsy_path=""
+        fi
+    fi
+fi
+if [ "$yapsy_path" == "" ]; then
+    echo "couldn't find yapsy python module - $orset""REZCONFIG_YAPSY_PATH" 1>&2
+    exit 1
+else
+    bash -c "export PYTHONPATH=$yapsy_path ; $python_binary -c 'import yapsy' > /dev/null 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "yapsy python module not found at "$yapsy_path 1>&2
+        exit 1
+    fi
+fi
+echo "found yapsy at "$yapsy_path
+
+
 if [ "$_REZ_ISDEMO" != "1" ]; then
     # pymemcached
     #-----------------------------------------------------------------------------------------
@@ -677,6 +713,7 @@ echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
 echo "export _REZ_PYMEMCACHED_PATH='"$pymemcached_path"'"	 		>> ./rez.configured
 echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				    >> ./rez.configured
 echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 			>> ./rez.configured
+echo "export _REZ_YAPSY_PATH='"$yapsy_path"'"	 				    >> ./rez.configured
 echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 	    >> ./rez.configured
 echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 	>> ./rez.configured
 

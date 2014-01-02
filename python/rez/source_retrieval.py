@@ -183,13 +183,13 @@ class SourceRetriever(object):
         raise NotImplementedError
 
     def _subprocess(self, args, get_stdout=False, get_stderr=False, check_return=True,
-                    **subprocess_kwargs):
+                    quiet=False, **subprocess_kwargs):
         """
         Returns (exitcode,stdout,stderr), where stdout/err will be None if get_stdout/err
         is False. If check_return is True, an exception is raised if the subprocess fails.
         """
         cmd = ' '.join(args)
-        if self.verbosity > 1:
+        if (self.verbosity > 1) and (not quiet):
             print "running: " + cmd
 
         _stdout = sp.PIPE if get_stdout else None
@@ -258,11 +258,12 @@ class RepoCloner(SourceRetriever):
         if not os.path.isdir(repo_dir):
             print "Cloning repo %s (to %s)" % (other_repo, repo_dir)
             self.repo_clone(repo_dir, other_repo, to_cache)
-            if not to_cache:
+            if (not to_cache) and (not self.repo_at_revision(repo_dir, revision)):
                 print "Updating repo %s to %s" % (repo_dir, revision)
                 self.repo_update(repo_dir, revision)
         # if the revision is a branch name, we always pull
-        elif self.is_branch_name(repo_dir, revision) or not self.repo_has_revision(repo_dir, revision):
+        elif self.is_branch_name(repo_dir, revision) or \
+                not self.repo_has_revision(repo_dir, revision):
             print "Pulling from repo %s (to %s)" % (other_repo, repo_dir)
             self.repo_pull(repo_dir, other_repo)
             if not self.repo_at_revision(repo_dir, revision):

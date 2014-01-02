@@ -21,7 +21,7 @@ class GitCloner(RepoCloner):
         return "HEAD"
 
     def git(self, repo_dir, git_args, bare=None, get_stdout=False, get_stderr=False,
-            check_return=True, **subprocess_kwargs):
+            check_return=True, quiet=True, **subprocess_kwargs):
         '''Run a git command for the given repo_dir, with the given args
 
         Parameters
@@ -49,8 +49,12 @@ class GitCloner(RepoCloner):
                 args.extend(['--work-tree', repo_dir, '--git-dir',
                              os.path.join(repo_dir, '.git')])
         args.extend(git_args)
-        return self._subprocess(args, get_stdout=get_stdout, get_stderr=get_stderr,
-                                check_return=check_return, **subprocess_kwargs)
+        return self._subprocess(args,
+                                get_stdout=get_stdout,
+                                get_stderr=get_stderr,
+                                check_return=check_return,
+                                quiet=quiet,
+                                **subprocess_kwargs)
 
     def _current_branch(self, repo_dir):
         _,stdout,_ = self.git(repo_dir, ['rev-parse', '--abbrev-ref', 'HEAD'], get_stdout=True)
@@ -84,7 +88,6 @@ class GitCloner(RepoCloner):
             if remote_name == default_remote:
                 found_default = True
             remote_url = ' '.join(split_line[1:])
-            print "remote_url: %r" % remote_url
             if remote_url == repo_url:
                 return remote_name
 
@@ -111,16 +114,32 @@ class GitCloner(RepoCloner):
     def _iter_branches(self, repo_dir, remote=True, local=True):
         _,stdout,_ = self.git(repo_dir, ['branch', '-a'], get_stdout=True)
         for line in stdout.split('\n'):
-            if line and '->' not in line:
-                branch = line.strip('* ')
-                if remote and branch.startswith('remotes/'):
-                    yield branch
-                elif local and not branch.startswith('remotes/'):
-                    yield branch
+            toks = line.strip('* ').split()
+            if toks:
+                branch = None
+                alias = None
+
+                if remote and toks[0].startswith('remotes/'):
+                    if '->' in toks:
+                        alias = toks[0]
+                        branch = 'remotes/' + toks[2]
+                    else:
+                        branch = toks[0]
+                    yield branch,alias
+                elif local and not toks[0].startswith('remotes/'):
+                    if '->' in toks:
+                        alias = toks[0]
+                        branch = toks[2]
+                    else:
+                        branch = toks[0]
+                    yield branch,alias
 
     def _find_branch(self, repo_dir, name, remote=True, local=True):
-        for branch in self._iter_branches(repo_dir, remote, local):
-            if branch.split('/')[-1] == name:
+        for branch,alias in self._iter_branches(repo_dir, remote, local):
+            if alias:
+                if alias.split('/')[-1] == name:
+                    return branch
+            elif branch.split('/')[-1] == name:
                 return branch
 
     def is_branch_name(self, repo_dir, revision):
@@ -140,27 +159,27 @@ class GitCloner(RepoCloner):
             # mirror implies bare.
             args.append('--mirror')
         args.extend([repo_url, repo_dir])
-        self.git(None, args)
+        self.git(None, args, quiet=False)
 
     def repo_pull(self, repo_dir, repo_url):
         remote_name = self._repo_remote_for_url(repo_dir, repo_url)
-        self.git(repo_dir, ['fetch', remote_name])
+        self.git(repo_dir, ['fetch', remote_name], quiet=False)
 
     def repo_update(self, repo_dir, revision):
-        curr_branch = self._current_branch(repo_dir)
-        branch = self._find_branch(repo_dir, revision)
+        curr_branch = cls._current_branch(repo_dir)
+        branch = cls._find_branch(repo_dir, revision)
         if branch and branch.startswith('remotes/'):
             print "creating tracking branch for", revision
-            self.git(repo_dir, ['checkout', '--track', 'origin/' + revision])
+            self.git(repo_dir, ['checkout', '--track', 'origin/' + revision], quiet=False)
         else:
             # need to use different methods to update, depending on whether or
             # not we're switching branches...
             if curr_branch == 'rez':
                 # if branch is already rez, need to use "reset"
-                self.git(repo_dir, ['reset', '--hard', revision])
+                self.git(repo_dir, ['reset', '--hard', revision], quiet=False)
             else:
                 # create / checkout a branch called "rez"
-                self.git(repo_dir, ['checkout', '-B', 'rez', revision])
+                self.git(repo_dir, ['checkout', '-B', 'rez', revision], quiet=False)
 
 
 
