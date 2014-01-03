@@ -5,12 +5,12 @@ import os
 import os.path
 import traceback
 import subprocess as sp
-from rez.build_utils import encode_filesystem_name
+from rez.util import encode_filesystem_name
 
 
 
-def get_source(url, dest_path, cache_path=None, cache_filename=None, dry_run=False, \
-               **retriever_kwargs):
+def get_source(url, dest_path, type=None, cache_path=None, cache_filename=None, \
+               dry_run=False, **retriever_kwargs):
     ''' Download the source at the given url to dest_path.
 
         Returns the directory the source was extracted to, or None if
@@ -19,6 +19,7 @@ def get_source(url, dest_path, cache_path=None, cache_filename=None, dry_run=Fal
     from rez.plugin_managers import source_retriever_plugin_manager
 
     retriever = source_retriever_plugin_manager.create_instance(url, \
+        type=type,
         cache_path=cache_path,
         cache_filename=cache_filename,
         dry_run=dry_run,

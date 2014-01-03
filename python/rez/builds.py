@@ -1,7 +1,15 @@
 
-# TODO deprecate this file, it has been replaced by: build_utils.py, source_retrieval.py,
-# (TODO) and the plugins found under plugins/source_retriever. Remaining code here should go
-# (TODO) into a 'build_package.py' file.
+# TODO deprecate this file, it has been replaced by: build_package.py, source_retrieval.py,
+# (TODO) and the plugins found under plugins/source_retriever.
+
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+
 
 import sys
 import os

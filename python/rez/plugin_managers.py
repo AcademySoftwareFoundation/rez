@@ -104,13 +104,14 @@ class SourceRetrieverPluginManager(RezPluginManager):
         # ensures '.tar.gz' is seen before '.gz', for example
         self.ext_to_type = sorted(self.ext_to_type, key=lambda x:-len(x[0]))
 
-    def create_instance(self, url, cache_path=None, cache_filename=None, dry_run=False, \
-                        **retriever_kwargs):
-        plugin = None
-        for ext,plug in self.ext_to_type:
-            if url.endswith(ext):
-                plugin = plug
-                break
+    def create_instance(self, url, type=None, cache_path=None, cache_filename=None, \
+                        dry_run=False, **retriever_kwargs):
+        plugin = type
+        if not plugin:
+            for ext,plug in self.ext_to_type:
+                if url.endswith(ext):
+                    plugin = plug
+                    break
 
         if plugin is None:
             raise RuntimeError(("No source retriever is associated with the url: '%s'. " \
