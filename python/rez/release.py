@@ -3,7 +3,8 @@ rez-release
 
 A tool for releasing rez - compatible projects centrally
 """
-
+# TODO plugin-ize this.
+from __future__ import with_statement
 import sys
 import os
 import os.path
@@ -14,12 +15,14 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod, render_template
+from rez.util import remove_write_perms, copytree, get_epoch_time, \
+    safe_chmod, render_template
 from rez.resources import load_metadata
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
 import rez.builds as builds
+
 
 ##############################################################################
 # Globals
@@ -118,7 +121,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
     cls = dict(_release_classes)[mode]
     try:
         rel = cls(path)
-    except RezReleaseUnsupportedMode as err:
+    except RezReleaseUnsupportedMode, err:
         print err
         return
     rel.release(commit_message, njobs, build_time, allow_not_latest)
@@ -163,7 +166,7 @@ def send_release_email(subject, body):
         s = smtplib.SMTP(smtphost, smtpport)
         s.sendmail(from_, recipients, msg.as_string())
         print 'email(s) sent.'
-    except Exception as e:
+    except Exception, e:
         print >> sys.stderr, "Emailing failed: %s" % str(e)
 
 ##############################################################################
@@ -1173,7 +1176,7 @@ class HgRezReleaseMode(RezReleaseMode):
             assert hg('root')[0] == self.root_dir
         except AssertionError:
             raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not the root of a mercurial working copy")
-        except Exception as err:
+        except Exception, err:
             raise RezReleaseUnsupportedMode("failed to call hg binary: " + str(err))
 
         self.patch_path = os.path.join(hgdir, 'patches')

@@ -259,7 +259,7 @@ class RepoCloner(SourceRetriever):
         if not os.path.isdir(repo_dir):
             print "Cloning repo %s (to %s)" % (other_repo, repo_dir)
             self.repo_clone(repo_dir, other_repo, to_cache)
-            if (not to_cache) and (not self.repo_at_revision(repo_dir, revision)):
+            if not to_cache:
                 print "Updating repo %s to %s" % (repo_dir, revision)
                 self.repo_update(repo_dir, revision)
         # if the revision is a branch name, we always pull

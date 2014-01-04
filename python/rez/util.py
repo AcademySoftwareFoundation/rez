@@ -5,6 +5,7 @@ from __future__ import with_statement
 import stat
 import sys
 import os
+import os.path
 import shutil
 import time
 import posixpath
@@ -42,6 +43,48 @@ def gen_dotgraph_image(dot_data, out_file):
     fn(out_file)
 
 
+# case-insensitive fuzzy string match
+def get_close_matches(term, fields, fuzziness=0.4, key=None):
+    import math
+    import difflib
+
+    def _ratio(a, b):
+        return difflib.SequenceMatcher(None, a, b).ratio()
+
+    term = term.lower()
+    matches = []
+
+    for field in fields:
+        fld = field if key is None else key(field)
+        if term == fld:
+            matches.append((field, 1.0))
+        else:
+            name = fld.lower()
+            r = _ratio(term, name)
+            if name.startswith(term):
+                r = math.pow(r, 0.3)
+            elif term in name:
+                r = math.pow(r, 0.5)
+            if r >= (1.0 - fuzziness):
+                matches.append((field, min(r, 0.99)))
+
+    return sorted(matches, key=lambda x:-x[1])
+
+
+# fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
+def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
+    matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
+    fam_matches = get_close_matches(pkg.split('-')[0], pkgs, \
+        fuzziness=fuzziness, key=lambda x:x.split('-')[0])
+
+    d = {}
+    for pkg_,r in (matches + fam_matches):
+        d[pkg_] = d.get(pkg_, 0.0) + r
+
+    combined = [(k,v*0.5) for k,v in d.iteritems()]
+    return sorted(combined, key=lambda x:-x[1])
+
+
 def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
 
@@ -65,6 +108,16 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     if neg:
         s = '-' + s
     return s
+
+def is_pkg_dir(path):
+    if not os.path.isdir(path):
+        return False
+
+    pkg_files = ("package.yaml", "package.py")
+    for pkgf in pkg_files:
+        if os.path.isfile(os.path.join(path, pkgf)):
+            return True
+    return False
 
 def hide_local_packages():
     import rez.filesys
@@ -99,7 +152,9 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     else:
         copy = shutil.copy2
 
-    os.makedirs(dst)
+    if not os.path.isdir(dst):
+        os.makedirs(dst)
+
     errors = []
     for name in names:
         if name in ignored_names:
@@ -131,6 +186,16 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     if errors:
         raise shutil.Error(errors)
 
+def movetree(src, dst):
+    """
+    Attempts a move, and falls back to a copy+delete if this fails
+    """
+    try:
+        shutil.move(src, dst)
+    except:
+        copytree(src, dst, symlinks=True, hardlinks=True)
+        shutil.rmtree(dl_path)
+
 def get_epoch_time():
     """
     get time since the epoch as an int
@@ -139,7 +204,9 @@ def get_epoch_time():
     return int(time.mktime(time.localtime()))
 
 def safe_chmod(path, mode):
-    "set the permissions mode on path, but only if it differs from the current mode."
+    """
+    set the permissions mode on path, but only if it differs from the current mode.
+    """
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
         os.chmod(path, mode)
 

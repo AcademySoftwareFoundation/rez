@@ -1,7 +1,7 @@
 '''
 Invoke a shell based on a configuration request.
 '''
-
+from __future__ import with_statement
 import argparse
 import sys
 import os
@@ -10,14 +10,6 @@ import shutil
 from rez.cli import error, output
 from . import config as rez_cli_config
 
-# _g_usage = "rez-env [options] pkg1 pkg2 ... pkgN"
-
-
-# class OptionParser2(optparse.OptionParser):
-#     def exit(self, status=0, msg=None):
-#         if msg:
-#             sys.stderr.write(msg)
-#         sys.exit(1)
 
 # autowrapper constants:
 _g_context_filename = 'package.context'

@@ -5,10 +5,11 @@ Creating a timestamp file ensures that the package works correctly with rez's
 timestamping feature (see the user manual). If a package is not timestamped then rez
 treats it as though it does not exist.
 '''
-
+from __future__ import with_statement
 import os.path
 import sys
 from rez.cli import error, output
+
 
 def setup_parser(parser):
     parser.add_argument("path", default=".", nargs="?")
