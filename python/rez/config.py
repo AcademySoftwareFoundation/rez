@@ -560,7 +560,7 @@ class Resolver(object):
                 elif cmd.name == 'replace':
                     prev_pkg_name = set_vars.get(cmd.key, None)
                     if cmd.friends:
-                        if prev_pkg_name not in cmd.friends:
+                        if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
                             raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
                                                   "package '%s', and is not in the list "
                                                   "of friends %s" % (pkg_res.name, cmd.key,
