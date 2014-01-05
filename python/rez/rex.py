@@ -509,12 +509,7 @@ endif
         return self.setenv(key, value)
 
     def prependenv(self, key, value):
-        return """if ($?{key}) then
-    setenv {key} "{value}{sep}${key}"
-else
-    setenv {key} "{value}"
-endif
-""".format(key=key, sep=self._env_sep(key), value=value)
+        return 'setenv {key} {value}{sep}${{{key}}}'.format(key=key, sep=self._env_sep(key), value=value)
 
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
@@ -532,12 +527,7 @@ endif
 #                             value=value))
 
     def appendenv(self, key, value):
-        return """if ($?{key}) then
-    setenv {key} "${key}{sep}{value}"
-else
-    setenv {key} "{value}"
-endif
-""".format(key=key, sep=self._env_sep(key), value=value)
+        return 'setenv {key} ${{{key}}}{sep}{value}'.format(key=key, sep=self._env_sep(key), value=value)
 
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
@@ -864,7 +854,7 @@ class EnvironRecorderDict(UserDict.DictMixin):
         return self.command_recorder
 
     def do_list_override(self, key):
-        if key not in self.environ:
+        if key not in self.environ and key not in self:
             return True
         if self._override_existing_lists and key not in self._var_cache:
             return True
@@ -915,6 +905,9 @@ class EnvironmentVariable(object):
         else:
             self._environ_map.python_interpreter.appendenv(self.name, value)
             self._environ_map.command_recorder.appendenv(self.name, value)
+
+    def replace(self, value, friends=None):
+        self._environ_map.command_recorder.replace(self.name, value, friends=friends)
 
     def set(self, value):
         self._environ_map.command_recorder.setenv(self.name, value)
