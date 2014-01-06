@@ -1,6 +1,7 @@
 """
 Utility functions for building an external package, ie a rez-install 'formula'.
 """
+from __future__ import with_statement
 from source_retrieval import get_source, SourceRetrieverError
 from plugin_managers import source_retriever_plugin_manager
 from rez.cli import error, output
@@ -133,7 +134,7 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
         working_dir=working_dir)
 
     print "Writing CMakeLists.txt"
-    with open('CMakeLists.txt', 'w'), f:
+    with open('CMakeLists.txt', 'w') as f:
         f.write(content)
 
 def _apply_patch(metadata, patch_info, source_path):

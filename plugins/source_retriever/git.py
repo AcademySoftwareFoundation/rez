@@ -135,11 +135,8 @@ class GitCloner(RepoCloner):
                     yield branch,alias
 
     def _find_branch(self, repo_dir, name, remote=True, local=True):
-        for branch,alias in self._iter_branches(repo_dir, remote, local):
-            if alias:
-                if alias.split('/')[-1] == name:
-                    return branch
-            elif branch.split('/')[-1] == name:
+        for branch,_ in self._iter_branches(repo_dir, remote, local):
+            if branch.split('/')[-1] == name:
                 return branch
 
     def is_branch_name(self, repo_dir, revision):
@@ -166,14 +163,16 @@ class GitCloner(RepoCloner):
         self.git(repo_dir, ['fetch', remote_name], quiet=False)
 
     def repo_update(self, repo_dir, revision):
-        curr_branch = cls._current_branch(repo_dir)
-        branch = cls._find_branch(repo_dir, revision)
+        curr_branch = self._current_branch(repo_dir)
+        branch = self._find_branch(repo_dir, revision)
+
         if branch and branch.startswith('remotes/'):
             print "creating tracking branch for", revision
             self.git(repo_dir, ['checkout', '--track', 'origin/' + revision], quiet=False)
         else:
             # need to use different methods to update, depending on whether or
             # not we're switching branches...
+            # AJ why the Rez local branch??
             if curr_branch == 'rez':
                 # if branch is already rez, need to use "reset"
                 self.git(repo_dir, ['reset', '--hard', revision], quiet=False)

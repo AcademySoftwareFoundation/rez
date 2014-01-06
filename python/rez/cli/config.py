@@ -3,9 +3,11 @@ Resolve a configuration request.
 
 Output from this util can be used to setup said configuration (rez-env does this).
 '''
+from __future__ import with_statement
 import os
 import sys
 from rez.cli import error, output
+
 
 def setup_shared_parser(parser):
     '''
