@@ -356,6 +356,9 @@ class Resolver(object):
         -OR-
         raise the relevant exception, if config resolution is not possible
         """
+
+        resolve_start_time = time.time()
+
         self.raw_pkg_reqs = [pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs]
 
         if not no_os:
@@ -417,6 +420,9 @@ class Resolver(object):
             recorder.setenv('REZ_META_' + k.upper(), ' '.join(v))
         for k, v in shallow_meta_envvars.iteritems():
             recorder.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
+
+        resolve_end_time = time.time()
+        recorder.setenv('REZ_TIME_TO_RESOLVE', str(resolve_end_time - resolve_start_time))
 
         return pkg_res_list, recorder.commands, dot_graph, nfails
 
@@ -557,7 +563,7 @@ class Resolver(object):
                                                               set_vars[cmd.key]))
                     set_vars[cmd.key] = pkg_res.name
 
-                elif cmd.name == 'replace':
+                elif cmd.name == 'resetenv':
                     prev_pkg_name = set_vars.get(cmd.key, None)
                     if cmd.friends:
                         if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
