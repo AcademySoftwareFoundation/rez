@@ -155,8 +155,8 @@ class Setenv(EnvCommand):
         return result
 Setenv.register()
 
-class Replace(EnvCommand):
-    name = 'replace'
+class Resetenv(EnvCommand):
+    name = 'resetenv'
 
     @property
     def friends(self):
@@ -172,7 +172,7 @@ class Replace(EnvCommand):
     def post_exec(self, interpreter, result):
         interpreter._set_env_vars.add(self.key)
         return result
-Replace.register()
+Resetenv.register()
 
 class Prependenv(Setenv):
     name = 'prependenv'
@@ -243,8 +243,8 @@ class CommandRecorder(object):
     def unsetenv(self, key):
         self.commands.append(Unsetenv(key))
 
-    def replace(self, key, value, friends=None):
-        self.commands.append(Replace(key, self._expand(value), friends))
+    def resetenv(self, key, value, friends=None):
+        self.commands.append(Resetenv(key, self._expand(value), friends))
 
     def prependenv(self, key, value):
         self.commands.append(Prependenv(key, self._expand(value)))
@@ -367,7 +367,7 @@ class CommandInterpreter(object):
     def unsetenv(self, key):
         raise NotImplementedError
 
-    def replace(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None):
         raise NotImplementedError
 
     def prependenv(self, key, value):
@@ -408,7 +408,7 @@ class SH(Shell):
     def unsetenv(self, key):
         return "unset %s" % (key,)
 
-    def replace(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None):
         return self.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -505,7 +505,7 @@ endif
     def unsetenv(self, key):
         return "unsetenv %s" % (key,)
 
-    def replace(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None):
         return self.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -573,7 +573,7 @@ class Python(CommandInterpreter):
     def unsetenv(self, key):
         self._environ.pop(key)
 
-    def replace(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None):
         self.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -686,7 +686,7 @@ class WinShell(Shell):
         cmd += 'set %s=%s\n' % (key, value)
         return cmd
 
-    def replace(self, key, value, friends=None):
+    def resetenv(self, key, value, friends=None):
         return self.setenv(key, value)
 
     def unsetenv(self, key):
@@ -906,8 +906,8 @@ class EnvironmentVariable(object):
             self._environ_map.python_interpreter.appendenv(self.name, value)
             self._environ_map.command_recorder.appendenv(self.name, value)
 
-    def replace(self, value, friends=None):
-        self._environ_map.command_recorder.replace(self.name, value, friends=friends)
+    def reset(self, value, friends=None):
+        self._environ_map.command_recorder.resetenv(self.name, value, friends=friends)
 
     def set(self, value):
         self._environ_map.command_recorder.setenv(self.name, value)
