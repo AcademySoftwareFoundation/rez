@@ -117,8 +117,8 @@ def command(opts):
 
     # hide local pkgs
     if opts.no_local:
-        import rez.util
-        rez.util.hide_local_packages()
+        from rez.settings import settings
+        settings.set("packages_path", settings.nonlocal_packages_path)
 
     import rez.config as dc
     ##########################################################################################

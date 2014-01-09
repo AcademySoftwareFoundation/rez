@@ -5,6 +5,9 @@ Display dot files from the command line.
 
 import os
 import sys
+import time
+import webbrowser
+from rez.settings import settings
 from rez.cli import error, output
 
 #########################################################################################
@@ -12,13 +15,13 @@ from rez.cli import error, output
 #########################################################################################
 
 def setup_parser(parser):
-#     usage = "usage: %prog [options] dot-file"
-#     p = optparse.OptionParser(usage=usage)
-
-    default_viewer = os.getenv("REZ_DOT_IMAGE_VIEWER", "xnview")
+    default_viewer = settings.image_viewer
+    defview_help = default_viewer or "browser"
     parser.add_argument("dotfile", help="dot file to display")
+    parser.add_argument("--format", dest="format", type=str, default="png", \
+                        help="select image format")
     parser.add_argument("-v", "--viewer", dest="viewer", type=str, default=default_viewer,
-                        help="app to view image with [default = " + default_viewer + "]")
+                        help="app to view image with")
     parser.add_argument("-q", "--quiet", dest="quiet", action="store_true", default=False,
                         help="suppress unnecessary output")
     parser.add_argument("-c", "--conflict-only", dest="conflict_only", action="store_true", default=False,
@@ -28,23 +31,19 @@ def setup_parser(parser):
     parser.add_argument("-r", "--ratio", dest="ratio", type=float, default=-1,
                         help="image height / image width")
     parser.add_argument("-f", "--filename", dest="filename", type=str,
-                        help="write out the image to file and exit (won't delete it)")
-
-# if (len(sys.argv) == 1):
-#     (opts, extraArgs) = p.parse_args(["-h"])
-#     sys.exit(0)
-
-# (opts, dotfile) = p.parse_args()
-# if len(dotfile) != 1:
-#     p.error("Expected a single dot-file")
+                        help="write out the rendered image to file and exit (won't delete it)")
 
 def command(opts):
     import pydot
     import subprocess
     import tempfile
+    from rez.system import system
+
+    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
+        error("Unable to open display.")
+        sys.exit(1)
 
     dotfile = opts.dotfile
-
     if not os.path.isfile(dotfile):
         error("File does not exist.")
         sys.exit(1)
@@ -126,7 +125,7 @@ def command(opts):
     if opts.filename:
         imgfile = opts.filename
     else:
-        tmpf = tempfile.mkstemp(suffix='.jpg')
+        tmpf = tempfile.mkstemp(suffix='.'+opts.format)
         os.close(tmpf[0])
         imgfile = tmpf[1]
 
@@ -137,6 +136,12 @@ def command(opts):
     if not g:
         g = pydot.graph_from_dot_file(dotfile)
 
+    if hasattr(g, "write_"+opts.format):
+        write_fn = getattr(g, "write_"+opts.format)
+    else:
+        error("Unsupported image format: '%s'" % opts.format)
+        sys.exit(1)
+
     if opts.ratio > 0:
         g.set_ratio(str(opts.ratio))
 
@@ -144,7 +149,7 @@ def command(opts):
         print "rendering image to " + imgfile + "..."
         sys.stdout.flush()
 
-    g.write_jpg(imgfile)
+    write_fn(imgfile)
 
     #########################################################################################
     # view it then delete it or just exit if we're saving to a file
@@ -152,18 +157,25 @@ def command(opts):
     if not opts.filename:
         if not opts.quiet:
             print "loading viewer..."
-        proc = subprocess.Popen(opts.viewer + " " + imgfile, shell=True)
-        proc.wait()
 
-        if proc.returncode != 0:
-            subprocess.Popen("firefox " + imgfile, shell=True).wait()
+        t1 = time.time()
+
+        viewed = False
+        if opts.viewer:
+            proc = subprocess.Popen(opts.viewer + " " + imgfile, shell=True)
+            proc.wait()
+            viewed = not bool(proc.returncode)
+        if not viewed:
+            webbrowser.open_new("file://" + imgfile)
+
+        # hacktastic
+        # TODO remove when we have a better system for cleaning up tempfiles
+        t2 = time.time()
+        if (t2-t1) < 1: # viewer is probably non-blocking
+            # give app a chance to load image
+            time.sleep(10)
 
         os.remove(imgfile)
-
-
-
-
-
 
 
 

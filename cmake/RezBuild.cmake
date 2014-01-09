@@ -71,12 +71,13 @@ if(REZ_BUILD_PROJECT_VERSION)
 endif(REZ_BUILD_PROJECT_VERSION)
 
 
+# TODO Deprecate, this is very very old
 # convert pkg-config search path, if it exists, into a cmake list for further consumption
-set(PKG_CONFIG_PATH_LIST)
-set(ENV_PKG_CONFIG_PATH $ENV{PKG_CONFIG_PATH})
-if(ENV_PKG_CONFIG_PATH)
-	string(REPLACE ":" ";" PKG_CONFIG_PATH_LIST ${ENV_PKG_CONFIG_PATH})
-endif(ENV_PKG_CONFIG_PATH)
+#set(PKG_CONFIG_PATH_LIST)
+#set(ENV_PKG_CONFIG_PATH $ENV{PKG_CONFIG_PATH})
+#if(ENV_PKG_CONFIG_PATH)
+#	string(REPLACE ":" ";" PKG_CONFIG_PATH_LIST ${ENV_PKG_CONFIG_PATH})
+#endif(ENV_PKG_CONFIG_PATH)
 
 
 #############################################################################

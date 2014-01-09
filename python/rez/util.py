@@ -12,7 +12,7 @@ import posixpath
 import ntpath
 import UserDict
 import re
-import subprocess
+import subprocess as sp
 
 
 
@@ -42,6 +42,13 @@ def gen_dotgraph_image(dot_data, out_file):
 
     fn(out_file)
 
+def which(*programs):
+    for prog in programs:
+        p = sp.Popen("which "+prog, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
+        s_out,s_err = p.communicate()
+        if not p.returncode:
+            return s_out.strip()
+    return None
 
 # case-insensitive fuzzy string match
 def get_close_matches(term, fields, fuzziness=0.4, key=None):
@@ -119,14 +126,6 @@ def is_pkg_dir(path):
             return True
     return False
 
-def hide_local_packages():
-    import rez.filesys
-    rez.filesys._g_syspaths = rez.filesys._g_syspaths_nolocal
-
-def unhide_local_packages():
-    import rez.filesys
-    rez.filesys._g_syspaths = rez.filesys.get_system_package_paths()
-
 def remove_write_perms(path):
     st = os.stat(path)
     mode = st.st_mode & ~WRITE_PERMS
@@ -194,7 +193,7 @@ def movetree(src, dst):
         shutil.move(src, dst)
     except:
         copytree(src, dst, symlinks=True, hardlinks=True)
-        shutil.rmtree(dl_path)
+        shutil.rmtree(src)
 
 def get_epoch_time():
     """
@@ -276,9 +275,9 @@ def render_template(template, **variables):
                 templ = f.read()
                 _templates[template] = templ
         else:
-            # TODO support template plugins, probably using Jinja2
             raise Exception("Unknown template '%s'" % template)
 
+    # TODO support template plugins, probably using Jinja2
     return templ % variables
 
 def encode_filesystem_name(input_str):

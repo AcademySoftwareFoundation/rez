@@ -1126,7 +1126,7 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
         extra_cmake_commands.append('message("")')
         extra_cmake_commands.append('message("External build cmake variables:")')
         for cmake_var in sorted(variables):
-            extra_cmake_commands.append('message("    {0:<{fill}} ${{{0}}}")'.format(cmake_var, fill=width))
+            extra_cmake_commands.append('message("    ${%s}")' % (cmake_var))
 
     env_variables = set([])
     for line in install_commands:
@@ -1137,7 +1137,7 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
         extra_cmake_commands.append('message("")')
         extra_cmake_commands.append('message("External build environment variables:")')
         for cmake_var in sorted(env_variables):
-            extra_cmake_commands.append('message("    {0:<{fill}} $ENV{{{0}}}")'.format(cmake_var, fill=width))
+            extra_cmake_commands.append('message("    $ENV{%s}")' % (cmake_var))
 
     if variables or env_variables:
         extra_cmake_commands.append('message("")')

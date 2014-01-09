@@ -1,5 +1,6 @@
 from rez.util import encode_filesystem_name, movetree, is_pkg_dir
 from rez.source_retrieval import get_source
+from rez.settings import settings
 import os.path
 
 
@@ -10,9 +11,7 @@ class FormulaeManager(object):
     from these formulae.
     """
     def __init__(self):
-        # TODO control via settings
-        self.repo_urls = ["https://github.com/LumaPictures/rez-build/archive/master.zip"]
-        #self.repo_urls = ["git@github.com:LumaPictures/rez-build.git"]
+        self.repo_urls = settings.package_repository_url_path
         self.repos = dict((x,{}) for x in self.repo_urls)
 
     def get_urls(self):
@@ -45,12 +44,10 @@ class FormulaeManager(object):
         Update a formulae repository
         @returns List of newly added packages.
         """
-        # TODO get from settings
-        cache_path = os.path.expanduser('~/.rez/downloads/formulae-repos')
-
         old_pkgs = self.get_packages(url)
         dest_path = self._get_repo_dir(url)
-        dl_path = get_source(url, dest_path, cache_path=cache_path)
+        dl_path = get_source(url, dest_path,
+                             cache_path=settings.package_repository_cache_path)
 
         if dl_path != dest_path:
             print "Moving %s..." % dl_path
@@ -73,10 +70,8 @@ class FormulaeManager(object):
 
     @classmethod
     def _get_repo_dir(cls, url):
-        # TODO use settings
-        repos_dir = os.path.expanduser("~/.rez/formulae-repos")
         dirname = encode_filesystem_name(url)
-        return os.path.join(repos_dir, dirname)
+        return os.path.join(settings.package_repository_path, dirname)
 
 
 # singleton

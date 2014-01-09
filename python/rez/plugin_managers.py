@@ -4,6 +4,7 @@ Manages loading of all types of Rez plugins.
 from yapsy.PluginManager import PluginManager
 from yapsy.IPlugin import IPlugin
 from rez import module_root_path
+from rez.settings import settings
 import logging
 import os.path
 import os
@@ -35,8 +36,9 @@ class RezPluginManager(object):
     def __init__(self, plugin_type_name):
         """ Init a plugin manager. Type name must correspond with one of the source directories
         found under the 'plugins' directory. The plugin search path for this type of plugin is
-        controlled by the '<typename>_PATH' rez setting. For example, for plugin_type_name 'foo',
-        the rez config entry would be 'foo_path', and the overriding env-var 'REZ_FOO_PATH'.
+        controlled by the '<typename>_plugin_path' rez setting. For example, for plugin_type_name
+        'foo', the rezconfig entry would be 'foo_plugin_path', and the overriding env-var
+        'REZ_FOO_PLUGIN_PATH'.
         """
         self.type_name = plugin_type_name
         self.pretty_type_name = self.type_name.replace('_',' ')
@@ -58,11 +60,8 @@ class RezPluginManager(object):
         if not os.path.exists(plugin_path):
             raise RuntimeError("Unrecognised plugin type: '%s'" % self.type_name)
 
-        # TODO use rez settings
-        env_var = "REZ_%s_PATH" % self.type_name.upper()
-        env_paths = os.getenv(env_var, "").strip(':').split(':')
-
-        plugin_paths = [plugin_path] + [x for x in env_paths if x]
+        configured_paths = settings.get("%s_plugin_path" % self.type_name)
+        plugin_paths = [plugin_path] + configured_paths
         mgr = PluginManager()
         mgr.setPluginPlaces(plugin_paths)
 

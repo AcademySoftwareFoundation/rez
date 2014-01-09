@@ -25,6 +25,7 @@ import os
 import inspect
 import re
 from collections import defaultdict
+from rez.settings import settings
 from rez.util import to_posixpath, AttrDict
 from rez.versions import ExactVersion, VersionRange
 
@@ -224,12 +225,11 @@ class ResourceInfo(object):
         "expand variables in a search pattern with regular expressions"
         import versions
         import packages
-        import rez.filesys as filesys
 
         pattern = re.escape(pattern)
         expansions = [('version', versions.EXACT_VERSION_REGSTR),
                       ('name', packages.PACKAGE_NAME_REGSTR),
-                      ('search_path', '|'.join('(%s)' % p for p in filesys._g_syspaths))]
+                      ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
         return pattern + '$'
@@ -660,6 +660,7 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
         if strip:
             validator.strip(metadata)
         return metadata
+
     # TODO: print detailed error messages
     raise MetadataError("Could not find registered metadata configuration for %r" % filename)
 

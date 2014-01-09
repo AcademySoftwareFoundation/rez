@@ -30,6 +30,8 @@ to view a dot-graph showing all dependencies of all packages (a BIG image):
 import os
 import sys
 from rez.cli import error, output
+from rez.settings import settings
+
 
 def _detect_cycle(pkgmap, depchain, depset):
     pkg = depchain[-1]
@@ -59,7 +61,7 @@ def setup_parser(parser):
     parser.add_argument("pkg", nargs='+',
                         help='list of package names')
     parser.add_argument("-p", "--path", dest="path",
-                        default=os.environ["REZ_PACKAGES_PATH"],
+                        default=os.pathsep.join(settings.packages_path),
                         help="path where packages are located")
     parser.add_argument("-d", "--depth", dest="depth", type=int,
                         default=0,
@@ -81,6 +83,9 @@ def setup_parser(parser):
                         help="display dependency info in a dot graph")
 
 def command(opts):
+
+    raise Exception("TODO needs a total rewrite, very old!")
+
     import yaml
     import rez.sigint
     import rez.filesys as fs
@@ -138,13 +143,12 @@ def command(opts):
 
         vers = [x[0] for x in fs.get_versions_in_directory(fullpath, False)]
         if vers:
-            filename = os.path.join(fullpath, str(vers[-1][0]), "package.yaml")
+            filename = os.path.join(fullpath, str(vers[0]), "package.yaml")
             metadict = yaml.load(open(filename).read())
 
-            reqs = metadict["requires"] if ("requires" in metadict) else []
-            vars = metadict["variants"] if ("variants" in metadict) else []
-            if len(reqs) + len(vars) > 0:
-
+            reqs = metadict.get("requires", [])
+            vars = metadict.get("variants", [])
+            if reqs or vars:
                 fn_unver = lambda pkg: pkg.split('-')[0]
                 deps = set(map(fn_unver, reqs))
                 for var in vars:

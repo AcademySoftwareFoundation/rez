@@ -1,7 +1,6 @@
 import sys
 import os
 from collections import defaultdict
-import rez.filesys as filesys
 import rez.resources as resources
 from rez.packages import Package
 from rez.public_enums import *
@@ -30,7 +29,10 @@ if _g_caching_enabled:
         _g_caching_enabled = False
 if _g_caching_enabled:
     mc = _create_client()
-    if not mc.set("test_set", "success"):
+    try:
+        if not mc.set("test_set", "success"):
+            _g_caching_enabled = False
+    except:
         _g_caching_enabled = False
     mc = None
 
@@ -111,6 +113,7 @@ def cached_path(key, default=None, postfilter=None, local_only=False):
         return wrapped_func
     return decorator
 
+
 class RezMemCache(object):
     """
     Cache for filesystem access and resolves.
@@ -136,38 +139,12 @@ class RezMemCache(object):
         """
         return resources.load_metadata(path)
 
-    @cached_path("VERSIONS", default=())
-    def get_versions_in_directory(self, path, warnings=True):
-        """
-        For a given directory, return a list of (Version,epoch), which match version directories
-        found in the given directory.
-        """
-        return filesys.get_versions_in_directory(path, warnings)
-
     @cached_path("LISTDIR", default=())
     def list_directory(self, path, warnings=True):
         """
         For a given directory, return the list of files and dirs within.
         """
         return os.listdir(path)
-
-    def package_family_exists(self, family_name, paths=None):
-        """
-        Determines if the package family exists. This involves only quite light file system
-        access, so isn't memcached.
-        """
-        if family_name in self.families:
-            return True
-
-        if paths is None:
-            paths = filesys._g_syspaths
-
-        for path in paths:
-            if os.path.isdir(os.path.join(path, family_name)):
-                self.families.add(family_name)
-                return True
-
-        return False
 
     def package_fam_modified_during(self, paths, family_name, start_epoch, end_epoch):
         for path in paths:

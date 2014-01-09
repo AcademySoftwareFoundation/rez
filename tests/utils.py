@@ -58,10 +58,10 @@ class BaseTest(object):
         self.local_packages = {}
         self.release_packages = {}
 
-        import rez.filesys as fs
-        fs._g_local_pkgs_path = self.local_path
-        fs._g_syspaths = [self.release_path, self.local_path]
-        fs._g_syspaths_nolocal = [self.release_path]
+        from rez.settings import settings
+        settings.set("local_packages_path", self.local_path)
+        settings.set("release_packages_path", self.release_path)
+        settings.set("packages_path", [self.release_path, self.local_path])
 
     def add_package(self, name, local=False):
         """

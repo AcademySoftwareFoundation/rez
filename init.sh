@@ -42,19 +42,7 @@ else
 	PATH=`echo $PATH | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
 	export PATH=$PATH:$REZ_PATH/bin
 
-
-	if [ "$REZ_RELEASE_EDITOR" == "" ]; then
-		export REZ_RELEASE_EDITOR=!REZ_RELEASE_EDITOR!
-	fi
-
-
-	if [ "$REZ_DOT_IMAGE_VIEWER" == "" ]; then
-		export REZ_DOT_IMAGE_VIEWER=!REZ_DOT_IMAGE_VIEWER!
-	fi
-
-
 	source $REZ_PATH/bin/_complete
-
 fi
 
 

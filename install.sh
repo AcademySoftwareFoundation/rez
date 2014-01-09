@@ -234,8 +234,6 @@ cat ./init.sh \
     | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
     | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
     | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
     > $install_dir/init.sh
 chmod 644 $install_dir/init.sh
 
@@ -248,8 +246,6 @@ cat ./init.csh \
     | sed -e 's|!REZ_BASE_PATH!|'$base_install_dir'|g' \
     | sed -e 's|!REZ_LOCAL_PKGS_PATH!|'$_REZ_LOCAL_PACKAGES_PATH'|g' \
     | sed -e 's|!REZ_PACKAGES_PATH!|'$_REZ_PACKAGES_PATH'|g' \
-    | sed -e 's|!REZ_RELEASE_EDITOR!|'$_REZ_RELEASE_EDITOR'|g' \
-    | sed -e 's|!REZ_DOT_IMAGE_VIEWER!|'$_REZ_DOT_IMAGE_VIEWER'|g' \
     > $install_dir/init.csh
 chmod 644 $install_dir/init.csh
 
@@ -265,6 +261,7 @@ cat ./bin/_set-rez-env \
     | sed -e 's|!REZ_PYMEMCACHED_PATH!|'$_REZ_PYMEMCACHED_PATH'|g' \
     | sed -e 's|!REZ_PYSVN_PATH!|'$_REZ_PYSVN_PATH'|g' \
     | sed -e 's|!REZ_YAPSY_PATH!|'$_REZ_YAPSY_PATH'|g' \
+    | sed -e 's|!REZ_PSUTIL_PATH!|'$_REZ_PSUTIL_PATH'|g' \
     | sed -e 's|!REZ_GITPYTHON_PATH!|'$_REZ_GITPYTHON_PATH'|g' \
     > $install_dir/bin/_set-rez-env
 
@@ -284,6 +281,7 @@ done
 # install remaining files
 #-----------------------------------------------------------------------------------------
 cp -rf ./plugins $install_dir
+cp rezconfig $install_dir/
 cp -rf ./python $install_dir
 chmod 755 `find $install_dir/python -type d`
 chmod 644 `find $install_dir/python -type f`
