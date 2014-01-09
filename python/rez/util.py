@@ -18,6 +18,13 @@ import subprocess as sp
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
+_once_warnings = set()
+
+def print_warning_once(msg):
+    if msg not in _once_warnings:
+        print >> sys.stderr, "WARNING: %s" % msg
+        _once_warnings.add(msg)
+
 def gen_dotgraph_image(dot_data, out_file):
 
     # shortcut if writing .dot file

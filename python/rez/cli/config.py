@@ -6,6 +6,7 @@ Output from this util can be used to setup said configuration (rez-env does this
 from __future__ import with_statement
 import os
 import sys
+from rez.system import system
 from rez.cli import error, output
 
 
@@ -152,8 +153,7 @@ def command(opts):
 
     if opts.print_env or opts.env_file:
         import rez.rex as rex
-        # TODO: support other shells
-        script = rex.interpret(commands, shell='bash')
+        script = rex.interpret(commands, shell=system.shell)
 
     if opts.print_env:
         for env_cmd in script.split('\n'):

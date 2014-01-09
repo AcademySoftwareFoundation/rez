@@ -73,6 +73,10 @@ browser:
 # If True, print a warning when an untimestamped package is found.
 warn_untimestamped: true
 
+# If True, print a warning whenever a package with an old-style commands
+# section is resolved into an environment
+warn_old_commands: true
+
 
 # Type specifiers
 _type:
@@ -90,6 +94,7 @@ _type:
     image_viewer: str
     browser: str
     warn_untimestamped: bool
+    warn_old_commands: bool
 
 
 # What seperator to expect in env-vars

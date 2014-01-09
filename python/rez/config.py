@@ -53,7 +53,7 @@ from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
 from rez.system import system
-from rez.util import AttrDictWrapper, gen_dotgraph_image
+from rez.util import AttrDictWrapper, gen_dotgraph_image, print_warning_once
 import rez.rex as rex
 
 
@@ -477,7 +477,10 @@ class Resolver(object):
             for pkg_res in pkg_res_list:
                 pkg_res.strip()
 
-        result = (pkg_res_list, command_recorder.commands, dot_graph, len(self.rctxt.config_fail_list))
+        result = (pkg_res_list,
+                  command_recorder.commands,
+                  dot_graph,
+                  len(self.rctxt.config_fail_list))
 
         # we're done
         return result
@@ -489,13 +492,7 @@ class Resolver(object):
         from rez.system import system
         env['machine'] = system
         env['pkgs'] = ResolvedPackages(pkg_res_list)
-
-#         # FIXME: build_requires does not actually indicate that we're building
-#         # since it seem like rez-build does not pass this flag (not sure if anything does).
-#         def building():
-#             return self.rctxt.build_requires
-#
-#         env['building'] = building
+        env['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return env
 
     def record_commands(self, pkg_res_list):
@@ -532,10 +529,10 @@ class Resolver(object):
             # master recorder. this holds all of the commands to be interpreted
             pkg_recorder = rex.CommandRecorder()
             env.set_command_recorder(pkg_recorder)
-            pkg_recorder.comment("Commands from package %s" % pkg_res.name)
+            pkg_recorder.comment("")
+            pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
 
             prefix = "REZ_" + pkg_res.name.upper()
-
             env[prefix + "_VERSION"] = pkg_res.version
             env[prefix + "_BASE"] = pkg_res.base
             env[prefix + "_ROOT"] = pkg_res.root
@@ -559,9 +556,11 @@ class Resolver(object):
             elif inspect.isfunction(pkg_res.raw_commands):
                 pkg_res.raw_commands(pkg_res, env['pkgs'],
                                      AttrDictWrapper(env), pkg_recorder)
-
             # old style:
             elif isinstance(pkg_res.raw_commands, list):
+                if settings.warn_old_commands:
+                    print_warning_once("%s is using old-style commands." \
+                                       % pkg_res.short_name())
                 for cmd in pkg_res.raw_commands:
                     # convert to new-style
                     parse_export_command(cmd, env)

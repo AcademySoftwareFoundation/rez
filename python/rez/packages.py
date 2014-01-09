@@ -5,10 +5,12 @@ from __future__ import with_statement
 import os.path
 import re
 import sys
+from rez.util import print_warning_once
 from rez.resources import iter_resources, load_metadata
 from rez.settings import settings
 from rez.exceptions import PkgSystemError
 from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
+
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
@@ -206,9 +208,8 @@ class Package(object):
                     with open(release_time_f, 'r') as f:
                         self._timestamp = int(f.read().strip())
                 elif settings.warn_untimestamped:
-                    print >> sys.stderr, ("Warning: The package %s is not timestamped. " + \
-                        "To timestamp it manually, use the rez-timestamp utility. " + \
-                        "To turn off this warning, set 'warn_untimestamped' to false.") % self.base
+                    print_warning_once(("%s is not timestamped. To timestamp it " + \
+                                       "manually, use the rez-timestamp utility.") % self.base)
         return self._timestamp
 
     def short_name(self):

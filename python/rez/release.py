@@ -20,6 +20,7 @@ from rez.util import remove_write_perms, copytree, get_epoch_time, \
     safe_chmod, render_template
 from rez.resources import load_metadata
 from rez.settings import settings
+from rez.system import system
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
@@ -592,8 +593,7 @@ class RezReleaseMode(object):
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]
 
-            # TODO: support other shells
-            script = rex.interpret(commands, shell='bash')
+            script = rex.interpret(commands, shell=system.shell)
             with open(env_bake_file, 'w') as f:
                 f.write(script)
         except Exception, err:
@@ -627,8 +627,8 @@ class RezReleaseMode(object):
         # set env-vars that CMakeLists.txt files can reference, in this way
         # we can drive the build from the package.yaml file
         recorder.setenv('REZ_BUILD_ENV', '1')
-        recorder.setenv('REZ_LOCAL_PACKAGES_PATH', os.pathsep.join(settings.local_packages_path))
-        recorder.setenv('REZ_RELEASE_PACKAGES_PATH', os.pathsep.join(settings.release_packages_path))
+        recorder.setenv('REZ_LOCAL_PACKAGES_PATH', settings.local_packages_path)
+        recorder.setenv('REZ_RELEASE_PACKAGES_PATH', settings.release_packages_path)
         recorder.setenv('REZ_BUILD_PROJECT_VERSION', self.metadata['version'])
         recorder.setenv('REZ_BUILD_PROJECT_NAME', self.metadata['name'])
 
