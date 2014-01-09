@@ -1,4 +1,5 @@
-from rez.util import encode_filesystem_name, movetree, is_pkg_dir
+from rez.util import encode_filesystem_name, movetree
+from rez.packages import iter_package_families, iter_packages_in_range
 from rez.source_retrieval import get_source
 from rez.settings import settings
 import os.path
@@ -20,21 +21,15 @@ class FormulaeManager(object):
 
     def get_packages(self, url):
         """ @returns A list of packages (as strings) contained in the given repo """
+        # TODO port to resources
         repo = self._get_repo(url)
         if "pkgs" not in repo:
             pkgs = []
             repo_dir = self._get_repo_dir(url)
             if os.path.exists(repo_dir):
-                for pkg_name in os.listdir(repo_dir):
-                    dir_ = os.path.join(repo_dir, pkg_name)
-                    if is_pkg_dir(dir_):
-                        pkgs.append(pkg_name)
-                    else:
-                        for pkg_ver in os.listdir(dir_):
-                            if is_pkg_dir(os.path.join(dir_, pkg_ver)):
-                                pkg = "%s-%s" % (pkg_name, pkg_ver)
-                                pkgs.append(pkg)
-
+                for pkg_fam in iter_package_families(paths=[repo_dir]):
+                    for pkg in iter_packages_in_range(pkg_fam.name, paths=[repo_dir]):
+                        pkgs.append(pkg.short_name())
             repo["pkgs"] = pkgs
 
         return repo["pkgs"]

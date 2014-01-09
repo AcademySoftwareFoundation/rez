@@ -123,16 +123,6 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
         s = '-' + s
     return s
 
-def is_pkg_dir(path):
-    if not os.path.isdir(path):
-        return False
-
-    pkg_files = ("package.yaml", "package.py")
-    for pkgf in pkg_files:
-        if os.path.isfile(os.path.join(path, pkgf)):
-            return True
-    return False
-
 def remove_write_perms(path):
     st = os.stat(path)
     mode = st.st_mode & ~WRITE_PERMS
