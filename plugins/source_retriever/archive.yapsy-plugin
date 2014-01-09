@@ -1,0 +1,6 @@
+[Core]
+Name = archive
+Module = archive
+
+[Documentation]
+Description = Downloads archives such as .tar, .gz, .tar.gz, .tgz.

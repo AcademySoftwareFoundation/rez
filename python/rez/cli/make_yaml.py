@@ -1,6 +1,8 @@
 '''
 Create a template 'package.yaml' file
 '''
+from __future__ import with_statement
+
 
 def setup_parser(parser):
     parser.add_argument("path", default=".", nargs="?")
@@ -42,8 +44,8 @@ requires:
 
 commands: |
   MY_DIR = '/usr/local/{name}-{version}'
-  if machine.os == 'Linux':
+  if machine.platform == 'linux':
     PATH.prepend('$MY_DIR/bin')
-  elif machine.os == 'Darwin':
+  elif machine.platform == 'darwin':
     PATH.prepend('$MY_DIR/Foo.framework/Versions/{version.thru(2)}/bin')
 """ % info)

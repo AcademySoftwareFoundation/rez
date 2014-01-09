@@ -2,8 +2,6 @@
 Public enums
 """
 
-REZ_PACKAGES_PATH_ENVVAR = "REZ_PACKAGES_PATH"
-
 PKG_METADATA_FILENAME = "package.yaml"
 
 
@@ -18,6 +16,7 @@ RESOLVE_MODE_LATEST = 'latest'
 RESOLVE_MODE_EARLIEST = 'earliest'
 # don't try and resolve further, and raise an exception
 RESOLVE_MODE_NONE = 'none'
+
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -19,16 +19,18 @@ an understanding of the underlying file and folder structure.  This ensures that
 the addition of new resources is localized to the registration functions
 provided by this module.
 """
-
+from __future__ import with_statement
 import yaml
 import os
 import inspect
 import re
 from collections import defaultdict
+from rez.settings import settings
 from rez.util import to_posixpath, AttrDict
 from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
+
 
 #------------------------------------------------------------------------------
 # Exceptions
@@ -135,7 +137,7 @@ def load_yaml(stream):
         text = stream
     try:
         return yaml.load(text) or {}
-    except yaml.composer.ComposerError as err:
+    except yaml.composer.ComposerError, err:
         if err.context == 'expected a single document in the stream':
             # automatically switch to multi-doc
             return list(yaml.load_all(text))
@@ -223,12 +225,11 @@ class ResourceInfo(object):
         "expand variables in a search pattern with regular expressions"
         import versions
         import packages
-        import rez.filesys as filesys
 
         pattern = re.escape(pattern)
         expansions = [('version', versions.EXACT_VERSION_REGSTR),
                       ('name', packages.PACKAGE_NAME_REGSTR),
-                      ('search_path', '|'.join('(%s)' % p for p in filesys._g_syspaths))]
+                      ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
         return pattern + '$'
@@ -653,12 +654,13 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
     for validator in get_metadata_validators(config_version, filename, resource_key):
         try:
             validator.validate(metadata)
-        except MetadataError as err:
+        except MetadataError, err:
             errors.append(err)
             continue
         if strip:
             validator.strip(metadata)
         return metadata
+
     # TODO: print detailed error messages
     raise MetadataError("Could not find registered metadata configuration for %r" % filename)
 

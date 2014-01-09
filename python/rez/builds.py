@@ -1,3 +1,16 @@
+
+# TODO deprecate this file, it has been replaced by: build_package.py, source_retrieval.py,
+# (TODO) and the plugins found under plugins/source_retriever.
+
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+# !!! DEPRECATED !!!
+
+from __future__ import with_statement
 import sys
 import os
 import re
@@ -5,7 +18,7 @@ import inspect
 import traceback
 import os.path
 import subprocess
-import abc
+#import abc
 from rez.util import render_template
 from rez.cli import error, output
 
@@ -105,7 +118,7 @@ class SourceRetriever(object):
     The use of these classes is triggered by the inclusion of url entries
     in the external_build dict of the package.yaml file
     '''
-    __metaclass__ = abc.ABCMeta
+    #__metaclass__ = abc.ABCMeta
 
     # override with a list of names that must be in the url's metadata dict
     REQUIRED_METADATA = ['url']
@@ -163,7 +176,7 @@ class SourceRetriever(object):
             else:
                 try:
                     cache_path = self.download_to_cache(cache_path)
-                except Exception as e:
+                except Exception, e:
                     err_msg = ''.join(traceback.format_exception_only(type(e), e))
                     print "error downloading %s: %s" % (self.url, err_msg.rstrip())
                     if os.path.exists(cache_path):
@@ -201,7 +214,7 @@ class SourceRetriever(object):
         '''
         return self._is_invalid_source(cache_path)
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def download_to_source(self, source_path):
         '''Download the source code directly to the given source_path.
 
@@ -216,7 +229,7 @@ class SourceRetriever(object):
         '''
         raise NotImplementedError
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def download_to_cache(self, cache_path):
         '''Download the source code to the given cache_path.
 
@@ -233,7 +246,7 @@ class SourceRetriever(object):
         '''
         raise NotImplementedError
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def get_source_from_cache(self, cache_path, source_path):
         '''
         extract to the final build source directory from the given cache path
@@ -245,7 +258,6 @@ class SourceRetriever(object):
         source_path : str
             path to which the source code directory should be extracted
         '''
-
         raise NotImplementedError
 
     def _source_cache_path(self, url):
@@ -259,7 +271,7 @@ class SourceRetriever(object):
             #   $REZ_BUILD_DOWNLOAD_CACHE/<retriever_type>/<package>/
             return os.path.join(archive_dir, self.TYPE_NAME, self.package)
 
-    @abc.abstractmethod
+    #@abc.abstractmethod
     def source_cache_filename(self, url):
         """
         get the default filename (without directory) for the local source
@@ -275,6 +287,7 @@ def _extract_tar_process(tarpath, srcdir, members):
     """
     # would liked to have made this a staticmethod on the class, but it would
     # have required some heavy python magic to make it picklable.
+    # AJ why picklable tho?
     import tarfile
     print "extracting %s files" % len(members)
     tar = tarfile.open(tarpath)
@@ -1113,7 +1126,7 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
         extra_cmake_commands.append('message("")')
         extra_cmake_commands.append('message("External build cmake variables:")')
         for cmake_var in sorted(variables):
-            extra_cmake_commands.append('message("    {0:<{fill}} ${{{0}}}")'.format(cmake_var, fill=width))
+            extra_cmake_commands.append('message("    ${%s}")' % (cmake_var))
 
     env_variables = set([])
     for line in install_commands:
@@ -1124,7 +1137,7 @@ def _write_cmakelist(install_commands, srcdir, working_dir_mode):
         extra_cmake_commands.append('message("")')
         extra_cmake_commands.append('message("External build environment variables:")')
         for cmake_var in sorted(env_variables):
-            extra_cmake_commands.append('message("    {0:<{fill}} $ENV{{{0}}}")'.format(cmake_var, fill=width))
+            extra_cmake_commands.append('message("    $ENV{%s}")' % (cmake_var))
 
     if variables or env_variables:
         extra_cmake_commands.append('message("")')
@@ -1153,7 +1166,7 @@ def get_source(metadata):
                     try:
                         srcdir = retriever.get_source()
                         return srcdir
-                    except Exception as e:
+                    except Exception, e:
                         # err_msg = ''.join(traceback.format_exception_only(type(e), e))
                         err_msg = traceback.format_exc()
                         error("Error retrieving source from %s: %s"
@@ -1161,7 +1174,7 @@ def get_source(metadata):
                 error("All retrievers failed to retrieve source")
                 sys.exit(1)
 
-        except SourceRetrieverError as e:
+        except SourceRetrieverError, e:
             error(str(e))
             sys.exit(1)
 

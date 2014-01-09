@@ -1,23 +1,16 @@
 '''
 Invoke a shell based on a configuration request.
 '''
-
+from __future__ import with_statement
 import argparse
 import sys
 import os
 import textwrap
 import shutil
+from rez.settings import settings
 from rez.cli import error, output
 from . import config as rez_cli_config
 
-# _g_usage = "rez-env [options] pkg1 pkg2 ... pkgN"
-
-
-# class OptionParser2(optparse.OptionParser):
-#     def exit(self, status=0, msg=None):
-#         if msg:
-#             sys.stderr.write(msg)
-#         sys.exit(1)
 
 # autowrapper constants:
 _g_context_filename = 'package.context'
@@ -86,7 +79,7 @@ def get_tools_from_commands(commands):
 def _contains_autowrappers(pkglist):
     return any([pkg for pkg in pkglist if '(' in pkg])
 
-def resolve(opts, pkg_list, dot_file):
+def resolve(opts, pkg_list, dot_file, package_paths=None):
     import rez.config as dc
     resolver = dc.Resolver(opts.mode,
                            quiet=opts.quiet,
@@ -94,13 +87,13 @@ def resolve(opts, pkg_list, dot_file):
                            time_epoch=opts.time,
                            build_requires=opts.buildreqs,
                            assume_dt=not opts.no_assume_dt,
-                           caching=not opts.no_cache)
+                           caching=not opts.no_cache,
+                           package_paths=package_paths)
 
     result = resolver.guarded_resolve(pkg_list, opts.no_os,
                                       dot_file=dot_file,
                                       meta_vars=['tools'],
                                       shallow_meta_vars=['tools'])
-
     if not result:
         try:
             # TODO: change cli convention so that commands do not call sys.exit
@@ -170,13 +163,10 @@ def resolve_autowrappers(opts):
     import rez.parse_request as rpr
     import rez.rex as rex
 
-#     (opts, args) = p.parse_args(sys.argv[2:])
-
     pkgs_str = str(' ').join(opts.pkg).strip()
 
     if opts.no_local:
-        import rez.util
-        rez.util.hide_local_packages()
+        settings.set("packages_path", settings.nonlocal_packages_path)
 
     base_pkgs, subshells = rpr.parse_request(pkgs_str)
     all_pkgs = base_pkgs[:]
@@ -290,7 +280,6 @@ def command(opts):
     import tempfile
     import rez.parse_request as rpr
     import rez.rex as rex
-    import rez.filesys as filesys
 
     # TODO: support other shells
     opts.shell = 'bash'
@@ -313,16 +302,15 @@ def command(opts):
     # switch to auto-wrapper rez-env if bracket syntax is detected
     # TODO patching of wrapper envs is not yet supported.
     ##############################################################################
+    package_paths = None
     if autowrappers:
         # resolve_autowrappers() replaces any subshells in the package requests
         # with a newly created temporary package wrapping the packages in that subshell.
-        # ex. ['maya', '(nuke bar)'] --> ['maya', '__wrapper_nuke']
+        # eg. ['maya', '(nuke bar)'] --> ['maya', '__wrapper_nuke']
         packages = resolve_autowrappers(opts)
 
-        # make rez.config aware of the location of our new packages
-        # FIXME: provide a way to pass paths to resolve()
-        filesys._g_syspaths.insert(0, opts.tmpdir)
-        filesys._g_syspaths_nolocal.insert(0, opts.tmpdir)
+        # add subshell packages path to pkg searchpath
+        package_paths = settings.packages_path + [opts.tmpdir]
         opts.no_cache = True
     else:
         packages = opts.pkg
@@ -357,15 +345,11 @@ def command(opts):
     dot_file = os.path.join(opts.tmpdir, _g_dot_filename)
     context_file = os.path.join(opts.tmpdir, _g_context_filename)
 
-    result = resolve(opts, pkg_list, dot_file)
-
+    result = resolve(opts, pkg_list, dot_file, package_paths)
     commands = result[1]
 
-    if autowrappers:
-        # cleanup: remove tempdir from REZ_PACKAGES_PATH
-        filesys._g_syspaths = filesys._g_syspaths[1:]
-        filesys._g_syspaths_nolocal = filesys._g_syspaths_nolocal[1:]
-    else:
+    if not autowrappers:
+        # TODO should this be unset rather than setenv?
         commands = [rex.Setenv('REZ_IN_WRAPPER', ''),
                     rex.Setenv('REZ_WRAPPER_PATH', '')] + commands
 

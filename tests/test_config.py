@@ -4,10 +4,13 @@ import utils
 utils.setup_pythonpath()
 import rez.config
 from rez.config import Resolver
+from rez.system import system
 from rez.exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
-from rez.filesys import _g_platform_pkg as PLATFORM_PKG
-from rez.filesys import _g_arch_pkg as ARCH_PKG
+
+PLATFORM_PKG = "platform-" + system.platform
+ARCH_PKG = "arch-" + system.arch
+
 
 def check_basic_resolve(pkgs, assertions,
                         resolver_args=dict(resolve_mode=RESOLVE_MODE_LATEST),
@@ -152,10 +155,10 @@ class TestCommands(TestResolve):
 REZ_PYTHON_MAJOR_VERSION = '{version.part(1)}'
 REZ_PYTHON_MINOR_VERSION = '{version.part(2)}'
 
-if machine.os == 'Linux':
+if machine.platform == 'linux':
     PYTHON_DIR = '/usr/local/python-{version}'
     PATH.prepend('$PYTHON_DIR/bin')
-elif machine.os == 'Darwin':
+elif machine.platform == 'darwin':
     PYTHON_DIR = '/usr/local/python-{version}'
     PATH.prepend('$PYTHON_DIR/Python.framework/Versions/{version.thru(2)}/bin')
 else:

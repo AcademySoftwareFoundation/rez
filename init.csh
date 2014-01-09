@@ -43,19 +43,8 @@ else
     set clean_path = `echo "$PATH" | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
     setenv PATH ${clean_path}:${REZ_PATH}/bin
 
-    if (! $?REZ_RELEASE_EDITOR ) then
-        setenv REZ_RELEASE_EDITOR !REZ_RELEASE_EDITOR!
-    endif
-
-
-    if (! $?REZ_DOT_IMAGE_VIEWER ) then
-        setenv REZ_DOT_IMAGE_VIEWER !REZ_DOT_IMAGE_VIEWER!
-    endif
-
-
     # TODO: Allow for nice tab-completion for csh
     #source $REZ_PATH/bin/_complete.csh
-
 endif
 
 

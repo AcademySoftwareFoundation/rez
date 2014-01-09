@@ -3,7 +3,8 @@ rez-release
 
 A tool for releasing rez - compatible projects centrally
 """
-
+# TODO plugin-ize this.
+from __future__ import with_statement
 import sys
 import os
 import os.path
@@ -14,12 +15,17 @@ import subprocess
 import smtplib
 from email.mime.text import MIMEText
 
-from rez.util import remove_write_perms, copytree, get_epoch_time, safe_chmod, render_template
+from rez import module_root_path
+from rez.util import remove_write_perms, copytree, get_epoch_time, \
+    safe_chmod, render_template
 from rez.resources import load_metadata
+from rez.settings import settings
+from rez.system import system
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
 import rez.builds as builds
+
 
 ##############################################################################
 # Globals
@@ -49,8 +55,6 @@ class RezReleaseUnsupportedMode(RezReleaseError):
 # Constants
 ##############################################################################
 
-REZ_RELEASE_PATH_ENV_VAR = "REZ_RELEASE_PACKAGES_PATH"
-EDITOR_ENV_VAR = "REZ_RELEASE_EDITOR"
 RELEASE_COMMIT_FILE = "rez-release-commit.tmp"
 
 
@@ -106,8 +110,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
             filepath containing the project to be released
     commit_message:
             None, or message string to write to svn, along with changelog.
-            If 'commit_message' None, the user will be prompted for input using the
-            editor specified by $REZ_RELEASE_EDITOR.
+            If 'commit_message' None, the user will be prompted for input.
     njobs:
             number of threads to build with; passed to make via -j flag
     build_time:
@@ -118,7 +121,7 @@ def release_from_path(path, commit_message, njobs, build_time, allow_not_latest,
     cls = dict(_release_classes)[mode]
     try:
         rel = cls(path)
-    except RezReleaseUnsupportedMode as err:
+    except RezReleaseUnsupportedMode, err:
         print err
         return
     rel.release(commit_message, njobs, build_time, allow_not_latest)
@@ -163,7 +166,7 @@ def send_release_email(subject, body):
         s = smtplib.SMTP(smtphost, smtpport)
         s.sendmail(from_, recipients, msg.as_string())
         print 'email(s) sent.'
-    except Exception as e:
+    except Exception, e:
         print >> sys.stderr, "Emailing failed: %s" % str(e)
 
 ##############################################################################
@@ -275,8 +278,7 @@ class RezReleaseMode(object):
 
     def _get_commit_message(self):
         '''
-        Prompt user for a commit message using the editor specified by
-        $REZ_RELEASE_EDITOR.
+        Prompt user for a commit message using the configured editor.
 
         The starting value of the editor will be the message passed on the
         command-line, if given.
@@ -440,7 +442,7 @@ class RezReleaseMode(object):
 
         # FIXME: is the tag put under version control really our most reliable source
         # for previous released versions? Can't we query the versions of our package
-        # on $REZ_RELEASE_PACKAGES_PATH?
+        # on settings.release_packages_path?
         if self.metadata['version'] <= self.last_tagged_version:
             raise RezReleaseError("cannot release: current version '" + self.metadata['version'] +
                                   "' is not greater than the latest tag '" + last_tag_str +
@@ -579,7 +581,7 @@ class RezReleaseMode(object):
         print
         print "rez-build: invoking rez-config with args:"
         print "requested packages: %s" % (', '.join(self.requires + (variant or [])))
-        print "package search paths: %s" % (os.environ['REZ_PACKAGES_PATH'])
+        print "package search paths: %s" % os.pathsep.join(settings.packages_path)
 
         try:
             import rez.config
@@ -591,8 +593,7 @@ class RezReleaseMode(object):
             # FIXME: raise error here if result is None, or use unguarded resolve
             commands = result[1]
 
-            # TODO: support other shells
-            script = rex.interpret(commands, shell='bash')
+            script = rex.interpret(commands, shell=system.shell)
             with open(env_bake_file, 'w') as f:
                 f.write(script)
         except Exception, err:
@@ -615,9 +616,9 @@ class RezReleaseMode(object):
         recorder = rex.CommandRecorder()
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
-                            os.path.join(rez.filesys._g_rez_path, 'cmake'))
+                            os.path.join(module_root_path, 'cmake'))
         # make sure we can still use rez-config in the build env!
-        recorder.appendenv('PATH', os.path.join(rez.filesys._g_rez_path, 'bin'))
+        recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -626,6 +627,8 @@ class RezReleaseMode(object):
         # set env-vars that CMakeLists.txt files can reference, in this way
         # we can drive the build from the package.yaml file
         recorder.setenv('REZ_BUILD_ENV', '1')
+        recorder.setenv('REZ_LOCAL_PACKAGES_PATH', settings.local_packages_path)
+        recorder.setenv('REZ_RELEASE_PACKAGES_PATH', settings.release_packages_path)
         recorder.setenv('REZ_BUILD_PROJECT_VERSION', self.metadata['version'])
         recorder.setenv('REZ_BUILD_PROJECT_NAME', self.metadata['name'])
 
@@ -673,7 +676,7 @@ class RezReleaseMode(object):
             # which? this is from the original code...
             recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
             recorder.setenv('REZ_ENV_PROMPT', "BUILD>")
-            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % rez.filesys._g_rez_path)
+            recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % module_root_path)
             script = rex.interpret(recorder, shell='bash',
                                    verbose=['command'])
 
@@ -695,17 +698,12 @@ class RezReleaseMode(object):
         Fill out variables based on metadata
         '''
         self.release_install = central_release
-
         if self.release_install:
             self.base_build_dir = os.path.join(self.root_dir, 'build', 'rez-release')
-            install_var = REZ_RELEASE_PATH_ENV_VAR
+            self.base_install_dir = settings.release_packages_path
         else:
             self.base_build_dir = os.path.join(self.root_dir, 'build')
-            install_var = "REZ_LOCAL_PACKAGES_PATH"
-
-        self.base_install_dir = os.getenv(install_var)
-        if not self.base_install_dir:
-            raise RezReleaseError("$" + install_var + " is not set.")
+            self.base_install_dir = settings.local_packages_path
 
         self.metadata = self.get_metadata()
 
@@ -742,10 +740,7 @@ class RezReleaseMode(object):
         os.makedirs(self.base_build_dir)
 
         if (self.commit_message is None):
-            # get preferred editor for commit message
-            self.editor = os.getenv(EDITOR_ENV_VAR)
-            if not self.editor:
-                raise RezReleaseError("rez-release: $" + EDITOR_ENV_VAR + " is not set.")
+            self.editor = settings.editor
             self.commit_message = ''
 
         # check we're in a state to release (no modified/out-of-date files etc)
@@ -1173,7 +1168,7 @@ class HgRezReleaseMode(RezReleaseMode):
             assert hg('root')[0] == self.root_dir
         except AssertionError:
             raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not the root of a mercurial working copy")
-        except Exception as err:
+        except Exception, err:
             raise RezReleaseUnsupportedMode("failed to call hg binary: " + str(err))
 
         self.patch_path = os.path.join(hgdir, 'patches')

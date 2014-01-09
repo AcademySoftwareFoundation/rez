@@ -45,13 +45,15 @@ import sys
 import inspect
 import random
 import itertools
+from rez.settings import settings
+from rez import module_root_path
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
-import rez.filesys as filesys
-from rez.util import AttrDictWrapper, gen_dotgraph_image
+from rez.system import system
+from rez.util import AttrDictWrapper, gen_dotgraph_image, print_warning_once
 import rez.rex as rex
 
 
@@ -154,7 +156,7 @@ class MissingPackage(object):
 class ResolvedPackages(object):
     """
     Class intended for use with rex which provides attribute-based lookups for
-    `ResolvedPacakge` instances.
+    `ResolvedPackage` instances.
 
     If the package does not exist, the attribute value will be an empty string.
     This allows for attributes to be used to test the presence of a package and
@@ -180,6 +182,7 @@ class ResolvedPackages(object):
                                                attr))
         return MissingPackage(attr)
 
+
 ##############################################################################
 # Resolver
 ##############################################################################
@@ -188,9 +191,16 @@ class Resolver(object):
     """
     Where all the action happens. This class performs a package resolve.
     """
-    def __init__(self, resolve_mode=RESOLVE_MODE_LATEST, quiet=False,
-                 verbosity=0, max_fails=-1, time_epoch=0,
-                 build_requires=False, assume_dt=False, caching=True):
+    def __init__(self,
+                 resolve_mode=RESOLVE_MODE_LATEST,
+                 quiet=False,
+                 verbosity=0,
+                 max_fails=-1,
+                 time_epoch=0,
+                 build_requires=False,
+                 assume_dt=False,
+                 caching=True,
+                 package_paths=None):
         """
         resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
         quiet: if True then hides unnecessary output (such as the progress dots)
@@ -200,6 +210,7 @@ class Resolver(object):
                 case, meaning do not ignore any packages
         assume_dt: Assume dependency transitivity
         caching: If True, resolve info is read from and written to a memcache daemon if possible.
+        package_paths: List of paths to search for pkgs, defaults to settings.packages_path.
         """
         if not time_epoch:
             time_epoch = int(time.time())
@@ -213,6 +224,7 @@ class Resolver(object):
         self.rctxt.assume_dt = assume_dt
         self.rctxt.time_epoch = time_epoch
         self.rctxt.caching = caching
+        self.rctxt.package_paths = package_paths
 
         self.raw_pkg_reqs = None
         self.pkg_reqs = None
@@ -235,10 +247,10 @@ class Resolver(object):
             sys.stderr.write(str(e) + '\n')
             return None
         except PkgFamilyNotFoundError, e:
-            sys.stderr.write("Could not find the package family '" + e.family_name + "'\n")
+            print >> sys.stderr, "Couldn't find the package family '%s'" % e.family_name
             return None
         except PkgNotFoundError, e:
-            sys.stderr.write("Could not find the package '" + e.pkg_req.short_name() + "'\n")
+            print >> sys.stderr, "Couldn't find the package '%s'" % e.pkg_req.short_name()
             return None
         except PkgConflictError, e:
             sys.stderr.write("The following conflicts occurred:\n")
@@ -339,13 +351,23 @@ class Resolver(object):
         -OR-
         raise the relevant exception, if config resolution is not possible
         """
-        self.raw_pkg_reqs = [pkg_request(x, self.rctxt.time_epoch, self.rctxt.resolve_mode) for x in pkg_reqs]
+        def _pkg_request(req):
+            return req if isinstance(req, PackageRequest) \
+                else str_to_pkg_req(req,
+                                    self.rctxt.time_epoch,
+                                    self.rctxt.resolve_mode,
+                                    self.rctxt.package_paths)
 
+        self.raw_pkg_reqs = [_pkg_request(x) for x in pkg_reqs]
+
+        # TODO replace with new 'implicit packages' feature
         if not no_os:
             to_add = []
-            for os_pkg_str in [filesys._g_platform_pkg, filesys._g_arch_pkg]:
+            plat_pkg = "platform-" + system.platform
+            arch_pkg = "arch-" + system.arch
+            for os_pkg_str in(plat_pkg, arch_pkg):
                 os_pkg_req = str_to_pkg_req(os_pkg_str, self.rctxt.time_epoch,
-                                            self.rctxt.resolve_mode)
+                                            self.rctxt.resolve_mode, self.rctxt.package_paths)
                 if os_pkg_req not in self.raw_pkg_reqs:
                     to_add.append(os_pkg_req)
             self.pkg_reqs = to_add + self.raw_pkg_reqs
@@ -366,12 +388,10 @@ class Resolver(object):
         pkg_res_list, commands, dot_graph, nfails = result
 
         # we need to inject system paths here. They're not there already because they can't be cached
-        sys_paths = [os.path.join(os.environ["REZ_PATH"], "bin")]
+        sys_paths = [os.path.join(module_root_path, "bin")]
         if not no_path_append:
-            sys_paths += filesys._g_os_paths
-
+            sys_paths += system.executable_paths
         recorder.setenv('PATH', sys_paths)
-
         recorder.commands.extend(commands)
 
         # add meta env vars
@@ -457,7 +477,10 @@ class Resolver(object):
             for pkg_res in pkg_res_list:
                 pkg_res.strip()
 
-        result = (pkg_res_list, command_recorder.commands, dot_graph, len(self.rctxt.config_fail_list))
+        result = (pkg_res_list,
+                  command_recorder.commands,
+                  dot_graph,
+                  len(self.rctxt.config_fail_list))
 
         # we're done
         return result
@@ -466,16 +489,10 @@ class Resolver(object):
         env = rex.RexNamespace(env_overrides_existing_lists=True)
 
         # add special data objects and functions to the namespace
-        import rez.platform_ as plat
-        env['machine'] = plat.Platform()
+        from rez.system import system
+        env['machine'] = system
         env['pkgs'] = ResolvedPackages(pkg_res_list)
-
-#         # FIXME: build_requires does not actually indicate that we're building
-#         # since it seem like rez-build does not pass this flag (not sure if anything does).
-#         def building():
-#             return self.rctxt.build_requires
-#
-#         env['building'] = building
+        env['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return env
 
     def record_commands(self, pkg_res_list):
@@ -487,15 +504,16 @@ class Resolver(object):
         # the environment dictionary to be passed during execution of python code.
         env = self.get_execution_namespace(pkg_res_list)
 
-        env["REZ_USED"] = filesys._g_rez_path
+        env["REZ_USED"] = module_root_path
         env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
         env["REZ_REQUEST"] = full_req_str
         env["REZ_RAW_REQUEST"] = raw_req_str
-        env["PYTHONPATH"] = os.path.join(filesys._g_rez_path, 'python')
         env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
         env["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
         env["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
         env["REZ_REQUEST_TIME"] = self.rctxt.time_epoch
+        # TODO remove this and have Rez create a proper rez package for itself
+        env["PYTHONPATH"] = os.path.join(module_root_path, 'python')
 
         # master recorder. this holds all of the commands to be interpreted
         recorder = env.get_command_recorder()
@@ -511,10 +529,10 @@ class Resolver(object):
             # master recorder. this holds all of the commands to be interpreted
             pkg_recorder = rex.CommandRecorder()
             env.set_command_recorder(pkg_recorder)
-            pkg_recorder.comment("Commands from package %s" % pkg_res.name)
+            pkg_recorder.comment("")
+            pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
 
             prefix = "REZ_" + pkg_res.name.upper()
-
             env[prefix + "_VERSION"] = pkg_res.version
             env[prefix + "_BASE"] = pkg_res.base
             env[prefix + "_ROOT"] = pkg_res.root
@@ -531,16 +549,18 @@ class Resolver(object):
                 code = compile(pkg_res.raw_commands, pkg_res.metafile, 'exec')
                 try:
                     exec code in env
-                except Exception as err:
+                except Exception, err:
                     import traceback
                     raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
                                                         traceback.format_exc(err)))
             elif inspect.isfunction(pkg_res.raw_commands):
                 pkg_res.raw_commands(pkg_res, env['pkgs'],
                                      AttrDictWrapper(env), pkg_recorder)
-
             # old style:
             elif isinstance(pkg_res.raw_commands, list):
+                if settings.warn_old_commands:
+                    print_warning_once("%s is using old-style commands." \
+                                       % pkg_res.short_name())
                 for cmd in pkg_res.raw_commands:
                     # convert to new-style
                     parse_export_command(cmd, env)
@@ -571,11 +591,11 @@ class Resolver(object):
         # if any local packages are involved, don't cache
         pkg_res_list = result[0]
         for pkg_res in pkg_res_list:
-            if pkg_res.base.startswith(filesys._g_local_pkgs_path):
+            if pkg_res.base.startswith(settings.local_packages_path):
                 return
 
-        get_memcache().store_resolve(filesys._g_syspaths_nolocal, self.pkg_reqs,
-                                     result, self.rctxt.time_epoch)
+        get_memcache().store_resolve(settings.nonlocal_packages_path,
+                                     self.pkg_reqs, result, self.rctxt.time_epoch)
 
     def get_cached_resolve(self):
         # the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
@@ -584,7 +604,7 @@ class Resolver(object):
             return None
 
         result, cache_timestamp = get_memcache().get_resolve(
-            filesys._g_syspaths_nolocal, self.pkg_reqs, self.rctxt.time_epoch)
+            settings.nonlocal_packages_path, self.pkg_reqs, self.rctxt.time_epoch)
 
         if not result:
             return None
@@ -593,9 +613,9 @@ class Resolver(object):
 
         # discard cache if any version of any resolved pkg is also present as a local pkg,
         # unless the versions fall outside of that pkg's max bounds.
-        if filesys._g_local_pkgs_path in filesys._g_syspaths:
+        if settings.local_packages_path in settings.packages_path:
             for pkg_res in pkg_res_list:
-                fam_path = os.path.join(filesys._g_local_pkgs_path, pkg_res.name)
+                fam_path = os.path.join(settings.local_packages_path, pkg_res.name)
                 if os.path.isdir(fam_path):
                     # todo max bounds check
                     print_cache_warning(("Presence of local package directory %s " +
@@ -643,17 +663,7 @@ def parse_pkg_req_str(pkg_str):
     name, verrange = split_name(pkg_str)
     return name, verrange, mode
 
-def pkg_request(req, timestamp, mode=RESOLVE_MODE_LATEST):
-    """
-    Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
-    Note that a version string ending in '=e','=l' will result in a package request
-    that immediately resolves to earliest/latest version.
-    """
-    if isinstance(req, PackageRequest):
-        return req
-    return str_to_pkg_req(req, timestamp, mode)
-
-def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST):
+def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
     """
     Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
     Note that a version string ending in '=e','=l' will result in a package request
@@ -664,10 +674,11 @@ def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST):
         # goto filesystem and resolve version immediately
         name_ = name.lstrip('!')
 
-        pkg = package_in_range(name_, verrange,
-                               latest=mode_override == RESOLVE_MODE_LATEST,
-                               timestamp=timestamp)
-
+        pkg = package_in_range(name_,
+                               ver_range=verrange,
+                               latest=(mode_override==RESOLVE_MODE_LATEST),
+                               timestamp=timestamp,
+                               paths=paths)
         if pkg is None:
             raise PkgsUnresolvedError([PackageRequest(name, verrange)])
 
@@ -726,6 +737,7 @@ class _ResolvingContext(object):
         self.quiet = False
         self.build_requires = False
         self.assume_dt = False
+        self.package_paths = None
 
 class _PackageVariant(object):
     """
@@ -765,7 +777,8 @@ class _Package(object):
     """
     Internal package representation
     """
-    def __init__(self, pkg_req):
+    def __init__(self, pkg_req, rctxt):
+        self.rctxt = rctxt
         self.is_transitivity = False
         self.has_added_transitivity = False
         self.base_path = None
@@ -778,7 +791,8 @@ class _Package(object):
             self.name = pkg_req.name
             self.pkg_req = pkg_req
             self.set_version_range(pkg_req.version_range)
-            if not self.is_anti() and not package_family(self.name):
+            if not self.is_anti() and \
+                    not package_family(self.name, paths=self.rctxt.package_paths):
                 raise PkgFamilyNotFoundError(self.name)
         else:
             self.name = None
@@ -787,7 +801,7 @@ class _Package(object):
             self.pkg_iter = None
 
     def copy(self):
-        p = _Package(None)
+        p = _Package(None, self.rctxt)
         p.is_transitivity = self.is_transitivity
         p.has_added_transitivity = self.has_added_transitivity
         p.name = self.name
@@ -810,13 +824,15 @@ class _Package(object):
         self.version_range = version_range
         # recreate the iterator.
         # NOTE: not entirely sure this is safe if iteration has already begun.
-        self.pkg_iter = iter_packages_in_range(self.name, self.version_range,
-                                               self.pkg_req.resolve_mode == RESOLVE_MODE_LATEST,
-                                               self.pkg_req.timestamp)
+        self.pkg_iter = iter_packages_in_range(self.name,
+                                               ver_range=self.version_range,
+                                               latest=(self.pkg_req.resolve_mode==RESOLVE_MODE_LATEST),
+                                               timestamp=self.pkg_req.timestamp,
+                                               paths=self.rctxt.package_paths)
 
     def next_request(self):
         try:
-            pkg = next(self.pkg_iter)
+            pkg = self.pkg_iter.next()
             # NOTE: this is always an exact package. no ranges involved
             return PackageRequest(pkg.name, pkg.version,
                                   self.pkg_req.resolve_mode,
@@ -908,7 +924,9 @@ class _Package(object):
     def get_package(self, latest=True, exact=False, timestamp=0):
         return package_in_range(self.name, self.version_range,
                                 timestamp=timestamp,
-                                latest=latest, exact=exact)
+                                latest=latest,
+                                exact=exact,
+                                paths=self.rctxt.package_paths)
 
     def resolve_metafile(self, timestamp=0):
         """
@@ -933,7 +951,8 @@ class _Package(object):
                     self.variants = []
                     for metavar in metafile_variants:
                         requests = [str_to_pkg_req(p, self.pkg_req.timestamp,
-                                                   self.pkg_req.resolve_mode) for p in metavar]
+                                                   self.pkg_req.resolve_mode,
+                                                   self.rctxt.package_paths) for p in metavar]
                         pkg_var = _PackageVariant(requests)
                         self.variants.append(pkg_var)
                 else:
@@ -1095,7 +1114,7 @@ class _Configuration(object):
                 if not ver_range_intersect:
                     pkg_add = None
                     if create_pkg_add:
-                        pkg_add = _Package(pkg_req)
+                        pkg_add = _Package(pkg_req, self.rctxt)
                     return (_Configuration.ADDPKG_ADD, pkg_add)
 
                 # if non-anti and (inverse of anti) intersect, then add reduced anti,
@@ -1105,7 +1124,7 @@ class _Configuration(object):
                 if ver_range_intersect:
                     pkg_add = None
                     if create_pkg_add:
-                        pkg_add = _Package(pkg_req)
+                        pkg_add = _Package(pkg_req, self.rctxt)
                         pkg_add.set_version_range(ver_range_intersect)
                         return (_Configuration.ADDPKG_ADD, pkg_add)
                 else:
@@ -1130,7 +1149,7 @@ class _Configuration(object):
         # package can be added directly, doesn't overlap with anything
         pkg_add = None
         if create_pkg_add:
-            pkg_add = _Package(pkg_req)
+            pkg_add = _Package(pkg_req, self.rctxt)
         return (_Configuration.ADDPKG_ADD, pkg_add)
 
     def get_conflicting_package(self, pkg_req):
@@ -1372,7 +1391,6 @@ class _Configuration(object):
                 self.remove_least_suitable_variant()
 
             else:
-
                 valid_config_found = False
 
                 # attempt to resolve a copy of the current config with this package resolved
@@ -1740,7 +1758,10 @@ class _Configuration(object):
 
                     if requires:
                         for pkg_str in requires:
-                            pkg_req = str_to_pkg_req(pkg_str, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+                            pkg_req = str_to_pkg_req(pkg_str,
+                                                     self.rctxt.time_epoch,
+                                                     self.rctxt.resolve_mode,
+                                                     self.rctxt.package_paths)
 
                             if (self.rctxt.verbosity != 0):
                                 print
@@ -1809,10 +1830,16 @@ class _Configuration(object):
                 if (pkg_str_e[0] == '!') or (pkg_str_e[0] == '~'):
                     continue
 
-                pkg_req_e = str_to_pkg_req(pkg_str_e, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+                pkg_req_e = str_to_pkg_req(pkg_str_e,
+                                           self.rctxt.time_epoch,
+                                           self.rctxt.resolve_mode,
+                                           self.rctxt.package_paths)
 
                 for pkg_str_l in requires_l:
-                    pkg_req_l = str_to_pkg_req(pkg_str_l, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+                    pkg_req_l = str_to_pkg_req(pkg_str_l,
+                                               self.rctxt.time_epoch,
+                                               self.rctxt.resolve_mode,
+                                               self.rctxt.package_paths)
                     if (pkg_req_e.name == pkg_req_l.name):
                         pkg_req = pkg_req_e
                         if (pkg_req_e.version_range != pkg_req_l.version_range):
@@ -1849,7 +1876,10 @@ class _Configuration(object):
             for variant in (variants_e + variants_l):
                 comm_fams = set()
                 for pkgstr in variant:
-                    pkgreq = str_to_pkg_req(pkgstr, self.rctxt.time_epoch, self.rctxt.resolve_mode)
+                    pkgreq = str_to_pkg_req(pkgstr,
+                                            self.rctxt.time_epoch,
+                                            self.rctxt.resolve_mode,
+                                            self.rctxt.package_paths)
                     comm_fams.add(pkgreq.name)
                     pkg_vers[pkgreq.name].append(pkgreq.version_range)
 

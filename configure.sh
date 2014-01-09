@@ -53,14 +53,9 @@ pyparsing_path=
 pymemcached_path=
 pysvn_path=
 gitpython_path=
+yapsy_path=
+psutil_path=
 
-# Your preferred text editor for writing package release notes. You can change this at any
-# time by setting $REZ_RELEASE_EDITOR appropriately.
-rez_release_editor=
-
-# Your preferred image viewer, for viewing resolve graphs. You can change this at any time
-# by setting $REZ_DOT_IMAGE_VIEWER appropriately.
-rez_dot_image_viewer=
 
 ###---------------------------------------------------------------------------------------
 ### <<< END EDITING HERE
@@ -115,12 +110,11 @@ fi
 if [ "$gitpython_path" == "" ]; then
     gitpython_path=$REZCONFIG_GITPYTHON_PATH
 fi
-
-if [ "$rez_release_editor" == "" ]; then
-    rez_release_editor=$REZCONFIG_RELEASE_EDITOR
+if [ "$yapsy_path" == "" ]; then
+    yapsy_path=$REZCONFIG_YAPSY_PATH
 fi
-if [ "$rez_dot_image_viewer" == "" ]; then
-    rez_dot_image_viewer=$REZCONFIG_DOT_IMAGE_VIEWER
+if [ "$psutil_path" == "" ]; then
+    psutil_path=$REZCONFIG_PSUTIL_PATH
 fi
 
 
@@ -316,16 +310,6 @@ if (( (cmake_major_ver * 100) + cmake_minor_ver < 208 )); then
     echo "cmake version "$cmakever" is too old, you need 2.8 or greater." 1>&2
     echo "You need to $orset""REZCONFIG_CMAKE_BINARY" 1>&2
     exit 1
-fi
-
-
-# runtime 3rd-party tools
-#-----------------------------------------------------------------------------------------
-if [ "$rez_release_editor" == "" ]; then
-    rez_release_editor=`_find_program kedit gedit nedit kwrite kate vim vi`
-fi
-if [ "$rez_dot_image_viewer" == "" ]; then
-    rez_dot_image_viewer=`_find_program eog kde-open kview xnview gthumb feh gqview geeqie firefox`
 fi
 
 
@@ -544,6 +528,38 @@ fi
 echo "found pyparsing at "$pyparsing_path
 
 
+# yapsy
+#-----------------------------------------------------------------------------------------
+echo
+echo 'detecting yapsy...'
+if [ "$yapsy_path" == "" ]; then
+    $python_binary -c "import yapsy" > /dev/null 2>&1
+    if [ $? -eq 0 ]; then
+        yapsy_path=`$python_binary -c \
+            "import os.path ; \
+            import yapsy ; \
+            s = yapsy.__file__.replace('/__init__.pyc','') ; \
+            s = yapsy.__file__.replace('/__init__.pyo','') ; \
+            s = s.replace('/__init__.py','') ; \
+            print os.path.dirname(s)"`
+        if [ $? -ne 0 ]; then
+            yapsy_path=""
+        fi
+    fi
+fi
+if [ "$yapsy_path" == "" ]; then
+    echo "couldn't find yapsy python module - $orset""REZCONFIG_YAPSY_PATH" 1>&2
+    exit 1
+else
+    bash -c "export PYTHONPATH=$yapsy_path ; $python_binary -c 'import yapsy' > /dev/null 2>&1"
+    if [ $? -ne 0 ]; then
+        echo "yapsy python module not found at "$yapsy_path 1>&2
+        exit 1
+    fi
+fi
+echo "found yapsy at "$yapsy_path
+
+
 if [ "$_REZ_ISDEMO" != "1" ]; then
     # pymemcached
     #-----------------------------------------------------------------------------------------
@@ -579,6 +595,42 @@ if [ "$_REZ_ISDEMO" != "1" ]; then
         nissues=$(( $nissues + 1 ))
     else
         echo "found python-memcached at "$pymemcached_path
+    fi
+
+    # psutil
+    #-----------------------------------------------------------------------------------------
+    echo
+    echo 'detecting psutil...'
+    if [ "$psutil_path" == "" ]; then
+        $python_binary -c "import psutil" > /dev/null 2>&1
+        if [ $? -eq 0 ]; then
+            psutil_path=`$python_binary -c \
+                "import os.path ; \
+                import psutil ; \
+                s = psutil.__file__.replace('/__init__.pyc','') ; \
+                s = psutil.__file__.replace('/__init__.pyo','') ; \
+                s = s.replace('/__init__.py','') ; \
+                print os.path.dirname(s)"`
+            if [ $? -ne 0 ]; then
+                psutil_path=""
+            fi
+        fi
+    fi
+    if [ "$psutil_path" == "" ]; then
+        echo $echoerr"couldn't find psutil python module - $orset""REZCONFIG_PSUTIL_PATH"$echoreset 1>&2
+    else
+        bash -c "export PYTHONPATH=$psutil_path ; $python_binary -c 'import psutil' > /dev/null 2>&1"
+        if [ $? -ne 0 ]; then
+            echo $echoerr"psutil python module not found at "${psutil_path}$echoreset 1>&2
+            psutil_path=""
+        fi
+    fi
+    if [ "$psutil_path" == "" ]; then
+        echo "Installation can continue, but shell detection will not be as robust." 1>&2
+        echo "To enable later, just add the psutil python path where it is missing in (rez-install-path)/bin/_set-rez-env" 1>&2
+        nissues=$(( $nissues + 1 ))
+    else
+        echo "found psutil at "$psutil_path
     fi
 
     # pysvn
@@ -677,8 +729,8 @@ echo "export _REZ_PYPARSING_PATH='"$pyparsing_path"'"				>> ./rez.configured
 echo "export _REZ_PYMEMCACHED_PATH='"$pymemcached_path"'"	 		>> ./rez.configured
 echo "export _REZ_PYSVN_PATH='"$pysvn_path"'"	 				    >> ./rez.configured
 echo "export _REZ_GITPYTHON_PATH='"$gitpython_path"'"	 			>> ./rez.configured
-echo "export _REZ_RELEASE_EDITOR='"$rez_release_editor"'"	 	    >> ./rez.configured
-echo "export _REZ_DOT_IMAGE_VIEWER='"$rez_dot_image_viewer"'"	 	>> ./rez.configured
+echo "export _REZ_PSUTIL_PATH='"$psutil_path"'"	 				    >> ./rez.configured
+echo "export _REZ_YAPSY_PATH='"$yapsy_path"'"	 				    >> ./rez.configured
 
 echo
 if [ $nissues -ne 0 ]; then

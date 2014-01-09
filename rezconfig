@@ -1,0 +1,102 @@
+#
+# Rez configuration settings. Do not change this file.
+#
+# Settings are determined in the following way:
+# 1) The setting is first read from this file;
+# 2) The setting is then overridden if it is present in another settings file pointed at
+#    by the $REZ_SETTINGS_FILE environment variable;
+# 3) The setting is further overriden if it is present in $HOME/.rezconfig;
+# 4) The setting is overridden again if the environment variable $REZ_XXX is present, where XXX
+#    is the uppercase version of the setting key. For example, 'image_viewer' will be overriden
+#    by $REZ_IMAGE_VIEWER.
+#
+# If a setting type is a list, then an overriding env-var is expected to be separated by the
+# path seperator for the current os (eg ':' in Linux), unless overridden in the '_sep' section.
+#
+# There are a set of special variables that will expand at runtime. These can be referred to
+# by any string-based setting, using the format '{varname}'. The available variables are:
+# {root_dir} - Rez installation directory;
+# {platform} - machine platform, eg 'linux';
+# {arch} - machine architecture, eg 'x86_64';
+# {os} - machine operating system, eg 'Ubuntu-12.04'.
+# {shell} - current shell, eg 'bash'.
+
+# The package search path. Rez uses this to find packages
+packages_path:
+- '~/packages'
+- '~/.rez/packages/int'
+- '~/.rez/packages/ext'
+
+# The path that Rez will install packages to when rez-build is used
+local_packages_path: '~/packages'
+
+# The path that Rez will deploy packages to when rez-release is used
+release_packages_path: '~/.rez/packages/int'
+
+# The path that rez-install will deploy external packages to
+external_packages_path: '~/.rez/packages/ext'
+
+# The path that rez-egg-install will deploy packages to
+egg_packages_path: '~/.rez/packages/ext'
+
+# The formulae URLs that rez-install searches for packages
+package_repository_url_path:
+- 'https://github.com/LumaPictures/rez-build/archive/master.zip'
+
+# The directory where rez stores package repositories
+package_repository_path: '~/.rez/package-repos'
+
+# The directory where rez caches package repository downloads
+package_repository_cache_path: '~/.rez/downloads/package-repos'
+
+# System packages that are implicitly added to package resolves
+implicit_packages:
+- '~platform-{platform}'
+- '~arch-{arch}'
+- '~os-{os}'
+
+# Search path for source retrieval plugins
+source_retriever_plugin_path: []
+
+# The editor used to get user input in some cases; rez-release uses this.
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+editor:
+
+# The program used to view images by tools such as rez-context-image
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+image_viewer:
+
+# The browser used to view documentation; the rez-help tool uses this
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+browser:
+
+# If True, print a warning when an untimestamped package is found.
+warn_untimestamped: true
+
+# If True, print a warning whenever a package with an old-style commands
+# section is resolved into an environment
+warn_old_commands: true
+
+
+# Type specifiers
+_type:
+    packages_path: list
+    local_packages_path: str
+    release_packages_path: str
+    external_packages_path: str
+    egg_packages_path: str
+    package_repository_url_path: list
+    package_repository_path: str
+    package_repository_cache_path: str
+    implicit_packages: list
+    source_retriever_plugin_path: list
+    editor: str
+    image_viewer: str
+    browser: str
+    warn_untimestamped: bool
+    warn_old_commands: bool
+
+
+# What seperator to expect in env-vars
+_sep:
+    implicit_packages: ','

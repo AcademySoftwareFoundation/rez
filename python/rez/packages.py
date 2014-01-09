@@ -1,15 +1,18 @@
 """
 rez packages
 """
+from __future__ import with_statement
 import os.path
 import re
 import sys
+from rez.util import print_warning_once
 from rez.resources import iter_resources, load_metadata
-import rez.filesys as filesys
+from rez.settings import settings
 from rez.exceptions import PkgSystemError
 from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
 
-PACKAGE_NAME_REGSTR = '[a-zA-Z][a-zA-Z0-9_]*'
+
+PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
 
 def split_name(pkg_str, exact=False):
@@ -38,7 +41,7 @@ def iter_package_families(name=None, paths=None):
     Iterate through top-level `PackageFamily` instances.
     """
     if paths is None:
-        paths = filesys._g_syspaths
+        paths = settings.packages_path
     elif isinstance(paths, basestring):
         paths = [paths]
 
@@ -57,7 +60,7 @@ def package_family(name, paths=None):
     result = iter_package_families(name, paths)
     try:
         # return first item in generator
-        return next(result)
+        return result.next()
     except StopIteration:
         return None
 
@@ -95,7 +98,7 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     exact : bool
         only match if ver_range represents an exact version
     paths : list of str
-        search path. defaults to REZ_PACKAGES_PATH
+        search path. defaults to settings.package_path
 
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
@@ -136,14 +139,14 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
     exact : bool
         only match if ver_range represents an exact version
     paths : list of str
-        search path. defaults to REZ_PACKAGES_PATH
+        search path. defaults to settings.packages_path
 
     """
     result = iter_packages_in_range(family_name, ver_range, latest, timestamp,
                                     exact, paths)
     try:
         # return first item in generator
-        return next(result)
+        return result.next()
     except StopIteration:
         return None
 
@@ -204,10 +207,9 @@ class Package(object):
                 if os.path.isfile(release_time_f):
                     with open(release_time_f, 'r') as f:
                         self._timestamp = int(f.read().strip())
-                elif filesys._g_new_timestamp_behaviour:
-                    s = ("Warning: The package at %s is not timestamped and will be ignored. " +
-                         "To timestamp it manually, use the rez-timestamp utility.")
-                    print >> sys.stderr, s % self.base
+                elif settings.warn_untimestamped:
+                    print_warning_once(("%s is not timestamped. To timestamp it " + \
+                                       "manually, use the rez-timestamp utility.") % self.base)
         return self._timestamp
 
     def short_name(self):
@@ -217,7 +219,7 @@ class Package(object):
             return self.name + '-' + str(self.version)
 
     def is_local(self):
-        return self.base.startswith(filesys._g_local_pkgs_path)
+        return self.base.startswith(settings.local_packages_path)
 
     def __str__(self):
         return str([self.name, self.version, self.base])

@@ -8,6 +8,7 @@ import sys
 import subprocess
 import webbrowser
 import rez.sigint
+from rez.settings import settings
 from rez.cli import error, output
 
 
@@ -26,9 +27,17 @@ def setup_parser(parser):
                         help="Just print each help entry")
 
 
+def open_url(url):
+    if settings.browser:
+        cmd = "%s %s &" % (settings.browser, url)
+        subprocess.Popen(cmd, shell=True).communicate()
+    else:
+        webbrowser.open_new(url)
+
+
 def command(opts):
     if opts.manual or not opts.pkg:
-        webbrowser.open("http://nerdvegas.github.io/rez/")
+        open_url("http://nerdvegas.github.io/rez/")
         sys.exit(0)
 
     pkg = opts.pkg
@@ -114,7 +123,7 @@ def command(opts):
     cmd = cmd.replace('!ROOT!', pkg_path)
     cmd = cmd.replace('!BASE!', pkg.base)
     if len(cmd.split()) == 1:
-        webbrowser.open(cmd)
+        open_url(cmd)
     else:
         cmd += " &"
         subprocess.Popen(cmd, shell=True).communicate()

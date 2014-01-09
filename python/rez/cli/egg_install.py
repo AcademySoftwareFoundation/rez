@@ -1,9 +1,11 @@
 '''
 Install a python egg as a Rez package.
+TODO replace with pip-based implementation.
 '''
-
+from __future__ import with_statement
 import sys
 import os
+import os.path
 import re
 import stat
 import time
@@ -12,21 +14,23 @@ import shutil
 import tempfile
 import subprocess as sp
 import textwrap
+from rez import module_root_path
+from rez.system import system
+from rez.settings import settings
 from rez.cli import error, output
 from rez.util import copytree
+
 
 _g_r_stat = stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
 _g_w_stat = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 _g_x_stat = stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
 
 _g_rez_egg_api_version = 0
-_g_rez_path = os.getenv("REZ_PATH", "UNKNOWN_REZ_PATH")
 _g_pkginfo_key_re = re.compile("^[A-Z][a-z_-]+:")
 _g_yaml_prettify_re = re.compile("^([^: \\n]+):", re.MULTILINE)
 _g_hash_re = re.compile("[a-z0-9]{8,40}")
 
-# this is because rez doesn't have alphanumeric version support. It will have though, when
-# ported to Certus. Just not yet. :(
+# TODO remove once proper alphanumeric version support is added
 def _convert_version(txt):
     txt = txt.lower()
 
@@ -190,7 +194,7 @@ def _get_package_data_from_dist(distr, force_platform, package_remappings,
         if native and v.lower() == 'unknown':
             # cannot allow native lib to be unknown
             import rez.filesys
-            variant = [rez.filesys._g_platform_pkg] + variant
+            variant = ["platform-"+system.platform] + variant
         elif v:
             platform_pkgs = platform_remappings.get(v.lower())
             if platform_pkgs is None:
@@ -279,9 +283,8 @@ def _get_safe_pythonpath(pkg_name, pypath):
     installed, will cause easy_install to skip installation.
     """
     safe_paths = []
-    rez_pkgs_path = os.environ['REZ_PACKAGES_PATH'].split(':')
     for path in pypath:
-        for pkg_path in rez_pkgs_path:
+        for pkg_path in settings.packages_path:
             # allow rez packages that are not this one: because they contain a
             # single application/library, there is little chance they
             # will contain the python module being installed, and might even
@@ -632,21 +635,9 @@ def _get_easy_install_cmd():
 
 def setup_parser(parser):
     import argparse
-#     usage = "usage: rez-egg-install [options] <package_name> [-- <easy_install args>]\n\n" + \
-#         "  Rez-egg-install installs Python eggs as Rez packages, using the standard\n" + \
-#         "  'easy_install' python module installation tool. For example:\n" + \
-#         "  rez-egg-install pylint\n" + \
-#         "  If you need to use specific easy_install options, include the second\n" + \
-#         "  set of args - in this case you need to make sure that <package_name>\n" + \
-#         "  matches the egg that you're installing, for example:\n" + \
-#         "  rez-egg-install MyPackage -- http://somewhere/MyPackage-1.0.tgz\n" + \
-#         "  Rez will install the package into the current release path, set in\n" + \
-#         "  $REZ_EGG_PACKAGES_PATH, which is currently:\n" + \
-#         "  " + (os.getenv("REZ_EGG_PACKAGES_PATH") or "UNSET!")
-#     p = optparse.OptionParser(usage=usage)
 
     rez_egg_remapping_file = os.getenv("REZ_EGG_MAPPING_FILE") or \
-        ("%s/template/egg_remap.yaml" % _g_rez_path)
+        ("%s/template/egg_remap.yaml" % module_root_path)
 
     parser.add_argument("pkg", metavar='PACKAGE', help="package name")
     parser.add_argument("--verbose", dest="verbose", action="store_true", default=False,

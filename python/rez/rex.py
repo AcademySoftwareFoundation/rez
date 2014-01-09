@@ -9,7 +9,7 @@ import UserDict
 import inspect
 #import textwrap
 import pipes
-import rez.platform_ as plat
+from rez.settings import settings
 
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
@@ -387,9 +387,10 @@ class SH(Shell):
         return "unset %s" % (key,)
 
     def prependenv(self, key, value):
-        return 'export {key}="{value}{sep}${key}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return 'export %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
+            key=key,
+            value=value,
+            sep=self._env_sep(key))
 
         # if key in self._set_env_vars:
         #     return 'export {key}="{value}{sep}${key}"'.format(key=key,
@@ -412,9 +413,11 @@ class SH(Shell):
         #                                                                                            value=value)
 
     def appendenv(self, key, value):
-        return 'export {key}="${key}{sep}{value}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return 'export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
+            key=key,
+            value=value,
+            sep=self._env_sep(key))
+
         # if key in self._set_env_vars:
         #     return 'export {key}="${key}{sep}{value}"'.format(key=key,
         #                                                       sep=self._env_sep(key),
@@ -438,8 +441,8 @@ class SH(Shell):
     def alias(self, key, value):
         # bash aliases don't export to subshells; so instead define a function,
         # then export that function
-        return "{key}() { {value}; };export -f {key};".format(key=key,
-                                                              value=value)
+        return "%(key)s() { %(value)s; };export -f %(key)s;" % dict(key=key,
+                                                                    value=value)
 
     def info(self, value):
         # TODO: handle newlines
@@ -473,9 +476,11 @@ class CSH(SH):
         return "unsetenv %s" % (key,)
 
     def prependenv(self, key, value):
-        return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return 'setenv %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
+            key=key,
+            value=value,
+            sep=self._env_sep(key))
+
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
@@ -492,9 +497,11 @@ class CSH(SH):
 #                             value=value))
 
     def appendenv(self, key, value):
-        return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
-                                                          sep=self._env_sep(key),
-                                                          value=value)
+        return 'setenv %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
+            key=key,
+            value=value,
+            sep=self._env_sep(key))
+
 #         if key in self._set_env_vars:
 #             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
@@ -534,9 +541,11 @@ class Python(CommandInterpreter):
 
     def setenv(self, key, value):
         self._environ[key] = self._expand(value)
+        settings.env_var_changed(key)
 
     def unsetenv(self, key):
         self._environ.pop(key)
+        settings.env_var_changed(key)
 
     def prependenv(self, key, value):
         value = self._expand(value)
@@ -546,12 +555,10 @@ class Python(CommandInterpreter):
             self._set_env_list(key, parts)
         else:
             self._environ[key] = value
+
         # special case: update current python process
-        if key == 'REZ_PACKAGES_PATH':
-            import rez.filesys
-            rez.filesys._g_syspaths.insert(0, value)
-            rez.filesys._g_syspaths_nolocal.insert(0, value)
-        elif key == 'PYTHONPATH':
+        settings.env_var_changed(key)
+        if key == 'PYTHONPATH':
             sys.path.insert(0, value)
 
     def appendenv(self, key, value):
@@ -562,12 +569,10 @@ class Python(CommandInterpreter):
             self._set_env_list(key, parts)
         else:
             self._environ[key] = value
+
         # special case: update current python process
-        if key == 'REZ_PACKAGES_PATH':
-            import rez.filesys
-            rez.filesys._g_syspaths.append(value)
-            rez.filesys._g_syspaths_nolocal.append(value)
-        elif key == 'PYTHONPATH':
+        settings.env_var_changed(key)
+        if key == 'PYTHONPATH':
             sys.path.append(value)
 
     def alias(self, key, value):
@@ -663,25 +668,22 @@ class WinShell(Shell):
 #     def system_env(self, key):
 #         return executable_output(['setenv', '-m', key])
 
-shells = {'bash': SH,
-          'sh': SH,
-          'tcsh': CSH,
-          'csh': CSH,
-          '-csh': CSH,  # For some reason, inside of 'screen', ps -o args reports -csh...
-          'python': Python,
-          #          'DOS': WinShell
-          }
 
-def get_shell_name():
-    proc = subprocess.Popen(['ps', '-o', 'args=', '-p', str(os.getppid())],
-                            stdout=subprocess.PIPE)
-    output = proc.communicate()[0]
-    return output.strip().split()[0]
+shells = dict( \
+    bash=SH,
+    sh=SH,
+    tcsh=CSH,
+    csh=CSH,
+    python=Python)
 
 def get_command_interpreter(shell=None):
     if shell is None:
-        shell = get_shell_name()
-    return shells[os.path.basename(shell)]
+        from rez.system import system
+        shell = system.shell
+    if shell in shells:
+        return shells[shell]
+    else:
+        raise ValueError("Unknown shell '%s'" % shell)
 
 def interpret(commands, shell=None, **kwargs):
     """
@@ -697,50 +699,7 @@ def interpret(commands, shell=None, **kwargs):
 #===============================================================================
 
 if sys.version_info < (2, 7, 4):
-    # TAKEN from os.posixpath in python 2.7
-    # Join two paths, normalizing ang eliminating any symbolic links
-    # encountered in the second path.
-    def _joinrealpath(path, rest, seen):
-        from os.path import isabs, sep, curdir, pardir, split, join, islink
-        if isabs(rest):
-            rest = rest[1:]
-            path = sep
-
-        while rest:
-            name, _, rest = rest.partition(sep)
-            if not name or name == curdir:
-                # current dir
-                continue
-            if name == pardir:
-                # parent dir
-                if path:
-                    path, name = split(path)
-                    if name == pardir:
-                        path = join(path, pardir, pardir)
-                else:
-                    path = pardir
-                continue
-            newpath = join(path, name)
-            if not islink(newpath):
-                path = newpath
-                continue
-            # Resolve the symbolic link
-            if newpath in seen:
-                # Already seen this path
-                path = seen[newpath]
-                if path is not None:
-                    # use cached value
-                    continue
-                # The symlink is not resolved, so we must have a symlink loop.
-                # Return already resolved part + rest of the path unchanged.
-                return join(newpath, rest), False
-            seen[newpath] = None  # not resolved symlink
-            path, ok = _joinrealpath(path, os.readlink(newpath), seen)
-            if not ok:
-                return join(path, rest), False
-            seen[newpath] = path  # resolved symlink
-
-        return path, True
+    from rez.contrib._joinrealpath import _joinrealpath
 else:
     from os.path import _joinrealpath
 
