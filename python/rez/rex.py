@@ -697,7 +697,8 @@ def interpret(commands, shell=None, **kwargs):
 #===============================================================================
 # Path Utils
 #===============================================================================
-
+# FIXME This doesn't seem to be used?
+"""
 if sys.version_info < (2, 7, 4):
     from rez.contrib._joinrealpath import _joinrealpath
 else:
@@ -735,6 +736,7 @@ def _ntpath(path):
 
 def _posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
+"""
 
 #===============================================================================
 # Environment Classes
@@ -839,7 +841,8 @@ class EnvironmentVariable(object):
         # FIXME: if value is None should we return empty list or raise an error?
         value = self.value()
         if value is not None:
-            return _split_env(value)
+            #return _split_env(value)
+            return value.split(os.pathsep)
         else:
             return []
 

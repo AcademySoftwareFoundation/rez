@@ -2,6 +2,8 @@
 
 # Join two paths, normalizing ang eliminating any symbolic links
 # encountered in the second path.
+# FIXME This doesn't seem to be used?
+"""
 def _joinrealpath(path, rest, seen):
     from os.path import isabs, sep, curdir, pardir, split, join, islink
     if isabs(rest):
@@ -43,3 +45,4 @@ def _joinrealpath(path, rest, seen):
         seen[newpath] = path  # resolved symlink
 
     return path, True
+"""
