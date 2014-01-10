@@ -8,7 +8,7 @@ import hashlib
 import tarfile
 
 if sys.version_info < (2,6):
-    from rez.contrib import zipfile
+    from rez.backport import zipfile
 else:
     import zipfile
 

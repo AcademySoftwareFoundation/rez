@@ -11,7 +11,7 @@ import os
 import sys
 
 if sys.version_info < (2,7):
-    from rez.contrib.null_handler import NullHandler
+    from rez.backport.null_handler import NullHandler
 else:
     from logging import NullHandler
 

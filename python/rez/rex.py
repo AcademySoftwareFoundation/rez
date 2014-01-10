@@ -700,7 +700,7 @@ def interpret(commands, shell=None, **kwargs):
 # FIXME This doesn't seem to be used?
 """
 if sys.version_info < (2, 7, 4):
-    from rez.contrib._joinrealpath import _joinrealpath
+    from rez.backport._joinrealpath import _joinrealpath
 else:
     from os.path import _joinrealpath
 
