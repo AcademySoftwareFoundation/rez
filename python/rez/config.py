@@ -47,6 +47,7 @@ import random
 import itertools
 from rez.settings import settings
 from rez import module_root_path
+import re
 from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
 from rez.public_enums import *
@@ -56,6 +57,7 @@ from rez.system import system
 from rez.util import AttrDictWrapper, gen_dotgraph_image, print_warning_once
 import rez.rex as rex
 
+DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 
 ##############################################################################
 # Public Classes
@@ -358,6 +360,8 @@ class Resolver(object):
                                     self.rctxt.resolve_mode,
                                     self.rctxt.package_paths)
 
+        resolve_start_time = time.time()
+
         self.raw_pkg_reqs = [_pkg_request(x) for x in pkg_reqs]
 
         # TODO replace with new 'implicit packages' feature
@@ -420,6 +424,9 @@ class Resolver(object):
             recorder.setenv('REZ_META_' + k.upper(), ' '.join(v))
         for k, v in shallow_meta_envvars.iteritems():
             recorder.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
+
+        resolve_end_time = time.time()
+        recorder.setenv('REZ_TIME_TO_RESOLVE', str(resolve_end_time - resolve_start_time))
 
         return pkg_res_list, recorder.commands, dot_graph, nfails
 
@@ -571,9 +578,19 @@ class Resolver(object):
             for cmd in pkg_res.commands:
                 if cmd.name == 'setenv':
                     if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
-                        raise PkgCommandError("Package %s overwrote value set by "
-                                              "package %s" % (pkg_res.name,
+                        raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+                                              "package '%s'" % (pkg_res.name, cmd.key,
                                                               set_vars[cmd.key]))
+                    set_vars[cmd.key] = pkg_res.name
+
+                elif cmd.name == 'resetenv':
+                    prev_pkg_name = set_vars.get(cmd.key, None)
+                    if cmd.friends:
+                        if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
+                            raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+                                                  "package '%s', and is not in the list "
+                                                  "of friends %s" % (pkg_res.name, cmd.key,
+                                                                     prev_pkg_name, cmd.friends))
                     set_vars[cmd.key] = pkg_res.name
 
             # add commands from current package to master recorder
@@ -2147,11 +2164,11 @@ def parse_export_command(cmd, env_obj):
         cmd = cmd
         pkgname = None
 
-    if cmd.startswith('export'):
+    if cmd.startswith('export '):
         var, value = cmd.split(' ', 1)[1].split('=', 1)
         # get an EnvironmentVariable instance
-        var_obj = env_obj[var]
-        parts = value.split(os.pathsep)
+        var_obj = env_obj.environ[var]
+        parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
         if len(parts) > 1:
             orig_parts = parts
             parts = [x for x in parts if x]
@@ -2188,6 +2205,9 @@ def parse_export_command(cmd, env_obj):
             var_obj.set(value)
     elif cmd.startswith('#'):
         env_obj.command_recorder.comment(cmd[1:].lstrip())
+    elif cmd.startswith('alias '):
+        match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+        env_obj.command_recorder.alias(match.groupdict()['key'], match.groupdict()['value'])
     else:
         # assume we can execute this as a straight command
         env_obj.command_recorder.command(cmd)

@@ -13,6 +13,8 @@ import inspect
 import time
 import subprocess
 import smtplib
+import textwrap
+import re
 from email.mime.text import MIMEText
 
 from rez import module_root_path
@@ -197,6 +199,8 @@ class RezReleaseMode(object):
             - build
             - install
             - post_install
+            - get_tag
+            - get_version_from_tag
     '''
     name = 'base'
 
@@ -216,6 +220,7 @@ class RezReleaseMode(object):
         # for cached property: False indicates it has not been cached
         # (since it may be None after caching)
         self._last_tagged_version = False
+        self._tag_name = False
 
         # filled in release()
         self.commit_message = None
@@ -364,6 +369,28 @@ class RezReleaseMode(object):
                 remove_write_perms(root)
 
     # VCS and tagging ---------
+    @property
+    def tag_name(self):
+        '''
+        Cached property for the tag name.
+        '''
+        if self._tag_name is False:
+            # False means the value has not been cached yet
+            self._tag_name = self.get_tag_name()
+        return self._tag_name
+
+    def get_tag_name(self):
+        '''
+        Return the tag name for the current release as a string.
+        '''
+        return str(self.metadata['version'].version)
+
+    def get_version_from_tag(self, tag):
+        '''
+        Return the version (as a Version object) from the tag.
+        '''
+        return versions.Version(tag)
+
     def get_url(self):
         '''
         Return a string for the remote url that best identifies the source of
@@ -411,7 +438,7 @@ class RezReleaseMode(object):
         found_tag = False
         for tag in self.get_tags():
             try:
-                ver = versions.Version(tag)
+                ver = self.get_version_from_tag(tag)
             except Exception:
                 continue
             if ver > latest_ver:
@@ -958,7 +985,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         # variables filled out in pre_build()
         self.tag_url = None
 
-    def get_tag_url(self, version=None):
+    def get_tag_url(self, tag_name=None):
         # find the base path, ie where 'trunk', 'branches', 'tags' should be
         pos_tr = self.this_url.find("/trunk")
         pos_br = self.this_url.find("/branches")
@@ -969,7 +996,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         tag_url = base_url + "/tags"
 
         if version:
-            tag_url += '/' + str(version)
+            tag_url += '/' + tag_name
         return tag_url
 
     def svn_url_exists(self, url):
@@ -1056,7 +1083,7 @@ class SvnRezReleaseMode(RezReleaseMode):
         return latest_ver
 
     def validate_version(self):
-        self.tag_url = self.get_tag_url(self.version)
+        self.tag_url = self.get_tag_url(tag_name=self.tag_name)
         # check that this tag does not already exist
         if self.svn_url_exists(self.tag_url):
             raise RezReleaseError("cannot release: the tag '"
@@ -1199,12 +1226,12 @@ class HgRezReleaseMode(RezReleaseMode):
         '''
         if self.patch_path:
             # patch queue
-            hg('tag', '-f', str(self.metadata['version']),
+            hg('tag', '-f', self.tag_name,
                '--message', self.commit_message, '--mq')
             # use a bookmark on the main repo since we can't change it
-            hg('bookmark', '-f', str(self.metadata['version']))
+            hg('bookmark', '-f', self.tag_name)
         else:
-            hg('tag', '-f', str(self.metadata['version']))
+            hg('tag', '-f', self.tag_name)
 
     def get_tags(self):
         tags = [line.split()[0] for line in hg('tags')]
@@ -1245,6 +1272,120 @@ class HgRezReleaseMode(RezReleaseMode):
 
 
 register_release_mode(HgRezReleaseMode)
+
+class GitRezReleaseMode(RezReleaseMode):
+    name = 'git'
+    
+    def __init__(self, path):
+        super(GitRezReleaseMode, self).__init__(path)
+
+        try:
+            import git
+        except ImportError:
+            raise RezReleaseUnsupportedMode("git python module must be installed to properly release a project under git.")
+
+        try:
+            self.repo = git.Repo(path, odbt=git.GitCmdObjectDB)
+        except git.exc.InvalidGitRepositoryError:
+            raise RezReleaseUnsupportedMode("'" + path + "' is not a git repository")
+        
+    def git_ahead_of_remote(self, repo):
+        """
+        Checks that the git repo (git.Repo instance) is
+        not ahead of its configured remote. Specifically we
+        check that the message that git status returns does not
+        contain "# Your branch is ahead of '[a-zA-Z/]+' by \d+ commit"
+        """
+        status_message = self.repo.git.status()
+        return re.search(r"# Your branch is ahead of '.+' by \d+ commit", status_message) != None
+
+    def git_checkout_index_submodules(self, submodules, subdir):
+        """
+        Recursively runs checkout-index on each submodule and its submodules and so forth,
+        duplicating the submodule directory tree in subdir
+        submodules - Iterable list of submodules
+        subdir - The target base directory that should contain each
+                    of the checkout-indexed submodules
+        """
+        for submodule in submodules:
+            submodule_subdir = os.path.join(subdir, submodule.path) + os.sep
+            if not os.path.exists(submodule_subdir):
+                os.mkdir(submodule_subdir)
+            submodule_repo = git.Repo(submodule.abspath)
+            print("rez-release: git-exporting (checkout-index) clean copy of (submodule: " + submodule.path + ") to " + submodule_subdir + "...")
+            submodule_repo.git.checkout_index(a=True, prefix=submodule_subdir)
+            self.git_checkout_index_submodules(submodule_repo.submodules, submodule_subdir)
+
+    def validate_repostate(self):
+        if self.repo.bare:
+            raise RezReleaseError("'" + self.root_dir + "' is a bare git repository")
+
+        untrackedFiles = self.repo.untracked_files
+        if untrackedFiles:
+            print "The following files are Untracked:\n"
+            for file in untrackedFiles:
+                print file
+                raise RezReleaseError("There are untracked files.")
+
+        workingCopyDiff = self.repo.index.diff(None)
+        if workingCopyDiff:
+            print "The following files were modified:\n"
+            for diff in workingCopyDiff:
+                print diff.a_blob.path
+                raise RezReleaseError("There are modified files.")
+
+        try:
+            package = "package.yaml"
+            self.repo.head.reference.commit.tree[package]
+        except KeyError:
+            raise RezReleaseError(package + " is not under source control")
+
+        if self.repo.is_dirty() or self.git_ahead_of_remote(self.repo):
+            raise RezReleaseError("'" + self.root_dir + "' is not in a state to release - you may need to " + \
+                "git commit and/or git push and/or git pull:\n" + self.repo.git.status())
+
+        try:
+            tag = self.repo.tags[self.tag_name]
+            raise RezReleaseError("cannot release: the tag '" + self.tag_name + "' already exists in git." + \
+                " You may need to up your version, git-commit and try again.")
+        except IndexError, e:
+            pass
+
+    def get_changelog(self):
+        result = self.last_tagged_version
+        if not result:
+            return "Initial Release - No Previous Tag Found."
+        changelog = self.repo.git.log("%s-%s.." % (self.metadata['name'], result), no_merges=True)
+        return changelog if changelog else "No changes since last tag."
+
+    def create_release_tag(self):
+        remote = self.repo.remote()
+        print("rez-release: creating project tag: " + self.tag_name + " and pushing to: " + remote.url + "...")
+
+        self.repo.create_tag(self.tag_name, a=True, m=self.commit_message)
+
+        push_result = remote.push()
+        if len(push_result) == 0:
+            print("failed to push to remote, you have to run 'git push' manually.")
+        push_result = remote.push(tags=True)
+        if len(push_result) == 0:
+            print("failed to push the new tag to the remote, you have to run 'git push --tags' manually.")
+
+    def get_tags(self):
+        return [tag.name for tag in self.repo.tags if tag.name.split("-")[0] == self.metadata['name']]
+
+    def get_tag_meta_str(self):
+        return self.repo.remote().url + "#" + self.repo.active_branch.tracking_branch().name.split("/")[-1] \
+            + "#" + self.repo.head.reference.commit.hexsha + "#(refs/tags/" + self.tag_name + ")"
+
+    def copy_source(self, build_dir):
+        try:
+            self.repo.git.checkout_index(a=True, prefix=build_dir)
+            self.git_checkout_index_submodules(self.repo.submodules, build_dir)
+        except Exception, e:
+            raise RezReleaseError("rez-release: git checkout-index failed: " + str(e))
+
+register_release_mode(GitRezReleaseMode)
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
