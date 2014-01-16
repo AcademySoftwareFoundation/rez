@@ -3,10 +3,9 @@ import subprocess
 import sys
 import posixpath
 import ntpath
-import string
+from string import Formatter, Template
 import re
 import UserDict
-import inspect
 #import textwrap
 import pipes
 from rez.settings import settings
@@ -17,34 +16,29 @@ FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
 
-EnvExpand = string.Template
+EnvExpand = Template
 
-class CustomExpand(string.Template):
-    pass
+class NamespaceFormatter(Formatter):
+    def __init__(self, namespace):
+        Formatter.__init__(self)
+        self.namespace = namespace
 
-# Add support for {attribute.lookups}
-CustomExpand.pattern = re.compile(r"""
-    (?<![$])(?:                          # delimiter (anything other than $)
-      (?P<escaped>a^)                |   # Escape sequence (not used)
-      (?P<named>a^)                  |   # a Python identifier (not used)
-      {(?P<braced>%(braced)s             # a braced identifier (with periods), AND...
-        (?:%(func)s)?)}              |   # an optional simple function, OR...
-      (?P<invalid>a^)                    # Other ill-formed delimiter exprs (not used)
-    )
-    """ % {'braced': ATTR_REGEX_STR,
-           'func': FUNC_REGEX_STR}, re.IGNORECASE | re.VERBOSE)
+    def get_value(self, key, args, kwds):
+        """
+        'get_value' is used to retrieve a given field value.  The 'key' argument
+        will be either an integer or a string.  If it is an integer, it represents
+        the index of the positional argument in 'args'; If it is a string, then
+        it represents a named argument in 'kwargs'.
+        """
+        if isinstance(key, str):
+            try:
+                # Check explicitly passed arguments first
+                return kwds[key]
+            except KeyError:
+                return self.namespace[key]
+        else:
+            return Formatter.get_value(key, args, kwds)
 
-# # Add support for !{attribute.lookups}
-# CustomExpand.pattern = re.compile(r"""
-#       %(delim)s(?:                     # delimiter AND...
-#       (?P<escaped>%(delim)s)       |   # Escape sequence of repeated delimiter, OR...
-#       (?P<named>[_a-z][_a-z0-9]*)  |   # a Python identifier, OR...
-#       {(?P<braced>%(braced)s)}     |  # a braced identifier (with periods), OR...
-#       (?P<invalid>)                    # Other ill-formed delimiter exprs
-#     )
-#     """ % {'delim': re.escape(CustomExpand.delimiter),
-#            'braced': ATTR_REGEX_STR},
-#     re.IGNORECASE | re.VERBOSE)
 
 class ObjectNameDict(UserDict.UserDict):
     """
@@ -961,11 +955,10 @@ class RexNamespace(dict):
         self.environ = EnvironRecorderDict(environ=environ,
                                            override_existing_lists=env_overrides_existing_lists)
         self.set_command_recorder(CommandRecorder())
-        self.custom = ObjectNameDict()
-        self.custom.data = self.vars  # assigning to data directly keeps a live link
+        self.formatter = NamespaceFormatter(self.vars)
 
     def expand(self, value):
-        value = CustomExpand(value).substitute(self.custom)
+        value = self.formatter.format(value)
         return value
 
     def set_command_recorder(self, recorder):
@@ -978,14 +971,6 @@ class RexNamespace(dict):
     def get_command_recorder(self):
         return self.command_recorder
 
-    def set(self, key, value, expand=True):
-        if self.ALL_CAPS.match(key):
-            self.environ[key] = value
-        else:
-            if expand and isinstance(value, basestring):
-                value = self.expand(value)
-            self.vars[key] = value
-
     def __getitem__(self, key):
         if self.ALL_CAPS.match(key):
             return self.environ[key]
@@ -993,7 +978,12 @@ class RexNamespace(dict):
             return self.vars[key]
 
     def __setitem__(self, key, value):
-        self.set(key, value)
+        if self.ALL_CAPS.match(key):
+            self.environ[key] = value
+        else:
+            if isinstance(value, basestring):
+                value = self.expand(value)
+            self.vars[key] = value
 
 
 def _test_string_template():

@@ -25,6 +25,36 @@ EXACT_VERSION_REGSTR = '(%s)|(%s)' % (VERSION_REGSTR, LABEL_VERSION_REGSTR)
 VERSION_REG = re.compile(VERSION_REGSTR + "$")
 LABEL_VERSION_REG = re.compile(LABEL_VERSION_REGSTR + "$")
 
+def _convert_format_spec(format_spec):
+    """
+    Convert from custom version specifier to native python format specifier.
+    For use with new-style string formatting: the `format` builtin function
+    and `__format__` special class method.
+
+    for example:
+
+        '#.#.#' --> '{}.{}.{}'
+        '#000.#1.#02' --> '{0:03d}.{1}.{2:02d}'
+
+    The version format specifier can be thought of as an abbreviated subset of the
+    native int format specifier, tailored for operating on a list of ints.
+    """
+    padsep = re.compile('(0*)(\d)')
+    def replace(match):
+        index = match.group(1)
+        if index:
+            # we assume single-digit index (hopefully we can agree that 
+            # a version with more than 10 components is ridiculous)
+            padding, index = padsep.search(index).groups()
+            if padding:
+                padding = str(len(padding) + 1)
+                return '{' + index + ':0' + padding + 'd}'
+            return '{' + index + '}'
+        else:
+            return '{}'
+
+    return re.sub('#(\d*)', replace, format_spec)
+
 def is_character(tok):
     """
     tests whether a string is a single lowercase character
@@ -537,9 +567,9 @@ class ExactVersion(Version):
     """
     Provide access to version parts and perform common reformatting
     """
-    LABELS = {'major': 1,
-              'minor': 2,
-              'patch': 3}
+    LABELS = {'major': 0,
+              'minor': 1,
+              'patch': 2}
 
 #     def __new__(self, s):
 #         if EXACT_VERSION_REG.match(s):
@@ -558,12 +588,14 @@ class ExactVersion(Version):
         if self.version == '' or LABEL_VERSION_REG.match(self.version):
             self._ge = Version.NEG_INF
             self._lt = Version.NEG_INF
+            self.parts = ()
         else:
             self._ge = parse_exact_version(self.version)
             # upper bound is one higher than lower bound
             # Note: we can be sure that self.ge is bounded here (not infinity),
             # because empty version string routes elsewhere.
             self._lt = incr_bound(self._ge)
+            self.parts = tuple(self.version.split('.'))
 
     def contains_version(self, version):
         """
@@ -573,45 +605,48 @@ class ExactVersion(Version):
 
     @property
     def major(self):
-        return self.part(self.LABELS['major'])
+        return self.parts[self.LABELS['major']]
 
     @property
     def minor(self):
-        return self.part(self.LABELS['minor'])
+        return self.parts[self.LABELS['minor']]
 
     @property
     def patch(self):
-        return self.part(self.LABELS['patch'])
+        return self.parts[self.LABELS['patch']]
 
-    def part(self, num):
-        num = int(num)
-        if num == 0:
-            print "warning: version.part() got index 0: converting to 1"
-            num = 1
-        try:
-            return self.version.split('.')[num - 1]
-        except IndexError:
-            return ''
+    def __format__(self, format_spec):
+        """
+        format_spec : str
+            format specifier string that provides a concise way
+            to express many common version formats.
 
-    def thru(self, num):
-        try:
-            num = int(num)
-        except ValueError:
-            if isinstance(num, basestring):
-                try:
-                    num = self.LABELS[num]
-                except KeyError:
-                    # allow to specify '3' as 'x.x.x'
-                    num = len(num.split('.'))
-            else:
-                raise
-        if num == 0:
-            print "warning: version.thru() got index 0: converting to 1"
-            num = 1
-        try:
-            return '.'.join(self.version.split('.')[:num])
-        except IndexError:
-            return ''
+            examples:
+
+                >>> v = ExactVersion('2.7.4')
+                >>> format(v, '#.#.#')
+                '2.7.4'
+                >>> format(v, '##')
+                '27'
+                >>> format(v, '#.#v#')
+                '2.7v4'
+                >>> format(v, '#0.#1.#2')
+                '2.7.4'
+                >>> format(v, '#1.#2')
+                '7.4'
+                >>> format(v, '#000.#01.#2')
+                '002.07.4'
+        """
+        if format_spec:
+            # For convience and consistency we convert to native int format
+            # specifier and let the format function deal with the rest.
+            format_spec = _convert_format_spec(format_spec)
+            return format_spec.format(*self.parts)
+        else:
+            return format(str(self))
+
+    def format(self, format_spec):
+        return self.__format__(format_spec)
 
     def __lt__(self, ver):
         if self.is_label():
