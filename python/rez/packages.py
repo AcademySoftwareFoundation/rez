@@ -181,12 +181,12 @@ class Package(object):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, path, timestamp=None, metadata=None):
+    def __init__(self, name, version, metafile, timestamp=None, metadata=None):
         self.name = name
         self.version = version
-        assert os.path.splitext(path)[1], "%s: %s" % (self.name, path)
-        self.base = os.path.dirname(path)
-        self.metafile = path
+        assert os.path.splitext(metafile)[1], "%s: %s" % (self.name, metafile)
+        self.base = os.path.dirname(metafile)
+        self.metafile = metafile
         self._timestamp = timestamp
         self._metadata = metadata
 
