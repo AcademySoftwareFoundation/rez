@@ -493,14 +493,14 @@ class Resolver(object):
         return result
 
     def get_execution_namespace(self, pkg_res_list):
-        env = rex.RexNamespace(env_overrides_existing_lists=True)
+        namespace = rex.RexNamespace(env_overrides_existing_lists=True)
 
         # add special data objects and functions to the namespace
         from rez.system import system
-        env['machine'] = system
-        env['pkgs'] = ResolvedPackages(pkg_res_list)
-        env['building'] = bool(os.getenv('REZ_BUILD_ENV'))
-        return env
+        namespace['machine'] = system
+        namespace['pkgs'] = ResolvedPackages(pkg_res_list)
+        namespace['building'] = bool(os.getenv('REZ_BUILD_ENV'))
+        return namespace
 
     def record_commands(self, pkg_res_list):
         # build the environment commands
@@ -509,21 +509,21 @@ class Resolver(object):
         raw_req_str = ' '.join([x.short_name() for x in self.raw_pkg_reqs])
 
         # the environment dictionary to be passed during execution of python code.
-        env = self.get_execution_namespace(pkg_res_list)
+        namespace = self.get_execution_namespace(pkg_res_list)
 
-        env["REZ_USED"] = module_root_path
-        env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
-        env["REZ_REQUEST"] = full_req_str
-        env["REZ_RAW_REQUEST"] = raw_req_str
-        env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
-        env["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
-        env["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
-        env["REZ_REQUEST_TIME"] = self.rctxt.time_epoch
+        namespace.environ["REZ_USED"] = module_root_path
+        namespace.environ["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
+        namespace.environ["REZ_REQUEST"] = full_req_str
+        namespace.environ["REZ_RAW_REQUEST"] = raw_req_str
+        namespace.environ["REZ_RESOLVE"] = " ".join(res_pkg_strs)
+        namespace.environ["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
+        namespace.environ["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
+        namespace.environ["REZ_REQUEST_TIME"] = self.rctxt.time_epoch
         # TODO remove this and have Rez create a proper rez package for itself
-        env["PYTHONPATH"] = os.path.join(module_root_path, 'python')
+        namespace.environ["PYTHONPATH"] = os.path.join(module_root_path, 'python')
 
         # master recorder. this holds all of the commands to be interpreted
-        recorder = env.get_command_recorder()
+        recorder = namespace.get_command_recorder()
 
         recorder.comment("-" * 30)
         recorder.comment("START of package commands")
@@ -532,37 +532,39 @@ class Resolver(object):
         set_vars = {}
 
         for pkg_res in pkg_res_list:
-            # reset, so we can isolate recorded commands for this package
-            # master recorder. this holds all of the commands to be interpreted
+            # swap the command recorder so we can isolate commands for this package
             pkg_recorder = rex.CommandRecorder()
-            env.set_command_recorder(pkg_recorder)
+            namespace.set_command_recorder(pkg_recorder)
             pkg_recorder.comment("")
             pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
 
             prefix = "REZ_" + pkg_res.name.upper()
-            env[prefix + "_VERSION"] = pkg_res.version
-            env[prefix + "_BASE"] = pkg_res.base
-            env[prefix + "_ROOT"] = pkg_res.root
+            namespace.environ[prefix + "_VERSION"] = pkg_res.version
+            namespace.environ[prefix + "_BASE"] = pkg_res.base
+            namespace.environ[prefix + "_ROOT"] = pkg_res.root
 
             # new style:
             if isinstance(pkg_res.raw_commands, basestring):
-                env['this'] = pkg_res
-                env['root'] = pkg_res.root
-                env['base'] = pkg_res.base
-                # FIXME: must disable expand because it will convert from VersionString to str
-                env.set('version', pkg_res.version, expand=False)
+                namespace.vars['this'] = pkg_res
+                namespace.vars['root'] = pkg_res.root
+                namespace.vars['base'] = pkg_res.base
+                namespace.vars['version'] = pkg_res.version
 
                 # compile to get tracebacks with line numbers and file
                 code = compile(pkg_res.raw_commands, pkg_res.metafile, 'exec')
                 try:
-                    exec code in env
+                    exec code in namespace
                 except Exception, err:
                     import traceback
-                    raise PkgCommandError("%s:\n %s" % (pkg_res.short_name(),
-                                                        traceback.format_exc(err)))
+                    raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
+                                                             pkg_res.metafile,
+                                                             traceback.format_exc(err)))
+            # python function from package.py:
             elif inspect.isfunction(pkg_res.raw_commands):
-                pkg_res.raw_commands(pkg_res, env['pkgs'],
-                                     AttrDictWrapper(env), pkg_recorder)
+                pkg_res.raw_commands(pkg_res,
+                                     namespace.vars['pkgs'],
+                                     AttrDictWrapper(namespace),
+                                     pkg_recorder)
             # old style:
             elif isinstance(pkg_res.raw_commands, list):
                 if settings.warn_old_commands:
@@ -570,7 +572,7 @@ class Resolver(object):
                                        % pkg_res.short_name())
                 for cmd in pkg_res.raw_commands:
                     # convert to new-style
-                    parse_export_command(cmd, env)
+                    parse_export_command(cmd, namespace)
 
             pkg_res.commands = pkg_recorder.get_commands()
 
@@ -2153,7 +2155,7 @@ class _Configuration(object):
 ##############################################################################
 # Internal Functions
 ##############################################################################
-def parse_export_command(cmd, env_obj):
+def parse_export_command(cmd, namespace):
     """
     parse a bash command and convert it to a EnvironmentVariable action
     """
@@ -2167,7 +2169,7 @@ def parse_export_command(cmd, env_obj):
     if cmd.startswith('export '):
         var, value = cmd.split(' ', 1)[1].split('=', 1)
         # get an EnvironmentVariable instance
-        var_obj = env_obj.environ[var]
+        var_obj = namespace.environ[var]
         parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
         if len(parts) > 1:
             orig_parts = parts
@@ -2204,13 +2206,13 @@ def parse_export_command(cmd, env_obj):
         else:
             var_obj.set(value)
     elif cmd.startswith('#'):
-        env_obj.command_recorder.comment(cmd[1:].lstrip())
+        namespace.command_recorder.comment(cmd[1:].lstrip())
     elif cmd.startswith('alias '):
         match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
-        env_obj.command_recorder.alias(match.groupdict()['key'], match.groupdict()['value'])
+        namespace.command_recorder.alias(match.groupdict()['key'], match.groupdict()['value'])
     else:
         # assume we can execute this as a straight command
-        env_obj.command_recorder.command(cmd)
+        namespace.command_recorder.command(cmd)
 
 
 
