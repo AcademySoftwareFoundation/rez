@@ -152,7 +152,7 @@ class MissingPackage(object):
     def __nonzero__(self):
         return False
 
-class ResolvedPackages(object):
+class Packages(object):
     """
     Class intended for use with rex which provides attribute-based lookups for
     `BasePackage` instances.
@@ -491,7 +491,8 @@ class Resolver(object):
         # add special data objects and functions to the namespace
         from rez.system import system
         namespace['machine'] = system
-        namespace['pkgs'] = ResolvedPackages(pkg_res_list)
+        namespace['resolve'] = Packages(pkg_res_list)
+        namespace['request'] = Packages(self.pkg_reqs)
         namespace['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return namespace
 
