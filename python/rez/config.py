@@ -48,8 +48,10 @@ import itertools
 from rez.settings import settings
 from rez import module_root_path
 import re
-from rez.packages import ResolvedPackage, split_name, package_in_range, package_family, iter_packages_in_range
-from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, VersionError, to_range
+from rez.packages import BasePackage, ResolvedPackage, split_name, \
+    package_in_range, package_family, iter_packages_in_range
+from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, \
+    VersionError, to_range
 from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
@@ -63,7 +65,7 @@ DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 # Public Classes
 ##############################################################################
 
-class PackageRequest(object):
+class PackageRequest(BasePackage):
     """
     A request for a package.
 
@@ -79,16 +81,13 @@ class PackageRequest(object):
             means, "I don't need this package, but if it exists then it must fall within
             this version range." A weak request is actually converted to a normal anti-
             package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
-    version_range : str
+    version_range : str, ExactVersion, ExactVersionSet, or VersionRange
             may be inexact (for eg '5.4+')
-    latest : bool or None
-            If None, resolving the package on disk is delayed until later. Otherwise,
-            the request will immediately attempt to resolve, and sorted based on
-            the value of 'latest': if True, the package with the latest version is
-            returned, otherwise, the earliest.
+    resolve_mode : {RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST, RESOLVE_MODE_NONE}
+            preference used when determining the order in which available versions
+            are tested during the resolve.
     """
-    def __init__(self, name, version_range, resolve_mode=None, timestamp=0):
-        self.name = name
+    def __init__(self, name, version_range, resolve_mode=RESOLVE_MODE_LATEST, timestamp=0):
         if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange)):
             self.version_range = version_range
         else:
@@ -96,25 +95,26 @@ class PackageRequest(object):
                 self.version_range = VersionRange(version_range)
             except VersionError:
                 self.version_range = ExactVersionSet(version_range)
-        if self.is_weak():
+        if self.is_weak(name):
             # convert into an anti-package
             self.version_range = self.version_range.get_inverse()
-            self.name = anti_name(self.name)
-        self.timestamp = timestamp
-        self.resolve_mode = resolve_mode if resolve_mode is not None else RESOLVE_MODE_LATEST
-        self._version_str = str(self.version_range)
+            name = anti_name(name)
+        # Note: this class with have both a .version (inherited from BasePackage)
+        # and a .version_range (from this class) which are both the same object.
+        # The .version makes this class compatible with other BasePackage
+        # functions, but the .version_range is  provided for explicitness, since
+        # the version is allowed to be a range (i.e. inexact).
+        BasePackage.__init__(self, name, self.version_range, timestamp)
+        self.resolve_mode = resolve_mode
 
     def is_anti(self):
         return (self.name[0] == '!')
 
-    def is_weak(self):
-        return (self.name[0] == '~')
-
-    def short_name(self):
-        if (len(self._version_str) == 0):
-            return self.name
-        else:
-            return self.name + '-' + self._version_str
+    @staticmethod
+    def is_weak(name):
+        # this is static because any weak package request will automatically be
+        # converted to an anti package, so it makes no sense as an instancemethod
+        return (name[0] == '~')
 
     def __eq__(self, other):
         return self.name == other.name and \
@@ -124,9 +124,6 @@ class PackageRequest(object):
 
     def __str__(self):
         return self.short_name()
-
-    def __repr__(self):
-        return '%s(%r, %r)' % (self.__class__.__name__, self.name, self._version_str)
 
 class PackageConflict(object):
     """
@@ -158,22 +155,18 @@ class MissingPackage(object):
 class ResolvedPackages(object):
     """
     Class intended for use with rex which provides attribute-based lookups for
-    `ResolvedPackage` instances.
+    `BasePackage` instances.
 
     If the package does not exist, the attribute value will be an empty string.
     This allows for attributes to be used to test the presence of a package and
     for non-existent packages to be used in string formatting without causing an
     error.
     """
-    def __init__(self, pkg_res_list):
-        for pkg_res in pkg_res_list:
-            setattr(self, pkg_res.name, pkg_res)
+    def __init__(self, pkg_list):
+        for pkg in pkg_list:
+            setattr(self, pkg.name, pkg)
 
     def __getattr__(self, attr):
-        """
-        return an empty string for non-existent packages to provide an
-        easy way to test package existence
-        """
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             try:
@@ -1562,8 +1555,10 @@ class _Configuration(object):
             pkg = self.pkgs[name]
             if not pkg.is_anti():
                 resolved_cmds = pkg.get_resolved_commands()
-                pkg_res = ResolvedPackage(name, str(pkg.version_range), pkg.base_path,
-                                          pkg.root_path, resolved_cmds, pkg.metadata, pkg.timestamp, pkg.metafile)
+                pkg_res = ResolvedPackage(name, str(pkg.version_range),
+                                          pkg.metafile, pkg.timestamp,
+                                          pkg.metadata, pkg.base_path,
+                                          pkg.root_path, resolved_cmds)
                 pkg_ress.append(pkg_res)
 
         return pkg_ress

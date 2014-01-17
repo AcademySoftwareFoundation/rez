@@ -172,7 +172,27 @@ class PackageFamily(object):
             yield Package(self.name, ExactVersion(variables.get('version', '')),
                           metafile)
 
-class Package(object):
+class BasePackage(object):
+    def __init__(self, name, version, timestamp):
+        self.name = name
+        self.version = version
+        self._timestamp = timestamp
+
+    def __repr__(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self.name,
+                               self.version)
+
+    @property
+    def timestamp(self):
+        return self._timestamp
+
+    def short_name(self):
+        if (len(str(self.version)) == 0):
+            return self.name
+        else:
+            return self.name + '-' + str(self.version)
+
+class Package(BasePackage):
     """
     an unresolved package.
 
@@ -182,12 +202,10 @@ class Package(object):
     is considered resolved and the full path to the package root is known.
     """
     def __init__(self, name, version, metafile, timestamp=None, metadata=None):
-        self.name = name
-        self.version = version
+        BasePackage.__init__(self, name, version, timestamp)
         assert os.path.splitext(metafile)[1], "%s: %s" % (self.name, metafile)
         self.base = os.path.dirname(metafile)
         self.metafile = metafile
-        self._timestamp = timestamp
         self._metadata = metadata
 
     @property
@@ -212,21 +230,14 @@ class Package(object):
                                        "manually, use the rez-timestamp utility.") % self.base)
         return self._timestamp
 
-    def short_name(self):
-        if (len(str(self.version)) == 0):
-            return self.name
-        else:
-            return self.name + '-' + str(self.version)
-
     def is_local(self):
+        # FIXME: this is not completely safe since '/foo/barf'.startswith('/foo/bar')
+        # is True and yet '/foo/barf' is not a sub-directory of '/foo/bar'
         return self.base.startswith(settings.local_packages_path)
 
     def __str__(self):
         return str([self.name, self.version, self.base])
 
-    def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.name,
-                               self.version)
 
 class ResolvedPackage(Package):
     """
@@ -237,14 +248,13 @@ class ResolvedPackage(Package):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, base, root, commands, metadata, timestamp, metafile):
+    def __init__(self, name, version, metafile, timestamp, metadata, base, root, commands):
         Package.__init__(self, name, version, metafile, timestamp, metadata=metadata)
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
         self.raw_commands = commands
         self.commands = None
-        self.metafile = metafile
 
     def strip(self):
         # remove data that we don't want to cache
