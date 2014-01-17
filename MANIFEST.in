@@ -1,0 +1,3 @@
+include rez/rezconfig
+recursive-include rez/_sys *
+recursive-include rez README *.cmake *.yapsy-plugin

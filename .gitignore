@@ -3,3 +3,8 @@ rez.configured
 rez.installed
 rez.cppcompiler
 use_configure.sh
+.project
+.pydevproject
+rez.egg-info/
+build/
+dist/
