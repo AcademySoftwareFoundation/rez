@@ -357,34 +357,14 @@ def command(opts, parser=None):
     with open(context_file, 'w') as f:
         f.write(script)
 
-    # FIXME: can these be added to the context file like it is for autowrappers?
-    # this gets set *prior* to spawining the subshell and relies on the fact that
-    # the env will be inhereted by the subshell.
-    #recorder = rex.CommandRecorder()
-    #recorder.setenv('REZ_CONTEXT_FILE', context_file)
-    #recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % opts.prompt)
-    #recorder.source(context_file)
-
     rex.spawn_shell(context_file,
                     shell=opts.shell,
                     rcfile=opts.rcfile,
                     stdin=opts.stdin,
                     quiet=opts.quiet)
 
-    """
-    spawn_child_shell(recorder, opts.tmpdir, context_file, opts.stdin,
-                      opts.rcfile, opts.quiet)
-    recorder.command("rm -rf %s" % opts.tmpdir)
-    cmd = rex.interpret(recorder, shell=opts.shell, output_style='eval')
-    output(cmd)
-    """
 
 
-
-
-
-
-# TODO remove all of below...
 
 # bash utilities
 # TODO: Add to an appropriate base-class

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
-# TODO we assume that the python executable running this script will actually work inside a
-# rez-env'd environment, what if this is not the case? The solution then becomes much
-# trickier.
 import os
+import argparse
+
 
 
 def _add_common_args(subp):
@@ -10,50 +9,29 @@ def _add_common_args(subp):
 
 
 if __name__ == '__main__':
-    # Test if this script is being run from an env correctly configured for Rez. Often this
-    # is not the case, because a rez-env'd environment is configured for the requested pkgs,
-    # not for Rez itself.
-    # TODO may not need this now, monkey-patch in install instead...
-    """
-    do_configure = False
-    install_base = os.getenv("REZ_INSTALL_BASE")
-    if install_base:
-        try:
-            import rez
-            assert(rez.__path__.startswith(install_base))
-        except:
-            do_configure = True
-
-    # rejig the env so rez can operate correctly
-    if do_configure:
-        import sys
-        import site
-        site.addsitedir(install_base)
-        sys.path.insert(0, install_base)
-    """
-
-    # cli
-    import argparse
     p = argparse.ArgumentParser(
         description='Rez command-line tool',
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     subps = p.add_subparsers(dest="cmd")
-    cmds = {}
+    subparsers = {}
 
     def _add_subcommand(cmd, help):
         subp = subps.add_parser(cmd, help=help)
         _add_common_args(subp)
-        exec("from rez.cli.%s import setup_parser" % cmd)
+        exec("from rez.cli.%s import setup_parser" % cmd.replace('-','_'))
         setup_parser(subp)
-        cmds[cmd] = subp
+        subparsers[cmd] = subp
 
-    _add_subcommand("settings",     "Print current rez settings.")
-    _add_subcommand("env",          "Open a resolved interactive shell.")
+    _add_subcommand("context-info",
+                    "Print information about the current shell.")
+    _add_subcommand("settings",
+                    "Print current rez settings.")
+    _add_subcommand("env",
+                    "Open a rez-configured shell, possibly interactive.")
 
     opts = p.parse_args()
     cmd = opts.cmd
-    exec("from rez.cli.%s import command" % cmd)
-    command(opts, cmds[cmd])
-
+    exec("from rez.cli.%s import command" % cmd.replace('-','_'))
+    command(opts, subparsers[cmd])
     from rez.util import clean_tmpdir
-    #clean_tmpdir()
+    clean_tmpdir()

@@ -4,6 +4,7 @@ Report on the current rez-configured environment.
 import os
 import sys
 
+
 def setup_parser(parser):
     pass
 

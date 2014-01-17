@@ -433,8 +433,8 @@ class SH(Shell):
 
             if not quiet:
                 recorder.info('')
-                recorder.info('You are now in a new environment.')
-                #recorder.command('rez-context-info')
+                recorder.info('You are now in a rez-configured environment.')
+                recorder.command('rezolve context-info')
 
         script = self._execute(recorder.commands, output_style='file')
         target_file = tmpfile(filename)

@@ -12,10 +12,14 @@ with open("rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "1.99.22"
+version = "1.99.23"
 
 scripts = [
-    "rezolve"
+    "rezolve",
+    "rez",
+    "rez-settings",
+    "rez-context-info",
+    "rez-env"
 ]
 
 requires = [
@@ -33,7 +37,7 @@ requires = [
 if sys.version_info < (2,7):
     requires.append('argparse')
 
-# post install hook
+# post install hook. Don't believe google - this is how you do it.
 class install_(install):
     def run(self):
         ret = None
