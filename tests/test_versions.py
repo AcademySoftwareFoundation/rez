@@ -179,7 +179,7 @@ class TestExactVersion(VersionBaseTest):
                              ('#0.#1.#2', '2.7.4'),
                              ('#1.#2', '7.4'),
                              ('#000.#01.#2', '002.07.4'),
-                             ('foo#bar#', 'foo2bar7')]
+                             ('foo#bar#', 'foo2bar7')]:
             self.assertEqual(format(v, frmt), result)
 
 class TestLabelVersion(VersionBaseTest):

@@ -103,93 +103,102 @@ class AttrDictYamlLoader(yaml.Loader):
         value = self.construct_mapping(node)
         data.update(value)
 
-def _get_map_id(parent_id, key):
-    return (parent_id + '.' if parent_id else '') + key
-
-def _get_list_id(parent_id, i):
-    return '%s[%s]' % (parent_id, i)
-
-def _id_match(id, match_id):
-    if id == match_id:
-        return True
-
-    match_parts = re.findall('\[(\d*:\d*)\]', match_id)
-    parts = re.findall('\[(\d+)\]', id)
-    if not len(parts) or (len(parts) != len(match_parts)):
-        return False
-    for part, match_part in zip(parts, match_parts):
-        i = int(part)
-        start, stop = match_part.split(':')
-        if start and i < int(start):
-            return False
-        if stop and i >= int(stop):
-            return False
-    return True
-
 #------------------------------------------------------------------------------
 # Base Classes and Functions
 #------------------------------------------------------------------------------
 
-def load_yaml(stream):
-    if hasattr(stream, 'read'):
-        text = stream.read()
-    else:
-        text = stream
+class MetadataLoader(object):
+    def load(self):
+        raise NotImplementedError
+
+class PythonLoader(MetadataLoader):
+    def load(self, stream):
+        """
+        load a python module into a metadata dictionary
+
+        - module-level attributes become root entries in the dictionary.
+        - module-level functions which take no arguments will be called immediately
+            and the returned value will be stored in the dictionary
+
+        for example::
+
+            config_version = 0
+            name = 'foo'
+            def requires():
+                return ['bar']
+        """
+        # TODO: support class-based design, where the attributes and methods of the
+        # class become values in the dictionary
+        g = __builtins__.copy()
+        exec stream in g
+        result = {}
+        for k, v in g.iteritems():
+            if k != '__builtins__' and (k not in __builtins__ or __builtins__[k] != v):
+                # module-level functions which take no arguments will be called immediately
+                # temporarily disable this until we finalize how commands() will work
+#                 if inspect.isfunction(v) and not any(inspect.getargspec(v)):
+#                     v = v()
+                result[k] = v
+        return result
+
+class YAMLLoader(MetadataLoader):
+    def load(self, stream):
+        if hasattr(stream, 'read'):
+            text = stream.read()
+        else:
+            text = stream
+        try:
+            return yaml.load(text) or {}
+        except yaml.composer.ComposerError, err:
+            if err.context == 'expected a single document in the stream':
+                # automatically switch to multi-doc
+                return list(yaml.load_all(text))
+            raise
+
+# keep a simple dictionary of loaders for now
+metadata_loaders = {}
+metadata_loaders['py'] = PythonLoader()
+metadata_loaders['yaml'] = YAMLLoader()
+# hack for info.txt. for now we force .txt to parse using yaml. this format
+# will be going away
+metadata_loaders['txt'] = metadata_loaders['yaml']
+
+def load(stream, scheme):
+    """
+    Read the metadata from a stream.
+
+    Parameters
+    ----------
+    scheme : str
+        the serialization scheme
+
+    Returns
+    -------
+    metadata : dict
+    """
     try:
-        return yaml.load(text) or {}
-    except yaml.composer.ComposerError, err:
-        if err.context == 'expected a single document in the stream':
-            # automatically switch to multi-doc
-            return list(yaml.load_all(text))
-        raise
+        loader = metadata_loaders[scheme]
+    except KeyError:
+        raise MetadataError("Unknown metadata storage scheme: %r" % scheme)
 
-def load_py(stream):
-    """
-    load a python module into a metadata dictionary
-
-    - module-level attributes become root entries in the dictionary.
-    - module-level functions which take no arguments will be called immediately
-        and the returned value will be stored in the dictionary
-
-    for example::
-
-        config_version = 0
-        name = 'foo'
-        def requires():
-            return ['bar']
-    """
-    # TODO: support class-based design, where the attributes and methods of the
-    # class become values in the dictionary
-    g = __builtins__.copy()
-    exec stream in g
-    result = {}
-    for k, v in g.iteritems():
-        if k != '__builtins__' and (k not in __builtins__ or __builtins__[k] != v):
-            if inspect.isfunction(v) and not any(inspect.getargspec(v)):
-                v = v()
-            result[k] = v
-    return result
-
-def load(stream, type):
-    """
-    return the metadata from a stream given the serialization "type".
-    """
-    if type == 'yaml':
-        return load_yaml(stream)
-    elif type == 'py':
-        return load_py(stream)
-    raise MetadataError("Unknown metadata storage type: %r" % type)
+    return loader.load(stream)
 
 def load_file(filename):
     """
-    read metadata from a file. determines the proper de-serialization
-    routine to run based on file extension.
+    Read metadata from a file. 
+
+    Determines the proper de-serialization scheme based on file extension.
+
+    Parameters
+    ----------
+    filename : str
+        path to the file from which to read metadata
+
+    Returns
+    -------
+    metadata : dict
     """
     ext = os.path.splitext(filename)[1]
-    # hack for info.txt. for now we force .txt to parse using yaml. this format
-    # will be going away
-    if ext == '.txt':
-        ext = '.yaml'
     with open(filename, 'r') as f:
         return load(f, ext.strip('.'))
 
@@ -198,16 +207,20 @@ def load_file(filename):
 #------------------------------------------------------------------------------
 
 class ResourceInfo(object):
-    def __init__(self, name, path_pattern=None, metadata_classes=None):
+    """
+    Stores data regarding a particular resource, including its name, where it
+    should exist on disk, and how to validate its metadata.
+    """
+    def __init__(self, name, path_pattern=None, metadata_validators=None):
         self.name = name
-        if metadata_classes:
-            if not isinstance(metadata_classes, list):
-                metadata_classes = [metadata_classes]
-            for cls in metadata_classes:
-                assert issubclass(cls, Metadata)
+        if metadata_validators:
+            if not isinstance(metadata_validators, list):
+                metadata_validators = [metadata_validators]
+            for cls in metadata_validators:
+                assert issubclass(cls, MetadataValidator)
         else:
-            metadata_classes = []
-        self.metadata_classes = metadata_classes
+            metadata_validators = []
+        self.metadata_validators = metadata_validators
         if path_pattern:
             self.is_dir = path_pattern.endswith('/')
             self.path_pattern = path_pattern.rstrip('/')
@@ -217,7 +230,7 @@ class ResourceInfo(object):
         self._compiled_pattern = None
 
     def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_classes,
+        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_validators,
                                self.path_pattern)
 
     @staticmethod
@@ -248,7 +261,8 @@ class ResourceInfo(object):
             self._compiled_pattern = regex
         return regex.search(to_posixpath(filename))
 
-def register_resource(config_version, resource_key, path_patterns=None, classes=None):
+def register_resource(config_version, resource_key, path_patterns=None,
+                      metadata_validators=None):
     """
     register a resource. this informs rez where to find it relative to the
     rez search path, and optionally how to validate its data.
@@ -260,8 +274,8 @@ def register_resource(config_version, resource_key, path_patterns=None, classes=
     path_patterns : str or list of str
         a string pattern identifying where the resource file resides relative to
         the rez search path
-    cls : Metadata class or list of Metadata classes
-        class(es) used to validate metadata
+    metadata_validators : MetadataValidator class or list of MetadataValidator classes
+        used to validate metadata
     """
     version_configs = _configs[config_version]
 
@@ -272,9 +286,9 @@ def register_resource(config_version, resource_key, path_patterns=None, classes=
     if path_patterns:
         if isinstance(path_patterns, basestring):
             path_patterns = [path_patterns]
-        resources = [ResourceInfo(resource_key, path, classes) for path in path_patterns]
+        resources = [ResourceInfo(resource_key, path, metadata_validators) for path in path_patterns]
     else:
-        resources = [ResourceInfo(resource_key, metadata_classes=classes)]
+        resources = [ResourceInfo(resource_key, metadata_validators=metadata_validators)]
     version_configs.append((resource_key, resources))
 
 def get_resources(config_version, key=None):
@@ -298,7 +312,7 @@ def get_resources(config_version, key=None):
 def get_metadata_validators(config_version, filename, key=None):
     """
     find any resources whose path pattern matches the given filename and yield
-    a list of Metadata instances.
+    a list of MetadataValidator instances.
     """
     resources = get_resources(config_version, key)
     if resources is None:
@@ -306,7 +320,7 @@ def get_metadata_validators(config_version, filename, key=None):
 
     for resource in resources:
         if (key and not resource.path_pattern) or resource.filename_is_match(filename):
-            for cls in resource.metadata_classes:
+            for cls in resource.metadata_validators:
                 yield cls(filename)
 
 def list_resource_keys(config_version):
@@ -396,12 +410,12 @@ def iter_resources(config_version, resource_keys, search_paths, **expansion_vari
 
 
 #------------------------------------------------------------------------------
-# Base Metadata
+# Base MetadataValidator
 #------------------------------------------------------------------------------
 
-class Metadata(object):
+class MetadataValidator(object):
     """
-    The Metadata class provides a means to validate the structure of hierarchical
+    The MetadataValidator class provides a means to validate the structure of hierarchical
     metadata.
 
     The STRUCTURE attribute defines a reference document which is compared
@@ -422,6 +436,32 @@ class Metadata(object):
     def __init__(self, filename):
         self.filename = filename
 
+    @staticmethod
+    def _get_map_id(parent_id, key):
+        return (parent_id + '.' if parent_id else '') + key
+
+    @staticmethod
+    def _get_list_id(parent_id, i):
+        return '%s[%s]' % (parent_id, i)
+
+    @staticmethod
+    def _id_match(id, match_id):
+        if id == match_id:
+            return True
+
+        match_parts = re.findall('\[(\d*:\d*)\]', match_id)
+        parts = re.findall('\[(\d+)\]', id)
+        if not len(parts) or (len(parts) != len(match_parts)):
+            return False
+        for part, match_part in zip(parts, match_parts):
+            i = int(part)
+            start, stop = match_part.split(':')
+            if start and i < int(start):
+                return False
+            if stop and i >= int(stop):
+                return False
+        return True
+
     def check_node(self, node, refnode, id=''):
         """
         check a node against the reference node. checks type and existence.
@@ -434,11 +474,12 @@ class Metadata(object):
             if type(node) != type(refnode):
                 if node is None:
                     yield (id, None)
-                elif inspect.isfunction(node) and not any(inspect.getargspec(node)):
-                    new_node = node()
-                    yield (id, MetadataUpdate(node, new_node))
-                    for res in self.check_node(new_node, refnode, id=id):
-                        yield res
+                # disable this until we sort out how commands() works
+#                 elif inspect.isfunction(node) and not any(inspect.getargspec(node)):
+#                     new_node = node()
+#                     yield (id, MetadataUpdate(node, new_node))
+#                     for res in self.check_node(new_node, refnode, id=id):
+#                         yield res
                 elif type(refnode).__module__ != '__builtin__':
                     # refnode requested a custom type. we use this opportunity to attempt
                     # to cast node to this type.
@@ -455,7 +496,7 @@ class Metadata(object):
             else:
                 if isinstance(refnode, dict):
                     for key in refnode:
-                        key_id = _get_map_id(id, key)
+                        key_id = self._get_map_id(id, key)
                         if key in node.keys():
                             for res in self.check_node(node[key],
                                                        refnode[key],
@@ -464,7 +505,7 @@ class Metadata(object):
                                     node[key] = res[1].new_value
                                 else:
                                     yield res
-                        elif any([_id_match(key_id, m) for m in self.REQUIRED]):
+                        elif any([self._id_match(key_id, m) for m in self.REQUIRED]):
                             yield (id, MetadataKeyError(self.filename, key))
                         else:
                             # add it to the dictionary
@@ -479,7 +520,7 @@ class Metadata(object):
                                 pass
                             for res in self.check_node(item,
                                                        refitem,
-                                                       id=_get_list_id(id, i)):
+                                                       id=self._get_list_id(id, i)):
                                 if isinstance(res[1], MetadataUpdate):
                                     node[i] = res[1].new_value
                                 else:
@@ -523,17 +564,17 @@ class OneOf(object):
         self.options = options
 
 #------------------------------------------------------------------------------
-# Metadata Implementations
+# MetadataValidator Implementations
 #------------------------------------------------------------------------------
 
-# FIXME: come up with something better than this.
+# FIXME: come up with something better than this. Seems like legacy a format.
 # Why is the release_time in a different file than the release info?
 # Does it store something meaningfully different than ACTUAL_BUILD_TIME and BUILD_TIME?
 # Why isn't the name of the release metadata more informative than info.txt?
 # Why does it assume SVN?
 # Why is it all caps whereas other metadata files use lowercase?
-# Why was it using .txt with custom parsing instead of YAML?
-class ReleaseInfo(Metadata):
+# Why is it using .txt with custom parsing instead of YAML?
+class ReleaseInfo(MetadataValidator):
     REFERENCE = {
         'ACTUAL_BUILD_TIME': 0,
         'BUILD_TIME': 0,
@@ -542,7 +583,7 @@ class ReleaseInfo(Metadata):
     }
     REQUIRED = ('ACTUAL_BUILD_TIME', 'BUILD_TIME', 'USER')
 
-class BasePackageConfig_0(Metadata):
+class BasePackageConfig_0(MetadataValidator):
     REFERENCE = {
         'config_version': 0,
         'uuid': 'str',
@@ -586,19 +627,20 @@ class PackageBuildConfig_0(VersionPackageConfig_0):
     """
     REQUIRED = ('config_version', 'name', 'version', 'uuid', 'description', 'authors')
 
+# TODO: look into creating an {ext} token
 register_resource(0,
                   'package.versioned',
-                  ['{name}/{version}/package.yaml'],
+                  ['{name}/{version}/package.yaml', '{name}/{version}/package.py'],
                   [VersionPackageConfig_0])
 
 register_resource(0,
                   'package.versionless',
-                  ['{name}/package.yaml'],
+                  ['{name}/package.yaml', '{name}/package.py'],
                   [BasePackageConfig_0])
 
 register_resource(0,
                   'package.built',
-                  classes=[PackageBuildConfig_0])
+                  metadata_validators=[PackageBuildConfig_0])
 
 register_resource(0,
                   'release.info',

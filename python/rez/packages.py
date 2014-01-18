@@ -248,19 +248,17 @@ class ResolvedPackage(Package):
     are known. When the exact list of requirements is determined, the package
     is considered resolved and the full path to the package root is known.
     """
-    def __init__(self, name, version, metafile, timestamp, metadata, base, root, commands):
+    def __init__(self, name, version, metafile, timestamp, metadata, base, root):
         Package.__init__(self, name, version, metafile, timestamp, metadata=metadata)
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
-        self.raw_commands = commands
-        self.commands = None
+        self.commands = None  # set externally after command execution
 
     def strip(self):
         # remove data that we don't want to cache
-        self.commands = None
-        self.raw_commands = None
 #         self._metadata = None
+        self.commands = None
 
     def __str__(self):
         return str([self.name, self.version, self.root])

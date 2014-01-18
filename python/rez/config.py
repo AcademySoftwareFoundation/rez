@@ -490,11 +490,61 @@ class Resolver(object):
 
         # add special data objects and functions to the namespace
         from rez.system import system
-        namespace['machine'] = system
-        namespace['resolve'] = Packages(pkg_res_list)
-        namespace['request'] = Packages(self.pkg_reqs)
-        namespace['building'] = bool(os.getenv('REZ_BUILD_ENV'))
+        namespace.vars['machine'] = system
+        namespace.vars['resolve'] = Packages(pkg_res_list)
+        namespace.vars['request'] = Packages(self.pkg_reqs)
+        namespace.vars['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return namespace
+
+    @staticmethod
+    def exec_pkg_commands(namespace, pkg_res):
+        prefix = "REZ_" + pkg_res.name.upper()
+        namespace.environ[prefix + "_VERSION"] = pkg_res.version
+        namespace.environ[prefix + "_BASE"] = pkg_res.base
+        namespace.environ[prefix + "_ROOT"] = pkg_res.root
+
+        commands = pkg_res.metadata['commands']
+
+        namespace.vars['this'] = pkg_res
+        namespace.vars['root'] = pkg_res.root
+        namespace.vars['base'] = pkg_res.base
+        namespace.vars['version'] = pkg_res.version
+
+        # new style:
+        if isinstance(commands, basestring):
+            # compile to get tracebacks with line numbers and file
+            code = compile(commands, pkg_res.metafile, 'exec')
+            try:
+                exec code in namespace.vars
+            except Exception, err:
+                import traceback
+                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
+                                                         pkg_res.metafile,
+                                                         traceback.format_exc(err)))
+        # python function from package.py:
+        elif inspect.isfunction(commands):
+            commands.func_globals.update(namespace.vars)
+            try:
+                commands()
+            except Exception, err:
+                import traceback
+                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
+                                                         pkg_res.metafile,
+                                                         traceback.format_exc(err)))
+        # old style:
+        elif isinstance(commands, list):
+            if settings.warn_old_commands:
+                print_warning_once("%s is using old-style commands." \
+                                   % pkg_res.short_name())
+            for cmd in commands:
+                cmd = cmd.replace("!VERSION!", str(pkg_res.version))
+                cmd = cmd.replace("!MAJOR_VERSION!", str(pkg_res.version.major))
+                cmd = cmd.replace("!MINOR_VERSION!", str(pkg_res.version.minor))
+                cmd = cmd.replace("!BASE!", str(pkg_res.base))
+                cmd = cmd.replace("!ROOT!", str(pkg_res.root))
+                cmd = cmd.replace("!USER!", os.getenv("USER", "UNKNOWN_USER"))
+                # convert to new-style
+                parse_export_command(cmd, namespace)
 
     def record_commands(self, pkg_res_list):
         # build the environment commands
@@ -532,41 +582,7 @@ class Resolver(object):
             pkg_recorder.comment("")
             pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
 
-            prefix = "REZ_" + pkg_res.name.upper()
-            namespace.environ[prefix + "_VERSION"] = pkg_res.version
-            namespace.environ[prefix + "_BASE"] = pkg_res.base
-            namespace.environ[prefix + "_ROOT"] = pkg_res.root
-
-            # new style:
-            if isinstance(pkg_res.raw_commands, basestring):
-                namespace.vars['this'] = pkg_res
-                namespace.vars['root'] = pkg_res.root
-                namespace.vars['base'] = pkg_res.base
-                namespace.vars['version'] = pkg_res.version
-
-                # compile to get tracebacks with line numbers and file
-                code = compile(pkg_res.raw_commands, pkg_res.metafile, 'exec')
-                try:
-                    exec code in namespace
-                except Exception, err:
-                    import traceback
-                    raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
-                                                             pkg_res.metafile,
-                                                             traceback.format_exc(err)))
-            # python function from package.py:
-            elif inspect.isfunction(pkg_res.raw_commands):
-                pkg_res.raw_commands(pkg_res,
-                                     namespace.vars['pkgs'],
-                                     AttrDictWrapper(namespace),
-                                     pkg_recorder)
-            # old style:
-            elif isinstance(pkg_res.raw_commands, list):
-                if settings.warn_old_commands:
-                    print_warning_once("%s is using old-style commands." \
-                                       % pkg_res.short_name())
-                for cmd in pkg_res.raw_commands:
-                    # convert to new-style
-                    parse_export_command(cmd, namespace)
+            self.exec_pkg_commands(namespace, pkg_res)
 
             pkg_res.commands = pkg_recorder.get_commands()
 
@@ -903,36 +919,6 @@ class _Package(object):
                  optimisation: just do this right at the end of resolve_packages
         """
         self.root_path = root_path
-
-    # Get commands with string-replacement
-    def get_resolved_commands(self):
-        """
-        NOTE: this is deprecated with the addition of the python rex execution language
-
-        Get commands with string replacement
-        """
-        if self.is_resolved():
-            if isinstance(self.metadata['commands'], list):
-                version = str(self.version_range)
-                vernums = version.split('.') + ['', '']
-                major_version = vernums[0]
-                minor_version = vernums[1]
-                user = os.getenv("USER", "UNKNOWN_USER")
-
-                new_cmds = []
-                for cmd in self.metadata['commands']:
-                    cmd = cmd.replace("!VERSION!", version)
-                    cmd = cmd.replace("!MAJOR_VERSION!", major_version)
-                    cmd = cmd.replace("!MINOR_VERSION!", minor_version)
-                    cmd = cmd.replace("!BASE!", self.base_path)
-                    cmd = cmd.replace("!ROOT!", self.root_path)
-                    cmd = cmd.replace("!USER!", user)
-                    new_cmds.append(cmd)
-                return new_cmds
-            else:
-                return self.metadata['commands']
-        else:
-            return None
 
     def get_package(self, latest=True, exact=False, timestamp=0):
         return package_in_range(self.name, self.version_range,
@@ -1555,11 +1541,10 @@ class _Configuration(object):
         for name in ordered_fams:
             pkg = self.pkgs[name]
             if not pkg.is_anti():
-                resolved_cmds = pkg.get_resolved_commands()
                 pkg_res = ResolvedPackage(name, str(pkg.version_range),
                                           pkg.metafile, pkg.timestamp,
                                           pkg.metadata, pkg.base_path,
-                                          pkg.root_path, resolved_cmds)
+                                          pkg.root_path)
                 pkg_ress.append(pkg_res)
 
         return pkg_ress
@@ -2205,7 +2190,11 @@ def parse_export_command(cmd, namespace):
         namespace.command_recorder.comment(cmd[1:].lstrip())
     elif cmd.startswith('alias '):
         match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
-        namespace.command_recorder.alias(match.groupdict()['key'], match.groupdict()['value'])
+        key = match.groupdict()['key'].strip()
+        value = match.groupdict()['value'].strip()
+        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            value = value[1:-1]
+        namespace.command_recorder.alias(key, value)
     else:
         # assume we can execute this as a straight command
         namespace.command_recorder.command(cmd)

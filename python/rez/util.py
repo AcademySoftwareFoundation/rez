@@ -239,6 +239,7 @@ class AttrDictWrapper(UserDict.UserDict):
     def __init__(self, data):
         self.__dict__['data'] = data
 
+
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
             d = self.__dict__

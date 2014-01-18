@@ -1,0 +1,11 @@
+config_version: 0
+name: rextests
+version: 1.2
+
+commands:
+  - export REXTEST_ROOT=!ROOT!
+  - export REXTEST_VERSION=!VERSION!
+  - export REXTEST_MAJOR_VERSION=!MAJOR_VERSION!
+  # prepend to non-existent var
+  - export REXTEST_DIRS=!BASE!/!MAJOR_VERSION!.!MINOR_VERSION!/bin:$REXTEST_DIRS
+  - alias rextest = 'foobar'

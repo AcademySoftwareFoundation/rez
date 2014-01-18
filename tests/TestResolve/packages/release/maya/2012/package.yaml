@@ -1,7 +1,0 @@
-config_version: 0
-name: maya
-requires: [python-2.6]
-variants:
-- [platform-linux]
-- [platform-darwin]
-version: '2012'
