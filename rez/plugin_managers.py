@@ -2,7 +2,6 @@
 Manages loading of all types of Rez plugins.
 """
 from yapsy.PluginManager import PluginManager
-from yapsy.IPlugin import IPlugin
 from rez import module_root_path
 from rez.settings import settings
 import logging
@@ -14,21 +13,6 @@ if sys.version_info < (2,7):
     from rez.backport.null_handler import NullHandler
 else:
     from logging import NullHandler
-
-
-
-class RezPluginFactory(IPlugin):
-    """Pure abstract class for creating a plugin type instance.
-    """
-    #__metaclass__ = abc.ABCMeta
-
-    def target_type(self):
-        """ Override this function to return the type this factory creates. """
-        raise NotImplementedError
-
-    def name(self):
-        """ @returns The name of the plugin type this factory creates. """
-        return self.target_type().name()
 
 
 
@@ -46,15 +30,8 @@ class RezPluginManager(object):
 
         yapsy_logger = logging.getLogger("yapsy")
         if not yapsy_logger.handlers:
-            # TODO improve when we introduce standard logging to Rez
-            yapsy_logger.addHandler(NullHandler())
-            """
-            if self.verbosity:
-                h = logging.StreamHandler()
-            else:
-                h = logging.NullHandler()
-            """
-            pass
+            h = logging.StreamHandler() if settings.debug_plugins else NullHandler()
+            yapsy_logger.addHandler(h)
 
         plugin_path = os.path.join(module_root_path, "plugins", self.type_name)
         if not os.path.exists(plugin_path):
@@ -64,12 +41,15 @@ class RezPluginManager(object):
         plugin_paths = [plugin_path] + configured_paths
         mgr = PluginManager()
         mgr.setPluginPlaces(plugin_paths)
+        if settings.debug_plugins:
+            print "\nLoading %s plugins from:\n%s" \
+                  % (self.pretty_type_name, '\n'.join(plugin_paths))
 
         mgr.collectPlugins()
         for plugin in mgr.getAllPlugins():
             factory = plugin.plugin_object
-            # TODO only print if logging
-            print "Loaded %s plugin: '%s'" % (self.pretty_type_name, factory.name())
+            if settings.debug_plugins:
+                print "Loaded %s plugin: '%s'" % (self.pretty_type_name, factory.name())
             self.factories[factory.name()] = factory
 
     def get_plugins(self):
@@ -125,5 +105,26 @@ class SourceRetrieverPluginManager(RezPluginManager):
 
 
 
+class ShellPluginManager(RezPluginManager):
+    """
+    Support for different types of target shells, such as bash, tcsh.
+    """
+    def __init__(self):
+        super(ShellPluginManager,self).__init__("shell")
+
+    def create_instance(self, shell=None, verbose=False):
+        if not shell:
+            from rez.system import system
+            shell = system.shell
+
+        # TODO this is a bit of a hack
+        from rez.rex import DEFAULT_ENV_SEP_MAP
+
+        return super(ShellPluginManager,self).create_instance(shell,
+                                                              env_sep_map=DEFAULT_ENV_SEP_MAP,
+                                                              verbose=verbose)
+
+
 # singletons
 source_retriever_plugin_manager = SourceRetrieverPluginManager()
+shell_plugin_manager = ShellPluginManager()

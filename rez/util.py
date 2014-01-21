@@ -87,14 +87,13 @@ def gen_dotgraph_image(dot_data, out_file):
 
     fn(out_file)
 
-# returns path to first program in the list to be found
+# returns path to first program in the list to be successfully found
 def which(*programs):
+    from rez.backport.shutilwhich import which as which_
     for prog in programs:
-        p = sp.Popen("which "+prog, shell=True, stdout=sp.PIPE, stderr=sp.PIPE)
-        s_out,s_err = p.communicate()
-        if not p.returncode:
-            return s_out.strip()
-    return None
+        path = which_(prog)
+        if path:
+            return path
 
 # case-insensitive fuzzy string match
 def get_close_matches(term, fields, fuzziness=0.4, key=None):

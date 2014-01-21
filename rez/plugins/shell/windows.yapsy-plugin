@@ -1,0 +1,6 @@
+[Core]
+Name = windows
+Module = windows
+
+[Documentation]
+Description = Windows shell.

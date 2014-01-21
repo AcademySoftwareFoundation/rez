@@ -1,5 +1,5 @@
+from rez import plugin_factory
 from rez.source_retrieval import RepoCloner
-from rez.plugin_managers import RezPluginFactory
 import os
 import os.path
 
@@ -182,6 +182,6 @@ class GitCloner(RepoCloner):
 
 
 
-class GitClonerFactory(RezPluginFactory):
+class GitClonerFactory(plugin_factory.RezPluginFactory):
     def target_type(self):
         return GitCloner

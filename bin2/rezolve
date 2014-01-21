@@ -34,4 +34,4 @@ if __name__ == '__main__':
     exec("from rez.cli.%s import command" % cmd.replace('-','_'))
     command(opts, subparsers[cmd])
     from rez.util import clean_tmpdir
-    clean_tmpdir()
+    #clean_tmpdir()

@@ -1,0 +1,6 @@
+[Core]
+Name = bash
+Module = bash
+
+[Documentation]
+Description = Bash shell.

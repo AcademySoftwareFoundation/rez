@@ -1,6 +1,6 @@
 from __future__ import with_statement
 from rez.source_retrieval import SourceRetriever, SourceRetrieverError
-from rez.plugin_managers import RezPluginFactory
+from rez import plugin_factory
 import os.path
 import time
 import sys
@@ -195,6 +195,6 @@ class ArchiveSourceRetriever(SourceRetriever):
 
 
 
-class ArchiveSourceRetrieverFactory(RezPluginFactory):
+class ArchiveSourceRetrieverFactory(plugin_factory.RezPluginFactory):
     def target_type(self):
         return ArchiveSourceRetriever

@@ -12,7 +12,6 @@ import textwrap
 import pipes
 from rez.settings import settings
 from rez import module_root_path
-from rez.util import which, tmpfile, get_tmpdir, get_script_path
 
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
@@ -193,6 +192,10 @@ class Source(BaseCommand):
     name = 'source'
 Source.register()
 
+class SetPrompt(BaseCommand):
+    name = 'setprompt'
+SetPrompt.register()
+
 
 class CommandRecorder(object):
     """
@@ -254,6 +257,9 @@ class CommandRecorder(object):
 
     def source(self, value):
         self.commands.append(Source(self._expand(value)))
+
+    def setprompt(self, value):
+        self.commands.append(SetPrompt(self._expand(value)))
 
 #===============================================================================
 # Interpreters
@@ -377,229 +383,10 @@ class CommandInterpreter(object):
     def source(self, value):
         raise NotImplementedError
 
-    def spawn_shell(self, context_file, rcfile=None, stdin=False, command=None, quiet=False):
-        """
-        Spawn a possibly interactive subshell. Behaviour matches bash wrt rcfile, stdin
-        and command arguments.
-        """
+    def setprompt(self, value):
         raise NotImplementedError
 
 
-class Shell(CommandInterpreter):
-    @classmethod
-    def name(cls):
-        raise NotImplementedError
-
-class SH(Shell):
-    # This caused a silent abort during rez-env. very bad.
-    # def begin(self):
-    #     return '# stop on error:\nset -e'
-
-    @classmethod
-    def name(cls):
-        return 'bash'
-
-    @classmethod
-    def _user_startup_files(cls):
-        files = []
-        for file in (".bashrc",):
-            path = os.path.expanduser('~/'+file)
-            if os.path.exists(path):
-                files.append(file)
-        return files
-
-    @classmethod
-    def _bind_rez(cls, recorder):
-        # make rez cli visible inside the new shell
-        recorder.prependenv('PATH', get_script_path())
-        recorder.setenv('PS1', "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] $PS1")
-        completion = os.path.join(module_root_path, "_sys", "bash_completion")
-        recorder.source(completion)
-        return recorder
-
-    # FIXME only source context file etc on last startup script
-    def _write_shell_resource(self, filename, context_file,
-                              rcfile=None, quiet=False, bind_rez=False):
-        recorder = CommandRecorder()
-        recorder.setenv('HOME', os.environ.get('HOME',''))
-        recorder.source('~/%s' % filename)
-
-        if bind_rez:
-            if rcfile:
-                recorder.source(rcfile)
-
-            recorder.source(context_file)
-            self._bind_rez(recorder)
-
-            if not quiet:
-                recorder.info('')
-                recorder.info('You are now in a rez-configured environment.')
-                recorder.command('rezolve context-info')
-
-        script = self._execute(recorder.commands, output_style='file')
-        target_file = tmpfile(filename)
-        with open(target_file, 'w') as f:
-            f.write(script)
-        return target_file
-
-    def spawn_shell(self, context_file, rcfile=None, stdin=False, command=None, quiet=False):
-        recorder = CommandRecorder()
-        recorder.setenv('REZ_CONTEXT_FILE', context_file)
-        # TODO hook up prompt symbol once more
-        recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % '>')
-
-        if command:
-            recorder.source(context_file)
-            recorder.command(command)
-        elif stdin:
-            recorder.source(context_file)
-
-            # TODO need to decide exactly on shell behaviour. bash ignores rcfile and does not
-            # use startup scripts when reading stdin, so neither should we. But should this be an option?
-            #if rcfile:
-            #    recorder.source(rcfile)
-            #elif os.path.exists(os.path.expanduser('~/.bashrc')):
-            #    recorder.command("source ~/.bashrc &> /dev/null")
-            #self._bind_rez(recorder)
-            recorder.command("bash -s")
-        else:
-            files = self._user_startup_files()
-            for i,file in enumerate(files):
-                # TODO if rcfile is set then this behaviour does not match bash
-                self._write_shell_resource(file, context_file,
-                                           rcfile=rcfile,
-                                           quiet=quiet,
-                                           bind_rez=(i==len(files)-1))
-            recorder.setenv("HOME", get_tmpdir())
-            recorder.command("bash")
-
-        script = self._execute(recorder.commands, output_style='file')
-        target_file = tmpfile("rez-shell.sh")
-        with open(target_file, 'w') as f:
-            f.write(script)
-
-        prog = which('bash', 'sh')
-        if not prog:
-            raise RuntimeError("Couldn't find executable for shell type 'bash'")
-        print '>>>>>>>>>>>> ' + target_file
-        p = subprocess.Popen([prog, target_file])
-        p.wait()
-
-    # TODO literal string support
-    def setenv(self, key, value):
-        return 'export %s="%s"' % (key, value)
-
-    def unsetenv(self, key):
-        return "unset %s" % (key,)
-
-    def prependenv(self, key, value):
-        return 'export %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-        # if key in self._set_env_vars:
-        #     return 'export {key}="{value}{sep}${key}"'.format(key=key,
-        #                                                       sep=self._env_sep(key),
-        #                                                       value=value)
-        # if not self._respect_parent_env:
-        #     return self.setenv(key, value)
-        # if self._output_style == 'file':
-        #     return textwrap.dedent('''\
-        #         if [[ ${key} ]]; then
-        #             export {key}="{value}"
-        #         else
-        #             export {key}="{value}{sep}${key}"
-        #         fi'''.format(key=key,
-        #                      sep=self._env_sep(key),
-        #                      value=value))
-        # else:
-        #     return "[[ {key} ]] && export {key}={value}{sep}${key} || export {key}={value}".format(key=key,
-        #                                                                                            sep=self._env_sep(key),
-        #                                                                                            value=value)
-
-    def appendenv(self, key, value):
-        return 'export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-        # if key in self._set_env_vars:
-        #     return 'export {key}="${key}{sep}{value}"'.format(key=key,
-        #                                                       sep=self._env_sep(key),
-        #                                                       value=value)
-        # if not self._respect_parent_env:
-        #     return self.setenv(key, value)
-        # if self._output_style == 'file':
-        #     return textwrap.dedent('''\
-        #         if [[ ${key} ]]; then
-        #             export {key}="{value}"
-        #         else
-        #             export {key}="${key}{sep}{value}"
-        #         fi'''.format(key=key,
-        #                      sep=self._env_sep(key),
-        #                      value=value))
-        # else:
-        #     return "[[ {key} ]] && export {key}=${key}{sep}{value} || export {key}={value}".format(key=key,
-        #                                                                                            sep=self._env_sep(key),
-        #                                                                                            value=value)
-
-    def alias(self, key, value):
-        # bash aliases don't export to subshells; so instead define a function,
-        # then export that function
-        return "%(key)s() { %(value)s; };export -f %(key)s;" % dict(key=key,
-                                                                    value=value)
-
-    def info(self, value):
-        # TODO: handle newlines
-        return 'echo "%s"' % value
-
-    def error(self, value):
-        # TODO: handle newlines
-        return 'echo "%s" 1>&2' % value
-
-    def command(self, value):
-        def quote(s):
-            if '$' not in s:
-                return pipes.quote(s)
-            return s
-        if isinstance(value, (list, tuple)):
-            value = ' '.join(quote(x) for x in value)
-        return str(value)
-
-    def comment(self, value):
-        # TODO: handle newlines
-        return "# %s" % value
-
-    def source(self, value):
-        return 'source "%s"' % os.path.expanduser(value)
-
-
-class CSH(SH):
-    @classmethod
-    def name(cls):
-        return 'tcsh'
-
-    def setenv(self, key, value):
-        return 'setenv %s "%s"' % (key, value)
-
-    def unsetenv(self, key):
-        return "unsetenv %s" % (key,)
-
-    def prependenv(self, key, value):
-        return 'setenv %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-    def appendenv(self, key, value):
-        return 'setenv %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-    def alias(self, key, value):
-        return "alias %s '%s';" % (key, value)
 
 class Python(CommandInterpreter):
     @classmethod
@@ -682,81 +469,9 @@ class Python(CommandInterpreter):
     def source(self, value):
         pass
 
-# FIMXE: this is not in working order!!! It is only here for reference
-class WinShell(Shell):
-    @classmethod
-    def name(cls):
-        return 'windows'
 
-    # These are variables where windows will construct the value from the value
-    # from system + user + volatile environment values (in that order)
-    WIN_PATH_VARS = ['PATH', 'LibPath', 'Os2LibPath']
-
-    def __init__(self, set_global=False):
-        self.set_global = set_global
-
-    def setenv(self, key, value):
-        value = value.replace('/', '\\\\')
-        # Will add environment variables to user environment variables -
-        # HKCU\\Environment
-        # ...but not to process environment variables
-#        return 'setx %s "%s"\n' % ( key, value )
-
-        # Will TRY to add environment variables to volatile environment variables -
-        # HKCU\\Volatile Environment
-        # ...but other programs won't 'notice' the registry change
-        # Will also add to process env. vars
-#        return ('REG ADD "HKCU\\Volatile Environment" /v %s /t REG_SZ /d %s /f\n' % ( key, quotedValue )  +
-#                'set "%s=%s"\n' % ( key, value ))
-
-        # Will add to volatile environment variables -
-        # HKCU\\Volatile Environment
-        # ...and newly launched programs will detect this
-        # Will also add to process env. vars
-        if self.set_global:
-            # If we have a path variable, make sure we don't include items
-            # already in the user or system path, as these items will be
-            # duplicated if we do something like:
-            #   env.PATH += 'newPath'
-            # ...and can lead to exponentially increasing the size of the
-            # variable every time we do an append
-            # So if an entry is already in the system or user path, since these
-            # will proceed the volatile path in precedence anyway, don't add
-            # it to the volatile as well
-            if key in self.WIN_PATH_VARS:
-                sysuser = set(self.system_env(key).split(os.pathsep))
-                sysuser.update(self.user_env(key).split(os.pathsep))
-                new_value = []
-                for val in value.split(os.pathsep):
-                    if val not in sysuser and val not in new_value:
-                        new_value.append(val)
-                volatile_value = os.pathsep.join(new_value)
-            else:
-                volatile_value = value
-            # exclamation marks allow delayed expansion
-            quotedValue = subprocess.list2cmdline([volatile_value])
-            cmd = 'setenv -v %s %s\n' % (key, quotedValue)
-        else:
-            cmd = ''
-        cmd += 'set %s=%s\n' % (key, value)
-        return cmd
-
-    def unsetenv(self, key):
-        # env vars are not cleared until restart!
-        if self.set_global:
-            cmd = 'setenv -v %s -delete\n' % (key,)
-        else:
-            cmd = ''
-        cmd += 'set %s=\n' % (key,)
-        return cmd
-
-#     def user_env(self, key):
-#         return executable_output(['setenv', '-u', key])
-#
-#     def system_env(self, key):
-#         return executable_output(['setenv', '-m', key])
-
-
+"""
+# Superseded by shells plugin
 shells = dict( \
     bash=SH,
     sh=SH,
@@ -774,24 +489,19 @@ def get_command_interpreter(shell=None):
         raise ValueError("Unknown shell '%s'" % shell)
 
 def interpret(commands, shell=None, **kwargs):
-    """
-    Convenience function which acts as a main entry point for interpreting commands
-    """
     if isinstance(commands, CommandRecorder):
         commands = commands.commands
     kwargs.setdefault('env_sep_map', DEFAULT_ENV_SEP_MAP)
     return get_command_interpreter(shell)(**kwargs)._execute(commands)
 
 def spawn_shell(context_file, shell=None, rcfile=None, stdin=False, command=None, quiet=False):
-    """
-    Start a possibly interactive shell subprocess.
-    """
     ci = get_command_interpreter(shell)(env_sep_map=DEFAULT_ENV_SEP_MAP)
     ci.spawn_shell(context_file,
                    rcfile=rcfile,
                    stdin=stdin,
                    command=command,
                    quiet=quiet)
+"""
 
 
 #===============================================================================

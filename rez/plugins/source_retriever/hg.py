@@ -1,5 +1,5 @@
+from rez import plugin_factory
 from rez.source_retrieval import RepoCloner
-from rez.plugin_managers import RezPluginFactory
 
 
 
@@ -83,6 +83,6 @@ class HgCloner(RepoCloner):
 
 
 
-class HgClonerFactory(RezPluginFactory):
+class HgClonerFactory(plugin_factory.RezPluginFactory):
     def target_type(self):
         return HgCloner

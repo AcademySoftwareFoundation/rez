@@ -1,0 +1,6 @@
+[Core]
+Name = tcsh
+Module = tcsh
+
+[Documentation]
+Description = TCSH shell.

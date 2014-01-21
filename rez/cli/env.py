@@ -10,6 +10,8 @@ import shutil
 from rez.settings import settings
 from rez.cli import error, output
 from . import config as rez_cli_config
+from rez.util import tmpfile
+
 
 
 # autowrapper constants:
@@ -20,6 +22,8 @@ _g_tools_filename = _g_context_filename + '.tools'
 _g_wrapper_pkg_prefix = '__wrapper_'
 
 def setup_parser(parser):
+    from rez.system import system
+    from rez.shells import get_shell_types
 
     parser.add_argument("pkg", nargs='+',
                         help='list of package names')
@@ -31,9 +35,14 @@ def setup_parser(parser):
     parser.add_argument("-p", "--prompt", dest="prompt", type=str,
                         default=">",
                         help="Set the prompt decorator [default=%(default)s]")
+    parser.add_argument("--shell", dest="shell", type=str,
+                        default=system.shell,
+                        help="Target shell type, one of: %s" \
+                             % ', '.join(get_shell_types()))
     parser.add_argument("-r", "--rcfile", dest="rcfile", type=str,
                         default='',
                         help="Source this file after the new shell is invoked")
+    # TODO ignored temporarily
     parser.add_argument("--tmpdir", dest="tmpdir", type=str,
                         default=None,
                         help="Set the temp directory manually, /tmp otherwise")
@@ -280,9 +289,7 @@ def command(opts, parser=None):
     import tempfile
     import rez.parse_request as rpr
     import rez.rex as rex
-
-    # TODO: support other shells
-    opts.shell = 'bash'
+    from rez.shells import interpret, spawn_shell
 
     autowrappers = _contains_autowrappers(opts.pkg)
     raw_request = os.getenv('REZ_RAW_REQUEST', '')
@@ -342,8 +349,8 @@ def command(opts, parser=None):
     ##############################################################################
     # call rez-config, and write env into bake file
     ##############################################################################
-    dot_file = os.path.join(opts.tmpdir, _g_dot_filename)
-    context_file = os.path.join(opts.tmpdir, _g_context_filename)
+    dot_file = tmpfile(_g_dot_filename)
+    context_file = tmpfile(_g_context_filename)
 
     result = resolve(opts, pkg_list, dot_file, package_paths)
     commands = result[1]
@@ -353,16 +360,15 @@ def command(opts, parser=None):
         commands = [rex.Setenv('REZ_IN_WRAPPER', ''),
                     rex.Setenv('REZ_WRAPPER_PATH', '')] + commands
 
-    script = rex.interpret(commands, shell=opts.shell)
+    script = interpret(commands, shell=opts.shell)
     with open(context_file, 'w') as f:
         f.write(script)
 
-    rex.spawn_shell(context_file,
-                    shell=opts.shell,
-                    rcfile=opts.rcfile,
-                    stdin=opts.stdin,
-                    quiet=opts.quiet)
-
+    spawn_shell(context_file,
+                shell=opts.shell,
+                rcfile=opts.rcfile,
+                stdin=opts.stdin,
+                quiet=opts.quiet)
 
 
 
