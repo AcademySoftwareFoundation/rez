@@ -510,9 +510,9 @@ class Resolver(object):
         namespace.vars['base'] = pkg_res.base
         namespace.vars['version'] = pkg_res.version
 
-        # new style:
+        # new style package.yaml:
         if isinstance(commands, basestring):
-            # compile to get tracebacks with line numbers and file
+            # compile to get tracebacks with line numbers and file.
             code = compile(commands, pkg_res.metafile, 'exec')
             try:
                 exec code in namespace.vars
@@ -520,7 +520,7 @@ class Resolver(object):
                 import traceback
                 raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
                                                          pkg_res.metafile,
-                                                         traceback.format_exc(err)))
+                                                         traceback.format_exc()))
         # python function from package.py:
         elif inspect.isfunction(commands):
             commands.func_globals.update(namespace.vars)
@@ -530,19 +530,25 @@ class Resolver(object):
                 import traceback
                 raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
                                                          pkg_res.metafile,
-                                                         traceback.format_exc(err)))
+                                                         traceback.format_exc()))
         # old style:
         elif isinstance(commands, list):
             if settings.warn_old_commands:
                 print_warning_once("%s is using old-style commands." \
                                    % pkg_res.short_name())
+            expansions = []
+            expansions.append(("!VERSION!", str(pkg_res.version)))
+            if len(pkg_res.version.parts):
+                expansions.append(("!MAJOR_VERSION!", str(pkg_res.version.major)))
+                if len(pkg_res.version.parts) > 1:
+                    expansions.append(("!MINOR_VERSION!", str(pkg_res.version.minor)))
+            expansions.append(("!BASE!", str(pkg_res.base)))
+            expansions.append(("!ROOT!", str(pkg_res.root)))
+            expansions.append(("!USER!", os.getenv("USER", "UNKNOWN_USER")))
+
             for cmd in commands:
-                cmd = cmd.replace("!VERSION!", str(pkg_res.version))
-                cmd = cmd.replace("!MAJOR_VERSION!", str(pkg_res.version.major))
-                cmd = cmd.replace("!MINOR_VERSION!", str(pkg_res.version.minor))
-                cmd = cmd.replace("!BASE!", str(pkg_res.base))
-                cmd = cmd.replace("!ROOT!", str(pkg_res.root))
-                cmd = cmd.replace("!USER!", os.getenv("USER", "UNKNOWN_USER"))
+                for find, replace in expansions:
+                    cmd = cmd.replace(find, replace)
                 # convert to new-style
                 parse_export_command(cmd, namespace)
 
@@ -580,12 +586,13 @@ class Resolver(object):
             pkg_recorder = rex.CommandRecorder()
             namespace.set_command_recorder(pkg_recorder)
             pkg_recorder.comment("")
-            pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
+            pkg_recorder.comment("Commands from package %s" % pkg_res.name)
 
             self.exec_pkg_commands(namespace, pkg_res)
 
             pkg_res.commands = pkg_recorder.get_commands()
 
+            # FIXME: getting an error with an append, which should not happen
             # check for variables set by multiple packages
             for cmd in pkg_res.commands:
                 if cmd.name == 'setenv':
