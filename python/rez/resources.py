@@ -26,7 +26,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez.settings import settings
-from rez.util import to_posixpath, AttrDict
+from rez.util import to_posixpath
 from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
@@ -98,6 +98,7 @@ class AttrDictYamlLoader(yaml.Loader):
         self.add_constructor(u'tag:yaml.org,2002:map', type(self).construct_yaml_map)
 
     def construct_yaml_map(self, node):
+        from rez.util import AttrDict
         data = AttrDict()
         yield data
         value = self.construct_mapping(node)
@@ -135,9 +136,13 @@ class PythonLoader(MetadataLoader):
         for k, v in g.iteritems():
             if k != '__builtins__' and (k not in __builtins__ or __builtins__[k] != v):
                 # module-level functions which take no arguments will be called immediately
-                # temporarily disable this until we finalize how commands() will work
-#                 if inspect.isfunction(v) and not any(inspect.getargspec(v)):
-#                     v = v()
+                # FIXME: the immediate attribute is used to tell us if a function
+                # should be deferred or executed immediately, but we need to work
+                # out the exact syntax.  maybe a 'rex' attribute that conveys
+                # the opposite meaning would be better along with a @rex decorator
+                # to set the attribute.
+                if inspect.isfunction(v) and getattr(v, 'immediate', False):
+                    v = v()
                 result[k] = v
         return result
 
@@ -594,9 +599,9 @@ class BasePackageConfig_0(MetadataValidator):
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
-        'commands': OneOf('str',
-                          ['str'],
-                          lambda pkg, pkgs, env, recorder: None)
+        'commands': OneOf(lambda: None,
+                          'str',
+                          ['str'])
     }
 
     REQUIRED = ('config_version', 'name')
@@ -614,9 +619,9 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
-        'commands': OneOf('str',
-                          ['str'],
-                          lambda pkg, pkgs, env, recorder: None)
+        'commands': OneOf(lambda: None,
+                          'str',
+                          ['str'])
     }
     REQUIRED = ('config_version', 'name', 'version')
 
