@@ -796,7 +796,6 @@ class EnvironmentVariable(object):
         if self._environ_map.expand_func:
             value = self._environ_map.expand_func(value)
 
-        print>>sys.stderr, "prepend", self.name, value, self.name not in self.environ, self.name not in self._environ_map
         if self. _environ_map.do_list_override(self.name):
             self._environ_map.python_interpreter.setenv(self.name, value)
             self._environ_map.command_recorder.setenv(self.name, value)
@@ -825,7 +824,6 @@ class EnvironmentVariable(object):
         if self._environ_map.expand_func:
             value = self._environ_map.expand_func(value)
 
-        print>>sys.stderr, "set", self.name, value
         self._environ_map.command_recorder.setenv(self.name, value)
 
     def unset(self):
