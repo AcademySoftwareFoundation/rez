@@ -641,7 +641,7 @@ class ExactVersion(Version):
             # For convience and consistency we convert to native int format
             # specifier and let the format function deal with the rest.
             format_spec = _convert_format_spec(format_spec)
-            return format_spec.format(*self.parts)
+            return format_spec.format(*[int(x) for x in self.parts])
         else:
             return format(str(self))
 
