@@ -1275,7 +1275,7 @@ register_release_mode(HgRezReleaseMode)
 
 class GitRezReleaseMode(RezReleaseMode):
     name = 'git'
-    
+
     def __init__(self, path):
         super(GitRezReleaseMode, self).__init__(path)
 
@@ -1288,7 +1288,14 @@ class GitRezReleaseMode(RezReleaseMode):
             self.repo = git.Repo(path, odbt=git.GitCmdObjectDB)
         except git.exc.InvalidGitRepositoryError:
             raise RezReleaseUnsupportedMode("'" + path + "' is not a git repository")
-        
+
+    @classmethod
+    def is_valid_root(cls, path):
+        """
+        Return True if this release mode works with the given root path
+        """
+        return os.path.isdir(os.path.join(path, '.git'))
+
     def git_ahead_of_remote(self, repo):
         """
         Checks that the git repo (git.Repo instance) is
