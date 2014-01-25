@@ -8,8 +8,13 @@ import re
 import UserDict
 #import textwrap
 import pipes
+import inspect
+import time
+from rez import module_root_path
 from rez.settings import settings
 import rez.util as util
+from rez.util import print_warning_once
+from rez.exceptions import PkgCommandError
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
@@ -38,6 +43,48 @@ class NamespaceFormatter(Formatter):
                 return self.namespace[key]
         else:
             return Formatter.get_value(key, args, kwds)
+
+#===============================================================================
+# Path Utils
+#===============================================================================
+
+if sys.version_info < (2, 7, 4):
+    from rez.contrib._joinrealpath import _joinrealpath
+else:
+    from os.path import _joinrealpath
+
+def _abspath(root, value):
+    # not all variables are paths: only absolutize if it looks like a relative path
+    if root and \
+        (value.startswith('./') or
+         ('/' in value and not (posixpath.isabs(value) or ntpath.isabs(value)))):
+        value = os.path.join(root, value)
+    return value
+
+def _split_env(value):
+    return value.split(os.pathsep)
+
+def _join_env(values):
+    return os.pathsep.join(values)
+
+def _realpath(value):
+    # cannot call os.path.realpath because it always calls os.path.abspath
+    # output:
+    seen = {}
+    newpath, ok = _joinrealpath('', value, seen)
+    # only call abspath if a link was resolved:
+    if seen:
+        return os.path.abspath(newpath)
+    return newpath
+
+def _nativepath(path):
+    return os.path.join(path.split('/'))
+
+def _ntpath(path):
+    return ntpath.sep.join(path.split(posixpath.sep))
+
+def _posixpath(path):
+    return posixpath.sep.join(path.split(ntpath.sep))
 
 
 #===============================================================================
@@ -93,7 +140,7 @@ class Setenv(EnvCommand):
             self.args = key, value
 
     def post_exec(self, interpreter, result):
-        interpreter._set_env_vars.add(self.key)
+        interpreter._environ.add(self.key)
         return result
 Setenv.register()
 
@@ -102,7 +149,7 @@ class Resetenv(EnvCommand):
 
     @property
     def friends(self):
-         if len(self.args) == 3:
+        if len(self.args) == 3:
             return self.args[2]
 
     def pre_exec(self, interpreter):
@@ -112,7 +159,7 @@ class Resetenv(EnvCommand):
             self.args = key, value, friends
 
     def post_exec(self, interpreter, result):
-        interpreter._set_env_vars.add(self.key)
+        interpreter._environ.add(self.key)
         return result
 Resetenv.register()
 
@@ -148,21 +195,40 @@ class Source(BaseCommand):
     name = 'source'
 Source.register()
 
-class CommandRecorder(object):
+class CommandExecutor(object):
     """
-    Utility class for generating a list of `BaseCommand` instances and performing string
-    variable expansion on their arguments (For local variables, not for
-    environment variables)
+    Abstract base class to interpret a rex commands, usually as a commands
+    for a shell.
+
+    Use the convenience function `rex.interpret` rather than accessing
+    this class directly.
     """
-    def __init__(self, initial_commands=None):
+    def __init__(self, interpreter, output_style='file',
+                 formatter=None, verbose=False, env_sep_map=None, initial_commands=None):
+        '''
+        output_style : str
+            the style of the output string.  currently only 'file' and 'eval' are
+            supported.  'file' is intended to be more human-readable, while 'eval' is
+            intended to work in a shell `eval` statement. pratically, this means the
+            former is separated by newlines, while the latter is separated by
+            semi-colons.
+        verbose : bool or list of str
+            if True, causes commands to print additional feedback (using info()).
+            can also be set to a list of strings matching command names to add
+            verbosity to only those commands.
+        '''
+        if isinstance(interpreter, basestring):
+            self.interpreter = get_command_interpreter(interpreter)()
+        else:
+            self.interpreter = interpreter
+        self.output_style = output_style
+        self.verbose = verbose
+        self.environ = {}
+        self.formatter = formatter
         self.commands = [] if initial_commands is None else initial_commands
-        self._expandfunc = None
 
-    def reset_commands(self):
-        self.commands = []
-
-    def get_commands(self):
-        return self.commands[:]
+        # TODO: get rid of this feature
+        self._env_sep_map = env_sep_map if env_sep_map is not None else {}
 
     def get_command_methods(self):
         """
@@ -171,127 +237,151 @@ class CommandRecorder(object):
         """
         return [(name, getattr(self, name)) for name, _ in BaseCommand.get_command_types()]
 
-    def _expand(self, value):
-        if self._expandfunc:
+    def _env_sep(self, name):
+        return self._env_sep_map.get(name, os.pathsep)
+
+    def _reset(self):
+        self.environ = {}
+
+    def _is_verbose(self, command):
+        if isinstance(self.verbose, (list, tuple)):
+            return command in self.verbose
+        else:
+            return bool(self.verbose)
+
+    def _format(self, value):
+        if self.formatter:
             if isinstance(value, (list, tuple)):
-                return [self._expandfunc(str(v)) for v in value]
+                return [self.formatter(v) for v in value]
             else:
-                return self._expandfunc(str(value))
+                return self.formatter(value)
         return value
 
+    def _get_env_list(self, key):
+        return self.environ[key].split(self._env_sep(key))
+
+    def _set_env_list(self, key, values):
+        value = self._env_sep(key).join(values)
+        self.environ[key] = value
+        return value
+
+    def get_output(self):
+        return self.interpreter.get_output(self.output_style)
+
+    # -- Commands
+
     def setenv(self, key, value):
-        self.commands.append(Setenv(key, self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Setenv(key, value))
+        self.environ[key] = value
+        self.interpreter.setenv(key, value)
 
     def unsetenv(self, key):
         self.commands.append(Unsetenv(key))
+        self.environ.pop(key)
+        self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
-        self.commands.append(Resetenv(key, self._expand(value), friends))
+        self.commands.append(Resetenv(key, value, friends))
+        self.setenv(key, value)
+        self.interpreter.resetenv(key, value)
 
     def prependenv(self, key, value):
-        self.commands.append(Prependenv(key, self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Prependenv(key, value))
+        if key in self.environ:
+            parts = self._get_env_list(key)
+            parts.insert(0, value)
+            values = self._set_env_list(key, parts)
+        else:
+            self.environ[key] = value
+            values = value
+        try:
+            self.interpreter.prependenv(key, value)
+        except NotImplementedError:
+            # if the interpreter does not implement prependenv/appendenv specifically,
+            # we can simply call setenv with the computed value.  Currenlty only
+            # python requires a special prependenv/appendenv
+            self.interpreter.setenv(key, values)
 
     def appendenv(self, key, value):
-        self.commands.append(Appendenv(key, self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Appendenv(key, value))
+        value = self._format(value)
+        if key in self.environ:
+            parts = self._get_env_list(key)
+            parts.append(value)
+            values = self._set_env_list(key, parts)
+        else:
+            self.environ[key] = value
+            values = value
+        try:
+            self.interpreter.appendenv(key, value)
+        except NotImplementedError:
+            # if the interpreter does not implement prependenv/appendenv specifically,
+            # we can simply call setenv with the computed value.  Currenlty only
+            # python requires a special prependenv/appendenv
+            self.interpreter.setenv(key, values)
 
     def alias(self, key, value):
-        self.commands.append(Alias(key, self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Alias(key, value))
+        self.interpreter.alias(key, value)
 
     def info(self, value=''):
-        self.commands.append(Info(self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Info(value))
+        self.interpreter.info(value)
 
     def error(self, value):
-        self.commands.append(Error(self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Error(value))
+        self.interpreter.error(value)
 
     def command(self, value):
-        self.commands.append(Command(self._expand(value)))
+        value = self._format(value)
+        self.commands.append(Command(value))
+        self.interpreter.command(value)
 
     def comment(self, value):
-        self.commands.append(Comment(self._expand(value)))
+        self.commands.append(Comment(value))
+        self.interpreter.comment(value)
 
     def source(self, value):
-        self.commands.append(Source(self._expand(value)))
+        self.commands.append(Source(value))
 
 #===============================================================================
 # Interpreters
 #===============================================================================
 
 class CommandInterpreter(object):
-    """
-    Abstract base class to interpret a list of commands, usually as a commands
-    for a shell.
 
-    Usually the convenience function `interpret` is used rather than accessing
-    this class directly.
-    """
-    def __init__(self, output_style='file', env_sep_map=None, verbose=False):
-        '''
-        output_style : str
-            the style of the output string.  currently only 'file' and 'eval' are
-            supported.  'file' is intended to be more human-readable, while 'eval' is
-            intended to work in a shell `eval` statement. pratically, this means the
-            former is separated by newlines, while the latter is separated by
-            semi-colons.
-        env_sep_map : dict
-            If provided, allows for custom separators for certain environment
-            variables.  Should be a map of variable name to path separator.
-        verbose : bool or list of str
-            if True, causes commands to print additional feedback (using info()).
-            can also be set to a list of strings matching command names to add
-            verbosity to only those commands.
-        '''
-        self._output_style = output_style
-        self._env_sep_map = env_sep_map if env_sep_map is not None else {}
-        self._verbose = verbose
-        # TODO: will probably remove these two options
-        self._respect_parent_env = True
-        self._set_env_vars = set([])
-
-    def get_command_methods(self):
-        """
-        return a list of methods on this class for interpreting commands.
-        methods are return as a list of (name, func) tuples
-        """
-        return [(name, getattr(self, name)) for name, _ in BaseCommand.get_command_types()]
-
-    def _reset(self):
-        self._set_env_vars = set([])
-
-    def _is_verbose(self, command):
-        if isinstance(self._verbose, (list, tuple)):
-            return command in self._verbose
-        else:
-            return bool(self._verbose)
-
-    def _execute(self, command_list):
-        lines = []
-        header = self.begin()
-        if header:
-            lines.append(header)
-
-        for cmd in command_list:
-            func = getattr(self, cmd.name)
-            pre_func = getattr(cmd, 'pre_exec', None)
-            if pre_func:
-                pre_func(self)
-            if self._is_verbose(cmd.name):
-                self.info("running %s: %s" % (cmd.name, ' '.join(str(x) for x in cmd.args)))
-            result = func(*cmd.args)
-            post_func = getattr(cmd, 'post_exec', None)
-            if post_func:
-                result = post_func(self, result)
-            if result is not None:
-                lines.append(result)
-        footer = self.end()
-        if footer:
-            lines.append(footer)
-        line_sep = '\n' if self._output_style == 'file' else ';'
-        script = line_sep.join(lines)
-        script += line_sep
-        return script
-
-    def _env_sep(self, name):
-        return self._env_sep_map.get(name, os.pathsep)
+#     def _execute(self, command_list):
+#         lines = []
+#         header = self.begin()
+#         if header:
+#             lines.append(header)
+# 
+#         for cmd in command_list:
+#             func = getattr(self, cmd.name)
+#             pre_func = getattr(cmd, 'pre_exec', None)
+#             if pre_func:
+#                 pre_func(self)
+#             if self._is_verbose(cmd.name):
+#                 self.info("running %s: %s" % (cmd.name, ' '.join(str(x) for x in cmd.args)))
+#             result = func(*cmd.args)
+#             post_func = getattr(cmd, 'post_exec', None)
+#             if post_func:
+#                 result = post_func(self, result)
+#             if result is not None:
+#                 lines.append(result)
+#         footer = self.end()
+#         if footer:
+#             lines.append(footer)
+#         line_sep = '\n' if self.output_style == 'file' else ';'
+#         script = line_sep.join(lines)
+#         script += line_sep
+#         return script
 
     # --- callbacks
 
@@ -313,9 +403,15 @@ class CommandInterpreter(object):
         raise NotImplementedError
 
     def prependenv(self, key, value):
+        '''
+        this is optional, but if it is not implemented, you must implement setenv
+        '''
         raise NotImplementedError
 
     def appendenv(self, key, value):
+        '''
+        this is optional, but if it is not implemented, you must implement setenv
+        '''
         raise NotImplementedError
 
     def alias(self, key, value):
@@ -337,7 +433,17 @@ class CommandInterpreter(object):
         raise NotImplementedError
 
 class Shell(CommandInterpreter):
-    pass
+    def __init__(self):
+        self._lines = []
+
+    def _addline(self, line):
+        self._lines.append(line)
+
+    def get_output(self, output_style):
+        line_sep = '\n' if output_style == 'file' else ';'
+        script = line_sep.join(self._lines)
+        script += line_sep
+        return script
 
 class SH(Shell):
     # This caused a silent abort during rez-env. very bad.
@@ -345,27 +451,27 @@ class SH(Shell):
     #     return '# stop on error:\nset -e'
 
     def setenv(self, key, value):
-        return 'export %s="%s"' % (key, value)
+        self._addline('export %s="%s"' % (key, value))
 
     def unsetenv(self, key):
-        return "unset %s" % (key,)
+        self._addline("unset %s" % (key,))
 
     def resetenv(self, key, value, friends=None):
-        return self.setenv(key, value)
+        self._addline(self.setenv(key, value))
 
-    def prependenv(self, key, value):
-        return 'export %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
+#     def prependenv(self, key, value):
+#         self._addline('export %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
+#             key=key,
+#             value=value,
+#             sep=self._env_sep(key)))
 
-        # if key in self._set_env_vars:
+        # if key in self._environ:
         #     return 'export {key}="{value}{sep}${key}"'.format(key=key,
         #                                                       sep=self._env_sep(key),
         #                                                       value=value)
         # if not self._respect_parent_env:
         #     return self.setenv(key, value)
-        # if self._output_style == 'file':
+        # if self.output_style == 'file':
         #     return textwrap.dedent('''\
         #         if [[ ${key} ]]; then
         #             export {key}="{value}"
@@ -379,19 +485,19 @@ class SH(Shell):
         #                                                                                            sep=self._env_sep(key),
         #                                                                                            value=value)
 
-    def appendenv(self, key, value):
-        return 'export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
+#     def appendenv(self, key, value):
+#         self._addline('export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
+#             key=key,
+#             value=value,
+#             sep=self._env_sep(key)))
 
-        # if key in self._set_env_vars:
+        # if key in self._environ:
         #     return 'export {key}="${key}{sep}{value}"'.format(key=key,
         #                                                       sep=self._env_sep(key),
         #                                                       value=value)
         # if not self._respect_parent_env:
         #     return self.setenv(key, value)
-        # if self._output_style == 'file':
+        # if self.output_style == 'file':
         #     return textwrap.dedent('''\
         #         if [[ ${key} ]]; then
         #             export {key}="{value}"
@@ -408,16 +514,16 @@ class SH(Shell):
     def alias(self, key, value):
         # bash aliases don't export to subshells; so instead define a function,
         # then export that function
-        return "{key}() {{ {value}; }};export -f {key};".format(key=key,
-                                                              value=value)
+        self._addline("{key}() {{ {value}; }};export -f {key};".format(key=key,
+                                                              value=value))
 
     def info(self, value):
         # TODO: handle newlines
-        return 'echo "%s"' % value
+        self._addline('echo "%s"' % value)
 
     def error(self, value):
         # TODO: handle newlines
-        return 'echo "%s" 1>&2' % value
+        self._addline('echo "%s" 1>&2' % value)
 
     def command(self, value):
         def quote(s):
@@ -426,37 +532,40 @@ class SH(Shell):
             return s
         if isinstance(value, (list, tuple)):
             value = ' '.join(quote(x) for x in value)
-        return str(value)
+        self._addline(str(value))
 
     def comment(self, value):
         # TODO: handle newlines
-        return "# %s" % value
+        self._addline("# %s" % value)
 
     def source(self, value):
-        return 'source "%s"' % value
+        self._addline('source "%s"' % value)
 
 class CSH(SH):
     def setenv(self, key, value):
-        if re.search("^\${?[A-Z_]+}?$", value):
-            return """if ($?{value_}) then
-    setenv {key} "{value}"
-else
-    setenv {key}
-endif
-""".format(key=key, sep=self._env_sep(key), value=value, value_=value[1:])
-        else:
-            return 'setenv %s "%s"' % (key, value)
+        # I don't think this is needed any more 
+#         if re.search("^\${?[A-Z_]+}?$", value):
+#             return """if ($?{value_}) then
+#     setenv {key} "{value}"
+# else
+#     setenv {key}
+# endif
+# """.format(key=key, sep=self._env_sep(key), value=value, value_=value[1:])
+#         else:
+        self._addline('setenv %s "%s"' % (key, value))
 
     def unsetenv(self, key):
-        return "unsetenv %s" % (key,)
+        self._addline("unsetenv %s" % (key,))
 
     def resetenv(self, key, value, friends=None):
-        return self.setenv(key, value)
+        self.setenv(key, value)
 
-    def prependenv(self, key, value):
-        return 'setenv {key} {value}{sep}${{{key}}}'.format(key=key, sep=self._env_sep(key), value=value)
+#     def prependenv(self, key, value):
+#         self._addline('setenv {key} {value}{sep}${{{key}}}'.format(key=key,
+#                                                                    sep=self._env_sep(key),
+#                                                                    value=value))
 
-#         if key in self._set_env_vars:
+#         if key in self._environ:
 #             return 'setenv {key}="{value}{sep}${key}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
 #                                                               value=value)
@@ -471,10 +580,12 @@ endif
 #                             sep=self._env_sep(key),
 #                             value=value))
 
-    def appendenv(self, key, value):
-        return 'setenv {key} ${{{key}}}{sep}{value}'.format(key=key, sep=self._env_sep(key), value=value)
+#     def appendenv(self, key, value):
+#         self._addline('setenv {key} ${{{key}}}{sep}{value}'.format(key=key,
+#                                                                    sep=self._env_sep(key),
+#                                                                    value=value)
 
-#         if key in self._set_env_vars:
+#         if key in self._environ:
 #             return 'setenv {key}="${key}{sep}{value}"'.format(key=key,
 #                                                               sep=self._env_sep(key),
 #                                                               value=value)
@@ -494,58 +605,26 @@ endif
 
 class Python(CommandInterpreter):
     '''Execute commands in the current python session'''
-    def __init__(self, respect_parent_env=False, environ=None, output_style='file', env_sep_map=None, verbose=False):
-        CommandInterpreter.__init__(self, output_style=output_style, env_sep_map=env_sep_map, verbose=verbose)
-        self._environ = os.environ if environ is None else environ
-
-    def _expand(self, value):
-        e = self._environ if isinstance(self._environ, dict) else dict(self._environ.items())
-        return EnvExpand(value).safe_substitute(**e)
-
-    def _get_env_list(self, key):
-        return self._environ[key].split(self._env_sep(key))
-
-    def _set_env_list(self, key, values):
-        self._environ[key] = self._env_sep(key).join(values)
 
     def _execute(self, command_list):
         CommandInterpreter._execute(self, command_list)
         return self._environ
 
     def setenv(self, key, value):
-        self._environ[key] = self._expand(value)
         settings.env_var_changed(key)
 
     def unsetenv(self, key):
-        self._environ.pop(key)
         settings.env_var_changed(key)
 
     def resetenv(self, key, value, friends=None):
-        self.setenv(key, value)
+        settings.env_var_changed(key)
 
     def prependenv(self, key, value):
-        value = self._expand(value)
-        if key in self._set_env_vars or (self._respect_parent_env and key in self._environ):
-            parts = self._get_env_list(key)
-            parts.insert(0, value)
-            self._set_env_list(key, parts)
-        else:
-            self._environ[key] = value
-
-        # special case: update current python process
         settings.env_var_changed(key)
         if key == 'PYTHONPATH':
             sys.path.insert(0, value)
 
     def appendenv(self, key, value):
-        value = self._expand(value)
-        if key in self._set_env_vars or (self._respect_parent_env and key in self._environ):
-            parts = self._get_env_list(key)
-            parts.append(value)
-            self._set_env_list(key, parts)
-        else:
-            self._environ[key] = value
-
         # special case: update current python process
         settings.env_var_changed(key)
         if key == 'PYTHONPATH':
@@ -555,10 +634,10 @@ class Python(CommandInterpreter):
         pass
 
     def info(self, value):
-        print str(self._expand(value))
+        print str(self._format(value))
 
     def error(self, value):
-        print>>sys.stderr, str(self._expand(value))
+        print>>sys.stderr, str(self._format(value))
 
     def command(self, value):
         if not isinstance(value, (list, tuple)):
@@ -593,14 +672,14 @@ class WinShell(Shell):
         # Will TRY to add environment variables to volatile environment variables -
         # HKCU\\Volatile Environment
         # ...but other programs won't 'notice' the registry change
-        # Will also add to process env. vars
+        # Will also add to process env. globals
 #        return ('REG ADD "HKCU\\Volatile Environment" /v %s /t REG_SZ /d %s /f\n' % ( key, quotedValue )  +
 #                'set "%s=%s"\n' % ( key, value ))
 
         # Will add to volatile environment variables -
         # HKCU\\Volatile Environment
         # ...and newly launched programs will detect this
-        # Will also add to process env. vars
+        # Will also add to process env. globals
         if self.set_global:
             # If we have a path variable, make sure we don't include items
             # already in the user or system path, as these items will be
@@ -633,7 +712,7 @@ class WinShell(Shell):
         return self.setenv(key, value)
 
     def unsetenv(self, key):
-        # env vars are not cleared until restart!
+        # env globals are not cleared until restart!
         if self.set_global:
             cmd = 'setenv -v %s -delete\n' % (key,)
         else:
@@ -648,7 +727,7 @@ class WinShell(Shell):
 #         return executable_output(['setenv', '-m', key])
 
 
-shells = dict( \
+shells = dict(
     bash=SH,
     sh=SH,
     tcsh=CSH,
@@ -668,56 +747,53 @@ def interpret(commands, shell=None, **kwargs):
     """
     Convenience function which acts as a main entry point for interpreting commands
     """
-    if isinstance(commands, CommandRecorder):
+    if isinstance(commands, CommandExecutor):
         commands = commands.commands
     kwargs.setdefault('env_sep_map', DEFAULT_ENV_SEP_MAP)
     return get_command_interpreter(shell)(**kwargs)._execute(commands)
 
 #===============================================================================
-# Path Utils
+# Rex Execution Namespace
 #===============================================================================
 
-if sys.version_info < (2, 7, 4):
-    from rez.contrib._joinrealpath import _joinrealpath
-else:
-    from os.path import _joinrealpath
+class MissingPackage(object):
+    def __init__(self, name):
+        self.name = name
 
-def _abspath(root, value):
-    # not all variables are paths: only absolutize if it looks like a relative path
-    if root and \
-        (value.startswith('./') or
-         ('/' in value and not (posixpath.isabs(value) or ntpath.isabs(value)))):
-        value = os.path.join(root, value)
-    return value
+    def __repr__(self):
+        return '%s(%r)' % (self.__class__.__name__, self.name)
 
-def _split_env(value):
-    return value.split(os.pathsep)
+    def __nonzero__(self):
+        return False
 
-def _join_env(values):
-    return os.pathsep.join(values)
+class Packages(object):
+    """
+    Class intended for use with rex which provides attribute-based lookups for
+    `BasePackage` instances.
 
-def _realpath(value):
-    # cannot call os.path.realpath because it always calls os.path.abspath
-    # output:
-    seen = {}
-    newpath, ok = _joinrealpath('', value, seen)
-    # only call abspath if a link was resolved:
-    if seen:
-        return os.path.abspath(newpath)
-    return newpath
+    If the package does not exist, the attribute value will be an empty string.
+    This allows for attributes to be used to test the presence of a package and
+    for non-existent packages to be used in string formatting without causing an
+    error.
+    """
+    def __init__(self, pkg_list):
+        for pkg in pkg_list:
+            setattr(self, pkg.name, pkg)
 
-def _nativepath(path):
-    return os.path.join(path.split('/'))
+    def __getattr__(self, attr):
+        # For things like '__class__', for instance
+        if attr.startswith('__') and attr.endswith('__'):
+            try:
+                self.__dict__[attr]
+            except KeyError:
+                raise AttributeError("'%s' object has no attribute "
+                                     "'%s'" % (self.__class__.__name__,
+                                               attr))
+        return MissingPackage(attr)
 
-def _ntpath(path):
-    return ntpath.sep.join(path.split(posixpath.sep))
-
-def _posixpath(path):
-    return posixpath.sep.join(path.split(ntpath.sep))
-
-#===============================================================================
+#-------------------------------------------------------------------------------
 # Environment Classes
-#===============================================================================
+#-------------------------------------------------------------------------------
 
 class EnvironRecorderDict(UserDict.DictMixin):
     """
@@ -728,39 +804,21 @@ class EnvironRecorderDict(UserDict.DictMixin):
     `__getitem__` is always guaranteed to return an `EnvironmentVariable`
     instance: it will not raise a KeyError.
     """
-    def __init__(self, command_recorder=None, environ=None,
-                 override_existing_lists=False, expand_func=None):
+    def __init__(self, command_executor):
         """
         override_existing_lists : bool
             If True, the first call to append or prepend will override the
             value in `environ` and effectively act as a setenv operation.
             If False, pre-existing values will be appended/prepended to as usual.
         """
-        self.command_recorder = command_recorder if command_recorder is not None else CommandRecorder()
-        # make a copy of os.environ so we don't change the current environment.
-        # if that is desired the changes can be played back with the Python CommandInterpreter
-        self.environ = environ if environ is not None else dict(os.environ)
-        # use a python command interpreter to track updates to self.environ
-        self.python_interpreter = Python(environ=self.environ)
-        self._override_existing_lists = override_existing_lists
+        self.command_executor = command_executor
         self._var_cache = {}
-        self.expand_func = expand_func
 
-    def set_command_recorder(self, recorder):
-        self.command_recorder = recorder
+    def set_command_executor(self, executor):
+        self.command_executor = executor
 
-    def get_command_recorder(self):
-        return self.command_recorder
-
-    def do_list_override(self, key):
-        """
-        whether or not to convert a prepend/append into a set
-        """
-        if key not in self.environ:
-            return True
-        if self._override_existing_lists and key not in self._var_cache:
-            return True
-        return False
+    def get_command_executor(self):
+        return self.command_executor
 
     def __getitem__(self, key):
         if key not in self._var_cache:
@@ -788,59 +846,36 @@ class EnvironmentVariable(object):
     def name(self):
         return self._name
 
-    @property
-    def environ(self):
-        return self._environ_map.environ
-
     def prepend(self, value):
-        if self._environ_map.expand_func:
-            value = self._environ_map.expand_func(value)
-
-        if self. _environ_map.do_list_override(self.name):
-            self._environ_map.python_interpreter.setenv(self.name, value)
-            self._environ_map.command_recorder.setenv(self.name, value)
-        else:
-            self._environ_map.python_interpreter.prependenv(self.name, value)
-            self._environ_map.command_recorder.prependenv(self.name, value)
+        self._environ_map.command_executor.prependenv(self.name, value)
 
     def append(self, value):
-        if self._environ_map.expand_func:
-            value = self._environ_map.expand_func(value)
-
-        if self. _environ_map.do_list_override(self.name):
-            self._environ_map.python_interpreter.setenv(self.name, value)
-            self._environ_map.command_recorder.setenv(self.name, value)
-        else:
-            self._environ_map.python_interpreter.appendenv(self.name, value)
-            self._environ_map.command_recorder.appendenv(self.name, value)
+        self._environ_map.command_executor.appendenv(self.name, value)
 
     def reset(self, value, friends=None):
-        if self._environ_map.expand_func:
-            value = self._environ_map.expand_func(value)
-
-        self._environ_map.command_recorder.resetenv(self.name, value, friends=friends)
+        self._environ_map.command_executor.resetenv(self.name, value, friends=friends)
 
     def set(self, value):
-        if self._environ_map.expand_func:
-            value = self._environ_map.expand_func(value)
-
-        self._environ_map.command_recorder.setenv(self.name, value)
+        self._environ_map.command_executor.setenv(self.name, value)
 
     def unset(self):
-        self._environ_map.command_recorder.unsetenv(self.name)
+        self._environ_map.command_executor.unsetenv(self.name)
 
     # --- the following methods all require knowledge of the current environment
 
     def value(self):
-        return self.environ.get(self._name, '')
+        try:
+            return self.environ[self._name]
+        except KeyError:
+            raise PkgCommandError("Referenced undefined environment variable: %s" % self._name)
 
-    def split(self):
-        # FIXME: if value is None should we return empty list or raise an error?
-        value = self.value()
-        if value is not None:
-            return _split_env(value)
-        else:
-            return []
+#     def split(self):
+#         # FIXME: if value is None should we return empty list or raise an error?
+#         value = self.value()
+#         if value is not None:
+#             return _split_env(value)
+#         else:
+#             return []
 
     def setdefault(self, value):
         '''
@@ -882,63 +917,288 @@ class EnvironmentVariable(object):
     # def __div__(self, value):
     #     return os.path.join(self.value(), *value.split('/'))
 
-class RexNamespace(dict):
+
+class Rex(dict):
     """
     The RexNamespace is a custom dictionary that brings all of the components of
-    rex together into a single dictionary interface, which can act as a namespace
+    rex together into a single dictionary interface, which can act as a self
     dictionary for use with the python `exec` statement.
 
     The class routes key lookups between an `EnvironRecorderDict` and a dictionary of
-    local variables passed in via `vars`. Keys which are ALL_CAPS will be looked
-    up in the `EnvironRecorderDict`, and the remainder will be looked up in the `vars` dict.
+    local variables passed in via `globals`. Keys which are ALL_CAPS will be looked
+    up in the `EnvironRecorderDict`, and the remainder will be looked up in the `globals` dict.
 
-    The `RexNamespace` is also responsible for providing a `CommandRecorder` to
+    The `RexNamespace` is also responsible for providing a `CommandExecutor` to
     the `EnvironRecorderDict` and providing a variable expansion function to the
-    `CommandRecorder`.  It is also responsible for expanding variables which
+    `CommandExecutor`.  It is also responsible for expanding variables which
     are set directly via `__setitem__`.
     """
     ALL_CAPS = re.compile('[_A-Z][_A-Z0-9]*$')
 
-    def __init__(self, vars=None, environ=None, env_overrides_existing_lists=False):
+    def __init__(self, interpreter, resolve_result, globals_map=None):
         """
-        vars : dict or None
+        globals_map : dict or None
             dictionary which comprises the primary data of the `RexNamespace`
-            and will form the main namespace when it is used with `exec`.
+            and will form the main self when it is used with `exec`.
             if None, defaults to empty dict.
         environ : dict or None
             dictionary of environment variables, used as reference by `EnvironRecorderDict`
             if None, defaults to `os.environ`.
-        env_overrides_existing_lists: bool
-            If True, the first call to append or prepend will override the
-            value in `environ` and effectively act as a setenv operation.
-            If False, pre-existing values will be appended/prepended to as usual.
+        no_path_append: bool
+                whether to append OS-specific paths to PATH when printing an environment
+        meta_vars: list of str
+                each string is a key whos value will be saved into an
+                env-var named REZ_META_<KEY> (lists are comma-separated).
+        shallow_meta_vars: list of str
+                same as meta-vars, but only the values from those packages directly
+                requested are baked into the env var REZ_META_SHALLOW_<KEY>.
         """
-        self.vars = vars if vars is not None else {}
+        self.globals = globals_map if globals_map is not None else {}
 
-        self.formatter = NamespaceFormatter(self.vars)
-        self.vars['format'] = self.expand
+        self.formatter = NamespaceFormatter(self.globals)
+        self.globals['format'] = self.expand
 
-        self.environ = EnvironRecorderDict(environ=environ,
-                                           override_existing_lists=env_overrides_existing_lists,
-                                           expand_func=self.expand)
+        self.command_executor = CommandExecutor(interpreter, formatter=self.expand)
+        self.environ = EnvironRecorderDict(self.command_executor)
 
-        self.vars['env'] = util.AttrDictWrapper(self.environ)
+        self.globals['env'] = util.AttrDictWrapper(self.environ)
 
-        self.set_command_recorder(CommandRecorder())
+        for cmd, func in self.command_executor.get_command_methods():
+            self.globals[cmd] = func
+
+        self.resolve = resolve_result
 
     def expand(self, value):
         return self.formatter.format(str(value))
 
-    def set_command_recorder(self, recorder):
-        self.command_recorder = recorder
-        self.command_recorder._expandfunc = self.formatter.format
-        self.environ.set_command_recorder(recorder)
-        for cmd, func in self.command_recorder.get_command_methods():
-            self.vars[cmd] = func
+    def setup_execution_namespace(self):
+        # add special data objects and functions to the namespace
+        from rez.system import system
+        self.globals['machine'] = system
+        self.globals['resolve'] = Packages(self.resolve.package_resolves)
+        self.globals['request'] = Packages(self.resolve.package_requests)
+        self.globals['building'] = bool(os.getenv('REZ_BUILD_ENV'))
+        return self
 
-    def get_command_recorder(self):
-        return self.command_recorder
+    def exec_package(self, pkg_res, commands):
+        prefix = "REZ_" + pkg_res.name.upper()
+        self.environ[prefix + "_VERSION"] = pkg_res.version
+        self.environ[prefix + "_BASE"] = pkg_res.base
+        self.environ[prefix + "_ROOT"] = pkg_res.root
 
+        self.globals['this'] = pkg_res
+        self.globals['root'] = pkg_res.root
+        self.globals['base'] = pkg_res.base
+        self.globals['version'] = pkg_res.version
+
+        # new style package.yaml:
+        if isinstance(commands, basestring):
+            # compile to get tracebacks with line numbers and file.
+            code = compile(commands, pkg_res.metafile, 'exec')
+            try:
+                exec code in self.globals
+            except Exception, err:
+                import traceback
+                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
+                                                         pkg_res.metafile,
+                                                         traceback.format_exc()))
+        # python function from package.py:
+        elif inspect.isfunction(commands):
+            commands.func_globals.update(self.globals)
+            try:
+                commands()
+            except Exception, err:
+                import traceback
+                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
+                                                         pkg_res.metafile,
+                                                         traceback.format_exc()))
+        # old style:
+        elif isinstance(commands, list):
+            if settings.warn_old_commands:
+                print_warning_once("%s is using old-style commands."
+                                   % pkg_res.short_name())
+            expansions = []
+            expansions.append(("!VERSION!", str(pkg_res.version)))
+            if len(pkg_res.version.parts):
+                expansions.append(("!MAJOR_VERSION!", str(pkg_res.version.major)))
+                if len(pkg_res.version.parts) > 1:
+                    expansions.append(("!MINOR_VERSION!", str(pkg_res.version.minor)))
+            expansions.append(("!BASE!", str(pkg_res.base)))
+            expansions.append(("!ROOT!", str(pkg_res.root)))
+            expansions.append(("!USER!", os.getenv("USER", "UNKNOWN_USER")))
+
+            for cmd in commands:
+                for find, replace in expansions:
+                    cmd = cmd.replace(find, replace)
+                # convert to new-style
+                self.parse_export_command(cmd)
+
+    def execute_packages(self, commands_section='commands'):
+        # build the environment commands
+        # the environment dictionary to be passed during execution of python code.
+        self = self.setup_execution_namespace()
+
+        def stringify(pkg_list):
+            return ' '.join([x.short_name() for x in pkg_list])
+
+        self.environ["REZ_USED"] = module_root_path
+        self.environ["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
+        self.environ["REZ_REQUEST"] = stringify(self.resolve.package_requests)
+        self.environ["REZ_RAW_REQUEST"] = stringify(self.resolve.raw_package_requests)
+        self.environ["REZ_RESOLVE"] = stringify(self.resolve.package_resolves)
+        self.environ["REZ_RESOLVE_MODE"] = self.resolve.resolve_mode
+        self.environ["REZ_FAILED_ATTEMPTS"] = self.resolve.failed_attempts
+        self.environ["REZ_REQUEST_TIME"] = self.resolve.request_time
+        # TODO remove this and have Rez create a proper rez package for itself
+        self.environ["PYTHONPATH"] = os.path.join(module_root_path, 'python')
+        self.environ["REZ_PACKAGES_PATH"] = '$REZ_PACKAGES_PATH'
+
+        # master executor. this holds all of the commands to be interpreted
+        executor = self.command_executor
+
+        executor.comment("-" * 30)
+        executor.comment("START of package commands")
+        executor.comment("-" * 30)
+
+        set_vars = {}
+
+        for pkg_res in self.resolve.package_resolves:
+#             # swap the command executor so we can isolate commands for this package
+#             executor = rex.CommandRecorder()
+#             self.set_command_recorder(executor)
+            executor.comment("")
+            executor.comment("Commands from package %s" % pkg_res.name)
+
+            self.exec_package(pkg_res, pkg_res.metadata[commands_section])
+
+#             pkg_res.commands = executor.get_commands()
+# 
+#             # FIXME: getting an error with an append, which should not happen
+#             # check for variables set by multiple packages
+#             for cmd in pkg_res.commands:
+#                 if cmd.name == 'setenv':
+#                     if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
+#                         raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+#                                               "package '%s'" % (pkg_res.name, cmd.key,
+#                                                               set_vars[cmd.key]))
+#                     set_vars[cmd.key] = pkg_res.name
+# 
+#                 elif cmd.name == 'resetenv':
+#                     prev_pkg_name = set_vars.get(cmd.key, None)
+#                     if cmd.friends:
+#                         if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
+#                             raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
+#                                                   "package '%s', and is not in the list "
+#                                                   "of friends %s" % (pkg_res.name, cmd.key,
+#                                                                      prev_pkg_name, cmd.friends))
+#                     set_vars[cmd.key] = pkg_res.name
+
+        executor.comment("-" * 30)
+        executor.comment("END of package commands")
+        executor.comment("-" * 30)
+
+        # TODO: add in execution time?
+        executor.setenv('REZ_TIME_TO_RESOLVE', str(self.resolve.resolve_time))
+
+        return executor.get_output()
+
+    def handle_path(self, no_path_append):
+        # we need to inject system paths here. They're not there already because they can't be cached
+        sys_paths = [os.path.join(module_root_path, "bin")]
+        if not no_path_append:
+            sys_paths += system.executable_paths
+        self.command_executor.setenv('PATH', sys_paths)
+        self.command_executor.commands.extend(commands)
+
+    def add_meta_vars(self, meta_vars, shallow_meta_vars):
+        # add meta env vars
+        pkg_req_fam_set = set([x.name for x in self.package_requests if not x.is_anti()])
+        meta_envvars = {}
+        shallow_meta_envvars = {}
+        for pkg_res in self.package_resolves:
+            def _add_meta_vars(mvars, target):
+                for key in mvars:
+                    if key in pkg_res.metadata:
+                        val = pkg_res.metadata[key]
+                        if isinstance(val, list):
+                            val = ','.join(val)
+                        if key not in target:
+                            target[key] = []
+                        target[key].append(pkg_res.name + ':' + val)
+
+            if meta_vars:
+                _add_meta_vars(meta_vars, meta_envvars)
+
+            if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
+                _add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
+
+        for k, v in meta_envvars.iteritems():
+            self.command_executor.setenv('REZ_META_' + k.upper(), ' '.join(v))
+        for k, v in shallow_meta_envvars.iteritems():
+            self.command_executor.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
+
+    def parse_export_command(self, cmd):
+        """
+        parse a bash command and convert it to a Command action
+        """
+        if isinstance(cmd, list):
+            cmd = cmd[0]
+            pkgname = cmd[1]
+        else:
+            cmd = cmd
+            pkgname = None
+
+        if cmd.startswith('export '):
+            var, value = cmd.split(' ', 1)[1].split('=', 1)
+            # get an EnvironmentVariable instance
+            var_obj = self.environ[var]
+            parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
+            if len(parts) > 1:
+                orig_parts = parts
+                parts = [x for x in parts if x]
+                if '$' + var in parts:
+                    # append / prepend
+                    index = parts.index('$' + var)
+                    if index == 0:
+                        # APPEND   X=$X:foo
+                        for part in parts[1:]:
+                            var_obj.append(part)
+                    elif index == len(parts) - 1:
+                        # PREPEND  X=foo:$X
+                        # loop in reverse order
+                        for part in parts[-2::-1]:
+                            var_obj.prepend(part)
+                    else:
+                        raise PkgCommandError("%s: self-referencing used in middle "
+                                              "of list: %s" % (pkgname, value))
+
+                else:
+                    if len(parts) == 1:
+                        # use blank values in list to determine if the original
+                        # operation was prepend or append
+                        assert len(orig_parts) == 2
+                        if orig_parts[0] == '':
+                            var_obj.append(parts[0])
+                        elif orig_parts[1] == '':
+                            var_obj.prepend(parts[0])
+                        else:
+                            print "only one value", parts
+                    else:
+                        var_obj.set(os.pathsep.join(parts))
+            else:
+                var_obj.set(value)
+        elif cmd.startswith('#'):
+            self.command_executor.comment(cmd[1:].lstrip())
+        elif cmd.startswith('alias '):
+            match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+            key = match.groupdict()['key'].strip()
+            value = match.groupdict()['value'].strip()
+            if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+                value = value[1:-1]
+            self.command_executor.alias(key, value)
+        else:
+            # assume we can execute this as a straight command
+            self.command_executor.command(cmd)
 
 def _test():
     print "-" * 40
@@ -951,7 +1211,7 @@ def _test():
     d['SIMPLESET'].prepend('dddd')
     d['SPECIAL'] = 'eeee'
     d['SPECIAL'].append('ffff')
-    print interpret(d.command_recorder, shell='bash',
+    print interpret(d.command_executor, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
     print "-" * 40
@@ -976,7 +1236,7 @@ error("oh noes")
     g['custom2'] = 'two'
     exec code in g
 
-    print interpret(g.command_recorder, shell='bash',
+    print interpret(g.command_executor, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
     print "-" * 40
@@ -985,5 +1245,5 @@ error("oh noes")
 
     import pprint
     environ = {}
-    pprint.pprint(interpret(g.command_recorder, shell='bash',
+    pprint.pprint(interpret(g.command_executor, shell='bash',
                             environ=environ))

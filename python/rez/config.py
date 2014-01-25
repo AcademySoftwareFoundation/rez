@@ -142,45 +142,19 @@ class PackageConflict(object):
         tmpstr += " <--!--> " + str(self.pkg_req_conflicting)
         return tmpstr
 
-class MissingPackage(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.name)
-
-    def __nonzero__(self):
-        return False
-
-class Packages(object):
-    """
-    Class intended for use with rex which provides attribute-based lookups for
-    `BasePackage` instances.
-
-    If the package does not exist, the attribute value will be an empty string.
-    This allows for attributes to be used to test the presence of a package and
-    for non-existent packages to be used in string formatting without causing an
-    error.
-    """
-    def __init__(self, pkg_list):
-        for pkg in pkg_list:
-            setattr(self, pkg.name, pkg)
-
-    def __getattr__(self, attr):
-        # For things like '__class__', for instance
-        if attr.startswith('__') and attr.endswith('__'):
-            try:
-                self.__dict__[attr]
-            except KeyError:
-                raise AttributeError("'%s' object has no attribute "
-                                     "'%s'" % (self.__class__.__name__,
-                                               attr))
-        return MissingPackage(attr)
-
 
 ##############################################################################
 # Resolver
 ##############################################################################
+
+class ResolveResult(object):
+    raw_package_requests = None
+    package_requests = None
+    dot_graph = None
+    failed_attempts = None
+    request_time = None
+    resolve_time = None
+    resolve_mode = None
 
 class Resolver(object):
     """
@@ -221,8 +195,7 @@ class Resolver(object):
         self.rctxt.caching = caching
         self.rctxt.package_paths = package_paths
 
-        self.raw_pkg_reqs = None
-        self.pkg_reqs = None
+        self.result = ResolveResult()
 
     def guarded_resolve(self, pkg_req_strs, no_os=False, no_path_append=False,
                         meta_vars=None, shallow_meta_vars=None, dot_file=None, print_dot=False):
@@ -310,13 +283,11 @@ class Resolver(object):
 
             return None
 
-        pkg_res_list, env_cmds, dot_graph, nfails = result
-
         if print_dot:
-            print(dot_graph)
+            print(result.dot_graph)
 
         if dot_file:
-            gen_dotgraph_image(dot_graph, dot_file)
+            gen_dotgraph_image(result.dot_graph, dot_file)
 
         return result
 
@@ -330,14 +301,6 @@ class Resolver(object):
                 packages to resolve into a configuration
         no_os: bool
                 whether to include the OS package.
-        no_path_append: bool
-                whether to append OS-specific paths to PATH when printing an environment
-        meta_vars: list of str
-                each string is a key whos value will be saved into an
-                env-var named REZ_META_<KEY> (lists are comma-separated).
-        shallow_meta_vars: list of str
-                same as meta-vars, but only the values from those packages directly
-                requested are baked into the env var REZ_META_SHALLOW_<KEY>.
         @returns
         (a) a list of ResolvedPackage objects, representing the resolved config;
         (b) a list of Commands which, when processed by a CommandInterpreter, should configure the environment;
@@ -355,7 +318,7 @@ class Resolver(object):
 
         resolve_start_time = time.time()
 
-        self.raw_pkg_reqs = [_pkg_request(x) for x in pkg_reqs]
+        raw_package_requests = [_pkg_request(x) for x in pkg_reqs]
 
         # TODO replace with new 'implicit packages' feature
         if not no_os:
@@ -363,15 +326,17 @@ class Resolver(object):
             plat_pkg = "platform-" + system.platform
             arch_pkg = "arch-" + system.arch
             for os_pkg_str in(plat_pkg, arch_pkg):
-                os_pkg_req = str_to_pkg_req(os_pkg_str, self.rctxt.time_epoch,
-                                            self.rctxt.resolve_mode, self.rctxt.package_paths)
-                if os_pkg_req not in self.raw_pkg_reqs:
+                os_pkg_req = str_to_pkg_req(os_pkg_str,
+                                            self.rctxt.time_epoch,
+                                            self.rctxt.resolve_mode,
+                                            self.rctxt.package_paths)
+                if os_pkg_req not in raw_package_requests:
                     to_add.append(os_pkg_req)
-            self.pkg_reqs = to_add + self.raw_pkg_reqs
+            self.package_requests = to_add + raw_package_requests
         else:
-            self.pkg_reqs = self.raw_pkg_reqs
+            self.package_requests = raw_package_requests[:]
 
-        if not self.pkg_reqs:
+        if not self.package_requests:
             return ([], [], "digraph g{}", 0)
 
         # get the resolve, possibly read/write cache
@@ -380,56 +345,21 @@ class Resolver(object):
             result = self.resolve_base()
             self.set_cached_resolve(result)
 
-        recorder = rex.CommandRecorder()
-
-        pkg_res_list, commands, dot_graph, nfails = result
-
-        # we need to inject system paths here. They're not there already because they can't be cached
-        sys_paths = [os.path.join(module_root_path, "bin")]
-        if not no_path_append:
-            sys_paths += system.executable_paths
-        recorder.setenv('PATH', sys_paths)
-        recorder.commands.extend(commands)
-
-        # add meta env vars
-        pkg_req_fam_set = set([x.name for x in self.pkg_reqs if not x.is_anti()])
-        meta_envvars = {}
-        shallow_meta_envvars = {}
-
-        for pkg_res in pkg_res_list:
-            def _add_meta_vars(mvars, target):
-                for key in mvars:
-                    if key in pkg_res.metadata:
-                        val = pkg_res.metadata[key]
-                        if isinstance(val, list):
-                            val = ','.join(val)
-                        if key not in target:
-                            target[key] = []
-                        target[key].append(pkg_res.name + ':' + val)
-
-            if meta_vars:
-                _add_meta_vars(meta_vars, meta_envvars)
-
-            if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
-                _add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
-
-        for k, v in meta_envvars.iteritems():
-            recorder.setenv('REZ_META_' + k.upper(), ' '.join(v))
-        for k, v in shallow_meta_envvars.iteritems():
-            recorder.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
+        self.result.package_resolves, self.result.dot_graph, self.result.failed_attempts = result
 
         resolve_end_time = time.time()
-        recorder.setenv('REZ_TIME_TO_RESOLVE', str(resolve_end_time - resolve_start_time))
-
-        return pkg_res_list, recorder.commands, dot_graph, nfails
+        self.result.resolve_time = resolve_end_time - resolve_start_time
+        self.result.package_requests = self.package_requests
+        self.result.raw_package_requests = raw_package_requests
+        return self.result
 
     def resolve_base(self):
         config = _Configuration(self.rctxt)
 
-        for pkg_req in self.pkg_reqs:
+        for pkg_req in self.package_requests:
             config.add_package(pkg_req)
 
-        for pkg_req in self.pkg_reqs:
+        for pkg_req in self.package_requests:
             name = pkg_req.short_name()
             if name.startswith("__wrapper_"):
                 name2 = name.replace("__wrapper_", "")
@@ -466,8 +396,6 @@ class Resolver(object):
             config.dump()
             print
 
-        command_recorder = self.record_commands(pkg_res_list)
-
         # build the dot-graph representation
         dot_graph = config.get_dot_graph_as_string()
 
@@ -478,147 +406,11 @@ class Resolver(object):
                 pkg_res.strip()
 
         result = (pkg_res_list,
-                  command_recorder.commands,
                   dot_graph,
                   len(self.rctxt.config_fail_list))
 
         # we're done
         return result
-
-    def get_execution_namespace(self, pkg_res_list):
-        namespace = rex.RexNamespace(env_overrides_existing_lists=True)
-
-        # add special data objects and functions to the namespace
-        from rez.system import system
-        namespace.vars['machine'] = system
-        namespace.vars['resolve'] = Packages(pkg_res_list)
-        namespace.vars['request'] = Packages(self.pkg_reqs)
-        namespace.vars['building'] = bool(os.getenv('REZ_BUILD_ENV'))
-        return namespace
-
-    @staticmethod
-    def exec_pkg_commands(namespace, pkg_res):
-        prefix = "REZ_" + pkg_res.name.upper()
-        namespace.environ[prefix + "_VERSION"] = pkg_res.version
-        namespace.environ[prefix + "_BASE"] = pkg_res.base
-        namespace.environ[prefix + "_ROOT"] = pkg_res.root
-
-        commands = pkg_res.metadata['commands']
-
-        namespace.vars['this'] = pkg_res
-        namespace.vars['root'] = pkg_res.root
-        namespace.vars['base'] = pkg_res.base
-        namespace.vars['version'] = pkg_res.version
-
-        # new style package.yaml:
-        if isinstance(commands, basestring):
-            # compile to get tracebacks with line numbers and file.
-            code = compile(commands, pkg_res.metafile, 'exec')
-            try:
-                exec code in namespace.vars
-            except Exception, err:
-                import traceback
-                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
-                                                         pkg_res.metafile,
-                                                         traceback.format_exc()))
-        # python function from package.py:
-        elif inspect.isfunction(commands):
-            commands.func_globals.update(namespace.vars)
-            try:
-                commands()
-            except Exception, err:
-                import traceback
-                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
-                                                         pkg_res.metafile,
-                                                         traceback.format_exc()))
-        # old style:
-        elif isinstance(commands, list):
-            if settings.warn_old_commands:
-                print_warning_once("%s is using old-style commands." \
-                                   % pkg_res.short_name())
-            expansions = []
-            expansions.append(("!VERSION!", str(pkg_res.version)))
-            if len(pkg_res.version.parts):
-                expansions.append(("!MAJOR_VERSION!", str(pkg_res.version.major)))
-                if len(pkg_res.version.parts) > 1:
-                    expansions.append(("!MINOR_VERSION!", str(pkg_res.version.minor)))
-            expansions.append(("!BASE!", str(pkg_res.base)))
-            expansions.append(("!ROOT!", str(pkg_res.root)))
-            expansions.append(("!USER!", os.getenv("USER", "UNKNOWN_USER")))
-
-            for cmd in commands:
-                for find, replace in expansions:
-                    cmd = cmd.replace(find, replace)
-                # convert to new-style
-                parse_export_command(cmd, namespace)
-
-    def record_commands(self, pkg_res_list):
-        # build the environment commands
-        res_pkg_strs = [x.short_name() for x in pkg_res_list]
-        full_req_str = ' '.join([x.short_name() for x in self.pkg_reqs])
-        raw_req_str = ' '.join([x.short_name() for x in self.raw_pkg_reqs])
-
-        # the environment dictionary to be passed during execution of python code.
-        namespace = self.get_execution_namespace(pkg_res_list)
-
-        namespace.environ["REZ_USED"] = module_root_path
-        namespace.environ["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
-        namespace.environ["REZ_REQUEST"] = full_req_str
-        namespace.environ["REZ_RAW_REQUEST"] = raw_req_str
-        namespace.environ["REZ_RESOLVE"] = " ".join(res_pkg_strs)
-        namespace.environ["REZ_RESOLVE_MODE"] = self.rctxt.resolve_mode
-        namespace.environ["REZ_FAILED_ATTEMPTS"] = len(self.rctxt.config_fail_list)
-        namespace.environ["REZ_REQUEST_TIME"] = self.rctxt.time_epoch
-        # TODO remove this and have Rez create a proper rez package for itself
-        namespace.environ["PYTHONPATH"] = os.path.join(module_root_path, 'python')
-
-        # master recorder. this holds all of the commands to be interpreted
-        recorder = namespace.get_command_recorder()
-
-        recorder.comment("-" * 30)
-        recorder.comment("START of package commands")
-        recorder.comment("-" * 30)
-
-        set_vars = {}
-
-        for pkg_res in pkg_res_list:
-            # swap the command recorder so we can isolate commands for this package
-            pkg_recorder = rex.CommandRecorder()
-            namespace.set_command_recorder(pkg_recorder)
-            pkg_recorder.comment("")
-            pkg_recorder.comment("Commands from package %s" % pkg_res.name)
-
-            self.exec_pkg_commands(namespace, pkg_res)
-
-            pkg_res.commands = pkg_recorder.get_commands()
-
-            # FIXME: getting an error with an append, which should not happen
-            # check for variables set by multiple packages
-            for cmd in pkg_res.commands:
-                if cmd.name == 'setenv':
-                    if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
-                        raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
-                                              "package '%s'" % (pkg_res.name, cmd.key,
-                                                              set_vars[cmd.key]))
-                    set_vars[cmd.key] = pkg_res.name
-
-                elif cmd.name == 'resetenv':
-                    prev_pkg_name = set_vars.get(cmd.key, None)
-                    if cmd.friends:
-                        if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
-                            raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
-                                                  "package '%s', and is not in the list "
-                                                  "of friends %s" % (pkg_res.name, cmd.key,
-                                                                     prev_pkg_name, cmd.friends))
-                    set_vars[cmd.key] = pkg_res.name
-
-            # add commands from current package to master recorder
-            recorder.commands.extend(pkg_res.commands)
-
-        recorder.comment("-" * 30)
-        recorder.comment("END of package commands")
-        recorder.comment("-" * 30)
-        return recorder
 
     def set_cached_resolve(self, result):
         if not get_memcache().caching_enabled():
@@ -631,7 +423,7 @@ class Resolver(object):
                 return
 
         get_memcache().store_resolve(settings.nonlocal_packages_path,
-                                     self.pkg_reqs, result, self.rctxt.time_epoch)
+                                     self.package_requests, result, self.rctxt.time_epoch)
 
     def get_cached_resolve(self):
         # the 'cache timestamp' is the most recent timestamp of all the resolved packages. Between
@@ -640,7 +432,7 @@ class Resolver(object):
             return None
 
         result, cache_timestamp = get_memcache().get_resolve(
-            settings.nonlocal_packages_path, self.pkg_reqs, self.rctxt.time_epoch)
+            settings.nonlocal_packages_path, self.package_requests, self.rctxt.time_epoch)
 
         if not result:
             return None
@@ -2138,74 +1930,6 @@ class _Configuration(object):
             pkg = self.pkgs[name]
             str_ += pkg.short_name() + " "
         return str_
-
-
-##############################################################################
-# Internal Functions
-##############################################################################
-def parse_export_command(cmd, namespace):
-    """
-    parse a bash command and convert it to a EnvironmentVariable action
-    """
-    if isinstance(cmd, list):
-        cmd = cmd[0]
-        pkgname = cmd[1]
-    else:
-        cmd = cmd
-        pkgname = None
-
-    if cmd.startswith('export '):
-        var, value = cmd.split(' ', 1)[1].split('=', 1)
-        # get an EnvironmentVariable instance
-        var_obj = namespace.environ[var]
-        parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
-        if len(parts) > 1:
-            orig_parts = parts
-            parts = [x for x in parts if x]
-            if '$' + var in parts:
-                # append / prepend
-                index = parts.index('$' + var)
-                if index == 0:
-                    # APPEND   X=$X:foo
-                    for part in parts[1:]:
-                        var_obj.append(part)
-                elif index == len(parts) - 1:
-                    # PREPEND  X=foo:$X
-                    # loop in reverse order
-                    for part in parts[-2::-1]:
-                        var_obj.prepend(part)
-                else:
-                    raise PkgCommandError("%s: self-referencing used in middle "
-                                          "of list: %s" % (pkgname, value))
-
-            else:
-                if len(parts) == 1:
-                    # use blank values in list to determine if the original
-                    # operation was prepend or append
-                    assert len(orig_parts) == 2
-                    if orig_parts[0] == '':
-                        var_obj.append(parts[0])
-                    elif orig_parts[1] == '':
-                        var_obj.prepend(parts[0])
-                    else:
-                        print "only one value", parts
-                else:
-                    var_obj.set(os.pathsep.join(parts))
-        else:
-            var_obj.set(value)
-    elif cmd.startswith('#'):
-        namespace.command_recorder.comment(cmd[1:].lstrip())
-    elif cmd.startswith('alias '):
-        match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
-        key = match.groupdict()['key'].strip()
-        value = match.groupdict()['value'].strip()
-        if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
-            value = value[1:-1]
-        namespace.command_recorder.alias(key, value)
-    else:
-        # assume we can execute this as a straight command
-        namespace.command_recorder.command(cmd)
-
 
 
 
