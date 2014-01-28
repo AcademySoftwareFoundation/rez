@@ -91,7 +91,7 @@ def _posixpath(path):
 # Commands
 #===============================================================================
 
-class BaseCommand(object):
+class Action(object):
     _registry = []
 
     def __init__(self, *args):
@@ -116,7 +116,7 @@ class BaseCommand(object):
     def get_command_types(cls):
         return tuple(cls._registry)
 
-class EnvCommand(BaseCommand):
+class EnvCommand(Action):
     @property
     def key(self):
         return self.args[0]
@@ -171,47 +171,48 @@ class Appendenv(Setenv):
     name = 'appendenv'
 Appendenv.register()
 
-class Alias(BaseCommand):
+class Alias(Action):
     name = 'alias'
 Alias.register()
 
-class Info(BaseCommand):
+class Info(Action):
     name = 'info'
 Info.register()
 
-class Error(BaseCommand):
+class Error(Action):
     name = 'error'
 Error.register()
 
-class Command(BaseCommand):
+class Command(Action):
     name = 'command'
 Command.register()
 
-class Comment(BaseCommand):
+class Comment(Action):
     name = 'comment'
 Comment.register()
 
-class Source(BaseCommand):
+class Source(Action):
     name = 'source'
 Source.register()
 
-class CommandExecutor(object):
+class ActionManager(object):
     """
-    Abstract base class to interpret a rex commands, usually as a commands
-    for a shell.
-
-    Use the convenience function `rex.interpret` rather than accessing
-    this class directly.
+    Handles the execution book-keeping.  Tracks env variable values, and
+    triggers the callbacks of the `ActionInterpreter`.
     """
     def __init__(self, interpreter, output_style='file',
                  formatter=None, verbose=False, env_sep_map=None, initial_commands=None):
         '''
+        interpreter: string or `ActionInterpreter`
+            the interpreter to use when executing rex actions
         output_style : str
             the style of the output string.  currently only 'file' and 'eval' are
             supported.  'file' is intended to be more human-readable, while 'eval' is
             intended to work in a shell `eval` statement. pratically, this means the
             former is separated by newlines, while the latter is separated by
             semi-colons.
+        formatter: func or None
+            function to use for formatting string values
         verbose : bool or list of str
             if True, causes commands to print additional feedback (using info()).
             can also be set to a list of strings matching command names to add
@@ -235,7 +236,7 @@ class CommandExecutor(object):
         return a list of methods on this class for recording commands.
         methods are return as a list of (name, func) tuples
         """
-        return [(name, getattr(self, name)) for name, _ in BaseCommand.get_command_types()]
+        return [(name, getattr(self, name)) for name, _ in Action.get_command_types()]
 
     def _env_sep(self, name):
         return self._env_sep_map.get(name, os.pathsep)
@@ -250,6 +251,9 @@ class CommandExecutor(object):
             return bool(self.verbose)
 
     def _format(self, value):
+        """
+        format a string value
+        """
         if self.formatter:
             if isinstance(value, (list, tuple)):
                 return [self.formatter(v) for v in value]
@@ -272,6 +276,7 @@ class CommandExecutor(object):
 
     def setenv(self, key, value):
         value = self._format(value)
+        # TODO: check if value has already been set by another package
         self.commands.append(Setenv(key, value))
         self.environ[key] = value
         self.interpreter.setenv(key, value)
@@ -282,8 +287,9 @@ class CommandExecutor(object):
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
+        value = self._format(value)
         self.commands.append(Resetenv(key, value, friends))
-        self.setenv(key, value)
+        self.environ[key] = value
         self.interpreter.resetenv(key, value)
 
     def prependenv(self, key, value):
@@ -354,7 +360,19 @@ class CommandExecutor(object):
 # Interpreters
 #===============================================================================
 
-class CommandInterpreter(object):
+class ActionInterpreter(object):
+    """
+    Abstract base class that provides callbacks for rex Actions.  This class
+    should not be used directly. Its callbacks are triggered by the
+    `ActionManager` in response to actions issues by user code written using
+    the rex python API.
+
+    Sub-classes should override the `get_output` method to return
+    implementation-specific data structure.  For example, an interpreter for a
+    shell language like bash would return a string of shell code.  An interpreter
+    for an active python session might return a dictionary of the modified
+    environment.
+    """
 
 #     def _execute(self, command_list):
 #         lines = []
@@ -383,13 +401,8 @@ class CommandInterpreter(object):
 #         script += line_sep
 #         return script
 
-    # --- callbacks
-
-    def begin(self):
-        pass
-
-    def end(self):
-        pass
+    def get_output(self, output_style):
+        raise NotImplementedError
 
     # --- commands
 
@@ -432,7 +445,7 @@ class CommandInterpreter(object):
     def source(self, value):
         raise NotImplementedError
 
-class Shell(CommandInterpreter):
+class Shell(ActionInterpreter):
     def __init__(self):
         self._lines = []
 
@@ -603,11 +616,11 @@ class CSH(SH):
     def alias(self, key, value):
         return "alias %s '%s';" % (key, value)
 
-class Python(CommandInterpreter):
+class Python(ActionInterpreter):
     '''Execute commands in the current python session'''
 
     def _execute(self, command_list):
-        CommandInterpreter._execute(self, command_list)
+        ActionInterpreter._execute(self, command_list)
         return self._environ
 
     def setenv(self, key, value):
@@ -634,10 +647,10 @@ class Python(CommandInterpreter):
         pass
 
     def info(self, value):
-        print str(self._format(value))
+        print value
 
     def error(self, value):
-        print>>sys.stderr, str(self._format(value))
+        print>>sys.stderr, value
 
     def command(self, value):
         if not isinstance(value, (list, tuple)):
@@ -743,15 +756,6 @@ def get_command_interpreter(shell=None):
     else:
         raise ValueError("Unknown shell '%s'" % shell)
 
-def interpret(commands, shell=None, **kwargs):
-    """
-    Convenience function which acts as a main entry point for interpreting commands
-    """
-    if isinstance(commands, CommandExecutor):
-        commands = commands.commands
-    kwargs.setdefault('env_sep_map', DEFAULT_ENV_SEP_MAP)
-    return get_command_interpreter(shell)(**kwargs)._execute(commands)
-
 #===============================================================================
 # Rex Execution Namespace
 #===============================================================================
@@ -768,8 +772,7 @@ class MissingPackage(object):
 
 class Packages(object):
     """
-    Class intended for use with rex which provides attribute-based lookups for
-    `BasePackage` instances.
+    Provides attribute-based lookups for `package.BasePackage` instances.
 
     If the package does not exist, the attribute value will be an empty string.
     This allows for attributes to be used to test the presence of a package and
@@ -804,21 +807,15 @@ class EnvironRecorderDict(UserDict.DictMixin):
     `__getitem__` is always guaranteed to return an `EnvironmentVariable`
     instance: it will not raise a KeyError.
     """
-    def __init__(self, command_executor):
+    def __init__(self, manager):
         """
         override_existing_lists : bool
             If True, the first call to append or prepend will override the
             value in `environ` and effectively act as a setenv operation.
             If False, pre-existing values will be appended/prepended to as usual.
         """
-        self.command_executor = command_executor
+        self.manager = manager
         self._var_cache = {}
-
-    def set_command_executor(self, executor):
-        self.command_executor = executor
-
-    def get_command_executor(self):
-        return self.command_executor
 
     def __getitem__(self, key):
         if key not in self._var_cache:
@@ -847,19 +844,19 @@ class EnvironmentVariable(object):
         return self._name
 
     def prepend(self, value):
-        self._environ_map.command_executor.prependenv(self.name, value)
+        self._environ_map.manager.prependenv(self.name, value)
 
     def append(self, value):
-        self._environ_map.command_executor.appendenv(self.name, value)
+        self._environ_map.manager.appendenv(self.name, value)
 
     def reset(self, value, friends=None):
-        self._environ_map.command_executor.resetenv(self.name, value, friends=friends)
+        self._environ_map.manager.resetenv(self.name, value, friends=friends)
 
     def set(self, value):
-        self._environ_map.command_executor.setenv(self.name, value)
+        self._environ_map.manager.setenv(self.name, value)
 
     def unset(self):
-        self._environ_map.command_executor.unsetenv(self.name)
+        self._environ_map.manager.unsetenv(self.name)
 
     # --- the following methods all require knowledge of the current environment
 
@@ -918,52 +915,40 @@ class EnvironmentVariable(object):
     #     return os.path.join(self.value(), *value.split('/'))
 
 
-class Rex(dict):
+class RexExecutor(object):
     """
-    The RexNamespace is a custom dictionary that brings all of the components of
-    rex together into a single dictionary interface, which can act as a self
-    dictionary for use with the python `exec` statement.
+    This class brings all of the components of rex together and provides the
+    interface for executing rex code stored in `ResolvedPackage` instances after
+    a resolve.
 
-    The class routes key lookups between an `EnvironRecorderDict` and a dictionary of
-    local variables passed in via `globals`. Keys which are ALL_CAPS will be looked
-    up in the `EnvironRecorderDict`, and the remainder will be looked up in the `globals` dict.
-
-    The `RexNamespace` is also responsible for providing a `CommandExecutor` to
+    The `RexExecutor` class is also responsible for providing an `ActionManager` to
     the `EnvironRecorderDict` and providing a variable expansion function to the
-    `CommandExecutor`.  It is also responsible for expanding variables which
-    are set directly via `__setitem__`.
+    `ActionManager`.
     """
     ALL_CAPS = re.compile('[_A-Z][_A-Z0-9]*$')
 
     def __init__(self, interpreter, resolve_result, globals_map=None):
         """
+        interpreter: string or `ActionInterpreter`
+            the interpreter to use when executing rex actions
         globals_map : dict or None
-            dictionary which comprises the primary data of the `RexNamespace`
-            and will form the main self when it is used with `exec`.
-            if None, defaults to empty dict.
-        environ : dict or None
-            dictionary of environment variables, used as reference by `EnvironRecorderDict`
-            if None, defaults to `os.environ`.
+            dictionary which comprises the main python namespace when rex code
+            is executed (via the python `exec` statement). if None, defaults
+            to empty dict.
         no_path_append: bool
                 whether to append OS-specific paths to PATH when printing an environment
-        meta_vars: list of str
-                each string is a key whos value will be saved into an
-                env-var named REZ_META_<KEY> (lists are comma-separated).
-        shallow_meta_vars: list of str
-                same as meta-vars, but only the values from those packages directly
-                requested are baked into the env var REZ_META_SHALLOW_<KEY>.
         """
         self.globals = globals_map if globals_map is not None else {}
 
         self.formatter = NamespaceFormatter(self.globals)
         self.globals['format'] = self.expand
 
-        self.command_executor = CommandExecutor(interpreter, formatter=self.expand)
-        self.environ = EnvironRecorderDict(self.command_executor)
+        self.manager = ActionManager(interpreter, formatter=self.expand)
+        self.environ = EnvironRecorderDict(self.manager)
 
         self.globals['env'] = util.AttrDictWrapper(self.environ)
 
-        for cmd, func in self.command_executor.get_command_methods():
+        for cmd, func in self.manager.get_command_methods():
             self.globals[cmd] = func
 
         self.resolve = resolve_result
@@ -971,7 +956,7 @@ class Rex(dict):
     def expand(self, value):
         return self.formatter.format(str(value))
 
-    def setup_execution_namespace(self):
+    def _setup_execution_namespace(self):
         # add special data objects and functions to the namespace
         from rez.system import system
         self.globals['machine'] = system
@@ -980,7 +965,7 @@ class Rex(dict):
         self.globals['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return self
 
-    def exec_package(self, pkg_res, commands):
+    def execute_package(self, pkg_res, commands):
         prefix = "REZ_" + pkg_res.name.upper()
         self.environ[prefix + "_VERSION"] = pkg_res.version
         self.environ[prefix + "_BASE"] = pkg_res.base
@@ -1031,12 +1016,17 @@ class Rex(dict):
                 for find, replace in expansions:
                     cmd = cmd.replace(find, replace)
                 # convert to new-style
-                self.parse_export_command(cmd)
+                self._parse_export_command(cmd)
 
-    def execute_packages(self, commands_section='commands'):
+    def execute_packages(self, metadata_commands_section='commands'):
+        """
+        metadata_commands_section: string
+            name of the section in the package metdata where the commands to be
+            executed should be found
+        """
         # build the environment commands
         # the environment dictionary to be passed during execution of python code.
-        self = self.setup_execution_namespace()
+        self = self._setup_execution_namespace()
 
         def stringify(pkg_list):
             return ' '.join([x.short_name() for x in pkg_list])
@@ -1053,25 +1043,22 @@ class Rex(dict):
         self.environ["PYTHONPATH"] = os.path.join(module_root_path, 'python')
         self.environ["REZ_PACKAGES_PATH"] = '$REZ_PACKAGES_PATH'
 
-        # master executor. this holds all of the commands to be interpreted
-        executor = self.command_executor
-
-        executor.comment("-" * 30)
-        executor.comment("START of package commands")
-        executor.comment("-" * 30)
+        self.manager.comment("-" * 30)
+        self.manager.comment("START of package commands")
+        self.manager.comment("-" * 30)
 
         set_vars = {}
 
         for pkg_res in self.resolve.package_resolves:
-#             # swap the command executor so we can isolate commands for this package
-#             executor = rex.CommandRecorder()
-#             self.set_command_recorder(executor)
-            executor.comment("")
-            executor.comment("Commands from package %s" % pkg_res.name)
+#             # swap the command self.manager so we can isolate commands for this package
+#             self.manager = rex.CommandRecorder()
+#             self.set_command_recorder(self.manager)
+            self.manager.comment("")
+            self.manager.comment("Commands from package %s" % pkg_res.name)
 
-            self.exec_package(pkg_res, pkg_res.metadata[commands_section])
+            self.execute_package(pkg_res, pkg_res.metadata[metadata_commands_section])
 
-#             pkg_res.commands = executor.get_commands()
+#             pkg_res.commands = self.manager.get_commands()
 # 
 #             # FIXME: getting an error with an append, which should not happen
 #             # check for variables set by multiple packages
@@ -1093,24 +1080,32 @@ class Rex(dict):
 #                                                                      prev_pkg_name, cmd.friends))
 #                     set_vars[cmd.key] = pkg_res.name
 
-        executor.comment("-" * 30)
-        executor.comment("END of package commands")
-        executor.comment("-" * 30)
+        self.manager.comment("-" * 30)
+        self.manager.comment("END of package commands")
+        self.manager.comment("-" * 30)
 
         # TODO: add in execution time?
-        executor.setenv('REZ_TIME_TO_RESOLVE', str(self.resolve.resolve_time))
+        self.manager.setenv('REZ_TIME_TO_RESOLVE', str(self.resolve.resolve_time))
 
-        return executor.get_output()
+        return self.manager.get_output()
 
     def handle_path(self, no_path_append):
         # we need to inject system paths here. They're not there already because they can't be cached
         sys_paths = [os.path.join(module_root_path, "bin")]
         if not no_path_append:
             sys_paths += system.executable_paths
-        self.command_executor.setenv('PATH', sys_paths)
-        self.command_executor.commands.extend(commands)
+        self.manager.setenv('PATH', sys_paths)
+        self.manager.commands.extend(commands)
 
     def add_meta_vars(self, meta_vars, shallow_meta_vars):
+        """
+        meta_vars: list of str
+                each string is a key whos value will be saved into an
+                env-var named REZ_META_<KEY> (lists are comma-separated).
+        shallow_meta_vars: list of str
+                same as meta-vars, but only the values from those packages directly
+                requested are baked into the env var REZ_META_SHALLOW_<KEY>.
+        """
         # add meta env vars
         pkg_req_fam_set = set([x.name for x in self.package_requests if not x.is_anti()])
         meta_envvars = {}
@@ -1133,11 +1128,11 @@ class Rex(dict):
                 _add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
 
         for k, v in meta_envvars.iteritems():
-            self.command_executor.setenv('REZ_META_' + k.upper(), ' '.join(v))
+            self.manager.setenv('REZ_META_' + k.upper(), ' '.join(v))
         for k, v in shallow_meta_envvars.iteritems():
-            self.command_executor.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
+            self.manager.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
 
-    def parse_export_command(self, cmd):
+    def _parse_export_command(self, cmd):
         """
         parse a bash command and convert it to a Command action
         """
@@ -1188,21 +1183,21 @@ class Rex(dict):
             else:
                 var_obj.set(value)
         elif cmd.startswith('#'):
-            self.command_executor.comment(cmd[1:].lstrip())
+            self.manager.comment(cmd[1:].lstrip())
         elif cmd.startswith('alias '):
             match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
             value = match.groupdict()['value'].strip()
             if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
                 value = value[1:-1]
-            self.command_executor.alias(key, value)
+            self.manager.alias(key, value)
         else:
             # assume we can execute this as a straight command
-            self.command_executor.command(cmd)
+            self.manager.command(cmd)
 
 def _test():
     print "-" * 40
-    print "environ dictionary + sh executor"
+    print "environ dictionary + sh self.manager"
     print "-" * 40
     d = EnvironRecorderDict()
     d['SIMPLESET'] = 'aaaaa'
@@ -1211,11 +1206,11 @@ def _test():
     d['SIMPLESET'].prepend('dddd')
     d['SPECIAL'] = 'eeee'
     d['SPECIAL'].append('ffff')
-    print interpret(d.command_executor, shell='bash',
+    print interpret(d.manager, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
     print "-" * 40
-    print "exec + routing dictionary + sh executor"
+    print "exec + routing dictionary + sh self.manager"
     print "-" * 40
 
     code = '''
@@ -1236,14 +1231,14 @@ error("oh noes")
     g['custom2'] = 'two'
     exec code in g
 
-    print interpret(g.command_executor, shell='bash',
+    print interpret(g.manager, shell='bash',
                     env_sep_map={'SPECIAL': "';'"})
 
     print "-" * 40
-    print "re-execute record with python executor"
+    print "re-execute record with python self.manager"
     print "-" * 40
 
     import pprint
     environ = {}
-    pprint.pprint(interpret(g.command_executor, shell='bash',
+    pprint.pprint(interpret(g.manager, shell='bash',
                             environ=environ))
