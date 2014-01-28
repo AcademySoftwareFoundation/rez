@@ -30,7 +30,7 @@ class TCPHandler(SocketServer.BaseRequestHandler):
         except IOError as err:
             print>>sys.stderr, "Failed reading file: {}: {}".format(data, err)
         else:
-            script = rez.rex.Rex('bash', result).interpret_packages()
+            script = rez.rex.RexExecutor('bash', result).execute_packages()
             self.request.sendall(script)
 
 class TCPServerDaemon(Daemon):
