@@ -5,7 +5,7 @@
 # the hyphenated tools, because I'd like to deprecate those separate tools in future.
 #
 
-cmds="config env build release info install run context-info context-image config-list depends diff dot help which settings"
+cmds="config env build release info install run context-info context-image config-list depends diff dot help which settings daemon interpret"
 
 cmd=$1
 if [ "$cmd" == "" -o "$cmd" == "-h" -o "$cmd" == "--help" ]; then

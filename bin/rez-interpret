@@ -1,0 +1,17 @@
+#!/bin/bash
+
+# first arg is the path to a pickled resolve
+
+# redirect stderr because we expect a failure the first time.
+# the expected error is "Ncat: Connection refused."
+echo "$1" | nc localhost 51000 2> /dev/null
+
+if [ $? -ne 0 ]; then
+    # failure. start the daemon and try again
+    . _set-rez-env
+    rez-daemon start
+    echo "$1" | nc localhost 51000
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+fi
