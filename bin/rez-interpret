@@ -2,16 +2,38 @@
 
 # first arg is the path to a pickled resolve
 
-# redirect stderr because we expect a failure the first time.
+# TODO: fill this variable in from rez.__version__ in setup.py
+rez_ver='2.0.0'
+
+# redirect stderr because we expect a failure the first time before the daemon is started.
 # the expected error is "Ncat: Connection refused."
-echo "$1" | nc localhost 51000 2> /dev/null
+
+# storing the script and printing it later creates a dramatic slowdown
+#script=`printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000 2> /dev/null`
+
+printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000 2> /dev/null
+
+#status=$?
+#echo $script
 
 if [ $? -ne 0 ]; then
     # failure. start the daemon and try again
+    echo "starting rez daemon" >&2
     . _set-rez-env
     rez-daemon start
-    echo "$1" | nc localhost 51000
+    printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000
+    #script=`echo "$rez_ver $1" | nc localhost 51000`
     if [ $? -ne 0 ]; then
         exit 1
     fi
+#elif [ "$script" == "STALE" ]; then
+#    # imported modules on the server are out of date. restart the daemon and try again
+#    . _set-rez-env
+#    rez-daemon restart
+#    script=`echo "$rez_ver $1" | nc localhost 51000`
+#    if [ $? -ne 0 ]; then
+#        exit 1
+#    fi
 fi
+
+#printf "$script"
