@@ -50,7 +50,6 @@ class TCPHandler(SocketServer.BaseRequestHandler):
             if not data:
                 print "EMPTY"
                 break
-            print `data`
             envstr += data
             if envstr.endswith('\n\n'):
                 print "DONE"
@@ -58,10 +57,10 @@ class TCPHandler(SocketServer.BaseRequestHandler):
         environ = env_string_to_dict(envstr[:-1])
 #         pprint.pprint(environ)
 
-#         if rez_version != rez.__version__:
-#             self.request.sendall("STALE")
-#             self.server._shutdown_request = True
-#             return
+        if environ['REZ_VERSION'] != rez.__version__:
+            self.server._shutdown_request = True
+            self.request.sendall("STALE")
+            return
 
         filepath = environ['REZ_CONTEXT']
         try:
@@ -73,7 +72,7 @@ class TCPHandler(SocketServer.BaseRequestHandler):
             script = rez.rex.RexExecutor('bash', result).execute_packages()
             self.request.sendall(script)
 
-class RezTCPServer(SocketServer.TCPServer):
+class SimpleTCPServer(SocketServer.TCPServer):
     def __init__(self, server_address, RequestHandlerClass):
         SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
         self._shutdown_request = False
@@ -96,13 +95,19 @@ class RezTCPServer(SocketServer.TCPServer):
         finally:
             self._shutdown_request = False
 
-class TCPServerDaemon(Daemon):
+class ThreadedTCPServer(SocketServer.ThreadingMixIn, SocketServer.TCPServer):
+    def __init__(self, server_address, RequestHandlerClass):
+        SocketServer.TCPServer.__init__(self, server_address, RequestHandlerClass)
+
+class ServerDaemon(Daemon):
     def __init__(self, pidfile, port):
         self.port = port
         Daemon.__init__(self, pidfile)
 
     def serve(self):
-        server = RezTCPServer(('localhost', self.port), TCPHandler)
+#         server = SocketServer.UDPServer(('localhost', self.port), UDPHandler)
+        server = SimpleTCPServer(('localhost', self.port), TCPHandler)
+#         server = ThreadedTCPServer(('localhost', self.port), TCPHandler)
         server.allow_reuse_address = True
         # Activate the server; this will keep running until you
         # interrupt the program with Ctrl-C
@@ -131,22 +136,6 @@ class UDPHandler(SocketServer.BaseRequestHandler):
             print "no data"
 #         socket.sendto(data.upper(), self.client_address)
 
-class UDPServerDaemon(Daemon):
-    def __init__(self, pidfile, port):
-        self.port = port
-        Daemon.__init__(self, pidfile)
-
-    def serve(self):
-        server = SocketServer.UDPServer(('localhost', self.port), UDPHandler)
-        server.allow_reuse_address = True
-        # Activate the server; this will keep running until you
-        # interrupt the program with Ctrl-C
-        server.serve_forever()
-
-    def run(self):
-        self.serve()
-        self.stop()
-
 def setup_parser(parser):
     parser.add_argument("action", metavar='ACTION',
                         choices=['start', 'stop', 'restart', 'serve'],
@@ -156,7 +145,7 @@ def setup_parser(parser):
 
 def command(opts):
     import getpass
-    daemon = TCPServerDaemon('/tmp/rez-daemon-%s.pid' % getpass.getuser(),
+    daemon = ServerDaemon('/tmp/rez-daemon-%s.pid' % getpass.getuser(),
                              opts.port)
     if opts.action == 'start':
         daemon.start()

@@ -2,16 +2,21 @@
 
 # first arg is the path to a pickled resolve
 
-# TODO: fill this variable in from rez.__version__ in setup.py
-rez_ver='2.0.0'
+filename=$1
+
+function get_script() {
+    script=$(printf "`env REZ_CONTEXT=$filename`\n\n" | nc localhost 51000)
+}
+
+if [ "$REZ_USE_REX_DAEMON" == "" ]; then
+    echo "python version" >&2
+    # TODO: make this a proper python script
+    python -c "import rez.rex;import pickle;rez.rex.RexExecutor('bash', pickle.load(open('$1'))).execute_packages()"
+fi
 
 # redirect stderr because we expect a failure the first time before the daemon is started.
 # the expected error is "Ncat: Connection refused."
-
-# storing the script and printing it later creates a dramatic slowdown
-#script=`printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000 2> /dev/null`
-
-printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000 2> /dev/null
+get_script 2> /dev/null
 
 #status=$?
 #echo $script
@@ -21,19 +26,18 @@ if [ $? -ne 0 ]; then
     echo "starting rez daemon" >&2
     . _set-rez-env
     rez-daemon start
-    printf "`env REZ_CONTEXT=$1`\n\n" | nc localhost 51000
-    #script=`echo "$rez_ver $1" | nc localhost 51000`
+    get_script
     if [ $? -ne 0 ]; then
         exit 1
     fi
-#elif [ "$script" == "STALE" ]; then
-#    # imported modules on the server are out of date. restart the daemon and try again
-#    . _set-rez-env
-#    rez-daemon restart
-#    script=`echo "$rez_ver $1" | nc localhost 51000`
-#    if [ $? -ne 0 ]; then
-#        exit 1
-#    fi
+elif [ "$script" == "STALE" ]; then
+    # imported modules on the server are out of date. restart the daemon and try again
+    . _set-rez-env
+    rez-daemon restart
+    get_script
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
 fi
 
-#printf "$script"
+printf "$script"
