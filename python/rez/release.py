@@ -618,9 +618,9 @@ class RezReleaseMode(object):
             result = resolver.resolve((self.requires + (variant or []) + ['cmake=l']),
                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
-            commands = result[1]
+            rex_exec = rez.rex.RexExecutor(system.shell, result)
+            script = rex_exec.execute_packages()
 
-            script = rex.interpret(commands, shell=system.shell)
             with open(env_bake_file, 'w') as f:
                 f.write(script)
         except Exception, err:
@@ -640,12 +640,15 @@ class RezReleaseMode(object):
             env_bake_file=env_bake_file,
             actual_bake=actual_bake)
 
-        recorder = rex.CommandRecorder()
+        recorder = rex.ActionManager('bash', verbose=['command'],
+                                     initial_environ=rex_exec.manager.environ)
+
+        # FIXME: use a rez package to set these:
         # need to expose rez-config's cmake modules in build env
         recorder.prependenv('CMAKE_MODULE_PATH',
                             os.path.join(module_root_path, 'cmake'))
-        # make sure we can still use rez-config in the build env!
-        recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
+#         # make sure we can still use rez-config in the build env!
+#         recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -684,7 +687,7 @@ class RezReleaseMode(object):
                 recorder.command(["make", "clean"])
             recorder.command(["make"] + make_args)
 
-            script = rex.interpret(recorder, shell='bash', verbose=['command'])
+            script = recorder.get_output()
 
             with open(src_file, 'w') as f:
                 f.write(text + script)
@@ -704,8 +707,7 @@ class RezReleaseMode(object):
             recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
             recorder.setenv('REZ_ENV_PROMPT', "BUILD>")
             recorder.command('/bin/bash --rcfile %s/bin/rez-env-bashrc' % module_root_path)
-            script = rex.interpret(recorder, shell='bash',
-                                   verbose=['command'])
+            script = recorder.get_output()
 
             with open(src_file, 'w') as f:
                 f.write(text + script)

@@ -152,7 +152,7 @@ class ResolveResult(object):
     package_requests = None
     dot_graph = None
     failed_attempts = None
-    request_time = None
+    request_timestamp = None
     resolve_time = None
     resolve_mode = None
 
@@ -351,6 +351,8 @@ class Resolver(object):
         self.result.resolve_time = resolve_end_time - resolve_start_time
         self.result.package_requests = self.package_requests
         self.result.raw_package_requests = raw_package_requests
+        self.result.request_timestamp = self.rctxt.time_epoch
+        self.result.resolve_mode = self.rctxt.resolve_mode
         return self.result
 
     def resolve_base(self):
@@ -902,6 +904,7 @@ class _Configuration(object):
                 return (_Configuration.ADDPKG_ADD, pkg_add)
         else:
             try:
+                # check for existing anti-package
                 config_pkg = self.pkgs[anti_name(pkg_req)]
             except KeyError:
                 # does not exist. move on
