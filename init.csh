@@ -15,12 +15,6 @@ if (! -d $REZ_PATH ) then
     echo "ERROR! Rez could not be found at $REZ_PATH" 1>&2
 else
 
-    # where rez searches for packages
-    if (! $?REZ_PACKAGES_PATH ) then
-        setenv REZ_PACKAGES_PATH !REZ_LOCAL_PKGS_PATH!:!REZ_PACKAGES_PATH!
-    endif
-
-
     # where rez will publish packages to (ie those released with rez-release)
     if (! $?REZ_RELEASE_PACKAGES_PATH ) then
         setenv REZ_RELEASE_PACKAGES_PATH !REZ_PACKAGES_PATH!
@@ -30,6 +24,12 @@ else
     # where rez will publish local packages to (ie those installed with rez-build -- -- install)
     if (! $?REZ_LOCAL_PACKAGES_PATH ) then
         setenv REZ_LOCAL_PACKAGES_PATH !REZ_LOCAL_PKGS_PATH!
+    endif
+
+
+    # where rez searches for packages
+    if (! $?REZ_PACKAGES_PATH ) then
+        setenv REZ_PACKAGES_PATH ${REZ_LOCAL_PACKAGES_PATH}:${REZ_RELEASE_PACKAGES_PATH}
     endif
 
 
