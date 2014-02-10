@@ -27,6 +27,7 @@ import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
 import rez.builds as builds
+import rez.cmake as cmake
 
 
 ##############################################################################
@@ -512,31 +513,7 @@ class RezReleaseMode(object):
 
     # building ---------
     def _get_cmake_args(self, build_system, build_target):
-        BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
-                         'codeblocks': "CodeBlocks - Unix Makefiles",
-                         'make': "Unix Makefiles",
-                         'xcode': "Xcode"}
-
-        cmake_arguments = ["-DCMAKE_SKIP_RPATH=1",
-                           "-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"]
-
-        # Fetch the initial cache if it's defined
-        if 'CMAKE_INITIAL_CACHE' in os.environ:
-            cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
-
-        cmake_arguments.extend(["-G", BUILD_SYSTEMS[build_system]])
-
-        cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
-
-        if self.release_install:
-# 			if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
-# 				result = raw_input("You are attempting to install centrally outside "
-# 								   "of rez-release: do you really want to do this (y/n)? ")
-# 			if result != "y":
-# 				sys.exit(1)
-            cmake_arguments.append("-DCENTRAL=1")
-
-        return cmake_arguments
+        return cmake.get_cmake_args(build_system, build_target, self.release_install)
 
     def _build_variant(self, variant_num, build_system='eclipse',
                        build_target='Release', mode=enums.RESOLVE_MODE_LATEST,
