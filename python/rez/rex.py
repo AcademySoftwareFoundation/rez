@@ -21,6 +21,7 @@ ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
 
 PARSE_EXPORT_COMMAND_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
+DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
 
 EnvExpand = Template
 
@@ -231,7 +232,7 @@ class ActionManager(object):
         self.actions = []
 
         # TODO: get rid of this feature
-        self._env_sep_map = env_sep_map if env_sep_map is not None else {}
+        self._env_sep_map = env_sep_map if env_sep_map is not None else DEFAULT_ENV_SEP_MAP
 
     def get_action_methods(self):
         """
