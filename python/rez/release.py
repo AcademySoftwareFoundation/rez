@@ -702,6 +702,12 @@ class RezReleaseMode(object):
                 # error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
                 sys.exit(1)
 
+            elif variant:
+                print
+                print "---------------------------------------------------------"
+                print "rez-build: finished building for variant '%s'" % ' '.join(variant)
+                print "---------------------------------------------------------"
+
         else:
             # which? this is from the original code...
             recorder.setenv('REZ_ENV_PROMPT', ">$REZ_ENV_PROMPT")
