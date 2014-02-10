@@ -645,6 +645,8 @@ class RezReleaseMode(object):
 
         # FIXME: use a rez package to set these:
         # need to expose rez-config's cmake modules in build env
+        recorder.setenv('CMAKE_MODULE_PATH', 
+                            rex_exec.manager.environ['CMAKE_MODULE_PATH'])
         recorder.prependenv('CMAKE_MODULE_PATH',
                             os.path.join(module_root_path, 'cmake'))
 #         # make sure we can still use rez-config in the build env!
