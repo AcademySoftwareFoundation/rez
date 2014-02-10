@@ -20,7 +20,7 @@ from rez.exceptions import PkgCommandError
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
 
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
+PARSE_EXPORT_COMMAND_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 
 EnvExpand = Template
 
@@ -1179,7 +1179,7 @@ class RexExecutor(object):
             var, value = cmd.split(' ', 1)[1].split('=', 1)
             # get an EnvironmentVariable instance
             var_obj = self.environ[var]
-            parts = value.split(DEFAULT_ENV_SEP_MAP.get(var, os.pathsep))
+            parts = value.split(PARSE_EXPORT_COMMAND_ENV_SEP_MAP.get(var, os.pathsep))
             if len(parts) > 1:
                 orig_parts = parts
                 parts = [x for x in parts if x]
