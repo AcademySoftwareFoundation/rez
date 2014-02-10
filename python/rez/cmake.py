@@ -13,7 +13,7 @@ BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
                  'make': "Unix Makefiles",
                  'xcode': "Xcode"}
 
-class RezCMakeError(RezError):
+class RezCMakeError(rez.exceptions.RezError):
     """
     rez cmake error
     """

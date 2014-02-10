@@ -46,7 +46,6 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(rez.cmake.BUILD_SYSTEMS.keys()),
-                        type=lambda x: rez.cmake.BUILD_SYSTEMS[x],
                         default='eclipse')
     parser.add_argument("-i", "--install-directory", dest="install_dir",
                         default=os.environ['REZ_LOCAL_PACKAGES_PATH'],

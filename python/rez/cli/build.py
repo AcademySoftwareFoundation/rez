@@ -164,7 +164,6 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
-                        # type=lambda x: BUILD_SYSTEMS[x],
                         default='eclipse')
     parser.add_argument("--retain-cache", dest="retain_cmake_cache",
                         action="store_true", default=False,
