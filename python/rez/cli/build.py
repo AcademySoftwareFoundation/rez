@@ -61,11 +61,7 @@ import os
 import os.path
 import argparse
 from rez.cli import error, output
-
-BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
-                 'codeblocks': "CodeBlocks - Unix Makefiles",
-                 'make': "Unix Makefiles",
-                 'xcode': "Xcode"}
+from rez.cmake import BUILD_SYSTEMS
 
 #
 #-#################################################################################################
