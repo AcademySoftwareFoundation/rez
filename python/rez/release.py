@@ -641,7 +641,7 @@ class RezReleaseMode(object):
             actual_bake=actual_bake)
 
         recorder = rex.ActionManager('bash', verbose=['command'],
-                                     initial_environ=rex_exec.manager.environ)
+                                     parent_environ=rex_exec.manager.environ)
 
         # FIXME: use a rez package to set these:
         # need to expose rez-config's cmake modules in build env
