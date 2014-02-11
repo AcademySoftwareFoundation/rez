@@ -102,7 +102,8 @@ _type:
     browser: str
     warn_untimestamped: bool
     warn_old_commands: bool
-
+    build_system: str
+    cmake_args: list
 
 # What seperator to expect in env-vars
 _sep:
