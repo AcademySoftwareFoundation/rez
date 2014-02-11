@@ -77,6 +77,9 @@ warn_untimestamped: true
 # section is resolved into an environment
 warn_old_commands: true
 
+# The name of the CMake build system to use, valid options are eclipse, make, 
+# xcode and codeblocks.
+build_system: make
 
 # Type specifiers
 _type:

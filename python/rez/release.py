@@ -515,7 +515,7 @@ class RezReleaseMode(object):
     def _get_cmake_args(self, build_system, build_target):
         return cmake.get_cmake_args(build_system, build_target, self.release_install)
 
-    def _build_variant(self, variant_num, build_system='eclipse',
+    def _build_variant(self, variant_num, build_system=settings.build_system,
                        build_target='Release', mode=enums.RESOLVE_MODE_LATEST,
                        no_assume_dt=False, do_build=True, additional_cmake_args=None,
                        retain_cmake_cache=False, make_args=None, make_clean=True):

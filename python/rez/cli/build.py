@@ -62,6 +62,7 @@ import os.path
 import argparse
 from rez.cli import error, output
 from rez.cmake import BUILD_SYSTEMS
+from rez.settings import settings
 
 #
 #-#################################################################################################
@@ -164,7 +165,7 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
-                        default='eclipse')
+                        default=settings.build_system)
     parser.add_argument("--retain-cache", dest="retain_cmake_cache",
                         action="store_true", default=False,
                         help="retain cmake cache")

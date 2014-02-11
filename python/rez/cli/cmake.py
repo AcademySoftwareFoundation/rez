@@ -34,6 +34,7 @@ import subprocess
 import argparse
 import sys
 from rez.cli import error, output
+from rez.settings import settings
 
 def setup_parser(parser):
     import rez.cmake
@@ -46,7 +47,7 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(rez.cmake.BUILD_SYSTEMS.keys()),
-                        default='eclipse')
+                        default=settings.build_system)
     parser.add_argument("-i", "--install-directory", dest="install_dir",
                         default=os.environ['REZ_LOCAL_PACKAGES_PATH'],
                         help="install directory. [default = $REZ_LOCAL_PACKAGES_PATH (%(default)s)]")
