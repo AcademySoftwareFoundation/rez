@@ -601,7 +601,17 @@ class RezReleaseMode(object):
                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             rex_exec = rez.rex.RexExecutor(system.shell, result)
-            script = rex_exec.execute_packages()
+            rex_exec.execute_packages()
+
+            # FIXME: use a rez package to set these:
+            # need to expose rez-config's cmake modules in build env
+            rex_exec.manager.appendenv('CMAKE_MODULE_PATH',
+                                        os.path.join(module_root_path, 'cmake'))
+
+#            # make sure we can still use rez-config in the build env!
+#            recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
+
+            script = rex_exec.manager.get_output()
 
             with open(env_bake_file, 'w') as f:
                 f.write(script)
@@ -624,15 +634,6 @@ class RezReleaseMode(object):
 
         recorder = rex.ActionManager('bash', verbose=['command'],
                                      parent_environ=rex_exec.manager.environ)
-
-        # FIXME: use a rez package to set these:
-        # need to expose rez-config's cmake modules in build env
-        recorder.setenv('CMAKE_MODULE_PATH', 
-                            rex_exec.manager.environ['CMAKE_MODULE_PATH'])
-        recorder.prependenv('CMAKE_MODULE_PATH',
-                            os.path.join(module_root_path, 'cmake'))
-#         # make sure we can still use rez-config in the build env!
-#         recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
 
         recorder.info()
         recorder.info('rez-build: in new env:')
