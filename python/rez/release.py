@@ -517,8 +517,8 @@ class RezReleaseMode(object):
 
     def _build_variant(self, variant_num, build_system='eclipse',
                        build_target='Release', mode=enums.RESOLVE_MODE_LATEST,
-                       no_assume_dt=False, do_build=True, cmake_args=(),
-                       retain_cmake_cache=False, make_args=(), make_clean=True):
+                       no_assume_dt=False, do_build=True, additional_cmake_args=None,
+                       retain_cmake_cache=False, make_args=None, make_clean=True):
         '''
         Do the actual build of the variant, by resolving an environment and calling
         cmake/make.
@@ -531,9 +531,14 @@ class RezReleaseMode(object):
         else:
             build_dir = self.base_build_dir
 
+        if additional_cmake_args is None:
+            additional_cmake_args = []
+
         cmake_args = self._get_cmake_args(build_system, build_target)
-        cmake_args.extend(cmake_args)
-        make_args = list(make_args)
+        cmake_args.extend(additional_cmake_args)
+
+        if make_args is None:
+            make_args = []
 
 # 		# build it
         if variant:

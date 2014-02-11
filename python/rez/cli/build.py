@@ -240,7 +240,7 @@ def command(opts):
                                   mode=opts.mode,
                                   no_assume_dt=opts.no_assume_dt,
                                   do_build=do_build,
-                                  cmake_args=cmake_args,
+                                  additional_cmake_args=cmake_args,
                                   retain_cmake_cache=opts.retain_cmake_cache,
                                   make_args=make_args,
                                   make_clean=not opts.no_clean)
