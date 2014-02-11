@@ -144,25 +144,26 @@ def command(opts):
         if not result:
             sys.exit(1)
 
-    pkg_ress, commands, dot_graph, num_fails = result
-
     ##########################################################################################
     # print result
     ##########################################################################################
 
     if not do_quiet:
-        print "\nsuccessful configuration found after " + str(num_fails) + " failed attempts."
+        print "\nsuccessful configuration found after " + str(result.failed_attempts) + " failed attempts."
 
     if opts.print_env or opts.env_file:
         import rez.rex as rex
-        script = rex.interpret(commands, shell=system.shell)
+        from rez.system import system
+
+        rex_exec = rex.RexExecutor(system.shell, result)
+        script = rex_exec.execute_packages()
 
     if opts.print_env:
         for env_cmd in script.split('\n'):
             output(env_cmd)
 
     if opts.print_pkgs:
-        for pkg_res in pkg_ress:
+        for pkg_res in result.package_requests:
             output(pkg_res.short_name())
 
     if opts.env_file:
