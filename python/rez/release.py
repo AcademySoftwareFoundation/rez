@@ -384,7 +384,7 @@ class RezReleaseMode(object):
         '''
         Return the tag name for the current release as a string.
         '''
-        return str(self.metadata['version'].version)
+        return settings.vcs_tag_name.format(**self.metadata)
 
     def get_version_from_tag(self, tag):
         '''
