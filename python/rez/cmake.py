@@ -6,14 +6,15 @@ Some useful functions for interacting with cmake.
 
 import os
 import platform
-import rez.exceptions
+from rez.exceptions import RezError
+from rez.settings import settings
 
 BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
                  'codeblocks': "CodeBlocks - Unix Makefiles",
                  'make': "Unix Makefiles",
                  'xcode': "Xcode"}
 
-class RezCMakeError(rez.exceptions.RezError):
+class RezCMakeError(RezError):
     """
     rez cmake error
     """
@@ -29,9 +30,9 @@ def validate_build_system(build_system):
 def get_cmake_args(build_system, build_target, release_install=False, coverage=False):
 
     validate_build_system(build_system)
-
-    cmake_arguments = ["-DCMAKE_SKIP_RPATH=1",
-                       "-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"]
+    
+    cmake_arguments = settings.cmake_args if settings.cmake_args else []
+    cmake_arguments.extend(["-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"])
 
     if 'CMAKE_INITIAL_CACHE' in os.environ:
         cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
