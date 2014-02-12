@@ -19,7 +19,6 @@
 # {platform} - machine platform, eg 'linux';
 # {arch} - machine architecture, eg 'x86_64';
 # {os} - machine operating system, eg 'Ubuntu-12.04'.
-# {shell} - current shell, eg 'bash'.
 #
 
 # The package search path. Rez uses this to find packages
@@ -63,10 +62,7 @@ implicit_packages:
 - '~arch-{arch}'
 - '~os-{os}'
 
-# Print debugging info when loading plugins
-debug_plugins: false
-
-# Search pathfor shell plugins
+# Search path for shell plugins
 shell_plugin_path: []
 
 # Search path for source retrieval plugins
@@ -84,6 +80,13 @@ image_viewer:
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
 browser:
 
+# String to add to shell prompt when using rez-env. Set prompt to the empty
+# string if you do not want Rez changing the prompt.
+prompt: '>'
+
+# If True, prefixes the prompt, suffixes if False
+prefix_prompt: true
+
 # If True, print warnings associated with shell startup sequence, when using
 # tools such as rez-env. For example, if the target shell type is 'sh', and
 # the 'rcfile' param is used, you would get a warning, because the sh shell
@@ -96,6 +99,12 @@ warn_untimestamped: true
 # If True, print a warning whenever a package with an old-style commands
 # section is resolved into an environment
 warn_old_commands: true
+
+# Print debugging info when loading plugins
+debug_plugins: false
+
+# Print debugging info when consuming and interpreting package commands
+debug_package_commands: true
 
 
 # Type specifiers
@@ -110,15 +119,18 @@ _type:
     package_repository_cache_path: str
     tmpdir: str
     implicit_packages: list
-    debug_plugins: bool
     shell_plugin_path: list
     source_retriever_plugin_path: list
     editor: str
     image_viewer: str
     browser: str
+    prompt: str
+    prefix_prompt: bool
     warn_shell_startup: bool
     warn_untimestamped: bool
     warn_old_commands: bool
+    debug_plugins: bool
+    debug_package_commands: bool
 
 
 # What seperator to expect in env-vars

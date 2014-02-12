@@ -2,6 +2,8 @@ from __future__ import with_statement
 from rez import module_root_path
 from rez.system import system
 import textwrap
+import stat
+import sys
 import os
 import os.path
 
@@ -32,36 +34,16 @@ def _mkpkg(name, version, content=None):
         f.write(content)
 
 
-# setup.py/pip etc creates scripts outside of the module path (that may contain scripts from other
-# packages), and assumes that the package site is in PYTHONPATH. Within a rez-env'd shell, we need
-# to expose only Rez scripts, not other package scripts in a standard site location, and
-# PYTHONPATH will not contain the site. So, we must copy the rez scripts to their own path, and
-# patch their code so that they add the package site before using the rez python module.
-def _patch_scripts(install_base_dir, scripts):
-    # find scripts
-    bin_path = None
-    path = module_root_path
-    while path:
-        bin_path_ = os.path.join(path, 'bin')
-        if os.path.isdir(bin_path_):
-            test_script = os.path.join(bin_path_, 'rezolve')
-            if os.path.isfile(test_script):
-                bin_path = bin_path_
-                break
-        else:
-            path = os.path.dirname(path)
-
-    if not bin_path:
-        raise Exception("Cannot find Rez cli tools")
-
-    # copy and monkey-patch each script
+# create our own scripts, located inside the rez distribution, that will work within
+# an unconfigured environment (ie, PYTHONPATH may not contain Rez).
+def _create_scripts(install_base_dir, version, scripts):
     new_bin_path = os.path.join(module_root_path, "scripts")
     rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     os.mkdir(new_bin_path)
 
-    monkey_patch = textwrap.dedent( \
+    code = textwrap.dedent( \
     """
-    # START rez installer monkey patch
+    #!%(python_exe)s
     import sys
     import site
     import os.path
@@ -70,25 +52,24 @@ def _patch_scripts(install_base_dir, scripts):
     _install_base = os.path.realpath(_install_base)
     site.addsitedir(_install_base)
     sys.path.insert(0, _install_base)
-    # END rez installer monkey patch
-    """ % dict(rel_path=rel_install_base_dir))
+
+    __requires__ = 'rez==%(version)s'
+    import pkg_resources
+    pkg_resources.run_script('rez==%(version)s', '%(script_name)s')
+    """).strip()
 
     for script in scripts:
-        file = os.path.join(bin_path, script)
-        if os.path.isfile(file):
-            mode = os.stat(file).st_mode
-            with open(file) as f:
-                code = f.read()
+        fpath = os.path.join(new_bin_path, script)
+        contents = code % dict(
+            python_exe=sys.executable,
+            rel_path=rel_install_base_dir,
+            version=version,
+            script_name=script)
+        with open(fpath, 'w') as f:
+            f.write(contents)
 
-            loc1 = code.split('\n')
-            loc2 = monkey_patch.split('\n')
-            loc = [loc1[0]] + loc2 + loc1[1:]
-
-            patched_code = '\n'.join(loc)
-            dst = os.path.join(new_bin_path, script)
-            with open(dst, 'w') as f:
-                f.write(patched_code)
-            os.chmod(dst, mode)
+        os.chmod(fpath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
+            | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     return new_bin_path
 
@@ -105,8 +86,8 @@ def _create_introspection_src(install_base_dir, script_dir):
         f.write("_script_path = '%s'\n" % relpath)
 
 
-def post_install(install_base_dir, scripts):
-    script_dir = _patch_scripts(install_base_dir, scripts)
+def post_install(install_base_dir, version, scripts):
+    script_dir = _create_scripts(install_base_dir, version, scripts)
     _create_introspection_src(install_base_dir, script_dir)
 
     print "Creating bootstrap package: platform..."

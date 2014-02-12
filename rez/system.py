@@ -50,6 +50,7 @@ class System(object):
             self._get_arch()
         return self._arch
 
+    # TODO remove, this belongs in shells.py and should use the plugins
     @property
     def shell(self):
         """
@@ -108,6 +109,7 @@ class System(object):
     def executable_paths(self):
         """
         @returns The list of default paths found in $PATH
+        TODO move into shell plugins
         """
         if self._exe_paths is None:
             self._get_exe_paths()
@@ -164,11 +166,12 @@ class System(object):
 
         self._os = '%s-%s' % (finalRelease, finalVersion)
 
+    # TODO remove
     def _get_shell(self):
         shells = dict( \
-            sh="bash",
+            sh="sh",
             bash="bash",
-            csh="tcsh",
+            csh="csh",
             tcsh="tcsh")
 
         try:
@@ -207,6 +210,8 @@ class System(object):
         paths = None
         cmd = None
 
+        # TODO move into shell plugins
+        # TODO breaks if bashrc etc prints anything
         if self.shell == "bash":
             cmd = "cmd=`which bash`; unset PATH; $cmd --norc -c 'echo $PATH'"
         elif self.shell == "tcsh":

@@ -89,8 +89,7 @@ class Settings(object):
                 root_dir=module_root_path,
                 platform=system.platform,
                 arch=system.arch,
-                os=system.os,
-                shell=system.shell)
+                os=system.os)
 
     def _expand_variables(self, s):
         self._load_variables()

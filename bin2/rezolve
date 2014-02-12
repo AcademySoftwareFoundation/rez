@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 import os
+import sys
 import argparse
 
 
 
 def _add_common_args(subp):
-    pass
+    subp.add_argument("--no-del-tmpdir", dest="no_del_tmpdir", action="store_true",
+                      help=argparse.SUPPRESS)
 
 
 if __name__ == '__main__':
@@ -32,6 +34,11 @@ if __name__ == '__main__':
     opts = p.parse_args()
     cmd = opts.cmd
     exec("from rez.cli.%s import command" % cmd.replace('-','_'))
-    command(opts, subparsers[cmd])
-    from rez.util import clean_tmpdir
-    #clean_tmpdir()
+    returncode = command(opts, subparsers[cmd])
+
+    if not opts.no_del_tmpdir:
+        from rez.util import clean_tmpdir
+        clean_tmpdir()
+
+    if returncode is not None:
+        sys.exit(returncode)

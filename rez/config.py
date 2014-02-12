@@ -495,6 +495,9 @@ class Resolver(object):
         env['building'] = bool(os.getenv('REZ_BUILD_ENV'))
         return env
 
+    # TODO TODO TODO I don't think we can record commands here anymore - because of the control
+    # flow available in Rex code, this makes the commands dependent on the parent environment,
+    # and this is a breaking change that also breaks the subshell feature. Stay tuned.
     def record_commands(self, pkg_res_list):
         # build the environment commands
         res_pkg_strs = [x.short_name() for x in pkg_res_list]
@@ -505,7 +508,8 @@ class Resolver(object):
         env = self.get_execution_namespace(pkg_res_list)
 
         env["REZ_USED"] = module_root_path
-        env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
+        #env["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
+        env["REZ_PREV_REQUEST"] = env["REZ_REQUEST"]
         env["REZ_REQUEST"] = full_req_str
         env["REZ_RAW_REQUEST"] = raw_req_str
         env["REZ_RESOLVE"] = " ".join(res_pkg_strs)
@@ -532,6 +536,8 @@ class Resolver(object):
             env.set_command_recorder(pkg_recorder)
             pkg_recorder.comment("")
             pkg_recorder.comment("Commands from package %s" % pkg_res.short_name())
+            if settings.debug_package_commands:
+                print "\nConsuming commands from package %s:" % pkg_res.short_name()
 
             prefix = "REZ_" + pkg_res.name.upper()
             env[prefix + "_VERSION"] = pkg_res.version
@@ -571,9 +577,10 @@ class Resolver(object):
             # check for variables set by multiple packages
             for cmd in pkg_res.commands:
                 if cmd.name == 'setenv':
-                    if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
-                        raise PkgCommandError("Package %s overwrote value set by "
+                    if set_vars.get(cmd.key, None) not in (None, pkg_res.name):
+                        raise PkgCommandError("Package %s overwrote value of %s set by "
                                               "package %s" % (pkg_res.name,
+                                                              cmd.key,
                                                               set_vars[cmd.key]))
                     set_vars[cmd.key] = pkg_res.name
 
@@ -2150,6 +2157,9 @@ def parse_export_command(cmd, env_obj):
 
     if cmd.startswith('export'):
         var, value = cmd.split(' ', 1)[1].split('=', 1)
+        if value.startswith('"') and value.endswith('"'):
+            value = value[1:-1]
+
         # get an EnvironmentVariable instance
         var_obj = env_obj[var]
         parts = value.split(os.pathsep)

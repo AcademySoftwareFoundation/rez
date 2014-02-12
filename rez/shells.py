@@ -15,26 +15,36 @@ def get_shell_types():
     return shell_plugin_manager.get_plugins()
 
 
+def get_current_shell_type():
+    """ Returns the type of shell currently running. """
+    pass
+
+
 def interpret(commands, shell=None, **kwargs):
     from rez.plugin_managers import shell_plugin_manager
+
     sh = shell_plugin_manager.create_instance(shell=shell, **kwargs)
     if isinstance(commands, CommandRecorder):
         commands = commands.commands
     return sh._execute(commands)
 
 
-def spawn_shell(context_file, shell=None, rcfile=None, stdin=False,
-                command=None, quiet=False, **kwargs):
+def spawn_shell(context_file, shell=None, rcfile=None, norc=False, stdin=False,
+                command=None, quiet=False, get_stdout=False, get_stderr=False,
+                **kwargs):
     """
     Spawn a child shell process.
     """
     from rez.plugin_managers import shell_plugin_manager
+
     sh = shell_plugin_manager.create_instance(shell=shell, **kwargs)
-    sh.spawn_shell(context_file,
+    return sh.spawn_shell(context_file,
                    rcfile=rcfile,
                    stdin=stdin,
                    command=command,
-                   quiet=quiet)
+                   quiet=quiet,
+                   get_stdout=get_stdout,
+                   get_stderr=get_stderr)
 
 
 class Shell(CommandInterpreter):
@@ -42,15 +52,22 @@ class Shell(CommandInterpreter):
     def name(cls):
         raise NotImplementedError
 
-    def spawn_shell(self, context_file, rcfile=None, stdin=False, command=None, quiet=False):
+    def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
+                    command=None, quiet=False, get_stdout=False, get_stderr=False):
         """
         Spawn a possibly interactive subshell.
         @param context_file File that must be sourced in the new shell, this configures the
             Rez environment.
         @param rcfile Custom startup script.
+        @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
         @param command If not None, execute this command in a non-interactive shell.
-        @param quiet Whether to show the configuration summary when the shell starts.
+        @param quiet If True, don't show the configuration summary, and suppress any stdout
+            from startup scripts.
+        @param get_stdout Capture stdout.
+        @param get_stderr Capture stderr.
+        @returns (returncode, stdout, stderr), where stdout/err are None if the corresponding
+            get_stdxxx param was False.
         """
         raise NotImplementedError
 
@@ -58,6 +75,7 @@ class Shell(CommandInterpreter):
 class UnixShell(Shell):
     executable = None
     file_extension = None
+    rcfile_arg = None
     norc_arg = None
     stdin_arg = '-s'
 
@@ -72,71 +90,20 @@ class UnixShell(Shell):
             raise RuntimeError("Couldn't find executable for shell type '%s'" % cls.name())
         return exe
 
-    """
     @classmethod
-    def find_user_startup_files(cls):
-        files = []
-        for entry in cls.user_startup_files:
-            if isinstance(entry, basestring):
-                file = entry
-                path = os.path.expanduser('~/'+file)
-                if os.path.exists(path):
-                    files.append(file)
-            else:
-                for file in entry:
-                    path = os.path.expanduser('~/'+file)
-                    if os.path.exists(path):
-                        files.append(file)
-                        break
-        return files
-
-    @classmethod
-    def first_user_startup_file(cls):
-        if self.user_startup_files:
-            entry = self.user_startup_files[0]
-            return entry if isinstance(entry, basestring) else entry[0]
-
-    def _write_shell_resource(self, filename, context_file,
-                              rcfile=None, quiet=False, bind_rez=False):
-        recorder = CommandRecorder()
-        recorder.setenv('HOME', os.environ.get('HOME',''))
-
-        path = os.path.expanduser('~/'+filename)
-        if os.path.exists(path):
-            recorder.source('~/%s' % filename)
-
-        if bind_rez:
-            if rcfile:
-                recorder.source(rcfile)
-
-            recorder.source(context_file)
-            self.bind_rez(recorder)
-
-            if not quiet:
-                recorder.info('')
-                recorder.info('You are now in a rez-configured environment.')
-                recorder.command('rezolve context-info')
-
-        script = self._execute(recorder.commands, output_style='file')
-        target_file = tmpfile(filename)
-        with open(target_file, 'w') as f:
-            f.write(script)
-        return target_file
-    """
-
-    # TODO norc
-    @classmethod
-    def get_startup_sequence(cls, rcfile, stdin, command):
+    def get_startup_sequence(cls, rcfile, norc, stdin, command):
         """
         Return a dict containing:
-        - 'stdin': replacement stdin setting.
-        - 'command': replacement command setting.
+        - 'stdin': resulting stdin setting.
+        - 'command': resulting command setting.
+        - 'do_rcfile': True if a file should be sourced directly.
         - 'envvar': Env-var that points at a file to source at startup. Can be None.
         - 'files': Existing files that will be sourced (non-user-expanded), in source
             order. This may also incorporate rcfile, and file pointed at via envvar.
             Can be empty.
-        - 'default_file': The 'default' startup file (such as '.bashrc'), whether
-            or not it exists. Can be None.
+        - 'bind_files': Files to inject Rez binding into, even if that file doesn't
+            already exist.
+        - 'source_bind_files': Whether to source bind files, if they exist.
         """
         raise NotImplementedError
 
@@ -149,26 +116,41 @@ class UnixShell(Shell):
         if val and settings.warn_shell_startup:
             print >> sys.stderr, "WARNING: %s ignored by %s shell" % (option, cls.name())
 
-    def spawn_shell(self, context_file, rcfile=None, stdin=False, command=None, quiet=False):
+    def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
+                    command=None, quiet=False, get_stdout=False, get_stderr=False):
         recorder = CommandRecorder()
         recorder.setenv('REZ_CONTEXT_FILE', context_file)
-        # TODO hook up prompt symbol once more
         recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % '>')
 
-        d = self.get_startup_sequence(rcfile, stdin, command)
+        # TODO hook up prompt symbol once more
+        # TODO fix this properly
+        #recorder.appendenv('REZ_ENV_PROMPT', '>')
+        # some shells don't like references to undefined vars
+        #if os.getenv('REZ_ENV_PROMPT') is None:
+        #    recorder.setenv('REZ_ENV_PROMPT', '>')
+        #else:
+        #    recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % '>')
+        #if os.getenv('REZ_REQUEST') is None:
+        #    recorder.setenv('REZ_REQUEST', '')
+
+        d = self.get_startup_sequence(rcfile, norc, stdin, command)
         envvar = d["envvar"]
         files = d["files"]
-        default_file = d["default_file"]
+        bind_files = d["bind_files"]
+        do_rcfile = d["do_rcfile"]
         command = None
 
-        def _record_shell(r, quiet=True):
-            r.source(context_file)
+        def _record_shell(r, files, bind_rez=True, print_msg=False):
+            # TODO make context sourcing position configurable?
+            if bind_rez:
+                r.source(context_file)
             for file in files:
                 r.source(file)
             if envvar:
                 r.unsetenv(envvar)
-            self.bind_rez_cli(r)
-            if not quiet:
+            if bind_rez:
+                self.bind_rez_cli(r)
+            if print_msg and not quiet:
                 r.info('')
                 r.info('You are now in a rez-configured environment.')
                 r.command('rezolve context-info')
@@ -181,45 +163,79 @@ class UnixShell(Shell):
             return target_file
 
         if d["command"]:
-            _record_shell(recorder)
+            _record_shell(recorder, files=files)
             command = d["command"]
         else:
             if d["stdin"]:
+                assert(self.stdin_arg)
                 command = "%s %s" % (self.executable, self.stdin_arg)
                 quiet = True
+            elif do_rcfile:
+                assert(self.rcfile_arg)
+                command = "%s %s" % (self.executable, self.rcfile_arg)
             else:
                 command = self.executable
 
-            if envvar:
-                # hijack envvar to insert our own startup sequence
+            if do_rcfile:
+                # hijack rcfile to insert our own script
                 rec = CommandRecorder()
-                _record_shell(rec, quiet=quiet)
+                _record_shell(rec, files=files, print_msg=(not quiet))
+                filename = "rcfile.%s" % self.file_extension
+                filepath = _write_shell(rec, filename)
+                command += " %s" % filepath
+            elif envvar:
+                # hijack env-var to insert our own script
+                rec = CommandRecorder()
+                _record_shell(rec, files=files, print_msg=(not quiet))
                 filename = "%s.%s" % (envvar, self.file_extension)
                 filepath = _write_shell(rec, filename)
                 recorder.setenv(envvar, filepath)
-            elif default_file:
-                # hijack $HOME to insert our own startup sequence
-                rec = CommandRecorder()
-                rec.setenv('HOME', os.environ.get('HOME',''))
-                _record_shell(rec, quiet=quiet)
-                _write_shell(rec, default_file)
-                recorder.setenv("HOME", get_tmpdir())
             else:
-                if settings.warn_shell_startup:
-                    print >> sys.stderr, "WARNING: Could not configure environment " + \
-                        "from within the target shell; this has been done in the " + \
-                        "parent process instead."
-                recorder.source(context_file)
+                # hijack $HOME to insert our own script
+                files = [x for x in files if x not in bind_files] + list(bind_files)
+                if files:
+                    for file in files:
+                        rec = CommandRecorder()
+                        rec.setenv('HOME', os.environ.get('HOME',''))
+                        if file in bind_files:
+                            bind_rez = True
+                            files_ = [file] if d["source_bind_files"] else []
+                        else:
+                            bind_rez = False
+                            files_ = [file]
+
+                        _record_shell(rec, files=files_, bind_rez=bind_rez,
+                                      print_msg=bind_rez)
+                        _write_shell(rec, os.path.basename(file))
+
+                    recorder.setenv("HOME", get_tmpdir())
+                else:
+                    if settings.warn_shell_startup:
+                        print >> sys.stderr, "WARNING: Could not configure environment " + \
+                            "from within the target shell; this has been done in the " + \
+                            "parent process instead."
+                    recorder.source(context_file)
 
         recorder.command(command)
+        recorder.command("exit $?")
         script = self._execute(recorder.commands, output_style='file')
+        # TESTING
+        print "SCRIPT::::::::::::::::::"
+        print script
+        print "::::::::::::::::::::::::"
+
         target_file = tmpfile("rez-shell.%s" % self.file_extension)
         with open(target_file, 'w') as f:
             f.write(script)
 
-        print '>>>>>>>>>>> '+target_file
-        p = subprocess.Popen([self.executable, target_file])
-        p.wait()
+        p = subprocess.Popen([self.executable, self.norc_arg, target_file],
+                             stdout=subprocess.PIPE if get_stdout else None,
+                             stderr=subprocess.PIPE if get_stderr else None)
+
+        out_, err_ = p.communicate()
+        return (p.returncode,
+                out_ if get_stdout else None,
+                err_ if get_stderr else None)
 
     def info(self, value):
         # TODO: handle newlines

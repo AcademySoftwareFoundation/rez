@@ -10,9 +10,10 @@ import UserDict
 import inspect
 import textwrap
 import pipes
-from rez.settings import settings
-from rez import module_root_path
 
+
+from rez.settings import settings
+_debug = settings.debug_package_commands
 
 ATTR_REGEX_STR = r"([_a-z][_a-z0-9]*)([._a-z][_a-z0-9]*)*"
 FUNC_REGEX_STR = r"\([a-z0-9_\-.]*\)"
@@ -176,6 +177,10 @@ class Info(BaseCommand):
     name = 'info'
 Info.register()
 
+class DebugInfo(BaseCommand):
+    name = 'debuginfo'
+DebugInfo.register()
+
 class Error(BaseCommand):
     name = 'error'
 Error.register()
@@ -246,6 +251,9 @@ class CommandRecorder(object):
     def info(self, value=''):
         self.commands.append(Info(self._expand(value)))
 
+    def debuginfo(self, value=''):
+        self.commands.append(DebugInfo(self._expand(value)))
+
     def error(self, value):
         self.commands.append(Error(self._expand(value)))
 
@@ -273,6 +281,10 @@ class CommandInterpreter(object):
     Usually the convenience function `interpret` is used rather than accessing
     this class directly.
     """
+    @classmethod
+    def name(cls):
+        raise NotImplementedError
+
     def __init__(self, output_style='file', env_sep_map=None, verbose=False):
         '''
         output_style : str
@@ -293,7 +305,7 @@ class CommandInterpreter(object):
         self._env_sep_map = env_sep_map or {}
         self._verbose = verbose
         # TODO: will probably remove these two options
-        self._respect_parent_env = True
+        self._respect_parent_env = False
         self._set_env_vars = set([])
 
     def get_command_methods(self):
@@ -311,6 +323,12 @@ class CommandInterpreter(object):
             return command in self._verbose
         else:
             return bool(self._verbose)
+
+    @classmethod
+    def _notimplemented(cls, cmd):
+        if _debug:
+            print "INTERPRET(%s): '%s' command is not implemented" \
+                % (cls.name(), cmd)
 
     def _execute(self, command_list, output_style=None):
         output_style = output_style or self._output_style
@@ -354,38 +372,41 @@ class CommandInterpreter(object):
     # --- commands
 
     def setenv(self, key, value):
-        raise NotImplementedError
+        self._notimplemented('setenv')
 
     def unsetenv(self, key):
-        raise NotImplementedError
+        self._notimplemented('unsetenv')
 
     def prependenv(self, key, value):
-        raise NotImplementedError
+        self._notimplemented('prependenv')
 
     def appendenv(self, key, value):
-        raise NotImplementedError
+        self._notimplemented('appendenv')
 
     def alias(self, key, value):
-        raise NotImplementedError
+        self._notimplemented('alias')
 
     def info(self, value):
-        raise NotImplementedError
+        self._notimplemented('info')
 
     def error(self, value):
-        raise NotImplementedError
+        self._notimplemented('error')
 
     def command(self, value):
-        raise NotImplementedError
+        self._notimplemented('command')
 
     def comment(self, value):
-        raise NotImplementedError
+        self._notimplemented('comment')
 
     def source(self, value):
-        raise NotImplementedError
+        self._notimplemented('source')
 
     def setprompt(self, value):
-        raise NotImplementedError
+        self._notimplemented('setprompt')
 
+    def debuginfo(self, value):
+        if _debug:
+            self.info(value)
 
 
 class Python(CommandInterpreter):
@@ -397,6 +418,7 @@ class Python(CommandInterpreter):
     def __init__(self, respect_parent_env=False, environ=None):
         CommandInterpreter.__init__(self, respect_parent_env)
         self._environ = os.environ if environ is None else environ
+        self._update_this = (self._environ is os.environ)
 
     def _expand(self, value):
         return EnvExpand(value).safe_substitute(**self._environ)
@@ -413,11 +435,13 @@ class Python(CommandInterpreter):
 
     def setenv(self, key, value):
         self._environ[key] = self._expand(value)
-        settings.env_var_changed(key)
+        if self._update_this:
+            settings.env_var_changed(key)
 
     def unsetenv(self, key):
         self._environ.pop(key)
-        settings.env_var_changed(key)
+        if self._update_this:
+            settings.env_var_changed(key)
 
     def prependenv(self, key, value):
         value = self._expand(value)
@@ -429,9 +453,10 @@ class Python(CommandInterpreter):
             self._environ[key] = value
 
         # special case: update current python process
-        settings.env_var_changed(key)
-        if key == 'PYTHONPATH':
-            sys.path.insert(0, value)
+        if self._update_this:
+            settings.env_var_changed(key)
+            if key == 'PYTHONPATH':
+                sys.path.insert(0, value)
 
     def appendenv(self, key, value):
         value = self._expand(value)
@@ -443,12 +468,10 @@ class Python(CommandInterpreter):
             self._environ[key] = value
 
         # special case: update current python process
-        settings.env_var_changed(key)
-        if key == 'PYTHONPATH':
-            sys.path.append(value)
-
-    def alias(self, key, value):
-        pass
+        if self._update_this:
+            settings.env_var_changed(key)
+            if key == 'PYTHONPATH':
+                sys.path.append(value)
 
     def info(self, value):
         print str(self._expand(value))
@@ -462,46 +485,6 @@ class Python(CommandInterpreter):
             value = shlex.split(value)
         p = subprocess.Popen(value, env=self._environ)
         p.communicate()
-
-    def comment(self, value):
-        pass
-
-    def source(self, value):
-        pass
-
-
-"""
-# Superseded by shells plugin
-shells = dict( \
-    bash=SH,
-    sh=SH,
-    tcsh=CSH,
-    csh=CSH,
-    python=Python)
-
-def get_command_interpreter(shell=None):
-    if shell is None:
-        from rez.system import system
-        shell = system.shell
-    if shell in shells:
-        return shells[shell]
-    else:
-        raise ValueError("Unknown shell '%s'" % shell)
-
-def interpret(commands, shell=None, **kwargs):
-    if isinstance(commands, CommandRecorder):
-        commands = commands.commands
-    kwargs.setdefault('env_sep_map', DEFAULT_ENV_SEP_MAP)
-    return get_command_interpreter(shell)(**kwargs)._execute(commands)
-
-def spawn_shell(context_file, shell=None, rcfile=None, stdin=False, command=None, quiet=False):
-    ci = get_command_interpreter(shell)(env_sep_map=DEFAULT_ENV_SEP_MAP)
-    ci.spawn_shell(context_file,
-                   rcfile=rcfile,
-                   stdin=stdin,
-                   command=command,
-                   quiet=quiet)
-"""
 
 
 #===============================================================================
@@ -621,25 +604,37 @@ class EnvironmentVariable(object):
         return self._environ_map.environ
 
     def prepend(self, value):
-        if self. _environ_map.do_list_override(self.name):
+        if self._environ_map.do_list_override(self.name):
+            if _debug:
+                print "ENVVAR: set (was prepend) $%s to %s" % (self.name, value)
             self._environ_map.python_interpreter.setenv(self.name, value)
             self._environ_map.command_recorder.setenv(self.name, value)
         else:
+            if _debug:
+                print "ENVVAR: prepend %s to $%s" % (value, self.name)
             self._environ_map.python_interpreter.prependenv(self.name, value)
             self._environ_map.command_recorder.prependenv(self.name, value)
 
     def append(self, value):
         if self. _environ_map.do_list_override(self.name):
+            if _debug:
+                print "ENVVAR: set (was append) $%s to %s" % (self.name, value)
             self._environ_map.python_interpreter.setenv(self.name, value)
             self._environ_map.command_recorder.setenv(self.name, value)
         else:
+            if _debug:
+                print "ENVVAR: append %s to $%s" % (value, self.name)
             self._environ_map.python_interpreter.appendenv(self.name, value)
             self._environ_map.command_recorder.appendenv(self.name, value)
 
     def set(self, value):
+        if _debug:
+            print "ENVVAR: set $%s to %s" % (self.name, value)
         self._environ_map.command_recorder.setenv(self.name, value)
 
     def unset(self):
+        if _debug:
+            print "ENVVAR: unset $%s" % self.name
         self._environ_map.command_recorder.unsetenv(self.name)
 
     # --- the following methods all require knowledge of the current environment
@@ -656,14 +651,9 @@ class EnvironmentVariable(object):
         else:
             return []
 
-    def setdefault(self, value):
-        '''
-        set value if the variable does not yet exist
-        '''
-        if self:
-            return self.value()
-        else:
-            return self.set(value)
+    #def setdefault(self, value):
+    #    '''set value if the variable does not yet exist'''
+    #    return self.value() if self else self.set(value)
 
     def __str__(self):
         return self.value()

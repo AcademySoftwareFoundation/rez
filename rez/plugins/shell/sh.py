@@ -12,43 +12,47 @@ from rez.util import get_script_path
 class SH(UnixShell):
     executable = UnixShell.find_executable('sh')
     file_extension = 'sh'
-    norc_arg = '--norc'
+    norc_arg = '--noprofile'
 
     @classmethod
     def name(cls):
         return 'sh'
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, stdin, command):
+    def get_startup_sequence(cls, rcfile, norc, stdin, command):
         cls._ignore_bool_option('rcfile', rcfile)
         envvar = None
         files = []
+
         if command:
             cls._ignore_bool_option('stdin', stdin)
             stdin = False
         if stdin and not select.select([sys.stdin,],[],[],0.0)[0]:  # tests stdin
             stdin = False
         if not (command or stdin):
+            if not norc:
+                for file in ("~/.profile",):
+                    if os.path.exists(os.path.expanduser(file)):
+                        files.append(file)
             envvar = 'ENV'
             path = os.getenv(envvar)
-            if path and os.path.isfile(path):
+            if path and os.path.isfile(os.path.expanduser(path)):
                 files.append(path)
 
         return dict(
             stdin=stdin,
             command=command,
+            do_rcfile=False,
             envvar=envvar,
             files=files,
-            default_file=None
+            bind_files=[],
+            source_bind_files=False
         )
-
-    # This caused a silent abort during rez-env. very bad.
-    # def begin(self):
-    #     return '# stop on error:\nset -e'
 
     def bind_rez_cli(self, recorder):
         recorder.prependenv('PATH', get_script_path())
-        recorder.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] $PS1")
+        curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
+        recorder.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt)
         completion = os.path.join(module_root_path, "_sys", "bash_completion")
         recorder.source(completion)
         return recorder
@@ -66,51 +70,11 @@ class SH(UnixShell):
             value=value,
             sep=self._env_sep(key))
 
-        # if key in self._set_env_vars:
-        #     return 'export {key}="{value}{sep}${key}"'.format(key=key,
-        #                                                       sep=self._env_sep(key),
-        #                                                       value=value)
-        # if not self._respect_parent_env:
-        #     return self.setenv(key, value)
-        # if self._output_style == 'file':
-        #     return textwrap.dedent('''\
-        #         if [[ ${key} ]]; then
-        #             export {key}="{value}"
-        #         else
-        #             export {key}="{value}{sep}${key}"
-        #         fi'''.format(key=key,
-        #                      sep=self._env_sep(key),
-        #                      value=value))
-        # else:
-        #     return "[[ {key} ]] && export {key}={value}{sep}${key} || export {key}={value}".format(key=key,
-        #                                                                                            sep=self._env_sep(key),
-        #                                                                                            value=value)
-
     def appendenv(self, key, value):
         return 'export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
             key=key,
             value=value,
             sep=self._env_sep(key))
-
-        # if key in self._set_env_vars:
-        #     return 'export {key}="${key}{sep}{value}"'.format(key=key,
-        #                                                       sep=self._env_sep(key),
-        #                                                       value=value)
-        # if not self._respect_parent_env:
-        #     return self.setenv(key, value)
-        # if self._output_style == 'file':
-        #     return textwrap.dedent('''\
-        #         if [[ ${key} ]]; then
-        #             export {key}="{value}"
-        #         else
-        #             export {key}="${key}{sep}{value}"
-        #         fi'''.format(key=key,
-        #                      sep=self._env_sep(key),
-        #                      value=value))
-        # else:
-        #     return "[[ {key} ]] && export {key}=${key}{sep}{value} || export {key}={value}".format(key=key,
-        #                                                                                            sep=self._env_sep(key),
-        #                                                                                            value=value)
 
     def alias(self, key, value):
         # bash aliases don't export to subshells; so instead define a function,

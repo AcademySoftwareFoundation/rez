@@ -105,9 +105,8 @@ def resolve(opts, pkg_list, dot_file, package_paths=None):
                                       shallow_meta_vars=['tools'])
     if not result:
         try:
-            # TODO: change cli convention so that commands do not call sys.exit
-            # and we can actually catch this exception
-            if opts.view_fail != "-1":
+            # TODO FIXME move the dotgraph functionality out of cli so we can use submodule directly
+            if opts.view_fail != -1:
                 from . import dot as rez_cli_dot
                 dot_opts = argparse.Namespace(conflict_only=True,
                                               package="",
@@ -289,7 +288,10 @@ def command(opts, parser=None):
     import tempfile
     import rez.parse_request as rpr
     import rez.rex as rex
-    from rez.shells import interpret, spawn_shell
+    from rez.shells import interpret, spawn_shell, get_shell_types
+
+    if opts.shell not in get_shell_types():
+        parser.error("Unknown shell type '%s'" % opts.shell)
 
     autowrappers = _contains_autowrappers(opts.pkg)
     raw_request = os.getenv('REZ_RAW_REQUEST', '')
@@ -364,12 +366,12 @@ def command(opts, parser=None):
     with open(context_file, 'w') as f:
         f.write(script)
 
-    spawn_shell(context_file,
-                shell=opts.shell,
-                rcfile=opts.rcfile,
-                stdin=opts.stdin,
-                quiet=opts.quiet)
-
+    returncode,_,_ = spawn_shell(context_file,
+                                 shell=opts.shell,
+                                 rcfile=opts.rcfile,
+                                 stdin=opts.stdin,
+                                 quiet=opts.quiet)
+    return returncode
 
 
 # bash utilities

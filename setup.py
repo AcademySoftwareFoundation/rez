@@ -59,7 +59,7 @@ class install_(install):
         sys.path.insert(0, self.install_lib)
         from rez._sys import _setup
         _setup.post_install(install_base_dir=self.install_lib,
-                            scripts=scripts)
+                            version=version, scripts=scripts)
         return ret
 
 setup(
