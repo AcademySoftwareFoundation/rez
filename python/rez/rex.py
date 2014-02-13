@@ -88,6 +88,39 @@ def _posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
+# Expand paths containing shell variable substitutions.
+# This expands the forms $variable and ${variable} only.
+# Non-existent variables are left unchanged.
+
+_varprog = None
+
+def expandvars(path, environ):
+    """Expand shell variables of form $var and ${var}.  Unknown variables
+    are left unchanged."""
+    global _varprog
+    if '$' not in path:
+        return path
+    if not _varprog:
+        import re
+        _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
+    i = 0
+    while True:
+        m = _varprog.search(path, i)
+        if not m:
+            break
+        i, j = m.span(0)
+        name = m.group(1)
+        if name.startswith('{') and name.endswith('}'):
+            name = name[1:-1]
+        if name in environ:
+            tail = path[j:]
+            path = path[:i] + environ[name]
+            i = len(path)
+            path += tail
+        else:
+            i = j
+    return path
+
 #===============================================================================
 # Commands
 #===============================================================================
@@ -267,7 +300,9 @@ class ActionManager(object):
             return self.formatter(value)
 
     def _expand(self, value):
-        return os.path.expanduser(os.path.expandvars(value))
+        value = expandvars(value, self.environ)
+        value = expandvars(value, self.parent_environ)
+        return os.path.expanduser(value)
 
     def get_output(self):
         return self.interpreter.get_output(self)
@@ -284,15 +319,15 @@ class ActionManager(object):
                 raise PkgCommandError("Referenced undefined environment variable: %s" % key)
 
     def setenv(self, key, value):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
         # TODO: check if value has already been set by another package
         self.actions.append(Setenv(key, unexpanded_value))
-
         self.environ[key] = expanded_value
+
         if self.interpreter.expand_env_vars:
             value = expanded_value
         else:
@@ -305,14 +340,14 @@ class ActionManager(object):
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
         self.actions.append(Resetenv(key, unexpanded_value, friends))
-
         self.environ[key] = expanded_value
+
         if self.interpreter.expand_env_vars:
             value = expanded_value
         else:
@@ -320,7 +355,7 @@ class ActionManager(object):
         self.interpreter.resetenv(key, value)
 
     def _pendenv(self, key, value, action, interpfunc, addfunc):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
@@ -393,8 +428,8 @@ class ActionManager(object):
 class ActionInterpreter(object):
     """
     Abstract base class that provides callbacks for rex Actions.  This class
-    should not be used directly. Its callbacks are triggered by the
-    `ActionManager` in response to actions issues by user code written using
+    should not be used directly. Its methods are called by the
+    `ActionManager` in response to actions issued by user code written using
     the rex python API.
 
     Sub-classes should override the `get_output` method to return
@@ -402,6 +437,10 @@ class ActionInterpreter(object):
     shell language like bash would return a string of shell code.  An interpreter
     for an active python session might return a dictionary of the modified
     environment.
+
+    Sub-classes can override the `expand_env_vars` class variable to instruct
+    the `ActionManager` whether or not to expand the value of environment
+    variables which reference other variables (e.g. "this-${THAT}").
     """
     expand_env_vars = False
 #     def _execute(self, command_list):
@@ -432,6 +471,14 @@ class ActionInterpreter(object):
 #         return script
 
     def get_output(self, manager):
+        '''
+        Returns any implementation specific data.
+
+        Parameters
+        ----------
+        manager: ActionManager
+            the manager of this interpreter
+        '''
         raise NotImplementedError
 
     # --- commands
@@ -949,8 +996,7 @@ class EnvironmentVariable(object):
 class RexExecutor(object):
     """
     This class brings all of the components of rex together and provides the
-    interface for executing rex code stored in `ResolvedPackage` instances after
-    a resolve.
+    interface for executing rex code after a resolve.
 
     The `RexExecutor` class is also responsible for providing an `ActionManager` to
     the `EnvironmentDict` and providing a variable expansion function to the
@@ -991,7 +1037,7 @@ class RexExecutor(object):
         return self.formatter.format(str(value))
 
     def _setup_execution_namespace(self):
-        # add special data objects and functions to the namespace
+        '''add special data objects and functions to the namespace'''
         self.globals['machine'] = system
         self.globals['resolve'] = Packages(self.resolve.package_resolves)
         self.globals['request'] = Packages(self.resolve.package_requests)
@@ -1030,7 +1076,7 @@ class RexExecutor(object):
                 raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
                                                          pkg_res.metafile,
                                                          traceback.format_exc()))
-        # old style:
+        # old style package.yaml:
         elif isinstance(commands, list):
             if settings.warn_old_commands:
                 print_warning_once("%s is using old-style commands."
