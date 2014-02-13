@@ -1,9 +1,10 @@
+# This needs to be in its own source file due to the way Yapsy works.
 from yapsy.IPlugin import IPlugin
 
 
 class RezPluginFactory(IPlugin):
-    """Pure abstract class for creating a plugin type instance.
-    This needs to be in its own source file due to the way Yapsy works.
+    """
+    Pure abstract class for creating a plugin instance.
     """
     #__metaclass__ = abc.ABCMeta
 

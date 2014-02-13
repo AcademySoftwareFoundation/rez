@@ -138,7 +138,7 @@ class UnixShell(Shell):
         files = d["files"]
         bind_files = d["bind_files"]
         do_rcfile = d["do_rcfile"]
-        command = None
+        shell_command = None
 
         def _record_shell(r, files, bind_rez=True, print_msg=False):
             # TODO make context sourcing position configurable?
@@ -164,17 +164,17 @@ class UnixShell(Shell):
 
         if d["command"]:
             _record_shell(recorder, files=files)
-            command = d["command"]
+            shell_command = d["command"]
         else:
             if d["stdin"]:
                 assert(self.stdin_arg)
-                command = "%s %s" % (self.executable, self.stdin_arg)
+                shell_command = "%s %s" % (self.executable, self.stdin_arg)
                 quiet = True
             elif do_rcfile:
                 assert(self.rcfile_arg)
-                command = "%s %s" % (self.executable, self.rcfile_arg)
+                shell_command = "%s %s" % (self.executable, self.rcfile_arg)
             else:
-                command = self.executable
+                shell_command = self.executable
 
             if do_rcfile:
                 # hijack rcfile to insert our own script
@@ -182,7 +182,7 @@ class UnixShell(Shell):
                 _record_shell(rec, files=files, print_msg=(not quiet))
                 filename = "rcfile.%s" % self.file_extension
                 filepath = _write_shell(rec, filename)
-                command += " %s" % filepath
+                shell_command += " %s" % filepath
             elif envvar:
                 # hijack env-var to insert our own script
                 rec = CommandRecorder()
@@ -216,13 +216,9 @@ class UnixShell(Shell):
                             "parent process instead."
                     recorder.source(context_file)
 
-        recorder.command(command)
+        recorder.command(shell_command)
         recorder.command("exit $?")
         script = self._execute(recorder.commands, output_style='file')
-        # TESTING
-        print "SCRIPT::::::::::::::::::"
-        print script
-        print "::::::::::::::::::::::::"
 
         target_file = tmpfile("rez-shell.%s" % self.file_extension)
         with open(target_file, 'w') as f:

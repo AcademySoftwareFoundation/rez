@@ -42,6 +42,9 @@ def setup_parser(parser):
     parser.add_argument("-r", "--rcfile", dest="rcfile", type=str,
                         default='',
                         help="Source this file after the new shell is invoked")
+    parser.add_argument("-c", "--command", dest="command", type=str,
+                        default=None,
+                        help="Read commands from string")
     # TODO ignored temporarily
     parser.add_argument("--tmpdir", dest="tmpdir", type=str,
                         default=None,
@@ -370,6 +373,7 @@ def command(opts, parser=None):
                                  shell=opts.shell,
                                  rcfile=opts.rcfile,
                                  stdin=opts.stdin,
+                                 command=opts.command,
                                  quiet=opts.quiet)
     return returncode
 

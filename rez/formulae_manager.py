@@ -21,7 +21,6 @@ class FormulaeManager(object):
 
     def get_packages(self, url):
         """ @returns A list of packages (as strings) contained in the given repo """
-        # TODO port to resources
         repo = self._get_repo(url)
         if "pkgs" not in repo:
             pkgs = []
@@ -56,6 +55,7 @@ class FormulaeManager(object):
 
     def install_package(self, url, pkg, dry_run=False):
         print "Installing %s..." % pkg
+        # TODO TODO TODO
 
     def _get_repo(self, url):
         repo = self.repos.get(url)

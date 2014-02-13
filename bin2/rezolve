@@ -20,6 +20,8 @@ if __name__ == '__main__':
     def _add_subcommand(cmd, help):
         subp = subps.add_parser(cmd, help=help)
         _add_common_args(subp)
+        # TODO is this slowing down rez startup time? Try moving all parser setup into this file
+        # TODO to avoid importing all the cli sourcefiles.
         exec("from rez.cli.%s import setup_parser" % cmd.replace('-','_'))
         setup_parser(subp)
         subparsers[cmd] = subp
@@ -40,5 +42,4 @@ if __name__ == '__main__':
         from rez.util import clean_tmpdir
         clean_tmpdir()
 
-    if returncode is not None:
-        sys.exit(returncode)
+    sys.exit(returncode or 0)
