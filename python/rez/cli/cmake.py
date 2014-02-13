@@ -34,9 +34,10 @@ import subprocess
 import argparse
 import sys
 from rez.cli import error, output
+from rez.settings import settings
 
 def setup_parser(parser):
-    import rez.cli.build
+    import rez.cmake
     parser.add_argument("-p", "--platform", dest="platform",
                         default="lin64",
                         help="build platform")
@@ -45,9 +46,8 @@ def setup_parser(parser):
                         default="Release",
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
-                        choices=sorted(rez.cli.build.BUILD_SYSTEMS.keys()),
-                        type=lambda x: rez.cli.build.BUILD_SYSTEMS[x],
-                        default='eclipse')
+                        choices=sorted(rez.cmake.BUILD_SYSTEMS.keys()),
+                        default=settings.build_system)
     parser.add_argument("-i", "--install-directory", dest="install_dir",
                         default=os.environ['REZ_LOCAL_PACKAGES_PATH'],
                         help="install directory. [default = $REZ_LOCAL_PACKAGES_PATH (%(default)s)]")
@@ -70,36 +70,31 @@ def setup_parser(parser):
                         help="remaining arguments are passed to make and cmake")
 
 def command(opts):
-    import rez.cli.build
+    import rez.cmake
     import platform
 
     if opts.nop:
         sys.exit(0)
-
-    cmake_arguments = rez.cli.build.get_cmake_args(opts.build_system, opts.build_target)
-    cmakeargs = [x for x in opts.extra_args if x != '---']
-
-    # Do we delete the cache
-    if not opts.retain_cache and os.path.exists("CMakeCache.txt"):
-        os.remove("CMakeCache.txt")
 
     if opts.central_install:
         if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
             result = raw_input("You are attempting to install centrally outside of rez-release: do you really want to do this (y/n)? ")
             if result != "y":
                 sys.exit(1)
-        cmake_arguments.append("-DCENTRAL=1")
 
-    if opts.coverage:
-        cmake_arguments.append("-DCOVERAGE=1")
+    # Do we delete the cache
+    if not opts.retain_cache:
+        rez.cmake.remove_cache()
+
+    cmake_arguments = rez.cmake.get_cmake_args(opts.build_system, 
+                                               opts.build_target, 
+                                               release_install=opts.central_install, 
+                                               coverage=opts.coverage)
+
+    extra_cmake_arguments = [x for x in opts.extra_args if x != '---']
 
     # Add pass-through cmake arguments
-    cmake_arguments.extend(cmakeargs)
-
-    # build system
-    if opts.build_system == 'xcode' and platform.system() != 'Darwin':
-        error("Generation of Xcode project only available on the osx platform")
-        sys.exit(1)
+    cmake_arguments.extend(extra_cmake_arguments)
 
     # Append build directory [must be last append before command generation]
     cmake_arguments.append(opts.build_directory)

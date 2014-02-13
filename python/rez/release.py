@@ -27,6 +27,7 @@ import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
 import rez.builds as builds
+import rez.cmake as cmake
 
 
 ##############################################################################
@@ -383,7 +384,7 @@ class RezReleaseMode(object):
         '''
         Return the tag name for the current release as a string.
         '''
-        return str(self.metadata['version'].version)
+        return settings.vcs_tag_name.format(**self.metadata)
 
     def get_version_from_tag(self, tag):
         '''
@@ -512,36 +513,12 @@ class RezReleaseMode(object):
 
     # building ---------
     def _get_cmake_args(self, build_system, build_target):
-        BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
-                         'codeblocks': "CodeBlocks - Unix Makefiles",
-                         'make': "Unix Makefiles",
-                         'xcode': "Xcode"}
+        return cmake.get_cmake_args(build_system, build_target, self.release_install)
 
-        cmake_arguments = ["-DCMAKE_SKIP_RPATH=1",
-                           "-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"]
-
-        # Fetch the initial cache if it's defined
-        if 'CMAKE_INITIAL_CACHE' in os.environ:
-            cmake_arguments.extend(["-C", "$CMAKE_INITIAL_CACHE"])
-
-        cmake_arguments.extend(["-G", BUILD_SYSTEMS[build_system]])
-
-        cmake_arguments.append("-DCMAKE_BUILD_TYPE=%s" % build_target)
-
-        if self.release_install:
-# 			if os.environ.get('REZ_IN_REZ_RELEASE') != "1":
-# 				result = raw_input("You are attempting to install centrally outside "
-# 								   "of rez-release: do you really want to do this (y/n)? ")
-# 			if result != "y":
-# 				sys.exit(1)
-            cmake_arguments.append("-DCENTRAL=1")
-
-        return cmake_arguments
-
-    def _build_variant(self, variant_num, build_system='eclipse',
+    def _build_variant(self, variant_num, build_system=settings.build_system,
                        build_target='Release', mode=enums.RESOLVE_MODE_LATEST,
-                       no_assume_dt=False, do_build=True, cmake_args=(),
-                       retain_cmake_cache=False, make_args=(), make_clean=True):
+                       no_assume_dt=False, do_build=True, additional_cmake_args=None,
+                       retain_cmake_cache=False, make_args=None, make_clean=True):
         '''
         Do the actual build of the variant, by resolving an environment and calling
         cmake/make.
@@ -554,9 +531,14 @@ class RezReleaseMode(object):
         else:
             build_dir = self.base_build_dir
 
+        if additional_cmake_args is None:
+            additional_cmake_args = []
+
         cmake_args = self._get_cmake_args(build_system, build_target)
-        cmake_args.extend(cmake_args)
-        make_args = list(make_args)
+        cmake_args.extend(additional_cmake_args)
+
+        if make_args is None:
+            make_args = []
 
 # 		# build it
         if variant:
@@ -619,7 +601,17 @@ class RezReleaseMode(object):
                                       dot_file)
             # FIXME: raise error here if result is None, or use unguarded resolve
             rex_exec = rez.rex.RexExecutor(system.shell, result)
-            script = rex_exec.execute_packages()
+            rex_exec.execute_packages()
+
+            # FIXME: use a rez package to set these:
+            # need to expose rez-config's cmake modules in build env
+            rex_exec.manager.appendenv('CMAKE_MODULE_PATH',
+                                        os.path.join(module_root_path, 'cmake'))
+
+#            # make sure we can still use rez-config in the build env!
+#            recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
+
+            script = rex_exec.manager.get_output()
 
             with open(env_bake_file, 'w') as f:
                 f.write(script)
@@ -641,14 +633,7 @@ class RezReleaseMode(object):
             actual_bake=actual_bake)
 
         recorder = rex.ActionManager('bash', verbose=['command'],
-                                     initial_environ=rex_exec.manager.environ)
-
-        # FIXME: use a rez package to set these:
-        # need to expose rez-config's cmake modules in build env
-        recorder.prependenv('CMAKE_MODULE_PATH',
-                            os.path.join(module_root_path, 'cmake'))
-#         # make sure we can still use rez-config in the build env!
-#         recorder.appendenv('PATH', os.path.join(module_root_path, 'bin'))
+                                     parent_environ=rex_exec.manager.environ)
 
         recorder.info()
         recorder.info('rez-build: in new env:')
@@ -701,6 +686,12 @@ class RezReleaseMode(object):
             if p.returncode:
                 # error("rez-build failed - there was a problem building. returned code %s" % (p.returncode,))
                 sys.exit(1)
+
+            elif variant:
+                print
+                print "---------------------------------------------------------"
+                print "rez-build: finished building for variant '%s'" % ' '.join(variant)
+                print "---------------------------------------------------------"
 
         else:
             # which? this is from the original code...
@@ -777,7 +768,8 @@ class RezReleaseMode(object):
 
         self.validate_version()
 
-        self._get_commit_message()
+        if not self.commit_message:
+            self._get_commit_message()
 
     def build(self):
         '''
@@ -1362,9 +1354,11 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def get_changelog(self):
         result = self.last_tagged_version
+
         if not result:
             return "Initial Release - No Previous Tag Found."
         changelog = self.repo.git.log("%s-%s.." % (self.metadata['name'], result), no_merges=True)
+
         return changelog if changelog else "No changes since last tag."
 
     def create_release_tag(self):

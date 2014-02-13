@@ -77,6 +77,18 @@ warn_untimestamped: true
 # section is resolved into an environment
 warn_old_commands: true
 
+# The name of the CMake build system to use, valid options are eclipse, make, 
+# xcode and codeblocks.
+build_system: make
+
+# A list of default arguments to be used with CMake.
+cmake_args:
+- '-DCMAKE_SKIP_RPATH=1'
+
+# For format string used to determine the VCS tag name when releasing.  This 
+# string will be formatted against the metadata for the package currently being
+# released.  Valid formatting keys include name, version, description and authors.
+vcs_tag_name: '{name}-{version}'
 
 # Type specifiers
 _type:
@@ -95,7 +107,9 @@ _type:
     browser: str
     warn_untimestamped: bool
     warn_old_commands: bool
-
+    build_system: str
+    cmake_args: list
+    vcs_tag_name: str
 
 # What seperator to expect in env-vars
 _sep:

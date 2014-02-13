@@ -61,11 +61,8 @@ import os
 import os.path
 import argparse
 from rez.cli import error, output
-
-BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
-                 'codeblocks': "CodeBlocks - Unix Makefiles",
-                 'make': "Unix Makefiles",
-                 'xcode': "Xcode"}
+from rez.cmake import BUILD_SYSTEMS
+from rez.settings import settings
 
 #
 #-#################################################################################################
@@ -168,8 +165,7 @@ def setup_parser(parser):
                         help="build type")
     parser.add_argument("-b", "--build-system", dest="build_system",
                         choices=sorted(BUILD_SYSTEMS.keys()),
-                        # type=lambda x: BUILD_SYSTEMS[x],
-                        default='eclipse')
+                        default=settings.build_system)
     parser.add_argument("--retain-cache", dest="retain_cmake_cache",
                         action="store_true", default=False,
                         help="retain cmake cache")
@@ -245,7 +241,7 @@ def command(opts):
                                   mode=opts.mode,
                                   no_assume_dt=opts.no_assume_dt,
                                   do_build=do_build,
-                                  cmake_args=cmake_args,
+                                  additional_cmake_args=cmake_args,
                                   retain_cmake_cache=opts.retain_cmake_cache,
                                   make_args=make_args,
                                   make_clean=not opts.no_clean)

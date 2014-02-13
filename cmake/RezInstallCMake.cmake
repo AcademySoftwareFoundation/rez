@@ -228,6 +228,7 @@ macro(_rez_install_auto_cmake)
 	# This won't be made with the correct permissions.  Not sure how to fix this.
 	# PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS}
 	file(WRITE ${cmake_path})
+	file(APPEND ${cmake_path} "set(${projname}_ROOT \"${root_dir}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_INCLUDE_DIRS \"${inc_dirs}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_LIBRARY_DIRS \"${lib_dirs}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_LIBRARIES \"${library_names}\")\n")
