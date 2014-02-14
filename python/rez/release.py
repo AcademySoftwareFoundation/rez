@@ -390,7 +390,7 @@ class RezReleaseMode(object):
         '''
         Return the version (as a Version object) from the tag.
         '''
-        match = re.search(settings.vcs_tag_name_version_regex, tag):
+        match = re.search(settings.vcs_tag_name_version_regex, tag)
 
         if match:
             return versions.Version(match.group(1))
