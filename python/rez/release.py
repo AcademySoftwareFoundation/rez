@@ -390,7 +390,12 @@ class RezReleaseMode(object):
         '''
         Return the version (as a Version object) from the tag.
         '''
-        return versions.Version(tag)
+        match = re.search(settings.vcs_tag_name_version_regex, tag):
+
+        if match:
+            return versions.Version(match.group(1))
+
+        return versions.Version(None)
 
     def get_url(self):
         '''
