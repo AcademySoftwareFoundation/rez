@@ -1178,6 +1178,7 @@ class RexExecutor(object):
 
         if cmd.startswith('export '):
             var, value = cmd.split(' ', 1)[1].split('=', 1)
+            value = value.strip('"')
             # get an EnvironmentVariable instance
             var_obj = self.environ[var]
             parts = value.split(PARSE_EXPORT_COMMAND_ENV_SEP_MAP.get(var, os.pathsep))
