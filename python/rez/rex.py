@@ -26,9 +26,21 @@ DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
 EnvExpand = Template
 
 class NamespaceFormatter(Formatter):
+
+    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
+
     def __init__(self, namespace):
         Formatter.__init__(self)
         self.namespace = namespace
+
+    def format(self, format_string, *args, **kwargs):
+
+        def escape_envvar(matchobj):
+            return "${{%s}}" % (matchobj.group("var"))
+
+        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+
+        return Formatter.format(self, escaped_format_string, *args, **kwargs)
 
     def get_value(self, key, args, kwds):
         """
@@ -44,7 +56,7 @@ class NamespaceFormatter(Formatter):
             except KeyError:
                 return self.namespace[key]
         else:
-            return Formatter.get_value(key, args, kwds)
+            return Formatter.get_value(self, key, args, kwds)
 
 #===============================================================================
 # Path Utils
