@@ -9,7 +9,7 @@ from rez.cli import output, error
 
 def setup_parser(parser):
 
-    parser.add_argument("-f", "--filepath", dest="filepath", type=str, required=True
+    parser.add_argument("-f", "--filepath", dest="filepath", type=str, required=True,
                         help="Path to the package file to be read.")
     parser.add_argument("-c", "--no_catch", dest="no_catch",
                         action="store_true", default=False,
