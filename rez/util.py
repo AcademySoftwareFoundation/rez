@@ -27,6 +27,7 @@ def print_warning_once(msg):
         _once_warnings.add(msg)
 
 
+"""
 _tmpdir = None
 
 def set_tmpdir(path=None):
@@ -54,7 +55,17 @@ def clean_tmpdir():
     if _tmpdir and os.path.exists(_tmpdir):
         import shutil
         shutil.rmtree(_tmpdir)
+"""
 
+def mkdtemp_():
+    import tempfile
+    from rez.settings import settings
+    return tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
+
+def rmdtemp(path):
+    if os.path.exists(path):
+        import shutil
+        shutil.rmtree(path)
 
 def get_install_site_path():
     from rez._sys._introspect import _install_site_path
@@ -64,6 +75,17 @@ def get_script_path():
     from rez._sys._introspect import _script_path
     return os.path.realpath(os.path.join(module_root_path, _script_path))
 
+def shlex_join(value):
+    import pipes
+    def quote(s):
+        return pipes.quote(s) if '$' not in s else s
+
+    if hasattr(value, '__iter__'):
+        return ' '.join(quote(x) for x in value)
+    else:
+        return str(value)
+
+# TODO remove
 def gen_dotgraph_image(dot_data, out_file):
     # shortcut if writing .dot file
     if out_file.endswith(".dot"):
@@ -136,6 +158,32 @@ def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
     combined = [(k,v*0.5) for k,v in d.iteritems()]
     return sorted(combined, key=lambda x:-x[1])
 
+def columnise(rows, padding=2):
+    strs = []
+    maxwidths = {}
+
+    for row in rows:
+        for i,e in enumerate(row):
+            se = str(e)
+            nse = len(se)
+            w = maxwidths.get(i,-1)
+            if nse > w:
+                maxwidths[i] = nse
+
+    for row in rows:
+        s = ''
+        for i,e in enumerate(row):
+            se = str(e)
+            if i < len(row)-1:
+                n = maxwidths[i] + padding - len(se)
+                se += ' '*n
+            s += se
+        strs.append(s)
+    return strs
+
+def pretty_env_dict(d):
+    rows = [x for x in sorted(d.iteritems())]
+    return '\n'.join(columnise(rows))
 
 def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
@@ -270,12 +318,14 @@ class AttrDict(dict):
     def copy(self):
         return AttrDict(dict.copy(self))
 
+
 class AttrDictWrapper(UserDict.UserDict):
     """
     Wrap a custom dictionary with attribute-based lookup.
     """
     def __init__(self, data):
         self.__dict__['data'] = data
+
 
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
@@ -457,3 +507,53 @@ def test_encode_decode():
 
     # u'\u20ac' == Euro symbol
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
+
+
+def convert_old_commands(commands):
+    """ Converts old-style package commands into equivalent Rex code. """
+    def _en(s):
+        return s.encode("string-escape")
+
+    loc = ''
+    for cmd in commands:
+        toks = cmd.strip().split()
+        if toks[0] == "export":
+            var,value = cmd.split(' ', 1)[1].split('=', 1)
+            if value.startswith('"') and value.endswith('"'):
+                value = value[1:-1]
+
+            if var == "CMAKE_MODULE_PATH":
+                value = value.replace(';', os.pathsep)
+
+            parts = value.split(os.pathsep)
+            parts = [x for x in parts if x]
+            if len(parts) > 1:
+                idx = None
+                var1 = "$%s" % var
+                var2 = "${%s}" % var
+                if var1 in parts:
+                    idx = parts.index(var1)
+                elif var2 in parts:
+                    idx = parts.index(var2)
+                if idx in (0, len(parts)-1):
+                    func = "appendenv" if idx==0 else "prependenv"
+                    parts = parts[1:] if idx==0 else parts[:-1]
+                    val = os.pathsep.join(parts)
+                    loc.append("%s('%s', '%s')" % (func, var, _en(val)))
+                    continue
+
+            loc.append("setenv('%s', '%s')" % (var, _en(value)))
+        elif toks[0].startswith('#'):
+            loc.append("comment('%s')" % _en(' '.join(toks[1:])))
+        elif toks[0] == "alias":
+            match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+            key = match.groupdict()['key'].strip()
+            value = match.groupdict()['value'].strip()
+            if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+                value = value[1:-1]
+            loc.append("alias('%s', '%s')" % (key, _en(value)))
+        else:
+            # assume we can execute this as a straight command
+            loc.append("command('%s')" % _en(cmd))
+
+    return '\n'.join(loc)

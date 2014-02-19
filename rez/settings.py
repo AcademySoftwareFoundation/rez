@@ -39,8 +39,8 @@ class Settings(object):
 
     def env_var_changed(self, varname):
         """ Uncaches matching setting, if any """
-        if varname.startswith('REZ_') and (varname.upper() == varname):
-            setting = varname.lower[len('REZ_'):]
+        if varname.startswith('REZ_') and varname.isupper():
+            setting = varname.lower()[len('REZ_'):]
             if setting in self.settings:
                 del self.settings[setting]
 

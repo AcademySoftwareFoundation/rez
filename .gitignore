@@ -8,3 +8,4 @@ use_configure.sh
 rez.egg-info/
 build/
 dist/
+*~

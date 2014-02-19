@@ -27,11 +27,8 @@ import re
 import subprocess
 import tempfile
 import copy
-try:
-    from rez.contrib.pydot import dot_parser
-except Exception, e:
-    print "Couldn't import dot_parser, loading of dot files will not be possible."
-    
+from rez.contrib.pydot import dot_parser
+
 
 
 GRAPH_ATTRIBUTES = set( ['Damping', 'K', 'URL', 'aspect', 'bb', 'bgcolor',

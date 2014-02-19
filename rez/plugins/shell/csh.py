@@ -7,11 +7,14 @@ from rez.util import get_script_path
 
 class CSH(UnixShell):
     executable = UnixShell.find_executable('csh')
-    file_extension = 'csh'
     norc_arg = '-f'
 
     @classmethod
     def name(cls):
+        return 'csh'
+
+    @classmethod
+    def file_extension(cls):
         return 'csh'
 
     @classmethod
@@ -54,28 +57,16 @@ class CSH(UnixShell):
         return recorder
 
     def setenv(self, key, value):
-        return 'setenv %s "%s"' % (key, value)
+        self._addline('setenv %s "%s"' % (key, value))
 
     def unsetenv(self, key):
-        return "unsetenv %s" % (key,)
-
-    def prependenv(self, key, value):
-        return 'setenv %(key)s "%(value)s%(sep)s${%(key)s}"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-    def appendenv(self, key, value):
-        return 'setenv %(key)s "${%(key)s}%(sep)s%(value)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
+        self._addline("unsetenv %s" % key)
 
     def alias(self, key, value):
-        return "alias %s '%s';" % (key, value)
+        self._addline("alias %s '%s';" % (key, value))
 
     def setprompt(self, value):
-        return 'set prompt="%s"' % value
+        self._addline('set prompt="%s"' % value)
 
 
 class CSHFactory(plugin_factory.RezPluginFactory):

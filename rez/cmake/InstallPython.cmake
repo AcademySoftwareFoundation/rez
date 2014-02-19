@@ -84,6 +84,9 @@ macro (install_python)
 			get_filename_component(target_path ${target_fpath} PATH)
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_f} DESTINATION ${target_path})
 
+			STRING(  REGEX REPLACE "[.]py" ".pyc" local_fc ${local_f} )
+			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc} DESTINATION ${target_path})
+
 			list(APPEND pyfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_f})
 		endforeach(f ${INSTPY_FILES})
 

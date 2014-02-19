@@ -11,11 +11,14 @@ from rez.util import get_script_path
 
 class SH(UnixShell):
     executable = UnixShell.find_executable('sh')
-    file_extension = 'sh'
     norc_arg = '--noprofile'
 
     @classmethod
     def name(cls):
+        return 'sh'
+
+    @classmethod
+    def file_extension(cls):
         return 'sh'
 
     @classmethod
@@ -50,7 +53,7 @@ class SH(UnixShell):
         )
 
     def bind_rez_cli(self, recorder):
-        recorder.prependenv('PATH', get_script_path())
+        #recorder.prependenv('PATH', get_script_path())
         curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
         recorder.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt)
         completion = os.path.join(module_root_path, "_sys", "bash_completion")
@@ -59,33 +62,21 @@ class SH(UnixShell):
 
     # TODO literal string support
     def setenv(self, key, value):
-        return 'export %s="%s"' % (key, value)
+        self._addline('export %s="%s"' % (key, value))
 
     def unsetenv(self, key):
-        return "unset %s" % (key,)
-
-    def prependenv(self, key, value):
-        return 'export %(key)s="%(value)s%(sep)s$%(key)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
-
-    def appendenv(self, key, value):
-        return 'export %(key)s="$%(key)s%(sep)s%(value)s"' % dict(
-            key=key,
-            value=value,
-            sep=self._env_sep(key))
+        self._addline("unset %s" % key)
 
     def alias(self, key, value):
         # bash aliases don't export to subshells; so instead define a function,
         # then export that function
         # TODO replace with actual alias now that we have the HOME fix. Should we still
         # provide this as a "strong_alias" or maybe "alias_command" option?
-        return "%(key)s() { %(value)s; };export -f %(key)s;" % dict(key=key,
-                                                                    value=value)
+        self._addline("{key}() {{ {value}; }};export -f {key};".format( \
+            key=key, value=value))
 
     def setprompt(self, value):
-        return 'export PS1="%s"' % value
+        self._addline('export PS1="%s"' % value)
 
 
 class SHFactory(plugin_factory.RezPluginFactory):

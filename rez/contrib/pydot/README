@@ -1,2 +1,0 @@
-Patched pydot to fix pyparsing incompatibility issue. See:
-http://stackoverflow.com/questions/15951748/pydot-and-graphviz-error-couldnt-import-dot-parser-loading-of-dot-files-will

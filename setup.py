@@ -19,7 +19,9 @@ scripts = [
     "rez",
     "rez-settings",
     "rez-context-info",
-    "rez-env"
+    "rez-env",
+    "rez-context",
+    "rez-exec"
 ]
 
 requires = [
@@ -27,7 +29,6 @@ requires = [
     # it, install it separately.
     # "pysvn >= 1.7.2"
     "PyYAML >= 3.9",
-    "pyparsing >= 1.0",
     "Yapsy >= 1.10.0",
     "python-memcached >= 1.0",
     "GitPython >= 0.3.2.RC1"

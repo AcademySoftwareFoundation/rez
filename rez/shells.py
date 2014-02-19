@@ -1,25 +1,31 @@
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
-from rez.rex import CommandInterpreter, CommandRecorder
+from rez.rex import ActionInterpreter
 from rez.settings import settings
-from rez.util import which, tmpfile, get_tmpdir
+from rez.util import which, shlex_join
 import subprocess
 import os.path
 
 
 
 def get_shell_types():
-    """ Returns the available shell types: bash, tcsh etc. """
+    """
+    Returns the available shell types: bash, tcsh etc.
+    """
     from rez.plugin_managers import shell_plugin_manager
     return shell_plugin_manager.get_plugins()
 
 
-def get_current_shell_type():
-    """ Returns the type of shell currently running. """
-    pass
+def create_shell(shell=None, **kwargs):
+    """
+    Returns a Shell of the given type, or the current shell type if shell is None.
+    """
+    from rez.plugin_managers import shell_plugin_manager
+    return shell_plugin_manager.create_instance(shell=shell, **kwargs)
 
 
+"""
 def interpret(commands, shell=None, **kwargs):
     from rez.plugin_managers import shell_plugin_manager
 
@@ -27,7 +33,7 @@ def interpret(commands, shell=None, **kwargs):
     if isinstance(commands, CommandRecorder):
         commands = commands.commands
     return sh._execute(commands)
-
+"""
 
 def spawn_shell(context_file, shell=None, rcfile=None, norc=False, stdin=False,
                 command=None, quiet=False, get_stdout=False, get_stderr=False,
@@ -47,34 +53,49 @@ def spawn_shell(context_file, shell=None, rcfile=None, norc=False, stdin=False,
                    get_stderr=get_stderr)
 
 
-class Shell(CommandInterpreter):
+class Shell(ActionInterpreter):
     @classmethod
     def name(cls):
         raise NotImplementedError
+
+    @classmethod
+    def file_extension(cls):
+        raise NotImplementedError
+
+    def __init__(self):
+        self._lines = []
+
+    def _addline(self, line):
+        self._lines.append(line)
+
+    def get_output(self, manager):
+        line_sep = '\n' if manager.output_style == 'file' else ';'
+        script = line_sep.join(self._lines)
+        script += line_sep
+        return script
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
                     command=None, quiet=False, get_stdout=False, get_stderr=False):
         """
         Spawn a possibly interactive subshell.
-        @param context_file File that must be sourced in the new shell, this configures the
-            Rez environment.
+        @param context_file File that must be sourced in the new shell, this
+            configures the Rez environment.
         @param rcfile Custom startup script.
         @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
         @param command If not None, execute this command in a non-interactive shell.
-        @param quiet If True, don't show the configuration summary, and suppress any stdout
-            from startup scripts.
+        @param quiet If True, don't show the configuration summary, and suppress
+            any stdout from startup scripts.
         @param get_stdout Capture stdout.
         @param get_stderr Capture stderr.
-        @returns (returncode, stdout, stderr), where stdout/err are None if the corresponding
-            get_stdxxx param was False.
+        @returns (returncode, stdout, stderr), where stdout/err are None if the
+            corresponding get_stdxxx param was False.
         """
         raise NotImplementedError
 
 
 class UnixShell(Shell):
     executable = None
-    file_extension = None
     rcfile_arg = None
     norc_arg = None
     stdin_arg = '-s'
@@ -180,14 +201,14 @@ class UnixShell(Shell):
                 # hijack rcfile to insert our own script
                 rec = CommandRecorder()
                 _record_shell(rec, files=files, print_msg=(not quiet))
-                filename = "rcfile.%s" % self.file_extension
+                filename = "rcfile.%s" % self.file_extension()
                 filepath = _write_shell(rec, filename)
                 shell_command += " %s" % filepath
             elif envvar:
                 # hijack env-var to insert our own script
                 rec = CommandRecorder()
                 _record_shell(rec, files=files, print_msg=(not quiet))
-                filename = "%s.%s" % (envvar, self.file_extension)
+                filename = "%s.%s" % (envvar, self.file_extension())
                 filepath = _write_shell(rec, filename)
                 recorder.setenv(envvar, filepath)
             else:
@@ -220,7 +241,7 @@ class UnixShell(Shell):
         recorder.command("exit $?")
         script = self._execute(recorder.commands, output_style='file')
 
-        target_file = tmpfile("rez-shell.%s" % self.file_extension)
+        target_file = tmpfile("rez-shell.%s" % self.file_extension())
         with open(target_file, 'w') as f:
             f.write(script)
 
@@ -233,26 +254,24 @@ class UnixShell(Shell):
                 out_ if get_stdout else None,
                 err_ if get_stderr else None)
 
+    def resetenv(self, key, value, friends=None):
+        self._addline(self.setenv(key, value))
+
     def info(self, value):
-        # TODO: handle newlines
-        return 'echo "%s"' % value
+        for line in value.split('\n'):
+            self._addline('echo "%s"' % line)
 
     def error(self, value):
-        # TODO: handle newlines
-        return 'echo "%s" 1>&2' % value
+        for line in value.split('\n'):
+            self._addline('echo "%s" 1>&2' % line)
 
     def command(self, value):
-        def quote(s):
-            if '$' not in s:
-                return pipes.quote(s)
-            return s
-        if isinstance(value, (list, tuple)):
-            value = ' '.join(quote(x) for x in value)
-        return str(value)
+        value = shlex_join(value)
+        self._addline(value)
 
     def comment(self, value):
-        # TODO: handle newlines
-        return "# %s" % value
+        for line in value.split('\n'):
+            self._addline('# %s' % line)
 
     def source(self, value):
-        return 'source "%s"' % os.path.expanduser(value)
+        self._addline('source "%s"' % value)

@@ -4,6 +4,8 @@ Create a template 'package.yaml' file
 from __future__ import with_statement
 
 
+from __future__ import with_statement
+
 def setup_parser(parser):
     parser.add_argument("path", default=".", nargs="?")
 

@@ -166,13 +166,9 @@ class System(object):
 
         self._os = '%s-%s' % (finalRelease, finalVersion)
 
-    # TODO remove
     def _get_shell(self):
-        shells = dict( \
-            sh="sh",
-            bash="bash",
-            csh="csh",
-            tcsh="tcsh")
+        from rez.shells import get_shell_types
+        shells = get_shell_types()
 
         try:
             from psutil import Process
@@ -188,7 +184,8 @@ class System(object):
         else:
             try:
                 import subprocess as sp
-                proc = sp.Popen(['ps', '-o', 'args=', '-p', str(os.getppid())], stdout=sp.PIPE)
+                proc = sp.Popen(['ps', '-o', 'args=', '-p',
+                                 str(os.getppid())], stdout=sp.PIPE)
                 output = proc.communicate()[0]
                 shell = os.path.basename(output.strip().split()[0]).replace('-','')
             except:
@@ -198,7 +195,7 @@ class System(object):
                 shell = os.getenv("SHELL")
 
         if shell in shells:
-            self._shell = shells[shell]
+            self._shell = shell
         else:
             raise RuntimeError("Could not detect shell")
 

@@ -20,9 +20,9 @@ import pydot
 import re
 import codecs
 
-from pyparsing import __version__ as pyparsing_version
+from rez.contrib.pyparsing.pyparsing import __version__ as pyparsing_version
 
-from pyparsing import ( nestedExpr, Literal, CaselessLiteral, Word, Upcase, OneOrMore, ZeroOrMore,
+from rez.contrib.pyparsing.pyparsing import ( nestedExpr, Literal, CaselessLiteral, Word, Upcase, OneOrMore, ZeroOrMore,
     Forward, NotAny, delimitedList, oneOf, Group, Optional, Combine, alphas, nums,
     restOfLine, cStyleComment, nums, alphanums, printables, empty, quotedString,
     ParseException, ParseResults, CharsNotIn, dblQuotedString, QuotedString, ParserElement )
@@ -469,13 +469,13 @@ def graph_definition():
         
         subgraph = Group(subgraph_ + Optional(ID) + graph_stmt).setName("subgraph")
         
-        edge_point << Group( subgraph | graph_stmt | node_id ).setName('edge_point')
+        edge_point <<= Group( subgraph | graph_stmt | node_id ).setName('edge_point')
         
         node_stmt = (node_id + Optional(attr_list) + Optional(semi.suppress())).setName("node_stmt")
         
         assignment = (ID + equals + righthand_id).setName("assignment")
         stmt =  (assignment | edge_stmt | attr_stmt | subgraph | graph_stmt | node_stmt).setName("stmt")
-        stmt_list << OneOrMore(stmt + Optional(semi.suppress()))
+        stmt_list <<= OneOrMore(stmt + Optional(semi.suppress()))
         
         graphparser = OneOrMore( (Optional(strict_) + Group((graph_ | digraph_)) +
             Optional(ID) + graph_stmt).setResultsName("graph") )

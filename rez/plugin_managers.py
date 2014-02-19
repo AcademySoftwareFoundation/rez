@@ -112,7 +112,7 @@ class ShellPluginManager(RezPluginManager):
     def __init__(self):
         super(ShellPluginManager,self).__init__("shell")
 
-    def create_instance(self, shell=None, verbose=False):
+    def create_instance(self, shell=None):
         if not shell:
             from rez.system import system
             shell = system.shell
@@ -120,9 +120,7 @@ class ShellPluginManager(RezPluginManager):
         # TODO this is a bit of a hack
         from rez.rex import DEFAULT_ENV_SEP_MAP
 
-        return super(ShellPluginManager,self).create_instance(shell,
-                                                              env_sep_map=DEFAULT_ENV_SEP_MAP,
-                                                              verbose=verbose)
+        return super(ShellPluginManager,self).create_instance(shell)
 
 
 # singletons

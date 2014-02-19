@@ -3,7 +3,6 @@ from nose.tools import raises
 import utils
 utils.setup_pythonpath()
 import rez.config
-from rez.config import Resolver
 from rez.system import system
 from rez.exceptions import PkgsUnresolvedError, PkgConfigNotResolvedError, PkgConflictError, PkgNotFoundError
 from rez.public_enums import RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST
@@ -27,76 +26,12 @@ def assert_resolve_result(result, assertions):
     res = [p.short_name() for p in pkg_ress]
     assert res == assertions, res
 
-class ResolveBaseTest(utils.BaseTest):
+
+class TestResolve(utils.BaseTest):
     def setUp(self):
+        utils.BaseTest.setUp(self)
         self.cleanup()
-        self.add_packages()
-        self.make_packages()
 
-    def add_packages(self):
-        # real world examples are so much easier to follow
-        with self.add_package('python-2.7.4', local=True) as pkg:
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-
-        with self.add_package('python-2.6.4') as pkg:
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-
-        with self.add_package('python-2.6.1') as pkg:
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-
-        with self.add_package('mercurial-3.0') as pkg:
-            pkg.variants = [['platform-linux', 'python-2.7'],
-                            ['platform-linux', 'python-2.6'],
-                            ['platform-darwin', 'python-2.7']]
-
-        with self.add_package('maya-2012') as pkg:
-            pkg.requires = ['python-2.6']
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-
-        with self.add_package('maya-2013') as pkg:
-            pkg.requires = ['python-2.6']
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-            pkg.tools = ['maya', 'mayapy']
-
-        with self.add_package('maya-2014') as pkg:
-            pkg.requires = ['python-2.7']
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-            pkg.tools = ['maya', 'mayapy']
-
-        with self.add_package('nuke-7.1.2') as pkg:
-            pkg.requires = ['python-2.6']
-            pkg.tools = ['Nuke']
-
-        with self.add_package('arnold-4.0.16.0') as pkg:
-            pkg.requires = ['python']
-            pkg.variants = [['platform-linux'],
-                            ['platform-darwin']]
-            pkg.tools = ['kick']
-
-        with self.add_package('mtoa-0.25.0') as pkg:
-            #pkg.requires = ['arnold-4.0.16']
-            pkg.variants = [['platform-linux', 'maya-2014', 'arnold-4.0.15+'],
-                            ['platform-linux', 'maya-2013', 'arnold-4.0.15+'],
-                            ['platform-darwin', 'maya-2014', 'arnold-4.0.15+'],
-                            ['platform-darwin', 'maya-2013', 'arnold-4.0.15+']]
-
-        self.add_package('platform-linux')
-        self.add_package('platform-darwin')
-
-        self.add_package('arch-x86_64')
-        self.add_package('arch-i386')
-
-        # versionless
-        with self.add_package('site') as pkg:
-            pkg.requires = ['maya', 'nuke-7']
-
-class TestResolve(ResolveBaseTest):
     def test_latest(self):
         for ins, outs in [
                           (['python'],

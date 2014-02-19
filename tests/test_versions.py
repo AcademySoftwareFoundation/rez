@@ -171,6 +171,17 @@ class TestExactVersion(VersionBaseTest):
         self.assertTrue(ExactVersion('1') in ExactVersion('1'))
         self.assertFalse(ExactVersion('1') in ExactVersion('1.0'))
 
+    def test_formatting(self):
+        v = ExactVersion('2.7.4')
+        for frmt, result in [('#.#.#', '2.7.4')
+                             ('##', '27'),
+                             ('#.#v#', '2.7v4'),
+                             ('#0.#1.#2', '2.7.4'),
+                             ('#1.#2', '7.4'),
+                             ('#000.#01.#2', '002.07.4'),
+                             ('foo#bar#', 'foo2bar7')]:
+            self.assertEqual(format(v, frmt), result)
+
 class TestLabelVersion(VersionBaseTest):
     VALID = ['foo', 'Bar', 'this_that']
     INVALID = ['foo-bar',

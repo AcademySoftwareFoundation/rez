@@ -1,6 +1,8 @@
 """
 Public enums
 """
+# TODO move consts out and deprecate this file
+
 
 PKG_METADATA_FILENAME = "package.yaml"
 
