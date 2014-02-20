@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import os
 import sys
 import argparse
 
@@ -13,8 +12,8 @@ def _add_common_args(subp):
 
 
 def _subcmd_name(cli_name):
-    if cli_name == "exec":
-        return "exec_"
+    if cli_name in ("exec",):
+        return cli_name+'_'
     else:
         return cli_name.replace('-','_')
 
@@ -39,14 +38,13 @@ if __name__ == '__main__':
         setup_parser(subp)
         subparsers[cmd] = subp
 
-    _add_subcommand("context-info",
-                    "Print information about the current shell.")
     _add_subcommand("settings",
                     "Print current rez settings.")
+    _add_subcommand("context",
+                    "Print information about the current shell, or a given "
+                    "context file.")
     #_add_subcommand("env",
     #                "Open a rez-configured shell, possibly interactive.")
-    _add_subcommand("context",
-                    "Load, view and execute context files")
     _add_subcommand("exec",
                     "Execute some Rex code and print the interpreted result")
 

@@ -11,6 +11,7 @@ import inspect
 import textwrap
 import pipes
 import time
+import getpass
 from rez import module_root_path
 from rez.settings import settings
 from rez.system import system
@@ -137,6 +138,10 @@ Source.register()
 class SetPrompt(Action):
     name = 'setprompt'
 SetPrompt.register()
+
+class Shebang(Action):
+    name = 'shebang'
+Shebang.register()
 
 
 #===============================================================================
@@ -338,9 +343,15 @@ class ActionManager(object):
 
     def source(self, value):
         self.actions.append(Source(value))
+        self.interpreter.source(value)
 
     def setprompt(self, value):
-        self.commands.append(SetPrompt(self._expand(value)))
+        self.actions.append(SetPrompt(value))
+        self.interpreter.setprompt(value)
+
+    def shebang(self):
+        self.actions.append(Shebang())
+        self.interpreter.shebang()
 
 
 #===============================================================================
@@ -407,6 +418,9 @@ class ActionInterpreter(object):
         raise NotImplementedError
 
     def setprompt(self, value):
+        raise NotImplementedError
+
+    def shebang(self):
         raise NotImplementedError
 
 
@@ -497,6 +511,9 @@ class Python(ActionInterpreter):
         pass
 
     def alias(self, key, value):
+        pass
+
+    def shebang(self):
         pass
 
     def _env_var_changed(self, key):
@@ -676,9 +693,10 @@ class RexExecutor(object):
 
     ex = RexExecutor()
     ex.setenv('FOO','bah')
+    ex.env.PATH.append('/stuff/bin')
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
-                 output_style='file', sys_path_append=True,
+                 output_style='file', sys_path_append=True, shebang=True,
                  add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
@@ -692,6 +710,8 @@ class RexExecutor(object):
             to the current environment.
         sys_path_append: bool
             whether to append OS-specific paths to PATH when creating the environment
+        shebang: bool
+            if True, apply a shebang to the result.
         add_default_namespaces: bool
             whether to add default namespaces such as 'machine'.
         """
@@ -711,6 +731,9 @@ class RexExecutor(object):
         if isinstance(interpreter, Python):
             interpreter.set_manager(self.manager)
 
+        if shebang:
+            self.manager.shebang()
+
         self.environ = EnvironmentDict(self.manager)
         self.bind('env', AttrDictWrapper(self.environ))
 
@@ -725,7 +748,7 @@ class RexExecutor(object):
 
         if add_default_namespaces:
             self.bind('machine', system)
-            self.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
+            self.bind('user', getpass.getuser())
 
     def __getattr__(self, attr):
         """

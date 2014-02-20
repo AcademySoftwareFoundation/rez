@@ -275,3 +275,6 @@ class UnixShell(Shell):
 
     def source(self, value):
         self._addline('source "%s"' % value)
+
+    def shebang(self):
+        self._addline("#!%s" % self.executable)

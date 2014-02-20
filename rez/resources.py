@@ -594,14 +594,12 @@ class BasePackageConfig_0(MetadataValidator):
         'uuid': 'str',
         'description': 'str',
         'name': 'str',
-        'help': [['str']],
+        'help': OneOf('str', [['str']]),
         'authors': ['str'],
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
-        'commands': OneOf(lambda: None,
-                          'str',
-                          ['str'])
+        'commands': OneOf(lambda: None, 'str', ['str'])
     }
 
     REQUIRED = ('config_version', 'name')
@@ -614,14 +612,12 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'description': 'str',
         'name': 'str',
         'version': ExactVersion('1.2'),
-        'help': [['str']],
+        'help': OneOf('str', [['str']]),
         'authors': ['str'],
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
-        'commands': OneOf(lambda: None,
-                          'str',
-                          ['str'])
+        'commands': OneOf(lambda: None, 'str', ['str'])
     }
     REQUIRED = ('config_version', 'name', 'version')
 
@@ -702,14 +698,17 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
         try:
             validator.validate(metadata)
         except MetadataError, err:
-            errors.append(err)
+            errors.append((validator, err))
             continue
         if strip:
             validator.strip(metadata)
         return metadata
 
-    # TODO: print detailed error messages
-    raise MetadataError("Could not find registered metadata configuration for %r" % filename)
+    msg = "Could not find registered metadata configuration for %r" % filename
+    for val,err in errors:
+        msg += "\n%s: %s" % (val.__class__.__name__, str(err))
+    raise MetadataError(msg)
+
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

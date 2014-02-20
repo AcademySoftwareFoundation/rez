@@ -509,13 +509,16 @@ def test_encode_decode():
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
 
 
-def convert_old_commands(commands):
-    """ Converts old-style package commands into equivalent Rex code. """
+def convert_old_commands(commands, annotate=True):
+    """Converts old-style package commands into equivalent Rex code."""
     def _en(s):
         return s.encode("string-escape")
 
-    loc = ''
+    loc = []
     for cmd in commands:
+        if annotate:
+            loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
+
         toks = cmd.strip().split()
         if toks[0] == "export":
             var,value = cmd.split(' ', 1)[1].split('=', 1)

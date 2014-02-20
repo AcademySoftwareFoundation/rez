@@ -18,7 +18,6 @@ scripts = [
     "rezolve",
     "rez",
     "rez-settings",
-    "rez-context-info",
     "rez-env",
     "rez-context",
     "rez-exec"

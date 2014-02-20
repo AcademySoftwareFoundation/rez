@@ -13,7 +13,7 @@ from uuid import uuid4
 from rez import __version__
 from rez.util import pretty_env_dict
 from rez.resolved_context import ResolvedContext
-from rez.shells import get_shell_types
+from rez.shells import create_shell, get_shell_types
 from rez.dot import save_graph
 from rez.system import system
 from rez.settings import settings
@@ -56,7 +56,7 @@ def setup_parser(parser):
 
 
 # returns (filepath, must_cleanup)
-def write_graph(graph_str, opts):
+def write_graph(graph_str, opts, is_current_context):
     dest_file = None
     tmp_dir = None
     cleanup = True
@@ -69,9 +69,10 @@ def write_graph(graph_str, opts):
 
         if current_rxt_file:
             tmp_dir = os.path.dirname(current_rxt_file)
-            path = os.path.join(tmp_dir, "resolve-dot.%s" % fmt)
-            if os.path.exists(path):
-                return path,False  # graph image already exists
+            if is_current_context:
+                path = os.path.join(tmp_dir, "resolve-dot.%s" % fmt)
+                if os.path.exists(path):
+                    return path,False  # graph image already exists
 
         if tmp_dir:
             # hijack current env's tmpdir, so we don't have to clean up
@@ -88,12 +89,12 @@ def write_graph(graph_str, opts):
     return dest_file,cleanup
 
 
-def view_graph(graph_str, opts):
+def view_graph(graph_str, opts, is_current_context):
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
         print >> sys.stderr, "Unable to open display."
         sys.exit(1)
 
-    dest_file, cleanup = write_graph(graph_str, opts)
+    dest_file, cleanup = write_graph(graph_str, opts, is_current_context)
 
     # view graph
     t1 = time.time()
@@ -120,6 +121,8 @@ def view_graph(graph_str, opts):
 
 
 def command(opts, parser=None):
+    # are we reading the current context (ie we're inside a rez-env env)?
+    is_current_context = False
     rxt_file = opts.FILE
     if rxt_file is None:
         rxt_file = current_rxt_file
@@ -130,8 +133,9 @@ def command(opts, parser=None):
                 not in a resolved environment context.
                 """ % __version__).strip() + '\n'
             sys.exit(1)
+        is_current_context = True
 
-    rc = ResolvedContext.load(opts.FILE)
+    rc = ResolvedContext.load(rxt_file)
 
     if not opts.interpret:
         if opts.print_request:
@@ -141,18 +145,23 @@ def command(opts, parser=None):
         elif opts.print_graph:
             print rc.resolve_graph
         elif opts.graph:
-            view_graph(rc.resolve_graph, opts)
+            view_graph(rc.resolve_graph, opts, is_current_context)
+        elif opts.write_graph:
+            write_graph(rc.resolve_graph, opts, is_current_context)
         else:
             rc.print_info(verbose=opts.verbose)
             print
         return
 
-    if opts.format not in formats:
+    if opts.format not in (formats + [None]):
         parser.error("Invalid format specified, must be one of: %s" % str(formats))
 
+    parent_env = {} if opts.no_env else None
+
     if opts.format == 'dict':
-        parent_env = {} if opts.no_env else None
         env = rc.get_environ(parent_environ=parent_env)
         print pretty_env_dict(env)
     else:
-        pass
+        shell = opts.format or system.shell
+        code = rc.get_shell_code(shell=shell, parent_environ=parent_env)
+        print code

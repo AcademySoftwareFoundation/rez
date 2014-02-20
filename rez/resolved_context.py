@@ -3,7 +3,7 @@ from rez.config import Resolver
 from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp
+    mkdtemp_, rmdtemp, print_warning_once
 from rez.rex import RexExecutor, Python
 from rez.shells import create_shell, get_shell_types
 import pickle
@@ -332,10 +332,6 @@ class ResolvedContext(object):
         def _stringify_pkgs(pkgs):
             return ' '.join(x.short_name() for x in pkgs)
 
-        def _commands_err(e, pkg_res):
-            msg = "Error in commands in file %s:\n%s" % (pkg_res.metafile, str(e))
-            raise PkgCommandError(msg)
-
         executor.update_env({
             "REZ_USED":             self.rez_path,
             "REZ_PREV_REQUEST":     "$REZ_REQUEST",
@@ -347,12 +343,15 @@ class ResolvedContext(object):
             "REZ_FAILED_ATTEMPTS":  self.result.failed_attempts,
             "REZ_REQUEST_TIME":     self.result.request_timestamp})
 
+        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
+
         manager = executor.manager
 
         # TODO set metavars, shallow_metavars
         for pkg_res in self.result.package_resolves:
             manager.comment("")
             manager.comment("Commands from package %s" % pkg_res.short_name())
+            manager.comment("")
 
             prefix = "REZ_" + pkg_res.name.upper()
             executor.update_env({
@@ -364,53 +363,39 @@ class ResolvedContext(object):
             executor.bind('root', pkg_res.root)
             executor.bind('base', pkg_res.base)
             executor.bind('version', pkg_res.version)
+            if len(pkg_res.version.parts):
+                executor.bind('major_version', pkg_res.version.major)
+                if len(pkg_res.version.parts) > 1:
+                    executor.bind('minor_version', pkg_res.version.minor)
 
             commands = pkg_res.metadata.get("commands")
             if commands:
-                # old-style
+                # old-style, we convert it to a rex code string (ie python)
                 if isinstance(commands, list):
                     if settings.warn_old_commands:
                         print_warning_once("%s is using old-style commands."
                                            % pkg_res.short_name())
-                    expansions = []
-                    expansions.append(("!VERSION!", str(pkg_res.version)))
-                    if len(pkg_res.version.parts):
-                        expansions.append(("!MAJOR_VERSION!",
-                                           str(pkg_res.version.major)))
-                        if len(pkg_res.version.parts) > 1:
-                            expansions.append(("!MINOR_VERSION!",
-                                               str(pkg_res.version.minor)))
-                    expansions.append(("!BASE!", str(pkg_res.base)))
-                    expansions.append(("!ROOT!", str(pkg_res.root)))
-                    expansions.append(("!USER!", getpass.getuser()))
 
+                    # convert expansions from !OLD! style to {new}
                     cmds = []
                     for cmd in commands:
-                        for find,replace in expansions:
-                            cmd = cmd.replace(find, replace)
+                        cmd = cmd.replace("!VERSION!",      "{version}")
+                        cmd = cmd.replace("!MAJOR_VERSION!","{major_version}")
+                        cmd = cmd.replace("!MINOR_VERSION!","{minor_version}")
+                        cmd = cmd.replace("!BASE!",         "{base}")
+                        cmd = cmd.replace("!ROOT!",         "{root}")
+                        cmd = cmd.replace("!USER!",         "{user}")
                         cmds.append(cmd)
-                    commands = cmds
+                    commands = convert_old_commands(cmds)
 
-                    # testing
-                    print 'OLD-------------------------------------------------'
-                    print '\n'.join(commands)
-                    print 'NEW-------------------------------------------------'
-                    # convert to rex in a string
-                    commands = convert_old_commands(commands)
-                    print commands
-                    print '----------------------------------------------------'
-
-                # new-style rex code in package.yaml
-                if isinstance(commands, basestring):
-                    try:
+                try:
+                    if isinstance(commands, basestring):
+                        # rex code in a string
                         executor.execute_code(commands, pkg_res.metafile)
-                    except Exception as e:
-                        _commands_err(e, pkg_res)
-                # new-style rex code in package.py
-                elif inspect.isfunction(commands):
-                    try:
+                    elif inspect.isfunction(commands):
+                        # function in a package.py
                         executor.execute_function(commands)
-                    except Exception as e:
-                        _commands_err(e, pkg_res)
-                else:
-                    _commands_err("Not a valid command section", pks_res)
+                except Exception as e:
+                    msg = "Error in commands in file %s:\n%s" \
+                          % (pkg_res.metafile, str(e))
+                    raise PkgCommandError(msg)
