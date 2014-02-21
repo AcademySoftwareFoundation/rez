@@ -73,16 +73,20 @@ def write_graph(graph_str, opts, is_current_context):
                 path = os.path.join(tmp_dir, "resolve-dot.%s" % fmt)
                 if os.path.exists(path):
                     return path,False  # graph image already exists
+                else:
+                    dest_file = path
+                    cleanup = False
 
-        if tmp_dir:
-            # hijack current env's tmpdir, so we don't have to clean up
-            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-',''), fmt)
-            dest_file = os.path.join(tmp_dir, name)
-            cleanup = False
-        else:
-            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.'+fmt)
-            os.close(tmpf[0])
-            dest_file = tmpf[1]
+        if dest_file is None:
+            if tmp_dir:
+                # hijack current env's tmpdir, so we don't have to clean up
+                name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-',''), fmt)
+                dest_file = os.path.join(tmp_dir, name)
+                cleanup = False
+            else:
+                tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.'+fmt)
+                os.close(tmpf[0])
+                dest_file = tmpf[1]
 
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file)
@@ -121,7 +125,7 @@ def view_graph(graph_str, opts, is_current_context):
 
 
 def command(opts, parser=None):
-    # are we reading the current context (ie we're inside a rez-env env)?
+    # are we reading the current context (ie are we inside a rez-env env)?
     is_current_context = False
     rxt_file = opts.FILE
     if rxt_file is None:

@@ -52,15 +52,21 @@ class SH(UnixShell):
             source_bind_files=False
         )
 
-    def bind_rez_cli(self, recorder):
-        #recorder.prependenv('PATH', get_script_path())
+    """
+    def bind_rez_cli(self, executor):
         curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
-        recorder.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt)
+        executor.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt)
         completion = os.path.join(module_root_path, "_sys", "bash_completion")
-        recorder.source(completion)
-        return recorder
+        executor.source(completion)
+    """
 
-    # TODO literal string support
+    def bind_interactive_rez(self):
+        curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
+        new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt
+        self._addline('export PS1="%s"' % new_prompt)
+        completion = os.path.join(module_root_path, "_sys", "bash_completion")
+        self.source(completion)
+
     def setenv(self, key, value):
         self._addline('export %s="%s"' % (key, value))
 
@@ -68,10 +74,6 @@ class SH(UnixShell):
         self._addline("unset %s" % key)
 
     def alias(self, key, value):
-        # bash aliases don't export to subshells; so instead define a function,
-        # then export that function
-        # TODO replace with actual alias now that we have the HOME fix. Should we still
-        # provide this as a "strong_alias" or maybe "alias_command" option?
         self._addline("{key}() {{ {value}; }};export -f {key};".format( \
             key=key, value=value))
 

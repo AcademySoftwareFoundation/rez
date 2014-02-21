@@ -423,6 +423,9 @@ class ActionInterpreter(object):
     def shebang(self):
         raise NotImplementedError
 
+    def bind_interactive_rez(self):
+        raise NotImplementedError
+
 
 class Python(ActionInterpreter):
     '''Execute commands in the current python session'''
@@ -513,6 +516,9 @@ class Python(ActionInterpreter):
     def alias(self, key, value):
         pass
 
+    def bind_interactive_rez(self):
+        pass
+
     def shebang(self):
         pass
 
@@ -542,7 +548,7 @@ class NamespaceFormatter(Formatter):
                 # Check explicitly passed arguments first
                 return kwds[key]
             except KeyError:
-                return self.namespace[key]
+                return self.namespace.get(key, '')
         else:
             return Formatter.get_value(key, args, kwds)
 
@@ -688,16 +694,11 @@ class EnvironmentVariable(object):
 
 class RexExecutor(object):
     """
-    Runs an interpreter over code within the given namespace. Functions and
-    namespaces can also be accessed directly in an instance of this class, eg:
-
-    ex = RexExecutor()
-    ex.setenv('FOO','bah')
-    ex.env.PATH.append('/stuff/bin')
+    Runs an interpreter over code within the given namespace.
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
-                 output_style='file', sys_path_append=True, shebang=True,
-                 add_default_namespaces=True):
+                 output_style='file', bind_rez=True, bind_syspaths=True,
+                 shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -708,7 +709,9 @@ class RexExecutor(object):
             to empty dict.
         parent_environ: environment to execute the rex code within. If None, defaults
             to the current environment.
-        sys_path_append: bool
+        bind_rez: bool
+            if True, expose Rez cli tools in the target environment
+        bind_syspaths: bool
             whether to append OS-specific paths to PATH when creating the environment
         shebang: bool
             if True, apply a shebang to the result.
@@ -718,7 +721,6 @@ class RexExecutor(object):
         self.globals = globals_map or {}
         self.formatter = NamespaceFormatter(self.globals)
         self.bind('format', self.expand)
-        self.sys_path_append = sys_path_append
 
         if interpreter is None:
             interpreter = Python(target_environ={})
@@ -738,10 +740,13 @@ class RexExecutor(object):
         self.bind('env', AttrDictWrapper(self.environ))
 
         # expose Rez/system in PATH
-        paths = [get_script_path()]
-        if self.sys_path_append:
+        paths = []
+        if bind_rez:
+            paths = [get_script_path()]
+        if bind_syspaths:
             paths += system.executable_paths
-        self.environ["PATH"] = os.pathsep.join(paths)
+        if paths:
+            self.environ["PATH"] = os.pathsep.join(paths)
 
         for cmd,func in self.manager.get_public_methods():
             self.bind(cmd, func)
@@ -755,13 +760,20 @@ class RexExecutor(object):
         Allows for access such as: self.setenv('FOO','bah')
         """
         return self.globals[attr] if attr in self.globals \
-            else super(RexExecutor,self).__getattr__(attr)
+            else getattr(super(RexExecutor,self), attr)
 
     def bind(self, name, obj):
         """
         Binds an object to the execution context.
         """
         self.globals[name] = obj
+
+    def bind_interactive_rez(self):
+        """
+        Binds interactive shell elements of Rez to the context - for example,
+        prompt updates and sourcing of completion scripts.
+        """
+        self.manager.interpreter.bind_interactive_rez()
 
     def update_env(self, d):
         """

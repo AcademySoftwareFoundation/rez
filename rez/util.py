@@ -26,37 +26,6 @@ def print_warning_once(msg):
         print >> sys.stderr, "WARNING: %s" % msg
         _once_warnings.add(msg)
 
-
-"""
-_tmpdir = None
-
-def set_tmpdir(path=None):
-    global _tmpdir
-    if _tmpdir:
-        if path:
-            raise RuntimeError("Internal error - tmpdir was changed more than once")
-    else:
-        if path:
-            _tmpdir = os.path.abspath(path)
-        else:
-            import tempfile
-            from rez.settings import settings
-            _tmpdir = tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
-
-def get_tmpdir():
-    set_tmpdir()
-    return _tmpdir
-
-def tmpfile(filename):
-    path = get_tmpdir()
-    return os.path.join(path, filename)
-
-def clean_tmpdir():
-    if _tmpdir and os.path.exists(_tmpdir):
-        import shutil
-        shutil.rmtree(_tmpdir)
-"""
-
 def mkdtemp_():
     import tempfile
     from rez.settings import settings

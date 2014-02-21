@@ -1,7 +1,7 @@
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
-from rez.rex import ActionInterpreter
+from rez.rex import RexExecutor, ActionInterpreter
 from rez.settings import settings
 from rez.util import which, shlex_join
 import subprocess
@@ -25,34 +25,6 @@ def create_shell(shell=None, **kwargs):
     return shell_plugin_manager.create_instance(shell=shell, **kwargs)
 
 
-"""
-def interpret(commands, shell=None, **kwargs):
-    from rez.plugin_managers import shell_plugin_manager
-
-    sh = shell_plugin_manager.create_instance(shell=shell, **kwargs)
-    if isinstance(commands, CommandRecorder):
-        commands = commands.commands
-    return sh._execute(commands)
-"""
-
-def spawn_shell(context_file, shell=None, rcfile=None, norc=False, stdin=False,
-                command=None, quiet=False, get_stdout=False, get_stderr=False,
-                **kwargs):
-    """
-    Spawn a child shell process.
-    """
-    from rez.plugin_managers import shell_plugin_manager
-
-    sh = shell_plugin_manager.create_instance(shell=shell, **kwargs)
-    return sh.spawn_shell(context_file,
-                   rcfile=rcfile,
-                   stdin=stdin,
-                   command=command,
-                   quiet=quiet,
-                   get_stdout=get_stdout,
-                   get_stderr=get_stderr)
-
-
 class Shell(ActionInterpreter):
     @classmethod
     def name(cls):
@@ -73,6 +45,12 @@ class Shell(ActionInterpreter):
         script = line_sep.join(self._lines)
         script += line_sep
         return script
+
+    def new_shell(self):
+        """
+        @returns A new, reset shell of the same type.
+        """
+        return type(self)()
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
                     command=None, quiet=False, get_stdout=False, get_stderr=False):
@@ -128,9 +106,9 @@ class UnixShell(Shell):
         """
         raise NotImplementedError
 
-    def bind_rez_cli(self, recorder):
-        """ Make rez cli visible in the current shell """
-        raise NotImplementedError
+    #def bind_rez_cli(self, recorder):
+    #    """ Make rez cli visible in the current shell """
+    #    raise NotImplementedError
 
     @classmethod
     def _ignore_bool_option(cls, option, val):
@@ -139,52 +117,54 @@ class UnixShell(Shell):
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
                     command=None, quiet=False, get_stdout=False, get_stderr=False):
-        recorder = CommandRecorder()
-        recorder.setenv('REZ_CONTEXT_FILE', context_file)
-        recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % '>')
-
-        # TODO hook up prompt symbol once more
-        # TODO fix this properly
-        #recorder.appendenv('REZ_ENV_PROMPT', '>')
-        # some shells don't like references to undefined vars
-        #if os.getenv('REZ_ENV_PROMPT') is None:
-        #    recorder.setenv('REZ_ENV_PROMPT', '>')
-        #else:
-        #    recorder.setenv('REZ_ENV_PROMPT', '${REZ_ENV_PROMPT}%s' % '>')
-        #if os.getenv('REZ_REQUEST') is None:
-        #    recorder.setenv('REZ_REQUEST', '')
 
         d = self.get_startup_sequence(rcfile, norc, stdin, command)
+        tmpdir = os.path.dirname(context_file)
         envvar = d["envvar"]
         files = d["files"]
         bind_files = d["bind_files"]
         do_rcfile = d["do_rcfile"]
         shell_command = None
 
-        def _record_shell(r, files, bind_rez=True, print_msg=False):
+        def _record_shell(ex, files, bind_rez=True, print_msg=False):
             # TODO make context sourcing position configurable?
             if bind_rez:
-                r.source(context_file)
+                ex.source(context_file)
             for file in files:
-                r.source(file)
+                ex.source(file)
             if envvar:
-                r.unsetenv(envvar)
+                ex.unsetenv(envvar)
             if bind_rez:
-                self.bind_rez_cli(r)
+                ex.bind_interactive_rez()
             if print_msg and not quiet:
-                r.info('')
-                r.info('You are now in a rez-configured environment.')
-                r.command('rezolve context-info')
+                ex.info('')
+                ex.info('You are now in a rez-configured environment.')
+                ex.info('')
+                ex.command('rezolve context')
 
-        def _write_shell(r, filename):
-            script = self._execute(r.commands, output_style='file')
-            target_file = tmpfile(filename)
+        def _write_shell(ex, filename):
+            code = ex.get_output()
+            target_file = os.path.join(tmpdir, filename)
             with open(target_file, 'w') as f:
-                f.write(script)
+                f.write(code)
             return target_file
 
+        def _create_ex():
+            return RexExecutor(interpreter=self.new_shell(),
+                               parent_environ={},
+                               bind_rez=False,
+                               bind_syspaths=False,
+                               add_default_namespaces=False)
+
+        executor = _create_ex()
+
+        if settings.prompt:
+            # todo need to use curly braces for safety but this is currently broken
+            newprompt = settings.prompt + '$REZ_ENV_PROMPT'
+            executor.env.REZ_ENV_PROMPT = newprompt
+
         if d["command"]:
-            _record_shell(recorder, files=files)
+            _record_shell(executor, files=files)
             shell_command = d["command"]
         else:
             if d["stdin"]:
@@ -199,25 +179,23 @@ class UnixShell(Shell):
 
             if do_rcfile:
                 # hijack rcfile to insert our own script
-                rec = CommandRecorder()
-                _record_shell(rec, files=files, print_msg=(not quiet))
+                ex = _create_ex()
+                _record_shell(ex, files=files, print_msg=(not quiet))
                 filename = "rcfile.%s" % self.file_extension()
                 filepath = _write_shell(rec, filename)
                 shell_command += " %s" % filepath
             elif envvar:
                 # hijack env-var to insert our own script
-                rec = CommandRecorder()
-                _record_shell(rec, files=files, print_msg=(not quiet))
+                ex = _create_ex()
+                _record_shell(ex, files=files, print_msg=(not quiet))
                 filename = "%s.%s" % (envvar, self.file_extension())
-                filepath = _write_shell(rec, filename)
-                recorder.setenv(envvar, filepath)
+                filepath = _write_shell(ex, filename)
+                executor.setenv(envvar, filepath)
             else:
                 # hijack $HOME to insert our own script
                 files = [x for x in files if x not in bind_files] + list(bind_files)
                 if files:
                     for file in files:
-                        rec = CommandRecorder()
-                        rec.setenv('HOME', os.environ.get('HOME',''))
                         if file in bind_files:
                             bind_rez = True
                             files_ = [file] if d["source_bind_files"] else []
@@ -225,25 +203,27 @@ class UnixShell(Shell):
                             bind_rez = False
                             files_ = [file]
 
-                        _record_shell(rec, files=files_, bind_rez=bind_rez,
+                        ex = _create_ex()
+                        ex.setenv('HOME', os.environ.get('HOME',''))
+                        _record_shell(ex, files=files_, bind_rez=bind_rez,
                                       print_msg=bind_rez)
-                        _write_shell(rec, os.path.basename(file))
+                        _write_shell(ex, os.path.basename(file))
 
-                    recorder.setenv("HOME", get_tmpdir())
+                    executor.setenv("HOME", tmpdir)
                 else:
                     if settings.warn_shell_startup:
                         print >> sys.stderr, "WARNING: Could not configure environment " + \
                             "from within the target shell; this has been done in the " + \
                             "parent process instead."
-                    recorder.source(context_file)
+                    executor.source(context_file)
 
-        recorder.command(shell_command)
-        recorder.command("exit $?")
-        script = self._execute(recorder.commands, output_style='file')
+        executor.command(shell_command)
+        executor.command("exit $?")
 
-        target_file = tmpfile("rez-shell.%s" % self.file_extension())
+        code = executor.get_output()
+        target_file = os.path.join(tmpdir, "rez-shell.%s" % self.file_extension())
         with open(target_file, 'w') as f:
-            f.write(script)
+            f.write(code)
 
         p = subprocess.Popen([self.executable, self.norc_arg, target_file],
                              stdout=subprocess.PIPE if get_stdout else None,
@@ -274,7 +254,7 @@ class UnixShell(Shell):
             self._addline('# %s' % line)
 
     def source(self, value):
-        self._addline('source "%s"' % value)
+        self._addline('source "%s"' % os.path.expanduser(value))
 
     def shebang(self):
         self._addline("#!%s" % self.executable)

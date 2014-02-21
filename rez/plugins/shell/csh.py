@@ -50,11 +50,10 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def bind_rez_cli(self, recorder):
-        recorder.prependenv('PATH', get_script_path())
+    def bind_rez_cli(self, executor):
         curr_prompt = os.getenv("$prompt", "[%m %c]%# ")
-        recorder.setprompt("$REZ_ENV_PROMPT %s" % curr_prompt)
-        return recorder
+        executor.setprompt("$REZ_ENV_PROMPT %s" % curr_prompt)
+        return executor
 
     def setenv(self, key, value):
         self._addline('setenv %s "%s"' % (key, value))
