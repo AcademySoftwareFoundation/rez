@@ -41,7 +41,7 @@ class ResolvedContext(object):
         max_fails=-1,
         timestamp=0,
         build_requires=False,
-        assume_dt=False,
+        assume_dt=True,
         caching=True,
         package_paths=None,
         add_implicit_packages=True):
@@ -154,12 +154,26 @@ class ResolvedContext(object):
                 % (_v(r.serialize_ver), _v(next_major)))
         return r
 
+    def validate(self):
+        """
+        Check the context against the current system to see if they are
+        compatible. For instance, a loaded context may have been created on a
+        different host, with different package search paths, and so may refer
+        to packages not available on the current host.
+        """
+        # check package paths
+        for pkg in self.result.package_resolves:
+            if not os.path.exists(pkg.root):
+                raise Exception("Package %s path does not exist: %s" \
+                    % (pkg.short_name(), pkg.root))
+
+        # check system packages
+        # FIXME TODO
+
     def print_info(self, buf=sys.stdout, verbose=False):
         """
         Prints a message summarising the contents of the resolved context.
         """
-        #TODO ensure that the env has the same info present as here, and run
-        #both self and rez-env cli through the same common code to display.
         def _pr(s=''):
             print >> buf, s
 
@@ -175,7 +189,7 @@ class ResolvedContext(object):
             % (self.user, self.host, t_str, self.rez_version))
         if self.request_time:
             t_str = _rt(self.request_time)
-            _pr("time was locked to %s" % t_str)
+            _pr("packages released after %s are being ignored" % t_str)
         _pr()
 
         if verbose:
@@ -264,7 +278,7 @@ class ResolvedContext(object):
 
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
-                      get_stdout=False, get_stderr=False):
+                      block=None, **Popen_args):
         """
         Spawn a possibly-interactive shell.
         @param shell Shell type, for eg 'bash'. If None, the current shell type
@@ -277,13 +291,15 @@ class ResolvedContext(object):
         @param command If not None, execute this command in a non-interactive
             shell. Can be a list of args.
         @param quiet If True, skip the welcome message in interactive shells.
-        @param get_stdout Capture stdout.
-        @param get_stderr Capture stderr.
-        @returns (returncode, stdout, stderr), where stdout/err are None if the
-            corresponding get_stdxxx param was False.
+        @param popen_args args to pass to the shell process object constructor.
+        @returns A subprocess.Popen object representing the shell process.
         """
         if hasattr(command, "__iter__"):
             command = shlex_join(command)
+
+        # block if the shell is likely to be interactive
+        if block is None:
+            block = not (command or stdin)
 
         # create the shell
         from rez.shells import create_shell
@@ -304,20 +320,19 @@ class ResolvedContext(object):
         with open(context_file, 'w') as f:
             f.write(context_code)
 
-        # spawn the shell subprocess and block until it completes
-        r = sh.spawn_shell(context_file,
+        # spawn the shell subprocess
+        p = sh.spawn_shell(context_file,
                            rcfile=rcfile,
                            norc=norc,
                            stdin=stdin,
                            command=command,
                            quiet=quiet,
-                           get_stdout=get_stdout,
-                           get_stderr=get_stderr)
-        # clean up
-        # TODO return subclassed subproc.Popen class, and del in there/atexit
-        # TESTING
-        #rmdtemp(tmpdir)
-        return r
+                           **Popen_args)
+        if block:
+            stdout,stderr = p.communicate()
+            return p.returncode,stdout,stderr
+        else:
+            return p
 
     def save_resolve_graph(self, path, fmt=None, image_ratio=None,
                            prune_to_package=None):
@@ -353,8 +368,10 @@ class ResolvedContext(object):
 
         executor.update_env({
             "REZ_USED":             self.rez_path,
-            "REZ_PREV_REQUEST":     "$REZ_REQUEST",
-            "REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
+            # TODO add back if and when we need this
+            #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
+            # TODO if we do this when we need to do for all possible settings in evars...
+            #"REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
             "REZ_REQUEST":          _stringify_pkgs(self.result.package_requests),
             "REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
             "REZ_RESOLVE":          _stringify_pkgs(self.result.package_resolves),
@@ -382,10 +399,6 @@ class ResolvedContext(object):
             executor.bind('root', pkg_res.root)
             executor.bind('base', pkg_res.base)
             executor.bind('version', pkg_res.version)
-            if len(pkg_res.version.parts):
-                executor.bind('major_version', pkg_res.version.major)
-                if len(pkg_res.version.parts) > 1:
-                    executor.bind('minor_version', pkg_res.version.minor)
 
             commands = pkg_res.metadata.get("commands")
             if commands:
@@ -399,8 +412,8 @@ class ResolvedContext(object):
                     cmds = []
                     for cmd in commands:
                         cmd = cmd.replace("!VERSION!",      "{version}")
-                        cmd = cmd.replace("!MAJOR_VERSION!","{major_version}")
-                        cmd = cmd.replace("!MINOR_VERSION!","{minor_version}")
+                        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
+                        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
                         cmd = cmd.replace("!BASE!",         "{base}")
                         cmd = cmd.replace("!ROOT!",         "{root}")
                         cmd = cmd.replace("!USER!",         "{user}")

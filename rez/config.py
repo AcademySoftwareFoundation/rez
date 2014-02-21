@@ -343,18 +343,20 @@ class Resolver(object):
         else:
             self.package_requests = raw_package_requests[:]
 
-        if not self.package_requests:
-            # TODO fixme
-            return ([], [], "digraph g{}", 0)
+        if self.package_requests:
+            # get the resolve, possibly read/write cache
+            result = self.get_cached_resolve()
+            if not result:
+                result = self.resolve_base()
+                self.set_cached_resolve(result)
 
-        # get the resolve, possibly read/write cache
-        result = self.get_cached_resolve()
-        if not result:
-            result = self.resolve_base()
-            self.set_cached_resolve(result)
-
-        self.result.package_resolves, self.result.dot_graph, \
-            self.result.failed_attempts = result
+            self.result.package_resolves, self.result.dot_graph, \
+                self.result.failed_attempts = result
+        else:
+            # special case - empty request
+            self.result.package_resolves = []
+            self.result.dot_graph = "digraph g{}"
+            self.result.failed_attempts = 0
 
         resolve_end_time = time.time()
         self.result.resolve_time = resolve_end_time - resolve_start_time

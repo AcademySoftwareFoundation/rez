@@ -1,5 +1,6 @@
 import os.path
 from rez import plugin_factory
+from rez.settings import settings
 from rez.shells import UnixShell
 from rez.util import get_script_path
 
@@ -50,10 +51,21 @@ class CSH(UnixShell):
             source_bind_files=(not norc)
         )
 
-    def bind_rez_cli(self, executor):
-        curr_prompt = os.getenv("$prompt", "[%m %c]%# ")
-        executor.setprompt("$REZ_ENV_PROMPT %s" % curr_prompt)
-        return executor
+    def _bind_interactive_rez(self):
+        if settings.prompt:
+            stored_prompt = os.getenv("$REZ_STORED_PROMPT")
+            curr_prompt = stored_prompt or os.getenv("$prompt", "[%m %c]%# ")
+            if not stored_prompt:
+                self.setenv("REZ_STORED_PROMPT", curr_prompt)
+
+            new_prompt = "$REZ_ENV_PROMPT"
+            new_prompt = (new_prompt+" %s") if settings.prefix_prompt \
+                else ("%s "+new_prompt)
+            new_prompt = new_prompt % curr_prompt
+            self._addline('set prompt="%s"' % new_prompt)
+
+    def _saferefenv(self, key):
+        self._addline("if (!($?%s)) setenv %s" % (key,key))
 
     def setenv(self, key, value):
         self._addline('setenv %s "%s"' % (key, value))
@@ -63,9 +75,6 @@ class CSH(UnixShell):
 
     def alias(self, key, value):
         self._addline("alias %s '%s';" % (key, value))
-
-    def setprompt(self, value):
-        self._addline('set prompt="%s"' % value)
 
 
 class CSHFactory(plugin_factory.RezPluginFactory):

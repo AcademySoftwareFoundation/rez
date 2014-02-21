@@ -4,6 +4,7 @@ Misc useful stuff.
 from __future__ import with_statement
 import stat
 import sys
+import atexit
 import os
 import os.path
 import shutil
@@ -12,6 +13,9 @@ import posixpath
 import ntpath
 import UserDict
 import re
+import shutil
+import tempfile
+import threading
 import subprocess as sp
 from rez import module_root_path
 
@@ -26,15 +30,27 @@ def print_warning_once(msg):
         print >> sys.stderr, "WARNING: %s" % msg
         _once_warnings.add(msg)
 
+_tmpdirs = set()
+_tmpdir_lock = threading.Lock()
+
 def mkdtemp_():
-    import tempfile
     from rez.settings import settings
-    return tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
+    path = tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
+    try:
+        _tmpdir_lock.acquire()
+        _tmpdirs.add(path)
+    finally:
+        _tmpdir_lock.release()
+    return path
 
 def rmdtemp(path):
     if os.path.exists(path):
-        import shutil
         shutil.rmtree(path)
+
+@atexit.register
+def _rm_tmpdirs():
+    for path in _tmpdirs:
+        rmdtemp(path)
 
 def get_install_site_path():
     from rez._sys._introspect import _install_site_path
@@ -177,6 +193,26 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     if neg:
         s = '-' + s
     return s
+
+def get_epoch_time_from_str(s):
+    try:
+        return int(s)
+    except:
+        pass
+
+    try:
+        if s.startswith('-'):
+            chars = {'d':24*60*60, 'h':60*60, 'm':60, 's':1}
+            m = chars.get(s[-1])
+            if m:
+                n = float(s[1:-1])
+                secs = int(n * m)
+                now = int(time.time())
+                return max((now - secs), 0)
+    except:
+        pass
+
+    raise Exception("'%s' is an unrecognised time format." % s)
 
 def remove_write_perms(path):
     st = os.stat(path)

@@ -135,10 +135,6 @@ class Source(Action):
     name = 'source'
 Source.register()
 
-class SetPrompt(Action):
-    name = 'setprompt'
-SetPrompt.register()
-
 class Shebang(Action):
     name = 'shebang'
 Shebang.register()
@@ -259,7 +255,8 @@ class ActionManager(object):
 
     def unsetenv(self, key):
         self.actions.append(Unsetenv(key))
-        self.environ.pop(key)
+        if key in self.environ:
+            del self.environ[key]
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
@@ -277,6 +274,11 @@ class ActionManager(object):
             value = unexpanded_value
         self.interpreter.resetenv(key, value)
 
+    # we assume that ${THIS} is a valid variable ref on all shells
+    @staticmethod
+    def _keytoken(key):
+        return "${%s}" % key
+
     def _pendenv(self, key, value, action, interpfunc, addfunc):
         # environment variables are left unexpanded in values passed to the interpreter functions
         unexpanded_value = self._format(value)
@@ -287,7 +289,8 @@ class ActionManager(object):
 
         if key in self.environ:
             parts = self.environ[key].split(self._env_sep(key))
-            unexpanded_values = self._env_sep(key).join(addfunc(unexpanded_value, ['$' + key]))
+            unexpanded_values = self._env_sep(key).join(addfunc(unexpanded_value, \
+                                                                [self._keytoken(key)]))
             expanded_values = self._env_sep(key).join(addfunc(expanded_value, parts))
             self.environ[key] = expanded_values
         else:
@@ -344,10 +347,6 @@ class ActionManager(object):
     def source(self, value):
         self.actions.append(Source(value))
         self.interpreter.source(value)
-
-    def setprompt(self, value):
-        self.actions.append(SetPrompt(value))
-        self.interpreter.setprompt(value)
 
     def shebang(self):
         self.actions.append(Shebang())
@@ -417,13 +416,25 @@ class ActionInterpreter(object):
     def source(self, value):
         raise NotImplementedError
 
-    def setprompt(self, value):
-        raise NotImplementedError
-
     def shebang(self):
         raise NotImplementedError
 
-    def bind_interactive_rez(self):
+    # --- internal commands, not exposed to public rex API
+
+    def _bind_interactive_rez(self):
+        '''
+        apply changes to the env needed to expose rez in an interactive shell,
+        for eg prompt change, sourcing completion scripts etc. Do NOT add rez
+        to PATH, this is done elsewhere.
+        '''
+        raise NotImplementedError
+
+    def _saferefenv(self, key):
+        '''
+        make the var safe to reference, even if it does not yet exist. This is
+        needed because of different behaviours in shells - eg, tcsh will fail
+        on ref to undefined var, but sh will expand to the empty string.
+        '''
         raise NotImplementedError
 
 
@@ -516,7 +527,10 @@ class Python(ActionInterpreter):
     def alias(self, key, value):
         pass
 
-    def bind_interactive_rez(self):
+    def _bind_interactive_rez(self):
+        pass
+
+    def _saferefenv(self, key):
         pass
 
     def shebang(self):
@@ -665,13 +679,9 @@ class EnvironmentVariable(object):
         return self.get()
 
     def setdefault(self, value):
-        '''
-        set value if the variable does not yet exist
-        '''
-        if self:
-            return self.value()
-        else:
-            return self.set(value)
+        '''set value if the variable does not yet exist'''
+        if not self:
+            self.set(value)
 
     def __str__(self):
         return self.value()
@@ -694,7 +704,13 @@ class EnvironmentVariable(object):
 
 class RexExecutor(object):
     """
-    Runs an interpreter over code within the given namespace.
+    Runs an interpreter over code within the given namespace. You can also access
+    namespaces and rex functions directly in the executor, like so:
+
+    RexExecutor ex()
+    ex.setenv('FOO', 'BAH')
+    ex.env.FOO_SET = 1
+    ex.alias('foo','foo -l')
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
                  output_style='file', bind_rez=True, bind_syspaths=True,
@@ -755,6 +771,10 @@ class RexExecutor(object):
             self.bind('machine', system)
             self.bind('user', getpass.getuser())
 
+    @property
+    def interpreter(self):
+        return self.manager.interpreter
+
     def __getattr__(self, attr):
         """
         Allows for access such as: self.setenv('FOO','bah')
@@ -767,13 +787,6 @@ class RexExecutor(object):
         Binds an object to the execution context.
         """
         self.globals[name] = obj
-
-    def bind_interactive_rez(self):
-        """
-        Binds interactive shell elements of Rez to the context - for example,
-        prompt updates and sourcing of completion scripts.
-        """
-        self.manager.interpreter.bind_interactive_rez()
 
     def update_env(self, d):
         """
@@ -826,17 +839,8 @@ class RexExecutor(object):
 
 
 
-# TODO move into new 'Resolve' class...
+"""
 class RexResolveExecutor(RexExecutor):
-    """
-    This class brings all of the components of rex together and provides the
-    interface for executing rex code stored in `ResolvedPackage` instances after
-    a resolve.
-
-    The `RexExecutor` class is also responsible for providing an `ActionManager` to
-    the `EnvironmentDict` and providing a variable expansion function to the
-    `ActionManager`.
-    """
     def __init__(self, interpreter, resolve_result, globals_map=None,
                  environ=None, sys_path_append=True):
         super(RexResolveExecutor,self).__init__(interpreter,
@@ -903,11 +907,6 @@ class RexResolveExecutor(RexExecutor):
                 self._parse_export_command(cmd)
 
     def execute_packages(self, metadata_commands_section='commands'):
-        """
-        metadata_commands_section: string
-            name of the section in the package metdata where the commands to be
-            executed should be found
-        """
         # build the environment commands
         # the environment dictionary to be passed during execution of python code.
         #self = self._setup_execution_namespace()
@@ -983,14 +982,14 @@ class RexResolveExecutor(RexExecutor):
         return self.manager.get_output()
 
     def add_meta_vars(self, meta_vars, shallow_meta_vars):
-        """
+        "
         meta_vars: list of str
                 each string is a key whos value will be saved into an
                 env-var named REZ_META_<KEY> (lists are comma-separated).
         shallow_meta_vars: list of str
                 same as meta-vars, but only the values from those packages directly
                 requested are baked into the env var REZ_META_SHALLOW_<KEY>.
-        """
+        "
         # add meta env vars
         pkg_req_fam_set = set([x.name for x in self.package_requests if not x.is_anti()])
         meta_envvars = {}
@@ -1076,3 +1075,4 @@ class RexResolveExecutor(RexExecutor):
         else:
             # assume we can execute this as a straight command
             self.manager.command(cmd)
+"""

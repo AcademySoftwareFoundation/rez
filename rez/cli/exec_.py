@@ -1,20 +1,18 @@
-"""
-Show current Rez settings
-"""
 import os
 from rez.util import pretty_env_dict
 from rez.rex import RexExecutor, Python
+from rez.system import system
 from rez.shells import create_shell, get_shell_types
 
 
 formats = get_shell_types() + ['dict']
 
 def setup_parser(parser):
-    parser.add_argument("-f", "--format", type=str,
+    parser.add_argument("-f", "--format", type=str, choices=formats,
                         help="print output in the given format. If None, the "
-                        "current shell language is used. If 'dict', a dictionary "
-                        "of the resulting environment is printed. One of: %s"
-                        % str(formats))
+                        "current shell language (%s) is used. If 'dict', a "
+                        "dictionary of the resulting environment is printed"
+                        % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the code in an empty environment")
     parser.add_argument("FILE", type=str,

@@ -1,7 +1,3 @@
-"""
-Show information on a Rez context, usually the current context, if we are in
-a Rez-resolved environment.
-"""
 import os
 import os.path
 import sys
@@ -26,6 +22,13 @@ current_rxt_file = os.getenv("REZ_RXT_FILE")
 if current_rxt_file and not os.path.exists(current_rxt_file):
     current_rxt_file = None
 
+if current_rxt_file:
+    FILE_nargs = '?'
+    FILE_help = "rex context file to execute, or the current context if None"
+else:
+    FILE_nargs = None
+    FILE_help = "rex context file to execute"
+
 
 def setup_parser(parser):
     parser.add_argument("--print-request", dest="print_request", action="store_true",
@@ -43,16 +46,14 @@ def setup_parser(parser):
                         "Ignored if --interpret is used.")
     parser.add_argument("-i", "--interpret", action="store_true",
                         help="interpret the context and print the resulting code")
-    parser.add_argument("-f", "--format", type=str,
+    parser.add_argument("-f", "--format", type=str, choices=formats,
                         help="print interpreted output in the given format. If "
-                        "None, the current shell language is used. If 'dict', "
+                        "None, the current shell language (%s) is used. If 'dict', "
                         "a dictionary of the resulting environment is printed. "
-                        "Ignored if --interpret is False. "
-                        "One of: %s" % str(formats))
+                        "Ignored if --interpret is False" % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
-    parser.add_argument("FILE", type=str, nargs='?',
-                        help='rex context file to execute')
+    parser.add_argument("FILE", type=str, nargs=FILE_nargs, help=FILE_help)
 
 
 # returns (filepath, must_cleanup)

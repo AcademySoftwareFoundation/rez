@@ -3,6 +3,7 @@ import select
 import os
 import os.path
 import subprocess
+from rez.settings import settings
 from rez import module_root_path, plugin_factory
 from rez.shells import UnixShell
 from rez.util import get_script_path
@@ -52,18 +53,19 @@ class SH(UnixShell):
             source_bind_files=False
         )
 
-    """
-    def bind_rez_cli(self, executor):
-        curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
-        executor.setprompt("\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt)
-        completion = os.path.join(module_root_path, "_sys", "bash_completion")
-        executor.source(completion)
-    """
+    def _bind_interactive_rez(self):
+        if settings.prompt:
+            stored_prompt = os.getenv("$REZ_STORED_PROMPT")
+            curr_prompt = stored_prompt or os.getenv("$PS1", "\\h:\\w]$ ")
+            if not stored_prompt:
+                self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
-    def bind_interactive_rez(self):
-        curr_prompt = os.getenv("$PS1", "\\h:\\w]$ ")
-        new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\] %s" % curr_prompt
-        self._addline('export PS1="%s"' % new_prompt)
+            new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
+            new_prompt = (new_prompt+" %s") if settings.prefix_prompt \
+                else ("%s "+new_prompt)
+            new_prompt = new_prompt % curr_prompt
+            self._addline('export PS1="%s"' % new_prompt)
+
         completion = os.path.join(module_root_path, "_sys", "bash_completion")
         self.source(completion)
 
@@ -77,8 +79,8 @@ class SH(UnixShell):
         self._addline("{key}() {{ {value}; }};export -f {key};".format( \
             key=key, value=value))
 
-    def setprompt(self, value):
-        self._addline('export PS1="%s"' % value)
+    def _saferefenv(self, key):
+        pass
 
 
 class SHFactory(plugin_factory.RezPluginFactory):

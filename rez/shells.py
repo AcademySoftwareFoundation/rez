@@ -25,7 +25,11 @@ def create_shell(shell=None, **kwargs):
     return shell_plugin_manager.create_instance(shell=shell, **kwargs)
 
 
+
 class Shell(ActionInterpreter):
+    """
+    Class representing a shell, such as bash or tcsh.
+    """
     @classmethod
     def name(cls):
         raise NotImplementedError
@@ -53,7 +57,7 @@ class Shell(ActionInterpreter):
         return type(self)()
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
-                    command=None, quiet=False, get_stdout=False, get_stderr=False):
+                    command=None, quiet=False, **Popen_args):
         """
         Spawn a possibly interactive subshell.
         @param context_file File that must be sourced in the new shell, this
@@ -64,15 +68,16 @@ class Shell(ActionInterpreter):
         @param command If not None, execute this command in a non-interactive shell.
         @param quiet If True, don't show the configuration summary, and suppress
             any stdout from startup scripts.
-        @param get_stdout Capture stdout.
-        @param get_stderr Capture stderr.
-        @returns (returncode, stdout, stderr), where stdout/err are None if the
-            corresponding get_stdxxx param was False.
+        @param popen_args args to pass to the shell process object constructor.
+        @returns A subprocess.Popen object representing the shell process.
         """
         raise NotImplementedError
 
 
 class UnixShell(Shell):
+    """
+    A base class for common *nix shells, such as bash and tcsh.
+    """
     executable = None
     rcfile_arg = None
     norc_arg = None
@@ -116,7 +121,7 @@ class UnixShell(Shell):
             print >> sys.stderr, "WARNING: %s ignored by %s shell" % (option, cls.name())
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
-                    command=None, quiet=False, get_stdout=False, get_stderr=False):
+                    command=None, quiet=False, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, stdin, command)
         tmpdir = os.path.dirname(context_file)
@@ -135,7 +140,7 @@ class UnixShell(Shell):
             if envvar:
                 ex.unsetenv(envvar)
             if bind_rez:
-                ex.bind_interactive_rez()
+                ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
@@ -161,6 +166,7 @@ class UnixShell(Shell):
         if settings.prompt:
             # todo need to use curly braces for safety but this is currently broken
             newprompt = settings.prompt + '$REZ_ENV_PROMPT'
+            executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 
         if d["command"]:
@@ -225,14 +231,8 @@ class UnixShell(Shell):
         with open(target_file, 'w') as f:
             f.write(code)
 
-        p = subprocess.Popen([self.executable, self.norc_arg, target_file],
-                             stdout=subprocess.PIPE if get_stdout else None,
-                             stderr=subprocess.PIPE if get_stderr else None)
-
-        out_, err_ = p.communicate()
-        return (p.returncode,
-                out_ if get_stdout else None,
-                err_ if get_stderr else None)
+        return subprocess.Popen([self.executable, self.norc_arg, target_file],
+                                **Popen_args)
 
     def resetenv(self, key, value, friends=None):
         self._addline(self.setenv(key, value))
