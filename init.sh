@@ -42,7 +42,7 @@ else
 	PATH=`echo $PATH | /usr/bin/tr ':' '\n' | grep -v '^$' | grep -v '!REZ_BASE_PATH!' | /usr/bin/tr '\n' ':'`
 	export PATH=$PATH:$REZ_PATH/bin
 
-	source $REZ_PATH/bin/_complete
+	source $REZ_PATH/bin/_complete.sh
 fi
 
 

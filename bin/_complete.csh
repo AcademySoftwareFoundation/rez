@@ -1,0 +1,10 @@
+complete rez 'C/*/`_rez_completion`/'
+complete rez-config 'C/*/`_rez_completion`/'
+complete rez-env 'C/*/`_rez_completion`/'
+complete rez-help 'C/*/`_rez_completion`/'
+complete rez-which 'C/*/`_rez_completion`/'
+complete rez-run 'C/*/`_rez_completion`/'
+complete rez-depends 'C/*/`_rez_completion`/'
+complete rez-diff 'C/*/`_rez_completion`/'
+complete rez-info 'C/*/`_rez_completion`/'
+
