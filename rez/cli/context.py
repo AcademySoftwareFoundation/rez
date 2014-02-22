@@ -22,13 +22,6 @@ current_rxt_file = os.getenv("REZ_RXT_FILE")
 if current_rxt_file and not os.path.exists(current_rxt_file):
     current_rxt_file = None
 
-if current_rxt_file:
-    FILE_nargs = '?'
-    FILE_help = "rex context file to execute, or the current context if None"
-else:
-    FILE_nargs = None
-    FILE_help = "rex context file to execute"
-
 
 def setup_parser(parser):
     parser.add_argument("--print-request", dest="print_request", action="store_true",
@@ -53,7 +46,8 @@ def setup_parser(parser):
                         "Ignored if --interpret is False" % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
-    parser.add_argument("FILE", type=str, nargs=FILE_nargs, help=FILE_help)
+    parser.add_argument("FILE", type=str, nargs='?',
+                        help="rex context file (current context if not supplied)")
 
 
 # returns (filepath, must_cleanup)

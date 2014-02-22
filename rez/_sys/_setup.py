@@ -36,12 +36,12 @@ def _mkpkg(name, version, content=None):
 
 # create our own scripts, located inside the rez distribution, that will work within
 # an unconfigured environment (ie, PYTHONPATH may not contain Rez).
-def _create_scripts(install_base_dir, version, scripts):
-    new_bin_path = os.path.join(module_root_path, "scripts")
+def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
+    new_bin_path = os.path.join(module_root_path, "bin")
     rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     os.mkdir(new_bin_path)
 
-    code = textwrap.dedent( \
+    patch = textwrap.dedent( \
     """
     #!%(python_exe)s
     import sys
@@ -52,30 +52,33 @@ def _create_scripts(install_base_dir, version, scripts):
     _install_base = os.path.realpath(_install_base)
     site.addsitedir(_install_base)
     sys.path.insert(0, _install_base)
-
-    __requires__ = 'rez==%(version)s'
-    import pkg_resources
-    pkg_resources.run_script('rez==%(version)s', '%(script_name)s')
-    """).strip()
+    """ % dict(
+        python_exe=sys.executable,
+        rel_path=rel_install_base_dir))
 
     for script in scripts:
-        fpath = os.path.join(new_bin_path, script)
-        contents = code % dict(
-            python_exe=sys.executable,
-            rel_path=rel_install_base_dir,
-            version=version,
-            script_name=script)
-        with open(fpath, 'w') as f:
-            f.write(contents)
+        file = os.path.join(install_scripts_dir, script)
+        if os.path.isfile(file):
+            mode = os.stat(file).st_mode
+            with open(file) as f:
+                code = f.read()
 
-        os.chmod(fpath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
-            | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+            loc1 = patch.split('\n')
+            loc2 = code.split('\n')
+            loc = loc1 + loc2[1:]
+
+            patched_code = '\n'.join(loc).strip()
+            dst = os.path.join(new_bin_path, script)
+            with open(dst, 'w') as f:
+                f.write(patched_code)
+            os.chmod(dst, mode)
 
     return new_bin_path
 
 
 # this trickery is needed so that the rezolve script can patch the python environment
 # when inside a rev-env'd shell, so that rez can operate correctly.
+"""
 def _create_introspection_src(install_base_dir, script_dir):
     path = os.path.join(module_root_path, "_sys", "_introspect.py")
     with open(path, 'w') as f:
@@ -84,11 +87,14 @@ def _create_introspection_src(install_base_dir, script_dir):
 
         relpath = os.path.relpath(script_dir, module_root_path)
         f.write("_script_path = '%s'\n" % relpath)
+"""
 
 
-def post_install(install_base_dir, version, scripts):
-    script_dir = _create_scripts(install_base_dir, version, scripts)
-    _create_introspection_src(install_base_dir, script_dir)
+def post_install(install_base_dir, install_scripts_dir, version, scripts):
+    # create patched scripts
+    script_dir = _create_scripts(install_base_dir, install_scripts_dir,
+                                 version, scripts)
+    #_create_introspection_src(install_base_dir, script_dir)
 
     print "Creating bootstrap package: platform..."
     _mkpkg("platform", system.platform)
