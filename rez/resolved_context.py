@@ -100,7 +100,7 @@ class ResolvedContext(object):
             package_paths=package_paths)
 
         self.result = resolver.resolve(self.req_packages, \
-            no_os=(not self.add_implicit_packages),
+            no_implicit=(not self.add_implicit_packages),
             meta_vars=['tools'],
             shallow_meta_vars=['tools'])
 

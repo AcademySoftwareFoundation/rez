@@ -33,7 +33,6 @@ class CSH(UnixShell):
             for file in (
                     "~/.tcshrc",
                     "~/.cshrc",
-                    "~/.history",
                     "~/.login",
                     "~/.cshdirs"):
                 if os.path.exists(os.path.expanduser(file)):

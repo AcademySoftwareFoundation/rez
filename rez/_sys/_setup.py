@@ -76,25 +76,10 @@ def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
     return new_bin_path
 
 
-# this trickery is needed so that the rezolve script can patch the python environment
-# when inside a rev-env'd shell, so that rez can operate correctly.
-"""
-def _create_introspection_src(install_base_dir, script_dir):
-    path = os.path.join(module_root_path, "_sys", "_introspect.py")
-    with open(path, 'w') as f:
-        relpath = os.path.relpath(install_base_dir, module_root_path)
-        f.write("_install_site_path = '%s'\n" % relpath)
-
-        relpath = os.path.relpath(script_dir, module_root_path)
-        f.write("_script_path = '%s'\n" % relpath)
-"""
-
-
 def post_install(install_base_dir, install_scripts_dir, version, scripts):
     # create patched scripts
     script_dir = _create_scripts(install_base_dir, install_scripts_dir,
                                  version, scripts)
-    #_create_introspection_src(install_base_dir, script_dir)
 
     print "Creating bootstrap package: platform..."
     _mkpkg("platform", system.platform)

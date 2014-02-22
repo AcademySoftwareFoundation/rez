@@ -76,9 +76,12 @@ tmpdir: '/tmp'
 # System packages that are implicitly added to all package resolves, unless
 # the --no-implicit flag is used.
 implicit_packages:
-- '~platform-{platform}'
-- '~arch-{arch}'
-- '~os-{os}'
+- 'platform-{platform}'
+- 'arch-{arch}'
+# TODO put this back once version submodule is updated
+#- '~platform-{platform}'
+#- '~arch-{arch}'
+#- '~os-{os}'
 
 # The editor used to get user input in some cases; rez-release uses this.
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
@@ -181,4 +184,4 @@ _type:
 
 # What seperator to expect in env-vars
 _sep:
-    implicit_packages: ','
+    implicit_packages: ' '

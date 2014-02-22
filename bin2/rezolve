@@ -8,8 +8,6 @@ from rez import __version__
 def _add_common_args(subp):
     subp.add_argument("--debug", dest="debug", action="store_true",
                       help=argparse.SUPPRESS)
-    #subp.add_argument("--no-del-tmpdir", dest="no_del_tmpdir", action="store_true",
-    #                  help=argparse.SUPPRESS)
 
 
 def _subcmd_name(cli_name):
@@ -59,12 +57,11 @@ if __name__ == '__main__':
     exc_type = NeverException if opts.debug else Exception
     try:
         returncode = command(opts, subparsers[cmd])
+    except NotImplementedError as e:
+        import traceback
+        raise Exception(traceback.format_exc())
     except exc_type as e:
         print >> sys.stderr, str(e)
         sys.exit(1)
-
-    #if not opts.no_del_tmpdir:
-    #    from rez.util import clean_tmpdir
-    #    clean_tmpdir()
 
     sys.exit(returncode or 0)

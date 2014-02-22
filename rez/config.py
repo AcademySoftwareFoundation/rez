@@ -202,7 +202,7 @@ class Resolver(object):
         self.result.request_time = time_epoch
 
     # TODO move a lot of these msgs into the exceptions themselves
-    def guarded_resolve(self, pkg_req_strs, no_os=False, meta_vars=None,
+    def guarded_resolve(self, pkg_req_strs, no_implicit=False, meta_vars=None,
                         shallow_meta_vars=None, dot_file=None, print_dot=False):
         """
         Just a wrapper for resolve() which does some command-line friendly stuff and has some
@@ -210,7 +210,7 @@ class Resolver(object):
         @return None on failure, same as resolve() otherwise.
         """
         try:
-            result = self.resolve(pkg_req_strs, no_os, meta_vars,
+            result = self.resolve(pkg_req_strs, no_implicit, meta_vars,
                                   shallow_meta_vars)
 
         except PkgSystemError, e:
@@ -298,7 +298,7 @@ class Resolver(object):
 
         return result
 
-    def resolve(self, pkg_reqs, no_os=False, meta_vars=None,
+    def resolve(self, pkg_reqs, no_implicit=False, meta_vars=None,
                 shallow_meta_vars=None):
         """
         Perform a package resolve.
@@ -306,8 +306,8 @@ class Resolver(object):
         ----------
         pkg_reqs: list of str or PackageRequest
                 packages to resolve into a configuration
-        no_os: bool
-                whether to include the OS package.
+        no_implicit: bool
+                whether to include the implicit packages.
         @returns
         (a) a list of ResolvedPackage objects, representing the resolved config;
         (b) a list of Commands which, when processed by a CommandInterpreter, should configure the environment;
@@ -328,17 +328,20 @@ class Resolver(object):
         raw_package_requests = [_pkg_request(x) for x in pkg_reqs]
 
         # TODO replace with new 'implicit packages' feature
-        if not no_os:
+        if not no_implicit:
             to_add = []
+            """
             plat_pkg = "platform-" + system.platform
             arch_pkg = "arch-" + system.arch
             for os_pkg_str in(plat_pkg, arch_pkg):
-                os_pkg_req = str_to_pkg_req(os_pkg_str,
+            """
+            for pkg_str in settings.implicit_packages:
+                im_pkg_req = str_to_pkg_req(pkg_str,
                                             self.rctxt.time_epoch,
                                             self.rctxt.resolve_mode,
                                             self.rctxt.package_paths)
-                if os_pkg_req not in raw_package_requests:
-                    to_add.append(os_pkg_req)
+                if im_pkg_req not in raw_package_requests:
+                    to_add.append(im_pkg_req)
             self.package_requests = to_add + raw_package_requests
         else:
             self.package_requests = raw_package_requests[:]

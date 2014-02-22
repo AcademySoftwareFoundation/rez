@@ -52,19 +52,8 @@ def _rm_tmpdirs():
     for path in _tmpdirs:
         rmdtemp(path)
 
-"""
-def get_install_site_path():
-    from rez._sys._introspect import _install_site_path
-    return os.path.realpath(os.path.join(module_root_path, _install_site_path))
-
-def get_script_path():
-    from rez._sys._introspect import _script_path
-    return os.path.realpath(os.path.join(module_root_path, _script_path))
-"""
-
 def get_script_path():
     return os.path.join(module_root_path, "bin")
-
 
 def shlex_join(value):
     import pipes
