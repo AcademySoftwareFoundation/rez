@@ -5,6 +5,10 @@ _software_packages()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
+    if [ -z "$REZ_PACKAGES_PATH" ]; then
+        REZ_PACKAGES_PATH=`rezolve settings -p packages_path`
+    fi
+
     fam=''
     entries=''
     if [[ ${cur} == *-* ]] ; then

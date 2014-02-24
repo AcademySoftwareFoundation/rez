@@ -370,8 +370,8 @@ class ResolvedContext(object):
             "REZ_USED":             self.rez_path,
             # TODO add back if and when we need this
             #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
-            # TODO if we do this when we need to do for all possible settings in evars...
-            #"REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
+            # not strictly necessary, but speeds up sh/csh autocomplete
+            "REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
             "REZ_REQUEST":          _stringify_pkgs(self.result.package_requests),
             "REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
             "REZ_RESOLVE":          _stringify_pkgs(self.result.package_resolves),
