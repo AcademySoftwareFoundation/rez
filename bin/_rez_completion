@@ -1,0 +1,6 @@
+#!/bin/tcsh
+
+foreach path (`echo ${REZ_PACKAGES_PATH} | /usr/bin/tr ":" " "`) 
+    /usr/bin/find -L $path -maxdepth 2 -mindepth 2 -not -path "*/\.*" -type d | /bin/sed "s;$path/;;g" | /usr/bin/tr "/" "-"  
+end
+

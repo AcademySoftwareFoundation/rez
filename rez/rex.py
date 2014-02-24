@@ -20,11 +20,40 @@ from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
 from rez.exceptions import PkgCommandError
 
 
-PARSE_EXPORT_COMMAND_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
 
-EnvExpand = Template
 
+_varprog = None
+
+# Expand paths containing shell variable substitutions.
+# This expands the forms $variable and ${variable} only.
+# Non-existent variables are left unchanged.
+def expandvars(path, environ):
+    """Expand shell variables of form $var and ${var}.  Unknown variables
+    are left unchanged."""
+    global _varprog
+    if '$' not in path:
+        return path
+    if not _varprog:
+        import re
+        _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
+    i = 0
+    while True:
+        m = _varprog.search(path, i)
+        if not m:
+            break
+        i, j = m.span(0)
+        name = m.group(1)
+        if name.startswith('{') and name.endswith('}'):
+            name = name[1:-1]
+        if name in environ:
+            tail = path[j:]
+            path = path[:i] + environ[name]
+            i = len(path)
+            path += tail
+        else:
+            i = j
+    return path
 
 
 #===============================================================================
@@ -218,7 +247,9 @@ class ActionManager(object):
             return self.formatter(value)
 
     def _expand(self, value):
-        return os.path.expanduser(os.path.expandvars(value))
+        value = expandvars(value, self.environ)
+        value = expandvars(value, self.parent_environ)
+        return os.path.expanduser(value)
 
     def get_output(self):
         return self.interpreter.get_output(self)
@@ -238,15 +269,15 @@ class ActionManager(object):
             raise PkgCommandError("Referenced undefined environment variable: %s" % key)
 
     def setenv(self, key, value):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
         # TODO: check if value has already been set by another package
         self.actions.append(Setenv(key, unexpanded_value))
-
         self.environ[key] = expanded_value
+
         if self.interpreter.expand_env_vars:
             value = expanded_value
         else:
@@ -260,27 +291,27 @@ class ActionManager(object):
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
         self.actions.append(Resetenv(key, unexpanded_value, friends))
-
         self.environ[key] = expanded_value
+
         if self.interpreter.expand_env_vars:
             value = expanded_value
         else:
             value = unexpanded_value
         self.interpreter.resetenv(key, value)
 
-    # we assume that ${THIS} is a valid variable ref on all shells
+    # we assume that ${THIS} is a valid variable ref in all shells
     @staticmethod
     def _keytoken(key):
         return "${%s}" % key
 
     def _pendenv(self, key, value, action, interpfunc, addfunc):
-        # environment variables are left unexpanded in values passed to the interpreter functions
+        # environment variables may be left unexpanded in values passed to interpreter functions
         unexpanded_value = self._format(value)
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
@@ -360,8 +391,8 @@ class ActionManager(object):
 class ActionInterpreter(object):
     """
     Abstract base class that provides callbacks for rex Actions.  This class
-    should not be used directly. Its callbacks are triggered by the
-    `ActionManager` in response to actions issues by user code written using
+    should not be used directly. Its methods are called by the
+    `ActionManager` in response to actions issued by user code written using
     the rex python API.
 
     Sub-classes should override the `get_output` method to return
@@ -369,10 +400,22 @@ class ActionInterpreter(object):
     shell language like bash would return a string of shell code.  An interpreter
     for an active python session might return a dictionary of the modified
     environment.
+
+    Sub-classes can override the `expand_env_vars` class variable to instruct
+    the `ActionManager` whether or not to expand the value of environment
+    variables which reference other variables (e.g. "this-${THAT}").
     """
     expand_env_vars = False
 
     def get_output(self, manager):
+        '''
+        Returns any implementation specific data.
+
+        Parameters
+        ----------
+        manager: ActionManager
+            the manager of this interpreter
+        '''
         raise NotImplementedError
 
     # --- commands
@@ -546,14 +589,23 @@ class Python(ActionInterpreter):
 #===============================================================================
 
 class NamespaceFormatter(Formatter):
+    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
+
     def __init__(self, namespace):
         Formatter.__init__(self)
         self.namespace = namespace
 
+    def format(self, format_string, *args, **kwargs):
+        def escape_envvar(matchobj):
+            return "${{%s}}" % (matchobj.group("var"))
+
+        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+        return Formatter.format(self, escaped_format_string, *args, **kwargs)
+
     def get_value(self, key, args, kwds):
         """
-        'get_value' is used to retrieve a given field value.  The 'key' argument
-        will be either an integer or a string.  If it is an integer, it represents
+        'get_value' is used to retrieve a given field value. The 'key' argument
+        will be either an integer or a string. If it is an integer, it represents
         the index of the positional argument in 'args'; If it is a string, then
         it represents a named argument in 'kwargs'.
         """
@@ -562,9 +614,9 @@ class NamespaceFormatter(Formatter):
                 # Check explicitly passed arguments first
                 return kwds[key]
             except KeyError:
-                return self.namespace.get(key, '')
+                return self.namespace[key]
         else:
-            return Formatter.get_value(key, args, kwds)
+            return Formatter.get_value(self, key, args, kwds)
 
 
 class MissingPackage(object):
@@ -838,7 +890,6 @@ class RexExecutor(object):
         return self.formatter.format(str(value))
 
 
-
 """
 class RexResolveExecutor(RexExecutor):
     def __init__(self, interpreter, resolve_result, globals_map=None,
@@ -885,7 +936,7 @@ class RexResolveExecutor(RexExecutor):
                 raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
                                                          pkg_res.metafile,
                                                          traceback.format_exc()))
-        # old style:
+        # old style package.yaml:
         elif isinstance(commands, list):
             if settings.warn_old_commands:
                 print_warning_once("%s is using old-style commands."
@@ -1026,6 +1077,7 @@ class RexResolveExecutor(RexExecutor):
 
         if cmd.startswith('export '):
             var, value = cmd.split(' ', 1)[1].split('=', 1)
+            value = value.strip('"')
             # get an EnvironmentVariable instance
             var_obj = self.environ[var]
             parts = value.split(PARSE_EXPORT_COMMAND_ENV_SEP_MAP.get(var, os.pathsep))

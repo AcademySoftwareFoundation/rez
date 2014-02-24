@@ -2,4 +2,5 @@
 
 . _set-rez-env
 
-_rez_query_package_yaml "$@"
+rez_.py query "$@"
+

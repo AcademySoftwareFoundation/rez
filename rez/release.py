@@ -390,7 +390,12 @@ class RezReleaseMode(object):
         '''
         Return the version (as a Version object) from the tag.
         '''
-        return versions.Version(tag)
+        match = re.search(settings.vcs_tag_name_version_regex, tag)
+
+        if match:
+            return versions.Version(match.group(1))
+
+        return versions.Version(None)
 
     def get_url(self):
         '''
@@ -768,7 +773,8 @@ class RezReleaseMode(object):
 
         self.validate_version()
 
-        self._get_commit_message()
+        if not self.commit_message:
+            self._get_commit_message()
 
     def build(self):
         '''
@@ -1353,9 +1359,11 @@ class GitRezReleaseMode(RezReleaseMode):
 
     def get_changelog(self):
         result = self.last_tagged_version
+
         if not result:
             return "Initial Release - No Previous Tag Found."
         changelog = self.repo.git.log("%s-%s.." % (self.metadata['name'], result), no_merges=True)
+
         return changelog if changelog else "No changes since last tag."
 
     def create_release_tag(self):
