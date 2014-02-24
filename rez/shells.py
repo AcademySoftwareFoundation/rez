@@ -164,8 +164,7 @@ class UnixShell(Shell):
         executor = _create_ex()
 
         if settings.prompt:
-            # todo need to use curly braces for safety but this is currently broken
-            newprompt = settings.prompt + '$REZ_ENV_PROMPT'
+            newprompt = '${REZ_ENV_PROMPT}%s' % settings.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 

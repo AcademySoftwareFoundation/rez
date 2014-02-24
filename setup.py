@@ -20,7 +20,8 @@ scripts = [
     "rez-settings",
     "rez-env",
     "rez-context",
-    "rez-exec"
+    "rez-exec",
+    "_rez_csh_complete"
 ]
 
 requires = [

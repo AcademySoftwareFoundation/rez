@@ -3,6 +3,7 @@ from rez import plugin_factory
 from rez.settings import settings
 from rez.shells import UnixShell
 from rez.util import get_script_path
+from rez import module_root_path
 
 
 
@@ -62,6 +63,9 @@ class CSH(UnixShell):
                 else ("%s "+new_prompt)
             new_prompt = new_prompt % curr_prompt
             self._addline('set prompt="%s"' % new_prompt)
+
+        completion = os.path.join(module_root_path, "_sys", "complete.csh")
+        self.source(completion)
 
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key,key))

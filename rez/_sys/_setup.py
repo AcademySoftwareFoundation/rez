@@ -55,6 +55,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
     """ % dict(
         python_exe=sys.executable,
         rel_path=rel_install_base_dir))
+    patch_loc = patch.split('\n')
 
     for script in scripts:
         file = os.path.join(install_scripts_dir, script)
@@ -63,11 +64,14 @@ def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
             with open(file) as f:
                 code = f.read()
 
-            loc1 = patch.split('\n')
-            loc2 = code.split('\n')
-            loc = loc1 + loc2[1:]
+            loc = code.split('\n')
+            shebang = loc[0]
+            loc = patch_loc + loc[1:]
 
-            patched_code = '\n'.join(loc).strip()
+            # only patch python scripts, others are unchanged
+            is_python = ("python" in shebang.lower())
+            patched_code = '\n'.join(loc).strip() if is_python else code
+
             dst = os.path.join(new_bin_path, script)
             with open(dst, 'w') as f:
                 f.write(patched_code)
