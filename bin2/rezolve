@@ -71,13 +71,16 @@ def add_env(parser):
     from rez.system import system
     from rez.shells import get_shell_types
     shells = get_shell_types()
+    print_types = ("resolve", "context", "script", "dict")
 
     parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
                         help="target shell type, defaults to the current shell "
                         "(%s)" % system.shell)
-    parser.add_argument("-r", "--rcfile", type=str,
+    parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
                         "standard startup scripts, if possible")
+    parser.add_argument("--norc", action="store_true",
+                        help="skip loading of startup scripts")
     parser.add_argument("-c", "--command", type=str,
                         help="read commands from string")
     parser.add_argument("-s", "--stdin", action="store_true",
@@ -87,10 +90,18 @@ def add_env(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
+    parser.add_argument("--print", type=str, dest="print_", metavar="TYPE",
+                        choices=print_types,
+                        help="print information about the resolved environment, "
+                        "rather than spawning it")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("--mf", "--max-fails", dest="max_fails", type=int,
+                        default=-1, metavar='N',
+                        help="exit when the number of failed configuration "
+                        "attempts exceeds N")
     parser.add_argument("-o", "--output", type=str,
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "

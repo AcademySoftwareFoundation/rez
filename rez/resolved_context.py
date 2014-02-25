@@ -261,6 +261,9 @@ class ResolvedContext(object):
             rows.append((pkg.short_name(), pkg.root, tok))
         _pr('\n'.join(columnise(rows)))
 
+        if verbose:
+            _pr("resolved after %d attempts" % self.failed_attempts)
+
     @on_success
     def get_environ(self, parent_environ=None):
         """

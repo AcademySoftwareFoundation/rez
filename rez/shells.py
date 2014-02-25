@@ -6,6 +6,7 @@ from rez.settings import settings
 from rez.util import which, shlex_join
 import subprocess
 import os.path
+import sys
 
 
 
@@ -138,7 +139,7 @@ class UnixShell(Shell):
             if bind_rez:
                 ex.source(context_file)
             for file in files:
-                if os.path.exists(file):
+                if os.path.exists(os.path.expanduser(file)):
                     ex.source(file)
             if envvar:
                 ex.unsetenv(envvar)
@@ -190,7 +191,7 @@ class UnixShell(Shell):
                 ex = _create_ex()
                 _record_shell(ex, files=files, print_msg=(not quiet))
                 filename = "rcfile.%s" % self.file_extension()
-                filepath = _write_shell(rec, filename)
+                filepath = _write_shell(ex, filename)
                 shell_command += " %s" % filepath
             elif envvar:
                 # hijack env-var to insert our own script
