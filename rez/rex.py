@@ -13,8 +13,8 @@ import pipes
 import time
 import getpass
 from rez import module_root_path
-from rez.settings import settings
 from rez.system import system
+from rez.settings import settings
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path
 from rez.exceptions import PkgCommandError
@@ -811,8 +811,9 @@ class RexExecutor(object):
         paths = []
         if bind_rez:
             paths = [get_script_path()]
+        # TODO make this configurable. Will probably be better to append syspaths at the end
         if bind_syspaths:
-            paths += system.executable_paths
+            paths += self._get_syspaths()
         if paths:
             self.environ["PATH"] = os.pathsep.join(paths)
 
@@ -888,6 +889,14 @@ class RexExecutor(object):
 
     def expand(self, value):
         return self.formatter.format(str(value))
+
+    def _get_syspaths(self):
+        from rez.shells import Shell, create_shell
+        sh = self.interpreter if isinstance(self.interpreter, Shell) \
+            else create_shell()
+        return sh.get_syspaths()
+
+
 
 
 """

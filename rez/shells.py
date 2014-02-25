@@ -38,6 +38,10 @@ class Shell(ActionInterpreter):
     def file_extension(cls):
         raise NotImplementedError
 
+    @classmethod
+    def get_syspaths(cls):
+        raise NotImplementedError
+
     def __init__(self):
         self._lines = []
 
@@ -81,7 +85,9 @@ class UnixShell(Shell):
     executable = None
     rcfile_arg = None
     norc_arg = None
+    command_arg = '-c'
     stdin_arg = '-s'
+    syspaths = None
 
     #
     # startup rules
@@ -111,10 +117,6 @@ class UnixShell(Shell):
         """
         raise NotImplementedError
 
-    #def bind_rez_cli(self, recorder):
-    #    """ Make rez cli visible in the current shell """
-    #    raise NotImplementedError
-
     @classmethod
     def _ignore_bool_option(cls, option, val):
         if val and settings.warn_shell_startup:
@@ -136,7 +138,8 @@ class UnixShell(Shell):
             if bind_rez:
                 ex.source(context_file)
             for file in files:
-                ex.source(file)
+                if os.path.exists(file):
+                    ex.source(file)
             if envvar:
                 ex.unsetenv(envvar)
             if bind_rez:

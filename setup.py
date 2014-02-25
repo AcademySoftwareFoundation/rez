@@ -32,7 +32,6 @@ requires = [
     "Yapsy >= 1.10.0",
     "python-memcached >= 1.0",
     "GitPython >= 0.3.2.RC1"
-    #"psutil >= 1.2.1"
 ]
 
 if sys.version_info < (2,7):

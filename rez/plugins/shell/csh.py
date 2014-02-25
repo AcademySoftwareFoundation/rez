@@ -1,4 +1,5 @@
 import os.path
+import subprocess
 from rez import plugin_factory
 from rez.settings import settings
 from rez.shells import UnixShell
@@ -18,6 +19,23 @@ class CSH(UnixShell):
     @classmethod
     def file_extension(cls):
         return 'csh'
+
+    @classmethod
+    def get_syspaths(cls):
+        if not cls.syspaths:
+            cmd = "cmd=`which %s`; unset PATH; $cmd %s 'echo __PATHS_ $PATH'" \
+                  % (cls.name(), cls.command_arg)
+            p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, shell=True)
+            out_,err_ = p.communicate()
+            if p.returncode:
+                raise RuntimeError("Could not get executable paths: %s" % err_)
+            else:
+                lines = out_.split('\n')
+                line = [x for x in lines if "__PATHS_" in x.split()][0]
+                paths = line.strip().split()[-1].split(os.pathsep)
+                cls.syspaths = [x for x in paths if x]
+        return cls.syspaths
 
     @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):

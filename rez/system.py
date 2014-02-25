@@ -23,7 +23,6 @@ class System(object):
         self._fqdn = None
         self._hostname = None
         self._domain = None
-        self._exe_paths = None
 
     @property
     def platform(self):
@@ -105,16 +104,6 @@ class System(object):
             self._get_domain()
         return self._domain
 
-    @property
-    def executable_paths(self):
-        """
-        @returns The list of default paths found in $PATH
-        TODO move into shell plugins
-        """
-        if self._exe_paths is None:
-            self._get_exe_paths()
-        return self._exe_paths
-
     def _get_platform(self):
         self._platform = plat.system().lower()
 
@@ -170,29 +159,18 @@ class System(object):
         from rez.shells import get_shell_types
         shells = get_shell_types()
 
-        try:
-            from psutil import Process
-            proc = Process().parent
-        except:
-            proc = None
-
         shell = None
-        while proc and proc.name not in shells:
-            proc = proc.parent
-        if proc:
-            shell = proc.name
-        else:
-            try:
-                import subprocess as sp
-                proc = sp.Popen(['ps', '-o', 'args=', '-p',
-                                 str(os.getppid())], stdout=sp.PIPE)
-                output = proc.communicate()[0]
-                shell = os.path.basename(output.strip().split()[0]).replace('-','')
-            except:
-                pass
+        try:
+            import subprocess as sp
+            proc = sp.Popen(['ps', '-o', 'args=', '-p',
+                             str(os.getppid())], stdout=sp.PIPE)
+            output = proc.communicate()[0]
+            shell = os.path.basename(output.strip().split()[0]).replace('-','')
+        except:
+            pass
 
-            if shell not in shells:
-                shell = os.getenv("SHELL")
+        if shell not in shells:
+            shell = os.getenv("SHELL")
 
         if shell in shells:
             self._shell = shell
@@ -202,28 +180,6 @@ class System(object):
     def _get_fqdn(self):
         self._fqdn = socket.getfqdn()
         self._hostname, self._domain = self._fqdn.split('.', 1)
-
-    def _get_exe_paths(self):
-        paths = None
-        cmd = None
-
-        # TODO move into shell plugins
-        # TODO breaks if bashrc etc prints anything
-        if self.shell == "bash":
-            cmd = "cmd=`which bash`; unset PATH; $cmd --norc -c 'echo $PATH'"
-        elif self.shell == "tcsh":
-            cmd = "cmd=`which tcsh`; unset PATH; $cmd -c 'echo $PATH'"
-
-        if cmd:
-            p = sp.Popen(cmd, stdout=sp.PIPE, stderr=sp.PIPE, shell=True)
-            out_ = p.communicate()[0]
-            if not p.returncode:
-                paths = out_.strip().split(os.pathsep)
-
-        if paths is None:
-            raise RuntimeError("Could not get executable paths")
-        else:
-            self._exe_paths = [x for x in paths if x]
 
 
 # singleton
