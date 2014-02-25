@@ -1,16 +1,9 @@
-"""
-Show current Rez settings
-"""
+from rez.settings import settings
+import yaml
 
-def setup_parser(parser):
-    parser.add_argument("-p", "--param", type=str,
-                        help="print only the value of a specific parameter")
 
 
 def command(opts, parser=None):
-    from rez.settings import settings
-    import yaml
-
     if opts.param:
         value = settings.get(opts.param)
         if isinstance(value, list):

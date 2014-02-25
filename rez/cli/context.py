@@ -15,42 +15,9 @@ from rez.settings import settings
 
 
 
-formats = get_shell_types() + ['dict']
-
 current_rxt_file = os.getenv("REZ_RXT_FILE")
 if current_rxt_file and not os.path.exists(current_rxt_file):
     current_rxt_file = None
-
-
-def setup_parser(parser):
-    parser.add_argument("--print-request", dest="print_request", action="store_true",
-                        help="print only the request list, including implicits")
-    parser.add_argument("--print-resolve", dest="print_resolve", action="store_true",
-                        help="print only the resolve list")
-    parser.add_argument("-g", "--graph", action="store_true",
-                        help="display the resolve graph as an image")
-    parser.add_argument("--pg", "--print-graph", dest="print_graph", action="store_true",
-                        help="print the resolve graph as a string")
-    parser.add_argument("--wg", "--write-graph", dest="write_graph", type=str,
-                        metavar='FILE', help="write the resolve graph to FILE")
-    parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
-                        type=str, help="prune the graph down to PKG")
-    parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
-                        help="prune the graph down to show conflicts only")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="print more information about the context. "
-                        "Ignored if --interpret is used.")
-    parser.add_argument("-i", "--interpret", action="store_true",
-                        help="interpret the context and print the resulting code")
-    parser.add_argument("-f", "--format", type=str, choices=formats,
-                        help="print interpreted output in the given format. If "
-                        "None, the current shell language (%s) is used. If 'dict', "
-                        "a dictionary of the resulting environment is printed. "
-                        "Ignored if --interpret is False" % system.shell)
-    parser.add_argument("--no-env", dest="no_env", action="store_true",
-                        help="interpret the context in an empty environment")
-    parser.add_argument("FILE", type=str, nargs='?',
-                        help="rex context file (current context if not supplied)")
 
 
 # returns (filepath, must_cleanup)
@@ -149,15 +116,11 @@ def command(opts, parser=None):
             print
         return
 
-    if opts.format not in (formats + [None]):
-        parser.error("Invalid format specified, must be one of: %s" % str(formats))
-
     parent_env = {} if opts.no_env else None
 
     if opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)
         print pretty_env_dict(env)
     else:
-        shell = opts.format or system.shell
-        code = rc.get_shell_code(shell=shell, parent_environ=parent_env)
+        code = rc.get_shell_code(shell=opts.format, parent_environ=parent_env)
         print code
