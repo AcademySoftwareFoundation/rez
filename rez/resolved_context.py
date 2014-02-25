@@ -27,10 +27,6 @@ class ResolvedContext(object):
     shell.
     """
 
-    # This must be updated when the ResolvedContext class, or any class used by
-    # it, changes. A minor version update means that data has been added, but it
-    # can still be read by an earlier Rez version, and a major version update
-    # means that backwards compatibility has been broken.
     serialize_version = (1,0)
 
     def __init__(self, \
@@ -44,7 +40,8 @@ class ResolvedContext(object):
         assume_dt=True,
         caching=True,
         package_paths=None,
-        add_implicit_packages=True):
+        add_implicit_packages=True,
+        store_failure=False):
         """
         Perform a package resolve, and store the result.
         @param requested_packages List of package strings defining the request,
@@ -61,12 +58,16 @@ class ResolvedContext(object):
             settings.packages_path.
         @param add_implicit_packages If True, the implicit package list
             defined by settings.implicit_packages is added to the request.
+        @param store_failure If True, this context will store a resolve failure,
+            instead of raising the associated exception. In the event of failure,
+            self.success is False, and self.dot_graph, if available, will
+            contain a graph detailing the reason for failure.
         """
         # serialization version
         self.serialize_ver = self.serialize_version
 
         # resolving settings
-        self.req_packages = requested_packages
+        self.package_request_strings = requested_packages
         self.resolve_mode = resolve_mode
         self.request_time = timestamp
         self.build_requires = build_requires
@@ -87,6 +88,15 @@ class ResolvedContext(object):
         self.implicit_packages = settings.implicit_packages
         self.created = int(time.time())
 
+        # the resolve results
+        self.success = False
+        self.error_message = None
+        self.package_requests = None
+        self.resolved_pkgs = None
+        self.dot_graph = None
+        self.failed_attempts = None
+        self.request_timestamp = None
+
         # do the resolve
         resolver = Resolver( \
             resolve_mode=resolve_mode,
@@ -99,16 +109,32 @@ class ResolvedContext(object):
             caching=caching,
             package_paths=package_paths)
 
-        self.result = resolver.resolve(self.req_packages, \
-            no_implicit=(not self.add_implicit_packages),
-            meta_vars=['tools'],
-            shallow_meta_vars=['tools'])
+        exc_type = Exception if store_failure else None
+        result = None
+
+        try:
+            result = resolver.resolve(self.package_request_strings, \
+                no_implicit=(not self.add_implicit_packages),
+                meta_vars=['tools'],
+                shallow_meta_vars=['tools'])
+
+            self.success = True
+            self.package_requests = result.package_requests
+            self.resolved_pkgs = result.package_resolves
+            self.failed_attempts = result.failed_attempts
+            self.request_timestamp = result.request_timestamp
+            self.dot_graph = result.dot_graph
+        except exc_type as e:
+            self.success = False
+            self.error_message = str(e)
+            if hasattr(e, "get_dot_graph"):
+                self.dot_graph = e.get_dot_graph()
 
     @property
     def requested_packages(self):
         """ str list of initially requested packages, not including implicit
         packages """
-        return self.req_packages
+        return self.package_request_strings
 
     @property
     def added_implicit_packages(self):
@@ -118,12 +144,13 @@ class ResolvedContext(object):
     @property
     def resolved_packages(self):
         """ list of `ResolvedPackage` objects representing the resolve """
-        return self.result.package_resolves
+        return self.resolved_pkgs
 
     @property
     def resolve_graph(self):
-        """ dot-graph string representing the resolve process """
-        return self.result.dot_graph
+        """ dot-graph string representing the resolve process. If this resolve
+         failed, this will be a graph showing the failure, or None """
+        return self.dot_graph
 
     def save(self, path):
         """
@@ -154,6 +181,15 @@ class ResolvedContext(object):
                 % (_v(r.serialize_ver), _v(next_major)))
         return r
 
+    def on_success(fn):
+        def _check(self, *nargs, **kwargs):
+            if self.success:
+                return fn(self, *nargs, **kwargs)
+            else:
+                raise Exception("Cannot perform operation in a failed context")
+        return _check
+
+    @on_success
     def validate(self):
         """
         Check the context against the current system to see if they are
@@ -162,7 +198,7 @@ class ResolvedContext(object):
         to packages not available on the current host.
         """
         # check package paths
-        for pkg in self.result.package_resolves:
+        for pkg in self.resolved_pkgs:
             if not os.path.exists(pkg.root):
                 raise Exception("Package %s path does not exist: %s" \
                     % (pkg.short_name(), pkg.root))
@@ -183,6 +219,11 @@ class ResolvedContext(object):
                 return s + " (%d)" % int(t)
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
+
+        if not self.success:
+            _pr("This context contains a failed resolve:\n")
+            _pr(self.error_message)
+            return
 
         t_str = _rt(self.created)
         _pr("resolved by %s@%s, on %s, using Rez v%s" \
@@ -205,13 +246,13 @@ class ResolvedContext(object):
             _pr()
 
         _pr("requested packages:")
-        for pkg in self.req_packages:
+        for pkg in self.package_request_strings:
             _pr(pkg)
         _pr()
 
         _pr("resolved packages:")
         rows = []
-        for pkg in self.result.package_resolves:
+        for pkg in self.resolved_pkgs:
             tok = ''
             if not os.path.exists(pkg.root):
                 tok = 'NOT FOUND'
@@ -220,6 +261,7 @@ class ResolvedContext(object):
             rows.append((pkg.short_name(), pkg.root, tok))
         _pr('\n'.join(columnise(rows)))
 
+    @on_success
     def get_environ(self, parent_environ=None):
         """
         Get the environ dict resulting from interpreting this context.
@@ -233,6 +275,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return executor.get_output()
 
+    @on_success
     def get_shell_code(self, shell=None, parent_environ=None):
         """
         Get the shell code resulting from intepreting this context.
@@ -248,6 +291,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return executor.get_output()
 
+    @on_success
     def apply(self, parent_environ=None):
         """
         Apply the context to the current python session - this updates os.environ
@@ -259,6 +303,7 @@ class ResolvedContext(object):
         executor = RexExecutor(interpreter=interpreter, parent_environ=parent_environ)
         self._execute(executor)
 
+    @on_success
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
         """
         Run a command within a resolved context. This only creates the context
@@ -276,6 +321,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return interpreter.subprocess(args, **subprocess_kwargs)
 
+    @on_success
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, **Popen_args):
@@ -334,22 +380,6 @@ class ResolvedContext(object):
         else:
             return p
 
-    def save_resolve_graph(self, path, fmt=None, image_ratio=None,
-                           prune_to_package=None):
-        """
-        Write the resolve graph to an image or dot file.
-        @param path File to write to.
-        @param fmt File format, determined from path ext if None.
-        @param image_ratio Image height / image width.
-        @param prune_to_package Only display nodes dependent (directly or
-            indirectly) on the given package (str).
-        """
-        from rez.dot import save_graph
-        save_graph(self.resolve_graph, path,
-                   fmt=fmt,
-                   image_ratio=image_ratio,
-                   prune_to_package=prune_to_package)
-
     def _get_shell_code(self, shell, parent_environ):
         # create the shell
         from rez.shells import create_shell
@@ -372,19 +402,19 @@ class ResolvedContext(object):
             #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
             # not strictly necessary, but speeds up sh/csh autocomplete
             "REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
-            "REZ_REQUEST":          _stringify_pkgs(self.result.package_requests),
-            "REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
-            "REZ_RESOLVE":          _stringify_pkgs(self.result.package_resolves),
-            "REZ_RESOLVE_MODE":     self.result.resolve_mode,
-            "REZ_FAILED_ATTEMPTS":  self.result.failed_attempts,
-            "REZ_REQUEST_TIME":     self.result.request_timestamp})
+            "REZ_REQUEST":          _stringify_pkgs(self.package_requests),
+            #"REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
+            "REZ_RESOLVE":          _stringify_pkgs(self.resolved_pkgs),
+            "REZ_RESOLVE_MODE":     self.resolve_mode,
+            "REZ_FAILED_ATTEMPTS":  self.failed_attempts,
+            "REZ_REQUEST_TIME":     self.request_timestamp})
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
         manager = executor.manager
 
         # TODO set metavars, shallow_metavars
-        for pkg_res in self.result.package_resolves:
+        for pkg_res in self.resolved_pkgs:
             manager.comment("")
             manager.comment("Commands from package %s" % pkg_res.short_name())
             manager.comment("")

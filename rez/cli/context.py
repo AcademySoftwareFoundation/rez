@@ -10,7 +10,6 @@ from rez import __version__
 from rez.util import pretty_env_dict
 from rez.resolved_context import ResolvedContext
 from rez.shells import create_shell, get_shell_types
-from rez.dot import save_graph
 from rez.system import system
 from rez.settings import settings
 
@@ -29,11 +28,15 @@ def setup_parser(parser):
     parser.add_argument("--print-resolve", dest="print_resolve", action="store_true",
                         help="print only the resolve list")
     parser.add_argument("-g", "--graph", action="store_true",
-                        help="display the resolve graph, as an image")
+                        help="display the resolve graph as an image")
     parser.add_argument("--pg", "--print-graph", dest="print_graph", action="store_true",
-                        help="print the resolve graph, as a string")
+                        help="print the resolve graph as a string")
     parser.add_argument("--wg", "--write-graph", dest="write_graph", type=str,
                         metavar='FILE', help="write the resolve graph to FILE")
+    parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
+                        type=str, help="prune the graph down to PKG")
+    parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
+                        help="prune the graph down to show conflicts only")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="print more information about the context. "
                         "Ignored if --interpret is used.")
@@ -51,7 +54,7 @@ def setup_parser(parser):
 
 
 # returns (filepath, must_cleanup)
-def write_graph(graph_str, opts, is_current_context):
+def write_graph(graph_str, opts):
     dest_file = None
     tmp_dir = None
     cleanup = True
@@ -64,36 +67,32 @@ def write_graph(graph_str, opts, is_current_context):
 
         if current_rxt_file:
             tmp_dir = os.path.dirname(current_rxt_file)
-            if is_current_context:
-                path = os.path.join(tmp_dir, "resolve-dot.%s" % fmt)
-                if os.path.exists(path):
-                    return path,False  # graph image already exists
-                else:
-                    dest_file = path
-                    cleanup = False
+            if not os.path.exists(tmp_dir):
+                tmp_dir = None
 
-        if dest_file is None:
-            if tmp_dir:
-                # hijack current env's tmpdir, so we don't have to clean up
-                name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-',''), fmt)
-                dest_file = os.path.join(tmp_dir, name)
-                cleanup = False
-            else:
-                tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.'+fmt)
-                os.close(tmpf[0])
-                dest_file = tmpf[1]
+        if tmp_dir:
+            # hijack current env's tmpdir, so we don't have to clean up
+            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-',''), fmt)
+            dest_file = os.path.join(tmp_dir, name)
+            cleanup = False
+        else:
+            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.'+fmt)
+            os.close(tmpf[0])
+            dest_file = tmpf[1]
 
+    from rez.dot import save_graph
     print "rendering image to " + dest_file + "..."
-    save_graph(graph_str, dest_file)
+    save_graph(graph_str, dest_file, prune_to_package=opts.prune_pkg,
+               prune_to_conflict=opts.prune_conflict)
     return dest_file,cleanup
 
 
-def view_graph(graph_str, opts, is_current_context):
+def view_graph(graph_str, opts):
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
         print >> sys.stderr, "Unable to open display."
         sys.exit(1)
 
-    dest_file, cleanup = write_graph(graph_str, opts, is_current_context)
+    dest_file,cleanup = write_graph(graph_str, opts)
 
     # view graph
     t1 = time.time()
@@ -121,7 +120,6 @@ def view_graph(graph_str, opts, is_current_context):
 
 def command(opts, parser=None):
     # are we reading the current context (ie are we inside a rez-env env)?
-    is_current_context = False
     rxt_file = opts.FILE
     if rxt_file is None:
         rxt_file = current_rxt_file
@@ -132,7 +130,6 @@ def command(opts, parser=None):
                 not in a resolved environment context.
                 """ % __version__).strip() + '\n'
             sys.exit(1)
-        is_current_context = True
 
     rc = ResolvedContext.load(rxt_file)
 
@@ -144,9 +141,9 @@ def command(opts, parser=None):
         elif opts.print_graph:
             print rc.resolve_graph
         elif opts.graph:
-            view_graph(rc.resolve_graph, opts, is_current_context)
+            view_graph(rc.resolve_graph, opts)
         elif opts.write_graph:
-            write_graph(rc.resolve_graph, opts, is_current_context)
+            write_graph(rc.resolve_graph, opts)
         else:
             rc.print_info(verbose=opts.verbose)
             print

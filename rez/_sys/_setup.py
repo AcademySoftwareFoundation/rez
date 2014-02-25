@@ -23,13 +23,13 @@ def _mkdirs(*dirs):
 def _mkpkg(name, version, content=None):
     dirs = [module_root_path, "packages", name, version]
     _mkdirs(*dirs)
-    fpath = os.path.join(*(dirs + ["package.yaml"]))
+    fpath = os.path.join(*(dirs + ["package.py"]))
     with open(fpath, 'w') as f:
         content = content or textwrap.dedent( \
         """
-        config_version: 0
-        name: %(name)s
-        version: %(version)s
+        config_version = 0
+        name = '%(name)s'
+        version = '%(version)s'
         """ % dict(name=name, version=version))
         f.write(content)
 

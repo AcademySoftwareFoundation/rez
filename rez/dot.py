@@ -14,14 +14,6 @@ def save_graph(graph, path, fmt=None, image_ratio=None,
     else:
         raise NotImplementedError
 
-    # determine the dest format
-    if fmt is None:
-        fmt = os.path.splitext(path)[1].lower().strip('.') or "png"
-    if hasattr(g, "write_"+fmt):
-        write_fn = getattr(g, "write_"+fmt)
-    else:
-        raise Exception("Unsupported graph format: '%s'" % fmt)
-
     if prune_to_conflict or prune_to_package:
         # group graph edges by dest pkg, and find 'seed' pkg(s)
         edges = {}
@@ -55,7 +47,7 @@ def save_graph(graph, path, fmt=None, image_ratio=None,
         newg = pydot.Dot()
         consumed_edges = set()
 
-        if len(seed_pkgs) > 0:
+        if seed_pkgs:
             while True:
                 new_seed_pkgs = set()
                 for seed_pkg in seed_pkgs:
@@ -73,17 +65,25 @@ def save_graph(graph, path, fmt=None, image_ratio=None,
                                 consumed_edges.add(seededge)
                             new_seed_pkgs.add(seededge.get_source())
 
-                if len(new_seed_pkgs) == 0:
+                if not new_seed_pkgs:
                     break
                 seed_pkgs = new_seed_pkgs
 
-        if len(newg.get_edge_list()) > 0:
+        if newg.get_edge_list():
             g = newg
         elif opt_pkg_exists_as_source:
             # pkg was directly in the request list
             e = pydot.Edge("DIRECT REQUEST", prune_to_package)
             newg.add_edge(e)
             g = newg
+
+    # determine the dest format
+    if fmt is None:
+        fmt = os.path.splitext(path)[1].lower().strip('.') or "png"
+    if hasattr(g, "write_"+fmt):
+        write_fn = getattr(g, "write_"+fmt)
+    else:
+        raise Exception("Unsupported graph format: '%s'" % fmt)
 
     if image_ratio:
         g.set_ratio(str(image_ratio))

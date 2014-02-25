@@ -22,11 +22,13 @@ provided by this module.
 from __future__ import with_statement
 import yaml
 import os
+import sys
 import inspect
 import re
 from collections import defaultdict
 from rez.settings import settings
 from rez.util import to_posixpath
+from rez.exceptions import PkgMetadataError
 from rez.versions import ExactVersion, VersionRange
 
 _configs = defaultdict(list)
@@ -205,7 +207,16 @@ def load_file(filename):
     """
     ext = os.path.splitext(filename)[1]
     with open(filename, 'r') as f:
-        return load(f, ext.strip('.'))
+        try:
+            return load(f, ext.strip('.'))
+        except Exception as e:
+            import traceback
+            frames = traceback.extract_tb(sys.exc_traceback)
+            while frames and frames[0][0] != filename:
+                frames = frames[1:]
+            stack = ''.join(traceback.format_list(frames)).strip()
+            raise PkgMetadataError(filename, "%s\n%s" % (str(e), stack))
+
 
 #------------------------------------------------------------------------------
 # Resources and Configurations

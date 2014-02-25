@@ -34,7 +34,7 @@ class PkgFamilyNotFoundError(RezError):
         self.family_name = family_name
 
     def __str__(self):
-        return str(self.family_name)
+        return "Couldn't find the package family '%s'" % self.family_name
 
 
 class PkgNotFoundError(RezError):
@@ -47,7 +47,7 @@ class PkgNotFoundError(RezError):
         self.resolve_path = resolve_path
 
     def __str__(self):
-        return str((str(self.pkg_req), self.resolve_path))
+        return "Couldn't find the package '%s'" % self.pkg_req.short_name()
 
 
 class PkgConflictError(RezError):
@@ -61,8 +61,12 @@ class PkgConflictError(RezError):
         self.pkg_conflicts = pkg_conflicts
         self.last_dot_graph = last_dot_graph
 
+    def get_dot_graph(self):
+        return self.last_dot_graph
+
     def __str__(self):
-        return '\n' + '\n'.join([str(x) for x in self.pkg_conflicts])
+        return "The following conflicts occurred:\n%s" \
+            % '\n'.join([str(x) for x in self.pkg_conflicts])
 
 
 class PkgsUnresolvedError(RezError):
@@ -74,10 +78,8 @@ class PkgsUnresolvedError(RezError):
         self.pkg_reqs = pkg_reqs
 
     def __str__(self):
-        strs = []
-        for pkg_req in self.pkg_reqs:
-            strs.append(str(pkg_req))
-        return str(strs)
+        return "The following packages could not be resolved:\n%s" \
+            % '\n'.join([str(x) for x in self.pkg_reqs])
 
 
 class PkgConfigNotResolvedError(RezError):
@@ -91,11 +93,24 @@ class PkgConfigNotResolvedError(RezError):
         self.fail_config_list = fail_config_list
         self.last_dot_graph = last_dot_graph
 
+    def get_dot_graph(self):
+        return self.last_dot_graph
+
     def __str__(self):
-        strs = []
-        for pkg_req in self.pkg_reqs:
-            strs.append(str(pkg_req))
-        return str(strs)
+        msg = "The configuration could not be resolved: %s" \
+            % '\n'.join([str(x) for x in self.pkg_reqs])
+        msg += "\nThe failed configuration attempts were:\n%s" \
+            % '\n'.join(self.fail_config_list)
+
+
+class PkgMetadataError(RezError):
+    """
+    There is an error in a package's definition file
+    """
+    def __init__(self, filepath, value=None):
+        msg = "Error in package definition file: %s\n%s" % (filepath, value)
+        RezError.__init__(self, msg)
+        self.filepath = filepath
 
 
 class PkgCommandError(RezError):
@@ -113,24 +128,23 @@ class PkgCyclicDependency(RezError):
     def __init__(self, dependencies=None, dot_graph=None):
         """
         dependencies is a list of (requiree, required) pairs.
-        dot_graph_str is a string describing the dot-graph of the whole environment resolution -
-        it is required because the user will want to have context, to determine how the cyclic
-        list of packages was generated in the first place
+        dot_graph_str is a string describing the dot-graph of the whole environment
+        resolution - it is required because the user will want to have context,
+        to determine how the cyclic list of packages was generated in the first place
         """
         RezError.__init__(self)
         self.deps = dependencies
         self.dot_graph = dot_graph
 
-    def __str__(self):
-        # print out as a dot-graph
+    def get_dot_graph(self):
         s = "digraph g {\n"
         for dep in self.deps:
             s += '"' + dep[0] + '" -> "' + dep[1] + '"\n'
         s += "}"
         return s
 
-
-
+    def __str__(self):
+        return "Cyclic dependency(s) were detected:\n%s" % self.get_dot_graph()
 
 
 

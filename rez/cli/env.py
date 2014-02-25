@@ -29,11 +29,17 @@ def setup_parser(parser):
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("-o", "--output", type=str,
+                        help="store the context into an rxt file, instead of "
+                        "starting an interactive shell. Note that this will "
+                        "also store a failed resolve")
     parser.add_argument("--rxt", "--context", dest="rxt", type=str,
                         help="use a previously saved context. Resolve settings, "
                         "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("--force-rxt", dest="force_rxt", action="store_true",
                         help="when using --rxt, skip validation of the context")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="run in quiet mode")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
@@ -49,11 +55,18 @@ def command(opts, parser=None):
         rc = ResolvedContext(opts.PKG,
                              timestamp=t,
                              package_paths=pkg_paths,
-                             add_implicit_packages=(not opts.no_implicit))
+                             add_implicit_packages=(not opts.no_implicit),
+                             store_failure=bool(opts.output))
+        if opts.output:
+            if not opts.quiet:
+                rc.print_info()
+            rc.save(opts.output)
+            sys.exit(0 if rc.success else 1)
 
     returncode,_,_ = rc.execute_shell(shell=opts.shell,
                                       rcfile=opts.rcfile,
                                       command=opts.command,
                                       stdin=opts.stdin,
+                                      quiet=opts.quiet,
                                       block=True)
     sys.exit(returncode)

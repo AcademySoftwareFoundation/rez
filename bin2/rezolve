@@ -17,9 +17,6 @@ def _subcmd_name(cli_name):
         return cli_name.replace('-','_')
 
 
-class NeverException(Exception):
-    pass
-
 
 if __name__ == '__main__':
     p = argparse.ArgumentParser(
@@ -54,14 +51,15 @@ if __name__ == '__main__':
     cmd = opts.cmd
     exec("from rez.cli.%s import command" % _subcmd_name(cmd))
 
-    exc_type = NeverException if opts.debug else Exception
+    exc_type = None if opts.debug else Exception
     try:
         returncode = command(opts, subparsers[cmd])
     except NotImplementedError as e:
         import traceback
         raise Exception(traceback.format_exc())
     except exc_type as e:
-        print >> sys.stderr, str(e)
+        print >> sys.stderr, "rez: %s: %s" \
+                             % (e.__class__.__name__, str(e))
         sys.exit(1)
 
     sys.exit(returncode or 0)

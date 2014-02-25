@@ -201,14 +201,9 @@ class Resolver(object):
         self.result = ResolveResult()
         self.result.request_time = time_epoch
 
-    # TODO move a lot of these msgs into the exceptions themselves
+    """
     def guarded_resolve(self, pkg_req_strs, no_implicit=False, meta_vars=None,
                         shallow_meta_vars=None, dot_file=None, print_dot=False):
-        """
-        Just a wrapper for resolve() which does some command-line friendly stuff and has some
-        extra options for convenience.
-        @return None on failure, same as resolve() otherwise.
-        """
         try:
             result = self.resolve(pkg_req_strs, no_implicit, meta_vars,
                                   shallow_meta_vars)
@@ -297,6 +292,7 @@ class Resolver(object):
             gen_dotgraph_image(result.dot_graph, dot_file)
 
         return result
+    """
 
     def resolve(self, pkg_reqs, no_implicit=False, meta_vars=None,
                 shallow_meta_vars=None):
