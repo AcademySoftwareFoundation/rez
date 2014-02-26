@@ -12,7 +12,7 @@ with open("rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "1.99.32"
+version = "2.0.PRE-ALPHA.0"
 
 scripts = [
     "rezolve",
@@ -67,7 +67,7 @@ setup(
     name="rez",
     version=version,
     description=("A cross-platform packaging system that can build and "
-                "install many versions of many packages, and dynamically "
+                "install multiple version of packages, and dynamically "
                 "configure resolved environments at runtime."),
     keywords="package resolve version build install software management",
     long_description=None,
@@ -83,7 +83,7 @@ setup(
     package_data = {
         'rez': [
             'rezconfig',
-            'README',
+            'README*',
             '*.yapsy-plugin',
             'cmake/*.cmake',
             '_sys/*'

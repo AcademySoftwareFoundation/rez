@@ -85,6 +85,7 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
     script_dir = _create_scripts(install_base_dir, install_scripts_dir,
                                  version, scripts)
 
+    # create bootstrap packages
     print "Creating bootstrap package: platform..."
     _mkpkg("platform", system.platform)
 
