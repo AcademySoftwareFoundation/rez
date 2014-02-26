@@ -1,3 +1,5 @@
+## Introduction
+
 Rez is a cross-platform, GPL-licensed python library and set of utilities for
 building and installing packages, and resolving environments containing these
 packages at runtime, avoiding version conflicts. The main tools are:
@@ -26,7 +28,7 @@ version 12.5 or greater, and runs the command '_hescape -h_' inside that environ
     -s: specify starting desktop by name
     -foreground: starts process in foreground
 
-Resolved environments can also be created programatically:
+Resolved environments can also be created programmatically:
 
     >>> from rez.resolved_context import ResolvedContext
     >>>
@@ -61,14 +63,30 @@ Resolved environments can also be created programatically:
 ## Features
 
 * Supports Linux and OSX;
+* Allows for a fast and efficient build-install-test cycle;
 * Creates shells of type: bash, tcsh, other (shells can be added as plugins);
 * Supports git, mercurial and svn;
+* Environment resolves can be saved to disk and reused at a later date;
 * Contains a version resolving algorithm, for avoiding version clashes;
 * Visualises resolved environments in a rendered dot-graph;
+* Packages are found in a search path, so different packages can be deployed
+  to different locations;
 * Supports alphanumeric version numbers;
+* Has a powerful version requirements syntax, able to describe any version
+  range, and a conflict operator for rejecting version ranges;
 * Package 'variants' - a way to define different flavors of the same package
   version, for example a plugin built for multiple versions of the host app;
 * Package definitions are a single, succinct file;
 * Packages define their effect on the environment (adding to PATH etc) in a
   platform- and shell- agnostic way, using a dedicated python API;
 * Supports a memcached-based caching system, for caching environment resolves.
+
+## Installation
+
+To install Rez, simply:
+
+    pip install rez
+
+## Documentation
+
+TODO
