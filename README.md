@@ -87,6 +87,10 @@ To install Rez, simply:
 
     pip install rez
 
+Or, to install from source:
+
+   python setup.py install
+
 ## Documentation
 
 TODO

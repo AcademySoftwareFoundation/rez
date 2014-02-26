@@ -7,12 +7,16 @@ import os.path
 import sys
 
 
+if sys.version_info < (2,6):
+    print >> sys.stderr, "Rez requires python v2.6 or greater"
+    sys.exit(0)
+
 with open("rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.0"
+version = "2.0.PRE-ALPHA.3"
 
 scripts = [
     "rezolve",
