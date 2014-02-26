@@ -1,6 +1,6 @@
 ## Introduction
 
-Rez is a cross-platform, GPL-licensed python library and set of utilities for
+Rez is a cross-platform, LGPL Licensed python library and set of utilities for
 building and installing packages, and resolving environments containing these
 packages at runtime, avoiding version conflicts. The main tools are:
 
@@ -11,15 +11,17 @@ packages at runtime, avoiding version conflicts. The main tools are:
   locally for testing. Supports **cmake**.
 
 * **rez-release** - Builds and centrally deploys a package, and updates the associated
-  source control repository accordingly (creating tags etc). Supports **git**,
-  **mercurial** and **svn**.
+  source control repository (creating tags etc). Supports **git**, **mercurial**
+  and **svn**.
 
 Unlike many packaging systems, Rez is able to install many different versions of
 the same packages. When you use the rez-env tool, a new environment is dynamically
-created, containing the requested packages.
+created, containing the requested packages. Rez resolves environments at runtime,
+rather than install time - however, you are able to store a resolve to disk, and
+reuse it at a later date.
 
 Here's an example which creates an environment containing the package 'houdini'
-version 12.5 or greater, and runs the command '_hescape -h_' inside that environment:
+version 12.5 or greater, and runs the command 'hescape -h' inside that environment:
 
     ]$ rez-env -c 'hescape -h' houdini-12.5+
     Usage: hescape [-foreground] [-s editor] [filename ...]
@@ -66,7 +68,8 @@ Resolved environments can also be created programmatically:
 * Allows for a fast and efficient build-install-test cycle;
 * Creates shells of type: bash, tcsh, other (shells can be added as plugins);
 * Supports git, mercurial and svn;
-* Environment resolves can be saved to disk and reused at a later date;
+* Environment resolves can be saved to disk and reused at a later date (a bit
+  like VirtualEnv);
 * Contains a version resolving algorithm, for avoiding version clashes;
 * Visualises resolved environments in a rendered dot-graph;
 * Packages are found in a search path, so different packages can be deployed
@@ -89,7 +92,7 @@ To install Rez, simply:
 
 Or, to install from source:
 
-   python setup.py install
+    python setup.py install
 
 ## Documentation
 

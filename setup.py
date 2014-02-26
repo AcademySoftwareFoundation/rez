@@ -16,7 +16,7 @@ with open("rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.3"
+version = "2.0.PRE-ALPHA.20"
 
 scripts = [
     "rezolve",
@@ -92,5 +92,17 @@ setup(
             'cmake/*.cmake',
             '_sys/*'
         ]
-    }
+    },
+    classifiers = [
+        "Development Status :: 2 - Pre-Alpha",
+        "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
+        "Intended Audience :: Developers",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+        "Programming Language :: Python :: 2",
+        "Programming Language :: Python :: 2.6",
+        "Programming Language :: Python :: 2.7",
+        "Topic :: Software Development",
+        "Topic :: System :: Software Distribution"
+    ]
 )
