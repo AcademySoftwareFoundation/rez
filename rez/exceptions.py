@@ -101,6 +101,7 @@ class PkgConfigNotResolvedError(RezError):
             % '\n'.join([str(x) for x in self.pkg_reqs])
         msg += "\nThe failed configuration attempts were:\n%s" \
             % '\n'.join(self.fail_config_list)
+        return msg
 
 
 class PkgMetadataError(RezError):

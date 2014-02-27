@@ -16,7 +16,7 @@ with open("rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.20"
+version = "2.0.PRE-ALPHA.24"
 
 scripts = [
     "rezolve",
@@ -64,7 +64,8 @@ class install_(install):
         from rez._sys import _setup
         _setup.post_install(install_base_dir=self.install_lib,
                             install_scripts_dir=self.install_scripts,
-                            version=version, scripts=scripts)
+                            version=version,
+                            scripts=scripts)
         return ret
 
 setup(

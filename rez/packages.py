@@ -208,6 +208,12 @@ class Package(BasePackage):
         self.metafile = metafile
         self._metadata = metadata
 
+    def __getstate__(self):
+        """ metadata is never pickled """
+        d = self.__dict__.copy()
+        d["_metadata"] = None
+        return d
+
     @property
     def metadata(self):
         if self._metadata is None:
@@ -253,12 +259,15 @@ class ResolvedPackage(Package):
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
-        self.commands = None  # set externally after command execution
+        #self.commands = None  # set externally after command execution
 
+    """
     def strip(self):
         # remove data that we don't want to cache
-#         self._metadata = None
-        self.commands = None
+        #self._metadata = None
+        #self.commands = None
+        pass
+    """
 
     def __str__(self):
         return str([self.name, self.version, self.root])

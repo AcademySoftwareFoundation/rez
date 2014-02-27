@@ -23,15 +23,61 @@ def _mkdirs(*dirs):
 def _mkpkg(name, version, content=None):
     dirs = [module_root_path, "packages", name, version]
     _mkdirs(*dirs)
-    fpath = os.path.join(*(dirs + ["package.py"]))
+    pkg_path = os.path.join(*dirs)
+    fpath = os.path.join(pkg_path, "package.py")
+
+    content = content or textwrap.dedent( \
+    """
+    config_version = 0
+    name = '%(name)s'
+    version = '%(version)s'
+    """ % dict(name=name, version=version))
+
     with open(fpath, 'w') as f:
-        content = content or textwrap.dedent( \
-        """
-        config_version = 0
-        name = '%(name)s'
-        version = '%(version)s'
-        """ % dict(name=name, version=version))
         f.write(content)
+    return pkg_path
+
+
+def _mkpythonpkg():
+    version = '.'.join(str(x) for x in sys.version_info[:3])
+    content = textwrap.dedent( \
+    """
+    config_version = 0
+    name = 'python'
+    version = '%(version)s'
+    def commands():
+        env.PATH.append('{this.root}')
+    """ % dict(
+        version=version,
+        platform=system.platform))
+
+    pkg_path = _mkpkg("python", version, content)
+    pypath = os.path.join(pkg_path, "python")
+    os.symlink(sys.executable, pypath)
+
+
+def _mkhelloworldpkg():
+    version = "1.0"
+    content = textwrap.dedent( \
+    """
+    config_version = 0
+    name = 'python'
+    version = '%(version)s'
+    requires = ["python"]
+    def commands():
+        env.PATH.append('{this.root}')
+    """ % dict(version=version))
+
+    pkg_path = _mkpkg("hello_world", version, content)
+    exepath = os.path.join(pkg_path, "hello_world")
+    with open(exepath, 'w') as f:
+        f.write(textwrap.dedent( \
+        """
+        #!/usr/bin/env python
+        print "Hello Rez World!"
+        """).strip())
+    os.chmod(exepath, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | \
+        stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
 
 # create our own scripts, located inside the rez distribution, that will work within
@@ -94,3 +140,9 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
 
     print "Creating bootstrap package: os..."
     _mkpkg("os", system.os)
+
+    print "Creating bootstrap package: python..."
+    _mkpythonpkg()
+
+    print "Creating bootstrap package: hello_world..."
+    _mkhelloworldpkg()

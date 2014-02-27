@@ -3,7 +3,7 @@ Introduction
 
 Rez is a cross-platform, LGPL Licensed python library and set of utilities for building and installing packages, and resolving environments containing these packages at runtime, avoiding version conflicts. The main tools are:
 
--  **rez-env** - Creates a configured shell containing a set of requested packages. Supports **bash** and **tcsh**, and mimicks the startup sequences of the native shell.
+-  **rez-env** - Creates a configured shell containing a set of requested packages. Supports **bash** and **tcsh**, and mimics the startup sequences of the native shell.
 
 -  **rez-build** - Builds a package of any type (python, C++ etc), and installs it locally for testing. Supports **cmake**.
 
@@ -11,6 +11,34 @@ Rez is a cross-platform, LGPL Licensed python library and set of utilities for b
 
 Unlike many packaging systems, Rez is able to install many different versions of the same packages. When you use the rez-env tool, a new environment is dynamically created, containing the requested packages. Rez resolves environments at runtime, rather than install time - however, you are able to store a resolve to disk, and reuse it at a later date.
 
+Here's an example which places the user into a resolved shell containing the requested packages:
+
+::
+
+    ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
+    
+    You are now in a rez-configured environment.
+    
+    resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 15:56:20 2014, using Rez v2.0.0
+    
+    implicit packages:
+    platform-linux
+    arch-x86_64
+    
+    requested packages:
+    requests-2.2+
+    python-2.6
+    pymongo-0+<2.7
+    
+    resolved packages:
+    python-2.6.8    /software/ext/python/2.6.8
+    platform-linux  /software/ext/platform/linux
+    requests-2.2.1  /software/ext/requests/2.2.1/python-2.6
+    pymongo-2.6.3   /software/ext/pymongo/2.6.3
+    arch-x86_64     /software/ext/arch/x86_64
+    
+    > ]$ _
+    
 Here's an example which creates an environment containing the package 'houdini' version 12.5 or greater, and runs the command 'hescape -h' inside that environment:
 
 ::
@@ -72,7 +100,8 @@ Features
 -  Package 'variants' - a way to define different flavors of the same package version, for example a plugin built for multiple versions of the host app;
 -  Package definitions are a single, succinct file;
 -  Packages define their effect on the environment (adding to PATH etc) in a platform- and shell- agnostic way, using a dedicated python API;
--  Supports a memcached-based caching system, for caching environment resolves.
+-  Has a memcached-based caching system, for caching environment resolves.
+
 
 Installation
 ------------
@@ -88,6 +117,13 @@ Or, to install from source:
 ::
 
     python setup.py install
+    
+To see that it's working:
+
+::
+
+    ]$ rez-env -c 'hello_world' hello_world
+    Hello Rez World!
     
 Documentation
 -------------
