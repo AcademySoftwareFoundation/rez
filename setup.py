@@ -11,6 +11,8 @@ if sys.version_info < (2,6):
     print >> sys.stderr, "Rez requires python v2.6 or greater"
     sys.exit(0)
 
+os.environ['__rez_is_installing'] = '1'
+
 with open("rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
@@ -57,15 +59,20 @@ class install_(install):
             else:
                 self.do_egg_install()
 
+        # add installed site to syspaths and remove current dir
+        for path in ('', '.', './'):
+            if path in sys.path:
+                sys.path.remove(path)
         import site
-        os.environ['__rez_is_installing'] = '1'
         site.addsitedir(self.install_lib)
         sys.path.insert(0, self.install_lib)
-        from rez._sys import _setup
-        _setup.post_install(install_base_dir=self.install_lib,
-                            install_scripts_dir=self.install_scripts,
-                            version=version,
-                            scripts=scripts)
+
+        # run post-install hook
+        from rez._sys._setup import post_install
+        post_install(install_base_dir=self.install_lib,
+                     install_scripts_dir=self.install_scripts,
+                     version=version,
+                     scripts=scripts)
         return ret
 
 setup(

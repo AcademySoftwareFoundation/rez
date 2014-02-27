@@ -25,6 +25,7 @@ def _mkpkg(name, version, content=None):
     _mkdirs(*dirs)
     pkg_path = os.path.join(*dirs)
     fpath = os.path.join(pkg_path, "package.py")
+    print "Creating bootstrap package: %s..." % pkg_path
 
     content = content or textwrap.dedent( \
     """
@@ -33,6 +34,7 @@ def _mkpkg(name, version, content=None):
     version = '%(version)s'
     """ % dict(name=name, version=version))
 
+    content = content.strip() + '\n'
     with open(fpath, 'w') as f:
         f.write(content)
     return pkg_path
@@ -132,17 +134,8 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
                                  version, scripts)
 
     # create bootstrap packages
-    print "Creating bootstrap package: platform..."
     _mkpkg("platform", system.platform)
-
-    print "Creating bootstrap package: arch..."
     _mkpkg("arch", system.arch)
-
-    print "Creating bootstrap package: os..."
     _mkpkg("os", system.os)
-
-    print "Creating bootstrap package: python..."
     _mkpythonpkg()
-
-    print "Creating bootstrap package: hello_world..."
     _mkhelloworldpkg()

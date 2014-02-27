@@ -109,8 +109,6 @@ def add_env(parser):
     parser.add_argument("--rxt", "--context", dest="rxt", type=str,
                         help="use a previously saved context. Resolve settings, "
                         "such as PKG, --ni etc are ignored in this case")
-    parser.add_argument("--force-rxt", dest="force_rxt", action="store_true",
-                        help="when using --rxt, skip validation of the context")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
     parser.add_argument("PKG", type=str, nargs='*',

@@ -7,8 +7,7 @@ import sys
 def command(opts, parser=None):
     if opts.rxt:
         rc = ResolvedContext.load(opts.rxt)
-        if not opts.force_rxt:
-            rc.validate()
+        rc.validate()
     else:
         t = get_epoch_time_from_str(opts.time) if opts.time else None
         pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
