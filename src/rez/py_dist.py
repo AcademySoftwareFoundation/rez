@@ -108,7 +108,7 @@ def get_dist_dependencies(name, recurse=True):
 
 
 # TODO doesn't deal with executable scripts yet
-def convert_dist(name, dest_path, make_variant=True, verbose=False):
+def convert_dist(name, dest_path, make_variant=True):
     """
     Convert an already installed python distribution into a rez package.
     @param dest_path Where to put the rez package. The package will be created
@@ -141,27 +141,18 @@ def convert_dist(name, dest_path, make_variant=True, verbose=False):
     if os.path.isdir(dist.location):
         rel_pypath = ''
         for file in os.listdir(dist.location):
-            if verbose:
-                sys.stdout.write('.')
-                sys.stdout.flush()
             fpath = os.path.join(dist.location, file)
             if os.path.isfile(fpath):
                 shutil.copy(fpath, root_path)
             else:
-                shutil.copytree(fpath, os.path.join(root_path, file))
+                shutil.copytree(fpath, os.path.join(root_path, file),
+                                ignore=shutil.ignore_patterns("packages"))
     else:
         import zipfile
         assert(is_egg and os.path.isfile(dist.location))
         assert(zipfile.is_zipfile(dist.location))
-
-        if verbose:
-            sys.stdout.write('Extracting %s...' % basename)
-            sys.stdout.flush()
         z = zipfile.ZipFile(dist.location)
         z.extractall(root_path)
-
-    if verbose:
-        print
 
     variants_str = "[['%s']]" % pypkg if make_variant else ''
 

@@ -162,6 +162,9 @@ if __name__ == '__main__':
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("exec",
                     "Execute some Rex code and print the interpreted result")
+    #_add_subcommand("init",
+    #                "Create a virtualenv-like rez installation, for production"
+    #                " use")
 
     p.add_argument("-V", "--version", action="version",
                    version="Rez %s" % __version__)

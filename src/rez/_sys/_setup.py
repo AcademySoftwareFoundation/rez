@@ -136,10 +136,6 @@ def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
 
 
 def post_install(install_base_dir, install_scripts_dir, version, scripts):
-    # create patched scripts
-    script_dir = _create_scripts(install_base_dir, install_scripts_dir,
-                                 version, scripts)
-
     # create bootstrap packages
     _mkpkg("platform", system.platform)
     _mkpkg("arch", system.arch)
@@ -149,7 +145,14 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
 
     # convert rez itself, and its dependencies, into bootstrap packages
     pkgs = get_dist_dependencies('rez')
+    pypaths = []
+
     for pkg in pkgs:
-        sys.stdout.write("Creating bootstrap package: %s..." % pkg)
+        print "Creating bootstrap package: %s..." % pkg
         sys.stdout.flush()
-        convert_dist(pkg, bootstrap_path, make_variant=False, verbose=True)
+        path = convert_dist(pkg, bootstrap_path, make_variant=False)
+        pypaths.append(path)
+
+    # create patched scripts
+    script_dir = _create_scripts(install_base_dir, install_scripts_dir,
+                                 version, scripts)

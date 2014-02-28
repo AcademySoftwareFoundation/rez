@@ -13,7 +13,7 @@ if sys.version_info < (2,6):
 
 os.environ['__rez_is_installing'] = '1'
 
-with open("rez/__init__.py") as f:
+with open("src/rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
@@ -89,9 +89,10 @@ setup(
     license="LGPL",
     cmdclass={'install': install_},
     scripts=[os.path.join('bin2',x) for x in scripts],
-    packages=find_packages(exclude=['tests']),
     install_requires=requires,
     include_package_data=True,
+    package_dir = {'': 'src'},
+    packages=find_packages('src', exclude=["tests"]),
     package_data = {
         'rez': [
             'rezconfig',
