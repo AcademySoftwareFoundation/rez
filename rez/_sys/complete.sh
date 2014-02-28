@@ -5,16 +5,14 @@ _software_packages()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    if [ -z "$REZ_PACKAGES_PATH" ]; then
-        REZ_PACKAGES_PATH=`rezolve settings -p packages_path`
-    fi
+    pkgs_path=`rezolve settings --packages-path`
 
     fam=''
     entries=''
     if [[ ${cur} == *-* ]] ; then
     	fam=`echo $cur | sed 's/-.*//g'`
     else
-    	for path in `echo $REZ_PACKAGES_PATH | /usr/bin/tr ':' ' '`
+    	for path in $pkgs_path
 		do
 			if [ -d $path ]; then
 				fam=`echo $fam ; /bin/ls $path | grep "^$cur"`
@@ -26,11 +24,11 @@ _software_packages()
 
     if [ `echo $fam | /usr/bin/wc -w` -eq 1 ]; then
     	entries=$fam
-		for path in `echo $REZ_PACKAGES_PATH | /usr/bin/tr ':' ' '`
+		for path in $pkgs_path
 		do
 			if [ -d $path/$fam ]; then
 			    if [ `uname` == 'Linux' ]; then
-				    entries=`echo $entries ; /usr/bin/find $path/$fam -mindepth 2 -maxdepth 2 -name package.yaml -exec dirname {} \; | tr '/' ' ' | awk '{print "'$fam'-"$NF}'`
+				    entries=`echo $entries ; /usr/bin/find $path/$fam -mindepth 2 -maxdepth 2 -name 'package.*' -exec dirname {} \; | tr '/' ' ' | awk '{print "'$fam'-"$NF}'`
                 else
                     # FIXME this incorrectly gives non-pkg-subdirs as completion options
 			        entries=`echo $entries ; /bin/ls $path/$fam | /usr/bin/tr ' ' '\n' | grep -v 'package.uuid' | awk '{print "'$fam'-"$1}'`
@@ -47,7 +45,6 @@ _software_packages()
 
 complete -F _software_packages rez
 complete -F _software_packages rezolve
-complete -F _software_packages rez-config
 complete -F _software_packages rez-env
 complete -F _software_packages rez-help
 complete -F _software_packages rez-which

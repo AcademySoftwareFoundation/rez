@@ -179,7 +179,8 @@ class ActionManager(object):
     triggers the callbacks of the `ActionInterpreter`.
     """
     def __init__(self, interpreter, output_style='file', parent_environ=None,
-                 formatter=None, verbose=False, env_sep_map=None):
+                 parent_variables=None, formatter=None, verbose=False,
+                 env_sep_map=None):
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -191,6 +192,9 @@ class ActionManager(object):
             semi-colons.
         parent_environ: environment to execute the actions within. If None,
             defaults to the current environment.
+        parent_variables: List of variables to append/prepend to, rather than
+            overwriting on first reference. If this is set to True instead of a
+            list, all variables are treated as parent variables.
         formatter: func or None
             function to use for formatting string values
         verbose : bool or list of str
@@ -202,6 +206,8 @@ class ActionManager(object):
         self.output_style = output_style
         self.verbose = verbose
         self.parent_environ = os.environ if parent_environ is None else parent_environ
+        self.parent_variables = True if parent_variables is True \
+            else set(parent_variables or [])
         self.environ = {}
         self.formatter = formatter or str
         self.actions = []
@@ -318,15 +324,21 @@ class ActionManager(object):
 
         self.actions.append(action(key, unexpanded_value))
 
+        if (key not in self.environ) and \
+            ((self.parent_variables is True) or (key in self.parent_variables)):
+            self.environ[key] = self.parent_environ.get(key, '')
+            self.interpreter._saferefenv(key)
+
         if key in self.environ:
             parts = self.environ[key].split(self._env_sep(key))
-            unexpanded_values = self._env_sep(key).join(addfunc(unexpanded_value, \
-                                                                [self._keytoken(key)]))
+            unexpanded_values = self._env_sep(key).join( \
+                addfunc(unexpanded_value, [self._keytoken(key)]))
             expanded_values = self._env_sep(key).join(addfunc(expanded_value, parts))
             self.environ[key] = expanded_values
         else:
             self.environ[key] = expanded_value
             unexpanded_values = unexpanded_value
+
         try:
             if self.interpreter.expand_env_vars:
                 value = expanded_value
@@ -765,8 +777,8 @@ class RexExecutor(object):
     ex.alias('foo','foo -l')
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
-                 output_style='file', bind_rez=True, bind_syspaths=True,
-                 shebang=True, add_default_namespaces=True):
+                 parent_variables=None, output_style='file', bind_rez=True,
+                 bind_syspaths=True, shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -777,6 +789,9 @@ class RexExecutor(object):
             to empty dict.
         parent_environ: environment to execute the rex code within. If None, defaults
             to the current environment.
+        parent_variables: List of variables to append/prepend to, rather than
+            overwriting on first reference. If this is set to True instead of a
+            list, all variables are treated as parent variables.
         bind_rez: bool
             if True, expose Rez cli tools in the target environment
         bind_syspaths: bool
@@ -796,7 +811,8 @@ class RexExecutor(object):
         self.manager = ActionManager(interpreter,
                                      formatter=self.expand,
                                      output_style=output_style,
-                                     parent_environ=parent_environ)
+                                     parent_environ=parent_environ,
+                                     parent_variables=parent_variables)
 
         if isinstance(interpreter, Python):
             interpreter.set_manager(self.manager)

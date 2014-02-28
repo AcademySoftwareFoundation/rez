@@ -3,7 +3,7 @@ from rez.config import Resolver
 from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once
+    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path
 from rez.rex import RexExecutor, Python
 from rez.shells import create_shell, get_shell_types
 import pickle
@@ -73,8 +73,10 @@ class ResolvedContext(object):
         self.build_requires = build_requires
         self.assume_dt = assume_dt
         self.caching = caching
-        self.package_paths = package_paths
         self.add_implicit_packages = add_implicit_packages
+        # rez bootstrap path is *always* added
+        pkg_paths = settings.packages_path if package_paths is None else package_paths
+        self.package_paths = _add_bootstrap_pkg_path(pkg_paths)
 
         # info about env the resolve occurred in, useful for debugging
         self.user = getpass.getuser()
@@ -98,16 +100,15 @@ class ResolvedContext(object):
         self.request_timestamp = None
 
         # do the resolve
-        resolver = Resolver( \
-            resolve_mode=resolve_mode,
-            quiet=quiet,
-            verbosity=verbosity,
-            max_fails=max_fails,
-            time_epoch=timestamp,
-            build_requires=build_requires,
-            assume_dt=assume_dt,
-            caching=caching,
-            package_paths=package_paths)
+        resolver = Resolver(resolve_mode=resolve_mode,
+                            quiet=quiet,
+                            verbosity=verbosity,
+                            max_fails=max_fails,
+                            time_epoch=timestamp,
+                            build_requires=build_requires,
+                            assume_dt=assume_dt,
+                            caching=caching,
+                            package_paths=self.package_paths)
 
         exc_type = Exception if store_failure else None
         result = None
@@ -274,7 +275,7 @@ class ResolvedContext(object):
             interpreted in a python rex interpreter.
         """
         interp = Python(target_environ={}, passive=True)
-        executor = RexExecutor(interpreter=interp, parent_environ=parent_environ)
+        executor = self._create_executor(interp, parent_environ)
         self._execute(executor)
         return executor.get_output()
 
@@ -289,8 +290,7 @@ class ResolvedContext(object):
         """
         from rez.shells import create_shell
         sh = create_shell(shell)
-
-        executor = RexExecutor(interpreter=sh, parent_environ=parent_environ)
+        executor = self._create_executor(sh, parent_environ)
         self._execute(executor)
         return executor.get_output()
 
@@ -303,7 +303,7 @@ class ResolvedContext(object):
             os.environ if None.
         """
         interpreter = Python(target_environ=os.environ)
-        executor = RexExecutor(interpreter=interpreter, parent_environ=parent_environ)
+        executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
 
     @on_success
@@ -320,7 +320,7 @@ class ResolvedContext(object):
         @note This does not alter the current python session.
         """
         interpreter = Python(target_environ={})
-        executor = RexExecutor(interpreter=interpreter, parent_environ=parent_environ)
+        executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
         return interpreter.subprocess(args, **subprocess_kwargs)
 
@@ -361,7 +361,7 @@ class ResolvedContext(object):
         self.save(rxt_file)
 
         # interpret this context and write out the native context file
-        executor = RexExecutor(interpreter=sh, parent_environ=parent_environ)
+        executor = self._create_executor(sh, parent_environ)
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
         self._execute(executor)
@@ -383,13 +383,21 @@ class ResolvedContext(object):
         else:
             return p
 
+    def _create_executor(self, interpreter, parent_environ):
+        parent_vars = True if settings.all_parent_variables \
+            else settings.parent_variables
+
+        return RexExecutor(interpreter=interpreter,
+                           parent_environ=parent_environ,
+                           parent_variables=parent_vars)
+
     def _get_shell_code(self, shell, parent_environ):
         # create the shell
         from rez.shells import create_shell
         sh = create_shell(shell)
 
         # interpret this context and write out the native context file
-        executor = RexExecutor(interpreter=sh, parent_environ=parent_environ)
+        executor = self._create_executor(sh, parent_environ)
         self._execute(executor)
         context_code = executor.get_output()
 
@@ -403,10 +411,8 @@ class ResolvedContext(object):
             "REZ_USED":             self.rez_path,
             # TODO add back if and when we need this
             #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
-            # not strictly necessary, but speeds up sh/csh autocomplete
-            "REZ_PACKAGES_PATH":    "$REZ_PACKAGES_PATH",
-            "REZ_REQUEST":          _stringify_pkgs(self.package_requests),
             #"REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
+            "REZ_REQUEST":          _stringify_pkgs(self.package_requests),
             "REZ_RESOLVE":          _stringify_pkgs(self.resolved_pkgs),
             "REZ_RESOLVE_MODE":     self.resolve_mode,
             "REZ_FAILED_ATTEMPTS":  self.failed_attempts,

@@ -13,18 +13,14 @@ import textwrap
 
 
 def convert_name(name):
-    """
-    Convert a python distribution name into a rez-safe package name.
-    """
+    """ Convert a python distribution name into a rez-safe package name."""
     return name.replace('-','_')
 
 
 # TODO change this when version submod is rewritten
 # This is just a temporary simplistic implementation for now
 def convert_version(version):
-    """
-    Convert a python distribution version into a rez-safe version string.
-    """
+    """Convert a python distribution version into a rez-safe version string."""
     version = version.replace('-','.')
     version = version.lower()
     version = re.sub("[a-z]", "", version)
@@ -34,6 +30,7 @@ def convert_version(version):
     return version
 
 
+# TODO add native Requirement conversion support into new version submod
 def convert_requirement(req):
     """
     Converts a pkg_resources.Requirement object into a list of Rez package
@@ -110,6 +107,7 @@ def get_dist_dependencies(name, recurse=True):
     return reqs
 
 
+# TODO doesn't deal with executable scripts yet
 def convert_dist(name, dest_path, make_variant=True, verbose=False):
     """
     Convert an already installed python distribution into a rez package.
@@ -117,7 +115,7 @@ def convert_dist(name, dest_path, make_variant=True, verbose=False):
         under dest_path/<NAME>/<VERSION>/.
     @param make_variant If True, makes a single variant in the rez package
         based on the MAJOR.MINOR version of python.
-    @returns Package install path.
+    @returns Install path of the new Rez package.
     """
     dist = pkg_resources.get_distribution(name)
     pkg_name = convert_name(dist.project_name)

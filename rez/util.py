@@ -58,6 +58,10 @@ def _rm_tmpdirs():
     for path in _tmpdirs:
         rmdtemp(path)
 
+def _add_bootstrap_pkg_path(paths):
+    bootstrap_path = os.path.join(module_root_path, "packages")
+    return (paths[:] + [bootstrap_path]) if bootstrap_path not in paths else paths
+
 def get_script_path():
     return os.path.join(module_root_path, "bin")
 

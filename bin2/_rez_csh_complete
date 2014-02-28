@@ -1,9 +1,7 @@
 #!/bin/tcsh
 
-if (!($?REZ_PACKAGES_PATH)) then
-    REZ_PACKAGES_PATH=`rezolve settings -p packages_path`
-endif
+pkgs_path=`rezolve settings --packages-path`
 
-foreach path (`echo ${REZ_PACKAGES_PATH} | /usr/bin/tr ":" " "`) 
+foreach path ( $pkgs_path )
     /usr/bin/find -L $path -maxdepth 2 -mindepth 2 -not -path "*/\.*" -type d | /bin/sed "s;$path/;;g" | /usr/bin/tr "/" "-"  
 end

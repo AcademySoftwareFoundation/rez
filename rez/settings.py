@@ -86,7 +86,6 @@ class Settings(object):
     def _load_variables(self):
         if self.variables is None:
             self.variables = dict(
-                root_dir=module_root_path,
                 platform=system.platform,
                 arch=system.arch,
                 os=system.os)

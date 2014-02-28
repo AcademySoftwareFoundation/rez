@@ -30,6 +30,9 @@ def _subcmd_name(cli_name):
 def add_settings(parser):
     parser.add_argument("-p", "--param", type=str,
                         help="print only the value of a specific parameter")
+    parser.add_argument("--pp", "--packages-path", dest="pkgs_path", action="store_true",
+                        help="print the package search path, including any "
+                        "system paths")
 
 @subcommand
 def add_context(parser):
@@ -127,6 +130,12 @@ def add_exec(parser):
                         % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the code in an empty environment")
+    parser.add_argument("--pv", "--parent-variables", dest="parent_vars",
+                        type=str, metavar='VARS',
+                        help="comma-seperated list of environment variables to "
+                        "update rather than overwrite on first reference. If "
+                        "this is set to the special value 'all', all variables "
+                        "will be treated this way")
     parser.add_argument("FILE", type=str,
                         help='file containing rex code to execute')
 

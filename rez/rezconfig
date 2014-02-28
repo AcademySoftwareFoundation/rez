@@ -17,7 +17,6 @@
 # There are a set of special variables that will expand at runtime. These can be
 # referred to by any string-based setting, using the format '{varname}'. The
 # available variables are:
-# {root_dir} - Rez installation directory;
 # {platform} - machine platform, eg 'linux';
 # {arch} - machine architecture, eg 'x86_64';
 # {os} - machine operating system, eg 'Ubuntu-12.04'.
@@ -27,12 +26,14 @@
 # Paths
 ###############################################################################
 
-# The package search path. Rez uses this to find packages
+# The package search path. Rez uses this to find packages. Note that Rez's special
+# 'bootstrap' package path (located inside the module, and containing packages
+# such as 'platform') is always searched last, even if it does not appear in this
+# list.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
 - '~/.rez/packages/int'  # internally developed pkgs, deployed
 - '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
-- '{root_dir}/packages'  # bootstrap pkgs created at rez install time, eg arch
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
@@ -70,7 +71,7 @@ tmpdir: '/tmp'
 
 
 ###############################################################################
-# Misc
+# Environment
 ###############################################################################
 
 # System packages that are implicitly added to all package resolves, unless
@@ -83,43 +84,35 @@ implicit_packages:
 #- '~arch-{arch}'
 #- '~os-{os}'
 
-# The editor used to get user input in some cases; rez-release uses this.
-# On osx, set this to "open -a <your-app>" if you want to use a specific app.
-editor:
-
-# The program used to view images by tools such as rez-context-image
-# On osx, set this to "open -a <your-app>" if you want to use a specific app.
-image_viewer:
-
-# The browser used to view documentation; the rez-help tool uses this
-# On osx, set this to "open -a <your-app>" if you want to use a specific app.
-browser:
-
-# The default image format that dot-graphs are rendered to.
-dot_image_format: png
-
-# String to add to shell prompt when using rez-env. Set prompt to the empty
-# string if you do not want Rez changing the prompt.
-prompt: '>'
-
-# If True, prefixes the prompt, suffixes if False
-prefix_prompt: true
+# Rez's default behaviour is to overwrite variables on first reference. This
+# prevents unconfigured software from being used within the resolved environment.
+# For example, if PYTHONPATH were to be appended to and not overwritten, then
+# python modules from the parent environment would be (incorrectly) accessible
+# within the Rez environment.
+# 'Parent variables' override this behaviour - they are appended/prepended to,
+# rather than being overwritten. If you set 'all_parent_variables' to true, then
+# all variables are considered parent variables, and the value of 'parent_variables'
+# is ignored. Be aware that if you make variables such as PATH, PYTHONPATH or
+# app plugin paths parent variables, you are exposing yourself to potentially
+# incorrect behaviour within a resolved environment.
+parent_variables: []
+all_parent_variables: false
 
 
 ###############################################################################
 # Debugging
 ###############################################################################
 
-# If True, print warnings associated with shell startup sequence, when using
+# If true, print warnings associated with shell startup sequence, when using
 # tools such as rez-env. For example, if the target shell type is 'sh', and
 # the 'rcfile' param is used, you would get a warning, because the sh shell
 # does not support rcfile.
 warn_shell_startup: true
 
-# If True, print a warning when an untimestamped package is found.
+# If true, print a warning when an untimestamped package is found.
 warn_untimestamped: true
 
-# If True, print a warning whenever a package with an old-style commands
+# If true, print a warning whenever a package with an old-style commands
 # section is resolved into an environment
 warn_old_commands: true
 
@@ -160,6 +153,33 @@ vcs_tag_name_version_regex: ^(.*)$
 
 
 ###############################################################################
+# APPEARANCE
+###############################################################################
+
+# The editor used to get user input in some cases; rez-release uses this.
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+editor:
+
+# The program used to view images by tools such as 'rez-context -g'
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+image_viewer:
+
+# The browser used to view documentation; the rez-help tool uses this
+# On osx, set this to "open -a <your-app>" if you want to use a specific app.
+browser:
+
+# The default image format that dot-graphs are rendered to.
+dot_image_format: png
+
+# String to add to shell prompt when using rez-env. Set prompt to the empty
+# string if you do not want Rez changing the prompt.
+prompt: '>'
+
+# If true, prefixes the prompt, suffixes if false
+prefix_prompt: true
+
+
+###############################################################################
 # Internal
 ###############################################################################
 
@@ -191,6 +211,8 @@ _type:
     cmake_args: list
     vcs_tag_name: str
     vcs_tag_name_version_regex: str
+    parent_variables: list
+    all_parent_variables: bool
 
 # What seperator to expect in env-vars
 _sep:
