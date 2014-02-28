@@ -1,6 +1,8 @@
 from __future__ import with_statement
 from rez import module_root_path
 from rez.system import system
+from rez.util import _mkdirs
+from rez.py_dist import get_dist_dependencies, convert_dist
 import textwrap
 import stat
 import sys
@@ -8,24 +10,21 @@ import os
 import os.path
 
 
+
 try:
     assert(os.environ.get("__rez_is_installing"))
 except:
     raise Exception("do not import _setup.py")
 
-
-def _mkdirs(*dirs):
-    path = os.path.join(*dirs)
-    if not os.path.exists(path):
-        os.makedirs(path)
+bootstrap_path = os.path.join(module_root_path, "packages")
 
 
 def _mkpkg(name, version, content=None):
-    dirs = [module_root_path, "packages", name, version]
+    print "Creating bootstrap package: %s..." % name
+    dirs = [bootstrap_path, name, version]
     _mkdirs(*dirs)
     pkg_path = os.path.join(*dirs)
     fpath = os.path.join(pkg_path, "package.py")
-    print "Creating bootstrap package: %s..." % pkg_path
 
     content = content or textwrap.dedent( \
     """
@@ -40,21 +39,29 @@ def _mkpkg(name, version, content=None):
     return pkg_path
 
 
+# TODO add os dep when version submod is fixed
 def _mkpythonpkg():
     version = '.'.join(str(x) for x in sys.version_info[:3])
+    variant = [
+        "platform-%s" % system.platform,
+        "arch-%s" % system.arch]
+
     content = textwrap.dedent( \
     """
     config_version = 0
     name = 'python'
     version = '%(version)s'
+    variants = [%(variant)s]
     def commands():
         env.PATH.append('{this.root}')
     """ % dict(
         version=version,
-        platform=system.platform))
+        variant=str(variant)))
 
     pkg_path = _mkpkg("python", version, content)
-    pypath = os.path.join(pkg_path, "python")
+    root_path = _mkdirs(*([pkg_path] + variant))
+
+    pypath = os.path.join(root_path, "python")
     os.symlink(sys.executable, pypath)
 
 
@@ -139,3 +146,10 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
     _mkpkg("os", system.os)
     _mkpythonpkg()
     _mkhelloworldpkg()
+
+    # convert rez itself, and its dependencies, into bootstrap packages
+    pkgs = get_dist_dependencies('rez')
+    for pkg in pkgs:
+        sys.stdout.write("Creating bootstrap package: %s..." % pkg)
+        sys.stdout.flush()
+        convert_dist(pkg, bootstrap_path, make_variant=False, verbose=True)

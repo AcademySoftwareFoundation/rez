@@ -30,6 +30,12 @@ def print_warning_once(msg):
         print >> sys.stderr, "WARNING: %s" % msg
         _once_warnings.add(msg)
 
+def _mkdirs(*dirs):
+    path = os.path.join(*dirs)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
 _tmpdirs = set()
 _tmpdir_lock = threading.Lock()
 

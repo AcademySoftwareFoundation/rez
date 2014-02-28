@@ -1886,7 +1886,8 @@ class _Configuration(object):
                                                     pkg_req_.short_name() + ' NOT FOUND" ;')
                         self.rctxt.last_fail_dot_graph = self.get_dot_graph_as_string()
 
-                        sys.stderr.write("Warning! Package not found: " + str(pkg_req_) + "\n")
+                        print >> sys.stderr, "Warning! Package body of %s not found at %s" \
+                                             % (str(pkg_req_), root_path)
                         raise PkgNotFoundError(pkg_req_, root_path)
 
                     pkg.resolve(root_path)
