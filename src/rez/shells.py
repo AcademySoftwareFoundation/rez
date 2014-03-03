@@ -40,6 +40,22 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
+    def supports_norc(cls):
+        return False
+
+    @classmethod
+    def supports_rcfile(cls):
+        return False
+
+    @classmethod
+    def supports_command(cls):
+        return False
+
+    @classmethod
+    def supports_stdin(cls):
+        return False
+
+    @classmethod
     def get_syspaths(cls):
         raise NotImplementedError
 
@@ -70,6 +86,8 @@ class Shell(ActionInterpreter):
         @param rcfile Custom startup script.
         @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
+            If a different non-False value, such as subprocess.PIPE, the same
+            occurs, but stid is also passed to the resulting subprocess.Popen object.
         @param command If not None, execute this command in a non-interactive shell.
         @param quiet If True, don't show the configuration summary, and suppress
             any stdout from startup scripts.
@@ -93,6 +111,18 @@ class UnixShell(Shell):
     #
     # startup rules
     #
+
+    @classmethod
+    def supports_norc(cls):
+        return True
+
+    @classmethod
+    def supports_command(cls):
+        return True
+
+    @classmethod
+    def supports_stdin(cls):
+        return True
 
     @classmethod
     def find_executable(cls, *names):
@@ -126,7 +156,7 @@ class UnixShell(Shell):
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
                     command=None, quiet=False, **Popen_args):
 
-        d = self.get_startup_sequence(rcfile, norc, stdin, command)
+        d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         tmpdir = os.path.dirname(context_file)
         envvar = d["envvar"]
         files = d["files"]
@@ -221,9 +251,9 @@ class UnixShell(Shell):
                     executor.setenv("HOME", tmpdir)
                 else:
                     if settings.warn_shell_startup:
-                        print >> sys.stderr, "WARNING: Could not configure environment " + \
-                            "from within the target shell; this has been done in the " + \
-                            "parent process instead."
+                        print >> sys.stderr, ("WARNING: Could not configure "
+                        "environment from within the target shell (%s); this "
+                        "has been done in the parent process instead.") % self.name()
                     executor.source(context_file)
 
         executor.command(shell_command)
@@ -234,8 +264,11 @@ class UnixShell(Shell):
         with open(target_file, 'w') as f:
             f.write(code)
 
-        return subprocess.Popen([self.executable, self.norc_arg, target_file],
-                                **Popen_args)
+        if d["stdin"] and stdin and (stdin is not True):
+            Popen_args["stdin"] = stdin
+
+        p = subprocess.Popen([self.executable, self.norc_arg, target_file], **Popen_args)
+        return p
 
     def resetenv(self, key, value, friends=None):
         self._addline(self.setenv(key, value))

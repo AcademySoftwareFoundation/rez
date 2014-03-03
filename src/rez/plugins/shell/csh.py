@@ -45,8 +45,6 @@ class CSH(UnixShell):
         if command:
             cls._ignore_bool_option('stdin', stdin)
             stdin = False
-        if stdin and not select.select([sys.stdin,],[],[],0.0)[0]:  # tests stdin
-            stdin = False
 
         if not norc:
             for file in (

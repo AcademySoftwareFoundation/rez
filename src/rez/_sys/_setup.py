@@ -6,6 +6,7 @@ from rez.py_dist import get_dist_dependencies, convert_dist
 import textwrap
 import stat
 import sys
+import shutil
 import os
 import os.path
 
@@ -83,59 +84,92 @@ def _mkhelloworldpkg():
         f.write(textwrap.dedent( \
         """
         #!/usr/bin/env python
-        print "Hello Rez World!"
+        import sys
+        from optparse import OptionParser
+
+        p = OptionParser()
+        p.add_option("-q", dest="quiet", action="store_true",
+            help="quiet mode")
+        p.add_option("-r", dest="retcode", type="int", default=0,
+            help="exit with a non-zero return code")
+        opts,args = p.parse_args()
+
+        if not opts.quiet:
+            print "Hello Rez World!"
+        sys.exit(opts.retcode)
         """).strip())
     os.chmod(exepath, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | \
         stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
 
-# create our own scripts, located inside the rez distribution, that will work within
-# an unconfigured environment (ie, PYTHONPATH may not contain Rez).
-def _create_scripts(install_base_dir, install_scripts_dir, version, scripts):
+def _create_scripts(install_base_dir, install_scripts_dir, scripts):
     new_bin_path = os.path.join(module_root_path, "bin")
-    rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     os.mkdir(new_bin_path)
 
+    #rel_pypaths = [os.path.relpath(x, bootstrap_path) for x in pypaths]
+    rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     patch = textwrap.dedent( \
     """
-    #!%(python_exe)s
     import sys
-    import site
     import os.path
-    _script_dir = os.path.dirname(__file__)
-    _install_base = os.path.join(_script_dir, '%(rel_path)s')
-    _install_base = os.path.realpath(_install_base)
-    site.addsitedir(_install_base)
-    sys.path.insert(0, _install_base)
+
+    try:
+        from rez._sys._bootstrap import rel_pypaths
+    except:
+        rel_pypaths = None
+
+    if rel_pypaths:
+        p = os.path.join(os.path.dirname(__file__), "..", "packages")
+        sys.path = [os.path.realpath(os.path.join(p,x)) for x in rel_pypaths] + sys.path
+    else:
+        import sys
+        import site
+        import os.path
+        _script_dir = os.path.dirname(__file__)
+        _install_base = os.path.join(_script_dir, '%(rel_path)s')
+        _install_base = os.path.realpath(_install_base)
+        site.addsitedir(_install_base)
+        sys.path.insert(0, _install_base)
     """ % dict(
-        python_exe=sys.executable,
-        rel_path=rel_install_base_dir))
-    patch_loc = patch.split('\n')
+        rel_path=rel_install_base_dir)).strip()
 
     for script in scripts:
         file = os.path.join(install_scripts_dir, script)
+        dst = os.path.join(new_bin_path, script)
+
         if os.path.isfile(file):
-            mode = os.stat(file).st_mode
-            with open(file) as f:
-                code = f.read()
+            if script.startswith('_'):
+                shutil.copy(file, dst)
+            else:
+                if script == "rezolve":
+                    code = textwrap.dedent( \
+                    """
+                    #!%(py_exe)s
+                    __PATCH__
+                    from rez.cli.main import run
+                    run()
+                    """ % dict(
+                        py_exe=sys.executable)).strip()
+                else:
+                    cmd = script.split('-',1)[-1]
+                    code = textwrap.dedent( \
+                    """
+                    #!%(py_exe)s
+                    __PATCH__
+                    from rez._sys import _forward_script
+                    _forward_script('%(cmd)s')
+                    """ % dict(
+                        py_exe=sys.executable,
+                        cmd=cmd)).strip()
 
-            loc = code.split('\n')
-            shebang = loc[0]
-            loc = patch_loc + loc[1:]
-
-            # only patch python scripts, others are unchanged
-            is_python = ("python" in shebang.lower())
-            patched_code = '\n'.join(loc).strip() if is_python else code
-
-            dst = os.path.join(new_bin_path, script)
-            with open(dst, 'w') as f:
-                f.write(patched_code)
-            os.chmod(dst, mode)
-
-    return new_bin_path
+                code = code.replace("__PATCH__", patch)
+                mode = os.stat(file).st_mode
+                with open(dst, 'w') as f:
+                    f.write(code + '\n')
+                os.chmod(dst, mode)
 
 
-def post_install(install_base_dir, install_scripts_dir, version, scripts):
+def post_install(install_base_dir, install_scripts_dir, scripts):
     # create bootstrap packages
     _mkpkg("platform", system.platform)
     _mkpkg("arch", system.arch)
@@ -143,16 +177,22 @@ def post_install(install_base_dir, install_scripts_dir, version, scripts):
     _mkpythonpkg()
     _mkhelloworldpkg()
 
-    # convert rez itself, and its dependencies, into bootstrap packages
-    pkgs = get_dist_dependencies('rez')
+    # convert rez itself, and its dependencies, into bootstrap packages.
+    """
     pypaths = []
+    try:
+        pkgs = get_dist_dependencies('rez')
+        for pkg in pkgs:
+            print "Creating bootstrap package: %s..." % pkg
+            ignore = shutil.ignore_patterns("packages") \
+                if pkg == 'rez' else None
 
-    for pkg in pkgs:
-        print "Creating bootstrap package: %s..." % pkg
-        sys.stdout.flush()
-        path = convert_dist(pkg, bootstrap_path, make_variant=False)
-        pypaths.append(path)
+            path = convert_dist(pkg, bootstrap_path,
+                                make_variant=False,
+                                ignore=ignore)
+            pypaths.append(path)
+    except:
+        pypaths = []
+    """
 
-    # create patched scripts
-    script_dir = _create_scripts(install_base_dir, install_scripts_dir,
-                                 version, scripts)
+    _create_scripts(install_base_dir, install_scripts_dir, scripts)

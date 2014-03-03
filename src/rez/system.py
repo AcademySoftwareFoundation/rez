@@ -6,6 +6,7 @@ from rez.system import system
 print system.arch
 """
 import os
+import os.path
 import sys
 import re
 import platform as plat
@@ -170,7 +171,7 @@ class System(object):
             pass
 
         if shell not in shells:
-            shell = os.getenv("SHELL")
+            shell = os.path.basename(os.getenv("SHELL", ''))
 
         if shell in shells:
             self._shell = shell

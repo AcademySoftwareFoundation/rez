@@ -1,6 +1,7 @@
 from rez.resolved_context import ResolvedContext
 from rez.util import get_epoch_time_from_str, pretty_env_dict
 from rez.settings import settings
+import select
 import sys
 
 
@@ -35,6 +36,11 @@ def command(opts, parser=None):
             print pretty_env_dict(env)
         print
         sys.exit(0)
+
+    # generally shells will behave as though the '-s' flag was not present, if
+    # no stdin is available. So here we replicate this behaviour.
+    if opts.stdin and not select.select([sys.stdin,],[],[],0.0)[0]:
+        opts.stdin = False
 
     returncode,_,_ = rc.execute_shell(shell=opts.shell,
                                       rcfile=opts.rcfile,

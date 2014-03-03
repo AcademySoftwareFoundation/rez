@@ -18,6 +18,10 @@ class Bash(SH):
         return 'bash'
 
     @classmethod
+    def supports_rcfile(cls):
+        return True
+
+    @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):
         files = []
         envvar = None
@@ -28,8 +32,6 @@ class Bash(SH):
             rcfile = False
         if command:
             cls._ignore_bool_option('stdin', stdin)
-            stdin = False
-        if stdin and not select.select([sys.stdin,],[],[],0.0)[0]:  # tests stdin
             stdin = False
 
         if command or stdin:

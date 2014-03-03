@@ -108,13 +108,15 @@ def get_dist_dependencies(name, recurse=True):
 
 
 # TODO doesn't deal with executable scripts yet
-def convert_dist(name, dest_path, make_variant=True):
+def convert_dist(name, dest_path, make_variant=True, ignore=None):
     """
     Convert an already installed python distribution into a rez package.
     @param dest_path Where to put the rez package. The package will be created
         under dest_path/<NAME>/<VERSION>/.
     @param make_variant If True, makes a single variant in the rez package
         based on the MAJOR.MINOR version of python.
+    @param ignore Used as ignore param when copying dist src using shutil.copytree.
+        This is used internally by Rez, it is unlikely you will need to use it.
     @returns Install path of the new Rez package.
     """
     dist = pkg_resources.get_distribution(name)
@@ -145,8 +147,7 @@ def convert_dist(name, dest_path, make_variant=True):
             if os.path.isfile(fpath):
                 shutil.copy(fpath, root_path)
             else:
-                shutil.copytree(fpath, os.path.join(root_path, file),
-                                ignore=shutil.ignore_patterns("packages"))
+                shutil.copytree(fpath, os.path.join(root_path, file), ignore=ignore)
     else:
         import zipfile
         assert(is_egg and os.path.isfile(dist.location))

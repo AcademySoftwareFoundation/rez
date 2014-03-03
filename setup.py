@@ -18,7 +18,7 @@ with open("src/rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.24"
+version = "2.0.PRE-ALPHA.30"
 
 scripts = [
     "rezolve",
@@ -27,6 +27,7 @@ scripts = [
     "rez-env",
     "rez-context",
     "rez-exec",
+    "rez-test",
     "_rez_csh_complete"
 ]
 
@@ -59,7 +60,7 @@ class install_(install):
             else:
                 self.do_egg_install()
 
-        # add installed site to syspaths and remove current dir
+        # add installed site to syspaths
         for path in ('', '.', './'):
             if path in sys.path:
                 sys.path.remove(path)
@@ -71,9 +72,9 @@ class install_(install):
         from rez._sys._setup import post_install
         post_install(install_base_dir=self.install_lib,
                      install_scripts_dir=self.install_scripts,
-                     version=version,
                      scripts=scripts)
         return ret
+
 
 setup(
     name="rez",
@@ -97,7 +98,8 @@ setup(
         'rez': [
             'rezconfig',
             'README*',
-            '*.yapsy-plugin',
+            'plugins/shell/*.yapsy-plugin',
+            'plugins/source_retriever/*.yapsy-plugin',
             'cmake/*.cmake',
             '_sys/*'
         ]
