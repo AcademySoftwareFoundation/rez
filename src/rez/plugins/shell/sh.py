@@ -40,14 +40,22 @@ class SH(UnixShell):
         return cls.syspaths
 
     @classmethod
+    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+        cls._unsupported_option('rcfile', rcfile)
+        rcfile = False
+        if command:
+            cls._overruled_option('stdin', 'command', stdin)
+            stdin = False
+        return (norc, rcfile, command, stdin)
+
+    @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):
-        cls._ignore_bool_option('rcfile', rcfile)
+        rcfile, norc, stdin, command = \
+            cls.startup_capabilities(rcfile, norc, stdin, command)
+
         envvar = None
         files = []
 
-        if command:
-            cls._ignore_bool_option('stdin', stdin)
-            stdin = False
         if not (command or stdin):
             if not norc:
                 for file in ("~/.profile",):

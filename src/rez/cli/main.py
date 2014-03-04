@@ -104,6 +104,9 @@ def add_env(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
+    parser.add_argument("--bo", "--bootstrap-only", dest="bootstrap_only",
+                        action="store_true",
+                        help="only load bootstrap packages. Implies --ni and --nl.")
     parser.add_argument("--print", type=str, dest="print_", metavar="TYPE",
                         choices=print_types,
                         help="print information about the resolved environment, "
@@ -123,6 +126,9 @@ def add_env(parser):
     parser.add_argument("--rxt", "--context", dest="rxt", type=str,
                         help="use a previously saved context. Resolve settings, "
                         "such as PKG, --ni etc are ignored in this case")
+    parser.add_argument("--rv", "--resolve-verbosity", dest="resolve_verbosity",
+                        type=int, default=0,
+                        help="print debugging info during the resolve process")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
     parser.add_argument("PKG", type=str, nargs='*',
@@ -157,6 +163,18 @@ def add_test(parser):
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 
+@subcommand
+def add_bootstrap(parser):
+    from rez.shells import get_shell_types
+    from rez.system import system
+    shells = get_shell_types()
+    parser.add_argument("--install-path", dest="install_path", type=str,
+                        help="create a production-ready install of Rez in the "
+                        "given path")
+    parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
+                        help="target shell type of the install, defaults to the "
+                        "current shell (%s)" % system.shell)
+
 
 def _add_subcommand(cmd, help):
     subp = subps.add_parser(cmd, help=help)
@@ -175,9 +193,8 @@ def run():
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("exec",
                     "Execute some Rex code and print the interpreted result")
-    #_add_subcommand("bootstrap",
-    #                "Create a virtualenv-like rez installation, for production"
-    #                " use")
+    _add_subcommand("bootstrap",
+                    "Rez installation-related operations")
     _add_subcommand("test",
                     "Run unit tests")
 

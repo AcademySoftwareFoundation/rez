@@ -64,7 +64,6 @@ def _get_rez_dist_path(dirname):
         # this will happen if we are the bootstrapped rez pkg
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         path = os.path.realpath(path)
-        assert(os.path.basename(path) == 'rez')
         path = os.path.join(path, dirname)
         assert(os.path.exists(path))
     return path
@@ -74,6 +73,10 @@ def get_bootstrap_path():
 
 def get_script_path():
     return _get_rez_dist_path("bin")
+
+def get_rez_install_path():
+    path = os.path.join(get_script_path(), "..")
+    return os.path.realpath(path)
 
 def _add_bootstrap_pkg_path(paths):
     bootstrap_path = get_bootstrap_path()

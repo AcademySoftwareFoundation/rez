@@ -40,20 +40,13 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def supports_norc(cls):
-        return False
-
-    @classmethod
-    def supports_rcfile(cls):
-        return False
-
-    @classmethod
-    def supports_command(cls):
-        return False
-
-    @classmethod
-    def supports_stdin(cls):
-        return False
+    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+        """
+        Given a set of options related to shell startup, return the actual
+        options that will be applied.
+        @returns 4-tuple representing applied value of each option.
+        """
+        raise NotImplementedError
 
     @classmethod
     def get_syspaths(cls):
@@ -149,9 +142,16 @@ class UnixShell(Shell):
         raise NotImplementedError
 
     @classmethod
-    def _ignore_bool_option(cls, option, val):
+    def _unsupported_option(cls, option, val):
         if val and settings.warn_shell_startup:
-            print >> sys.stderr, "WARNING: %s ignored by %s shell" % (option, cls.name())
+            print >> sys.stderr, "WARNING: %s ignored, not supported by %s shell" \
+                                 % (option, cls.name())
+
+    @classmethod
+    def _overruled_option(cls, option, overruling_option, val):
+        if val and settings.warn_shell_startup:
+            print >> sys.stderr, ("WARNING: %s ignored by %s shell - " + \
+                "overruled by %s option") % (option, cls.name(), overruling_option)
 
     def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
                     command=None, quiet=False, **Popen_args):

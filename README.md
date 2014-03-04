@@ -124,7 +124,7 @@ Or, to install from source:
 
 To see that it's working:
 
-    ]$ rez-env -c 'hello_world' hello_world
+    ]$ rez-env --bo -c 'hello_world' hello_world
     Hello Rez World!
 
 ## Documentation

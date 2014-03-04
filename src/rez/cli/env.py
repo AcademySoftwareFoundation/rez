@@ -12,11 +12,14 @@ def command(opts, parser=None):
     else:
         t = get_epoch_time_from_str(opts.time) if opts.time else None
         pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
+        pkg_paths = [] if opts.bootstrap_only else pkg_paths
+
         rc = ResolvedContext(opts.PKG,
                              timestamp=t,
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
                              max_fails=opts.max_fails,
+                             verbosity=opts.resolve_verbosity,
                              store_failure=bool(opts.output))
         if opts.output:
             if not opts.quiet:

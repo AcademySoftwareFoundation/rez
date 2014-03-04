@@ -22,20 +22,30 @@ class Bash(SH):
         return True
 
     @classmethod
+    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+        if norc:
+            cls._overruled_option('rcfile', 'norc', rcfile)
+            rcfile = False
+        if command:
+            cls._overruled_option('stdin', 'command', stdin)
+            cls._overruled_option('rcfile', 'command', rcfile)
+            stdin = False
+            rcfile = False
+        if stdin:
+            cls._overruled_option('rcfile', 'stdin', rcfile)
+            rcFile = False
+        return (norc, rcfile, command, stdin)
+
+    @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):
+        rcfile, norc, stdin, command = \
+            cls.startup_capabilities(rcfile, norc, stdin, command)
+
         files = []
         envvar = None
         do_rcfile = False
 
-        if norc:
-            cls._ignore_bool_option('rcfile', rcfile)
-            rcfile = False
-        if command:
-            cls._ignore_bool_option('stdin', stdin)
-            stdin = False
-
         if command or stdin:
-            cls._ignore_bool_option('rcfile', rcfile)
             envvar = 'BASH_ENV'
             path = os.getenv(envvar)
             if path and os.path.isfile(os.path.expanduser(path)):

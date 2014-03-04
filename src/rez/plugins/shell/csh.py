@@ -38,14 +38,20 @@ class CSH(UnixShell):
         return cls.syspaths
 
     @classmethod
-    def get_startup_sequence(cls, rcfile, norc, stdin, command):
-        cls._ignore_bool_option('rcfile', rcfile)
-        files = []
-
+    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+        cls._unsupported_option('rcfile', rcfile)
+        rcfile = False
         if command:
-            cls._ignore_bool_option('stdin', stdin)
+            cls._overruled_option('stdin', 'command', stdin)
             stdin = False
+        return (norc, rcfile, command, stdin)
 
+    @classmethod
+    def get_startup_sequence(cls, rcfile, norc, stdin, command):
+        rcfile, norc, stdin, command = \
+            cls.startup_capabilities(rcfile, norc, stdin, command)
+
+        files = []
         if not norc:
             for file in (
                     "~/.tcshrc",

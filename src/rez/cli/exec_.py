@@ -12,8 +12,7 @@ def command(opts, parser=None):
 
     interp = None
     if opts.format is None:
-        from rez.system import system
-        interp = create_shell(system.shell)
+        interp = create_shell()
     elif opts.format == 'dict':
         interp = Python(passive=True)
     else:

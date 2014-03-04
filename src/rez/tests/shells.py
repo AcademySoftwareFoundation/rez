@@ -18,11 +18,26 @@ class TestShell(unittest.TestCase):
     def __init__(self, fn, shell):
         unittest.TestCase.__init__(self, fn)
         self.shell = shell
-        self.sh = create_shell(shell)
+        try:
+            self.sh = create_shell(shell)
+        except:
+            self.sh = None
+
+    def _create_context(self, pkgs):
+        return ResolvedContext(pkgs,
+                               caching=False,
+                               package_paths=[],
+                               add_implicit_packages=False)
+
+    def test_create_shell(self):
+        print "\n\nSHELL TYPE: %s" % self.shell
+        create_shell(self.shell)
 
     def test_no_output(self):
-        if self.sh.supports_command():
-            r = ResolvedContext(["hello_world"])
+        self.assertTrue(self.sh)
+        _,_,command,_ = self.sh.startup_capabilities(command=True)
+        if command:
+            r = self._create_context(["hello_world"])
             p = r.execute_shell(shell=self.shell,
                                 command="hello_world -q",
                                 stdout=subprocess.PIPE)
@@ -32,16 +47,20 @@ class TestShell(unittest.TestCase):
                 "printout and try again.")
 
     def test_command(self):
-        if self.sh.supports_command():
-            r = ResolvedContext(["hello_world"])
+        self.assertTrue(self.sh)
+        _,_,command,_ = self.sh.startup_capabilities(command=True)
+        if command:
+            r = self._create_context(["hello_world"])
             p = r.execute_shell(shell=self.shell,
                                 command="hello_world",
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     def test_command_returncode(self):
-        if self.sh.supports_command():
-            r = ResolvedContext(["hello_world"])
+        self.assertTrue(self.sh)
+        _,_,command,_ = self.sh.startup_capabilities(command=True)
+        if command:
+            r = self._create_context(["hello_world"])
             p = r.execute_shell(shell=self.shell,
                                 command="hello_world -q -r 66",
                                 stdout=subprocess.PIPE)
@@ -49,8 +68,10 @@ class TestShell(unittest.TestCase):
             self.assertEqual(p.returncode, 66)
 
     def test_norc(self):
-        if self.sh.supports_norc():
-            r = ResolvedContext(["hello_world"])
+        self.assertTrue(self.sh)
+        _,norc,command,_ = self.sh.startup_capabilities(norc=True, command=True)
+        if norc and command:
+            r = self._create_context(["hello_world"])
             p = r.execute_shell(shell=self.shell,
                                 norc=True,
                                 command="hello_world",
@@ -58,8 +79,10 @@ class TestShell(unittest.TestCase):
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     def test_stdin(self):
-        if self.sh.supports_stdin():
-            r = ResolvedContext(["hello_world"])
+        self.assertTrue(self.sh)
+        _,_,_,stdin = self.sh.startup_capabilities(stdin=True)
+        if stdin:
+            r = self._create_context(["hello_world"])
             p = r.execute_shell(shell=self.shell,
                                 stdout=subprocess.PIPE,
                                 stdin=subprocess.PIPE)
@@ -67,16 +90,34 @@ class TestShell(unittest.TestCase):
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
+    def test_rcfile(self):
+        self.assertTrue(self.sh)
+        rcfile,_,command,_ = self.sh.startup_capabilities(rcfile=True, command=True)
+        if rcfile and command:
+            f,path = tempfile.mkstemp()
+            os.write(f, "hello_world\n")
+            os.close(f)
+
+            r = self._create_context(["hello_world"])
+            p = r.execute_shell(shell=self.shell,
+                                rcfile=path,
+                                command="hello_world -q",
+                                stdout=subprocess.PIPE)
+            self.assertEqual(_stdout(p), "Hello Rez World!")
+            os.remove(path)
+
 
 def run(verbosity=2):
     suites = []
     for shell in get_shell_types():
         suite = unittest.TestSuite()
+        suite.addTest(TestShell("test_create_shell", shell))
         suite.addTest(TestShell("test_no_output", shell))
         suite.addTest(TestShell("test_command", shell))
         suite.addTest(TestShell("test_command_returncode", shell))
         suite.addTest(TestShell("test_norc", shell))
         suite.addTest(TestShell("test_stdin", shell))
+        suite.addTest(TestShell("test_rcfile", shell))
         suites.append(suite)
 
     all_ = unittest.TestSuite(suites)

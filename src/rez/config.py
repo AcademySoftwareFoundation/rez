@@ -754,6 +754,7 @@ class _Package(object):
                 self.timestamp = pkg.timestamp
                 self.base_path = pkg.base
                 self.metadata = pkg.metadata
+
                 self.metafile = pkg.metafile
                 metafile_variants = self.metadata['variants']
                 if metafile_variants:
@@ -779,11 +780,13 @@ class _Package(object):
         return pkg.metadata
 
     def __str__(self):
-        l = [self.short_name()]
+        s = self.short_name()
         if self.root_path:
-            l.append('R' + self.root_path)
+            s += ' @ R' + self.root_path
         elif self.base_path:
-            l.append('B' + self.base_path)
+            s += ' @ B' + self.base_path
+        l = [s]
+
         if(self.is_transitivity):
             l.append('t')
 
@@ -1264,7 +1267,7 @@ class _Configuration(object):
                             print "ROLLING BACK TO CONFIG #" + self.uid
                         continue
 
-                    if (self.rctxt.verbosity != 0):
+                    if (self.rctxt.verbosity):
                         print
                         print "config after applying: " + pkg_resolve_str
                         if (self.rctxt.verbosity == 1):
@@ -1555,10 +1558,9 @@ class _Configuration(object):
                 if pkg.resolve_metafile(self.rctxt.time_epoch):
                     num += 1
 
-                    if (self.rctxt.verbosity != 0):
+                    if (self.rctxt.verbosity):
                         print
                         print "resolved metafile for " + pkg.short_name() + ":"
-                    if (self.rctxt.verbosity == 2):
                         print str(pkg)
 
                     # add required packages to the configuration, this may
@@ -1589,7 +1591,7 @@ class _Configuration(object):
                                     "'s required package " + pkg_req.short_name() + ':'
                             if (self.rctxt.verbosity == 1):
                                 print str(config2)
-                            elif (self.rctxt.verbosity == 2):
+                            elif (self.rctxt.verbosity >= 2):
                                 config2.dump()
 
         if config2:
@@ -1730,7 +1732,7 @@ class _Configuration(object):
         removed in this way, then a pkg-conflict exception will be raised.
         """
 
-        if (self.rctxt.verbosity == 2):
+        if (self.rctxt.verbosity >= 2):
             print
             print "removing conflicting variants..."
 
@@ -1785,7 +1787,7 @@ class _Configuration(object):
                         for cv in conflicting_variants:
                             variants.remove(cv)
 
-                        if (self.rctxt.verbosity == 2):
+                        if (self.rctxt.verbosity >= 2):
                             print
                             print "removed conflicting variants from " + pkg.short_name() + ':'
                             for conflict in conflicts:
@@ -1850,7 +1852,7 @@ class _Configuration(object):
                                    pkg_req_.short_name() + ':')
                         if (self.rctxt.verbosity == 1):
                             print str(config2)
-                        elif (self.rctxt.verbosity == 2):
+                        elif (self.rctxt.verbosity >= 2):
                             config2.dump()
 
         self.swap(config2)
@@ -1898,7 +1900,7 @@ class _Configuration(object):
                         print "resolved single-variant package " + pkg.short_name() + ':'
                     if (self.rctxt.verbosity == 1):
                         print str(self)
-                    elif (self.rctxt.verbosity == 2):
+                    elif (self.rctxt.verbosity >= 2):
                         print str(pkg)
         return num
 

@@ -2,7 +2,6 @@ from __future__ import with_statement
 from rez import module_root_path
 from rez.system import system
 from rez.util import _mkdirs
-from rez.py_dist import get_dist_dependencies, convert_dist
 import textwrap
 import stat
 import sys
@@ -104,27 +103,22 @@ def _mkhelloworldpkg():
 
 def _create_scripts(install_base_dir, install_scripts_dir, scripts):
     new_bin_path = os.path.join(module_root_path, "bin")
+    rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     os.mkdir(new_bin_path)
 
-    #rel_pypaths = [os.path.relpath(x, bootstrap_path) for x in pypaths]
-    rel_install_base_dir = os.path.relpath(install_base_dir, new_bin_path)
     patch = textwrap.dedent( \
     """
     import sys
     import os.path
 
-    try:
-        from rez._sys._bootstrap import rel_pypaths
-    except:
-        rel_pypaths = None
+    rel_pypaths=None ### !!!DO NOT CHANGE THIS LINE OF CODE!!!
 
     if rel_pypaths:
         p = os.path.join(os.path.dirname(__file__), "..", "packages")
-        sys.path = [os.path.realpath(os.path.join(p,x)) for x in rel_pypaths] + sys.path
+        bootpaths = [os.path.realpath(os.path.join(p,x)) for x in rel_pypaths]
+        sys.path = bootpaths + sys.path
     else:
-        import sys
         import site
-        import os.path
         _script_dir = os.path.dirname(__file__)
         _install_base = os.path.join(_script_dir, '%(rel_path)s')
         _install_base = os.path.realpath(_install_base)
@@ -170,29 +164,12 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
 
 
 def post_install(install_base_dir, install_scripts_dir, scripts):
+    # create patched scripts
+    _create_scripts(install_base_dir, install_scripts_dir, scripts)
+
     # create bootstrap packages
     _mkpkg("platform", system.platform)
     _mkpkg("arch", system.arch)
     _mkpkg("os", system.os)
     _mkpythonpkg()
     _mkhelloworldpkg()
-
-    # convert rez itself, and its dependencies, into bootstrap packages.
-    """
-    pypaths = []
-    try:
-        pkgs = get_dist_dependencies('rez')
-        for pkg in pkgs:
-            print "Creating bootstrap package: %s..." % pkg
-            ignore = shutil.ignore_patterns("packages") \
-                if pkg == 'rez' else None
-
-            path = convert_dist(pkg, bootstrap_path,
-                                make_variant=False,
-                                ignore=ignore)
-            pypaths.append(path)
-    except:
-        pypaths = []
-    """
-
-    _create_scripts(install_base_dir, install_scripts_dir, scripts)

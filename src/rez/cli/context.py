@@ -100,16 +100,24 @@ def command(opts, parser=None):
 
     rc = ResolvedContext.load(rxt_file)
 
+    def _check_graph(g):
+        if g is None:
+            print >> sys.stderr, "The context does not contain a graph."
+            sys.exit(0)
+
     if not opts.interpret:
         if opts.print_request:
             print ' '.join(rc.added_implicit_packages + rc.requested_packages)
         elif opts.print_resolve:
             print ' '.join(x.short_name() for x in rc.resolved_packages)
         elif opts.print_graph:
+            _check_graph(rc.resolve_graph)
             print rc.resolve_graph
         elif opts.graph:
+            _check_graph(rc.resolve_graph)
             view_graph(rc.resolve_graph, opts)
         elif opts.write_graph:
+            _check_graph(rc.resolve_graph)
             write_graph(rc.resolve_graph, opts)
         else:
             rc.print_info(verbose=opts.verbose)
