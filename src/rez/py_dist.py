@@ -2,6 +2,7 @@
 Functions for converting python distributions to rez packages.
 """
 from rez.util import _mkdirs
+from rez.exceptions import PkgSystemError
 import pkg_resources
 import shutil
 import sys
@@ -108,15 +109,14 @@ def get_dist_dependencies(name, recurse=True):
 
 
 # TODO doesn't deal with executable scripts yet
-def convert_dist(name, dest_path, make_variant=True, ignore=None):
+def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None):
     """
     Convert an already installed python distribution into a rez package.
     @param dest_path Where to put the rez package. The package will be created
         under dest_path/<NAME>/<VERSION>/.
     @param make_variant If True, makes a single variant in the rez package
         based on the MAJOR.MINOR version of python.
-    @param ignore Used as ignore param when copying dist src using shutil.copytree.
-        This is used internally by Rez, it is unlikely you will need to use it.
+    @param ignore_dirs List of directory names to not copy from the dist.
     @returns Install path of the new Rez package.
     """
     dist = pkg_resources.get_distribution(name)
@@ -136,19 +136,65 @@ def convert_dist(name, dest_path, make_variant=True, ignore=None):
     pkg_file = os.path.join(pkg_path, "package.py")
     root_path = _mkdirs(pkg_path, pypkg) if make_variant else pkg_path
 
-    dirname,basename = os.path.split(dist.location)
+    basename = os.path.basename(dist.location)
     is_egg = (os.path.splitext(basename)[1] == ".egg")
-    rel_pypath = None
 
     if os.path.isdir(dist.location):
-        rel_pypath = ''
-        for file in os.listdir(dist.location):
-            fpath = os.path.join(dist.location, file)
-            if os.path.isfile(fpath):
-                shutil.copy(fpath, root_path)
-            else:
-                shutil.copytree(fpath, os.path.join(root_path, file), ignore=ignore)
+        if is_egg:
+            # this is an egg-dir
+            for file in os.listdir(dist.location):
+                fpath = os.path.join(dist.location, file)
+                if os.path.isfile(fpath):
+                    shutil.copy(fpath, root_path)
+                else:
+                    shutil.copytree(fpath, os.path.join(root_path, file),
+                                    ignore=shutil.ignore_patterns(ignore_dirs))
+        else:
+            # this is a site dir
+            egginfo_dir = "%s.egg-info" % dist.egg_name()
+            eggpath = os.path.join(dist.location, egginfo_dir)
+            file = os.path.join(eggpath, "installed-files.txt")
+            if not os.path.isfile(file):
+                raise PkgSystemError((\
+                    "There is not enough information on disk to convert the "
+                    "python distribution '%s' into a Rez package. The distribution "
+                    "is installed to a common site, but the installed file "
+                    "information is not present.") % name)
+
+            with open(file) as f:
+                installed_files = f.read().strip().split()
+
+            dirs = set()
+            files = set()
+            for file in installed_files:
+                path = os.path.join(eggpath, file)
+                path = os.path.realpath(path)
+                if os.path.isfile(path) \
+                    and path.startswith(dist.location + os.sep):
+
+                    dir_ = os.path.dirname(path)
+                    if ignore_dirs:
+                        reldir = os.path.relpath(dir_, dist.location)
+                        if set(reldir.split(os.sep)) & set(ignore_dirs):
+                            continue
+
+                    files.add(path)
+                    dirs.add(dir_)
+
+            def _dst(p):
+                dst = os.path.relpath(p, dist.location)
+                dst = os.path.join(root_path, dst)
+                return os.path.realpath(dst)
+
+            for dir_ in dirs:
+                dst_dir = _dst(dir_)
+                _mkdirs(dst_dir)
+
+            for file in files:
+                dst_file = _dst(file)
+                shutil.copy(file, dst_file)
     else:
+        # this is an egg-file
         import zipfile
         assert(is_egg and os.path.isfile(dist.location))
         assert(zipfile.is_zipfile(dist.location))

@@ -106,6 +106,17 @@ class TestShell(unittest.TestCase):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
+    def test_rez_command(self):
+        """Test that the Rez cli tools have been bound in the target env."""
+        self.assertTrue(self.sh)
+        _,_,command,_ = self.sh.startup_capabilities(command=True)
+        if command:
+            r = self._create_context([])
+            p = r.execute_shell(shell=self.shell,
+                                command="rez-env -c 'hello_world' hello_world",
+                                stdout=subprocess.PIPE)
+            self.assertEqual(_stdout(p), "Hello Rez World!")
+
 
 def run(verbosity=2):
     suites = []
@@ -118,6 +129,7 @@ def run(verbosity=2):
         suite.addTest(TestShell("test_norc", shell))
         suite.addTest(TestShell("test_stdin", shell))
         suite.addTest(TestShell("test_rcfile", shell))
+        suite.addTest(TestShell("test_rez_command", shell))
         suites.append(suite)
 
     all_ = unittest.TestSuite(suites)

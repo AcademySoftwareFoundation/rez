@@ -18,7 +18,7 @@ with open("src/rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.31"
+version = "2.0.PRE-ALPHA.38"
 
 scripts = [
     "rezolve",

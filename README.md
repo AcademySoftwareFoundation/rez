@@ -106,6 +106,8 @@ Resolved environments can also be created programmatically:
   range, and a conflict operator for rejecting version ranges;
 * Package 'variants' - a way to define different flavors of the same package
   version, for example a plugin built for multiple versions of the host app;
+* Has a time lock feature, which allows old resolves to be recreated (newer
+  packages are ignored);
 * Package definitions are a single, succinct file;
 * Packages define their effect on the environment (adding to PATH etc) in a
   platform- and shell- agnostic way, using a dedicated python API;

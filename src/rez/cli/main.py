@@ -169,11 +169,14 @@ def add_bootstrap(parser):
     from rez.system import system
     shells = get_shell_types()
     parser.add_argument("--install-path", dest="install_path", type=str,
-                        help="create a production-ready install of Rez in the "
+                        help="create a bootstrapped install of Rez in the "
                         "given path")
     parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
                         help="target shell type of the install, defaults to the "
                         "current shell (%s)" % system.shell)
+    parser.add_argument("--force", action="store_true",
+                        help="create a bootstrapped Rez install, even if "
+                        "advised not to")
 
 
 def _add_subcommand(cmd, help):

@@ -10,17 +10,34 @@ import shutil
 
 
 _bootstrapped = None
+_in_venv = None
 
 def is_bootstrapped():
-    """
-    @returns True if Rez has been installed into a production-ready packaged
-    install, False otherwise.
-    """
+    """Detect if Rez has been installed via rez-bootstrap cli tool."""
     global _bootstrapped
     if _bootstrapped is None:
         path = os.path.join(get_rez_install_path(), ".rez-bootstrapped")
         _bootstrapped = os.path.exists(path)
     return _bootstrapped
+
+
+# TODO is this robust?
+def is_in_virtualenv():
+    """Detect if the current Rez install is within a virtualenv."""
+    global _in_venv
+    if _in_venv is None:
+        import pkg_resources
+
+        _in_venv = False
+        dist = pkg_resources.get_distribution("rez")
+        if os.path.isdir(dist.location):
+            path,base = os.path.split(dist.location)
+            if base == "site-packages":
+                f1 = os.path.join(path, "orig-prefix.txt")
+                f2 = os.path.join(path, "no-global-site-packages.txt")
+                if os.path.isfile(f1) or os.path.isfile(f2):
+                    _in_venv = True
+    return _in_venv
 
 
 def print_info(buf=sys.stdout):
@@ -41,10 +58,15 @@ def print_info(buf=sys.stdout):
         _pr("Rez has been bootstrapped into %s." % install_path)
         _pr("Sourcing %s in this directory binds Rez to the environment."
             % init_script)
+    elif is_in_virtualenv():
+        _pr("Rez is a standard python module, installed into a virtual env. To "
+        "create a production-ready bootstrapped install, run rez-bootstrap "
+        "with the --install-path option.")
     else:
-        _pr("Rez is a normal python module. To install it into a production-"
-        "ready directory, and generate an initialisation script, run "
-        "'rez-bootstrap --install-path=PATH'")
+        _pr("Rez is a standard python module. To create a production-ready "
+            "bootstrapped install, it is highly recommended that you first "
+            "install Rez into a virtualenv, and then run rez-bootstrap with "
+            "the --install-path option.")
     _pr()
 
 
@@ -90,12 +112,10 @@ def install_into(path, shell=None):
 
         for pkg in pkgs:
             print "Creating bootstrap package: %s..." % pkg
-            ignore = shutil.ignore_patterns("packages", "bin") \
-                if pkg == 'rez' else None
-
+            ignore = ("packages", "bin") if pkg == 'rez' else None
             dst_path = convert_dist(pkg, bootstrap_path,
                                     make_variant=False,
-                                    ignore=ignore)
+                                    ignore_dirs=ignore)
             pypaths.append(dst_path)
 
         rel_pypaths = [os.path.relpath(x, bootstrap_path) for x in pypaths]
