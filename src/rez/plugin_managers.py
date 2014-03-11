@@ -118,7 +118,7 @@ class ShellPluginManager(RezPluginManager):
             shell = system.shell
 
         # TODO this is a bit of a hack
-        from rez.rex import DEFAULT_ENV_SEP_MAP
+        #from rez.rex import DEFAULT_ENV_SEP_MAP
 
         return super(ShellPluginManager,self).create_instance(shell)
 

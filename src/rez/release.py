@@ -1,9 +1,3 @@
-"""
-rez-release
-
-A tool for releasing rez - compatible projects centrally
-"""
-# TODO plugin-ize this.
 from __future__ import with_statement
 import sys
 import os
@@ -26,7 +20,7 @@ from rez.system import system
 import rez.public_enums as enums
 import rez.versions as versions
 import rez.rex as rex
-import rez.builds as builds
+from rez.build_package import get_patched_source
 import rez.cmake as cmake
 
 
@@ -172,6 +166,8 @@ def send_release_email(subject, body):
     except Exception, e:
         print >> sys.stderr, "Emailing failed: %s" % str(e)
 
+
+
 ##############################################################################
 # Implementation Classes
 ##############################################################################
@@ -214,6 +210,8 @@ class RezReleaseMode(object):
 
         # variables filled out in pre_build()
         self.metadata = None
+        self.requires = None
+        self.variants = None
         self.family_install_dir = None
         self.package_uuid_exists = None
         self.editor = None
@@ -715,7 +713,7 @@ class RezReleaseMode(object):
                 print "Generated %s, invoke to run cmake for this project." % src_file
 
     def get_source(self):
-        return builds.get_patched_source(self.metadata)
+        return get_patched_source(self.metadata)
 
     # phases ---------
     def init(self, central_release=False):
@@ -973,12 +971,14 @@ class SvnRezReleaseMode(RezReleaseMode):
         try:
             import pysvn
         except ImportError:
-            raise RezReleaseUnsupportedMode("pysvn python module must be installed to properly release a project under subversion.")
+            raise RezReleaseUnsupportedMode("pysvn python module must be "
+            "installed to release a project under subversion.")
 
         self.svnc = svn_get_client()
         svn_entry = self.svnc.info(self.root_dir)
         if not svn_entry:
-            raise RezReleaseUnsupportedMode("'" + self.root_dir + "' is not an svn working copy")
+            raise RezReleaseUnsupportedMode("'" + self.root_dir +
+                                            "' is not an svn working copy")
         self.this_url = str(svn_entry["url"])
 
         # variables filled out in pre_build()

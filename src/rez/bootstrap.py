@@ -51,7 +51,7 @@ def print_info(buf=sys.stdout):
 
     if is_bootstrapped():
         install_path = get_rez_install_path()
-        path = os.path.join(intsall_path, ".rez-bootstrapped")
+        path = os.path.join(install_path, ".rez-bootstrapped")
         with open(path) as f:
             init_script = f.read().strip()
 

@@ -98,6 +98,7 @@ Features
 -  Supports alphanumeric version numbers;
 -  Has a powerful version requirements syntax, able to describe any version range, and a conflict operator for rejecting version ranges;
 -  Package 'variants' - a way to define different flavors of the same package version, for example a plugin built for multiple versions of the host app;
+-  Has a time lock feature, which allows old resolves to be recreated (newer packages are ignored);
 -  Package definitions are a single, succinct file;
 -  Packages define their effect on the environment (adding to PATH etc) in a platform- and shell- agnostic way, using a dedicated python API;
 -  Has a memcached-based caching system, for caching environment resolves.
@@ -122,7 +123,7 @@ To see that it's working:
 
 ::
 
-    ]$ rez-env --bo -c 'hello_world' hello_world
+    ]$ rez-env -c 'hello_world' hello_world
     Hello Rez World!
     
 Documentation

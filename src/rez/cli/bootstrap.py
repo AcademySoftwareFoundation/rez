@@ -17,7 +17,7 @@ def command(opts, parser=None):
         init_script = install_into(opts.install_path, opts.shell)
         print
         print ("Rez has been bootstrapped into %s. To bind Rez to the current " + \
-        "environment, source the file %s." % (opts.install_path, init_script))
+        "environment, source the file %s.") % (opts.install_path, init_script)
         print
         print "Do not move this installation to another location. Instead, " + \
         "run 'rez-bootstrap --install-path=PATH' again, specifying the new " + \

@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 #
 # Run this program to generate the RestructuredText 'README' file from the
-# markdown 'README.md' file. Be careful it isn't foolproof, use of fancier
-# markdown features will probably break it.
+# markdown 'README.md' file. Be careful: it isn't foolproof, use of fancier
+# markdown features will probably break it. The README file is used by Pypi
+# to create the Rez frontpage.
 #
 from __future__ import with_statement
 
