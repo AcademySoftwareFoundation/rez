@@ -1,0 +1,6 @@
+[Core]
+Name = cmake
+Module = cmake
+
+[Documentation]
+Description = CMake build system.

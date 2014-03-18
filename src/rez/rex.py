@@ -243,9 +243,7 @@ class ActionManager(object):
             return bool(self.verbose)
 
     def _format(self, value):
-        """
-        format a string value
-        """
+        """Format a string value."""
         # note that the default formatter is just str()
         if hasattr(value, '__iter__'):
             return type(value)(self.formatter(v) for v in value)
@@ -601,18 +599,40 @@ class Python(ActionInterpreter):
 #===============================================================================
 
 class NamespaceFormatter(Formatter):
-    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
+    SINGLE_QUOTED_REGEX = re.compile(r"'[^']+'")
+    ENV_VAR_REGEX       = re.compile(r"\${[A-Z_]+}")
 
     def __init__(self, namespace):
         Formatter.__init__(self)
         self.namespace = namespace
 
     def format(self, format_string, *args, **kwargs):
-        def escape_envvar(matchobj):
-            return "${{%s}}" % (matchobj.group("var"))
+        toks = [(format_string, True)]
 
-        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
-        return Formatter.format(self, escaped_format_string, *args, **kwargs)
+        for patt in (self.SINGLE_QUOTED_REGEX, self.ENV_VAR_REGEX):
+            toks_ = []
+            for (s,expand) in toks:
+                if expand:
+                    strs = patt.split(s)
+                    patts = patt.findall(s)
+                    for (s,p) in zip(strs, patts+['']):
+                        toks_.append((s, True))
+                        toks_.append((p, False))
+                else:
+                    toks_.append((s,expand))
+            toks = toks_
+
+        strs = []
+        for (s,expand) in toks:
+            if expand:
+                try:
+                    s_ = Formatter.format(self, s, *args, **kwargs)
+                except KeyError:
+                    s_ = s
+                strs.append(s_)
+            else:
+                strs.append(s)
+        return ''.join(strs)
 
     def get_value(self, key, args, kwds):
         """

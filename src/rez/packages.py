@@ -37,9 +37,7 @@ def pkg_name(pkg_str):
     return pkg_str.split('-')[0]
 
 def iter_package_families(name=None, paths=None):
-    """
-    Iterate through top-level `PackageFamily` instances.
-    """
+    """Iterate through top-level `PackageFamily` instances."""
     if paths is None:
         paths = settings.packages_path
     elif isinstance(paths, basestring):
@@ -151,9 +149,8 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
         return None
 
 class PackageFamily(object):
-    """
-    A package family has a single root directory, with a sub-directory for each
-    version.
+    """A package family has a single root directory, with a sub-directory for
+    each version.
     """
     def __init__(self, name, path):
         self.name = name
@@ -193,8 +190,7 @@ class BasePackage(object):
             return self.name + '-' + str(self.version)
 
 class Package(BasePackage):
-    """
-    an unresolved package.
+    """An unresolved package.
 
     An unresolved package has a version, but may have inexplicit or "variant"
     requirements, which can only be determined once its co-packages
@@ -209,8 +205,8 @@ class Package(BasePackage):
         self._metadata = metadata
 
     def __getstate__(self):
-        """ metadata is never pickled """
         d = self.__dict__.copy()
+        # metadata is never pickled!
         d["_metadata"] = None
         return d
 
@@ -259,15 +255,6 @@ class ResolvedPackage(Package):
         self.version = ExactVersion(version)
         self.base = base
         self.root = root
-        #self.commands = None  # set externally after command execution
-
-    """
-    def strip(self):
-        # remove data that we don't want to cache
-        #self._metadata = None
-        #self.commands = None
-        pass
-    """
 
     def __str__(self):
         return str([self.name, self.version, self.root])

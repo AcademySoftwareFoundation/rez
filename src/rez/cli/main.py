@@ -11,21 +11,24 @@ from rez import __version__
 p = argparse.ArgumentParser(
     description='Rez command-line tool',
     formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-subps = p.add_subparsers(dest="cmd")
+subps = p.add_subparsers(dest="cmd", metavar="COMMAND")
 subparsers = {}
 
 
 # lazily loads subcommands, gives faster load time
 subcmd = (sys.argv[1:2] + [None])[0]
-def subcommand(fn):
-    def _fnull(*nargs, **kwargs):
-        pass
-    def _fn(*nargs, **kwargs):
-        fn(*nargs, **kwargs)
-    if fn.__name__ == ("add_%s" % str(subcmd)):
-        return _fn
-    else:
-        return _fnull
+
+class subcommand(object):
+    def __init__(self, fn):
+        self.fn = fn if fn.__name__ == ("add_%s" % str(subcmd)) else None
+
+    def __call__(self, *nargs):
+        if self.fn:
+            return self.fn(*nargs)
+
+class hidden_subcommand(subcommand):
+    pass
+
 
 def _add_common_args(subp):
     subp.add_argument("--debug", dest="debug", action="store_true",
@@ -36,6 +39,7 @@ def _subcmd_name(cli_name):
         return cli_name+'_'
     else:
         return cli_name.replace('-','_')
+
 
 @subcommand
 def add_settings(parser):
@@ -79,6 +83,28 @@ def add_context(parser):
                         help="interpret the context in an empty environment")
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
+
+@subcommand
+def add_build(parser):
+    import os
+    from rez.build_system import get_valid_build_systems
+    clss = get_valid_build_systems(os.getcwd())
+
+    parser.add_argument("-c", "--clean", action="store_true",
+                        help="clear the current build before rebuilding.")
+    parser.add_argument("-i", "--install", action="store_true",
+                        help="install the build to the local packages path. "
+                        "Use --prefix to choose a custom install path.")
+    parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
+                        help="install to a custom path")
+    if len(clss) == 1:
+        cls = iter(clss).next()
+        cls.bind_cli(parser)
+    elif clss:
+        types = [x.name() for x in clss]
+        parser.add_argument("-b", "--build-system", dest="buildsys",
+                            type=str, choices=types,
+                            help="the build system to use.")
 
 @subcommand
 def add_env(parser):
@@ -178,11 +204,24 @@ def add_bootstrap(parser):
                         help="create a bootstrapped Rez install, even if "
                         "advised not to")
 
+@hidden_subcommand
+def add_forward(parser):
+    parser.add_argument("MODULE", type=str,
+                        help="module containing function to execute")
+    parser.add_argument("FUNC", type=str,
+                        help="name of function to execute")
+    parser.add_argument("JSON", type=str, nargs='?',
+                        help='json encoding: [[nargs], {kwargs}]')
 
-def _add_subcommand(cmd, help):
+
+def _add_subcommand(cmd, help=""):
+    fn = globals()["add_%s" % cmd]
+    if isinstance(fn, hidden_subcommand) and (cmd != subcmd):
+        return
+
     subp = subps.add_parser(cmd, help=help)
     _add_common_args(subp)
-    globals()["add_%s" % cmd](subp)
+    fn(subp)
     subparsers[cmd] = subp
 
 
@@ -192,6 +231,8 @@ def run():
     _add_subcommand("context",
                     "Print information about the current rez context, or a "
                     "given context file.")
+    _add_subcommand("build",
+                    "Build a package from source.")
     _add_subcommand("env",
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("exec",
@@ -200,6 +241,7 @@ def run():
                     "Rez installation-related operations")
     _add_subcommand("test",
                     "Run unit tests")
+    _add_subcommand("forward")
 
     p.add_argument("-V", "--version", action="version",
                    version="Rez %s" % __version__)

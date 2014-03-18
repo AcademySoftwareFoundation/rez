@@ -16,11 +16,20 @@ from rez.system import system
 
 
 class Settings(object):
-    def __init__(self):
+    def __init__(self, overrides=None):
+        """Create a Settings object.
+
+        Settings are loaded lazily, and follow the rules found at the top of the
+        rezconfig file. If 'overrides' is provided, any settings contained in
+        this dict override settings from any other source.
+
+        Args:
+            overrides: A dict containing settings that override all others.
+        """
         self.root_config = None
         self.config = None
         self.variables = None
-        self.settings = {}
+        self.settings = overrides or {}
 
     def get(self, key):
         """ Get a setting by name """

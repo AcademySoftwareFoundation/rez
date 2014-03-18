@@ -26,7 +26,7 @@ import sys
 import inspect
 import re
 from collections import defaultdict
-from rez.settings import settings
+from rez.settings import settings, Settings
 from rez.util import to_posixpath
 from rez.exceptions import PkgMetadataError
 from rez.versions import ExactVersion, VersionRange
@@ -171,17 +171,13 @@ metadata_loaders['yaml'] = YAMLLoader()
 metadata_loaders['txt'] = metadata_loaders['yaml']
 
 def load(stream, scheme):
-    """
-    Read the metadata from a stream.
+    """Read the metadata from a stream.
 
-    Parameters
-    ----------
-    scheme : str
-        the serialization scheme
+    Args:
+        scheme: str: The serialization scheme to apply.
 
-    Returns
-    -------
-    metadata : dict
+    Returns:
+        The metadata, as a dict.
     """
     try:
         loader = metadata_loaders[scheme]
@@ -191,19 +187,15 @@ def load(stream, scheme):
     return loader.load(stream)
 
 def load_file(filename):
-    """
-    Read metadata from a file. 
+    """Read metadata from a file.
 
     Determines the proper de-serialization scheme based on file extension.
 
-    Parameters
-    ----------
-    filename : str
-        path to the file from which to read metadata
+    Args:
+        filename: Path to the file from which to read metadata.
 
-    Returns
-    -------
-    metadata : dict
+    Returns:
+        The metadata, as a dict.
     """
     ext = os.path.splitext(filename)[1]
     with open(filename, 'r') as f:
@@ -216,6 +208,22 @@ def load_file(filename):
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
             raise PkgMetadataError(filename, "%s\n%s" % (str(e), stack))
+
+def load_package_metadata(parent_path):
+    """Load the metadata file found under parent_path.
+
+    Returns:
+        A metadata dict, or None if no package definition file found.
+    """
+    for file in ("package.yaml", "package.py"):
+        path = os.path.join(parent_path, file)
+        if os.path.isfile(path):
+            return load_file(path)
+    raise PkgMetadataError("No package definition file found in %s" % parent_path)
+
+def load_package_settings(metadata):
+    """Return rezconfig settings for this pkg (pkgs can override settings)."""
+    return Settings(metadata["settings"]) if "rezconfig" in metadata else settings
 
 
 #------------------------------------------------------------------------------

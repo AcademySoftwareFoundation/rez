@@ -18,7 +18,7 @@ def get_source(url, dest_path, type=None, cache_path=None, cache_filename=None, 
     '''
     from rez.plugin_managers import source_retriever_plugin_manager
 
-    retriever = source_retriever_plugin_manager.create_instance(url, \
+    retriever = source_retriever_plugin_manager().create_instance(url, \
         type=type,
         cache_path=cache_path,
         cache_filename=cache_filename,

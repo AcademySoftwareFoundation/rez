@@ -15,9 +15,7 @@ BUILD_SYSTEMS = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
                  'xcode': "Xcode"}
 
 class RezCMakeError(RezError):
-    """
-    rez cmake error
-    """
+    pass
 
 def remove_cache():
     if os.path.exists("CMakeCache.txt"):
@@ -31,7 +29,7 @@ def get_cmake_args(build_system, build_target, release_install=False, coverage=F
 
     validate_build_system(build_system)
     
-    cmake_arguments = settings.cmake_args if settings.cmake_args else []
+    cmake_arguments = settings.cmake_args or []
     cmake_arguments.extend(["-DCMAKE_MODULE_PATH=$CMAKE_MODULE_PATH"])
 
     if 'CMAKE_INITIAL_CACHE' in os.environ:

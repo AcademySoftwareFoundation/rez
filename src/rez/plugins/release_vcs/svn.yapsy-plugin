@@ -1,0 +1,6 @@
+[Core]
+Name = svn
+Module = svn
+
+[Documentation]
+Description = Svn VCS support.

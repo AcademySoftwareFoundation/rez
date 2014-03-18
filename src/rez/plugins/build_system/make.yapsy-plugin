@@ -1,0 +1,6 @@
+[Core]
+Name = make
+Module = make
+
+[Documentation]
+Description = Make build system.

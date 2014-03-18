@@ -4,6 +4,7 @@ Manages loading of all types of Rez plugins.
 from yapsy.PluginManager import PluginManager
 from rez import module_root_path
 from rez.settings import settings
+from rez.util import LazySingleton
 import logging
 import os.path
 import os
@@ -18,11 +19,13 @@ else:
 
 class RezPluginManager(object):
     def __init__(self, plugin_type_name):
-        """ Init a plugin manager. Type name must correspond with one of the source directories
-        found under the 'plugins' directory. The plugin search path for this type of plugin is
-        controlled by the '<typename>_plugin_path' rez setting. For example, for plugin_type_name
-        'foo', the rezconfig entry would be 'foo_plugin_path', and the overriding env-var
-        'REZ_FOO_PLUGIN_PATH'.
+        """ Init a plugin manager.
+
+        Type name must correspond with one of the source directories found under
+        the 'plugins' directory. The plugin search path for this type of plugin
+        is controlled by the '<typename>_plugin_path' rez setting. For example,
+        for plugin_type_name 'foo', the rezconfig entry would be 'foo_plugin_path',
+        and the overriding env-var 'REZ_FOO_PLUGIN_PATH'.
         """
         self.type_name = plugin_type_name
         self.pretty_type_name = self.type_name.replace('_',' ')
@@ -53,22 +56,26 @@ class RezPluginManager(object):
             self.factories[factory.name()] = factory
 
     def get_plugins(self):
+        """Returns a list of the plugin names available."""
         return self.factories.keys()
 
-    def create_instance(self, plugin, **instance_kwargs):
-        '''Create and return an instance of the given plugin.
-        '''
+    def get_plugin_class(self, plugin):
+        """Returns the class registered under the given plugin name."""
         factory = self.factories.get(plugin)
         if factory is None:
-            raise RuntimeError("Unrecognised %s plugin: '%s'" % (self.pretty_type_name, plugin))
+            raise RuntimeError("Unrecognised %s plugin: '%s'"
+                               % (self.pretty_type_name, plugin))
+        return factory.target_type()
 
-        return factory.target_type()(**instance_kwargs)
+    def create_instance(self, plugin, **instance_kwargs):
+        """Create and return an instance of the given plugin."""
+        cls = self.get_plugin_class(plugin)
+        return cls(**instance_kwargs)
 
 
 
 class SourceRetrieverPluginManager(RezPluginManager):
-    """
-    Source retrievers download data from sources such as archives or repositories.
+    """Source retrievers download data from sources such as archives or repositories.
     """
     def __init__(self):
         super(SourceRetrieverPluginManager,self).__init__("source_retriever")
@@ -106,8 +113,7 @@ class SourceRetrieverPluginManager(RezPluginManager):
 
 
 class ShellPluginManager(RezPluginManager):
-    """
-    Support for different types of target shells, such as bash, tcsh.
+    """Support for different types of target shells, such as bash, tcsh.
     """
     def __init__(self):
         super(ShellPluginManager,self).__init__("shell")
@@ -117,12 +123,36 @@ class ShellPluginManager(RezPluginManager):
             from rez.system import system
             shell = system.shell
 
-        # TODO this is a bit of a hack
-        #from rez.rex import DEFAULT_ENV_SEP_MAP
-
         return super(ShellPluginManager,self).create_instance(shell)
 
 
+
+class ReleaseVCSPluginManager(RezPluginManager):
+    """Support for different version control systems when releasing packages.
+    """
+    def __init__(self):
+        super(ReleaseVCSPluginManager,self).__init__("release_vcs")
+
+    def create_instance(self, vcs_name, path):
+        return super(ReleaseVCSPluginManager,self).create_instance( \
+            vcs_name, path=path)
+
+
+
+class BuildSystemPluginManager(RezPluginManager):
+    """Support for different build systems when building packages.
+    """
+    def __init__(self):
+        super(BuildSystemPluginManager,self).__init__("build_system")
+
+    def create_instance(self, buildsys_name, working_dir):
+        return super(BuildSystemPluginManager,self).create_instance( \
+            buildsys_name, working_dir=working_dir)
+
+
+
 # singletons
-source_retriever_plugin_manager = SourceRetrieverPluginManager()
-shell_plugin_manager = ShellPluginManager()
+source_retriever_plugin_manager = LazySingleton(SourceRetrieverPluginManager)
+shell_plugin_manager            = LazySingleton(ShellPluginManager)
+release_vcs_plugin_manager      = LazySingleton(ReleaseVCSPluginManager)
+build_system_plugin_manager     = LazySingleton(BuildSystemPluginManager)

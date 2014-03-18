@@ -45,7 +45,7 @@ set(REZ_BUILD_PROJECT_VERSION $ENV{REZ_BUILD_PROJECT_VERSION})
 set(REZ_BUILD_PROJECT_NAME $ENV{REZ_BUILD_PROJECT_NAME})
 
 # list of all packages used by this build
-set(REZ_BUILD_ALL_PKGS "$ENV{REZ_BUILD_REQUIRES_UNVERSIONED} $ENV{REZ_BUILD_VARIANT_UNVERSIONED}")
+set(REZ_BUILD_ALL_PKGS "$ENV{REZ_BUILD_REQUIRES_UNVERSIONED}")
 separate_arguments(REZ_BUILD_ALL_PKGS)
 
 # move all package versions into <pkg>_VERSION variables so client CMakeLists.txt can use them.
@@ -71,15 +71,6 @@ if(REZ_BUILD_PROJECT_VERSION)
 endif(REZ_BUILD_PROJECT_VERSION)
 
 
-# TODO Deprecate, this is very very old
-# convert pkg-config search path, if it exists, into a cmake list for further consumption
-#set(PKG_CONFIG_PATH_LIST)
-#set(ENV_PKG_CONFIG_PATH $ENV{PKG_CONFIG_PATH})
-#if(ENV_PKG_CONFIG_PATH)
-#	string(REPLACE ":" ";" PKG_CONFIG_PATH_LIST ${ENV_PKG_CONFIG_PATH})
-#endif(ENV_PKG_CONFIG_PATH)
-
-
 #############################################################################
 # include rez-build- related cmake modules
 #############################################################################
@@ -97,21 +88,6 @@ include(RezInstallDoxygen)
 #############################################################################
 # installation setup
 #############################################################################
-
-#
-# determine package install directory (rez-cmake arg 'CENTRAL' will install
-# centrally, otherwise packages always go to ~/packages). Typically however,
-# central installs are done via rez-release.
-#
-if(CENTRAL)
-	set(CMAKE_INSTALL_PREFIX ${REZ_RELEASE_PACKAGES_PATH})
-	set(REZ_FILE_INSTALL_PERMISSIONS OWNER_READ GROUP_READ WORLD_READ)
-else(CENTRAL)
-	set(CMAKE_INSTALL_PREFIX $ENV{REZ_LOCAL_PACKAGES_PATH})
-	set(REZ_FILE_INSTALL_PERMISSIONS OWNER_READ GROUP_READ WORLD_READ OWNER_WRITE GROUP_WRITE WORLD_WRITE)
-endif(CENTRAL)
-
-set( CMAKE_INSTALL_PREFIX ${CMAKE_INSTALL_PREFIX}/${REZ_BUILD_PROJECT_NAME}/${REZ_BUILD_PROJECT_VERSION}/$ENV{REZ_BUILD_VARIANT_SUBDIR} )
 
 set( REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE )
 
@@ -144,17 +120,16 @@ install( FILES
 # they should always be present when invoking cmake/make
 #
 
-install( FILES
-		${CMAKE_CURRENT_BINARY_DIR}/build-env.context
-		${CMAKE_CURRENT_BINARY_DIR}/build-env.actual
-		DESTINATION .metadata
-		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
-
-install( FILES
-		${CMAKE_CURRENT_BINARY_DIR}/info.txt
-		${CMAKE_CURRENT_BINARY_DIR}/changelog.txt
-		DESTINATION ${PYAML_REL_DIR}/.metadata
-		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
+#install( FILES
+#		${CMAKE_CURRENT_BINARY_DIR}/build.rxt
+#		DESTINATION .metadata
+#		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
+#
+#install( FILES
+#		${CMAKE_CURRENT_BINARY_DIR}/info.txt
+#		${CMAKE_CURRENT_BINARY_DIR}/changelog.txt
+#		DESTINATION ${PYAML_REL_DIR}/.metadata
+#		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
 
 
 #

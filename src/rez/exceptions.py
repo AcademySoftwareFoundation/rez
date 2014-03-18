@@ -7,8 +7,7 @@ http://irmen.home.xs4all.nl/pyro3/troubleshooting.html
 
 
 class RezError(Exception):
-    """
-    Base-class Rez error.
+    """Base-class Rez error.
     """
     def __init__(self, value=None):
         self.value = value
@@ -18,8 +17,7 @@ class RezError(Exception):
 
 
 class PkgSystemError(RezError):
-    """
-    rez system error
+    """Rez system error.
     """
     def __init__(self, value):
         RezError.__init__(self, value)
@@ -148,7 +146,22 @@ class PkgCyclicDependency(RezError):
         return "Cyclic dependency(s) were detected:\n%s" % self.get_dot_graph()
 
 
+class BuildSystemError(RezError):
+    """Base class for buildsys-related errors."""
+    pass
 
+
+class ReleaseVCSError(RezError):
+    """Base class for release VCS-related errors."""
+    pass
+
+
+class ReleaseVCSUnsupportedError(ReleaseVCSError):
+    """
+    Raise this error during initialization of a ReleaseVCS sub-class to
+    indicate that the mode is unsupported in the given context.
+    """
+    pass
 
 
 

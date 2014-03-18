@@ -11,19 +11,16 @@ import sys
 
 
 def get_shell_types():
-    """
-    Returns the available shell types: bash, tcsh etc.
-    """
+    """Returns the available shell types: bash, tcsh etc."""
     from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager.get_plugins()
+    return shell_plugin_manager().get_plugins()
 
 
 def create_shell(shell=None, **kwargs):
-    """
-    Returns a Shell of the given type, or the current shell type if shell is None.
-    """
+    """Returns a Shell of the given type, or the current shell type if shell
+    is None."""
     from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager.create_instance(shell=shell, **kwargs)
+    return shell_plugin_manager().create_instance(shell=shell, **kwargs)
 
 
 
@@ -70,12 +67,13 @@ class Shell(ActionInterpreter):
         """
         return type(self)()
 
-    def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
-                    command=None, quiet=False, **Popen_args):
+    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
+                    stdin=False, command=None, quiet=False, **Popen_args):
         """
         Spawn a possibly interactive subshell.
         @param context_file File that must be sourced in the new shell, this
             configures the Rez environment.
+        @param tmpdir Tempfiles, if needed, should be created within this path.
         @param rcfile Custom startup script.
         @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
@@ -118,10 +116,11 @@ class UnixShell(Shell):
         return True
 
     @classmethod
-    def find_executable(cls, *names):
-        exe = which(*names)
+    def find_executable(cls, name):
+        exe = which(name)
         if not exe:
-            raise RuntimeError("Couldn't find executable for shell type '%s'" % cls.name())
+            raise RuntimeError("Couldn't find executable '%s' for shell type '%s'"
+                               % (name, cls.name()))
         return exe
 
     @classmethod
@@ -153,11 +152,10 @@ class UnixShell(Shell):
             print >> sys.stderr, ("WARNING: %s ignored by %s shell - " + \
                 "overruled by %s option") % (option, cls.name(), overruling_option)
 
-    def spawn_shell(self, context_file, rcfile=None, norc=False, stdin=False,
-                    command=None, quiet=False, **Popen_args):
+    def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
+                    stdin=False, command=None, quiet=False, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
-        tmpdir = os.path.dirname(context_file)
         envvar = d["envvar"]
         files = d["files"]
         bind_files = d["bind_files"]

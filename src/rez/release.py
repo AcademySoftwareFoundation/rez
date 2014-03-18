@@ -900,67 +900,7 @@ register_release_mode(RezReleaseMode)
 # Subversion
 ##############################################################################
 
-class SvnValueCallback(object):
-    """
-    simple functor class
-    """
-    def __init__(self, value):
-        self.value = value
 
-    def __call__(self):
-        return True, self.value
-
-# TODO: remove these functions once everything is consolidated onto the SvnRezReleaseMode class
-
-def svn_get_client():
-    import pysvn
-    # check we're in an svn working copy
-    client = pysvn.Client()
-    client.set_interactive(True)
-    client.set_auth_cache(False)
-    client.set_store_passwords(False)
-    client.callback_get_login = getSvnLogin
-    return client
-
-def svn_url_exists(client, url):
-    """
-    return True if the svn url exists
-    """
-    import pysvn
-    try:
-        svnlist = client.info2(url, recurse=False)
-        return len(svnlist) > 0
-    except pysvn.ClientError:
-        return False
-
-def get_last_changed_revision(client, url):
-    """
-    util func, get last revision of url
-    """
-    import pysvn
-    try:
-        svn_entries = client.info2(url,
-                                   pysvn.Revision(pysvn.opt_revision_kind.head),
-                                   recurse=False)
-        if len(svn_entries) == 0:
-            raise RezReleaseError("svn.info2() returned no results on url '" + url + "'")
-        return svn_entries[0][1].last_changed_rev
-    except pysvn.ClientError, ce:
-        raise RezReleaseError("svn.info2() raised ClientError: %s" % ce)
-
-def getSvnLogin(realm, username, may_save):
-    """
-    provide svn with permissions. @TODO this will have to be updated to take
-    into account automated releases etc.
-    """
-    import getpass
-
-    print "svn requires a password for the user '" + username + "':"
-    pwd = ''
-    while(pwd.strip() == ''):
-        pwd = getpass.getpass("--> ")
-
-    return True, username, pwd, False
 
 class SvnRezReleaseMode(RezReleaseMode):
     name = 'svn'
@@ -1048,10 +988,6 @@ class SvnRezReleaseMode(RezReleaseMode):
         tags = []
         for tag_entry in tags:
             tag = tag_entry["name"].split('/')[-1]
-            if tag[0] == 'v':
-                # old launcher-style vXX_XX_XX
-                nums = tag[1:].split('_')
-                tag = str(int(nums[0])) + '.' + str(int(nums[1])) + '.' + str(int(nums[2]))
             tags.append(tag)
         return tags
 

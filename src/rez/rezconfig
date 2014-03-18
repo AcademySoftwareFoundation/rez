@@ -9,6 +9,9 @@
 # 4) The setting is overridden again if the environment variable $REZ_XXX is
 #    present, where XXX is the uppercase version of the setting key. For example,
 #    'image_viewer' will be overriden by $REZ_IMAGE_VIEWER.
+# 5) This is a special case applied only during a package build or release. In
+#    this case, if the package definition file contains a 'rezconfig' section,
+#    settings in this section will override all others.
 #
 # If a setting type is a list, then an overriding env-var is expected to be
 # separated by the path seperator for the current os (eg ':' in Linux), unless
@@ -60,14 +63,25 @@ package_repository_path: '~/.rez/package-repos'
 # The directory where rez caches package repository downloads
 package_repository_cache_path: '~/.rez/downloads/package-repos'
 
+# Where temporary files go
+tmpdir: '/tmp'
+
+
+###############################################################################
+# Plugins
+###############################################################################
+
 # Search path for shell plugins
 shell_plugin_path: []
 
 # Search path for source retrieval plugins
 source_retriever_plugin_path: []
 
-# Where temporary files go
-tmpdir: '/tmp'
+# Search path for release-VCS plugins
+release_vcs_plugin_path: []
+
+# Search path for build-system plugins
+build_system_plugin_path: []
 
 
 ###############################################################################
@@ -124,9 +138,13 @@ debug_plugins: false
 # Build
 ###############################################################################
 
+# The default working directory for a package build, relative to the package root
+# directory (this is typically where temporary build files are written)
+build_directory: build
+
 # The name of the CMake build system to use, valid options are eclipse, make,
 # xcode and codeblocks.
-build_system: make
+cmake_build_system: make
 
 # A list of default arguments to be used with CMake.
 cmake_args:
@@ -139,21 +157,14 @@ cmake_args:
 
 # For format string used to determine the VCS tag name when releasing.  This
 # string will be formatted against the metadata for the package currently being
-# released.  Valid formatting keys include name, version, description and authors.
-# If this setting is changed, the corresponding 'vcs_tag_name_version_regex'
-# might also need to be updated.
-vcs_tag_name: '{version}'
-
-# Extract the version component from the VCS tag name.  This is required by the
-# release plugins to identify the previous version to automatically extract the
-# change log.  The regular expression will be matched against the VCS tags and,
-# if a match is found, must provide one group only which matches the version
-# component.
-vcs_tag_name_version_regex: ^(.*)$
+# released.  Valid formatting keys are "name", "version". If this setting is
+# changed, the corresponding 'vcs_tag_name_version_regex' might also need to be
+# updated.
+vcs_tag_name: '{name}-{version}'
 
 
 ###############################################################################
-# APPEARANCE
+# Appearance
 ###############################################################################
 
 # The editor used to get user input in some cases; rez-release uses this.
@@ -180,7 +191,7 @@ prefix_prompt: true
 
 
 ###############################################################################
-# Internal
+# Internal - Do Not Change
 ###############################################################################
 
 # Type specifiers
@@ -197,6 +208,8 @@ _type:
     implicit_packages: list
     shell_plugin_path: list
     source_retriever_plugin_path: list
+    release_mode_plugin_path: list
+    build_system_plugin_path: list
     editor: str
     image_viewer: str
     browser: str

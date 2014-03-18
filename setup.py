@@ -18,12 +18,13 @@ with open("src/rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.40"
+version = "2.0.PRE-ALPHA.41"
 
 scripts = [
     "rezolve",
     "rez",
     "rez-settings",
+    "rez-build",
     "rez-env",
     "rez-context",
     "rez-exec",
@@ -100,8 +101,10 @@ setup(
             'rezconfig',
             'README*',
             'plugins/shell/*.yapsy-plugin',
+            'plugins/release_mode/*.yapsy-plugin',
             'plugins/source_retriever/*.yapsy-plugin',
-            'cmake/*.cmake',
+            'plugins/build_system/*.yapsy-plugin',
+            'plugins/build_system/cmake_files/*.cmake',
             '_sys/*'
         ]
     },

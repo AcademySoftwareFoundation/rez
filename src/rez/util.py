@@ -23,6 +23,57 @@ from rez import module_root_path
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
+
+class LazySingleton(object):
+    def __init__(self, type_, *nargs, **kwargs):
+        self.type_ = type_
+        self.nargs = nargs
+        self.kwargs = kwargs
+        self.lock = threading.Lock()
+        self.instance = None
+
+    def __call__(self):
+        if self.instance is None:
+            try:
+                self.lock.acquire()
+                if self.instance is None:
+                    self.instance = self.type_(*self.nargs, **self.kwargs)
+            finally:
+                self.lock.release()
+        return self.instance
+
+
+def create_forwarding_script(filepath, module, func_name, shell=None,
+                             *nargs, **kwargs):
+    """Create a 'forwarding' script.
+
+    A forwarding script is one that executes some arbitrary Rez function. This
+    is used internally by Rez to dynamically create a script that uses Rez, even
+    though the parent environ may not be configured to do so. The cmake build
+    system uses this, to create its 'build-env' scripts.
+    """
+    import json
+    from rez.rex import RexExecutor
+    from rez.shells import create_shell
+
+    sh = create_shell(shell)
+    executor = RexExecutor(interpreter=sh,
+                           bind_rez=False,
+                           bind_syspaths=False)
+
+    data = [nargs, kwargs]
+    data_s = json.dumps(data)
+    cmd = "rezolve forward %s %s '%s'" % (module, func_name, data_s)
+    executor.command(cmd)
+
+    code = executor.get_output()
+    with open(filepath, 'w') as f:
+        f.write(code)
+
+    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
+        | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 _once_warnings = set()
 
 def print_warning_once(msg):
