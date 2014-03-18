@@ -113,7 +113,7 @@ class TestShell(unittest.TestCase):
         if command:
             r = self._create_context([])
             p = r.execute_shell(shell=self.shell,
-                                command="rez-env -c 'hello_world' hello_world",
+                                command="rez-env --bo -c 'hello_world' hello_world",
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 

@@ -23,8 +23,8 @@ def get_valid_build_systems(working_dir):
 
 
 def create_build_system(working_dir, buildsys_type=None, opts=None,
-                        build_child=True, install=False, verbose=False,
-                        child_build_args=[], *build_args):
+                        write_build_scripts=False, install=False, verbose=False,
+                        build_args=[], child_build_args=[]):
     """Return a new build system that can build the source in working_dir."""
     from rez.plugin_managers import build_system_plugin_manager
 
@@ -47,11 +47,11 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
             cls = iter(clss).next()
             return cls(working_dir,
                        opts=opts,
-                       build_child=build_child,
+                       write_build_scripts=write_build_scripts,
                        install=install,
                        verbose=verbose,
-                       child_build_args=child_build_args,
-                       *build_args)
+                       build_args=build_args,
+                       child_build_args=child_build_args)
     else:
         raise BuildSystemError("No build system is associated with the path %s"
                                % working_dir)
@@ -64,27 +64,22 @@ class BuildSystem(object):
         """Return the name of the build system, eg 'make'."""
         raise NotImplementedError
 
-    def __init__(self, working_dir, opts=None, build_child=True, install=False,
-                 verbose=False, child_build_args=[], *build_args):
+    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+                 install=False, verbose=False, build_args=[], child_build_args=[]):
         """Create a build system instance.
 
         Args:
             working_dir: Directory to build source from.
             opts: argparse.Namespace object which may contain constructor
                 params, as set by our bind_cli() classmethod.
-            build_child: If True, and this build system has a child system, then
-                the child build step will be performed also. If False and there
-                is a child system, then only the first build step should be
-                performed. In this case, the system may create executable scripts,
-                which when run, place the user into an environment where they
-                can perform the second build step directly themselves. This is
-                useful for fast iteration when build settings are not changing.
-                If the build system does not have a child system, then this arg
-                should be ignored.
+            write_build_scripts: If True, create build scripts rather than
+                perform the full build. The user can then run these scripts to
+                place themselves into a build environment and invoke the build
+                system directly.
             install: If True, install the build.
+            build_args: Extra cli build arguments.
             child_build_args: Extra cli args for child build system, ignored if
                 there is no child build system.
-            build_args: Extra cli build arguments.
         """
         self.working_dir = working_dir
         if not self.is_valid_root(working_dir):
@@ -94,7 +89,7 @@ class BuildSystem(object):
         self.metadata = load_package_metadata(working_dir)
         self.settings = load_package_settings(self.metadata)
 
-        self.build_child = build_child
+        self.write_build_scripts = write_build_scripts
         self.install = install
         self.build_args = build_args
         self.child_build_args = child_build_args

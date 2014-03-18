@@ -89,7 +89,7 @@ include(RezInstallDoxygen)
 # installation setup
 #############################################################################
 
-set( REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE )
+set( REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} OWNER_EXECUTE GROUP_EXECUTE WORLD_EXECUTE OWNER_READ GROUP_READ WORLD_READ )
 
 
 #############################################################################

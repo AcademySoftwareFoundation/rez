@@ -8,9 +8,34 @@ from rez import __version__
 
 
 
+class RezHelpFormatter(argparse.HelpFormatter):
+    remainder_descs = {
+        "BUILD_ARG": "[-- ARG [ARG ...] [-- ARG [ARG ...]]]"
+    }
+
+    # allow for more meaningful remainder desc than '...'
+    def _format_args(self, action, default_metavar):
+        if action.nargs == argparse.REMAINDER:
+            desc = self.remainder_descs.get(default_metavar)
+            return desc or "..."
+        else:
+            return super(RezHelpFormatter,self)._format_args(action, default_metavar)
+
+    # show default value for options with choices
+    def _get_help_string(self, action):
+        help = action.help
+        if action.choices and ('%(default)' not in action.help) \
+            and (action.default is not None) and \
+                (action.default is not argparse.SUPPRESS):
+                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
+                if action.option_strings or action.nargs in defaulting_nargs:
+                    help += ' (default: %(default)s)'
+        return help
+
+
 p = argparse.ArgumentParser(
     description='Rez command-line tool',
-    formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    formatter_class=RezHelpFormatter)
 subps = p.add_subparsers(dest="cmd", metavar="COMMAND")
 subparsers = {}
 
@@ -97,6 +122,11 @@ def add_build(parser):
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
                         help="install to a custom path")
+    parser.add_argument("-s", "--scripts", action="store_true",
+                        help="create build scripts rather than performing the "
+                        "full build. Running these scripts will place you into "
+                        "a build environment, where you can invoke the build "
+                        "system directly.")
     if len(clss) == 1:
         cls = iter(clss).next()
         cls.bind_cli(parser)
@@ -105,6 +135,11 @@ def add_build(parser):
         parser.add_argument("-b", "--build-system", dest="buildsys",
                             type=str, choices=types,
                             help="the build system to use.")
+
+    parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
+                        help="extra arguments to build system. To pass args to "
+                        "a child build system also, list them after another "
+                        "'--' arg.")
 
 @subcommand
 def add_env(parser):
@@ -219,7 +254,7 @@ def _add_subcommand(cmd, help=""):
     if isinstance(fn, hidden_subcommand) and (cmd != subcmd):
         return
 
-    subp = subps.add_parser(cmd, help=help)
+    subp = subps.add_parser(cmd, help=help, formatter_class=RezHelpFormatter)
     _add_common_args(subp)
     fn(subp)
     subparsers[cmd] = subp

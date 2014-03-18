@@ -35,10 +35,10 @@ class CMakeBuildSystem(BuildSystem):
     executable = _get_cmake_bin()
     make_executable = BuildSystem.find_executable("make")
 
-    build_systems = {'eclipse': "Eclipse CDT4 - Unix Makefiles",
-                     'codeblocks': "CodeBlocks - Unix Makefiles",
-                     'make': "Unix Makefiles",
-                     'xcode': "Xcode"}
+    build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
+                     'codeblocks':  "CodeBlocks - Unix Makefiles",
+                     'make':        "Unix Makefiles",
+                     'xcode':       "Xcode"}
 
     @classmethod
     def name(cls):
@@ -56,23 +56,22 @@ class CMakeBuildSystem(BuildSystem):
     def bind_cli(cls, parser):
         build_targets = ["Debug", "Release"]
         parser.add_argument("-b", "--build-target", dest="build_target",
-                            type=str, choices=build_targets,
-                            default="Release",
+                            type=str, choices=build_targets, default="Release",
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
                             help="set the cmake build system.")
 
 
-    def __init__(self, working_dir, opts=None, build_child=True, install=False,
-                 verbose=False, child_build_args=[], *build_args):
+    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+                 install=False, verbose=False, build_args=[], child_build_args=[]):
         super(CMakeBuildSystem, self).__init__(working_dir,
                                                opts=opts,
-                                               build_child=build_child,
+                                               write_build_scripts=write_build_scripts,
                                                install=install,
                                                verbose=verbose,
-                                               child_build_args=child_build_args,
-                                               *build_args)
+                                               build_args=build_args,
+                                               child_build_args=child_build_args)
         self.build_target = opts.build_target
 
         self.cmake_build_system = opts.build_system \
@@ -96,7 +95,7 @@ class CMakeBuildSystem(BuildSystem):
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
 
         # execute cmake within the build env
-        _pr("\nExecuting: %s" % ' '.join(cmd))
+        _pr("Executing: %s" % ' '.join(cmd))
         if not os.path.abspath(build_path):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
@@ -117,7 +116,7 @@ class CMakeBuildSystem(BuildSystem):
         if retcode:
             return False
 
-        if not self.build_child:
+        if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run make directly themselves.
             build_env_script = os.path.join(build_path, "build-env.%s" % ext)

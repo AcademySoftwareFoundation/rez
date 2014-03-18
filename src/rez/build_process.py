@@ -152,7 +152,7 @@ class LocalSequentialBuildProcess(BuildProcess):
             # resolve build environment and save to file
             rxt_path = os.path.join(build_path, "build.rxt")
             if os.path.exists(rxt_path):
-                self._pr("Loading existing context...")
+                self._pr("Loading existing environment context...")
                 r = ResolvedContext.load(rxt_path)
             else:
                 request = bld["requires"]
@@ -160,10 +160,11 @@ class LocalSequentialBuildProcess(BuildProcess):
                 r = ResolvedContext(request,
                                     timestamp=int(time.time()),
                                     build_requires=True)
+                r.print_info()
                 r.save(rxt_path)
 
             # run build system
-            self._pr("Invoking build system...")
+            self._pr("\nInvoking build system...")
             ret = self.buildsys.build(r,
                                       build_path=build_path,
                                       install_path=install_path)
@@ -176,14 +177,9 @@ class LocalSequentialBuildProcess(BuildProcess):
                 return False
 
         if build_env_scripts:
-            child_sys = self.buildsys.child_build_system()
-            assert(child_sys)
-            assert(not build_child)
             self._pr("\nThe following executable script(s) have been created:")
             self._pr('\n'.join(build_env_scripts))
-            self._pr(("\nExecuting one of these scripts will place you into a "
-                     "build environment, where you can directly perform the "
-                     "%s build step yourself.\n") % child_sys)
+            self._pr('')
         else:
             self._pr("\nAll %d build(s) were successful.\n" % len(builds))
         return True
