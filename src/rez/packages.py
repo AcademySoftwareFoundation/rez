@@ -89,7 +89,7 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     ver_range : VersionRange
         range of versions in package to iterate over, or all if None
     latest : bool
-        whether to sort by latest version (default) or earliest
+        whether to sort by latest version first (default) or earliest
     timestamp : int
         time since epoch: any packages newer than this will be ignored. 0 means
         no effect.

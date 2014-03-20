@@ -64,11 +64,10 @@ class CMakeBuildSystem(BuildSystem):
 
 
     def __init__(self, working_dir, opts=None, write_build_scripts=False,
-                 install=False, verbose=False, build_args=[], child_build_args=[]):
+                 verbose=False, build_args=[], child_build_args=[]):
         super(CMakeBuildSystem, self).__init__(working_dir,
                                                opts=opts,
                                                write_build_scripts=write_build_scripts,
-                                               install=install,
                                                verbose=verbose,
                                                build_args=build_args,
                                                child_build_args=child_build_args)
@@ -80,7 +79,7 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
-    def build(self, context, build_path, install_path):
+    def build(self, context, build_path, install_path, install=False):
         def _pr(s):
             if self.verbose:
                 print s
@@ -102,6 +101,7 @@ class CMakeBuildSystem(BuildSystem):
 
         ext = create_shell().file_extension()
         context_file = os.path.join(build_path, "build.rxt.%s" % ext)
+        ret = dict(extra_files=[context_file])
 
         callback = functools.partial(self._add_build_actions,
                                      context=context,
@@ -114,7 +114,8 @@ class CMakeBuildSystem(BuildSystem):
                                             context_filepath=context_file,
                                             actions_callback=callback)
         if retcode:
-            return False
+            ret["success"] = False
+            return ret
 
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
@@ -125,12 +126,14 @@ class CMakeBuildSystem(BuildSystem):
                                      func_name="_spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)
-            return build_env_script
+            ret["success"] = True
+            ret["build_env_script"] = build_env_script
+            return ret
 
         # assemble make command
         cmd = [self.make_executable]
         cmd += self.child_build_args
-        if self.install and "install" not in cmd:
+        if install and "install" not in cmd:
             cmd.append("install")
 
         # execute make within the build env
@@ -139,7 +142,8 @@ class CMakeBuildSystem(BuildSystem):
                                             block=True,
                                             cwd=build_path,
                                             actions_callback=callback)
-        return (not retcode)
+        ret["success"] = (not retcode)
+        return ret
 
     @staticmethod
     def _add_build_actions(executor, context, metadata, settings_):

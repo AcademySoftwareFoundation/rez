@@ -84,17 +84,7 @@ class SvnReleaseVCS(ReleaseVCS):
         self.svnc.callback_get_log_message = lambda x:(True,x)
         self.svnc.copy2([(self.this_url,)], tag_url, make_parents=True)
 
-    def export_source(self, dest_path):
-        # svn-export it. pysvn is giving me some false assertion crap on
-        # 'is_canonical(self.root_dir)' here, hence shell
-        pret = subprocess.Popen(["svn", "export", self.this_url, dest_path],
-                                stderr=subprocess.PIPE)
-        _,stderr = pret.communicate()
-        if pret.returncode:
-            raise ReleaseVCSError("rez-release: svn export failed:\n%s"
-                                  % stderr.strip())
-
-    def get_changelog(self):
+    def get_changelog(self, previous_revision=None):
         return "TODO"
 
     def get_tag_url(self, tag_name=None):

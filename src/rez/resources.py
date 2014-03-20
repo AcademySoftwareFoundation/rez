@@ -218,7 +218,7 @@ def load_package_metadata(parent_path):
     for file in ("package.yaml", "package.py"):
         path = os.path.join(parent_path, file)
         if os.path.isfile(path):
-            return load_file(path)
+            return (load_file(path), path)
     raise PkgMetadataError("No package definition file found in %s" % parent_path)
 
 def load_package_settings(metadata):

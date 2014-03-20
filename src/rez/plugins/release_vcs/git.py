@@ -1,13 +1,19 @@
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez import plugin_factory
+import subprocess
 import os.path
 import re
+import sys
+
+# TODO port fully to git cli. GitPython contains bugs, and help on cli much
+# easier to find, so maintenance will be easier.
 import git
 
 
-
 class GitReleaseVCS(ReleaseVCS):
+    executable = ReleaseVCS.find_executable('git')
+
     @classmethod
     def name(cls):
         return 'git'
@@ -23,6 +29,15 @@ class GitReleaseVCS(ReleaseVCS):
     @classmethod
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.git'))
+
+    def git(self, *nargs):
+        cmd = [self.executable] + list(nargs)
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                             cwd=self.path)
+        out,err = p.communicate()
+        if p.returncode:
+            raise ReleaseVCSError("command failed: %s\n%s" % (' '.join(cmd), err))
+        return [x.strip() for x in out.split('\n')]
 
     def validate_repostate(self):
         if self.repo.bare:
@@ -47,35 +62,32 @@ class GitReleaseVCS(ReleaseVCS):
                 "need to git commit and/or git push and/or git pull:\n%s") \
                 % (self.path, self.repo.git.status()))
 
-    def get_changelog(self):
-        return "TODO"
+    def get_changelog(self, previous_revision=None):
+        prev_commit = (previous_revision or {}).get("commit")
+        if prev_commit:
+            # git returns logs to last common ancestor, so even if previous
+            # release was from a different branch, this is ok
+            commit_range = "%s..HEAD" % prev_commit
+            return self.git("log", commit_range)
+        else:
+            return self.git("log")
 
     def get_current_revision(self):
-        # TODO
-        return {}
+        commit = self.git("rev-parse", "HEAD")[0]
+        branch = self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
+        return dict(commit=commit,
+                    branch=branch)
 
     def _create_tag_impl(self, tag_name, message=None):
+        print "Create tag '%s'..." % tag_name
         remote = self.repo.remote()
-        print("rez-release: creating project tag: '%s' and pushing to: %s" \
-            % (tag_name, remote.url))
-
         self.repo.create_tag(tag_name, a=True, m=message)
 
-        push_result = remote.push()
-        if not push_result:
-            print("failed to push to remote, you have to run 'git push' manually.")
-
+        print "Pushing tag '%s' to %s..." % (tag_name, remote.url)
         push_result = remote.push(tags=True)
         if not push_result:
             print("failed to push the new tag to the remote, you have to run "
                   "'git push --tags' manually.")
-
-    def export_source(self, dest_path):
-        try:
-            self.repo.git.checkout_index(a=True, prefix=dest_path)
-            self.git_checkout_index_submodules(self.repo.submodules, dest_path)
-        except Exception, e:
-            raise ReleaseVCSError("git checkout-index failed: %s" % str(e))
 
     def git_ahead_of_remote(self, repo):
         """
@@ -87,24 +99,6 @@ class GitReleaseVCS(ReleaseVCS):
         status_message = self.repo.git.status()
         return re.search(r"# Your branch is ahead of '.+' by \d+ commit",
                          status_message) != None
-
-    def git_checkout_index_submodules(self, submodules, subdir):
-        """
-        Recursively runs checkout-index on each submodule and its submodules and
-        so forth, duplicating the submodule directory tree in subdir
-        submodules - Iterable list of submodules
-        subdir - The target base directory that should contain each
-                    of the checkout-indexed submodules
-        """
-        for submodule in submodules:
-            submodule_subdir = os.path.join(subdir, submodule.path) + os.sep
-            if not os.path.exists(submodule_subdir):
-                os.mkdir(submodule_subdir)
-            submodule_repo = git.Repo(submodule.abspath)
-            print(("rez-release: git-exporting (checkout-index) clean copy of "
-                  "(submodule: %s) to %s...") % (submodule.path, submodule_subdir))
-            submodule_repo.git.checkout_index(a=True, prefix=submodule_subdir)
-            self.git_checkout_index_submodules(submodule_repo.submodules, submodule_subdir)
 
 
 

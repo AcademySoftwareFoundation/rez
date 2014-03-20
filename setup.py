@@ -1,15 +1,19 @@
 from __future__ import with_statement
-from setuptools import setup, find_packages
-from setuptools.command.install import install
 from distutils.command.install import install as _install
 import os
 import os.path
 import sys
 
+try:
+    from setuptools import setup, find_packages
+    from setuptools.command.install import install
+except ImportError:
+    print >> sys.stderr, "install failed - requires setuptools"
+    sys.exit(1)
 
 if sys.version_info < (2,6):
     print >> sys.stderr, "Rez requires python v2.6 or greater"
-    sys.exit(0)
+    sys.exit(1)
 
 os.environ['__rez_is_installing'] = '1'
 
@@ -25,6 +29,7 @@ scripts = [
     "rez",
     "rez-settings",
     "rez-build",
+    "rez-release",
     "rez-env",
     "rez-context",
     "rez-exec",

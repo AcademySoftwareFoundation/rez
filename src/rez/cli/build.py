@@ -5,33 +5,36 @@ import os
 
 
 
-def command(opts, parser=None):
-    working_dir = os.getcwd()
-
+def parse_build_args(args, parser):
     def _args_err(args):
         parser.error("unrecognized arguments: %s" % ' '.join(str(x) for x in args))
 
-    # parse buildsys and child buildsys args
-    build_args = []
-    child_build_args = []
-    b_args = opts.BUILD_ARG
-    if b_args:
+    if args:
         sep = "--"
-        if sep in b_args:
-            i = b_args.index(sep)
+        if sep in args:
+            i = args.index(sep)
             if i:
-                _args_err(b_args[:i])
+                _args_err(args[:i])
             else:
-                b_args = b_args[1:]
+                args = args[1:]
         else:
-            _args_err(b_args)
+            _args_err(args)
 
-        if sep in b_args:
-            i = b_args.index(sep)
-            build_args = b_args[:i]
-            child_build_args = b_args[i+1:]
+        if sep in args:
+            i = args.index(sep)
+            build_args = args[:i]
+            child_build_args = args[i+1:]
+            return (build_args, child_build_args)
         else:
-            build_args = b_args
+            build_args = args
+            return (build_args, [])
+    else:
+        return ([], [])
+
+
+def command(opts, parser=None):
+    working_dir = os.getcwd()
+    build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 
     # create build system
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
@@ -39,7 +42,6 @@ def command(opts, parser=None):
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    write_build_scripts=opts.scripts,
-                                   install=opts.install,
                                    verbose=True,
                                    build_args=build_args,
                                    child_build_args=child_build_args)
@@ -50,5 +52,6 @@ def command(opts, parser=None):
                                           vcs=None)
 
     if not builder.build(install_path=opts.prefix,
-                         clean=opts.clean):
+                         clean=opts.clean,
+                         install=opts.install):
         sys.exit(1)

@@ -23,7 +23,7 @@ def get_valid_build_systems(working_dir):
 
 
 def create_build_system(working_dir, buildsys_type=None, opts=None,
-                        write_build_scripts=False, install=False, verbose=False,
+                        write_build_scripts=False, verbose=False,
                         build_args=[], child_build_args=[]):
     """Return a new build system that can build the source in working_dir."""
     from rez.plugin_managers import build_system_plugin_manager
@@ -48,7 +48,6 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
             return cls(working_dir,
                        opts=opts,
                        write_build_scripts=write_build_scripts,
-                       install=install,
                        verbose=verbose,
                        build_args=build_args,
                        child_build_args=child_build_args)
@@ -65,7 +64,7 @@ class BuildSystem(object):
         raise NotImplementedError
 
     def __init__(self, working_dir, opts=None, write_build_scripts=False,
-                 install=False, verbose=False, build_args=[], child_build_args=[]):
+                 verbose=False, build_args=[], child_build_args=[]):
         """Create a build system instance.
 
         Args:
@@ -76,7 +75,6 @@ class BuildSystem(object):
                 perform the full build. The user can then run these scripts to
                 place themselves into a build environment and invoke the build
                 system directly.
-            install: If True, install the build.
             build_args: Extra cli build arguments.
             child_build_args: Extra cli args for child build system, ignored if
                 there is no child build system.
@@ -86,11 +84,10 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.metadata = load_package_metadata(working_dir)
+        self.metadata,_ = load_package_metadata(working_dir)
         self.settings = load_package_settings(self.metadata)
 
         self.write_build_scripts = write_build_scripts
-        self.install = install
         self.build_args = build_args
         self.child_build_args = child_build_args
         self.verbose = verbose
@@ -130,7 +127,7 @@ class BuildSystem(object):
         """
         pass
 
-    def build(self, context, build_path, install_path):
+    def build(self, context, build_path, install_path, install=False):
         """Implement this method to perform the actual build.
 
         Args:
@@ -139,12 +136,18 @@ class BuildSystem(object):
             build_path: Where to write temporary build files. May be relative
                 to working_dir.
             install_path: Where to install the build, if the build is installed.
+            install: If True, install the build.
 
         Returns:
-            - True: If the build succeeded;
-            - False: If the build failed;
-            - str: If there is a child system and only the first step was
-              performed, and a script was made which the user can execute to
-              place themselves into a build shell.
+            A dict containing the following information:
+            - success: Bool indicating if the build was successful.
+            - extra_files: List of created files of interest, not including
+                build targets. A good example is the interpreted context file,
+                usually named 'build.rxt.sh' or similar. These files should be
+                located under build_path. Rez may install them for debugging
+                purposes.
+            - build_env_script: If this instance was created with write_build_scripts
+                as True, then the build should generate a script which, when run
+                by the user, places them in the build environment.
         """
         raise NotImplementedError

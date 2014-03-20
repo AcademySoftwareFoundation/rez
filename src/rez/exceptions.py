@@ -151,7 +151,12 @@ class BuildSystemError(RezError):
     pass
 
 
-class ReleaseVCSError(RezError):
+class ReleaseError(RezError):
+    """Any release-related error."""
+    pass
+
+
+class ReleaseVCSError(ReleaseError):
     """Base class for release VCS-related errors."""
     pass
 

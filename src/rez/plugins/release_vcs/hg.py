@@ -74,10 +74,7 @@ class HgReleaseVCS(ReleaseVCS):
         if self.patch_path:
             _check(hg('status', '-m', '-a', '--mq'), self.patch_path)
 
-    def export_source(self, dest_path):
-        hg('archive', dest_path)
-
-    def get_changelog(self):
+    def get_changelog(self, previous_revision=None):
         return "TODO"
 
 

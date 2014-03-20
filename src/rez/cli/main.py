@@ -109,12 +109,28 @@ def add_context(parser):
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
 
-@subcommand
-def add_build(parser):
+def _bind_build_system(parser):
     import os
     from rez.build_system import get_valid_build_systems
     clss = get_valid_build_systems(os.getcwd())
 
+    if len(clss) == 1:
+        cls = iter(clss).next()
+        cls.bind_cli(parser)
+    elif clss:
+        types = [x.name() for x in clss]
+        parser.add_argument("-b", "--build-system", dest="buildsys",
+                            type=str, choices=types,
+                            help="the build system to use.")
+
+def _bind_build_args(parser):
+    parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
+                        help="extra arguments to build system. To pass args to "
+                        "a child build system also, list them after another "
+                        "'--' arg.")
+
+@subcommand
+def add_build(parser):
     parser.add_argument("-c", "--clean", action="store_true",
                         help="clear the current build before rebuilding.")
     parser.add_argument("-i", "--install", action="store_true",
@@ -127,19 +143,15 @@ def add_build(parser):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
-    if len(clss) == 1:
-        cls = iter(clss).next()
-        cls.bind_cli(parser)
-    elif clss:
-        types = [x.name() for x in clss]
-        parser.add_argument("-b", "--build-system", dest="buildsys",
-                            type=str, choices=types,
-                            help="the build system to use.")
+    _bind_build_args(parser)
+    _bind_build_system(parser)
 
-    parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
-                        help="extra arguments to build system. To pass args to "
-                        "a child build system also, list them after another "
-                        "'--' arg.")
+@subcommand
+def add_release(parser):
+    parser.add_argument("-m", "--message", type=str,
+                        help="commit message")
+    _bind_build_args(parser)
+    _bind_build_system(parser)
 
 @subcommand
 def add_env(parser):
@@ -268,6 +280,8 @@ def run():
                     "given context file.")
     _add_subcommand("build",
                     "Build a package from source.")
+    _add_subcommand("release",
+                    "Build a package from source and deploy it.")
     _add_subcommand("env",
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("exec",
@@ -285,7 +299,13 @@ def run():
     cmd = opts.cmd
     exec("from rez.cli.%s import command" % _subcmd_name(cmd))
 
-    exc_type = None if opts.debug else Exception
+    if opts.debug:
+        from rez.util import set_rm_tmpdirs
+        exc_type = None
+        set_rm_tmpdirs(False)
+    else:
+        exc_type = Exception
+
     try:
         returncode = command(opts, subparsers[cmd])
     except NotImplementedError as e:

@@ -43,6 +43,14 @@ class LazySingleton(object):
         return self.instance
 
 
+def get_forwarding_cli_command(module, func_name, *nargs, **kwargs):
+    import json
+    data = [nargs, kwargs]
+    data_s = json.dumps(data)
+    cmd = "rezolve forward %s %s '%s'" % (module, func_name, data_s)
+    return cmd
+
+
 def create_forwarding_script(filepath, module, func_name, shell=None,
                              *nargs, **kwargs):
     """Create a 'forwarding' script.
@@ -52,7 +60,6 @@ def create_forwarding_script(filepath, module, func_name, shell=None,
     though the parent environ may not be configured to do so. The cmake build
     system uses this, to create its 'build-env' scripts.
     """
-    import json
     from rez.rex import RexExecutor
     from rez.shells import create_shell
 
@@ -61,9 +68,7 @@ def create_forwarding_script(filepath, module, func_name, shell=None,
                            bind_rez=False,
                            bind_syspaths=False)
 
-    data = [nargs, kwargs]
-    data_s = json.dumps(data)
-    cmd = "rezolve forward %s %s '%s'" % (module, func_name, data_s)
+    cmd = get_forwarding_cli_command(module, func_name, *nargs, **kwargs)
     executor.command(cmd)
 
     code = executor.get_output()
@@ -87,6 +92,7 @@ def _mkdirs(*dirs):
         os.makedirs(path)
     return path
 
+rm_tmdirs = True
 _tmpdirs = set()
 _tmpdir_lock = threading.Lock()
 
@@ -104,10 +110,15 @@ def rmdtemp(path):
     if os.path.exists(path):
         shutil.rmtree(path)
 
+def set_rm_tmpdirs(enable):
+    global rm_tmdirs
+    rm_tmdirs = enable
+
 @atexit.register
 def _rm_tmpdirs():
-    for path in _tmpdirs:
-        rmdtemp(path)
+    if rm_tmdirs:
+        for path in _tmpdirs:
+            rmdtemp(path)
 
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)

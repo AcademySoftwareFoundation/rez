@@ -255,6 +255,7 @@ class UnixShell(Shell):
                     executor.source(context_file)
 
         executor.command(shell_command)
+        # TODO this could be more cross-shell...
         executor.command("exit $?")
 
         code = executor.get_output()
