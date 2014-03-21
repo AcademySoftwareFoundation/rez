@@ -63,6 +63,7 @@ class RezPluginManager(object):
         """Returns the class registered under the given plugin name."""
         factory = self.factories.get(plugin)
         if factory is None:
+            # TODO add a PluginManagerError
             raise RuntimeError("Unrecognised %s plugin: '%s'"
                                % (self.pretty_type_name, plugin))
         return factory.target_type()
@@ -139,6 +140,18 @@ class ReleaseVCSPluginManager(RezPluginManager):
 
 
 
+class ReleaseHookPluginManager(RezPluginManager):
+    """Support for different version control systems when releasing packages.
+    """
+    def __init__(self):
+        super(ReleaseHookPluginManager,self).__init__("release_hook")
+
+    def create_instance(self, name, source_path):
+        return super(ReleaseHookPluginManager,self).create_instance( \
+            name, source_path=source_path)
+
+
+
 class BuildSystemPluginManager(RezPluginManager):
     """Support for different build systems when building packages.
     """
@@ -155,4 +168,5 @@ class BuildSystemPluginManager(RezPluginManager):
 source_retriever_plugin_manager = LazySingleton(SourceRetrieverPluginManager)
 shell_plugin_manager            = LazySingleton(ShellPluginManager)
 release_vcs_plugin_manager      = LazySingleton(ReleaseVCSPluginManager)
+release_hook_plugin_manager     = LazySingleton(ReleaseHookPluginManager)
 build_system_plugin_manager     = LazySingleton(BuildSystemPluginManager)

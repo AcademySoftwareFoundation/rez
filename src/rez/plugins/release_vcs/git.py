@@ -1,14 +1,10 @@
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez import plugin_factory
-import subprocess
 import os.path
 import re
 import sys
 
-# TODO port fully to git cli. GitPython contains bugs, and help on cli much
-# easier to find, so maintenance will be easier.
-import git
 
 
 class GitReleaseVCS(ReleaseVCS):
@@ -22,8 +18,9 @@ class GitReleaseVCS(ReleaseVCS):
         super(GitReleaseVCS, self).__init__(path)
 
         try:
-            self.repo = git.Repo(path, odbt=git.GitCmdObjectDB)
-        except git.exc.InvalidGitRepositoryError:
+            #self.repo = git.Repo(path, odbt=git.GitCmdObjectDB)
+            self.git("rev-parse")
+        except ReleaseVCSError:
             raise ReleaseVCSUnsupportedError("%s is not a git repository" % path)
 
     @classmethod
@@ -31,36 +28,64 @@ class GitReleaseVCS(ReleaseVCS):
         return os.path.isdir(os.path.join(path, '.git'))
 
     def git(self, *nargs):
-        cmd = [self.executable] + list(nargs)
-        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                             cwd=self.path)
-        out,err = p.communicate()
-        if p.returncode:
-            raise ReleaseVCSError("command failed: %s\n%s" % (' '.join(cmd), err))
-        return [x.strip() for x in out.split('\n')]
+        return self._cmd(self.executable, *nargs)
+
+    def get_relative_to_remote(self):
+        """Return the number of commits we are relative to the remote. Negative
+        is behind, positive in front, zero means we are matched to remote.
+        """
+        s = self.git("status", "--short", "-b")[0]
+        r = re.compile("\[([^\]]+)\]")
+        toks = r.findall(s)
+        if toks:
+            try:
+                s2 = toks[-1]
+                adj,n = s2.split()
+                assert(adj in ("ahead", "behind"))
+                n = int(n)
+                return -n if adj == "behind" else n
+            except e:
+                raise ReleaseVCSError( \
+                    ("Problem parsing first line of result of 'git status " + \
+                    "--short -b' (%s):\n%s") % (s, str(e)))
+        else:
+            return 0
+
+    def get_tracking_branch(self):
+        """Returns (remote, branch) tuple, or None,None if there is no remote."""
+        try:
+            remote_uri = self.git("rev-parse", "--abbrev-ref",
+                                  "--symbolic-full-name", "@{u}")[0]
+            return remote_uri.split('/', 1)
+        except e:
+            if "No upstream" not in str(e):
+                raise e
+        return (None,None)
 
     def validate_repostate(self):
-        if self.repo.bare:
+        b = self.git("rev-parse", "--is-bare-repository")
+        if b == "true":
             raise ReleaseVCSError("'%s' is a bare git repository" % self.path)
 
-        untrackedFiles = self.repo.untracked_files
-        if untrackedFiles:
-            print >> sys.stderr, "The following files are untracked:\n"
-            for file in untrackedFiles:
-                print >> sys.stderr, file
-                raise ReleaseVCSError("There are untracked files.")
+        # check for uncommitted changes
+        try:
+            self.git("diff-index", "--quiet", "HEAD")
+        except ReleaseVCSError:
+            msg = "Could not release: there are uncommitted changes"
+            statmsg = self.git("diff-index", "--stat", "HEAD")
+            msg += ":\n%s" % '\n'.join(statmsg)
+            raise ReleaseVCSError(msg)
 
-        workingCopyDiff = self.repo.index.diff(None)
-        if workingCopyDiff:
-            print >> sys.stderr, "The following files are modified:\n"
-            for diff in workingCopyDiff:
-                print >> sys.stderr, diff.a_blob.path
-                raise ReleaseVCSError("There are modified files.")
-
-        if self.repo.is_dirty() or self.git_ahead_of_remote(self.repo):
-            raise ReleaseVCSError(("'%s' is not in a state to release - you may " + \
-                "need to git commit and/or git push and/or git pull:\n%s") \
-                % (self.path, self.repo.git.status()))
+        # check if we are behind/ahead of remote
+        remote,remote_branch = self.get_tracking_branch()
+        if remote:
+            self.git("remote", "update")
+            n = self.get_relative_to_remote()
+            if n:
+                s = "ahead of" if n>0 else "behind"
+                remote_uri = '/'.join((remote, remote_branch))
+                raise ReleaseVCSError(("Could not release: '%s' is %d " + \
+                    "commits %s %s.") % (self.path, abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
         prev_commit = (previous_revision or {}).get("commit")
@@ -79,26 +104,21 @@ class GitReleaseVCS(ReleaseVCS):
                     branch=branch)
 
     def _create_tag_impl(self, tag_name, message=None):
-        print "Create tag '%s'..." % tag_name
-        remote = self.repo.remote()
-        self.repo.create_tag(tag_name, a=True, m=message)
+        # create tag
+        print "Creating tag '%s'..." % tag_name
+        args = ["tag", "-a", tag_name]
+        if message:
+            args += ["-m", message]
+        self.git(*args)
 
-        print "Pushing tag '%s' to %s..." % (tag_name, remote.url)
-        push_result = remote.push(tags=True)
-        if not push_result:
-            print("failed to push the new tag to the remote, you have to run "
-                  "'git push --tags' manually.")
+        # push tag
+        remote,remote_branch = self.get_tracking_branch()
+        if remote is None:
+            return
 
-    def git_ahead_of_remote(self, repo):
-        """
-        Checks that the git repo (git.Repo instance) is
-        not ahead of its configured remote. Specifically we
-        check that the message that git status returns does not
-        contain "# Your branch is ahead of '[a-zA-Z/]+' by \d+ commit"
-        """
-        status_message = self.repo.git.status()
-        return re.search(r"# Your branch is ahead of '.+' by \d+ commit",
-                         status_message) != None
+        remote_uri = '/'.join((remote, remote_branch))
+        print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
+        self.git("push", remote, tag_name)
 
 
 

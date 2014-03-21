@@ -4,7 +4,9 @@ from rez.packages import iter_packages_in_range
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
+from rez.release_hook import create_release_hooks
 from rez.versions import ExactVersion
+import getpass
 import yaml
 import shutil
 import os
@@ -47,6 +49,9 @@ class BuildProcess(object):
         self.settings = load_package_settings(self.metadata)
         self.buildsys = buildsys
 
+        hook_names = self.settings.release_hooks or []
+        self.hooks = create_release_hooks(hook_names, working_dir)
+
         if vcs and (vcs.path != working_dir):
             raise RezError("BuildProcess was provided with mismatched VCS")
 
@@ -85,6 +90,13 @@ class BuildProcess(object):
         else:
             self._pr(s)
             self._pr('-' * len(s))
+
+    def _pkg_str(self):
+        s = self.metadata["name"]
+        ver = self.metadata.get("version")
+        if ver is not None:
+            s += "-%s" % ver
+        return s
 
     def _get_base_install_path(self, path):
         p = os.path.join(path, self.metadata["name"])
@@ -159,13 +171,33 @@ class LocalSequentialBuildProcess(BuildProcess):
 
     def release(self):
         assert(self.vcs)
+        pkg_str = self._pkg_str()
         install_path = self.settings.release_packages_path
         base_build_path = os.path.join(self.working_dir,
                                        self.settings.build_directory,
                                        "release")
 
-        self.vcs.validate_repostate()
         last_pkg,last_release_info = self._get_last_release(install_path)
+
+        print "Checking state of repository..."
+        self.vcs.validate_repostate()
+
+        last_ver = str(last_pkg.version) if last_pkg else None
+        last_rev = (last_release_info or {}).get("revision")
+        release_path = self._get_base_install_path(install_path)
+        curr_rev = self.vcs.get_current_revision()
+        changelog = self.vcs.get_changelog(last_rev)
+
+        # run pre-release hooks
+        for hook in self.hooks:
+            if not hook.pre_release(package=pkg_str,
+                                    user=getpass.getuser(),
+                                    install_path=release_path,
+                                    release_message=self.release_message,
+                                    changelog=changelog,
+                                    previous_version=last_ver,
+                                    previous_revision=last_rev):
+                return False
 
         # do the initial build
         self._hdr("Building...")
@@ -184,18 +216,16 @@ class LocalSequentialBuildProcess(BuildProcess):
             return False
 
         # write release info (changelog etc) into release path
-        last_ver = str(last_pkg.version) if last_pkg else None
-        last_rev = (last_release_info or {}).get("revision")
-
-        release_path = self._get_base_install_path(install_path)
-        curr_rev = self.vcs.get_current_revision()
-        changelog = self.vcs.get_changelog(last_rev)
-
         release_info = dict(
             revision=curr_rev,
             changelog=changelog,
+            release_message=self.release_message,
             previous_version=last_ver,
             previous_revision=last_rev)
+
+        if self.release_message:
+            msg = [x.rstrip() for x in self.release_message.strip().split('\n')]
+            release_info["release_message"] = msg
 
         release_yaml = yaml.dump(release_info, default_flow_style=False)
         with open(os.path.join(release_path, "release.yaml"), 'w') as f:
@@ -204,6 +234,17 @@ class LocalSequentialBuildProcess(BuildProcess):
         # write a tag for the new release into the vcs
         self.vcs.create_release_tag(self.release_message)
 
+        # run post-release hooks
+        for hook in self.hooks:
+            hook.post_release(package=pkg_str,
+                              user=getpass.getuser(),
+                              install_path=release_path,
+                              release_message=self.release_message,
+                              changelog=changelog,
+                              previous_version=last_ver,
+                              previous_revision=last_rev)
+
+        print "\nPackage %s was released successfully.\n" % pkg_str
         return True
 
     def _build(self, install_path, base_build_path, clean=False, install=False):

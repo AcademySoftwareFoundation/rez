@@ -40,15 +40,11 @@ class SourceRetriever(object):
     '''An object that is able to retrieve/download source from a given url, possibly caching
     the data in an interim location, or loading from that cache.
     '''
-    #__metaclass__ = abc.ABCMeta
-
-    #@abc.abstractmethod
     @classmethod
     def name(cls):
         """ Return name of source retriever, eg 'git'"""
         raise NotImplementedError
 
-    #@abc.abstractmethod
     @classmethod
     def supported_url_types(cls):
         """ Return a list of supported url extensions, eg ['.gz']"""

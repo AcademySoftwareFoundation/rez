@@ -44,8 +44,7 @@ requires = [
     # "pysvn >= 1.7.2"
     "PyYAML >= 3.9",
     "Yapsy >= 1.10.0",
-    "python-memcached >= 1.0",
-    "GitPython >= 0.3.2.RC1"
+    "python-memcached >= 1.0"
 ]
 
 if sys.version_info < (2,7):
@@ -106,7 +105,8 @@ setup(
             'rezconfig',
             'README*',
             'plugins/shell/*.yapsy-plugin',
-            'plugins/release_mode/*.yapsy-plugin',
+            'plugins/release_vcs/*.yapsy-plugin',
+            'plugins/release_hook/*.yapsy-plugin',
             'plugins/source_retriever/*.yapsy-plugin',
             'plugins/build_system/*.yapsy-plugin',
             'plugins/build_system/cmake_files/*.cmake',

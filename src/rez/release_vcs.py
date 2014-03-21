@@ -1,6 +1,7 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez.resources import load_package_metadata, load_package_settings
 from rez.util import which
+import subprocess
 
 
 
@@ -103,3 +104,16 @@ class ReleaseVCS(object):
         create_release_tag()
         """
         raise NotImplementedError
+
+    def _cmd(self, *nargs):
+        """Convenience function for executing a program such as 'git' etc."""
+        cmd_str = ' '.join(nargs)
+        if self.settings.debug_package_release:
+            print "Running command: %s" % cmd_str
+
+        p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
+                             stderr=subprocess.PIPE, cwd=self.path)
+        out,err = p.communicate()
+        if p.returncode:
+            raise ReleaseVCSError("command failed: %s\n%s" % (cmd_str, err))
+        return [x.rstrip() for x in out.strip().split('\n')]

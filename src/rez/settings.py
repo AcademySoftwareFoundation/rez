@@ -9,10 +9,20 @@ import os
 import os.path
 import yaml
 import sys
+import string
+import getpass
 from rez.util import which
 from rez import module_root_path
 from rez.system import system
 
+
+
+class PartialFormatter(string.Formatter):
+    def get_field(self, key, args, kwargs):
+        try:
+            return super(PartialFormatter, self).get_field(key, args, kwargs)
+        except (KeyError, AttributeError):
+            return "{%s}" % key, key
 
 
 class Settings(object):
@@ -97,14 +107,13 @@ class Settings(object):
             self.variables = dict(
                 platform=system.platform,
                 arch=system.arch,
-                os=system.os)
+                os=system.os,
+                user=getpass.getuser())
 
     def _expand_variables(self, s):
         self._load_variables()
-        if '{' in s:
-            for k,v in self.variables.iteritems():
-                s = s.replace("{%s}"%k, v)
-        return os.path.expanduser(s)
+        f = PartialFormatter()
+        return f.format(os.path.expanduser(s), **self.variables)
 
     def __getattr__(self, attr):
         if attr in self.settings:

@@ -1,0 +1,6 @@
+[Core]
+Name = emailer
+Module = emailer
+
+[Documentation]
+Description = Post-release email sender.

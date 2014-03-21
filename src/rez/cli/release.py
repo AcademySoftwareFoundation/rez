@@ -26,7 +26,8 @@ def command(opts, parser=None):
     # create and execute release process
     builder = LocalSequentialBuildProcess(working_dir,
                                           buildsys,
-                                          vcs=vcs)
+                                          vcs=vcs,
+                                          release_message=opts.message)
 
     if not builder.release():
         sys.exit(1)

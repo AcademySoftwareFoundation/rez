@@ -201,99 +201,6 @@ class Resolver(object):
         self.result = ResolveResult()
         self.result.request_time = time_epoch
 
-    """
-    def guarded_resolve(self, pkg_req_strs, no_implicit=False, meta_vars=None,
-                        shallow_meta_vars=None, dot_file=None, print_dot=False):
-        try:
-            result = self.resolve(pkg_req_strs, no_implicit, meta_vars,
-                                  shallow_meta_vars)
-
-        except PkgSystemError, e:
-            sys.stderr.write(str(e) + '\n')
-            return None
-        except VersionError, e:
-            sys.stderr.write(str(e) + '\n')
-            return None
-        except PkgFamilyNotFoundError, e:
-            print >> sys.stderr, "Couldn't find the package family '%s'" % e.family_name
-            return None
-        except PkgNotFoundError, e:
-            print >> sys.stderr, "Couldn't find the package '%s'" % e.pkg_req.short_name()
-            return None
-        except PkgConflictError, e:
-            sys.stderr.write("The following conflicts occurred:\n")
-            for c in e.pkg_conflicts:
-                sys.stderr.write(str(c) + '\n')
-
-            # we still produce a dot-graph on failure
-            if e.last_dot_graph:
-                if dot_file:
-                    gen_dotgraph_image(e.last_dot_graph, dot_file)
-                if print_dot:
-                    print(e.last_dot_graph)
-            return None
-        except PkgsUnresolvedError, e:
-            sys.stderr.write("The following packages could not be resolved:\n")
-            for p in e.pkg_reqs:
-                sys.stderr.write(str(p) + '\n')
-            return None
-        except PkgCommandError, e:
-            sys.stderr.write("There was a problem with the resolved command list:\n")
-            sys.stderr.write(str(e) + '\n')
-            return None
-        except PkgCyclicDependency, e:
-            sys.stderr.write("\nCyclic dependency(s) were detected:\n")
-            sys.stderr.write(str(e) + "\n")
-
-            import tempfile
-            # write graphs to file
-            tmpf = tempfile.mkstemp(suffix='.dot')
-            os.write(tmpf[0], str(e))
-            os.close(tmpf[0])
-            sys.stderr.write("\nThis graph has been written to:\n")
-            sys.stderr.write(tmpf[1] + "\n")
-
-            tmpf = tempfile.mkstemp(suffix='.dot')
-            os.write(tmpf[0], e.dot_graph)
-            os.close(tmpf[0])
-            sys.stderr.write("\nThe whole graph (with cycles highlighted) has been written to:\n")
-            sys.stderr.write(tmpf[1] + "\n")
-
-            # we still produce a dot-graph on failure
-            # TODO have a way of returning the dot-graph on fail, without having
-            # to write it to file.
-            if dot_file:
-                gen_dotgraph_image(e.dot_graph, dot_file)
-            if print_dot:
-                print(e.dot_graph)
-
-            return None
-
-        except PkgConfigNotResolvedError, e:
-            sys.stderr.write("The configuration could not be resolved:\n")
-            for p in e.pkg_reqs:
-                sys.stderr.write(str(p) + '\n')
-            sys.stderr.write("The failed configuration attempts were:\n")
-            for s in e.fail_config_list:
-                sys.stderr.write(s + '\n')
-
-            # we still produce a dot-graph on failure
-            if dot_file:
-                gen_dotgraph_image(e.last_dot_graph, dot_file)
-            if print_dot:
-                print(e.last_dot_graph)
-
-            return None
-
-        if print_dot:
-            print(result.dot_graph)
-
-        if dot_file:
-            gen_dotgraph_image(result.dot_graph, dot_file)
-
-        return result
-    """
-
     def resolve(self, pkg_reqs, no_implicit=False, meta_vars=None,
                 shallow_meta_vars=None):
         """
@@ -320,17 +227,10 @@ class Resolver(object):
                                     self.rctxt.package_paths)
 
         resolve_start_time = time.time()
-
         raw_package_requests = [_pkg_request(x) for x in pkg_reqs]
 
-        # TODO replace with new 'implicit packages' feature
         if not no_implicit:
             to_add = []
-            """
-            plat_pkg = "platform-" + system.platform
-            arch_pkg = "arch-" + system.arch
-            for os_pkg_str in(plat_pkg, arch_pkg):
-            """
             for pkg_str in settings.implicit_packages:
                 im_pkg_req = str_to_pkg_req(pkg_str,
                                             self.rctxt.time_epoch,

@@ -168,6 +168,9 @@ class ReleaseVCSUnsupportedError(ReleaseVCSError):
     """
     pass
 
+class ReleaseHookError(RezError):
+    """Base class for release-hook- related errors."""
+    pass
 
 
 
