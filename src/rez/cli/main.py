@@ -150,6 +150,10 @@ def add_build(parser):
 def add_release(parser):
     parser.add_argument("-m", "--message", type=str,
                         help="commit message")
+    parser.add_argument("--no-ensure-latest", dest="no_ensure_latest",
+                        action="store_true",
+                        help="allows release of version earlier than the "
+                        "latest release.")
     _bind_build_args(parser)
     _bind_build_system(parser)
 

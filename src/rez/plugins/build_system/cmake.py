@@ -106,6 +106,7 @@ class CMakeBuildSystem(BuildSystem):
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      metadata=self.metadata,
+                                     metafile=self.metafile,
                                      settings_=self.settings)
 
         retcode,_,_ = context.execute_shell(command=cmd,
@@ -146,12 +147,13 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, metadata, settings_):
+    def _add_build_actions(executor, context, metadata, metafile, settings_):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_ENV = 1
-        executor.env.REZ_LOCAL_PACKAGES_PATH = settings_.local_packages_path
-        executor.env.REZ_RELEASE_PACKAGES_PATH = settings_.release_packages_path
+        #executor.env.REZ_LOCAL_PACKAGES_PATH = settings_.local_packages_path
+        #executor.env.REZ_RELEASE_PACKAGES_PATH = settings_.release_packages_path
+        executor.env.REZ_BUILD_PROJECT_FILE = metafile
         executor.env.REZ_BUILD_PROJECT_VERSION = metadata.get("version","")
         executor.env.REZ_BUILD_PROJECT_NAME = metadata["name"]
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
@@ -162,13 +164,14 @@ class CMakeBuildSystem(BuildSystem):
 def _spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    metadata = load_package_metadata(working_dir)
+    metadata,metafile = load_package_metadata(working_dir)
     settings_ = load_package_settings(metadata)
     settings_.set("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
                                  metadata=metadata,
+                                 metafile=metafile,
                                  settings_=settings_)
 
     context.execute_shell(block=True,

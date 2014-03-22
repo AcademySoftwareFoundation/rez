@@ -99,56 +99,6 @@ set( REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} OWN
 rez_project()
 
 #
-# package.yaml is installed into the base path (ie not under variant subdirs).
-#
-
-set(PYAML_REL_DIR .)
-set(varlist $ENV{REZ_BUILD_VARIANT_UNVERSIONED})
-separate_arguments(varlist)
-
-foreach(var ${varlist})
-	set(PYAML_REL_DIR "../${PYAML_REL_DIR}")
-endforeach(var ${varlist})
-install( FILES
-		./package.yaml
-		DESTINATION ${PYAML_REL_DIR}
-		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
-
-
-#
-# install the meta files. rez-build generates them, and
-# they should always be present when invoking cmake/make
-#
-
-#install( FILES
-#		${CMAKE_CURRENT_BINARY_DIR}/build.rxt
-#		DESTINATION .metadata
-#		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
-#
-#install( FILES
-#		${CMAKE_CURRENT_BINARY_DIR}/info.txt
-#		${CMAKE_CURRENT_BINARY_DIR}/changelog.txt
-#		DESTINATION ${PYAML_REL_DIR}/.metadata
-#		PERMISSIONS ${REZ_FILE_INSTALL_PERMISSIONS} )
-
-
-#
-# 'build' the package.yaml, this is just here so that a project that doesn't actually build
-# anything (like a production package for a show) still builds under rez-build.
-#
-
-add_custom_command(
-	OUTPUT package.yaml
-	COMMAND ${CMAKE_COMMAND} -E copy ${CMAKE_CURRENT_SOURCE_DIR}/package.yaml package.yaml
-	COMMENT "Building package.yaml"
-	DEPENDS package.yaml
-	VERBATIM
-)
-
-add_custom_target ( package-yaml ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/package.yaml )
-
-
-#
 # Set C++ Cflags/LDflags based on rez-cmake flags such as -o
 #
 
@@ -167,20 +117,6 @@ endif(COVERAGE)
 macro(rez_package_in_use pkg_string result)
 	list_contains(${result} ${pkg_string} ${REZ_BUILD_ALL_PKGS})
 endmacro(rez_package_in_use pkg_string result)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

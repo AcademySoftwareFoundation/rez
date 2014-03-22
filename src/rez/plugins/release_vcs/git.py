@@ -65,15 +65,15 @@ class GitReleaseVCS(ReleaseVCS):
     def validate_repostate(self):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
-            raise ReleaseVCSError("'%s' is a bare git repository" % self.path)
+            raise ReleaseVCSError("Could not release: bare git repository")
 
         # check for uncommitted changes
         try:
             self.git("diff-index", "--quiet", "HEAD")
         except ReleaseVCSError:
-            msg = "Could not release: there are uncommitted changes"
+            msg = "Could not release: there are uncommitted changes:\n"
             statmsg = self.git("diff-index", "--stat", "HEAD")
-            msg += ":\n%s" % '\n'.join(statmsg)
+            msg += '\n'.join(statmsg)
             raise ReleaseVCSError(msg)
 
         # check if we are behind/ahead of remote
@@ -84,8 +84,8 @@ class GitReleaseVCS(ReleaseVCS):
             if n:
                 s = "ahead of" if n>0 else "behind"
                 remote_uri = '/'.join((remote, remote_branch))
-                raise ReleaseVCSError(("Could not release: '%s' is %d " + \
-                    "commits %s %s.") % (self.path, abs(n), s, remote_uri))
+                raise ReleaseVCSError(("Could not release: %d commits " + \
+                    "%s %s.") % (abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
         prev_commit = (previous_revision or {}).get("commit")

@@ -84,7 +84,7 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.metadata,_ = load_package_metadata(working_dir)
+        self.metadata,self.metafile = load_package_metadata(working_dir)
         self.settings = load_package_settings(self.metadata)
 
         self.write_build_scripts = write_build_scripts

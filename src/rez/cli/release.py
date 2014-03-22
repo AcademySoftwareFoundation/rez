@@ -27,7 +27,7 @@ def command(opts, parser=None):
     builder = LocalSequentialBuildProcess(working_dir,
                                           buildsys,
                                           vcs=vcs,
+                                          ensure_latest=(not opts.no_ensure_latest),
                                           release_message=opts.message)
-
     if not builder.release():
         sys.exit(1)

@@ -90,7 +90,7 @@ build_system_plugin_path: []
 
 
 ###############################################################################
-# Environment
+# Environment Resolution
 ###############################################################################
 
 # System packages that are implicitly added to all package resolves, unless
@@ -117,6 +117,15 @@ implicit_packages:
 parent_variables: []
 all_parent_variables: false
 
+# When two or more packages in a resolve attempt to set the same environment
+# variable, Rez's default behaviour is to flag this as a conflict and abort the
+# resolve. You can overcome this in a package's commands section by using the
+# Rex command 'resetenv' instead of 'setenv'. However, you can also turn off this
+# behaviour globally - for certain variables, by adding them to 'resetting_variables',
+# and for all variables, by setting 'all_resetting_variables' to true.
+resetting_variables: []
+all_resetting_variables: false
+
 
 ###############################################################################
 # Debugging
@@ -139,7 +148,7 @@ warn_old_commands: true
 debug_plugins: false
 
 # Print debugging info such as VCS commands during package release
-debug_package_release: true
+debug_package_release: false
 
 
 ###############################################################################
@@ -147,7 +156,7 @@ debug_package_release: true
 ###############################################################################
 
 # The default working directory for a package build, relative to the package root
-# directory (this is typically where temporary build files are written)
+# directory (this is typically where temporary build files are written).
 build_directory: build
 
 # The name of the CMake build system to use, valid options are eclipse, make,
@@ -165,9 +174,7 @@ cmake_args:
 
 # For format string used to determine the VCS tag name when releasing.  This
 # string will be formatted against the metadata for the package currently being
-# released.  Valid formatting keys are "name", "version". If this setting is
-# changed, the corresponding 'vcs_tag_name_version_regex' might also need to be
-# updated.
+# released.  Valid formatting keys are "name", "version".
 vcs_tag_name: '{name}-{version}'
 
 # The release hooks to run when a release occurs. Release hooks are plugins - if
@@ -194,7 +201,7 @@ release_email_to: []
 # Appearance
 ###############################################################################
 
-# The editor used to get user input in some cases; rez-release uses this.
+# The editor used to get user input in some cases.
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
 editor:
 
@@ -258,6 +265,9 @@ _type:
     release_email_to: list
     parent_variables: list
     all_parent_variables: bool
+    resetting_variables: list
+    all_resetting_variables: bool
+
 
 # What seperator to expect in env-vars
 _sep:
