@@ -13,7 +13,9 @@ import posixpath
 import ntpath
 import UserDict
 import re
+import yaml
 import shutil
+import textwrap
 import tempfile
 import threading
 import subprocess as sp
@@ -43,37 +45,26 @@ class LazySingleton(object):
         return self.instance
 
 
-def get_forwarding_cli_command(module, func_name, *nargs, **kwargs):
-    import json
-    data = [nargs, kwargs]
-    data_s = json.dumps(data)
-    cmd = "rezolve forward %s %s '%s'" % (module, func_name, data_s)
-    return cmd
-
-
-def create_forwarding_script(filepath, module, func_name, shell=None,
-                             *nargs, **kwargs):
+def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 
     A forwarding script is one that executes some arbitrary Rez function. This
     is used internally by Rez to dynamically create a script that uses Rez, even
-    though the parent environ may not be configured to do so. The cmake build
-    system uses this, to create its 'build-env' scripts.
+    though the parent environ may not be configured to do so.
     """
-    from rez.rex import RexExecutor
-    from rez.shells import create_shell
+    doc = dict(
+        module=module,
+        func_name=func_name)
 
-    sh = create_shell(shell)
-    executor = RexExecutor(interpreter=sh,
-                           bind_rez=False,
-                           bind_syspaths=False)
+    if nargs:
+        doc["nargs"] = nargs
+    if kwargs:
+        doc["kwargs"] = kwargs
 
-    cmd = get_forwarding_cli_command(module, func_name, *nargs, **kwargs)
-    executor.command(cmd)
-
-    code = executor.get_output()
+    content = yaml.dump(doc, default_flow_style=False)
     with open(filepath, 'w') as f:
-        f.write(code)
+        f.write("#!/usr/bin/env _rez_fwd\n")
+        f.write(content)
 
     os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
         | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
@@ -155,6 +146,7 @@ def shlex_join(value):
         return str(value)
 
 # TODO remove
+"""
 def gen_dotgraph_image(dot_data, out_file):
     # shortcut if writing .dot file
     if out_file.endswith(".dot"):
@@ -177,6 +169,7 @@ def gen_dotgraph_image(dot_data, out_file):
         sys.exit(1)
 
     fn(out_file)
+"""
 
 # returns path to first program in the list to be successfully found
 def which(*programs):

@@ -56,7 +56,6 @@ from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
 from rez.system import system
-from rez.util import gen_dotgraph_image
 import rez.rex as rex
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}

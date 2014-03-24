@@ -162,7 +162,6 @@ def add_env(parser):
     from rez.system import system
     from rez.shells import get_shell_types
     shells = get_shell_types()
-    print_types = ("resolve", "context", "script", "dict")
 
     parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
                         help="target shell type, defaults to the current shell "
@@ -184,25 +183,21 @@ def add_env(parser):
     parser.add_argument("--bo", "--bootstrap-only", dest="bootstrap_only",
                         action="store_true",
                         help="only load bootstrap packages. Implies --ni and --nl.")
-    parser.add_argument("--print", type=str, dest="print_", metavar="TYPE",
-                        choices=print_types,
-                        help="print information about the resolved environment, "
-                        "rather than spawning it")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("-o", "--output", type=str, metavar="FILE",
+                        help="store the context into an rxt file, instead of "
+                        "starting an interactive shell. Note that this will "
+                        "also store a failed resolve")
+    parser.add_argument("-i", "--input", type=str, metavar="FILE",
+                        help="use a previously saved context. Resolve settings, "
+                        "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("--mf", "--max-fails", dest="max_fails", type=int,
                         default=-1, metavar='N',
                         help="exit when the number of failed configuration "
                         "attempts exceeds N")
-    parser.add_argument("-o", "--output", type=str,
-                        help="store the context into an rxt file, instead of "
-                        "starting an interactive shell. Note that this will "
-                        "also store a failed resolve")
-    parser.add_argument("--rxt", "--context", dest="rxt", type=str,
-                        help="use a previously saved context. Resolve settings, "
-                        "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("--rv", "--resolve-verbosity", dest="resolve_verbosity",
                         type=int, default=0,
                         help="print debugging info during the resolve process")
@@ -257,13 +252,8 @@ def add_bootstrap(parser):
 
 @hidden_subcommand
 def add_forward(parser):
-    parser.add_argument("MODULE", type=str,
-                        help="module containing function to execute")
-    parser.add_argument("FUNC", type=str,
-                        help="name of function to execute")
-    parser.add_argument("JSON", type=str, nargs='?',
-                        help='json encoding: [[nargs], {kwargs}]')
-
+    parser.add_argument("YAML", type=str)
+    parser.add_argument("ARG", type=str, nargs='*')
 
 def _add_subcommand(cmd, help=""):
     fn = globals()["add_%s" % cmd]
@@ -289,11 +279,11 @@ def run():
     _add_subcommand("env",
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("exec",
-                    "Execute some Rex code and print the interpreted result")
+                    "Execute some Rex code and print the interpreted result.")
     _add_subcommand("bootstrap",
-                    "Rez installation-related operations")
+                    "Rez installation-related operations.")
     _add_subcommand("test",
-                    "Run unit tests")
+                    "Run unit tests.")
     _add_subcommand("forward")
 
     p.add_argument("-V", "--version", action="version",

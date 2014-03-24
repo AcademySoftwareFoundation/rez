@@ -123,7 +123,7 @@ class CMakeBuildSystem(BuildSystem):
             # they can run make directly themselves.
             build_env_script = os.path.join(build_path, "build-env.%s" % ext)
             create_forwarding_script(build_env_script,
-                                     module="rez.plugins.build_system.cmake",
+                                     module="plugins.build_system.cmake",
                                      func_name="_spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)

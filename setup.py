@@ -35,6 +35,7 @@ scripts = [
     "rez-exec",
     "rez-test",
     "rez-bootstrap",
+    "_rez_fwd",
     "_rez_csh_complete"
 ]
 
