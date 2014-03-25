@@ -10,6 +10,7 @@ from rez.shells import create_shell, get_shell_types
 import pickle
 import getpass
 import inspect
+import yaml
 import time
 import uuid
 import sys
@@ -66,8 +67,9 @@ class ResolvedContext(object):
             self.success is False, and self.dot_graph, if available, will
             contain a graph detailing the reason for failure.
         """
-        # serialization version
+        # serialization
         self.serialize_ver = self.serialize_version
+        self.load_path = None
 
         # resolving settings
         self.package_request_strings = requested_packages
@@ -179,6 +181,8 @@ class ResolvedContext(object):
             raise Exception("The version of the context (v%s) is too new - "
                 "this version of Rez can only read contexts earlier than v%s" \
                 % (_v(r.serialize_ver), _v(next_major)))
+
+        r.load_path = os.path.abspath(path)
         return r
 
     def on_success(fn):
@@ -398,8 +402,12 @@ class ResolvedContext(object):
 
         # context and rxt files
         tmpdir = mkdtemp_()
-        rxt_file = os.path.join(tmpdir, "context.rxt")
-        self.save(rxt_file)
+
+        if self.load_path and os.path.isfile(self.load_path):
+            rxt_file = self.load_path
+        else:
+            rxt_file = os.path.join(tmpdir, "context.rxt")
+            self.save(rxt_file)
 
         context_file = context_filepath or \
                        os.path.join(tmpdir, "context.%s" % sh.file_extension())
@@ -490,6 +498,15 @@ class ResolvedContext(object):
             print "writing %s..." % rxt_file
         self.save(rxt_file)
 
+        # write wrapped env yaml file. This is mostly just done so that Rez can
+        # know that this path contains a valid wrapped environment.
+        yaml_file = os.path.join(path, "wrapped_environment.yaml")
+        if not os.path.exists(yaml_file):
+            doc = dict(created_by=getpass.getuser(),
+                       created_at=int(time.time()))
+            with open(yaml_file, 'w') as f:
+                f.write(yaml.dump(doc, default_flow_style=False))
+
         # create wrapped tools
         keys = self.get_key("tools", request_only=request_only)
         if not keys:
@@ -501,8 +518,11 @@ class ResolvedContext(object):
             os.mkdir(binpath)
 
         for pkg,tools in keys.iteritems():
+            doc = dict(tools=[])
+
             for tool in tools:
                 toolname = "%s%s%s" % ((prefix or ''), tool, (suffix or ''))
+                doc["tools"].append(toolname)
                 if verbose:
                     print "writing tool '%s' for package '%s'..." % (toolname, pkg)
 
@@ -515,10 +535,14 @@ class ResolvedContext(object):
                                          "_invoke_wrapped_tool",
                                          rxt_file=rxt_name,
                                          tool=tool)
+
+            yaml_file = os.path.join(path, "%s.yaml"
+                                           % os.path.splitext(rxt_name)[0])
+            with open(yaml_file, 'w') as f:
+                f.write(yaml.dump(doc, default_flow_style=False))
+
         if verbose:
-            print
-            print "%d tools were written to %s" % (n, binpath)
-            print
+            print "\n%d tools were written to %s\n" % (n, binpath)
         return binpath
 
     def _create_executor(self, interpreter, parent_environ):
