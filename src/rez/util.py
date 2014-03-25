@@ -106,7 +106,8 @@ def set_rm_tmpdirs(enable):
     rm_tmdirs = enable
 
 @atexit.register
-def _rm_tmpdirs():
+def _atexit():
+    # remove temp dirs
     if rm_tmdirs:
         for path in _tmpdirs:
             rmdtemp(path)

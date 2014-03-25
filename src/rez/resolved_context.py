@@ -259,6 +259,7 @@ class ResolvedContext(object):
         _pr('\n'.join(columnise(rows)))
 
         if verbose:
+            _pr()
             _pr("resolved after %d attempts" % self.failed_attempts)
 
     @on_success
@@ -274,6 +275,33 @@ class ResolvedContext(object):
         executor = self._create_executor(interp, parent_environ)
         self._execute(executor)
         return executor.get_output()
+
+    @on_success
+    def get_key(self, key, request_only=False):
+        """Get a metadata key value for each resolved package.
+
+        Args:
+            key: String key of property, eg 'tools'.
+            request_only: If True, only return the key from resolved packages
+                that were also present in the request.
+
+        Returns:
+            Dict of {pkg-name: value}.
+        """
+        values = {}
+        reqs = None
+        if request_only:
+            reqs = [x.split('-',1)[0] for x in self.package_request_strings]
+            reqs = [x for x in reqs if not x.startswith('!')]
+            reqs = [x for x in reqs if not x.startswith('~')]
+            reqs = set(reqs)
+
+        for pkg_res in self.resolved_pkgs:
+            if (not request_only) or (pkg_res.name.split('-',1)[0] in reqs):
+                val = pkg_res.metadata.get(key)
+                if val is not None:
+                    values[pkg_res.name] = val
+        return values
 
     @on_success
     def get_shell_code(self, shell=None, parent_environ=None):
@@ -440,7 +468,6 @@ class ResolvedContext(object):
 
         manager = executor.manager
 
-        # TODO set metavars, shallow_metavars
         for pkg_res in self.resolved_pkgs:
             manager.comment("")
             manager.comment("Commands from package %s" % pkg_res.short_name())

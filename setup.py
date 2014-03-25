@@ -96,7 +96,7 @@ setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     cmdclass={'install': install_},
-    scripts=[os.path.join('bin2',x) for x in scripts],
+    scripts=[os.path.join('bin',x) for x in scripts],
     install_requires=requires,
     include_package_data=True,
     package_dir = {'': 'src'},

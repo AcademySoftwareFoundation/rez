@@ -7,7 +7,7 @@ import tempfile
 import subprocess
 from uuid import uuid4
 from rez import __version__
-from rez.util import pretty_env_dict
+from rez.util import pretty_env_dict, columnise
 from rez.resolved_context import ResolvedContext
 from rez.shells import create_shell, get_shell_types
 from rez.system import system
@@ -85,6 +85,21 @@ def view_graph(graph_str, opts):
         os.remove(dest_file)
 
 
+def print_tools(rc):
+    keys = rc.get_key("tools")
+    if keys:
+        rows = [
+            ["TOOL", "PACKAGE"],
+            ["----", "-------"]]
+        for pkg,tools in sorted(keys.items()):
+            for tool in sorted(tools):
+                rows.append([tool, pkg])
+
+    strs = columnise(rows)
+    print '\n'.join(strs)
+    print
+
+
 def command(opts, parser=None):
     # are we reading the current context (ie are we inside a rez-env env)?
     rxt_file = opts.FILE
@@ -103,13 +118,15 @@ def command(opts, parser=None):
     def _check_graph(g):
         if g is None:
             print >> sys.stderr, "The context does not contain a graph."
-            sys.exit(0)
+            sys.exit(1)
 
     if not opts.interpret:
         if opts.print_request:
             print ' '.join(rc.added_implicit_packages + rc.requested_packages)
         elif opts.print_resolve:
             print ' '.join(x.short_name() for x in rc.resolved_packages)
+        elif opts.print_tools:
+            print_tools(rc)
         elif opts.print_graph:
             _check_graph(rc.resolve_graph)
             print rc.resolve_graph
@@ -121,6 +138,9 @@ def command(opts, parser=None):
             write_graph(rc.resolve_graph, opts)
         else:
             rc.print_info(verbose=opts.verbose)
+            if opts.verbose and (rxt_file == current_rxt_file):
+                print
+                print "rxt file:\n%s" % rxt_file
             print
         return
 

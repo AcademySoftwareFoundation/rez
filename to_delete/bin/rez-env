@@ -1,0 +1,261 @@
+#!/bin/bash
+
+#
+# rez-env
+#
+# A tool for invoking a shell based on a configuration request.
+#
+
+. _set-rez-env
+eval `rez_.py env "$@"`
+exit $?
+
+##############################################################################
+# parse args
+##############################################################################
+IFS='
+'
+
+cmdlin=`!REZ_PYTHON_BINARY! $REZ_PATH/python/rez/rez_env_cmdlin.py $*`
+if [ $? -ne 0 ]; then
+	!REZ_PYTHON_BINARY! $REZ_PATH/python/rez/rez_env_cmdlin.py $*
+	exit $?
+fi
+
+pkgs=
+for ln in $cmdlin
+do
+	ln=`echo $ln | tr -d '\n'`
+	if [ "$pkgs" == "" ]; then
+		pkgs=$ln
+	else
+		eval "$ln"
+	fi
+done
+
+unset IFS
+
+
+autowrappers=`echo $* | grep '('`
+
+if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" -o "$_REZ_ENV_OPT_ADD_STRICT" == "True" ]; then
+	if [ "$autowrappers" != "" ]; then
+		echo "Patching of auto-wrapper environments is not yet supported." >&2
+		exit 1
+	fi
+
+	if [ "`echo $REZ_RAW_REQUEST | grep '('`" != "" ]; then
+		echo "Patching from auto-wrapper environments is not yet supported." >&2
+		exit 1
+	fi
+fi
+
+tmpdir=$_REZ_ENV_OPT_TMPDIR
+
+##############################################################################
+# switch to auto-wrapper rez-env if bracket syntax is detected
+# TODO patching of wrapper envs is not yet supported.
+##############################################################################
+if [ "$autowrappers" != "" ]; then
+	if [ "$tmpdir" == "" ]; then
+		tmpdir=`python -c 'import tempfile ; print tempfile.mkdtemp()'`
+		echo $tmpdir
+	fi
+	export REZ_TMP_DIR=$tmpdir
+    rez-env-autowrappers $tmpdir $*
+    if [ $? -ne 0 ]; then
+    	exit 1
+    fi
+
+    raw_request=$pkgs
+    export REZ_PACKAGES_PATH=$tmpdir:$REZ_PACKAGES_PATH
+    new_pkgs=`cat $tmpdir/packages.txt`
+    unset _REZ_ENV_OPT_ADD_LOOSE
+    unset _REZ_ENV_OPT_ADD_STRICT
+    _REZ_ENV_OPT_NO_CACHE=True
+    set -- $new_pkgs
+else
+	set -- $pkgs
+fi
+
+
+##############################################################################
+# apply patching, if any
+##############################################################################
+pkg_list=
+print_pkgs=
+ctxt_pkg_list=
+
+if [ "$_REZ_ENV_OPT_ADD_LOOSE" == "True" ]; then
+	ctxt_pkg_list=$REZ_REQUEST
+	print_pkgs=1
+elif [ "$_REZ_ENV_OPT_ADD_STRICT" == "True" ]; then
+	ctxt_pkg_list=$REZ_RESOLVE
+	print_pkgs=1
+fi
+
+if [ "$ctxt_pkg_list" == "" ]; then
+	pkg_list="$@"
+else
+	pkg_list=`rez-merge-requests "$ctxt_pkg_list | $@"`
+fi
+
+if [ "$print_pkgs" != "" ] && [ "$_REZ_ENV_OPT_QUIET" != "True" ]; then
+	quotedpkgs=`echo $pkg_list | sed "s/ /' '/g"`
+	echo "request: '"$quotedpkgs"'"
+fi
+
+
+##############################################################################
+# call rez-config, and write env into bake file
+##############################################################################
+tmpd=$tmpdir
+if [ "$tmpd" == "" ]; then
+	tmpd="/tmp"
+fi
+
+tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp(suffix="", prefix=".rez-context.", dir=sys.argv[1])' "$tmpd"`
+tmpf2=$tmpf".source"
+tmpf3=$tmpf".dot"
+
+if [ "$_REZ_ENV_OPT_BUILD" == "True" ]; then
+	buildreq_flag="--build-requires"
+fi
+
+if [ "$_REZ_ENV_OPT_NO_OS" == "True" ]; then
+	no_os_flag="--no-os"
+fi
+
+if [ "$_REZ_ENV_OPT_NO_LOCAL" == "True" ]; then
+	no_local_flag="--no-local"
+fi
+
+if [ "$_REZ_ENV_OPT_IGNORE_BLACKLIST" == "True" ]; then
+	use_blacklist_flag="--ignore-blacklist"
+fi
+
+if [ "$_REZ_ENV_OPT_IGNORE_ARCHIVING" == "True" ]; then
+	ignore_archiving_flag="--ignore-archiving"
+fi
+
+if [ "$_REZ_ENV_OPT_NO_ASSUME_DT" == "True" ]; then
+	dt_flag="--no-assume-dt"
+fi
+
+if [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
+	max_fails_flag="--max-fails="$_REZ_ENV_OPT_VIEW_FAIL
+fi
+
+if [ "$_REZ_ENV_OPT_NO_CACHE" == "True" ]; then
+	no_cache_flag="--no-cache"
+fi
+
+rez-config --time=$_REZ_ENV_OPT_TIME --print-env --meta-info=tools --meta-info-shallow=tools \
+	--dot-file=$tmpf3 --mode=$_REZ_ENV_OPT_MODE $max_fails_flag $dt_flag $ignore_archiving_flag \
+	$use_blacklist_flag $buildreq_flag $no_os_flag $no_local_flag $no_cache_flag $pkg_list > $tmpf
+ret=$?
+
+if [ $ret -ne 0 ] && [ "$_REZ_ENV_OPT_VIEW_FAIL" != "-1" ]; then
+	rez-dot -c $tmpf3
+	rm -f $tmpf
+	rm -f $tmpf3
+	exit 1
+fi
+
+if [ "$autowrappers" != "" ]; then
+	echo "export REZ_RAW_REQUEST='$raw_request'" >> $tmpf
+fi
+
+
+function on_exit {
+	child_procs=`jobs -p`
+	if [ "$child_procs" != "" ]; then
+		kill $child_procs
+	fi
+	rm -f $context_file
+	rm -f $source_file
+	rm -f $dot_file
+}
+trap 'on_exit' EXIT
+
+
+##############################################################################
+# spawn the new shell, sourcing the bake file
+##############################################################################
+
+if [ $ret -eq 0 ]; then
+
+	if [ "$REZ_RAW_REQUEST" == "" ]; then
+		export REZ_RAW_REQUEST="$@"
+	fi
+	export REZ_CONTEXT_FILE=$context_file
+
+	export REZ_ENV_PROMPT="$REZ_ENV_PROMPT$_REZ_ENV_OPT_PROMPT"
+
+	if [ "$_REZ_ENV_OPT_STDIN" == "True" ]; then
+		source $context_file
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
+			source $_REZ_ENV_OPT_RCFILE
+			if [ $? -ne 0 ]; then
+				exit 1
+			fi
+		fi
+
+		# ensure that rez-config is available no matter what (eg .bashrc might not exist,
+		# rcfile might not source rez-config)
+		source $REZ_PATH/init.sh
+
+		bash -s
+		ret=$?
+	elif [ "$_REZ_ENV_OPT_CMD" != "" ]; then
+		source $context_file
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
+			source $_REZ_ENV_OPT_RCFILE
+			if [ $? -ne 0 ]; then
+				exit 1
+			fi
+		fi
+
+		# ensure that rez-config is available no matter what (eg .bashrc might not exist,
+		# rcfile might not source rez-config)
+		source $REZ_PATH/init.sh
+
+		$_REZ_ENV_OPT_CMD
+		ret=$?
+	else
+		echo "source $context_file" > $source_file
+		if [ "$_REZ_ENV_OPT_RCFILE" != "" ]; then
+			echo "source $_REZ_ENV_OPT_RCFILE" >> $source_file
+		fi
+
+		echo "source rez-env-bashrc" >> $source_file
+		if [ "$_REZ_ENV_OPT_QUIET" == "False" ]; then
+			echo "echo" >> $source_file
+			echo "echo You are now in a new environment." >> $source_file
+			echo "rez-context-info" >> $source_file
+		fi
+
+		bash --rcfile $source_file
+		ret=$?
+	fi
+fi
+
+exit $ret
+
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

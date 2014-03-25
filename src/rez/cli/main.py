@@ -5,6 +5,7 @@ The main command-line entry point.
 import sys
 import argparse
 from rez import __version__
+import rez.sigint
 
 
 
@@ -80,10 +81,14 @@ def add_context(parser):
     from rez.shells import get_shell_types
     formats = get_shell_types() + ['dict']
 
-    parser.add_argument("--print-request", dest="print_request", action="store_true",
+    parser.add_argument("--req", "--print-request", dest="print_request",
+                        action="store_true",
                         help="print only the request list, including implicits")
-    parser.add_argument("--print-resolve", dest="print_resolve", action="store_true",
+    parser.add_argument("--res", "--print-resolve", dest="print_resolve",
+                        action="store_true",
                         help="print only the resolve list")
+    parser.add_argument("-t", "--print-tools", dest="print_tools", action="store_true",
+                        help="print a list of the executables available in the context")
     parser.add_argument("-g", "--graph", action="store_true",
                         help="display the resolve graph as an image")
     parser.add_argument("--pg", "--print-graph", dest="print_graph", action="store_true",
@@ -199,7 +204,7 @@ def add_env(parser):
                         help="exit when the number of failed configuration "
                         "attempts exceeds N")
     parser.add_argument("--rv", "--resolve-verbosity", dest="resolve_verbosity",
-                        type=int, default=0,
+                        type=int, default=0, metavar="VERBOSITY",
                         help="print debugging info during the resolve process")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
