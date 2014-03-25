@@ -12,7 +12,7 @@ except ImportError:
     sys.exit(1)
 
 if sys.version_info < (2,6):
-    print >> sys.stderr, "Rez requires python v2.6 or greater"
+    print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
 
 os.environ['__rez_is_installing'] = '1'
@@ -32,6 +32,7 @@ scripts = [
     "rez-release",
     "rez-env",
     "rez-context",
+    "rez-wrap",
     "rez-exec",
     "rez-test",
     "rez-bootstrap",

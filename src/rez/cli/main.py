@@ -212,6 +212,19 @@ def add_env(parser):
                         help='packages to use in the target environment')
 
 @subcommand
+def add_wrap(parser):
+    parser.add_argument("-p", "--prefix", type=str,
+                        help="Tools prefix")
+    parser.add_argument("-s", "--suffix", type=str,
+                        help="Tools suffix")
+    parser.add_argument("DEST", type=str,
+                        help="Directory to write the wrapped environment into")
+    parser.add_argument("RXT", type=str, nargs='*',
+                        help="Context files to wrap")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="verbose mode")
+
+@subcommand
 def add_exec(parser):
     from rez.system import system
     from rez.shells import get_shell_types
@@ -258,7 +271,7 @@ def add_bootstrap(parser):
 @hidden_subcommand
 def add_forward(parser):
     parser.add_argument("YAML", type=str)
-    parser.add_argument("ARG", type=str, nargs='*')
+    parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 
 def _add_subcommand(cmd, help=""):
     fn = globals()["add_%s" % cmd]
@@ -283,6 +296,8 @@ def run():
                     "Build a package from source and deploy it.")
     _add_subcommand("env",
                     "Open a rez-configured shell, possibly interactive.")
+    _add_subcommand("wrap",
+                    "Created a wrapped environment from one or more context files")
     _add_subcommand("exec",
                     "Execute some Rex code and print the interpreted result.")
     _add_subcommand("bootstrap",

@@ -174,10 +174,10 @@ def _spawn_build_shell(working_dir, build_dir):
                                  metafile=metafile,
                                  settings_=settings_)
 
-    context.execute_shell(block=True,
-                          cwd=build_dir,
-                          actions_callback=callback)
-
+    retcode,_,_ = context.execute_shell(block=True,
+                                       cwd=build_dir,
+                                       actions_callback=callback)
+    sys.exit(retcode)
 
 
 class CMakeBuildSystemFactory(plugin_factory.RezPluginFactory):

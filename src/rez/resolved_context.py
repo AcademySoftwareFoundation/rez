@@ -3,13 +3,15 @@ from rez.config import Resolver
 from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path
+    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
+    create_forwarding_script
 from rez.rex import RexExecutor, Python
 from rez.shells import create_shell, get_shell_types
 import pickle
 import getpass
 import inspect
 import time
+import uuid
 import sys
 import os
 import os.path
@@ -370,7 +372,7 @@ class ResolvedContext(object):
             quiet: If True, skip the welcome message in interactive shells.
             block: If True, block until the shell is terminated. If False,
                 return immediately. If None, will default to blocking if the
-                shell is noninteractive.
+                shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
                 the user append custom actions to the context, such as settings
                 extra environment variables.
@@ -428,6 +430,96 @@ class ResolvedContext(object):
             return p.returncode,stdout,stderr
         else:
             return p
+
+    def create_wrapped_context(self, path, rxt_name=None, prefix=None,
+                               suffix=None, request_only=True, overwrite=False,
+                               verbose=False):
+        """Create a 'wrapped context'.
+
+        A wrapped context is an rxt file with a set of accompanying executable
+        scripts, which wrap the tools available within the context. When a user
+        runs one of these scripts, the wrapped tool is run within the context.
+        This allows us to expose tools to users in unresolved environments, yet
+        ensure that when the tool is executed, it does so within its correctly
+        resolved environment. You can create multiple wrapped contexts within
+        a single path.
+
+        Args:
+            path: Directory to create the wrapped context within. Either this
+                directory or its parent must exist.
+            rxt_name: Name of the rxt file to write. If None, a uuid-type string
+                is generated for you. If non-None, but that file already exists
+                in the path, then the name will be suffixed with '_2', '_3' etc
+                until it no longer conflicts with an existing file.
+            prefix: If not None, this string is prefixed to wrapped tools. For
+                example, if the context contains a tool 'maya', then prefix='fx_'
+                would create a user-facing tool called 'fx_maya'.
+            suffix: Wrapped tool suffix, or None.
+            request_only: If True, only tools from packages in the request list
+                are wrapped.
+            overwrite: If True, pre-existing wrapped tools within the path that
+                have the same name will be overwritten.
+
+        Returns:
+            Path to a subdirectory within 'path' containing the wrapped tools,
+            or None if no tools were wrapped.
+        """
+        path = os.path.abspath(path)
+        ppath = os.path.dirname(path)
+        if not os.path.isdir(ppath):
+            open(ppath)  # raise IOError
+        if not os.path.exists(path):
+            os.mkdir(path)
+
+        # write rxt file
+        if rxt_name:
+            if os.path.splitext(rxt_name)[1] != ".rxt":
+                rxt_name += ".rxt"
+            file = os.path.join(path, rxt_name)
+
+            i = 2
+            while os.path.exists(file):
+                file = "%s_%d.rxt" % (os.path.splitext(file)[0], i)
+                i += 1
+            rxt_name = os.path.basename(file)
+        else:
+            rxt_name = str(uuid.uuid4()).replace('-','') + ".rxt"
+
+        rxt_file = os.path.join(path, rxt_name)
+        if verbose:
+            print "writing %s..." % rxt_file
+        self.save(rxt_file)
+
+        # create wrapped tools
+        keys = self.get_key("tools", request_only=request_only)
+        if not keys:
+            return None
+
+        n = 0
+        binpath = os.path.join(path, "bin")
+        if not os.path.exists(binpath):
+            os.mkdir(binpath)
+
+        for pkg,tools in keys.iteritems():
+            for tool in tools:
+                toolname = "%s%s%s" % ((prefix or ''), tool, (suffix or ''))
+                if verbose:
+                    print "writing tool '%s' for package '%s'..." % (toolname, pkg)
+
+                file = os.path.join(binpath, toolname)
+                if os.path.exists(file) and not overwrite:
+                    continue
+
+                n += 1
+                create_forwarding_script(file, "resolved_context",
+                                         "_invoke_wrapped_tool",
+                                         rxt_file=rxt_name,
+                                         tool=tool)
+        if verbose:
+            print
+            print "%d tools were written to %s" % (n, binpath)
+            print
+        return binpath
 
     def _create_executor(self, interpreter, parent_environ):
         parent_vars = True if settings.all_parent_variables \
@@ -515,3 +607,12 @@ class ResolvedContext(object):
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg_res.metafile, str(e))
                     raise PkgCommandError(msg)
+
+
+def _invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
+    path = os.path.join(os.path.dirname(_script), "..", rxt_file)
+    context = ResolvedContext.load(path)
+    cmd = [tool] + _cli_args
+
+    retcode,_,_ = context.execute_shell(command=cmd, block=True)
+    sys.exit(retcode)

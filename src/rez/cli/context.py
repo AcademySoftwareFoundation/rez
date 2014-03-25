@@ -12,12 +12,8 @@ from rez.resolved_context import ResolvedContext
 from rez.shells import create_shell, get_shell_types
 from rez.system import system
 from rez.settings import settings
+from rez.cli.util import current_rxt_file, get_rxt_file
 
-
-
-current_rxt_file = os.getenv("REZ_RXT_FILE")
-if current_rxt_file and not os.path.exists(current_rxt_file):
-    current_rxt_file = None
 
 
 # returns (filepath, must_cleanup)
@@ -101,18 +97,7 @@ def print_tools(rc):
 
 
 def command(opts, parser=None):
-    # are we reading the current context (ie are we inside a rez-env env)?
-    rxt_file = opts.FILE
-    if rxt_file is None:
-        rxt_file = current_rxt_file
-        if rxt_file is None:
-            print >> sys.stderr, textwrap.dedent(
-                """
-                running Rez v%s.
-                not in a resolved environment context.
-                """ % __version__).strip() + '\n'
-            sys.exit(1)
-
+    rxt_file = get_rxt_file(opts.FILE)
     rc = ResolvedContext.load(rxt_file)
 
     def _check_graph(g):
