@@ -1,104 +1,67 @@
+"""Get information about the current environment.
 """
-Simple API to extract information about the current rez-configured environment.
-"""
-
+from rez.resolved_context import ResolvedContext
+import yaml
 import os
-from rez.exceptions import PkgFamilyNotFoundError
+import os.path
 
 
-class RezError(Exception):
-    def __init__(self, value):
-        self.value = value
 
-    def __str__(self):
-        return str(self.value)
+_context = None
 
 
-def get_request(as_dict=False, parent_env=False):
+def get_context():
+    """Returns the ResolvedContext associated with the current environment, or
+    None if the environment is not Rez-configured.
     """
-    @param as_dict If True, return value is in form { UPPER_PKG_NAME: (pkg-family, pkg-version) }
-    @parent_env If true, return the request of the previous (parent) env. This is sometimes useful
-        when a wrapped program needs to know information about the calling environment.
-    @return the rez package request.
+    global _context
+    if _context is None:
+        file = os.getenv("REZ_RXT_FILE")
+        if file and os.path.exists(file):
+            _context = ResolvedContext.load(file)
+    return _context or None
+
+
+def get_tools():
+    """Get a list of Rez-configured tools currently available.
+
+    Tools are available in two ways:
+    - They are supplied by a package in the current context;
+    - They are supplied by a wrapped environment on PATH.
+
+    Returns:
+        A list of 3-tuples, where each tuple contains:
+        - The tool name;
+        - The name of the package containing the tool;
+        - The path to the rxt file containing the package, or None.
     """
-    evar = "REZ_REQUEST"
-    if parent_env:
-        evar = "REZ_PREV_REQUEST"
-    s = _get_rez_env_var(evar)
-    pkgs = s.strip().split()
-    if as_dict:
-        return _get_pkg_dict(pkgs)
-    else:
-        return pkgs
+    entries = []
 
+    # package tools
+    r = get_context()
+    if r:
+        keys = r.get_key("tools")
+        for pkg,tools in sorted(keys.items()):
+            for tool in sorted(tools):
+                entries.append((tool, pkg, None))
 
-def in_wrapper_env():
-    """
-    @returns True if the current environment is actually a wrapper, false otherwise.
-    """
-    return os.getenv("REZ_IN_WRAPPER") == "1"
+    # wrapped tools
+    paths = os.environ.get("PATH", "").split(os.pathsep)
+    for path in paths:
+        wrap_path = os.path.dirname(path.rstrip(os.sep))
+        f = os.path.join(wrap_path, "wrapped_environment.yaml")
+        if os.path.exists(f):
+            rxt_files = []
+            for name in os.listdir(wrap_path):
+                if os.path.splitext(name)[1] == ".rxt":
+                    rxt_files.append(os.path.join(wrap_path, name))
 
-
-def get_resolve(as_dict=False):
-    """
-    @param as_dict If True, return value is in form { UPPER_PKG_NAME: (pkg-family, pkg-version) }
-    @return the rez package resolve.
-    """
-    s = _get_rez_env_var("REZ_RESOLVE")
-    pkgs = s.strip().split()
-    if as_dict:
-        return _get_pkg_dict(pkgs)
-    else:
-        return pkgs
-
-
-def get_resolve_timestamp():
-    """
-    @return the rez resolve timestamp.
-    """
-    s = _get_rez_env_var("REZ_REQUEST_TIME")
-    return int(s)
-
-
-def get_package_root(package_name):
-    """
-    @return Install path of the given package.
-    """
-    evar = "REZ_%s_ROOT" % package_name.upper()
-    pkg_root = os.getenv(evar)
-    if not pkg_root:
-        raise PkgFamilyNotFoundError(package_name)
-    return pkg_root
-
-
-def get_context_path():
-    """
-    @return Filepath of the context file for the current environment.
-    """
-    return _get_rez_env_var("REZ_CONTEXT_FILE")
-
-
-def get_context_dot_path():
-    """
-    @return Filepath of the context resolve graph dot-file for the current environment.
-    """
-    return get_context_path() + ".dot"
-
-
-def _get_rez_env_var(var):
-    val = os.getenv(var)
-    if val is None:
-        raise RezError("Not in a correctly-configured Rez environment")
-    return val
-
-
-def _get_pkg_dict(pkgs):
-    d = {}
-    for pkg in pkgs:
-        toks = pkg.split('-', 1)
-        fam = toks[0]
-        ver = ""
-        if len(toks) > 1:
-            ver = toks[1]
-        d[fam.upper()] = (fam, ver)
-    return d
+            for rxt_file in rxt_files:
+                yaml_file = os.path.splitext(rxt_file)[0] + ".yaml"
+                if os.path.isfile(yaml_file):
+                    with open(yaml_file) as f:
+                        doc = yaml.load(f.read())
+                    tools = doc.get("tools", [])
+                    for pkg,tool in sorted(tools):
+                        entries.append((tool, pkg, rxt_file))
+    return entries

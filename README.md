@@ -94,9 +94,11 @@ Resolved environments can also be created programmatically:
 * Supports Linux and OSX;
 * Allows for a fast and efficient build-install-test cycle;
 * Creates shells of type: bash, tcsh, other (shells can be added as plugins);
-* Supports git, mercurial and svn;
+* Contains a deployment system supporting git, mercurial and svn (as plugins);
 * Environment resolves can be saved to disk and reused at a later date (a bit
   like VirtualEnv);
+* Highly pluggable, supports five different plugin types to do things from
+  adding new shell types, to adding new build systems;
 * Contains a version resolving algorithm, for avoiding version clashes;
 * Visualises resolved environments in a rendered dot-graph;
 * Packages are found in a search path, so different packages can be deployed
@@ -106,6 +108,7 @@ Resolved environments can also be created programmatically:
   range, and a conflict operator for rejecting version ranges;
 * Package 'variants' - a way to define different flavors of the same package
   version, for example a plugin built for multiple versions of the host app;
+* Custom release hooks (such as post-release operations) can be added as plugins;
 * Has a time lock feature, which allows old resolves to be recreated (newer
   packages are ignored);
 * Package definitions are a single, succinct file;

@@ -33,6 +33,7 @@ scripts = [
     "rez-env",
     "rez-context",
     "rez-wrap",
+    "rez-tools",
     "rez-exec",
     "rez-test",
     "rez-bootstrap",

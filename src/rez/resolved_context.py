@@ -522,7 +522,7 @@ class ResolvedContext(object):
 
             for tool in tools:
                 toolname = "%s%s%s" % ((prefix or ''), tool, (suffix or ''))
-                doc["tools"].append(toolname)
+                doc["tools"].append([pkg, toolname])
                 if verbose:
                     print "writing tool '%s' for package '%s'..." % (toolname, pkg)
 

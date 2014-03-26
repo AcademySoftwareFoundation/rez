@@ -1,0 +1,3 @@
+#!/usr/bin/env python
+from rez._sys import _forward_script
+_forward_script("tools")

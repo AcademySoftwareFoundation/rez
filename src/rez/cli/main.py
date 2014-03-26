@@ -225,6 +225,10 @@ def add_wrap(parser):
                         help="verbose mode")
 
 @subcommand
+def add_tools(parser):
+    pass
+
+@subcommand
 def add_exec(parser):
     from rez.system import system
     from rez.shells import get_shell_types
@@ -298,6 +302,8 @@ def run():
                     "Open a rez-configured shell, possibly interactive.")
     _add_subcommand("wrap",
                     "Created a wrapped environment from one or more context files")
+    _add_subcommand("tools",
+                    "List the tools available in the current environment")
     _add_subcommand("exec",
                     "Execute some Rex code and print the interpreted result.")
     _add_subcommand("bootstrap",
