@@ -113,12 +113,12 @@ class TestShell(unittest.TestCase):
         if command:
             r = self._create_context([])
             p = r.execute_shell(shell=self.shell,
-                                command="rez-env --bo -c 'hello_world' hello_world",
+                                command="rez-env --bo --ni -c 'hello_world' hello_world",
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
 
-def run(verbosity=2):
+def get_test_suites():
     suites = []
     for shell in get_shell_types():
         suite = unittest.TestSuite()
@@ -131,6 +131,4 @@ def run(verbosity=2):
         suite.addTest(TestShell("test_rcfile", shell))
         suite.addTest(TestShell("test_rez_command", shell))
         suites.append(suite)
-
-    all_ = unittest.TestSuite(suites)
-    unittest.TextTestRunner(verbosity=verbosity).run(all_)
+    return suites

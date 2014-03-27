@@ -254,6 +254,8 @@ def add_exec(parser):
 def add_test(parser):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
+    parser.add_argument("--versions", action="store_true",
+                        help="test package version schemas")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 

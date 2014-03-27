@@ -1,0 +1,6 @@
+[Core]
+Name = alphanumeric
+Module = alphanumeric
+
+[Documentation]
+Description = Alphanumeric version numbering.

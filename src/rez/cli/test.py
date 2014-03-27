@@ -1,12 +1,20 @@
+import unittest
+
 
 
 def command(opts, parser=None):
-    test_shells = False
+    suites = []
+    test_all = \
+        (not opts.shells) and \
+        (not opts.versions)
 
-    if (not opts.shells):
-        # test all
-        test_shells = True
+    if opts.shells or test_all:
+        from rez.tests.shells import get_test_suites
+        suites += get_test_suites()
 
-    if opts.shells or test_shells:
-        from rez.tests.shells import run
-        run(opts.verbosity)
+    if opts.versions or test_all:
+        from rez.tests.versions import get_test_suites
+        suites += get_test_suites()
+
+    all_ = unittest.TestSuite(suites)
+    unittest.TextTestRunner(verbosity=opts.verbosity).run(all_)
