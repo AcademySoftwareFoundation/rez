@@ -16,6 +16,8 @@ this is true depends on context - for example the version '10.5' may represent a
 in one case, but may represent the superset of all versions '10.5.x' in another.
 """
 import re
+from rez.exceptions import VersionError
+
 
 # can't be zero padded
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-z]|[1-9][0-9]+)'
@@ -132,15 +134,6 @@ def to_range(versions):
             return ExactVersionSet(versions)
         return VersionRange(versions)
 
-class VersionError(Exception):
-    """
-    Exception
-    """
-    def __init__(self, value=None):
-        self.value = value
-
-    def __str__(self):
-        return "Invalid version: %s" % self.value
 
 class Version(object):
     """

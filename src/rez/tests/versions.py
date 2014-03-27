@@ -1,40 +1,38 @@
-from rez.version_token import get_version_token_types, get_version_token_class
+from rez.version import Version, AlphanumericVersionToken
+from rez.tests.util import _test_strict_weak_ordering
 import unittest
+import random
 import textwrap
 
 
 
 class TestVersionSchema(unittest.TestCase):
-    def __init__(self, fn, name):
+    token_cls = AlphanumericVersionToken
+
+    def __init__(self, fn):
         unittest.TestCase.__init__(self, fn)
-        self.token_name = name
-        self.token_cls = get_version_token_class(name)
 
-    def _create_random_token(self):
-        s = self.token_cls.create_random_token_string()
-        return self.token_cls(s)
+    def _test_strict_weak_ordering(self, a, b):
+        self.assertTrue(a == a)
+        self.assertTrue(b == b)
 
-    def _test_token_strict_weak_ordering(self, tok1, tok2):
-        self.assertTrue(tok1 == tok1)
-        self.assertTrue(tok2 == tok2)
-
-        e       = (tok1 == tok2)
-        ne      = (tok1 != tok2)
-        lt      = (tok1 < tok2)
-        lte     = (tok1 <= tok2)
-        gt      = (tok1 > tok2)
-        gte     = (tok1 >= tok2)
+        e       = (a == b)
+        ne      = (a != b)
+        lt      = (a < b)
+        lte     = (a <= b)
+        gt      = (a > b)
+        gte     = (a >= b)
 
         print '\n' + textwrap.dedent( \
             """
-            %s %s
-            e:    %s
-            ne:   %s
-            lt:   %s
-            lte:  %s
-            gt:   %s
-            gte:  %s
-            """).strip() % (tok1,tok2,e,ne,lt,lte,gt,gte)
+            '%s' <op> '%s'
+            ==:  %s
+            !=:  %s
+            <:   %s
+            <=:  %s
+            >:   %s
+            >=:  %s
+            """).strip() % (a,b,e,ne,lt,lte,gt,gte)
 
         self.assertTrue(e != ne)
         if e:
@@ -48,27 +46,75 @@ class TestVersionSchema(unittest.TestCase):
             self.assertTrue(lt == lte)
             self.assertTrue(gt == gte)
 
-    def test_create_token(self):
-        print "\n\nTOKEN TYPE: %s" % self.token_name
-        self._create_random_token()
+    def _test_ordered(self, items):
+        def _test(fn, items_, op_str):
+            for i,a in enumerate(items_):
+                for b in items_[i+1:]:
+                    print "'%s' %s '%s'" % (a, op_str, b)
+                    self.assertTrue(fn(a,b))
+
+        _test(lambda a,b:a<b, items, '<')
+        _test(lambda a,b:a>b, list(reversed(items)), '>')
+
+    def _create_random_token(self):
+        s = self.token_cls.create_random_token_string()
+        return AlphanumericVersionToken(s)
+
+    def _create_random_version(self):
+        ver_str = '.'.join(self.token_cls.create_random_token_string() \
+            for i in range(random.randint(0,6)))
+        return Version(ver_str, token_cls=self.token_cls)
 
     def test_token_strict_weak_ordering(self):
         # test equal tokens
         tok = self._create_random_token()
-        self._test_token_strict_weak_ordering(tok, tok)
+        self._test_strict_weak_ordering(tok, tok)
 
         # test random tokens
         for i in range(100):
             tok1 = self._create_random_token()
             tok2 = self._create_random_token()
-            self._test_token_strict_weak_ordering(tok1, tok2)
+            self._test_strict_weak_ordering(tok1, tok2)
+
+    def test_version_strict_weak_ordering(self):
+        # test equal versions
+        ver = self._create_random_version()
+        self._test_strict_weak_ordering(ver, ver)
+
+        # test random versions
+        for i in range(100):
+            ver1 = self._create_random_version()
+            ver2 = self._create_random_version()
+            self._test_strict_weak_ordering(ver1, ver2)
+
+    def test_version_comparisons(self):
+        def _eq(a, b):
+            self.assertTrue(Version(a) == Version(b))
+
+        _eq("", "")
+        _eq("1", "1")
+        _eq("1.2", "1-2")
+        _eq("1.2-3", "1-2.3")
+
+        ascending = ["",
+                     "0.0.0",
+                     "001",
+                     "01",
+                     "1",
+                     "02",
+                     "2",
+                     "2.0",
+                     "2.0.8.8",
+                     "2.1",
+                     "2.1.0"]
+        self._test_ordered([Version(x) for x in ascending])
 
 
 def get_test_suites():
     suites = []
-    for name in get_version_token_types():
-        suite = unittest.TestSuite()
-        suite.addTest(TestVersionSchema("test_create_token", name))
-        suite.addTest(TestVersionSchema("test_token_strict_weak_ordering", name))
-        suites.append(suite)
+    suite = unittest.TestSuite()
+    suite.addTest(TestVersionSchema("test_token_strict_weak_ordering"))
+    suite.addTest(TestVersionSchema("test_version_strict_weak_ordering"))
+    suite.addTest(TestVersionSchema("test_version_comparisons"))
+    suites.append(suite)
     return suites

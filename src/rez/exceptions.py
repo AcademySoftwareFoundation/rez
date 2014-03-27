@@ -146,6 +146,10 @@ class PkgCyclicDependency(RezError):
         return "Cyclic dependency(s) were detected:\n%s" % self.get_dot_graph()
 
 
+class VersionError(RezError):
+    """Version number error."""
+    pass
+
 class BuildSystemError(RezError):
     """Base class for buildsys-related errors."""
     pass

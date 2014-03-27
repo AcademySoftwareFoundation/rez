@@ -164,21 +164,9 @@ class BuildSystemPluginManager(RezPluginManager):
 
 
 
-class VersionSchemaPluginManager(RezPluginManager):
-    """Support for different package versioning schemes.
-    """
-    def __init__(self):
-        super(VersionSchemaPluginManager,self).__init__("version_schema")
-
-    def create_instance(self, name):
-        return super(VersionSchemaPluginManager,self).create_instance(name)
-
-
-
 # singletons
 source_retriever_plugin_manager = LazySingleton(SourceRetrieverPluginManager)
 shell_plugin_manager            = LazySingleton(ShellPluginManager)
 release_vcs_plugin_manager      = LazySingleton(ReleaseVCSPluginManager)
 release_hook_plugin_manager     = LazySingleton(ReleaseHookPluginManager)
 build_system_plugin_manager     = LazySingleton(BuildSystemPluginManager)
-version_schema_plugin_manager   = LazySingleton(VersionSchemaPluginManager)
