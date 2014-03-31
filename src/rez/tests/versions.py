@@ -54,7 +54,11 @@ class TestVersionSchema(unittest.TestCase):
                     self.assertTrue(fn(a,b))
 
         _test(lambda a,b:a<b, items, '<')
+        _test(lambda a,b:a<=b, items, '<=')
+        _test(lambda a,b:a!=b, items, '!=')
         _test(lambda a,b:a>b, list(reversed(items)), '>')
+        _test(lambda a,b:a>=b, list(reversed(items)), '>=')
+        _test(lambda a,b:a!=b, list(reversed(items)), '!=')
 
     def _create_random_token(self):
         s = self.token_cls.create_random_token_string()
@@ -87,10 +91,25 @@ class TestVersionSchema(unittest.TestCase):
             ver2 = self._create_random_version()
             self._test_strict_weak_ordering(ver1, ver2)
 
+    def test_token_comparisons(self):
+        def _lt(a, b):
+            print "'%s' < '%s'" % (a, b)
+            self.assertTrue(self.token_cls(a) < self.token_cls(b))
+            self.assertTrue(Version(a) < Version(b))
+
+        print
+        _lt("3", "4")
+        _lt("beta", "1")
+        _lt("alpha3", "alpha4")
+        _lt("alpha", "alpha3")
+        _lt("gamma33", "33gamma")
+
     def test_version_comparisons(self):
         def _eq(a, b):
+            print "'%s' == '%s'" % (a, b)
             self.assertTrue(Version(a) == Version(b))
 
+        print
         _eq("", "")
         _eq("1", "1")
         _eq("1.2", "1-2")
@@ -98,11 +117,11 @@ class TestVersionSchema(unittest.TestCase):
 
         ascending = ["",
                      "0.0.0",
-                     "001",
-                     "01",
                      "1",
-                     "02",
                      "2",
+                     "2.alpha1",
+                     "2.alpha2",
+                     "2.beta",
                      "2.0",
                      "2.0.8.8",
                      "2.1",
@@ -115,6 +134,7 @@ def get_test_suites():
     suite = unittest.TestSuite()
     suite.addTest(TestVersionSchema("test_token_strict_weak_ordering"))
     suite.addTest(TestVersionSchema("test_version_strict_weak_ordering"))
+    suite.addTest(TestVersionSchema("test_token_comparisons"))
     suite.addTest(TestVersionSchema("test_version_comparisons"))
     suites.append(suite)
     return suites
