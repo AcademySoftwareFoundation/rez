@@ -1,4 +1,4 @@
-import unittest
+import rez.contrib.unittest2 as unittest
 
 
 

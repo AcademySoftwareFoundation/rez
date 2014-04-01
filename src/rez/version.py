@@ -1,3 +1,21 @@
+"""
+Implements the Rez versioning scheme.
+
+There are three class types - VersionToken, Version and VersionRange. A Version
+is a set of zero or more VersionTokens, separate by '.'s or '-'s (eg "1.2-3").
+A VersionToken is a string containing alphanumerics, and a default implementation
+'AlphanumericVersionToken' is supplied. You can implement your own if you want
+stricter tokens or different sorting behaviour.
+
+A VersionRange is a set of one or more contiguous version ranges - for example,
+"3+<5" contains any version >=3 but less than 5. Version ranges can be used to
+define dependency requirements between objects. They can be OR'd together, AND'd
+and inverted.
+
+The empty version '', and empty version range '', are also handled in the Rez
+version scheme. See the per-class documentation for more information.
+"""
+
 from rez.backport.total_ordering import total_ordering
 import rez.contrib.pyparsing.pyparsing as pp
 from rez.exceptions import VersionError
@@ -43,13 +61,9 @@ class VersionToken(_Comparable):
         This is used for testing purposes only. The default implementation
         returns a random combination of alphanumerics and underscores.
         """
-        chars = \
-            [chr(x) for x in range(ord('a'),ord('z')+1)] + \
-            [chr(x) for x in range(ord('A'),ord('Z')+1)] + \
-            [chr(x) for x in range(ord('0'),ord('9')+1)] + \
-            ['_']
         import random
-        return ''.join([chars[random.randint(0, len(chars)-1)] for i in range(16)])
+        chars = str(pp.srange("[a-zA-Z0-9_]"))
+        return ''.join([chars[random.randint(0, len(chars)-1)] for i in range(8)])
 
     def __init__(self, token):
         """Create a VersionToken.
@@ -57,7 +71,7 @@ class VersionToken(_Comparable):
         Args:
             token: Token string, eg "rc02"
         """
-        self.token = token
+        raise NotImplementedError
 
     def less_than(self, other):
         """Compare to another VersionToken.
@@ -77,14 +91,14 @@ class VersionToken(_Comparable):
         """Returns the next largest token."""
         raise NotImplementedError
 
+    def __str__(self):
+        raise NotImplementedError
+
     def __lt__(self, other):
         return self.less_than(other)
 
     def __eq__(self, other):
         return (not self < other) and (not other < self)
-
-    def __str__(self):
-        return self.token
 
 
 
@@ -136,10 +150,12 @@ class AlphanumericVersionToken(VersionToken):
             return self.s
 
     def __init__(self, token):
-        super(AlphanumericVersionToken,self).__init__(token)
         if not self.regex.match(token):
             raise VersionError("Invalid version token: '%s'" % token)
         self.subtokens = self._parse(token)
+
+    def __str__(self):
+        return ''.join(str(x) for x in self.subtokens)
 
     def less_than(self, other):
         return (self.subtokens < other.subtokens)
@@ -186,18 +202,19 @@ class Version(_Comparable):
     VersionToken class, so that different version schemas can be created. Note
     that separators only affect Version objects cosmetically - in other words,
     the version '1.0.0' is equivalent to '1-0-0'.
+
+    The empty version '' is the smallest possible version, and can be used to
+    represent an unversioned resource.
     """
+    inf = None
 
     def __init__(self, ver_str='', token_cls=AlphanumericVersionToken):
         """Create a Version object.
 
         Args:
-            ver_str: Version string. The empty string is a special case - this
-                is the smallest possible version, and is used to represent
-                unversioned objects.
+            ver_str: Version string.
             token_cls: Version token class to use.
         """
-        self.ver_str = ver_str
         self.tokens = []
         self.seps = []
 
@@ -220,33 +237,39 @@ class Version(_Comparable):
             self.seps = seps[1:-1]
 
     def __len__(self):
-        return len(self.tokens)
+        return len(self.tokens or [])
 
-    def copy(self):
-        """Return a copy of the version."""
-        other = copy.copy(self)
-        other.tokens = other.tokens[:]
-        other.seps = other.seps[:]
-        return other
+    def __nonzero__(self):
+        return bool(self.tokens)
 
     def next(self):
         """Return 'next' version. Eg, next(1.2) is 1.3."""
         if self.tokens:
-            other = self.copy()
+            other = copy.copy(self)
+            other.tokens = other.tokens[:]
             tok = other.tokens.pop()
             other.tokens.append(tok.next())
             return other
         else:
-            raise VersionError("The empty version has no next")
+            return Version.inf
 
     def __eq__(self, other):
         return (self.tokens == other.tokens)
 
     def __lt__(self, other):
-        return (self.tokens < other.tokens)
+        if self.tokens is None:
+            return False
+        elif other.tokens is None:
+            return True
+        else:
+            return (self.tokens < other.tokens)
 
     def __str__(self):
-        return self.ver_str
+        return "[INF]" if self.tokens is None \
+            else ''.join(str(x)+y for x,y in zip(self.tokens, self.seps+['']))
+
+Version.inf = Version()
+Version.inf.tokens = None
 
 
 
@@ -271,12 +294,20 @@ class _LowerBound(_Comparable):
             or ((self.version == other.version) \
             and (self.inclusive and not other.inclusive))
 
+    def contains_version(self, version):
+        return (version > self.version) \
+            or (self.inclusive and (version == self.version))
+
 
 
 class _UpperBound(_Comparable):
+    inf = None
+
     def __init__(self, version, inclusive):
         self.version = version
         self.inclusive = inclusive
+        if not version and not inclusive:
+            raise VersionError("Invalid upper bound: '%s'" % str(self))
 
     def __str__(self):
         s = "<=%s" if self.inclusive else "<%s"
@@ -291,17 +322,26 @@ class _UpperBound(_Comparable):
             or ((self.version == other.version) \
             and (not self.inclusive and other.inclusive))
 
+    def contains_version(self, version):
+        return (version < self.version) \
+            or (self.inclusive and (version == self.version))
+
+_UpperBound.inf = _UpperBound(Version.inf, True)
+
 
 
 class _Bound(_Comparable):
     def __init__(self, lower=None, upper=None):
-        self.lower = lower
-        self.upper = upper
+        self.lower = lower or _LowerBound(Version(), True)
+        self.upper = upper or _UpperBound.inf
+
+        if (self.lower.version > self.upper.version) \
+            or ((self.lower.version == self.upper.version) \
+            and not (self.lower.inclusive and self.upper.inclusive)):
+            raise VersionError("Invalid bound")
 
     def __str__(self):
-        if self.lower is None:
-            return "" if self.upper is None else str(self.upper)
-        elif self.upper is None:
+        if self.upper.version == Version.inf:
             return str(self.lower)
         elif self.lower.version == self.upper.version:
             return "==%s" % str(self.lower.version)
@@ -317,26 +357,45 @@ class _Bound(_Comparable):
         return (self.lower == other.lower) and (self.upper == other.upper)
 
     def __lt__(self, other):
-        return (self.lower < other.lower) or \
-               ((self.lower == other.lower) and (self.upper < other.upper))
+        return (self.lower, self.upper) < (other.lower, other.upper)
 
+    def contains_version(self, version):
+        return (self.lower.contains_version(version)
+                and self.upper.contains_version(version))
+
+    def get_intersection(self, other):
+        upper_overlap = (other.upper.version > self.lower.version) \
+            or ((other.upper.version == self.lower.version) \
+            and other.upper.inclusive and self.lower.inclusive)
+
+        lower_overlap = (other.lower.version < self.upper.version) \
+            or ((other.lower.version == self.upper.version) \
+            and other.lower.inclusive and self.upper.inclusive)
+
+        if upper_overlap and lower_overlap:
+            lower = max(self.lower, other.lower)
+            upper = min(self.upper, other.upper)
+            return _Bound(lower, upper)
+        else:
+            return None
 
 
 class _VersionRangeParser(object):
     parsers = {}
 
     @classmethod
-    def parse(cls, s, debug=False):
+    def parse(cls, s, token_cls=AlphanumericVersionToken, debug=False):
         id_ = id(threading.currentThread())
         parser = cls.parsers.get(id_)
         if parser is None:
             parser = _VersionRangeParser()
             cls.parsers[id_] = parser
-        return parser._parse(s, debug=debug)
+        return parser._parse(s, token_cls=token_cls, debug=debug)
 
     def __init__(self):
         self.stack = []
         self.bounds = []
+        self.token_cls = None
         self.debug = False
 
         # grammar
@@ -347,7 +406,7 @@ class _VersionRangeParser(object):
         inclusive_bound = (version + ".." + version).setParseAction(self._act_inclusive_bound)
         lower_bound = ((pp.oneOf([">", ">="]) + version) | (version + "+")).setParseAction(self._act_lower_bound)
         upper_bound = (pp.oneOf(["<", "<="]) + version).setParseAction(self._act_upper_bound)
-        bound = (lower_bound + upper_bound)
+        bound = (lower_bound + pp.Optional(",") + upper_bound)
         range = (version ^ exact_version ^ lower_bound ^ upper_bound
                  ^ bound ^ inclusive_bound).setParseAction(self._act_range)
         self.ranges = pp.Optional(range + pp.ZeroOrMore("|" + range))
@@ -362,16 +421,22 @@ class _VersionRangeParser(object):
                 print "%s%s" % (16*' ', self.stack)
         return fn_
 
+    def _bound(self, lower, upper, tokens):
+        try:
+            return _Bound(lower, upper)
+        except VersionError as e:
+            raise VersionError("Invalid bound: '%s'" % ''.join(tokens))
+
     @action
     def _act_version(self, s, i, tokens):
-        self.stack.append(Version(''.join(tokens)))
+        self.stack.append(Version(''.join(tokens), token_cls=self.token_cls))
 
     @action
     def _act_exact_version(self, s, i, tokens):
         ver = self.stack.pop()
         lower = _LowerBound(ver, True)
         upper = _UpperBound(ver, True)
-        self.stack.append(_Bound(lower, upper))
+        self.stack.append(self._bound(lower, upper, tokens))
 
     @action
     def _act_inclusive_bound(self, s, i, tokens):
@@ -398,22 +463,23 @@ class _VersionRangeParser(object):
             obj = self.stack.pop()
             if isinstance(obj, Version):
                 lower = _LowerBound(obj, True)
-                upper = _UpperBound(obj.next(), False)
-                self.bounds.append(_Bound(lower, upper))
+                upper = _UpperBound(obj.next(), False) if obj else None
+                self.bounds.append(self._bound(lower, upper, tokens))
             elif isinstance(obj, _Bound):
                 self.bounds.append(obj)
             elif isinstance(obj, _LowerBound):
-                self.bounds.append(_Bound(lower=obj))
+                self.bounds.append(self._bound(obj, None, tokens))
             else:  # _UpperBound
-                self.bounds.append(_Bound(upper=obj))
+                self.bounds.append(self._bound(None, obj, tokens))
         else:
             upper = self.stack.pop()
             lower = self.stack.pop()
-            self.bounds.append(_Bound(lower, upper))
+            self.bounds.append(self._bound(lower, upper, tokens))
 
-    def _parse(self, s, debug=False):
+    def _parse(self, s, token_cls, debug):
         self.stack = []
         self.bounds = []
+        self.token_cls = token_cls
         self.debug = debug
         self.ranges.parseString(s, parseAll=True)
         return self.bounds
@@ -423,18 +489,18 @@ class _VersionRangeParser(object):
 class VersionRange(_Comparable):
     """Version range.
 
-    A version range is a set of zero or more contiguous ranges of versions. For
+    A version range is a set of one or more contiguous ranges of versions. For
     example, "3.0 or greater, but less than 4" is a contiguous range that contains
     versions such as "3.0", "3.1.0", "3.99" etc. Version ranges behave something
     like sets - they can be intersected, added and subtracted, but can also be
-    inversed. You can test to see if a Version is contained within a VersionRange.
+    inverted. You can test to see if a Version is contained within a VersionRange.
 
-    In the  Rez versioning schema, a VersionRange "3" for example, is the
+    In the  Rez versioning schema, a VersionRange "3" (for example) is the
     superset of any version "3[.X.X...]". The version "3" itself is also within
     this range, and is smaller than "3.0" - any version with common leading
     tokens, but with a larger token count, is the larger version of the two.
 
-    VersionRange objects have a flexible syntax that lets you describe any
+    VersionRange objects have a flexible syntax that let you describe any
     combination of contiguous ranges, including inclusive and exclusive upper
     and lower bounds. This is best explained by example (those listed on the
     same line are equivalent):
@@ -444,11 +510,13 @@ class VersionRange(_Comparable):
     ">2": exclusive lower bound;
     "<5": exclusive upper bound;
     "<=5": inclusive upper bound;
+
     "1+<5", ">=1<5": inclusive lower, exclusive upper. The most common form of
         a 'closed' version range (ie, one with a lower and upper bound);
     ">1<5": exclusive lower, exclusive upper;
     ">1<=5": exclusive lower, inclusive upper;
     "1+<=5", "1..5": inclusive lower, inclusive upper;
+    "==2": a range that contains only the single version "2".
 
     To describe more than one contiguous range, seperate ranges with the or '|'
     symbol. For example, the version range "4|6+" contains versions such as "4",
@@ -458,12 +526,16 @@ class VersionRange(_Comparable):
     becomes "3+<8".
 
     Note that the empty string version range represents the superset of all
-    possible versions. The empty version can also be used as an upper or lower
-    bound, leading to some odd but perfectly valid version range syntax. For
-    example, ">" is a valid range - read like ">''", it means "any version
-    greater than the empty version".
+    possible versions - this is called the "any" range. The empty version can
+    also be used as an upper or lower bound, leading to some odd but perfectly
+    valid version range syntax. For example, ">" is a valid range - read like
+    ">''", it means "any version greater than the empty version".
+
+    To help with readability, closed ranges can also have their bounds separated
+    with a comma, eg ">=2,<=6". The comma is purely cosmetic and is dropped in
+    the string representation.
     """
-    def __init__(self, range_str, token_cls=AlphanumericVersionToken,
+    def __init__(self, range_str='', token_cls=AlphanumericVersionToken,
                  debug_parsing=False):
         """Create a VersionRange object.
 
@@ -473,13 +545,185 @@ class VersionRange(_Comparable):
                 may not match range_str. For example, "3+<4" is equivalent to "3".
             token_cls: Version token class to use.
         """
-        self.range_str = range_str
+        self.bounds = []
+
         try:
-            self.bounds = _VersionRangeParser.parse(range_str,
-                                                    debug=debug_parsing)
+            bounds = _VersionRangeParser.parse(range_str,
+                                               token_cls=token_cls,
+                                               debug=debug_parsing)
         except pp.ParseException as e:
             raise VersionError("Syntax error in version range '%s': %s"
                                % (range_str, str(e)))
+        except VersionError as e:
+            raise VersionError("Invalid version range '%s': %s"
+                               % (range_str, str(e)))
+
+        if bounds:
+            self.bounds = self._get_union(bounds)
+        else:
+            # special case - empty == single unbounded range
+            self.bounds.append(_Bound())
+
+    def contains_version(self, version):
+        """Returns True if version is contained in this range."""
+        for bound in self.bounds:
+            if bound.contains_version(version):
+                return True
+        return False
+
+    def get_union(self, other):
+        """OR together version ranges.
+
+        Calculates the union of this range with one or more other ranges.
+
+        Args:
+            other: VersionRange object (or list of) to OR with.
+
+        Returns:
+            New VersionRange object representing the union.
+        """
+        if not hasattr(other, "__iter__"):
+            other = [other]
+        bounds = self.bounds[:]
+        for range in other:
+            bounds += range.bounds
+
+        bounds = self._get_union(bounds)
+        range = copy.copy(self)
+        range.bounds = bounds
+        return range
+
+    def get_intersection(self, other):
+        """AND together version ranges.
+
+        Calculates the intersection of this range with one or more other ranges.
+
+        Args:
+            other: VersionRange object (or list of) to AND with.
+
+        Returns:
+            New VersionRange object representing the intersection, or None if
+            no ranges intersect.
+        """
+        if not hasattr(other, "__iter__"):
+            other = [other]
+
+        bounds = self.bounds
+        for range in other:
+            bounds = self._get_intersection(bounds, range.bounds)
+            if not bounds:
+                return None
+
+        range = copy.copy(self)
+        range.bounds = bounds
+        return range
+
+    def get_inverse(self):
+        """Calculate the inverse of the range.
+
+        Returns:
+            New VersionRange object representing the inverse of this range, or
+            None if there is no inverse (ie, this range is the empty string
+            range).
+        """
+        if self.is_any():
+            return None
+        else:
+            bounds = self._get_inverse(self.bounds)
+            range = copy.copy(self)
+            range.bounds = bounds
+            return range
+
+    def is_any(self):
+        """Returns True if this is the "any" range, ie the empty string range
+        that contains all versions."""
+        return (len(self.bounds) == 1) and (self.bounds[0] == _Bound())
+
+    def __len__(self):
+        return len(self.bounds)
+
+    def __invert__(self):
+        return self.get_inverse()
+
+    def __and__(self, other):
+        return self.get_intersection(other)
+
+    def __or__(self, other):
+        return self.get_union(other)
+
+    def __add__(self, other):
+        return self.get_union(other)
+
+    def __sub__(self, other):
+        inv = other.get_inverse()
+        return None if inv is None else self.get_intersection(inv)
 
     def __str__(self):
         return '|'.join(str(x) for x in self.bounds)
+
+    def __eq__(self, other):
+        return (self.bounds == other.bounds)
+
+    @classmethod
+    def _get_union(cls, bounds):
+        if len(bounds) < 2:
+            return bounds
+
+        bounds_ = list(sorted(bounds))
+        new_bounds = []
+        prev_bound = None
+        upper = None
+        start = 0
+
+        for i,bound in enumerate(bounds_):
+            if i and ((bound.lower.version > upper.version) \
+                or ((bound.lower.version == upper.version) \
+                and (not bound.lower.inclusive) \
+                and (not prev_bound.upper.inclusive))):
+                new_bound = _Bound(bounds_[start].lower, upper)
+                new_bounds.append(new_bound)
+                start = i
+
+            prev_bound = bound
+            upper = bound.upper if upper is None else max(upper, bound.upper)
+
+        new_bound = _Bound(bounds_[start].lower, upper)
+        new_bounds.append(new_bound)
+        return new_bounds
+
+    @classmethod
+    def _get_intersection(cls, bounds1, bounds2):
+        new_bounds = []
+        for bound1 in bounds1:
+            for bound2 in bounds2:
+                b = bound1.get_intersection(bound2)
+                if b:
+                    new_bounds.append(b)
+        return new_bounds
+
+    @classmethod
+    def _get_inverse(cls, bounds):
+        lbounds = [None]
+        ubounds = []
+
+        for bound in bounds:
+            if not bound.lower.version and bound.lower.inclusive:
+                ubounds.append(None)
+            else:
+                b = _UpperBound(bound.lower.version, not bound.lower.inclusive)
+                ubounds.append(b)
+
+            if bound.upper.version == Version.inf:
+                lbounds.append(None)
+            else:
+                b = _LowerBound(bound.upper.version, not bound.upper.inclusive)
+                lbounds.append(b)
+
+        ubounds.append(None)
+        new_bounds = []
+
+        for lower,upper in zip(lbounds, ubounds):
+            if not (lower is None and upper is None):
+                new_bounds.append(_Bound(lower, upper))
+
+        return new_bounds
