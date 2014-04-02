@@ -10,11 +10,128 @@ from rez.resources import iter_resources, load_metadata
 from rez.settings import settings
 from rez.exceptions import PkgSystemError
 from rez.versions import Version_, ExactVersion, VersionRange_, ExactVersionSet, VersionError
+from rez.version import Version, VersionRange
 
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
+PACKAGE_NAME_SEP_REGEX = re.compile(r'[-@#]')
+PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 
+
+
+class PackageStatement(object):
+    """Parse a package string, eg "foo-1.0".
+    """
+    def __init__(self, s):
+        self.name_ = None
+        self.version_ = None
+
+        m = PACKAGE_NAME_SEP_REGEX.search(s)
+        if m:
+            i = m.start()
+            self.name_ = s[:i]
+            ver_str = s[i+1:]
+            self.version_ = Version(ver_str)
+        else:
+            self.name_ = s
+            self.version_ = Version()
+
+        if not PACKAGE_NAME_REGEX.match(self.name_):
+            raise PkgSystemError("Invalid package name: '%s'" % self.name_)
+
+    @property
+    def name(self):
+        return self.name_
+
+    @property
+    def version(self):
+        return self.version_
+
+    def __str__(self):
+        sep_str = ''
+        ver_str = ''
+        if self.version_:
+            sep_str = '-'
+            ver_str = str(self.version_)
+        return self.name_ + sep_str + ver_str
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+
+class PackageRangeStatement(object):
+    """Parse a package range string, eg 'foo-1.5+<2'.
+    """
+    def __init__(self, s):
+        self.name_ = None
+        self.range_ = None
+        self.negate_ = False
+        self.conflict_ = s.startswith('!')
+
+        if self.conflict_:
+            s = s[1:]
+        elif s.startswith('~'):
+            s = s[1:]
+            self.negate_ = True
+            self.conflict_ = True
+
+        m = PACKAGE_REQ_SEP_REGEX.search(s)
+        if m:
+            i = m.start()
+            self.name_ = s[:i]
+            req_str = s[i:]
+            if req_str.startswith('-'):
+                req_str = req_str[1:]
+
+            self.range_ = VersionRange(req_str)
+            if self.negate_:
+                self.range_ = ~self.range_
+        elif self.negate_:
+            self.name_ = s
+            self.range_ = None
+        else:
+            self.name_ = s
+            self.range_ = VersionRange()
+
+        if not PACKAGE_NAME_REGEX.match(self.name_):
+            raise PkgSystemError("Invalid package name: '%s'" % self.name_)
+
+    @property
+    def name(self):
+        return self.name_
+
+    @property
+    def range(self):
+        return self.range_
+
+    @property
+    def conflict(self):
+        return self.conflict_
+
+    def __str__(self):
+        pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
+        range_str = ''
+        sep_str = ''
+
+        range = self.range_
+        if self.negate_:
+            range = ~range if range else VersionRange()
+
+        if not range.is_any():
+            range_str = str(range)
+            if range_str[0] not in ('=','<','>'):
+                sep_str = '-'
+
+        return pre_str + self.name_ + sep_str + range_str
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+
+# TODO deprecate
 def split_name(pkg_str, exact=False):
     strs = pkg_str.split('-')
     if len(strs) > 2:
@@ -148,6 +265,7 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
     except StopIteration:
         return None
 
+
 class PackageFamily(object):
     """A package family has a single root directory, with a sub-directory for
     each version.
@@ -169,6 +287,7 @@ class PackageFamily(object):
             yield Package(self.name, ExactVersion(variables.get('version', '')),
                           metafile)
 
+
 class BasePackage(object):
     def __init__(self, name, version, timestamp):
         self.name = name
@@ -188,6 +307,7 @@ class BasePackage(object):
             return self.name
         else:
             return self.name + '-' + str(self.version)
+
 
 class Package(BasePackage):
     """An unresolved package.

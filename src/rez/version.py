@@ -234,6 +234,7 @@ class Version(_Comparable):
         return len(self.tokens or [])
 
     def __nonzero__(self):
+        """The empty version equates to False."""
         return bool(self.tokens)
 
     def next(self):
@@ -339,7 +340,10 @@ class _Bound(_Comparable):
         elif self.lower.version == self.upper.version:
             return "==%s" % str(self.lower.version)
         elif self.lower.inclusive and self.upper.inclusive:
-            return "%s..%s" % (self.lower.version, self.upper.version)
+            if self.lower.version:
+                return "%s..%s" % (self.lower.version, self.upper.version)
+            else:
+                return "<=%s" % self.upper.version
         elif (self.lower.inclusive and not self.upper.inclusive) \
             and (self.lower.version.next() == self.upper.version):
             return str(self.lower.version)
@@ -366,22 +370,6 @@ class _Bound(_Comparable):
             return _Bound(lower, upper)
         else:
             return None
-
-        """
-        if not ((other.upper.version > self.lower.version) \
-            or ((other.upper.version == self.lower.version) \
-            and other.upper.inclusive and self.lower.inclusive)):
-            return None
-
-        if not ((other.lower.version < self.upper.version) \
-            or ((other.lower.version == self.upper.version) \
-            and other.lower.inclusive and self.upper.inclusive)):
-            return None
-
-        lower = max(self.lower, other.lower)
-        upper = min(self.upper, other.upper)
-        return _Bound(lower, upper)
-        """
 
 
 

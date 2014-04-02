@@ -146,32 +146,6 @@ def shlex_join(value):
     else:
         return str(value)
 
-# TODO remove
-"""
-def gen_dotgraph_image(dot_data, out_file):
-    # shortcut if writing .dot file
-    if out_file.endswith(".dot"):
-        with open(out_file, 'w') as f:
-            f.write(dot_data)
-        return
-
-    from rez.contrib.pydot import pydot
-    graph = pydot.graph_from_dot_data(dot_data)
-
-    # assume write format from image extension
-    ext = "jpg"
-    if '.' in out_file:
-        ext = out_file.rsplit('.', 1)[-1]
-
-    try:
-        fn = getattr(graph, "write_" + ext)
-    except Exception:
-        sys.stderr.write("could not write to '" + out_file + "': unknown format specified")
-        sys.exit(1)
-
-    fn(out_file)
-"""
-
 # returns path to first program in the list to be successfully found
 def which(*programs):
     from rez.backport.shutilwhich import which as which_
