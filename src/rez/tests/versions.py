@@ -178,7 +178,7 @@ class TestVersionSchema(unittest.TestCase):
         _eq("", "")
         _eq("1", "1")
         _eq("1.0.0", "1.0.0")
-        _eq("3+<4", "3")
+        _eq("3+<3_", "3")
         _eq("_+<__", "_")
         _eq("1.2+<=2.0", "1.2..2.0")
         _eq("10+,<20", "10+<20")
@@ -196,12 +196,12 @@ class TestVersionSchema(unittest.TestCase):
         _eq("3|3", "3")
         _eq("3|1", "1|3")
         _eq("5|3|1", "1|3|5")
-        _eq("1|2", "1+<3")
-        _eq("1|2|3", "1+,<4")
+        _eq("1|1_", "1+<1__")
+        _eq("1|1_|1__", "1+,<1___")
         _eq("|", "")
         _eq("||", "||||||||")
-        _eq("1|2+", "1+")
-        _eq("<1|1", "<2")
+        _eq("1|1_+", "1+")
+        _eq("<1|1", "<1_")
         _eq("1+<3|3+<5", "1+<5")
         _eq(">4<6|1+<3", "1+<3|>4,<6")
         _eq("4+<6|1+<3|", "")
@@ -214,7 +214,7 @@ class TestVersionSchema(unittest.TestCase):
         _eq("3+,<5|2+<=6", "2+<=6")
         _eq("2|2+", "2+")
         _eq("2|2.1+", "2+")
-        _eq("2|<2.1", "<3")
+        _eq("2|<2.1", "<2_")
 
         # AND'ing
         _and("3", "3", "3")
@@ -230,6 +230,8 @@ class TestVersionSchema(unittest.TestCase):
         # expected fails
         with self.assertRaises(VersionError):
             VersionRange("<")
+        with self.assertRaises(VersionError):
+            VersionRange("><")
         with self.assertRaises(VersionError):
             VersionRange("4+<2")
         with self.assertRaises(VersionError):

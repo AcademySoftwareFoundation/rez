@@ -29,7 +29,7 @@ from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
 from rez.exceptions import PkgMetadataError
-from rez.versions import ExactVersion, VersionRange
+from rez.versions import ExactVersion, VersionRange_
 
 _configs = defaultdict(list)
 

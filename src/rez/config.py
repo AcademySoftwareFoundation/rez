@@ -50,7 +50,7 @@ from rez import module_root_path
 import re
 from rez.packages import BasePackage, ResolvedPackage, split_name, \
     package_in_range, package_family, iter_packages_in_range
-from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, \
+from rez.versions import ExactVersion, ExactVersionSet, Version_, VersionRange_, \
     VersionError, to_range
 from rez.public_enums import *
 from rez.exceptions import *
@@ -88,11 +88,11 @@ class PackageRequest(BasePackage):
             are tested during the resolve.
     """
     def __init__(self, name, version_range, resolve_mode=RESOLVE_MODE_LATEST, timestamp=0):
-        if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange)):
+        if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange_)):
             self.version_range = version_range
         else:
             try:
-                self.version_range = VersionRange(version_range)
+                self.version_range = VersionRange_(version_range)
             except VersionError:
                 self.version_range = ExactVersionSet(version_range)
         if self.is_weak(name):
@@ -1558,8 +1558,8 @@ class _Configuration(object):
                         if (pkg_req_e.version_range != pkg_req_l.version_range):
                             # calc version range
                             # FIXME: big assumption here that these ranges can be Versions (will break for e.g. '1.0|2.0'):
-                            v_e = Version(str(pkg_req_e.version_range))
-                            v_l = Version(str(pkg_req_l.version_range))
+                            v_e = Version_(str(pkg_req_e.version_range))
+                            v_l = Version_(str(pkg_req_l.version_range))
                             if(not v_e.ge < v_l.lt):
                                 continue
                             v = v_e.get_span(v_l)

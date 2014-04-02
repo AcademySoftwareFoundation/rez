@@ -62,7 +62,7 @@ class VersionToken(_Comparable):
         returns a random combination of alphanumerics and underscores.
         """
         import random
-        chars = str(pp.srange("[a-zA-Z0-9_]"))
+        chars = str(pp.srange("[0-9a-zA-Z_]"))
         return ''.join([chars[random.randint(0, len(chars)-1)] for i in range(8)])
 
     def __init__(self, token):
@@ -75,9 +75,6 @@ class VersionToken(_Comparable):
 
     def less_than(self, other):
         """Compare to another VersionToken.
-
-        VersionTokens have 'strict weak ordering' - that is, all other
-        operators (>, <= etc) are implemented in terms of less-than.
 
         Args:
             other: The VersionToken object to compare against.
@@ -139,13 +136,6 @@ class AlphanumericVersionToken(VersionToken):
             return (self.s == other.s) or \
                 (self.n is not None and self.n == other.n)
 
-        def next(self):
-            if self.n is None:
-                return AlphanumericVersionToken.SubToken(self.s + "_")
-            else:
-                s = ("%d" % (self.n + 1)).zfill(len(self.s))
-                return AlphanumericVersionToken.SubToken(s)
-
         def __str__(self):
             return self.s
 
@@ -166,9 +156,13 @@ class AlphanumericVersionToken(VersionToken):
         return other
 
     def next(self):
-        other = self.copy()
-        tok = other.subtokens.pop()
-        other.subtokens.append(tok.next())
+        other = copy.copy(self)
+        other.subtokens = other.subtokens[:]
+        subtok = other.subtokens[-1]
+        if subtok.n is None:
+            other.subtokens[-1] = self.SubToken(subtok.s + '_')
+        else:
+            other.subtokens.append(self.SubToken('_'))
         return other
 
     @classmethod
@@ -243,7 +237,7 @@ class Version(_Comparable):
         return bool(self.tokens)
 
     def next(self):
-        """Return 'next' version. Eg, next(1.2) is 1.3."""
+        """Return 'next' version. Eg, next(1.2) is 1.2_"""
         if self.tokens:
             other = copy.copy(self)
             other.tokens = other.tokens[:]
@@ -334,7 +328,6 @@ class _Bound(_Comparable):
     def __init__(self, lower=None, upper=None):
         self.lower = lower or _LowerBound(Version(), True)
         self.upper = upper or _UpperBound.inf
-
         if (self.lower.version > self.upper.version) \
             or ((self.lower.version == self.upper.version) \
             and not (self.lower.inclusive and self.upper.inclusive)):
@@ -364,20 +357,32 @@ class _Bound(_Comparable):
                 and self.upper.contains_version(version))
 
     def get_intersection(self, other):
-        upper_overlap = (other.upper.version > self.lower.version) \
-            or ((other.upper.version == self.lower.version) \
-            and other.upper.inclusive and self.lower.inclusive)
+        lower = max(self.lower, other.lower)
+        upper = min(self.upper, other.upper)
 
-        lower_overlap = (other.lower.version < self.upper.version) \
-            or ((other.lower.version == self.upper.version) \
-            and other.lower.inclusive and self.upper.inclusive)
-
-        if upper_overlap and lower_overlap:
-            lower = max(self.lower, other.lower)
-            upper = min(self.upper, other.upper)
+        if (lower.version < upper.version) or \
+            ((lower.version == upper.version) and \
+            (lower.inclusive and upper.inclusive)):
             return _Bound(lower, upper)
         else:
             return None
+
+        """
+        if not ((other.upper.version > self.lower.version) \
+            or ((other.upper.version == self.lower.version) \
+            and other.upper.inclusive and self.lower.inclusive)):
+            return None
+
+        if not ((other.lower.version < self.upper.version) \
+            or ((other.lower.version == self.upper.version) \
+            and other.lower.inclusive and self.upper.inclusive)):
+            return None
+
+        lower = max(self.lower, other.lower)
+        upper = min(self.upper, other.upper)
+        return _Bound(lower, upper)
+        """
+
 
 
 class _VersionRangeParser(object):

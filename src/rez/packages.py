@@ -9,7 +9,7 @@ from rez.util import print_warning_once
 from rez.resources import iter_resources, load_metadata
 from rez.settings import settings
 from rez.exceptions import PkgSystemError
-from rez.versions import Version, ExactVersion, VersionRange, ExactVersionSet, VersionError
+from rez.versions import Version_, ExactVersion, VersionRange_, ExactVersionSet, VersionError
 
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
@@ -28,7 +28,7 @@ def split_name(pkg_str, exact=False):
         verrange = ExactVersion(verrange)
     else:
         try:
-            verrange = VersionRange(verrange)
+            verrange = VersionRange_(verrange)
         except VersionError:
             verrange = ExactVersionSet(verrange)
     return name, verrange
@@ -86,7 +86,7 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     ----------
     family_name : str
         name of the package without a version
-    ver_range : VersionRange
+    ver_range : VersionRange_
         range of versions in package to iterate over, or all if None
     latest : bool
         whether to sort by latest version first (default) or earliest
@@ -101,8 +101,8 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
     """
-    if (ver_range is not None) and (not isinstance(ver_range, VersionRange)):
-        ver_range = VersionRange(ver_range)
+    if (ver_range is not None) and (not isinstance(ver_range, VersionRange_)):
+        ver_range = VersionRange_(ver_range)
 
     # store the generator. no paths have been walked yet
     results = _iter_packages(family_name, paths)
@@ -127,7 +127,7 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
     ----------
     family_name : str
         name of the package without a version
-    ver_range : VersionRange
+    ver_range : VersionRange_
         range of versions in package to iterate over, or all if None
     latest : bool
         whether to sort by latest (default) or earliest
