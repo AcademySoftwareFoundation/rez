@@ -45,6 +45,7 @@ class ResolvedContext(object):
         caching=True,
         package_paths=None,
         add_implicit_packages=True,
+        add_bootstrap_path=None,
         store_failure=False):
         """Perform a package resolve, and store the result.
 
@@ -62,6 +63,9 @@ class ResolvedContext(object):
             settings.packages_path.
         @param add_implicit_packages If True, the implicit package list
             defined by settings.implicit_packages is added to the request.
+        @param add_bootstrap_path If True, append the package search path with
+            the bootstrap path. If False, do not append. If None, use the
+            default specified in settings.add_bootstrap_path.
         @param store_failure If True, this context will store a resolve failure,
             instead of raising the associated exception. In the event of failure,
             self.success is False, and self.dot_graph, if available, will
@@ -79,9 +83,12 @@ class ResolvedContext(object):
         self.assume_dt = assume_dt
         self.caching = caching
         self.add_implicit_packages = add_implicit_packages
-        # rez bootstrap path is *always* added
-        pkg_paths = settings.packages_path if package_paths is None else package_paths
-        self.package_paths = _add_bootstrap_pkg_path(pkg_paths)
+
+        self.package_paths = settings.packages_path if package_paths is None \
+            else package_paths
+        if add_bootstrap_path or \
+            (add_bootstrap_path is None and settings.add_bootstrap_path):
+            self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         # info about env the resolve occurred in, useful for debugging
         self.user = getpass.getuser()

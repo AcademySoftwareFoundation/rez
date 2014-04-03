@@ -191,9 +191,6 @@ class StandardBuildProcess(BuildProcess):
                            clean=False):
             return False
 
-        # write package definition file into release path
-        shutil.copy(self.metafile, release_path)
-
         # write family config file if not present
         if fam_info is None:
             fam_info = dict(
@@ -366,6 +363,10 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                         shutil.copy(file, install_path)
             else:
                 return False
+
+        # write package definition file into release path
+        if install:
+            shutil.copy(self.metafile, base_install_path)
 
         if build_env_scripts:
             self._pr("\nThe following executable script(s) have been created:")

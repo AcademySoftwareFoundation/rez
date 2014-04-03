@@ -6,6 +6,9 @@ import sys
 
 
 def command(opts, parser=None):
+    if opts.bootstrap_only and opts.no_bootstrap:
+        parser.error("--bo and --nb are mutually exclusive")
+
     if opts.input:
         rc = ResolvedContext.load(opts.input)
         rc.validate()
@@ -18,6 +21,7 @@ def command(opts, parser=None):
                              timestamp=t,
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
+                             add_bootstrap_path=(not opts.no_bootstrap),
                              max_fails=opts.max_fails,
                              verbosity=opts.resolve_verbosity,
                              store_failure=bool(opts.output))
@@ -27,7 +31,7 @@ def command(opts, parser=None):
             rc.save(opts.output)
             sys.exit(0 if rc.success else 1)
 
-    # generally shells will behave as though the '-s' flag was not present, if
+    # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
     if opts.stdin and not select.select([sys.stdin,],[],[],0.0)[0]:
         opts.stdin = False

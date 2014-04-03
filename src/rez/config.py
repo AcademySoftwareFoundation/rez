@@ -39,24 +39,26 @@ then the following cases break the assumption:
 'A-3.4 NOT dependsOn B'
 """
 
-import os
+import os.path
 import time
 import sys
-import inspect
 import random
 import itertools
 from rez.settings import settings
-from rez import module_root_path
-import re
 from rez.packages import BasePackage, ResolvedPackage, split_name, \
     package_in_range, package_family, iter_packages_in_range
 from rez.versions import ExactVersion, ExactVersionSet, Version_, VersionRange_, \
     VersionError, to_range
-from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
-from rez.system import system
-import rez.rex as rex
+
+#from rez.system import system
+#from rez.public_enums import *
+#from rez import module_root_path
+#import rez.rex as rex
+#import inspect
+#import re
+
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 
@@ -83,11 +85,11 @@ class PackageRequest(BasePackage):
             package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
     version_range : str, ExactVersion, ExactVersionSet, or VersionRange
             may be inexact (for eg '5.4+')
-    resolve_mode : {RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST, RESOLVE_MODE_NONE}
+    resolve_mode : {"latest", "earliest", "none"}
             preference used when determining the order in which available versions
             are tested during the resolve.
     """
-    def __init__(self, name, version_range, resolve_mode=RESOLVE_MODE_LATEST, timestamp=0):
+    def __init__(self, name, version_range, resolve_mode="latest", timestamp=0):
         if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange_)):
             self.version_range = version_range
         else:
@@ -163,7 +165,7 @@ class Resolver(object):
     Where all the action happens. This class performs a package resolve.
     """
     def __init__(self,
-                 resolve_mode=RESOLVE_MODE_LATEST,
+                 resolve_mode="latest",
                  quiet=False,
                  verbosity=0,
                  max_fails=-1,
@@ -173,7 +175,7 @@ class Resolver(object):
                  caching=True,
                  package_paths=None):
         """
-        resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
+        resolve_mode: one of: "earliest", "latest"
         quiet: if True then hides unnecessary output (such as the progress dots)
         verbosity: print extra debugging info. One of: 0, 1, 2
         max_fails: return after N failed configuration attempts, default -1 (no limit)
@@ -393,16 +395,16 @@ def parse_pkg_req_str(pkg_str):
     that immediately resolves to earliest/latest version.
     """
     if pkg_str.endswith("=l"):
-        mode = RESOLVE_MODE_LATEST
+        mode = "latest"
     elif pkg_str.endswith("=e"):
-        mode = RESOLVE_MODE_EARLIEST
+        mode = "earliest"
     else:
         mode = None
     pkg_str = pkg_str.rsplit("=", 1)[0]
     name, verrange = split_name(pkg_str)
     return name, verrange, mode
 
-def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
+def str_to_pkg_req(pkg_str, timestamp, mode="latest", paths=None):
     """
     Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
     Note that a version string ending in '=e','=l' will result in a package request
@@ -415,7 +417,7 @@ def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
 
         pkg = package_in_range(name_,
                                ver_range=verrange,
-                               latest=(mode_override==RESOLVE_MODE_LATEST),
+                               latest=(mode_override=="latest"),
                                timestamp=timestamp,
                                paths=paths)
         if pkg is None:
@@ -466,7 +468,7 @@ class _ResolvingContext(object):
     Resolving context
     """
     def __init__(self):
-        self.resolve_mode = RESOLVE_MODE_NONE
+        self.resolve_mode = "none"
         self.verbosity = 0
         self.max_fails = -1
         self.config_fail_list = []
@@ -565,7 +567,7 @@ class _Package(object):
         # NOTE: not entirely sure this is safe if iteration has already begun.
         self.pkg_iter = iter_packages_in_range(self.name,
                                                ver_range=self.version_range,
-                                               latest=(self.pkg_req.resolve_mode==RESOLVE_MODE_LATEST),
+                                               latest=(self.pkg_req.resolve_mode=="latest"),
                                                timestamp=self.pkg_req.timestamp,
                                                paths=self.rctxt.package_paths)
 
@@ -1067,7 +1069,7 @@ class _Configuration(object):
                 break
 
             # fail if not all resolved and mode=none
-            if (not self.all_resolved()) and (self.rctxt.resolve_mode == RESOLVE_MODE_NONE):
+            if (not self.all_resolved()) and (self.rctxt.resolve_mode == "none"):
                 pkg_reqs = self.get_unresolved_packages_as_package_requests()
                 raise PkgsUnresolvedError(pkg_reqs)
 
@@ -1630,7 +1632,6 @@ class _Configuration(object):
         conflict with the current configuration. If a package has all of its variants
         removed in this way, then a pkg-conflict exception will be raised.
         """
-
         if (self.rctxt.verbosity >= 2):
             print
             print "removing conflicting variants..."
@@ -1703,7 +1704,6 @@ class _Configuration(object):
         resolved. Note that if a package contains a single variant, this this
         function will add every package in the variant to the configuration.
         """
-
         num = 0
         config2 = self.copy()
 

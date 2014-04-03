@@ -22,15 +22,20 @@ PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 
 class PackageStatement(object):
     """Parse a package string, eg "foo-1.0".
+
+    Note that '-', '@' or '#' can be used as the seperator between package name
+    and version, however this is purely cosmetic - "foo-1" is the same as "foo@1".
     """
     def __init__(self, s):
         self.name_ = None
+        self.sep_ = '-'
         self.version_ = None
 
         m = PACKAGE_NAME_SEP_REGEX.search(s)
         if m:
             i = m.start()
             self.name_ = s[:i]
+            self.sep_ = s[i]
             ver_str = s[i+1:]
             self.version_ = Version(ver_str)
         else:
@@ -48,11 +53,20 @@ class PackageStatement(object):
     def version(self):
         return self.version_
 
+    def __eq__(self, other):
+        return (self.name_ == other.name_) and (self.version_ == other.version_)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        return hash((self.name_, str(self.version_)))
+
     def __str__(self):
         sep_str = ''
         ver_str = ''
         if self.version_:
-            sep_str = '-'
+            sep_str = self.sep_
             ver_str = str(self.version_)
         return self.name_ + sep_str + ver_str
 
@@ -66,6 +80,7 @@ class PackageRangeStatement(object):
     """
     def __init__(self, s):
         self.name_ = None
+        self.sep_ = '-'
         self.range_ = None
         self.negate_ = False
         self.conflict_ = s.startswith('!')
@@ -82,7 +97,8 @@ class PackageRangeStatement(object):
             i = m.start()
             self.name_ = s[:i]
             req_str = s[i:]
-            if req_str.startswith('-'):
+            if req_str[0] in ('-','@','#'):
+                self.sep_ = req_str[0]
                 req_str = req_str[1:]
 
             self.range_ = VersionRange(req_str)
@@ -110,6 +126,17 @@ class PackageRangeStatement(object):
     def conflict(self):
         return self.conflict_
 
+    def __eq__(self, other):
+        return (self.name_ == other.name_) \
+            and (self.range_ == other.range_) \
+            and (self.conflict_ == other.conflict_)
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __hash__(self):
+        return hash((self.name_, str(self.range_), self.conflict_))
+
     def __str__(self):
         pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
         range_str = ''
@@ -122,7 +149,7 @@ class PackageRangeStatement(object):
         if not range.is_any():
             range_str = str(range)
             if range_str[0] not in ('=','<','>'):
-                sep_str = '-'
+                sep_str = self.sep_
 
         return pre_str + self.name_ + sep_str + range_str
 

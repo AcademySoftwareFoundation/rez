@@ -1,9 +1,8 @@
 from rez.version import Version, AlphanumericVersionToken, VersionRange
-from rez.tests.util import _test_strict_weak_ordering
 from rez.exceptions import VersionError
-import rez.contrib.unittest2 as unittest
 import random
 import textwrap
+import unittest
 
 
 
@@ -63,7 +62,7 @@ class TestVersionSchema(unittest.TestCase):
 
     def _create_random_token(self):
         s = self.token_cls.create_random_token_string()
-        return AlphanumericVersionToken(s)
+        return self.token_cls(s)
 
     def _create_random_version(self):
         ver_str = '.'.join(self.token_cls.create_random_token_string() \
@@ -129,6 +128,19 @@ class TestVersionSchema(unittest.TestCase):
                      "2.1.0"]
         self._test_ordered([Version(x) for x in ascending])
 
+        # test behaviour in sets
+        a = Version("1.0")
+        b = Version("1.0")
+        c = Version("1.0alpha")
+        d = Version("2.0.0")
+
+        self.assertTrue(set([a]) - set([a]) == set())
+        self.assertTrue(set([a]) - set([b]) == set())
+        self.assertTrue(set([a,a]) - set([a]) == set())
+        self.assertTrue(set([b,c,d]) - set([a]) == set([c,d]))
+        self.assertTrue(set([b,c]) | set([c,d]) == set([b,c,d]))
+        self.assertTrue(set([b,c]) & set([c,d]) == set([c]))
+
     def test_version_range(self):
         def _eq(a, b):
             print "'%s' == '%s'" % (a, b)
@@ -157,6 +169,10 @@ class TestVersionSchema(unittest.TestCase):
                 self.assertTrue(a_range | a_inv == VersionRange())
                 self.assertTrue(a_range & a_inv is None)
 
+            a_ranges = a_range.split()
+            a_range_ = a_ranges[0].get_union(a_ranges[1:])
+            self.assertTrue(a_range_ == b_range)
+
         def _and(a, b, c):
             print "'%s' & '%s' == '%s'" % (a, b, c)
             a_range = VersionRange(a)
@@ -182,15 +198,8 @@ class TestVersionSchema(unittest.TestCase):
         _eq("_+<__", "_")
         _eq("1.2+<=2.0", "1.2..2.0")
         _eq("10+,<20", "10+<20")
-
-        # odd (but valid) cases
-        _eq(">", ">")
-        _eq("+", "")
-        _eq(">=", "")
-        _eq("<=", "==")
-        _eq("..", "==")
-        _eq("+<=", "==")
-        _eq("><1", "><1")
+        _eq("1+<1.0", "1+<1.0")
+        _eq(">=2", "2+")
 
         # optimised cases (this also tests OR'ing and inverse)
         _eq("3|3", "3")
@@ -215,6 +224,8 @@ class TestVersionSchema(unittest.TestCase):
         _eq("2|2+", "2+")
         _eq("2|2.1+", "2+")
         _eq("2|<2.1", "<2_")
+        _eq("3..3", "==3")
+        _eq(">=3,<=3", "==3")
 
         # AND'ing
         _and("3", "3", "3")
@@ -227,19 +238,57 @@ class TestVersionSchema(unittest.TestCase):
         _and("1", "1.0", "1.0")
         _and("4..6", "6+<8", "==6")
 
-        # expected fails
-        with self.assertRaises(VersionError):
-            VersionRange("<")
-        with self.assertRaises(VersionError):
-            VersionRange("><")
-        with self.assertRaises(VersionError):
-            VersionRange("4+<2")
-        with self.assertRaises(VersionError):
-            VersionRange(">3<3")
-        with self.assertRaises(VersionError):
-            VersionRange(">3<=3")
-        with self.assertRaises(VersionError):
-            VersionRange("3+<3")
+        # odd (but valid) cases
+        _eq(">", ">")       # greater than the empty version
+        _eq("+", "")        # greater or equal to empty version (is all vers)
+        _eq(">=", "")       # equivalent to above
+        _eq("<=", "==")     # less or equal to empty version (is only empty)
+        _eq("..", "==")     # from empty version to empty version
+        _eq("+<=", "==")    # equivalent to above
+
+        invalid_range = [
+            "<",            # less than the empty version
+            "><",           # both greater and less than empty version
+            "4+<2",         # lower bound greater than upper
+            ">3<3",         # both greater and less than same version
+            ">3<=3",        # greater and less or equal to same version
+            "3+<3"          # greater and equal to, and less than, same version
+        ]
+
+        for s in invalid_range:
+            self.assertRaises(VersionError, VersionRange, s)
+
+        invalid_syntax = [
+            ">3>4",         # both are lower bounds
+            "<3<4",         # both are upper bounds
+            "<4>3",         # upper bound before lower
+            "4+,",          # trailing comma
+            "1>=",          # pre-lower-op in post
+            "+1",           # post-lower-op in pre
+            "4<",           # pre-upper-op in post
+            "1+<2<3"        # more than two bounds
+        ]
+
+        for s in invalid_syntax:
+            self.assertRaises(VersionError, VersionRange, s)
+
+        def _eq2(a, b):
+            print "'%s' == '%s'" % (a, b)
+            self.assertTrue(a == b)
+
+        # test behaviour in sets
+        a = VersionRange("1+<=2.5")
+        b = VersionRange("1..2.5")
+        c = VersionRange(">=5")
+        d = VersionRange(">6.1.0")
+        e = VersionRange("3.2")
+
+        _eq2(set([a]) - set([a]), set())
+        _eq2(set([a]) - set([b]), set())
+        _eq2(set([a,a]) - set([a]), set())
+        _eq2(set([b,c,d,e]) - set([a]), set([c,d,e]))
+        _eq2(set([b,c,e]) | set([c,d]), set([b,c,d,e]))
+        _eq2(set([b,c]) & set([c,d]), set([c]))
 
 
 def get_test_suites():

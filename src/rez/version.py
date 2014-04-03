@@ -259,6 +259,9 @@ class Version(_Comparable):
         else:
             return (self.tokens < other.tokens)
 
+    def __hash__(self):
+        return hash(str(self))
+
     def __str__(self):
         return "[INF]" if self.tokens is None \
             else ''.join(str(x)+y for x,y in zip(self.tokens, self.seps+['']))
@@ -632,6 +635,15 @@ class VersionRange(_Comparable):
         that contains all versions."""
         return (len(self.bounds) == 1) and (self.bounds[0] == _Bound())
 
+    def split(self):
+        """Split into separate contiguous ranges.
+
+        Returns:
+            A list of VersionRange objects. For example, the range "3|5+" will
+            be split into ["3", "5+"].
+        """
+        return [VersionRange(str(x)) for x in self.bounds]
+
     def __len__(self):
         return len(self.bounds)
 
@@ -656,6 +668,12 @@ class VersionRange(_Comparable):
 
     def __eq__(self, other):
         return (self.bounds == other.bounds)
+
+    def __lt__(self, other):
+        return (self.bounds < other.bounds)
+
+    def __hash__(self):
+        return hash(str(self))
 
     @classmethod
     def _get_union(cls, bounds):

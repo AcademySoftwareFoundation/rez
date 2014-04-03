@@ -188,6 +188,9 @@ def add_env(parser):
     parser.add_argument("--bo", "--bootstrap-only", dest="bootstrap_only",
                         action="store_true",
                         help="only load bootstrap packages. Implies --ni and --nl.")
+    parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
+                        action="store_true",
+                        help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
@@ -255,7 +258,11 @@ def add_test(parser):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
     parser.add_argument("--versions", action="store_true",
-                        help="test package version schemas")
+                        help="test package versioning logic")
+    parser.add_argument("--resolves", action="store_true",
+                        help="test package resolving algorithm")
+    parser.add_argument("--cli", action="store_true",
+                        help="test commandline tools")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 

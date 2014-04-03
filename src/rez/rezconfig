@@ -31,14 +31,16 @@
 # Paths
 ###############################################################################
 
-# The package search path. Rez uses this to find packages. Note that Rez's special
-# 'bootstrap' package path (located inside the module, and containing packages
-# such as 'platform') is always searched last, even if it does not appear in this
-# list.
+# The package search path.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
 - '~/.rez/packages/int'  # internally developed pkgs, deployed
 - '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
+
+# The 'bootstrap' path is where Rez puts some automatically created packages at
+# install time. If this value is true, then the bootstrap path is always
+# implicitly appended to the packages path.
+add_bootstrap_path: true
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
@@ -50,10 +52,6 @@ release_packages_path: '~/.rez/packages/int'
 # The path that rez-install will deploy external packages to. For production use,
 # you will probably want to change this to a site-wide location.
 external_packages_path: '~/.rez/packages/ext'
-
-# The path that rez-egg-install will deploy packages to. For production use, you
-# will probably want to change this to a site-wide location.
-egg_packages_path: '~/.rez/packages/ext'
 
 # The formulae URLs that rez-install searches for packages
 package_repository_url_path:
@@ -234,7 +232,6 @@ _type:
     local_packages_path: str
     release_packages_path: str
     external_packages_path: str
-    egg_packages_path: str
     package_repository_url_path: list
     package_repository_path: str
     package_repository_cache_path: str
@@ -245,6 +242,7 @@ _type:
     release_vcs_plugin_path: list
     release_hook_plugin_path: list
     build_system_plugin_path: list
+    version_sep: str
     editor: str
     image_viewer: str
     browser: str
