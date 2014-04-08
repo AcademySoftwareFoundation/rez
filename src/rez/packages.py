@@ -36,6 +36,9 @@ def split_name(pkg_str, exact=False):
 def pkg_name(pkg_str):
     return pkg_str.split('-')[0]
 
+def join_name(family_name, version):
+    return '%s-%s' % (family_name, version)
+
 def iter_package_families(name=None, paths=None):
     """Iterate through top-level `PackageFamily` instances."""
     if paths is None:
