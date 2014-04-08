@@ -8,7 +8,6 @@ from rez import __version__
 import rez.sigint
 
 
-
 class RezHelpFormatter(argparse.HelpFormatter):
     remainder_descs = {
         "BUILD_ARG": "[-- ARG [ARG ...] [-- ARG [ARG ...]]]"
@@ -44,17 +43,19 @@ subparsers = {}
 # lazily loads subcommands, gives faster load time
 subcmd = (sys.argv[1:2] + [None])[0]
 
-class subcommand(object):
-    def __init__(self, fn):
-        self.fn = fn if fn.__name__ == ("add_%s" % str(subcmd)) else None
-
-    def __call__(self, *nargs):
-        if self.fn:
-            return self.fn(*nargs)
-
-class hidden_subcommand(subcommand):
-    pass
-
+def subcommand(help=None, hidden=False):
+    assert help or hidden
+    def wrapper(setup_parser):
+        cmd = setup_parser.__name__.split('_', 1)[1].replace('_', '-')
+        if help is None and cmd != subcmd:
+            return setup_parser
+        subp = subps.add_parser(cmd, help=help, formatter_class=RezHelpFormatter)
+        _add_common_args(subp)
+        if cmd == subcmd:
+            setup_parser(subp)
+        subparsers[cmd] = subp
+        return setup_parser
+    return wrapper
 
 def _add_common_args(subp):
     subp.add_argument("--debug", dest="debug", action="store_true",
@@ -67,7 +68,7 @@ def _subcmd_name(cli_name):
         return cli_name.replace('-','_')
 
 
-@subcommand
+@subcommand("Print current rez settings.")
 def add_settings(parser):
     parser.add_argument("-p", "--param", type=str,
                         help="print only the value of a specific parameter")
@@ -75,7 +76,8 @@ def add_settings(parser):
                         help="print the package search path, including any "
                         "system paths")
 
-@subcommand
+@subcommand("Print information about the current rez context, or a "
+                    "given context file.")
 def add_context(parser):
     from rez.system import system
     from rez.shells import get_shell_types
@@ -134,7 +136,7 @@ def _bind_build_args(parser):
                         "a child build system also, list them after another "
                         "'--' arg.")
 
-@subcommand
+@subcommand("Build a package from source.")
 def add_build(parser):
     parser.add_argument("-c", "--clean", action="store_true",
                         help="clear the current build before rebuilding.")
@@ -151,7 +153,7 @@ def add_build(parser):
     _bind_build_args(parser)
     _bind_build_system(parser)
 
-@subcommand
+@subcommand("Build a package from source and deploy it.")
 def add_release(parser):
     parser.add_argument("-m", "--message", type=str,
                         help="commit message")
@@ -162,7 +164,7 @@ def add_release(parser):
     _bind_build_args(parser)
     _bind_build_system(parser)
 
-@subcommand
+@subcommand("Open a rez-configured shell, possibly interactive.")
 def add_env(parser):
     from rez.system import system
     from rez.shells import get_shell_types
@@ -211,7 +213,7 @@ def add_env(parser):
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
-@subcommand
+@subcommand("Created a wrapped environment from one or more context files")
 def add_wrap(parser):
     parser.add_argument("-p", "--prefix", type=str,
                         help="Tools prefix")
@@ -224,11 +226,7 @@ def add_wrap(parser):
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="verbose mode")
 
-@subcommand
-def add_tools(parser):
-    pass
-
-@subcommand
+@subcommand("Execute some Rex code and print the interpreted result.")
 def add_exec(parser):
     from rez.system import system
     from rez.shells import get_shell_types
@@ -250,14 +248,14 @@ def add_exec(parser):
     parser.add_argument("FILE", type=str,
                         help='file containing rex code to execute')
 
-@subcommand
+@subcommand("Run unit tests.")
 def add_test(parser):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 
-@subcommand
+@subcommand("Rez installation-related operations.")
 def add_bootstrap(parser):
     from rez.shells import get_shell_types
     from rez.system import system
@@ -272,46 +270,13 @@ def add_bootstrap(parser):
                         help="create a bootstrapped Rez install, even if "
                         "advised not to")
 
-@hidden_subcommand
+@subcommand(hidden=True)
 def add_forward(parser):
     parser.add_argument("YAML", type=str)
     parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 
-def _add_subcommand(cmd, help=""):
-    fn = globals()["add_%s" % cmd]
-    if isinstance(fn, hidden_subcommand) and (cmd != subcmd):
-        return
-
-    subp = subps.add_parser(cmd, help=help, formatter_class=RezHelpFormatter)
-    _add_common_args(subp)
-    fn(subp)
-    subparsers[cmd] = subp
-
 
 def run():
-    _add_subcommand("settings",
-                    "Print current rez settings.")
-    _add_subcommand("context",
-                    "Print information about the current rez context, or a "
-                    "given context file.")
-    _add_subcommand("build",
-                    "Build a package from source.")
-    _add_subcommand("release",
-                    "Build a package from source and deploy it.")
-    _add_subcommand("env",
-                    "Open a rez-configured shell, possibly interactive.")
-    _add_subcommand("wrap",
-                    "Created a wrapped environment from one or more context files")
-    _add_subcommand("tools",
-                    "List the tools available in the current environment")
-    _add_subcommand("exec",
-                    "Execute some Rex code and print the interpreted result.")
-    _add_subcommand("bootstrap",
-                    "Rez installation-related operations.")
-    _add_subcommand("test",
-                    "Run unit tests.")
-    _add_subcommand("forward")
-
     p.add_argument("-V", "--version", action="version",
                    version="Rez %s" % __version__)
 
