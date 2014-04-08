@@ -51,142 +51,78 @@ class BaseUnitTest(BaseTest, unittest.TestCase):
 # packages, but it is becoming clear that a single curated set will be easier to
 # maintain.
 
-class PackageMaker(object):
-    """
-    Context manager that holds metadata for creating the package file
-    """
-    def __enter__(self):
-        return self
+def create_packages(local_path, release_path):
+    from rez.package_maker import make_yaml_package
 
-    def __exit__(self, exc_type, exc_value, traceback):
+    # real world examples are so much easier to follow
+    with make_yaml_package('python-2.7.4', local_path) as pkg:
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+
+    with make_yaml_package('python-2.6.4', release_path) as pkg:
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+
+    with make_yaml_package('python-2.6.1', release_path) as pkg:
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+
+    with make_yaml_package('mercurial-3.0', release_path) as pkg:
+        pkg['variants'] = [['platform-linux', 'python-2.7'],
+                           ['platform-linux', 'python-2.6'],
+                           ['platform-darwin', 'python-2.7']]
+
+    with make_yaml_package('maya-2012', release_path) as pkg:
+        pkg['requires'] = ['python-2.6']
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+
+    with make_yaml_package('maya-2013', release_path) as pkg:
+        pkg['requires'] = ['python-2.6']
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+        pkg['tools'] = ['maya', 'mayapy']
+
+    with make_yaml_package('maya-2014', release_path) as pkg:
+        pkg['requires'] = ['python-2.7']
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+        pkg['tools'] = ['maya', 'mayapy']
+
+    with make_yaml_package('nuke-7.1.2', release_path) as pkg:
+        pkg['requires'] = ['python-2.6']
+        pkg['tools'] = ['Nuke']
+
+    with make_yaml_package('arnold-4.0.16.0', release_path) as pkg:
+        pkg['requires'] = ['python']
+        pkg['variants'] = [['platform-linux'],
+                           ['platform-darwin']]
+        pkg['tools'] = ['kick']
+
+    with make_yaml_package('mtoa-0.25.0', release_path) as pkg:
+        #pkg['requires'] = ['arnold-4.0.16']
+        pkg['variants'] = [['platform-linux', 'maya-2014', 'arnold-4.0.15+'],
+                           ['platform-linux', 'maya-2013', 'arnold-4.0.15+'],
+                           ['platform-darwin', 'maya-2014', 'arnold-4.0.15+'],
+                           ['platform-darwin', 'maya-2013', 'arnold-4.0.15+']]
+
+    with make_yaml_package('mtoa-0.25.0', release_path) as pkg:
+        #pkg['requires'] = ['arnold-4.0.16']
+        pkg['variants'] = [['platform-linux', 'maya-2014', 'arnold-4.0.15+'],
+                           ['platform-linux', 'maya-2013', 'arnold-4.0.15+'],
+                           ['platform-darwin', 'maya-2014', 'arnold-4.0.15+'],
+                           ['platform-darwin', 'maya-2013', 'arnold-4.0.15+']]
+
+    with make_yaml_package('platform-linux', release_path):
+        pass
+    with make_yaml_package('platform-darwin', release_path):
         pass
 
-class PackagesMaker(object):
-    def __init__(self, local_path, release_path):
-        self.local_packages = {}
-        self.release_packages = {}
-        self.release_path = release_path
-        self.local_path = local_path
-
-    def make(self, pkg_maker, path):
-        metadata = pkg_maker.__dict__.copy()
-        for key in metadata.keys():
-            if key.startswith('_'):
-                metadata.pop(key)
-        self.make_version(path, metadata)
-
-    @staticmethod
-    def make_version(path, metadata):
-        name = metadata['name']
-        metadata.setdefault('config_version', 0)
-        if 'version' in metadata:
-            basedir = os.path.join(path, name, metadata['version'])
-        else:
-            basedir = os.path.join(path, name)
-
-        os.makedirs(basedir)
-
-        if 'variants' in metadata:
-            for variant in metadata['variants']:
-                os.makedirs(os.path.join(basedir, *variant))
-        metafile = os.path.join(basedir, 'package.yaml')
-
-        with open(metafile, 'w') as f:
-            yaml.dump(metadata, f)
-
-    def add_package(self, name, local=False):
-        """
-        Add a package to make on disk for the test.
-
-        After all individual packages have been added using add_package(),
-        call make_packages to create them on disk. The actions are separated
-        so that subclasses can override certain packages with their own variations
-        before they are created.
-        """
-        pkg = PackageMaker()
-        parts = name.split('-')
-        if len(parts) == 1:
-            pkg.name = parts[0]
-        else:
-            pkg.name, pkg.version = parts
-
-        if local:
-            self.local_packages[name] = pkg
-        else:
-            self.release_packages[name] = pkg
-        return pkg
-
-    def make_packages(self):
-        """
-        make on disk all of the added packages via add_package().
-        """
-        for pkg in self.local_packages.values():
-            self.make(pkg, self.local_path)
-        for pkg in self.release_packages.values():
-            self.make(pkg, self.release_path)
-
-def create_packages(local_path, release_path):
-    pkgs = PackagesMaker(local_path, release_path)
-    # real world examples are so much easier to follow
-    with pkgs.add_package('python-2.7.4', local=True) as pkg:
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-
-    with pkgs.add_package('python-2.6.4') as pkg:
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-
-    with pkgs.add_package('python-2.6.1') as pkg:
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-
-    with pkgs.add_package('mercurial-3.0') as pkg:
-        pkg.variants = [['platform-linux', 'python-2.7'],
-                        ['platform-linux', 'python-2.6'],
-                        ['platform-darwin', 'python-2.7']]
-
-    with pkgs.add_package('maya-2012') as pkg:
-        pkg.requires = ['python-2.6']
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-
-    with pkgs.add_package('maya-2013') as pkg:
-        pkg.requires = ['python-2.6']
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-        pkg.tools = ['maya', 'mayapy']
-
-    with pkgs.add_package('maya-2014') as pkg:
-        pkg.requires = ['python-2.7']
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-        pkg.tools = ['maya', 'mayapy']
-
-    with pkgs.add_package('nuke-7.1.2') as pkg:
-        pkg.requires = ['python-2.6']
-        pkg.tools = ['Nuke']
-
-    with pkgs.add_package('arnold-4.0.16.0') as pkg:
-        pkg.requires = ['python']
-        pkg.variants = [['platform-linux'],
-                        ['platform-darwin']]
-        pkg.tools = ['kick']
-
-    with pkgs.add_package('mtoa-0.25.0') as pkg:
-        #pkg.requires = ['arnold-4.0.16']
-        pkg.variants = [['platform-linux', 'maya-2014', 'arnold-4.0.15+'],
-                        ['platform-linux', 'maya-2013', 'arnold-4.0.15+'],
-                        ['platform-darwin', 'maya-2014', 'arnold-4.0.15+'],
-                        ['platform-darwin', 'maya-2013', 'arnold-4.0.15+']]
-
-    pkgs.add_package('platform-linux')
-    pkgs.add_package('platform-darwin')
-
-    pkgs.add_package('arch-x86_64')
-    pkgs.add_package('arch-i386')
+    with make_yaml_package('arch-x86_64', release_path):
+        pass
+    with make_yaml_package('arch-i386', release_path):
+        pass
 
     # versionless
-    with pkgs.add_package('site') as pkg:
-        pkg.requires = ['maya', 'nuke-7']
-
-    pkgs.make_packages()
+    with make_yaml_package('site', release_path) as pkg:
+        pkg['requires'] = ['maya', 'nuke-7']
