@@ -8,22 +8,22 @@ import subprocess as sp
 from rez.util import encode_filesystem_name
 
 
-
-def get_source(url, dest_path, type=None, cache_path=None, cache_filename=None, \
+def get_source(url, dest_path, type=None, cache_path=None, cache_filename=None,
                dry_run=False, **retriever_kwargs):
     ''' Download the source at the given url to dest_path.
 
         Returns the directory the source was extracted to, or None if
         unsuccessful
     '''
-    from rez.plugin_managers import source_retriever_plugin_manager
+    from rez.plugin_managers import plugin_manager
 
-    retriever = source_retriever_plugin_manager().create_instance(url, \
-        type=type,
-        cache_path=cache_path,
-        cache_filename=cache_filename,
-        dry_run=dry_run,
-        **retriever_kwargs)
+    retriever = plugin_manager.create_instance('source_retriever',
+                                               url,
+                                               type=type,
+                                               cache_path=cache_path,
+                                               cache_filename=cache_filename,
+                                               dry_run=dry_run,
+                                               **retriever_kwargs)
 
     return retriever.get_source(dest_path)
 
@@ -192,21 +192,23 @@ class SourceRetriever(object):
         _stdout = sp.PIPE if get_stdout else None
         _stderr = sp.PIPE if get_stderr else None
         p = sp.Popen(args, stdout=_stdout, stderr=_stderr, **subprocess_kwargs)
-        _out,_err = p.communicate()
+        _out, _err = p.communicate()
 
         if check_return and p.returncode:
             raise RuntimeError("Error running %r - exitcode: %d"
                                % (cmd, p.returncode))
 
-        if _out: _out = _out.strip()
-        if _err: _err = _err.strip()
-        return p.returncode,_out,_err
+        if _out:
+            _out = _out.strip()
+        if _err:
+            _err = _err.strip()
+        return p.returncode, _out, _err
 
 
 class RepoCloner(SourceRetriever):
     def __init__(self, url, cache_path=None, cache_filename=None, revision=None,
                  dry_run=False, verbosity=2):
-        super(RepoCloner,self).__init__(url, \
+        super(RepoCloner, self).__init__(url,
                                         cache_path=cache_path,
                                         cache_filename=cache_filename,
                                         dry_run=dry_run,

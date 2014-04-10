@@ -2,12 +2,12 @@ from rez.exceptions import ReleaseHookError
 from rez.util import print_warning_once
 
 
-
 def create_release_hook(name, source_path):
     """Return a new release hook of the given type."""
-    from rez.plugin_managers import release_hook_plugin_manager
-    return release_hook_plugin_manager().create_instance(name,
-                                                         source_path=source_path)
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.create_instance('release_hook',
+                                          name,
+                                          source_path=source_path)
 
 
 def create_release_hooks(names, source_path):
