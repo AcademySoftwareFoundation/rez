@@ -19,8 +19,12 @@ def get_shell_types():
 def create_shell(shell=None, **kwargs):
     """Returns a Shell of the given type, or the current shell type if shell
     is None."""
+    if not shell:
+        from rez.system import system
+        shell = system.shell
+
     from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager().create_instance(shell=shell, **kwargs)
+    return shell_plugin_manager().create_instance(shell, **kwargs)
 
 
 

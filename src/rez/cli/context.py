@@ -1,23 +1,18 @@
-import os
+'''
+Print information about the current rez context, or a given context file.
+'''
+
 import os.path
 import sys
 import time
-import textwrap
 import tempfile
 import subprocess
 from uuid import uuid4
-from rez import __version__
-from rez.util import pretty_env_dict, columnise
-from rez.resolved_context import ResolvedContext
-from rez.shells import create_shell, get_shell_types
-from rez.system import system
-from rez.settings import settings
-from rez.cli.util import current_rxt_file, get_rxt_file
-
-
 
 # returns (filepath, must_cleanup)
 def write_graph(graph_str, opts):
+    from rez.settings import settings
+    from rez.cli._util import current_rxt_file
     dest_file = None
     tmp_dir = None
     cleanup = True
@@ -35,11 +30,11 @@ def write_graph(graph_str, opts):
 
         if tmp_dir:
             # hijack current env's tmpdir, so we don't have to clean up
-            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-',''), fmt)
+            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
             dest_file = os.path.join(tmp_dir, name)
             cleanup = False
         else:
-            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.'+fmt)
+            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
             os.close(tmpf[0])
             dest_file = tmpf[1]
 
@@ -47,15 +42,18 @@ def write_graph(graph_str, opts):
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file, prune_to_package=opts.prune_pkg,
                prune_to_conflict=opts.prune_conflict)
-    return dest_file,cleanup
+    return dest_file, cleanup
 
 
 def view_graph(graph_str, opts):
+    from rez.system import system
+    from rez.settings import settings
+
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
         print >> sys.stderr, "Unable to open display."
         sys.exit(1)
 
-    dest_file,cleanup = write_graph(graph_str, opts)
+    dest_file, cleanup = write_graph(graph_str, opts)
 
     # view graph
     t1 = time.time()
@@ -75,19 +73,20 @@ def view_graph(graph_str, opts):
     if cleanup:
         # hacky - gotta delete tmp file, but hopefully not before app has loaded it
         t2 = time.time()
-        if (t2-t1) < 1: # viewer is probably non-blocking
+        if (t2 - t1) < 1: # viewer is probably non-blocking
             # give app a chance to load image
             time.sleep(10)
         os.remove(dest_file)
 
 
 def print_tools(rc):
+    from rez.util import columnise
     keys = rc.get_key("tools")
     if keys:
         rows = [
             ["TOOL", "PACKAGE"],
             ["----", "-------"]]
-        for pkg,tools in sorted(keys.items()):
+        for pkg, tools in sorted(keys.items()):
             for tool in sorted(tools):
                 rows.append([tool, pkg])
 
@@ -95,8 +94,50 @@ def print_tools(rc):
     print '\n'.join(strs)
     print
 
+def setup_parser(parser):
+    from rez.system import system
+    from rez.shells import get_shell_types
+
+    formats = get_shell_types() + ['dict']
+
+    parser.add_argument("--req", "--print-request", dest="print_request",
+                        action="store_true",
+                        help="print only the request list, including implicits")
+    parser.add_argument("--res", "--print-resolve", dest="print_resolve",
+                        action="store_true",
+                        help="print only the resolve list")
+    parser.add_argument("-t", "--print-tools", dest="print_tools", action="store_true",
+                        help="print a list of the executables available in the context")
+    parser.add_argument("-g", "--graph", action="store_true",
+                        help="display the resolve graph as an image")
+    parser.add_argument("--pg", "--print-graph", dest="print_graph", action="store_true",
+                        help="print the resolve graph as a string")
+    parser.add_argument("--wg", "--write-graph", dest="write_graph", type=str,
+                        metavar='FILE', help="write the resolve graph to FILE")
+    parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
+                        type=str, help="prune the graph down to PKG")
+    parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
+                        help="prune the graph down to show conflicts only")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="print more information about the context. "
+                        "Ignored if --interpret is used.")
+    parser.add_argument("-i", "--interpret", action="store_true",
+                        help="interpret the context and print the resulting code")
+    parser.add_argument("-f", "--format", type=str, choices=formats,
+                        help="print interpreted output in the given format. If "
+                        "None, the current shell language (%s) is used. If 'dict', "
+                        "a dictionary of the resulting environment is printed. "
+                        "Ignored if --interpret is False" % system.shell)
+    parser.add_argument("--no-env", dest="no_env", action="store_true",
+                        help="interpret the context in an empty environment")
+    parser.add_argument("FILE", type=str, nargs='?',
+                        help="rex context file (current context if not supplied)")
 
 def command(opts, parser=None):
+    from rez.cli._util import get_rxt_file, current_rxt_file
+    from rez.util import pretty_env_dict
+    from rez.resolved_context import ResolvedContext
+
     rxt_file = get_rxt_file(opts.FILE)
     rc = ResolvedContext.load(rxt_file)
 

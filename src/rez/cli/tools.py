@@ -1,10 +1,15 @@
-from rez.env import get_tools
-from rez.util import columnise
-import sys
+'''
+Display a list of available tools and the packages that provide them.
+'''
 
+def setup_parser(parser):
+    pass
 
+def command(opts):
+    from rez.env import get_tools
+    from rez.util import columnise
+    import sys
 
-def command(opts, parser=None):
     entries = get_tools()
     if not entries:
         print >> sys.stderr, "No tools available."
@@ -18,7 +23,7 @@ def command(opts, parser=None):
         rows = [["TOOL", "PACKAGE", ''],
                 ["----", "-------", '']]
 
-    for tool,pkg,rxt in entries:
+    for tool, pkg, rxt in entries:
         rows.append([tool, pkg, rxt or ''])
 
     print '\n'.join(columnise(rows))

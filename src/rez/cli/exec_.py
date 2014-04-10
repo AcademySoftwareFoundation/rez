@@ -1,12 +1,35 @@
-import os
-from rez.util import pretty_env_dict
-from rez.rex import RexExecutor, Python
-from rez.system import system
-from rez.shells import create_shell, get_shell_types
+'''
+Execute some Rex code and print the interpreted result.
+'''
 
+def setup_parser(parser):
+    from rez.shells import get_shell_types
+    from rez.system import system
+
+    formats = get_shell_types() + ['dict']
+
+    parser.add_argument("-f", "--format", type=str, choices=formats,
+                        help="print output in the given format. If None, the "
+                        "current shell language (%s) is used. If 'dict', a "
+                        "dictionary of the resulting environment is printed"
+                        % system.shell)
+    parser.add_argument("--no-env", dest="no_env", action="store_true",
+                        help="interpret the code in an empty environment")
+    parser.add_argument("--pv", "--parent-variables", dest="parent_vars",
+                        type=str, metavar='VARS',
+                        help="comma-seperated list of environment variables to "
+                        "update rather than overwrite on first reference. If "
+                        "this is set to the special value 'all', all variables "
+                        "will be treated this way")
+    parser.add_argument("FILE", type=str,
+                        help='file containing rex code to execute')
 
 
 def command(opts, parser=None):
+    from rez.shells import create_shell
+    from rez.util import pretty_env_dict
+    from rez.rex import RexExecutor, Python
+
     with open(opts.FILE) as f:
         code = f.read()
 
