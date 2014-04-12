@@ -46,7 +46,6 @@ requires = [
     # it, install it separately.
     # "pysvn >= 1.7.2"
     "PyYAML >= 3.9",
-    "Yapsy >= 1.10.0",
     "python-memcached >= 1.0"
 ]
 
@@ -97,7 +96,7 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    cmdclass={'install': install_},
+    #cmdclass={'install': install_},
     scripts=[os.path.join('bin',x) for x in scripts],
     install_requires=requires,
     include_package_data=True,
@@ -107,12 +106,10 @@ setup(
         'rez': [
             'rezconfig',
             'README*',
-            'plugins/shell/*.yapsy-plugin',
-            'plugins/release_vcs/*.yapsy-plugin',
-            'plugins/release_hook/*.yapsy-plugin',
-            'plugins/source_retriever/*.yapsy-plugin',
-            'plugins/build_system/*.yapsy-plugin',
-            'plugins/build_system/cmake_files/*.cmake',
+            '_sys/*'
+        ],
+        'rezplugins': [
+            'build_system/cmake_files/*.cmake',
             '_sys/*'
         ]
     },
