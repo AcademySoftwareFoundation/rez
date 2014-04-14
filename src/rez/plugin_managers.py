@@ -14,7 +14,9 @@ if sys.version_info < (2, 7):
 else:
     from logging import NullHandler
 
-# modified from pkgutil standard library
+# modified from pkgutil standard library:
+# this function is called from the __init__.py files of each plugin type inside
+# the 'rezplugins' package.
 def extend_path(path, name):
     """Extend a package's path.
 
@@ -28,20 +30,12 @@ def extend_path(path, name):
     if one wants to distribute different parts of a single logical
     package as multiple directories.
 
-    It also looks for *.pkg files beginning where * matches the name
-    argument.  This feature is similar to *.pth files (see site.py),
-    except that it doesn't special-case lines starting with 'import'.
-    A *.pkg file is trusted at face value: apart from checking for
-    duplicates, all entries found in a *.pkg file are added to the
-    path, regardless of whether they are exist the filesystem.  (This
-    is a feature.)
-
     If the input path is not a list (as is the case for frozen
     packages) it is returned unchanged.  The input path is not
     modified; an extended copy is returned.  Items are only appended
     to the copy at the end.
 
-    It is assumed that sys.path is a sequence.  Items of sys.path that
+    It is assumed that 'plugin_path' is a sequence.  Items of 'plugin_path' that
     are not (unicode or 8-bit) strings referring to existing
     directories are ignored.  Unicode items of sys.path that cause
     errors when used as filenames may cause this function to raise an
@@ -53,13 +47,11 @@ def extend_path(path, name):
         # frozen package.  Return the path unchanged in that case.
         return path
 
-    pname = os.path.join(*name.split('.')) # Reconstitute as relative path
+    pname = os.path.join(*name.split('.'))  # Reconstitute as relative path
     # Just in case os.extsep != '.'
-    sname = os.extsep.join(name.split('.'))
-    sname_pkg = sname + os.extsep + "pkg"
     init_py = "__init__" + os.extsep + "py"
 
-    path = path[:] # Start with a copy of the existing path
+    path = path[:]  # Start with a copy of the existing path
 
     for dir in settings.get("plugin_path"):
         if not isinstance(dir, basestring) or not os.path.isdir(dir):
@@ -70,22 +62,6 @@ def extend_path(path, name):
         initfile = os.path.join(subdir, init_py)
         if subdir not in path and os.path.isfile(initfile):
             path.append(subdir)
-        # XXX Is this the right thing for subpackages like zope.app?
-        # It looks for a file named "zope.app.pkg"
-        pkgfile = os.path.join(dir, sname_pkg)
-        if os.path.isfile(pkgfile):
-            try:
-                f = open(pkgfile)
-            except IOError, msg:
-                sys.stderr.write("Can't open %s: %s\n" %
-                                 (pkgfile, msg))
-            else:
-                for line in f:
-                    line = line.rstrip('\n')
-                    if not line or line.startswith('#'):
-                        continue
-                    path.append(line) # Don't check for existence!
-                f.close()
 
     return path
 
@@ -109,6 +85,7 @@ class RezPluginType(object):
         return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
 
     def register_plugin(self, plugin_name, plugin_class):
+        # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
         self.plugin_classes[plugin_name] = plugin_class
 
     def load_plugins(self):
@@ -116,8 +93,11 @@ class RezPluginType(object):
         type_module_name = 'rezplugins.' + self.type_name
         __import__(type_module_name, globals(), locals(), [], -1)
         package = sys.modules[type_module_name]
-        # this path has already been extended to existing directories on the plugin
-        # search path
+        # on import, the `__path__` variable of the imported package is extended
+        # to include existing directories on the plugin search path (via
+        # extend_path, above). this means that `walk_packages` will walk over all
+        # modules on the search path at the same level (.e.g in a
+        # 'rezplugins/type_name' sub-directory).
         for loader, modname, ispkg in pkgutil.walk_packages(package.__path__,
                                                             package.__name__ + '.'):
             if loader is not None:
@@ -156,11 +136,12 @@ class RezPluginManager(object):
     Primary interface for working with registered plugins.
 
     Custom plugins are organized under a python package named 'rezplugins'.
-    The direct sub-packages of 'rezplugins' are the known plugin types supported by
-    rez, and the modules under that are indivudal custom plugins extending that
+    The direct sub-packages of 'rezplugins' are the plugin types supported by
+    rez, and the modules below that are individual custom plugins extending that
     type.
 
-    For example, rez provides 2 plugins of type 'build_system'::
+    For example, rez provides two plugins of type 'build_system': 'cmake', and
+    'make'::
 
         rezplugins/
           __init__.py
@@ -168,28 +149,43 @@ class RezPluginManager(object):
             __init__.py
             cmake.py
             make.py
+          ...
 
-    If you would like to provide your own build system plugin, create a similar
-    directory structure, placing your plugin module into the appropriate sub-package::
+    Here is an example of how to provide your own plugin.  In the example, we'll
+    be adding a plugin for the SCons build system.
 
-        rezplugins/
-          __init__.py
-          build_system/
-            __init__.py
-            scons.py
+    1.  Create the 'rezplugins/build_system' directory structure, add the empty
+        '__init__.py' files, and then place your new 'scons.py' plugin module
+        into the 'build_system' sub-package::
 
-    In your plugin module, 'scons.py' in this example, add a 'register_plugin' function
-    that returns the class for your function::
+            rezplugins/
+              __init__.py
+              build_system/
+                __init__.py
+                scons.py
 
-        def register_plugin():
-            return SCons
+    2.  Write your 'scons.py' plugin module, sub-classing your `SConsBuildSystem`
+        class from `rez.build_systems.BuildSystem` base class.
 
-    Next, use the `rez settings` command to configure the `plugin_path` to point
-    to the directory above *your* 'rezplugins' directory. Alternately, you may
-    set the REZ_PLUGIN_PATH environment variable. If multiple directories
-    are added to the search path, they will all be merged into a single
-    'rezplugins' python package.
-    see `pkgutil <https://docs.python.org/2/library/pkgutil.html>` for more info.
+        At the bottom of the module add a `register_plugin` function that
+        returns your plugin class::
+
+            def register_plugin():
+                return SConsBuildSystem
+
+    3.  Use the `rez settings` command to configure `plugin_path` to point
+        to the directory **above** your 'rezplugins' directory. Alternately, you
+        may set the `REZ_PLUGIN_PATH` environment variable.
+
+        All 'rezplugin' packages found on the search path will all be merged
+        into a single python package.
+
+        ..note::
+
+            Even though 'rezplugins' is a python package, your sparse copy of it
+            should  not be on the `PYTHONPATH`, just the `REZ_PLUGIN_PATH`.
+            This is important  because it ensures that rez's copy of 'rezplugins'
+            is always found first.
     """
     def __init__(self):
         self._plugin_types = {}
@@ -227,7 +223,8 @@ class RezPluginManager(object):
                              % (self.pretty_type_name, plugin_name))
 
     def get_plugins(self, plugin_type):
-        """Return a list of the registered names available for the given plugin type."""
+        """Return a list of the registered names available for the given plugin
+        type."""
         return self._get_plugin_type(plugin_type).plugin_classes.keys()
 
     def create_instance(self, plugin_type, plugin_name, **instance_kwargs):
@@ -240,7 +237,8 @@ class RezPluginManager(object):
 #------------------------------------
 
 class SourceRetrieverPluginType(RezPluginType):
-    """Source retrievers download data from sources such as archives or repositories.
+    """Source retrievers download data from sources such as archives or
+    repositories.
     """
     type_name = "source_retriever"
 
