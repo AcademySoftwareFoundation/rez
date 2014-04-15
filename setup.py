@@ -110,7 +110,6 @@ setup(
         ],
         'rezplugins': [
             'build_system/cmake_files/*.cmake',
-            '_sys/*'
         ]
     },
     classifiers = [
