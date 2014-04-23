@@ -753,3 +753,72 @@ except AttributeError:
 
         def __ne__(self, other):
             return not self == other
+
+class propertycache(object):
+    '''Class for creating properties where the value is initially calculated then stored.
+
+    Intended for use as a descriptor, ie:
+
+    >>> class MyClass(object):
+    ...     @propertycache
+    ...     def aValue(self):
+    ...         print "This is taking awhile"
+    ...         return 42
+    >>> c = MyClass()
+    >>> c.aValue
+    This is taking awhile
+    42
+    >>> c.aValue
+    42
+
+    If you wish to signal that the return result of the decorated function
+    should NOT be cached, raise a DoNotCacheSignal, with the value to return
+    as the first argument (defaults to None):
+
+    >>> class MyOtherClass(object):
+    ...     def __init__(self):
+    ...         self._timesCalled = 0
+    ...
+    ...     @propertycache
+    ...     def aValue(self):
+    ...         print "calcing aValue..."
+    ...         self._timesCalled += 1
+    ...         if self._timesCalled < 2:
+    ...             raise propertycache.DoNotCacheSignal('foo')
+    ...         return 'bar'
+    >>> c = MyOtherClass()
+    >>> c.aValue
+    calcing aValue...
+    'foo'
+    >>> c.aValue
+    calcing aValue...
+    'bar'
+    >>> c.aValue
+    'bar'
+
+    '''
+    class DoNotCacheSignal(Exception):
+        def __init__(self, default=None):
+            self.default = default
+
+        def __repr__(self):
+            default = self.default
+            try:
+                defaultRepr = repr(default)
+            except Exception:
+                defaultRepr = '<<unable to get repr for default>>'
+            return '%s(%s)' % (type(self).__name__, defaultRepr)
+
+    def __init__(self, func):
+        self.func = func
+        self.name = func.__name__
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return None
+        try:
+            result = self.func(instance)
+        except self.DoNotCacheSignal, e:
+            return e.default
+        setattr(instance, self.name, result)
+        return result
