@@ -1776,6 +1776,7 @@ class _Configuration(object):
 
                     # check resolved path exists
                     root_path = os.path.join(pkg.base_path, *[x.short_name() for x in variant.all_requests])
+                    root_path = root_path.replace("!", "_not_").replace("+<", "_thru_").replace("+", "_ge_").replace("<", "_lt_").replace("~", "_weak_")
                     if not os.path.isdir(root_path):
                         pkg_req_ = pkg.as_package_request()
 
