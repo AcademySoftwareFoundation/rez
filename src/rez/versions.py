@@ -161,6 +161,10 @@ class Version(object):
             assert len(self._ge)
             assert len(self._lt)
 
+        elif isinstance(version, (Version,)):
+            self._ge = version._ge
+            self._lt = version._lt
+
         elif version:
             try:
                 version = str(version)
