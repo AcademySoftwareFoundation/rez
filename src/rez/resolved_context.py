@@ -336,6 +336,7 @@ class ResolvedContext(object):
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
+        executor.get_output()
 
     @on_success
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
