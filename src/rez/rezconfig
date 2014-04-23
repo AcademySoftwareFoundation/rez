@@ -166,6 +166,7 @@ cmake_build_system: make
 # A list of default arguments to be used with CMake.
 cmake_args:
 - '-DCMAKE_SKIP_RPATH=1'
+- '-Wno-dev'
 
 
 ###############################################################################
