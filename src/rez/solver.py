@@ -7,6 +7,7 @@ with a faster resolve.
 """
 from rez.contrib.pygraph.classes.digraph import digraph
 from rez.contrib.pygraph.algorithms.cycles import find_cycle
+from rez.contrib.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PkgFamilyNotFoundError
 from rez.version import VersionRange
@@ -145,6 +146,8 @@ class PackageRequestList(_Common):
 
 
 class Reduction(_Common):
+    """A variant was removed because its dependencies conflicted with another
+    scope in the current phase."""
     def __init__(self, name, version, variant_index, dependency,
                  conflicting_request):
         self.name = name
@@ -159,20 +162,86 @@ class Reduction(_Common):
             else "[%d]" % self.variant_index
         return str(stmt) + idx_str
 
+    def involved_packages(self):
+        range = VersionRange.from_version(self.version)
+        stmt = PackageRangeStatement.construct(self.name, range)
+        return [stmt, self.dependency, self.conflicting_request]
+
     def __str__(self):
-        return "removed %s (dep(%s) <--!--> %s)" \
+        return "%s --> %s <--!--> %s)" \
             % (self.reducee_str(), self.dependency, self.conflicting_request)
 
 
+class DependencyConflict(_Common):
+    """A common dependency shared by all variants in a scope, conflicted with
+    another scope in the current phase."""
+    def __init__(self, dependency, conflicting_request):
+        self.dependency = dependency
+        self.conflicting_request = conflicting_request
 
-class FailureReason(object):
-    pass
+    def __str__(self):
+        return "%s <--!--> %s" % (str(self.dependency),
+                                  str(self.conflicting_request))
 
+
+class FailureReason(_Common):
+    def involved_packages(self):
+        """Get a list of packages involved in the resolve failure.
+
+        Returns:
+            List of PackageRangeStatement objects.
+        """
+        raise NotImplemented
 
 
 class TotalReduction(FailureReason):
+    """All of a scope's variants were reduced away."""
     def __init__(self, reductions):
         self.reductions = reductions
+
+    def involved_packages(self):
+        pkgs = []
+        for red in self.reductions:
+            pkgs.extend(red.involved_packages())
+        return pkgs
+
+    def __str__(self):
+        return ' '.join(("(%s)" % str(x)) for x in self.reductions)
+
+
+class DependencyConflicts(FailureReason):
+    """A common dependency in a scope conflicted with another scope in the
+    current phase."""
+    def __init__(self, conflicts):
+        self.conflicts = conflicts
+
+    def involved_packages(self):
+        pkgs = []
+        for conflict in self.conflicts:
+            pkgs.append(conflict.dependency)
+            pkgs.append(conflict.conflicting_request)
+        return pkgs
+
+    def __str__(self):
+        return ' '.join(("(%s)" % str(x)) for x in self.conflicts)
+
+
+class Cycle(FailureReason):
+    """The solve contains a cyclic dependency."""
+    def __init__(self, packages):
+        self.packages = packages
+
+    def involved_packages(self):
+        pkgs = []
+        for pkg in self.packages:
+            range = VersionRange.from_version(pkg.version)
+            stmt = PackageRangeStatement.construct(pkg.name, range)
+            pkgs.append(stmt)
+        return pkgs
+
+    def __str__(self):
+        stmts = self.packages + self.packages[:1]
+        return " --> ".join(str(x) for x in stmts)
 
 
 
@@ -256,8 +325,7 @@ class _PackageVariantList(_Common):
                 self.variants.append(variant)
 
         if not self.variants:
-            raise PkgFamilyNotFoundError("Package family could not be found: %s"
-                                         % str(package_name))
+            raise PkgFamilyNotFoundError(package_name)
 
     def get_intersection(self, range):
         variants = []
@@ -351,7 +419,10 @@ class _PackageVariantSlice(_Common):
                                     dependency=req,
                                     conflicting_request=package_request)
                     reductions.append(red)
-                    self.pr(str(red))
+                    self.pr("removed %s (dep(%s) <--!--> %s)"
+                            % (red.reducee_str(),
+                               str(red.dependency),
+                               str(red.conflicting_request)))
                 continue
 
             variants.append(variant)
@@ -678,7 +749,7 @@ class _ResolvePhase(_Common):
     def __init__(self, package_requests, solver):
         self.package_requests = package_requests
         self.failure_reason = None
-        self.extractions = None
+        self.extractions = {}
         self.solver = solver
         self.pr = solver.pr
         self.status = "pending"
@@ -701,106 +772,98 @@ class _ResolvePhase(_Common):
 
         scopes = self.scopes[:]
         failure_reason = None
-        extractions = set()
+        extractions = {}
         pending_reducts = self.pending_reducts.copy()
 
-        def _create_phase(status):
+        def _create_phase(status=None):
             phase = copy.copy(self)
             phase.scopes = scopes
             phase.failure_reason = failure_reason
             phase.extractions = extractions
+            phase.extractions = extractions
             phase.pending_reducts = set()
-            phase.status = status
+
+            if status is None:
+                phase.status = "solved" if phase._is_solved() else "exhausted"
+            else:
+                phase.status = status
             return phase
 
         while True:
             # iteratively extract until no more extractions possible
-            self.pr.subheader("EXTRACTING:")
-            common_requests = []
-            for i in range(len(scopes)):
-                extracting = True
-                while extracting:
-                    scope_,common_request = scopes[i].extract()
-                    if common_request:
-                        common_requests.append(common_request)
-                        extractions.add((scopes[i].package_name, common_request.name))
-                        edges.append(self._g_edge(scopes[i], common_request, "needs"))
-                        scopes[i] = scope_
-                    else:
-                        extracting = False
+            while True:
+                self.pr.subheader("EXTRACTING:")
+                common_requests = []
 
-            if common_requests:
-                request_list = PackageRequestList(common_requests)
-                if request_list.conflict:
-                    return _create_phase("failed")
-                else:
-                    self.pr("merged extractions: %s" % str(request_list))
-                    if len(request_list) < len(common_requests):
-                        for req in request_list.package_requests:
-                            src_reqs = [x for x in common_requests
-                                        if x.name == req.name]
-                            if len(src_reqs) > 1:
-                                for src_req in src_reqs:
-                                    if src_req != req:
-                                        edges.append(self._g_edge(src_req, req))
-
-                # do intersections with existing scopes
-                self.pr.subheader("INTERSECTING:")
-                req_fams = []
-
-                for i,scope in enumerate(scopes):
-                    req = request_list.get(scope.package_name)
-                    if req is not None:
-                        scope_ = scope.intersect(req.range)
-                        req_fams.append(req.name)
-
-                        if scope_ is None:
-                            # is this ever hit?
-                            assert("JUST CHECKING!")
-                            return _create_phase("failed")
-                        elif scope_ is not scope:
+                for i in range(len(scopes)):
+                    while True:
+                        scope_,common_request = scopes[i].extract()
+                        if common_request:
+                            common_requests.append(common_request)
+                            k = (scopes[i].package_name, common_request.name)
+                            extractions[k] = common_request
                             scopes[i] = scope_
-                            for j in range(len(scopes)):
-                                if j!=i:
+                        else:
+                            break
+
+                if common_requests:
+                    request_list = PackageRequestList(common_requests)
+                    if request_list.conflict:
+                        req1,req2 = request_list.conflict
+                        conflict = DependencyConflict(req1, req2)
+                        failure_reason = DependencyConflicts([conflict])
+                        return _create_phase("failed")
+                    else:
+                        self.pr("merged extractions: %s" % str(request_list))
+                        if len(request_list) < len(common_requests):
+                            for req in request_list.package_requests:
+                                src_reqs = [x for x in common_requests
+                                            if x.name == req.name]
+
+                    # do intersections with existing scopes
+                    self.pr.subheader("INTERSECTING:")
+                    req_fams = []
+
+                    for i,scope in enumerate(scopes):
+                        req = request_list.get(scope.package_name)
+                        if req is not None:
+                            scope_ = scope.intersect(req.range)
+                            req_fams.append(req.name)
+
+                            if scope_ is None:
+                                conflict = DependencyConflict( \
+                                    req, scope.package_request)
+                                failure_reason = DependencyConflicts([conflict])
+                                return _create_phase("failed")
+                            elif scope_ is not scope:
+                                scopes[i] = scope_
+                                for j in range(len(scopes)):
+                                    if j!=i:
+                                        pending_reducts.add((i,j))
+
+                    # add new scopes
+                    self.pr.subheader("ADDING:")
+                    new_reqs = [x for x in request_list.package_requests \
+                        if x.name not in req_fams]
+
+                    if new_reqs:
+                        n = len(scopes)
+                        for req in new_reqs:
+                            scope = _PackageScope(req, solver=self.solver)
+                            scopes.append(scope)
+                            self.pr("added %s" % str(scope))
+
+                        m = len(new_reqs)
+                        for i in range(n,n+m):
+                            for j in range(n+m):
+                                if i!=j:
                                     pending_reducts.add((i,j))
 
-                            if scope.package_request.conflict:
-                                # conflict-range + range merge causes a package read
-                                req_int = scope.package_request.merged(req)
-                                edges.append(self._g_edge(scope, req_int))
-                                edges.append(self._g_edge(req, req_int))
-                                edges.append(self._g_edge(req_int, scope_, "read"))
-                            else:
-                                edges.append(self._g_edge(req, scope_))
-                                edges.append(self._g_edge(scope, scope_))
-
-                        elif scope.package_request != req:
-                            edges.append(self._g_edge(req, scope))
-
-                # add new scopes
-                self.pr.subheader("ADDING:")
-                new_reqs = [x for x in request_list.package_requests \
-                    if x.name not in req_fams]
-
-                if new_reqs:
-                    n = len(scopes)
-
-                    for req in new_reqs:
-                        scope = _PackageScope(req, solver=self.solver)
-                        scopes.append(scope)
-                        if not req.conflict:
-                            edges.append(self._g_edge(req, scope, "read"))
-                        self.pr("added %s" % str(scope))
-
-                    m = len(new_reqs)
-                    for i in range(n,n+m):
-                        for j in range(n+m):
-                            if i!=j:
+                        for i in range(n):
+                            for j in range(n,n+m):
                                 pending_reducts.add((i,j))
-
-                    for i in range(n):
-                        for j in range(n,n+m):
-                            pending_reducts.add((i,j))
+                else:
+                    break
 
             if not pending_reducts:
                 break
@@ -814,7 +877,6 @@ class _ResolvePhase(_Common):
                         failure_reason = TotalReduction(reductions)
                         return _create_phase("failed")
                     elif new_scope is not scopes[j]:
-                        edges.append(self._g_edge(scopes[j], new_scope, "reduce"))
                         scopes[j] = new_scope
                         for i in range(len(scopes)):
                             if i!=j:
@@ -822,18 +884,42 @@ class _ResolvePhase(_Common):
 
                     pending_reducts -= set([(i,j)])
 
-        # create new phase
-        status = "solved" if phase._is_solved() else "exhausted"
-        return _create_phase(status)
+        return _create_phase()
 
     def finalise(self):
-        """Remove conflict requests, and order packages wrt dependency and
-        request order.
+        """Remove conflict requests, detect cyclic dependencies, and reorder
+        packages wrt dependency and then request order.
 
         Returns:
             A new copy of the phase with conflict requests removed and packages
-            correctly ordered.
+            correctly ordered; or, if cyclic dependencies were detected, a new
+            phase marked as cyclic.
         """
+        assert(self._is_solved())
+        g = self._get_minimal_graph()
+        scopes = dict((x.package_name,x) for x in self.scopes
+                      if not x.package_request.conflict)
+
+        # check for cyclic dependencies
+        fam_cycle = find_cycle(g)
+        if fam_cycle:
+            cycle = []
+            for fam in fam_cycle:
+                scope = scopes[fam]
+                variant = scope._get_solved_variant()
+                stmt = PackageStatement.construct(fam, variant.version)
+                cycle.append(stmt)
+
+            phase = copy.copy(self)
+            phase.scopes = scopes.values()
+            phase.failure_reason = Cycle(cycle)
+            phase.status = "cyclic"
+            return phase
+
+        # reorder wrt dependencies, keeping original request order where possible
+        pass
+
+        # create the new phase copy
         phase = copy.copy(self)
         phase.scopes = [x for x in phase.scopes if not x.package_request.conflict]
         return phase
@@ -905,57 +991,74 @@ class _ResolvePhase(_Common):
         request_nodes = set()
         requires_nodes = set()
         solved_nodes = set()
+        failure_nodes = set()
         scopes = dict((x.package_name,x) for x in self.scopes)
 
         def _add_edge(src, dest, type_=None):
-            src_nodes.add(src)
-            dest_nodes.add(dest)
-            e = (src,dest)
-            edges.add(e)
-            if type_:
-                edge_types[e] = type_
+            if src != dest:
+                src_nodes.add(src)
+                dest_nodes.add(dest)
+                e = (src,dest)
+                edges.add(e)
+                if type_:
+                    edge_types[e] = type_
 
         def _str_scope(scope):
             variant = scope._get_solved_variant()
-            return str(variant) if variant else str(scope).replace('*','')
+            return str(variant) if variant \
+                else "(REQUIRE)%s" % str(scope).replace('*','')
 
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
                 solved_nodes.add(str(variant))
 
+        # create (initial request --> scope) edges
         for req in self.package_requests:
-            if not req.conflict:
-                scope_ = scopes.get(req.name)
-                if scope_:
-                    req_str = str(req)
-                    _add_edge(req_str, _str_scope(scope_))
-                    variant_ = scope_._get_solved_variant()
-                    if variant_:
-                        request_nodes.add(req_str)
+            scope_ = scopes.get(req.name)
+            if scope_:
+                prefix = "(REQUIRE)" if req.conflict else "(REQUEST)"
+                req_str = "%s%s" % (prefix, str(req))
+                request_nodes.add(req_str)
+                _add_edge(req_str, _str_scope(scope_))
 
+        # for solved scopes, create:
+        # - (scope --> requirement) edge, and;
+        # - (requirement -> scope) edge, if it exists.
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
                 for req in variant.requires_list.package_requests:
-                    if not req.conflict:
-                        req_str = str(req)
-                        requires_nodes.add(req_str)
-                        _add_edge(str(variant), req_str)
+                    req_str = "(REQUIRE)%s" % str(req)
+                    requires_nodes.add(req_str)
+                    _add_edge(str(variant), req_str)
 
-                        scope_ = scopes.get(req.name)
-                        if scope_:
+                    scope_ = scopes.get(req.name)
+                    if scope_:
+                        # this may be a conflict not yet found because an
+                        # earlier conflict caused the solve to fail.
+                        if not req.conflicts_with(scope_.package_request):
                             _add_edge(req_str, _str_scope(scope_))
 
-        for src_fam,dest_fam in self.extractions:
+        # in an unfinished solve, there may be outstanding extractions - they
+        # are dependencies between scopes that are not yet solved. They need to
+        # be in the graph, because they may be related to conflicts.
+        for (src_fam,_),dest_req in self.extractions.iteritems():
             scope_src = scopes.get(src_fam)
-            scope_dest = scopes.get(dest_fam)
-            if scope_src and scope_dest:
-                str_src = _str_scope(scope_src)
-                str_dest = _str_scope(scope_dest)
-                if str_dest not in dest_nodes:
-                    _add_edge(str_src, str_dest)
+            if scope_src:
+                str_dest_req = "(REQUIRE)%s" % str(dest_req)
+                requires_nodes.add(str_dest_req)
+                _add_edge(_str_scope(scope_src), str_dest_req)
 
+                scope_dest = scopes.get(dest_req.name)
+                if scope_dest:
+                    # this may be a conflict not yet found because an
+                    # earlier conflict caused the solve to fail.
+                    if not scope_dest.package_request.conflicts_with(dest_req):
+                        str_dest = _str_scope(scope_dest)
+                        _add_edge(str_dest_req, str_dest)
+
+        # show conflicts that caused a failed solve, if any
         fr = self.failure_reason
         if fr:
             if isinstance(fr, TotalReduction):
@@ -964,11 +1067,41 @@ class _ResolvePhase(_Common):
                     str_scope = _str_scope(scope)
                     confl_scope = scopes.get(red.conflicting_request.name)
                     str_confl_scope = _str_scope(confl_scope)
-
                     str_reduct = "%s requires %s" \
                                  % (red.reducee_str(), str(red.dependency))
+
                     _add_edge(str_scope, str_reduct, "depends")
                     _add_edge(str_reduct, str_confl_scope, "conflicts")
+                    failure_nodes.add(str_reduct)
+                    failure_nodes.add(str_confl_scope)
+            elif isinstance(fr, DependencyConflicts):
+                for conflict in fr.conflicts:
+                    scope = scopes.get(conflict.conflicting_request.name)
+                    dep_str = "(REQUIRE)%s" % str(conflict.dependency)
+                    failure_nodes.add(dep_str)
+
+                    if scope:
+                        scope_str = _str_scope(scope)
+                        _add_edge(dep_str, scope_str, "conflicts")
+                        failure_nodes.add(scope_str)
+                    else:
+                        req_str = "(REQUIRE)%s" % str(conflict.conflicting_request)
+                        requires_nodes.add(req_str)
+                        _add_edge(dep_str, req_str, "conflicts")
+                        failure_nodes.add(req_str)
+            elif isinstance(fr, Cycle):
+                str_a = str(fr.packages[-1])
+                str_b = str(fr.packages[0])
+                failure_nodes.add(str_a)
+                failure_nodes.add(str_b)
+                _add_edge(str_a, str_b, "cycle_label")
+
+                for i,stmt in enumerate(fr.packages[:-1]):
+                    str_a = str(stmt)
+                    str_b = str(fr.packages[i+1])
+                    failure_nodes.add(str_a)
+                    failure_nodes.add(str_b)
+                    _add_edge(str_a, str_b, "cycle")
 
         node_color = settings.graph_node_color
         request_color = settings.graph_request_color
@@ -978,8 +1111,12 @@ class _ResolvePhase(_Common):
         nodes = src_nodes | dest_nodes
         g = digraph()
 
+        def _node_label(n):
+            return n.replace("(REQUEST)","").replace("(REQUIRE)","")
+
         for n in nodes:
-            attrs = [("fontsize", node_fontsize)]
+            attrs = [("label", _node_label(n)),
+                     ("fontsize", node_fontsize)]
             if n in request_nodes:
                 attrs.append(("fillcolor", request_color))
                 attrs.append(("style", '"filled,dashed"'))
@@ -1003,17 +1140,58 @@ class _ResolvePhase(_Common):
                 if type_ == "depends":
                     g.add_edge_attribute(e, ("style", "dashed"))
                 elif type_ == "conflicts":
-                    g.set_edge_label(e, "CONFLICTS")
+                    g.set_edge_label(e, "CONFLICT")
+                    g.add_edge_attribute(e, ("style", "bold"))
+                    g.add_edge_attribute(e, ("color", "red"))
+                    g.add_edge_attribute(e, ("fontcolor", "red"))
+                elif type_ == "cycle":
+                    g.add_edge_attribute(e, ("style", "bold"))
+                    g.add_edge_attribute(e, ("color", "red"))
+                    g.add_edge_attribute(e, ("fontcolor", "red"))
+                elif type_ == "cycle_label":
+                    g.set_edge_label(e, "CYCLE")
                     g.add_edge_attribute(e, ("style", "bold"))
                     g.add_edge_attribute(e, ("color", "red"))
                     g.add_edge_attribute(e, ("fontcolor", "red"))
 
+        # prune nodes not related to failure
+        if failure_nodes:
+            access_dict = accessibility(g)
+            del_nodes = set()
+
+            for n,access_nodes in access_dict.iteritems():
+                if not (set(access_nodes) & failure_nodes):
+                    del_nodes.add(n)
+
+            for n in del_nodes:
+                g.del_node(n)
+
         return g
 
-    def _g_edge(self, src, dest, label=''):
-        src_ = str(src).replace('*','')
-        dest_ = str(dest).replace('*','')
-        return (src_, dest_, label)
+    def _get_minimal_graph(self):
+        if not self._is_solved():
+            return None
+
+        edges = set()
+        scopes = dict((x.package_name,x) for x in self.scopes)
+
+        for scope in scopes.itervalues():
+            variant = scope._get_solved_variant()
+            if variant:
+                for req in variant.requires_list.package_requests:
+                    scope_ = scopes.get(req.name)
+                    variant_ = scope_._get_solved_variant()
+                    if variant_:
+                        edges.add((variant.name, variant_.name))
+
+        nodes = set(x[0] for x in edges)
+        nodes |= set(x[1] for x in edges)
+        g = digraph()
+        g.add_nodes(nodes)
+        for e in edges:
+            g.add_edge(e)
+
+        return g
 
     def _is_solved(self):
         for scope in self.scopes:
@@ -1095,14 +1273,16 @@ class Solver(_Common):
         unsolved - the resolve is unfinished.
         """
         st = self.phase_stack[-1].status
-        if len(self.phase_stack) > 1:
+        if st == "cyclic":
+            return "failed"
+        elif len(self.phase_stack) > 1:
             return "solved" if st == "solved" else "unsolved"
         else:
             return "unsolved" if st in ("pending","exhausted") else st
 
     @property
     def num_solves(self):
-        """Return the number of resolve phases that have been executed."""
+        """Return the number of solve steps that have been executed."""
         return self.solve_count
 
     @property
@@ -1116,7 +1296,22 @@ class Solver(_Common):
         final_phase = self.phase_stack[-1]
         return final_phase._get_solved_variants()
 
+    @property
+    def failure_packages(self):
+        """Return a list of PackageRangeStatement objects, signifying what
+        packages were involved in the failure; or None if the resolve has not
+        failed."""
+        fr = self.phase_stack[-1].failure_reason
+        return fr.involved_packages() if fr else None
+
+    @property
+    def failure_reason(self):
+        """Return a FailureReason subclass instance signifying why the solve
+        failed, or None if the resolve has not failed."""
+        return self.phase_stack[-1].failure_reason
+
     def get_graph(self):
+        """Returns the resolve graph, also valid for failed resolves."""
         return self.phase_stack[-1].get_graph()
 
     def reset(self):
@@ -1180,8 +1375,14 @@ class Solver(_Common):
             if len(self.phase_stack) == 1:
                 self.pr("FAIL: there is no solution")
         elif new_phase.status == "solved":
-            self._finalise_solve(new_phase)
-            self.pr("SUCCESS")
+            # solved, but there may be cyclic dependencies
+            final_phase = new_phase.finalise()
+            self._push_phase(final_phase)
+
+            if final_phase.status == "cyclic":
+                self.pr("FAIL: a cyclic dependency was detected")
+            else:
+                self.pr("SUCCESS")
         else:
             assert(new_phase.status == "exhausted")
             self._push_phase(new_phase)
@@ -1189,6 +1390,7 @@ class Solver(_Common):
         end_time = time.time()
         self.solve_time += (end_time - start_time)
 
+    # TODO this will go into a Solver subclass
     def sat_solve_step(self):
         """Perform a resolve using the SAT solver."""
         self.solve_begun = True
@@ -1221,10 +1423,6 @@ class Solver(_Common):
         print "status: %s" % self.status
         print "initial request: %s" % str(self.request_list)
         print '\n'.join(columnise(rows))
-
-    def _finalise_solve(self, solved_phase):
-        phase = solved_phase.finalise()
-        self._push_phase(phase)
 
     def _push_phase(self, phase):
         depth = len(self.phase_stack)
