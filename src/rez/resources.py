@@ -7,7 +7,7 @@ A resource is given a hierarchical name and a file path pattern (like
 "{name}/{version}/package.yaml") and are collected under a particular
 configuration version.
 
-If the resource is a file, an optional metadata validator can be provided to
+If the resource is a file, an optional metadata schema can be provided to
 validate the contents (e.g. enforce data types and document structure) of the
 data. This validation is run after the data is deserialized, so it is decoupled
 from the storage format. New resource formats can be added and share the same
@@ -19,6 +19,20 @@ an understanding of the underlying file and folder structure.  This ensures that
 the addition of new resources is localized to the registration functions
 provided by this module.
 """
+# TODO: look into using schema.py (https://github.com/halst/schema) which is pretty
+# similar to MetadataSchema class below, but is more fully-featured.
+# I think the additional features could help consolidate some concepts within
+# this module:
+# Currently we use schemas to describe the contents of files, and we use the
+# concept of a 'path pattern' to define where we will find that file
+# in our directory tree.  I would like to investigate treating the directory
+# structure itself as a schema, with file schemas nested within it.
+#
+# Two other schema validation libraries are jsonschema and pykwalify. The former
+# is generic enough to validate yaml data, but might be a stretch to validate
+# data coming from python files (callables, for example) and the latter supports
+# both json and yaml, but we'd have to port pykwalify from python 3.x to 2.x.
+
 from __future__ import with_statement
 import yaml
 import os
@@ -249,7 +263,7 @@ class ResourceInfo(object):
             if not isinstance(metadata_validators, list):
                 metadata_validators = [metadata_validators]
             for cls in metadata_validators:
-                assert issubclass(cls, MetadataValidator)
+                assert issubclass(cls, MetadataSchema)
         else:
             metadata_validators = []
         self.metadata_validators = metadata_validators
@@ -306,7 +320,7 @@ def register_resource(config_version, resource_key, path_patterns=None,
     path_patterns : str or list of str
         a string pattern identifying where the resource file resides relative to
         the rez search path
-    metadata_validators : MetadataValidator class or list of MetadataValidator classes
+    metadata_validators : MetadataSchema class or list of MetadataSchema classes
         used to validate metadata
     """
     version_configs = _configs[config_version]
@@ -344,7 +358,7 @@ def get_resources(config_version, key=None):
 def get_metadata_validators(config_version, filename, key=None):
     """
     find any resources whose path pattern matches the given filename and yield
-    a list of MetadataValidator instances.
+    a list of MetadataSchema instances.
     """
     resources = get_resources(config_version, key)
     if resources is None:
@@ -442,15 +456,15 @@ def iter_resources(config_version, resource_keys, search_paths, **expansion_vari
 
 
 #------------------------------------------------------------------------------
-# Base MetadataValidator
+# Base MetadataSchema
 #------------------------------------------------------------------------------
 
-class MetadataValidator(object):
+class MetadataSchema(object):
     """
-    The MetadataValidator class provides a means to validate the structure of hierarchical
+    The MetadataSchema class provides a means to validate the structure of hierarchical
     metadata.
 
-    The STRUCTURE attribute defines a reference document which is compared
+    The `REFERENCE` attribute defines a reference document which is compared
     against the metadata document passed to `validate()`. The reference document
     provided by the STRUCTURE attribute can either be a single document or a
     list of documents. If it is a list, the additional documents provide
@@ -596,7 +610,7 @@ class OneOf(object):
         self.options = options
 
 #------------------------------------------------------------------------------
-# MetadataValidator Implementations
+# MetadataSchema Implementations
 #------------------------------------------------------------------------------
 
 # FIXME: come up with something better than this. Seems like legacy a format.
@@ -606,7 +620,7 @@ class OneOf(object):
 # Why does it assume SVN?
 # Why is it all caps whereas other metadata files use lowercase?
 # Why is it using .txt with custom parsing instead of YAML?
-class ReleaseInfo(MetadataValidator):
+class ReleaseInfo(MetadataSchema):
     REFERENCE = {
         'ACTUAL_BUILD_TIME': 0,
         'BUILD_TIME': 0,
@@ -615,7 +629,7 @@ class ReleaseInfo(MetadataValidator):
     }
     REQUIRED = ('ACTUAL_BUILD_TIME', 'BUILD_TIME', 'USER')
 
-class BasePackageConfig_0(MetadataValidator):
+class BasePackageSchema_0(MetadataSchema):
     REFERENCE = {
         'config_version': 0,
         'uuid': 'str',
@@ -632,7 +646,7 @@ class BasePackageConfig_0(MetadataValidator):
     REQUIRED = ('config_version', 'name')
     PROTECTED = ('requires', 'build_requires', 'variants', 'commands')
 
-class VersionPackageConfig_0(BasePackageConfig_0):
+class VersionPackageSchema_0(BasePackageSchema_0):
     REFERENCE = {
         'config_version': 0,
         'uuid': 'str',
@@ -648,7 +662,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
     }
     REQUIRED = ('config_version', 'name', 'version')
 
-class PackageBuildConfig_0(VersionPackageConfig_0):
+class PackageBuildSchema_0(VersionPackageSchema_0):
     """
     A package that is built with the intention to release is stricter about
     the existence of certain metadata values
@@ -659,16 +673,16 @@ class PackageBuildConfig_0(VersionPackageConfig_0):
 register_resource(0,
                   'package.versioned',
                   ['{name}/{version}/package.yaml', '{name}/{version}/package.py'],
-                  [VersionPackageConfig_0])
+                  [VersionPackageSchema_0])
 
 register_resource(0,
                   'package.versionless',
                   ['{name}/package.yaml', '{name}/package.py'],
-                  [BasePackageConfig_0])
+                  [BasePackageSchema_0])
 
 register_resource(0,
                   'package.built',
-                  metadata_validators=[PackageBuildConfig_0])
+                  metadata_validators=[PackageBuildSchema_0])
 
 register_resource(0,
                   'release.info',
@@ -732,7 +746,7 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
         return metadata
 
     msg = "Could not find registered metadata configuration for %r" % filename
-    for val,err in errors:
+    for val, err in errors:
         msg += "\n%s: %s" % (val.__class__.__name__, str(err))
     raise MetadataError(msg)
 
