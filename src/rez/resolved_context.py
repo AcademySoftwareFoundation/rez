@@ -608,17 +608,7 @@ class ResolvedContext(object):
                         print_warning_once("%s is using old-style commands."
                                            % pkg_res.short_name())
 
-                    # convert expansions from !OLD! style to {new}
-                    cmds = []
-                    for cmd in commands:
-                        cmd = cmd.replace("!VERSION!",      "{version}")
-                        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
-                        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
-                        cmd = cmd.replace("!BASE!",         "{base}")
-                        cmd = cmd.replace("!ROOT!",         "{root}")
-                        cmd = cmd.replace("!USER!",         "{user}")
-                        cmds.append(cmd)
-                    commands = convert_old_commands(cmds)
+                    commands = convert_old_commands(commands)
 
                 try:
                     if isinstance(commands, basestring):

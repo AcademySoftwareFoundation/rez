@@ -602,9 +602,17 @@ def convert_old_commands(commands, annotate=True):
         if annotate:
             loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
 
+        # convert expansions from !OLD! style to {new}
+        cmd = cmd.replace("!VERSION!",      "{version}")
+        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
+        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
+        cmd = cmd.replace("!BASE!",         "{base}")
+        cmd = cmd.replace("!ROOT!",         "{root}")
+        cmd = cmd.replace("!USER!",         "{user}")
+
         toks = cmd.strip().split()
         if toks[0] == "export":
-            var,value = cmd.split(' ', 1)[1].split('=', 1)
+            var, value = cmd.split(' ', 1)[1].split('=', 1)
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
 
@@ -621,9 +629,9 @@ def convert_old_commands(commands, annotate=True):
                     idx = parts.index(var1)
                 elif var2 in parts:
                     idx = parts.index(var2)
-                if idx in (0, len(parts)-1):
-                    func = "appendenv" if idx==0 else "prependenv"
-                    parts = parts[1:] if idx==0 else parts[:-1]
+                if idx in (0, len(parts) - 1):
+                    func = "appendenv" if idx == 0 else "prependenv"
+                    parts = parts[1:] if idx == 0 else parts[:-1]
                     val = os.pathsep.join(parts)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
@@ -643,6 +651,7 @@ def convert_old_commands(commands, annotate=True):
             loc.append("command('%s')" % _en(cmd))
 
     return '\n'.join(loc)
+
 
 try:
     import collections
