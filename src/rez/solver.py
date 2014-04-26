@@ -615,7 +615,8 @@ class _PackageScope(_Common):
 
         if self.package_request.conflict:
             if self.package_request.range is None:
-                return self
+                new_slice = self.solver._get_variant_slice( \
+                    self.package_name, range)
             else:
                 new_range = range - self.package_request.range
                 if new_range is not None:
@@ -736,6 +737,36 @@ class _PackageScope(_Common):
 
 
 
+def _get_dependency_order(g, node_list):
+    """Return list of nodes as close as possible to the ordering in node_list,
+    but with child nodes earlier in the list than parents."""
+    access_ = accessibility(g)
+    deps = dict((k,set(v)-set([k])) for k,v in access_.iteritems())
+    nodes = node_list + list(set(g.nodes()) - set(node_list))
+    ordered_nodes = []
+
+    while nodes:
+        n_ = nodes[0]
+        n_deps = deps.get(n_)
+        if (n_ in ordered_nodes) or (n_deps is None):
+            nodes = nodes[1:]
+            continue
+
+        moved = False
+        for i,n in enumerate(nodes[1:]):
+            if n in n_deps:
+                nodes = [nodes[i+1]] + nodes[:i+1] + nodes[i+2:]
+                moved = True
+                break
+
+        if not moved:
+            ordered_nodes.append(n_)
+            nodes = nodes[1:]
+
+    return ordered_nodes
+
+
+
 class _ResolvePhase(_Common):
     """A resolve phase contains a full copy of the resolve state, and runs the
     resolve algorithm until no further action can be taken without 'selecting'
@@ -809,6 +840,7 @@ class _ResolvePhase(_Common):
                 if common_requests:
                     request_list = PackageRequestList(common_requests)
                     if request_list.conflict:
+                        # two or more extractions are in conflict
                         req1,req2 = request_list.conflict
                         conflict = DependencyConflict(req1, req2)
                         failure_reason = DependencyConflicts([conflict])
@@ -917,11 +949,17 @@ class _ResolvePhase(_Common):
             return phase
 
         # reorder wrt dependencies, keeping original request order where possible
-        pass
+        fams = [x.name for x in self.package_requests]
+        ordered_fams = _get_dependency_order(g, fams)
 
-        # create the new phase copy
+        scopes_ = []
+        for fam in ordered_fams:
+            scope = scopes[fam]
+            if not scope.package_request.conflict:
+                scopes_.append(scope)
+
         phase = copy.copy(self)
-        phase.scopes = [x for x in phase.scopes if not x.package_request.conflict]
+        phase.scopes = scopes_
         return phase
 
     def split(self):
@@ -1103,10 +1141,10 @@ class _ResolvePhase(_Common):
                     failure_nodes.add(str_b)
                     _add_edge(str_a, str_b, "cycle")
 
-        node_color = settings.graph_node_color
-        request_color = settings.graph_request_color
-        solved_color = settings.graph_solved_color
-        node_fontsize = str(settings.graph_node_fontsize)
+        node_color      = "#F6F6F6"
+        request_color   = "#FFFFAA"
+        solved_color    = "#AAFFAA"
+        node_fontsize   = 10
 
         nodes = src_nodes | dest_nodes
         g = digraph()
@@ -1236,6 +1274,7 @@ class Solver(_Common):
         self.request_list = None
         self.pr = _Printer(verbose)
         self.phase_stack = []
+        self.failed_phase_list = []
         self.solve_count = 0
         self.depth_counts = {}
         self.sat_solve_time = 0.0
@@ -1286,6 +1325,15 @@ class Solver(_Common):
         return self.solve_count
 
     @property
+    def num_fails(self):
+        """Return the number of failed solve steps that have been executed. Note
+        that num_solves is inclusive of failures."""
+        n = len(self.failed_phase_list)
+        if self.phase_stack[-1].status in ("failed", "cyclic"):
+            n += 1
+        return n
+
+    @property
     def resolved_packages(self):
         """Return a list of PackageVariant objects, or None if the resolve did
         not complete or was unsuccessful.
@@ -1296,33 +1344,17 @@ class Solver(_Common):
         final_phase = self.phase_stack[-1]
         return final_phase._get_solved_variants()
 
-    @property
-    def failure_packages(self):
-        """Return a list of PackageRangeStatement objects, signifying what
-        packages were involved in the failure; or None if the resolve has not
-        failed."""
-        fr = self.phase_stack[-1].failure_reason
-        return fr.involved_packages() if fr else None
-
-    @property
-    def failure_reason(self):
-        """Return a FailureReason subclass instance signifying why the solve
-        failed, or None if the resolve has not failed."""
-        return self.phase_stack[-1].failure_reason
-
-    def get_graph(self):
-        """Returns the resolve graph, also valid for failed resolves."""
-        return self.phase_stack[-1].get_graph()
-
     def reset(self):
         """Reset the solver, removing any current solve."""
         phase = _ResolvePhase(self.request_list.package_requests, solver=self)
         self.pr("resetting...")
         self.solve_begun = False
+        self.solve_count = 0
         self.sat_solve_time = 0.0
         self.solve_time = 0.0
         self.load_time = 0.0
         self.phase_stack = []
+        self.failed_phase_list = []
         self._push_phase(phase)
 
     def solve(self):
@@ -1352,6 +1384,7 @@ class Solver(_Common):
 
         if phase.status == "failed":  # a previously failed phase
             self.pr("discarded failed phase, fetching previous unsolved phase...")
+            self.failed_phase_list.append(phase)
             phase = self._pop_phase()
 
         if phase.status == "exhausted":
@@ -1407,6 +1440,78 @@ class Solver(_Common):
         self.pr.header("SOLVE #%d (SAT)..." % (self.solve_count+1))
         raise NotImplemented
 
+    def failure_packages(self, failure_index=0):
+        """Get packages involved in a failure.
+
+        Args:
+            failure_index: Index of the fail to return the graph for (can be
+                negative).
+
+        Returns:
+            A list of PackageRangeStatement objects.
+        """
+        phase = self._get_failed_phase(failure_index)
+        fr = phase.failure_reason
+        return fr.involved_packages() if fr else None
+
+    def failure_reason(self, failure_index=0):
+        """Get the reason for a failure.
+
+        Args:
+            failure_index: Index of the fail to return the graph for (can be
+                negative).
+
+        Returns:
+            A FailureReason subclass instance describing the failure.
+        """
+        phase = self._get_failed_phase(failure_index)
+        return phase.failure_reason
+
+    def get_graph(self):
+        """Returns the resolve graph.
+
+        This gives a graph showing the latest state of the solve. If this solve
+        has failed, calling get_graph() is equivalent to calling get_fail_graph(-1).
+        If the solve has succeeded, this graph shows the successful solve.
+
+        Returns:
+            A pygraph.digraph object.
+        """
+        return self.phase_stack[-1].get_graph()
+
+    def get_fail_graph(self, failure_index=0):
+        """Returns a graph showing a solve failure.
+
+        Args:
+            failure_index: Index of the fail to return the graph for (can be
+                negative).
+
+        Returns:
+            A pygraph.digraph object.
+        """
+        phase = self._get_failed_phase(failure_index)
+        return phase.get_graph()
+
+    def dump(self):
+        """Print a formatted summary of the current solve state."""
+        rows = []
+        for i,phase in enumerate(self.phase_stack):
+            rows.append((self._depth_label(i), phase.status, str(phase)))
+
+        print "status: %s" % self.status
+        print "initial request: %s" % str(self.request_list)
+        print
+        print "solve stack:"
+        print '\n'.join(columnise(rows))
+
+        if self.failed_phase_list:
+            rows = []
+            for i,phase in enumerate(self.failed_phase_list):
+                rows.append(("#%d"%i, phase.status, str(phase)))
+            print
+            print "previous failures:"
+            print '\n'.join(columnise(rows))
+
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
         slice = self.package_cache.get_variant_slice(package_name, range)
@@ -1414,15 +1519,6 @@ class Solver(_Common):
         end_time = time.time()
         self.load_time += (end_time - start_time)
         return slice
-
-    def dump(self):
-        rows = []
-        for i,phase in enumerate(self.phase_stack):
-            rows.append((self._depth_label(i), phase.status, str(phase)))
-
-        print "status: %s" % self.status
-        print "initial request: %s" % str(self.request_list)
-        print '\n'.join(columnise(rows))
 
     def _push_phase(self, phase):
         depth = len(self.phase_stack)
@@ -1439,6 +1535,15 @@ class Solver(_Common):
         phase = self.phase_stack.pop()
         self.pr("popped %s: %s" % (dlabel, str(phase)))
         return phase
+
+    def _get_failed_phase(self, index):
+        fails = self.failed_phase_list
+        if self.phase_stack[-1].status in ("failed", "cyclic"):
+            fails = fails + self.phase_stack[-1:]
+        try:
+            return fails[index]
+        except IndexError:
+            raise IndexError("failure index out of range")
 
     def _depth_label(self, depth=None):
         if depth is None:
