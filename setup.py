@@ -47,6 +47,7 @@ requires = [
     # "pysvn >= 1.7.2"
     "PyYAML >= 3.9",
     "Yapsy >= 1.10.0",
+    "schema >= 0.3",
     "python-memcached >= 1.0"
 ]
 
