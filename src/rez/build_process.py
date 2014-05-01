@@ -6,8 +6,8 @@ from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
 from rez.versions import ExactVersion
+from rez.contrib import yaml
 import getpass
-import yaml
 import shutil
 import os
 import os.path

@@ -1,11 +1,13 @@
 import unittest
+import threading
+import sys
 
 
-def command(opts, parser=None):
+
+def get_suites(opts):
     suites = []
     test_all = \
         (not opts.shells) and \
-        (not opts.versions) and \
         (not opts.resolves) and \
         (not opts.cli)
 
@@ -13,17 +15,47 @@ def command(opts, parser=None):
         from rez.tests.shells import get_test_suites
         suites += get_test_suites()
 
-    if opts.versions or test_all:
-        from rez.tests.versions import get_test_suites
-        suites += get_test_suites()
-
+    # TODO move to --solver
     if opts.resolves or test_all:
-        from rez.tests.resolves import get_test_suites
+        #from rez.tests.resolves import get_test_suites
+        from rez.tests.solver import get_test_suites
         suites += get_test_suites()
 
     if opts.cli or test_all:
         from rez.tests.cli import get_test_suites
         suites += get_test_suites()
 
-    all_ = unittest.TestSuite(suites)
-    unittest.TextTestRunner(verbosity=opts.verbosity).run(all_)
+    return suites
+
+
+def command(opts, parser=None):
+    # test for thread safety
+    if not opts.no_thread:
+        nthreads = 4
+        threads = []
+
+        def fn(runner, test_suite):
+            result = runner.run(test_suite)
+            if not result.wasSuccessful():
+                sys.exit(1)
+
+        for i in range(nthreads):
+            suites = get_suites(opts)
+            test_suite = unittest.TestSuite(suites)
+            runner = unittest.TextTestRunner(verbosity=opts.verbosity)
+            th = threading.Thread(target=fn, args=(runner, test_suite))
+            th.setDaemon(True)
+            threads.append(th)
+
+        for th in threads:
+            th.start()
+
+        for th in threads:
+            th.join()
+
+    # run tests non-threaded
+    suites = get_suites(opts)
+    test_suite = unittest.TestSuite(suites)
+    result = unittest.TextTestRunner(verbosity=opts.verbosity).run(test_suite)
+    if not result.wasSuccessful():
+        sys.exit(1)

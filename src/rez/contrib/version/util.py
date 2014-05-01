@@ -1,4 +1,19 @@
 
+class VersionError(Exception):
+    pass
+
+
+class _Common(object):
+    def __str__(self):
+        raise NotImplementedError
+
+    def __ne__(self, other):
+        return not (self == other)
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
 def total_ordering(cls):
     """
     Backport to work with Python 2.6

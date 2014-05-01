@@ -1,0 +1,171 @@
+The following packages are designed to give test coverage of the resolve
+algorithm, allowing for testing of specific edge cases.
+
+
+nada:
+An unversioned package with no dependencies.
+
+      nada
+    +-------+
+    |       |
+    |       |
+    |       |
+    +-------+
+
+
+python:
+An versioned package with no dependencies.
+
+     python
+    +-------+
+    |       |
+    | 2.7.0 |
+    |       |
+    +-------+
+    |       |
+    | 2.6.8 |
+    |       |
+    +-------+
+    |       |
+    | 2.6.0 |
+    |       |
+    +-------+
+    |       |
+    | 2.5.2 |
+    |       |
+    +-------+
+
+
+nopy:
+A package that conflicts with python.
+
+           nopy               python
+         +-------+           +-------+
+         |       |           |       |
+         |  2.1  |----!!---->| 2.5.2 |
+         |       |           |       |
+         +-------+           +-------+
+
+
+pyfoo:
+Has normal dependencies on python.
+
+                              python
+                             +-------+
+                             |       |
+                             | 2.7.0 |
+           pyfoo             |       |
+         +-------+           +-------+
+         |       |           |       |
+         | 3.1.0 |---------->| 2.6.8 |
+         |       |          >|       |
+         +-------+          >+-------+
+         |       |          >|       |
+         | 3.0.0 |-----+    >| 2.6.0 |
+         |       |     |     |       |
+         +-------+     |     +-------+
+                       |     |       |
+                       +---->| 2.5.2 |
+                             |       |
+                             +-------+
+
+
+pybah:
+Has atypical dependencies on python, where a newer pybah version depends on
+an older python version.
+
+           pybah              python
+         +-------+           +-------+
+         |       |           |       |
+         |   5   |-----+     | 2.7.0 |
+         |       |     |     |       |
+         +-------+     |     +-------+
+         |       |     |     |       |
+         |   4   |-----|---->| 2.6.8 |
+         |       |     |    >|       |
+         +-------+     |    >+-------+
+                       |    >|       |
+                       |    >| 2.6.0 |
+                       |     |       |
+                       |     +-------+
+                       |     |       |
+                       +---->| 2.5.2 |
+                             |       |
+                             +-------+
+
+
+pyodd:
+Has atypical dependencies, version 1 depends on pyfoo only, and version 2
+depends on pybah only.
+
+           pyodd               pybah
+         +-------+           +-------+
+         |       |          >|   5   |
+         |   2   |---------->+-------+
+         |       |          >|   4   |         pyfoo
+         +-------+           +-------+       +-------+
+         |       |                          >| 3.1.0 |
+         |   1   |-------------------------->+-------+
+         |       |                          >| 3.0.0 |
+         +-------+                           +-------+
+
+
+pysplit:
+Has a common dependency in the latest two versions. Useful for checking that
+the resolve algorithm's split() functionality is working as expected.
+
+          pysplit              python
+         +-------+           +-------+
+         |       |           |       |
+         |   7   |---------->| 2.7.0 |
+         |       |           |       |
+         +-------+           +-------+
+         |       |           |       |
+         |   6   |---------->| 2.6.8 |
+         |       |          >|       |
+         +-------+          >+-------+
+         |       |          >|       |
+         |   5   |          >| 2.6.0 |
+         |       |           |       |
+         +-------+           +-------+
+
+
+bahish:
+Has alternatively a dependency on pybah, and a conflict on pybah.
+
+          bahish               pybah
+         +-------+           +-------+
+         |       |           |       |
+         |   2   |---------->|   5   |
+         |       |           |       |
+         +-------+           +-------+
+         |       |           |       |
+         |   1   |----!!---->|   4   |
+         |       |           |       |
+         +-------+           +-------+
+
+
+pymum, pydad, pyson:
+Packages that form a group of cyclic dependencies:
+pymum-3 --> pydad-3: dual cycle
+pymum-1 --> pydad-1 --> pyson-1: tri cycle
+pymum-2 --> pydad-2 --> pyson-2 --> pymum-3: cycle that is also a conflict
+
+     +-----------------------------------------------------+
+     |                                                     |
+     |     pymum               pydad                       |
+     |   +-------+           +-------+                     |
+     |   |       |---------->|       |                     |
+     +-->|   3   |           |   3   |                     |
+         |       |<----------|       |           pyson     |
+         +-------+           +-------+         +-------+   |
+         |       |           |       |         |       |   |
+         |   2   |---------->|   2   |-------->|   2   |---+
+         |       |           |       |         |       |
+         +-------+           +-------+         +-------+
+         |       |           |       |         |       |
+     +-->|   1   |---------->|   1   |-------->|   1   |---+
+     |   |       |           |       |         |       |   |
+     |   +-------+           +-------+         +-------+   |
+     |                                                     |
+     +-----------------------------------------------------+

@@ -94,12 +94,9 @@ build_system_plugin_path: []
 # System packages that are implicitly added to all package resolves, unless
 # the --no-implicit flag is used.
 implicit_packages:
-- 'platform-{platform}'
-- 'arch-{arch}'
-# TODO put this back once version submodule is updated
-#- '~platform-{platform}'
-#- '~arch-{arch}'
-#- '~os-{os}'
+- '~platform=={platform}'
+- '~arch=={arch}'
+- '~os=={os}'
 
 # Rez's default behaviour is to overwrite variables on first reference. This
 # prevents unconfigured software from being used within the resolved environment.
@@ -220,54 +217,3 @@ prompt: '>'
 
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
-
-
-###############################################################################
-# Internal - Do Not Change
-###############################################################################
-
-# Type specifiers
-_type:
-    packages_path: list
-    local_packages_path: str
-    release_packages_path: str
-    external_packages_path: str
-    package_repository_url_path: list
-    package_repository_path: str
-    package_repository_cache_path: str
-    tmpdir: str
-    implicit_packages: list
-    shell_plugin_path: list
-    source_retriever_plugin_path: list
-    release_vcs_plugin_path: list
-    release_hook_plugin_path: list
-    build_system_plugin_path: list
-    version_sep: str
-    editor: str
-    image_viewer: str
-    browser: str
-    prompt: str
-    prefix_prompt: bool
-    warn_shell_startup: bool
-    warn_untimestamped: bool
-    warn_old_commands: bool
-    debug_plugins: bool
-    debug_package_release: bool
-    build_system: str
-    cmake_args: list
-    vcs_tag_name: str
-    release_hooks: list
-    release_email_smtp_host: str
-    release_email_smtp_port: int
-    release_email_from: str
-    release_email_to: list
-    parent_variables: list
-    all_parent_variables: bool
-    resetting_variables: list
-    all_resetting_variables: bool
-
-
-# What seperator to expect in env-vars
-_sep:
-    implicit_packages: ' '
-    release_email_to: ' '

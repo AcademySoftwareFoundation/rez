@@ -4,16 +4,17 @@ Example:
 from rez.settings import settings
 print settings.packages_path
 """
-from __future__ import with_statement
 import os
 import os.path
-import yaml
 import sys
 import string
 import getpass
+from rez.contrib import yaml
 from rez.util import which
 from rez import module_root_path
 from rez.system import system
+from rez.exceptions import ConfigurationError
+from rez.contrib.schema.schema import Schema, SchemaError, Or
 
 
 
@@ -26,6 +27,59 @@ class PartialFormatter(string.Formatter):
 
 
 class Settings(object):
+    bool_schema         = Schema(bool, error="Expected boolean")
+    str_schema          = Schema(str, error="Expected string")
+    opt_str_schema      = Schema(Or(str,None), error="Expected string or null")
+    int_schema          = Schema(int, error="Expected integer")
+    str_list_schema     = Schema([str], error="Expected list of strings")
+    path_list_schema    = Schema([str], error="Expected list of strings")
+
+    key_schemas = {
+        # bools
+        "prefix_prompt":                    bool_schema,
+        "warn_shell_startup":               bool_schema,
+        "warn_untimestamped":               bool_schema,
+        "warn_old_commands":                bool_schema,
+        "debug_plugins":                    bool_schema,
+        "debug_package_release":            bool_schema,
+        "all_parent_variables":             bool_schema,
+        "all_resetting_variables":          bool_schema,
+        # integers
+        "release_email_smtp_port":          int_schema,
+        # strings
+        "local_packages_path":              str_schema,
+        "release_packages_path":            str_schema,
+        "external_packages_path":           str_schema,
+        "package_repository_path":          str_schema,
+        "package_repository_cache_path":    str_schema,
+        "tmpdir":                           str_schema,
+        "version_sep":                      str_schema,
+        "prompt":                           str_schema,
+        "build_system":                     str_schema,
+        "vcs_tag_name":                     str_schema,
+        "release_email_smtp_host":          str_schema,
+        "release_email_from":               str_schema,
+        # optional strings
+        "editor":                           opt_str_schema,
+        "image_viewer":                     opt_str_schema,
+        "browser":                          opt_str_schema,
+        # string lists
+        "implicit_packages":                str_list_schema,
+        "cmake_args":                       str_list_schema,
+        "release_hooks":                    str_list_schema,
+        "release_email_to":                 str_list_schema,
+        "parent_variables":                 str_list_schema,
+        "resetting_variables":              str_list_schema,
+        # path lists
+        "packages_path":                    path_list_schema,
+        "package_repository_url_path":      path_list_schema,
+        "shell_plugin_path":                path_list_schema,
+        "source_retriever_plugin_path":     path_list_schema,
+        "release_vcs_plugin_path":          path_list_schema,
+        "release_hook_plugin_path":         path_list_schema,
+        "build_system_plugin_path":         path_list_schema
+    }
+
     def __init__(self, overrides=None):
         """Create a Settings object.
 
@@ -91,16 +145,23 @@ class Settings(object):
                         for k,v in config.items():
                             if k not in self.config:
                                 print >> sys.stderr, \
-                                    "Warning: ignoring unknown settings key in %s: '%s'" \
+                                    "Warning: ignoring unknown setting in %s: '%s'" \
                                     % (filepath, k)
                                 del config[k]
-                            else:
-                                typestr = self.root_config["_type"].get(k)
-                                if type(v).__name__ != typestr:
-                                    raise KeyError("Invalid key in %s: '%s' should be %s, not %s" \
-                                        % (filepath, k, typestr, type(v).__name__))
 
                         self.config.update(config)
+
+        for k,v in self.config.iteritems():
+            self._validate(k, v)
+
+    @classmethod
+    def _validate(cls, key, value):
+        schema = cls.key_schemas.get(key)
+        if schema:
+            try:
+                schema.validate(value)
+            except SchemaError as e:
+                raise ConfigurationError("%s: %s" % (key, str(e)))
 
     def _load_variables(self):
         if self.variables is None:
@@ -110,10 +171,13 @@ class Settings(object):
                 os=system.os,
                 user=getpass.getuser())
 
-    def _expand_variables(self, s):
-        self._load_variables()
-        f = PartialFormatter()
-        return f.format(os.path.expanduser(s), **self.variables)
+    def _expand_variables(self, v):
+        if isinstance(v, basestring):
+            self._load_variables()
+            f = PartialFormatter()
+            return f.format(os.path.expanduser(v), **self.variables)
+        else:
+            return v
 
     def __getattr__(self, attr):
         if attr in self.settings:
@@ -121,37 +185,43 @@ class Settings(object):
 
         self._load_config()
         if attr not in self.config:
-            raise AttributeError("No such Rez setting - '%s'" % attr)
+            raise ConfigurationError("No such Rez setting - '%s'" % attr)
 
         config_value = self.config.get(attr)
         env_var = "REZ_%s" % attr.upper()
-        env_value = os.getenv(env_var)
+        value = os.getenv(env_var)
 
-        if env_value is None:
+        if value is None:
             value = config_value
             if value is None:
                 func = "_get_" + attr
                 if hasattr(self, func):
                     value = getattr(self, func)()
         elif isinstance(config_value, list):
-            sep = self.root_config.get("_sep",{}).get(attr) or os.pathsep
-            vals = env_value.strip().strip(sep).split(sep)
-            value = [x for x in vals if x]
-        elif isinstance(config_value, bool):
-            if env_value.lower() in ("1", "true", "yes", "y"):
-                value = True
-            elif env_value.lower() in ("0", "false", "no", "n"):
-                value = False
+            value = value.strip()
+            schema = self.key_schemas.get(attr)
+            if schema is self.path_list_schema:
+                vals = value.split(os.pathsep)
             else:
-                raise ValueError("Expect boolean value: $%s" % env_var)
-        else:
-            value = env_value
+                vals = value.replace(',',' ').strip().split()
+            value = [x for x in vals if x]
+        elif isinstance(config_value, int):
+            try:
+                value = int(value)
+            except ValueError:
+                pass
+        elif isinstance(config_value, bool):
+            if value.lower() in ("1", "true", "yes", "y", "on"):
+                value = True
+            elif value.lower() in ("0", "false", "no", "n", "off"):
+                value = False
 
         if isinstance(value, basestring):
             value = self._expand_variables(value)
         elif isinstance(value, list):
             value = [self._expand_variables(x) for x in value]
 
+        self._validate(attr, value)
         self.settings[attr] = value
         return value
 

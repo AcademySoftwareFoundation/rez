@@ -1,6 +1,6 @@
 from rez.settings import settings
 from rez.util import _add_bootstrap_pkg_path
-import yaml
+from rez.contrib import yaml
 
 
 

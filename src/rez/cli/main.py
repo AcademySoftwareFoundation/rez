@@ -255,10 +255,10 @@ def add_exec(parser):
 
 @subcommand
 def add_test(parser):
+    parser.add_argument("-n", "--no-thread", dest="no_thread", action="store_true",
+                        help="don't run the multithreaded testing phase")
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
-    parser.add_argument("--versions", action="store_true",
-                        help="test package versioning logic")
     parser.add_argument("--resolves", action="store_true",
                         help="test package resolving algorithm")
     parser.add_argument("--cli", action="store_true",

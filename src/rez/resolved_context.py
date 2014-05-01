@@ -7,10 +7,10 @@ from rez.util import columnise, convert_old_commands, shlex_join, \
     create_forwarding_script
 from rez.rex import RexExecutor, Python
 from rez.shells import create_shell, get_shell_types
+from rez.contrib import yaml
 import pickle
 import getpass
 import inspect
-import yaml
 import time
 import uuid
 import sys
@@ -20,7 +20,7 @@ import os.path
 
 
 class ResolvedContext(object):
-    """A class that resolves and stores Rez environments.
+    """A class that resolves, stores and spawns Rez environments.
 
     The main Rez entry point for creating, saving, loading and executing
     resolved environments. A ResolvedContext object can be saved to file and
@@ -446,6 +446,7 @@ class ResolvedContext(object):
         else:
             return p
 
+    # TODO rename to "create_suite"
     def create_wrapped_context(self, path, rxt_name=None, prefix=None,
                                suffix=None, request_only=True, overwrite=False,
                                verbose=False):

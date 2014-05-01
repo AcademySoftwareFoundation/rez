@@ -1,184 +1,18 @@
-"""
-rez packages
-"""
-from __future__ import with_statement
 import os.path
-import re
-import sys
-from rez.util import print_warning_once
+from rez.util import print_warning_once, Common
 from rez.resources import iter_resources, load_metadata
+from rez.contrib.version.version import Version, VersionRange
+from rez.contrib.version.requirement import VersionedObject
 from rez.settings import settings
-from rez.exceptions import PkgSystemError
-from rez.versions import Version_, ExactVersion, VersionRange_, ExactVersionSet, VersionError
-from rez.version import Version, VersionRange
 
 
+"""
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
 PACKAGE_NAME_SEP_REGEX = re.compile(r'[-@#]')
 PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
+"""
 
-
-
-class PackageStatement(object):
-    """Parse a package string, eg "foo-1.0".
-
-    Note that '-', '@' or '#' can be used as the seperator between package name
-    and version, however this is purely cosmetic - "foo-1" is the same as "foo@1".
-    """
-    def __init__(self, s):
-        self.name_ = None
-        self.sep_ = '-'
-        self.version_ = None
-
-        m = PACKAGE_NAME_SEP_REGEX.search(s)
-        if m:
-            i = m.start()
-            self.name_ = s[:i]
-            self.sep_ = s[i]
-            ver_str = s[i+1:]
-            self.version_ = Version(ver_str)
-        else:
-            self.name_ = s
-            self.version_ = Version()
-
-        if not PACKAGE_NAME_REGEX.match(self.name_):
-            raise PkgSystemError("Invalid package name: '%s'" % self.name_)
-
-    @property
-    def name(self):
-        return self.name_
-
-    @property
-    def version(self):
-        return self.version_
-
-    def __eq__(self, other):
-        return (self.name_ == other.name_) and (self.version_ == other.version_)
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __hash__(self):
-        return hash((self.name_, str(self.version_)))
-
-    def __str__(self):
-        sep_str = ''
-        ver_str = ''
-        if self.version_:
-            sep_str = self.sep_
-            ver_str = str(self.version_)
-        return self.name_ + sep_str + ver_str
-
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
-
-
-
-class PackageRangeStatement(object):
-    """Parse a package range string, eg 'foo-1.5+<2'.
-    """
-    def __init__(self, s):
-        self.name_ = None
-        self.sep_ = '-'
-        self.range_ = None
-        self.negate_ = False
-        self.conflict_ = s.startswith('!')
-
-        if self.conflict_:
-            s = s[1:]
-        elif s.startswith('~'):
-            s = s[1:]
-            self.negate_ = True
-            self.conflict_ = True
-
-        m = PACKAGE_REQ_SEP_REGEX.search(s)
-        if m:
-            i = m.start()
-            self.name_ = s[:i]
-            req_str = s[i:]
-            if req_str[0] in ('-','@','#'):
-                self.sep_ = req_str[0]
-                req_str = req_str[1:]
-
-            self.range_ = VersionRange(req_str)
-            if self.negate_:
-                self.range_ = ~self.range_
-        elif self.negate_:
-            self.name_ = s
-            self.range_ = None
-        else:
-            self.name_ = s
-            self.range_ = VersionRange()
-
-        if not PACKAGE_NAME_REGEX.match(self.name_):
-            raise PkgSystemError("Invalid package name: '%s'" % self.name_)
-
-    @property
-    def name(self):
-        return self.name_
-
-    @property
-    def range(self):
-        return self.range_
-
-    @property
-    def conflict(self):
-        return self.conflict_
-
-    def __eq__(self, other):
-        return (self.name_ == other.name_) \
-            and (self.range_ == other.range_) \
-            and (self.conflict_ == other.conflict_)
-
-    def __ne__(self, other):
-        return not (self == other)
-
-    def __hash__(self):
-        return hash((self.name_, str(self.range_), self.conflict_))
-
-    def __str__(self):
-        pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
-        range_str = ''
-        sep_str = ''
-
-        range = self.range_
-        if self.negate_:
-            range = ~range if range else VersionRange()
-
-        if not range.is_any():
-            range_str = str(range)
-            if range_str[0] not in ('=','<','>'):
-                sep_str = self.sep_
-
-        return pre_str + self.name_ + sep_str + range_str
-
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
-
-
-
-# TODO deprecate
-def split_name(pkg_str, exact=False):
-    strs = pkg_str.split('-')
-    if len(strs) > 2:
-        PkgSystemError("Invalid package string '" + pkg_str + "'")
-    name = strs[0]
-    if len(strs) == 1:
-        verrange = ""
-    else:
-        verrange = strs[1]
-    if exact:
-        verrange = ExactVersion(verrange)
-    else:
-        try:
-            verrange = VersionRange_(verrange)
-        except VersionError:
-            verrange = ExactVersionSet(verrange)
-    return name, verrange
-
-def pkg_name(pkg_str):
-    return pkg_str.split('-')[0]
 
 def iter_package_families(name=None, paths=None):
     """Iterate through top-level `PackageFamily` instances."""
@@ -214,15 +48,15 @@ def _iter_packages(family_name, paths=None, skip_dupes=True):
     for pkg_fam in iter_package_families(family_name, paths):
         for pkg in pkg_fam.iter_version_packages():
             if skip_dupes:
-                pkgname = pkg.short_name()
+                pkgname = pkg.qualified_name
                 if pkgname not in done:
                     done.add(pkgname)
                     yield pkg
             else:
                 yield pkg
 
-def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0,
-                           exact=False, paths=None):
+def iter_packages_in_range(family_name, ver_range=None, latest=True,
+                           timestamp=0, exact=False, paths=None):
     """
     Iterate over `Package` instances, sorted by version.
 
@@ -230,7 +64,7 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     ----------
     family_name : str
         name of the package without a version
-    ver_range : VersionRange_
+    ver_range : VersionRange
         range of versions in package to iterate over, or all if None
     latest : bool
         whether to sort by latest version first (default) or earliest
@@ -245,8 +79,8 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
     If two versions in two different paths are the same, then the package in
     the first path is returned in preference.
     """
-    if (ver_range is not None) and (not isinstance(ver_range, VersionRange_)):
-        ver_range = VersionRange_(ver_range)
+    if (ver_range is not None) and (not isinstance(ver_range, VersionRange)):
+        ver_range = VersionRange(ver_range)
 
     # store the generator. no paths have been walked yet
     results = _iter_packages(family_name, paths)
@@ -258,9 +92,9 @@ def iter_packages_in_range(family_name, ver_range=None, latest=True, timestamp=0
 
     # yield versions only inside range
     for result in results:
-        if ver_range is None or \
-                ver_range.matches_version(result.version, allow_inexact=not exact):
+        if ver_range is None or result.version in ver_range:
             yield result
+
 
 def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
                      exact=False, paths=None):
@@ -271,7 +105,7 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
     ----------
     family_name : str
         name of the package without a version
-    ver_range : VersionRange_
+    ver_range : VersionRange
         range of versions in package to iterate over, or all if None
     latest : bool
         whether to sort by latest (default) or earliest
@@ -293,7 +127,7 @@ def package_in_range(family_name, ver_range=None, latest=True, timestamp=0,
         return None
 
 
-class PackageFamily(object):
+class PackageFamily(Common):
     """A package family has a single root directory, with a sub-directory for
     each version.
     """
@@ -301,9 +135,8 @@ class PackageFamily(object):
         self.name = name
         self.path = path
 
-    def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.name,
-                               self.path)
+    def __str__(self):
+        return "%s@%s" % (self.name, os.path.dirname(self.path))
 
     def iter_version_packages(self):
         pkg_iter = iter_resources(0,  # configuration version
@@ -311,19 +144,119 @@ class PackageFamily(object):
                                   [os.path.dirname(self.path)],
                                   name=self.name)
         for metafile, variables, resource_info in pkg_iter:
-            yield Package(self.name, ExactVersion(variables.get('version', '')),
-                          metafile)
+            version = Version(variables.get('version', ''))
+            yield PackageDefinition(self.name, version, metafile)
 
 
+class PackageDefinition(Common):
+    """Class representing a package definition, as read from a package.* file.
+    """
+    def __init__(self, name, version, metafile):
+        self.name = name
+        self.version = version
+        self.metafile = metafile
+        self.root = os.path.dirname(metafile)
+        self._metadata = None
+
+    @property
+    def qualified_name(self):
+        o = VersionedObject.construct(self.name, self.version)
+        return str(o)
+
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            self._metadata = load_metadata(self.metafile)
+        return self._metadata
+
+    @property
+    def num_variants(self):
+        """Return the number of variants in this package."""
+        variants = self.metadata["variants"] or []
+        return len(variants)
+
+    def get_variant(self, index=None):
+        """Return a variant from the definition.
+
+        Note that even a package that does not contain variants will return a
+        VariantDefinition object with index=None.
+        """
+        n = self.num_variants
+        if index is None:
+            if n:
+                raise ValueError("there are variants, index must be non-None")
+        elif index not in range(n):
+            raise IndexError("variant doesn't exist at this index")
+
+        return VariantDefinition(self, index)
+
+    def iter_variants(self):
+        n = self.num_variants
+        if n:
+            for i in range(n):
+                yield self.get_variant(i)
+        else:
+            yield self.get_variant()
+
+    def _base_path(self):
+        path = os.path.dirname(self.root)
+        if not self.version:
+            path = os.path.dirname(path)
+        return path
+
+    def __str__(self):
+        return "%s@%s" % (self.qualified_name, self._base_path())
+
+
+class VariantDefinition(Common):
+    """Class representing a variant of a package.
+
+    Note that VariantDefinition is also used in packages that don't have a
+    variant - in this case index is None.
+    """
+    def __init__(self, pkg, index=None):
+        self.pkg = pkg
+        self.index = index
+        self.root = pkg.root
+        metadata = self.pkg.metadata
+        self.requires = metadata["requires"] or []
+
+        if self.index is not None:
+            var_requires = metadata["variants"][self.index]
+            self.requires = self.requires + var_requires
+
+    @property
+    def name(self):
+        return self.pkg.name
+
+    @property
+    def version(self):
+        return self.pkg.version
+
+    def __str__(self):
+        if self.index is None:
+            return str(self.pkg)
+        else:
+            o = VersionedObject.construct(self.pkg.name, self.pkg.version)
+            base_path = self._base_path()
+            var_path = os.path.relpath(self.root, base_path)
+            var_path = os.path.normpath(var_path)
+            return "%s[%d]@%s:%s" % (str(o), self.index, base_path, var_path)
+
+
+
+
+
+"""
 class BasePackage(object):
     def __init__(self, name, version, timestamp):
         self.name = name
+        assert(isinstance(version, Version)) # TODO remove check after version porting
         self.version = version
         self._timestamp = timestamp
 
     def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.name,
-                               self.version)
+        return "%s(%r, %r)" % (self.__class__.__name__, self.name, self.version)
 
     @property
     def timestamp(self):
@@ -337,13 +270,6 @@ class BasePackage(object):
 
 
 class Package(BasePackage):
-    """An unresolved package.
-
-    An unresolved package has a version, but may have inexplicit or "variant"
-    requirements, which can only be determined once its co-packages
-    are known. When the exact list of requirements is determined, the package
-    is considered resolved and the full path to the package root is known.
-    """
     def __init__(self, name, version, metafile, timestamp=None, metadata=None):
         BasePackage.__init__(self, name, version, timestamp)
         assert os.path.splitext(metafile)[1], "%s: %s" % (self.name, metafile)
@@ -360,8 +286,7 @@ class Package(BasePackage):
     @property
     def metadata(self):
         if self._metadata is None:
-            from rez.memcached import get_memcache
-            self._metadata = get_memcache().get_metadata(self.metafile)
+            self._metadata = load_metadata(self.metafile)
         return self._metadata
 
     @property
@@ -389,17 +314,9 @@ class Package(BasePackage):
 
 
 class ResolvedPackage(Package):
-    """
-    A resolved package.
-
-    An unresolved package has a version, but may have inexplicit or "variant"
-    requirements, which can only be determined once its co-packages
-    are known. When the exact list of requirements is determined, the package
-    is considered resolved and the full path to the package root is known.
-    """
     def __init__(self, name, version, metafile, timestamp, metadata, base, root):
         Package.__init__(self, name, version, metafile, timestamp, metadata=metadata)
-        self.version = ExactVersion(version)
+        #self.version = ExactVersion(version)
         self.base = base
         self.root = root
 
@@ -409,3 +326,4 @@ class ResolvedPackage(Package):
     def __repr__(self):
         return "%s(%r, %r, %r)" % (self.__class__.__name__, self.name,
                                    self.version, self.root)
+"""

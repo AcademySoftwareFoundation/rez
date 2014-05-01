@@ -1,4 +1,3 @@
-from __future__ import with_statement
 import os
 import subprocess
 import sys
@@ -651,6 +650,7 @@ class NamespaceFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
+"""
 class MissingPackage(object):
     def __init__(self, name):
         self.name = name
@@ -661,16 +661,8 @@ class MissingPackage(object):
     def __nonzero__(self):
         return False
 
-
+# code probably not a good idea, keep to POD types.
 class Packages(object):
-    """
-    Provides attribute-based lookups for `package.BasePackage` instances.
-
-    If the package does not exist, the attribute value will be an empty string.
-    This allows for attributes to be used to test the presence of a package and
-    for non-existent packages to be used in string formatting without causing an
-    error.
-    """
     def __init__(self, pkg_list):
         for pkg in pkg_list:
             setattr(self, pkg.name, pkg)
@@ -685,6 +677,15 @@ class Packages(object):
                                      "'%s'" % (self.__class__.__name__,
                                                attr))
         return MissingPackage(attr)
+"""
+"""
+Provides attribute-based lookups for `package.BasePackage` instances.
+
+If the package does not exist, the attribute value will be an empty string.
+This allows for attributes to be used to test the presence of a package and
+for non-existent packages to be used in string formatting without causing an
+error.
+"""
 
 
 #===============================================================================

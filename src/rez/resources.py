@@ -19,8 +19,6 @@ an understanding of the underlying file and folder structure.  This ensures that
 the addition of new resources is localized to the registration functions
 provided by this module.
 """
-from __future__ import with_statement
-import yaml
 import os
 import sys
 import inspect
@@ -29,9 +27,14 @@ from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
 from rez.exceptions import PkgMetadataError
-from rez.versions import ExactVersion, VersionRange_
+from rez.contrib.version.version import Version
+from rez.contrib import yaml
 
 _configs = defaultdict(list)
+
+PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
+VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
+VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
 
 #------------------------------------------------------------------------------
@@ -78,33 +81,6 @@ class MetadataUpdate(object):
         self.old_value = old_value
         self.new_value = new_value
 
-#------------------------------------------------------------------------------
-# Internal Utilities
-#------------------------------------------------------------------------------
-
-def update_copy(source, updates):
-    """Returns a copy of source_dict, updated with the new key-value
-       pairs in diffs."""
-    result = dict(source)
-    result.update(updates)
-    return result
-
-class AttrDictYamlLoader(yaml.Loader):
-    """
-    A YAML loader that loads mappings into attribute dictionaries.
-    """
-
-    def __init__(self, *args, **kwargs):
-        yaml.Loader.__init__(self, *args, **kwargs)
-
-        self.add_constructor(u'tag:yaml.org,2002:map', type(self).construct_yaml_map)
-
-    def construct_yaml_map(self, node):
-        from rez.util import AttrDict
-        data = AttrDict()
-        yield data
-        value = self.construct_mapping(node)
-        data.update(value)
 
 #------------------------------------------------------------------------------
 # Base Classes and Functions
@@ -217,6 +193,7 @@ def get_package_file(parent_path):
             return path
     return None
 
+# TODO move into PackageDefinition class
 def load_package_metadata(parent_path):
     """Load the metadata file found under parent_path.
 
@@ -229,9 +206,11 @@ def load_package_metadata(parent_path):
     else:
         raise PkgMetadataError("No package definition file found in %s" % parent_path)
 
+# TODO move into PackageDefinition class
 def load_package_settings(metadata):
     """Return rezconfig settings for this pkg (pkgs can override settings)."""
-    return Settings(metadata["rezconfig"]) if "rezconfig" in metadata else settings
+    return Settings(overrides=metadata["rezconfig"]) \
+        if "rezconfig" in metadata else settings
 
 
 #------------------------------------------------------------------------------
@@ -272,8 +251,8 @@ class ResourceInfo(object):
         import packages
 
         pattern = re.escape(pattern)
-        expansions = [('version', versions.EXACT_VERSION_REGSTR),
-                      ('name', packages.PACKAGE_NAME_REGSTR),
+        expansions = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
                       ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
@@ -403,14 +382,13 @@ class ResourceIterator(object):
         return len(self.path_parts) == 0
 
     def list_matches(self, path):
-        import rez.memcached
         if isinstance(self.current_part, basestring):
             fullpath = os.path.join(path, self.current_part)
             # TODO: check file vs dir here
             if os.path.exists(fullpath):
                 yield fullpath
         else:
-            for name in rez.memcached.get_memcache().list_directory(path):
+            for name in os.listdir(path):
                 match = self.current_part.match(name)
                 if match:
                     # TODO: add match to variables
@@ -638,7 +616,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'uuid': 'str',
         'description': 'str',
         'name': 'str',
-        'version': ExactVersion('1.2'),
+        'version': Version('1.2'),
         'help': OneOf('str', [['str']]),
         'authors': ['str'],
         'requires': ['name-1.2'],

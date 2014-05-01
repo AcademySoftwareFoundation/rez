@@ -1,5 +1,7 @@
-from rez.version import Version, AlphanumericVersionToken, VersionRange
-from rez.exceptions import VersionError
+from rez.contrib.version.version import Version, AlphanumericVersionToken, \
+    VersionRange
+from rez.contrib.version.requirement import Requirement, RequirementList
+from rez.contrib.version.util import VersionError
 import random
 import textwrap
 import unittest
@@ -7,7 +9,7 @@ import unittest
 
 
 class TestVersionSchema(unittest.TestCase):
-    token_cls = AlphanumericVersionToken
+    make_token = AlphanumericVersionToken
 
     def __init__(self, fn):
         unittest.TestCase.__init__(self, fn)
@@ -61,13 +63,13 @@ class TestVersionSchema(unittest.TestCase):
         _test(lambda a,b:a!=b, list(reversed(items)), '!=')
 
     def _create_random_token(self):
-        s = self.token_cls.create_random_token_string()
-        return self.token_cls(s)
+        s = self.make_token.create_random_token_string()
+        return self.make_token(s)
 
     def _create_random_version(self):
-        ver_str = '.'.join(self.token_cls.create_random_token_string() \
+        ver_str = '.'.join(self.make_token.create_random_token_string() \
             for i in range(random.randint(0,6)))
-        return Version(ver_str, token_cls=self.token_cls)
+        return Version(ver_str, make_token=self.make_token)
 
     def test_token_strict_weak_ordering(self):
         # test equal tokens
@@ -94,11 +96,12 @@ class TestVersionSchema(unittest.TestCase):
     def test_token_comparisons(self):
         def _lt(a, b):
             print "'%s' < '%s'" % (a, b)
-            self.assertTrue(self.token_cls(a) < self.token_cls(b))
+            self.assertTrue(self.make_token(a) < self.make_token(b))
             self.assertTrue(Version(a) < Version(b))
 
         print
         _lt("3", "4")
+        _lt("01", "1")
         _lt("beta", "1")
         _lt("alpha3", "alpha4")
         _lt("alpha", "alpha3")
@@ -128,18 +131,22 @@ class TestVersionSchema(unittest.TestCase):
                      "2.1.0"]
         self._test_ordered([Version(x) for x in ascending])
 
+        def _eq2(a, b):
+            print "'%s' == '%s'" % (a, b)
+            self.assertTrue(a == b)
+
         # test behaviour in sets
         a = Version("1.0")
         b = Version("1.0")
         c = Version("1.0alpha")
         d = Version("2.0.0")
 
-        self.assertTrue(set([a]) - set([a]) == set())
-        self.assertTrue(set([a]) - set([b]) == set())
-        self.assertTrue(set([a,a]) - set([a]) == set())
-        self.assertTrue(set([b,c,d]) - set([a]) == set([c,d]))
-        self.assertTrue(set([b,c]) | set([c,d]) == set([b,c,d]))
-        self.assertTrue(set([b,c]) & set([c,d]) == set([c]))
+        _eq2(set([a]) - set([a]), set())
+        _eq2(set([a]) - set([b]), set())
+        _eq2(set([a,a]) - set([a]), set())
+        _eq2(set([b,c,d]) - set([a]), set([c,d]))
+        _eq2(set([b,c]) | set([c,d]), set([b,c,d]))
+        _eq2(set([b,c]) & set([c,d]), set([c]))
 
     def test_version_range(self):
         def _eq(a, b):
@@ -150,27 +157,35 @@ class TestVersionSchema(unittest.TestCase):
             self.assertTrue(a_range == b_range)
             self.assertTrue(VersionRange(str(a_range)) == a_range)
             self.assertTrue(VersionRange(str(b_range)) == a_range)
+            self.assertTrue(hash(a_range) == hash(b_range))
+
+            a_ = a.replace('.', '-')
+            a_ = a_.replace("--", "..")
+            a_range_ = VersionRange(a_)
+            self.assertTrue(a_range_ == a_range)
+            self.assertTrue(hash(a_range_) == hash(a_range))
 
             range_strs = a.split('|')
             ranges = [VersionRange(x) for x in range_strs]
-            ranges_ = ranges[0].get_union(ranges[1:])
+            ranges_ = ranges[0].union(ranges[1:])
             self.assertTrue(ranges_ == a_range)
 
             self.assertTrue(a_range | b_range == a_range)
             self.assertTrue(a_range - b_range == None)
             self.assertTrue(b_range - a_range == None)
             self.assertTrue(VersionRange() & a_range == a_range)
+            self.assertTrue(b_range.span() & a_range == a_range)
 
-            a_inv = a_range.get_inverse()
-            self.assertTrue(a_inv == b_range.get_inverse())
+            a_inv = a_range.inverse()
+            self.assertTrue(a_inv == ~b_range)
 
             if a_inv:
-                self.assertTrue(a_inv.get_inverse() == a_range)
+                self.assertTrue(~a_inv == a_range)
                 self.assertTrue(a_range | a_inv == VersionRange())
                 self.assertTrue(a_range & a_inv is None)
 
             a_ranges = a_range.split()
-            a_range_ = a_ranges[0].get_union(a_ranges[1:])
+            a_range_ = a_ranges[0].union(a_ranges[1:])
             self.assertTrue(a_range_ == b_range)
 
         def _and(a, b, c):
@@ -187,7 +202,15 @@ class TestVersionSchema(unittest.TestCase):
             b_sub_a = b_range - a_range
             ranges = [a_and_b, a_sub_b, b_sub_a]
             ranges = [x for x in ranges if x]
-            self.assertTrue(ranges[0].get_union(ranges[1:]) == a_or_b)
+            self.assertTrue(ranges[0].union(ranges[1:]) == a_or_b)
+
+        def _inv(a, b):
+            a_range = VersionRange(a)
+            b_range = VersionRange(b)
+            self.assertTrue(~a_range == b_range)
+            self.assertTrue(~b_range == a_range)
+            self.assertTrue(a_range | b_range == VersionRange())
+            self.assertTrue(a_range & b_range is None)
 
         # simple cases
         print
@@ -201,7 +224,7 @@ class TestVersionSchema(unittest.TestCase):
         _eq("1+<1.0", "1+<1.0")
         _eq(">=2", "2+")
 
-        # optimised cases (this also tests OR'ing and inverse)
+        # optimised cases
         _eq("3|3", "3")
         _eq("3|1", "1|3")
         _eq("5|3|1", "1|3|5")
@@ -238,6 +261,12 @@ class TestVersionSchema(unittest.TestCase):
         _and("1", "1.0", "1.0")
         _and("4..6", "6+<8", "==6")
 
+        # inverse
+        _inv("3+", "<3")
+        _inv("<=3", ">3")
+        _inv("3.5", "<3.5|3.5_+")
+        self.assertTrue(~VersionRange() is None)
+
         # odd (but valid) cases
         _eq(">", ">")       # greater than the empty version
         _eq("+", "")        # greater or equal to empty version (is all vers)
@@ -262,6 +291,7 @@ class TestVersionSchema(unittest.TestCase):
             ">3>4",         # both are lower bounds
             "<3<4",         # both are upper bounds
             "<4>3",         # upper bound before lower
+            ",<4",          # leading comma
             "4+,",          # trailing comma
             "1>=",          # pre-lower-op in post
             "+1",           # post-lower-op in pre
@@ -272,11 +302,38 @@ class TestVersionSchema(unittest.TestCase):
         for s in invalid_syntax:
             self.assertRaises(VersionError, VersionRange, s)
 
+        # test simple logic
+        self.assertTrue(VersionRange("").is_any())
+        self.assertTrue(VersionRange("2+<4").bounded())
+        self.assertTrue(VersionRange("2+").lower_bounded())
+        self.assertTrue(not VersionRange("2+").upper_bounded())
+        self.assertTrue(not VersionRange("2+").bounded())
+        self.assertTrue(VersionRange("<2").upper_bounded())
+        self.assertTrue(not VersionRange("<2").lower_bounded())
+        self.assertTrue(not VersionRange("<2").bounded())
+
+        # test range from version(s)
+        v = Version("3")
+        self.assertTrue(VersionRange.from_version(v) == VersionRange("==3"))
+        self.assertTrue(VersionRange.from_version(v, "gt") == VersionRange(">3"))
+        self.assertTrue(VersionRange.from_version(v, "gte") == VersionRange("3+"))
+        self.assertTrue(VersionRange.from_version(v, "lt") == VersionRange("<3"))
+        self.assertTrue(VersionRange.from_version(v, "lte") == VersionRange("<=3"))
+
+        range1 = VersionRange.from_version(Version("2"), "gte")
+        range2 = VersionRange.from_version(Version("4"), "lte")
+        _eq(str(range1 & range2), "2..4")
+
+        v2 = Version("6.0")
+        v3 = Version("4")
+        self.assertTrue(VersionRange.from_versions([v,v2,v3])
+                        == VersionRange("==3|==4|==6.0"))
+
+        # test behaviour in sets
         def _eq2(a, b):
             print "'%s' == '%s'" % (a, b)
             self.assertTrue(a == b)
 
-        # test behaviour in sets
         a = VersionRange("1+<=2.5")
         b = VersionRange("1..2.5")
         c = VersionRange(">=5")
@@ -290,14 +347,76 @@ class TestVersionSchema(unittest.TestCase):
         _eq2(set([b,c,e]) | set([c,d]), set([b,c,d,e]))
         _eq2(set([b,c]) & set([c,d]), set([c]))
 
+        # test containment
+        self.assertTrue(Version("3") in VersionRange("3+"))
+        self.assertTrue(Version("5") in VersionRange("3..5"))
+        self.assertTrue(Version("5_") not in VersionRange("3..5"))
+        self.assertTrue(Version("3.0.0") in VersionRange("3+"))
+        self.assertTrue(Version("3.0.0") not in VersionRange("3.1+"))
+        self.assertTrue(Version("3") in VersionRange("<1|5|6|8|7|3|60+"))
+        self.assertTrue(Version("3") in VersionRange("<1|5|6|8|7|==3|60+"))
+        self.assertTrue(VersionRange("2.1+<4") in VersionRange("<4"))
+        self.assertTrue(VersionRange("2.1..4") not in VersionRange("<4"))
+        self.assertTrue(VersionRange("3") in VersionRange("3"))
+        self.assertTrue(VersionRange("==3") in VersionRange("3"))
+        self.assertTrue(VersionRange("3.5+<3_") in VersionRange("3"))
+        self.assertTrue(VersionRange("3") not in VersionRange("4+<6"))
+        self.assertTrue(VersionRange("3+<10") not in VersionRange("4+<6"))
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestVersionSchema("test_token_strict_weak_ordering"))
-    suite.addTest(TestVersionSchema("test_version_strict_weak_ordering"))
-    suite.addTest(TestVersionSchema("test_token_comparisons"))
-    suite.addTest(TestVersionSchema("test_version_comparisons"))
-    suite.addTest(TestVersionSchema("test_version_range"))
-    suites.append(suite)
-    return suites
+    def test_requirement_list(self):
+        def _eq(reqs, expected_reqs):
+            print "requirements(%s) == requirements(%s)" \
+                  % (' '.join(reqs), ' '.join(expected_reqs))
+            reqs_ = [Requirement(x) for x in reqs]
+            reqlist = RequirementList(reqs_)
+            print "result: %s" % str(reqlist)
+
+            exp_reqs_ = [Requirement(x) for x in expected_reqs]
+            self.assertTrue(reqlist.requirements == exp_reqs_)
+
+        def _confl(reqs, a, b):
+            print "requirements(%s) == %s <--!--> %s" % (' '.join(reqs), a, b)
+            reqs_ = [Requirement(x) for x in reqs]
+            reqlist = RequirementList(reqs_)
+            print "result: %s" % str(reqlist)
+
+            a_req = Requirement(a)
+            b_req = Requirement(b)
+            self.assertTrue(reqlist.conflict == (a_req, b_req))
+
+        print
+        _eq(["foo"],
+            ["foo"])
+        _eq(["foo", "bah"],
+            ["foo", "bah"])
+        _eq(["bah", "foo"],
+            ["bah", "foo"])
+        _eq(["foo-4+", "foo-4.5"],
+            ["foo-4.5"])
+        _eq(["bah-2.4", "foo", "bah-2.4.1+"],
+            ["bah-2.4.1+<2.4_", "foo"])
+        _eq(["foo-2+", "!foo-4+"],
+            ["foo-2+<4"])
+        _eq(["!bah-1", "!bah-3"],
+            ["!bah-1|3"])
+        _eq(["!bah-5", "foo-2.3", "!bah-5.6+"],
+            ["!bah-5+", "foo-2.3"])
+        _eq(["~bah-4", "foo", "bah<4.2"],
+            ["bah-4+<4.2", "foo"])
+        _eq(["~bah", "!foo", "bah<4.2"],
+            ["bah<4.2", "!foo"])
+        _eq(["~bah-3+", "~bah-5"],
+            ["~bah-5"])
+
+        _confl(["foo-1", "foo-2"],
+               "foo-1", "foo-2")
+        _confl(["foo-2", "foo-1"],
+               "foo-2", "foo-1")
+        _confl(["foo", "~bah-5+", "bah-2"],
+               "~bah-5+", "bah-2")
+        _confl(["foo", "~bah-5+", "bah-7..12", "bah-2"],
+               "bah-7..12", "bah-2")
+
+
+if __name__ == '__main__':
+    unittest.main()

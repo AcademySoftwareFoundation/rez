@@ -1,5 +1,5 @@
 """See util.create_forwarding_script()."""
-import yaml
+from rez.contrib import yaml
 import sys
 import inspect
 import os.path

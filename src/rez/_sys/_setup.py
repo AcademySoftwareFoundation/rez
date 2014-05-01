@@ -1,4 +1,3 @@
-from __future__ import with_statement
 from rez import module_root_path
 from rez.system import system
 from rez.util import _mkdirs

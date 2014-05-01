@@ -7,8 +7,7 @@ http://irmen.home.xs4all.nl/pyro3/troubleshooting.html
 
 
 class RezError(Exception):
-    """Base-class Rez error.
-    """
+    """Base-class Rez error."""
     def __init__(self, value=None):
         self.value = value
 
@@ -16,6 +15,23 @@ class RezError(Exception):
         return str(self.value)
 
 
+class ConfigurationError(RezError):
+    """A misconfiguration error."""
+    pass
+
+
+class ResolveError(RezError):
+    """A resolve-related error."""
+    pass
+
+
+class PackageNotFoundError(RezError):
+    """A package could not be found on disk."""
+    pass
+
+
+
+# TODO deprecate 'PkgXXX' errors
 class PkgSystemError(RezError):
     """Rez system error.
     """
@@ -145,10 +161,6 @@ class PkgCyclicDependency(RezError):
     def __str__(self):
         return "Cyclic dependency(s) were detected:\n%s" % self.get_dot_graph()
 
-
-class VersionError(RezError):
-    """Version number error."""
-    pass
 
 class BuildSystemError(RezError):
     """Base class for buildsys-related errors."""
