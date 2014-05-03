@@ -64,7 +64,7 @@ requires = [
     # it, install it separately.
     # "pysvn >= 1.7.2"
     #"PyYAML >= 3.9",
-    "Yapsy >= 1.10.0",
+    #"Yapsy >= 1.10.0",
     "python-memcached >= 1.0"
 ]
 

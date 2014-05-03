@@ -180,6 +180,9 @@ class Settings(object):
             return v
 
     def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            return getattr(super(Settings,self), attr)
+
         if attr in self.settings:
             return self.settings[attr]
 

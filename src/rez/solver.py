@@ -87,10 +87,10 @@ class Reduction(_Common):
             else "[%d]" % self.variant_index
         return str(stmt) + idx_str
 
-    def involved_packages(self):
+    def involved_requirements(self):
         range = VersionRange.from_version(self.version)
-        stmt = Requirement.construct(self.name, range)
-        return [stmt, self.dependency, self.conflicting_request]
+        req = Requirement.construct(self.name, range)
+        return [req, self.dependency, self.conflicting_request]
 
     def __eq__(self, other):
         return ( \
@@ -122,12 +122,10 @@ class DependencyConflict(_Common):
 
 
 class FailureReason(_Common):
-    def involved_packages(self):
-        """Get a list of packages involved in the resolve failure.
+    def involved_requirements(self):
+        raise NotImplemented
 
-        Returns:
-            List of Requirement objects.
-        """
+    def description(self):
         raise NotImplemented
 
 
@@ -136,11 +134,14 @@ class TotalReduction(FailureReason):
     def __init__(self, reductions):
         self.reductions = reductions
 
-    def involved_packages(self):
+    def involved_requirements(self):
         pkgs = []
         for red in self.reductions:
-            pkgs.extend(red.involved_packages())
+            pkgs.extend(red.involved_requirements())
         return pkgs
+
+    def description(self):
+        return "A package was completely reduced: %s" % str(self)
 
     def __eq__(self, other):
         return (self.reductions == other.reductions)
@@ -155,12 +156,15 @@ class DependencyConflicts(FailureReason):
     def __init__(self, conflicts):
         self.conflicts = conflicts
 
-    def involved_packages(self):
+    def involved_requirements(self):
         pkgs = []
         for conflict in self.conflicts:
             pkgs.append(conflict.dependency)
             pkgs.append(conflict.conflicting_request)
         return pkgs
+
+    def description(self):
+        return "The following package conflicts occurred: %s" % str(self)
 
     def __eq__(self, other):
         return (self.conflicts == other.conflicts)
@@ -174,13 +178,16 @@ class Cycle(FailureReason):
     def __init__(self, packages):
         self.packages = packages
 
-    def involved_packages(self):
+    def involved_requirements(self):
         pkgs = []
         for pkg in self.packages:
             range = VersionRange.from_version(pkg.version)
             stmt = Requirement.construct(pkg.name, range)
             pkgs.append(stmt)
         return pkgs
+
+    def description(self):
+        return "A cyclic dependency was detected: %s" % str(self)
 
     def __eq__(self, other):
         return (self.packages == other.packages)
@@ -193,20 +200,19 @@ class Cycle(FailureReason):
 
 class PackageVariant(_Common):
     """A variant of a package."""
-    def __init__(self, name, version, root, requires, index=None):
+    def __init__(self, name, version, metafile, requires, index=None):
         """Create a package variant.
 
         Args:
             name: Name of package.
             version: The package version, as a Version object.
-            root: Path to the root of the package (incl. variant subdir).
             requires: List of strings representing the package dependencies.
             index: Zero-based index of the variant within this package. If None,
                 this package does not have variants.
         """
         self.name = name
         self.version = version
-        self.root = root
+        self.metafile = metafile
         self.index = index
 
         reqs = [Requirement(x) for x in requires]
@@ -250,7 +256,7 @@ class _PackageVariantList(_Common):
             for var in pkg.iter_variants():
                 variant = PackageVariant(name=package_name,
                                          version=var.version,
-                                         root=var.root,
+                                         metafile=var.metafile,
                                          requires=var.requires,
                                          index=var.index)
                 self.variants.append(variant)
@@ -1204,7 +1210,7 @@ class Solver(_Common):
     """
     def __init__(self, package_requests, package_paths=None,
                  package_cache=None, callback=None, optimised=True,
-                 verbose=True):
+                 verbose=False):
         """Create a Solver.
 
         Args:
@@ -1216,11 +1222,12 @@ class Solver(_Common):
                 is created.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
-            callback: If not None, this callable will be called prior to each
+            callback: If not None, this callable will be called after each
                 solve step. It is passed a single argument - a string showing the
                 current solve state. If the return value of the callable is
                 truthy, the solve continues, otherwise the solve is stopped.
         """
+        self.package_requests = package_requests
         self.package_paths = package_paths or settings.packages_path
         self.package_cache = package_cache
         self.pr = _Printer(verbose)
@@ -1328,9 +1335,9 @@ class Solver(_Common):
 
         # iteratively solve phases
         while self.status == "unsolved":
-            if self._do_callback():
-                self.solve_step()
-            else:
+            self.solve_step()
+
+            if self.status == "unsolved" and not self._do_callback():
                 break
 
     def solve_step(self):
@@ -1338,9 +1345,6 @@ class Solver(_Common):
         """
         self.solve_begun = True
         if self.status != "unsolved":
-            return
-
-        if not self._do_callback():
             return
 
         self.pr.header("SOLVE #%d..." % (self.solve_count+1))
@@ -1415,7 +1419,7 @@ class Solver(_Common):
         """
         phase = self._get_failed_phase(failure_index)
         fr = phase.failure_reason
-        return fr.involved_packages() if fr else None
+        return fr.involved_requirements() if fr else None
 
     def failure_reason(self, failure_index=0):
         """Get the reason for a failure.
@@ -1508,7 +1512,7 @@ class Solver(_Common):
             phase = self._latest_unsolved_phase()
             if phase:
                 s = "solve #%d (%d fails so far): %s" \
-                    % (self.num_solves()+1, self.num_fails(), str(phase))
+                    % (self.num_solves, self.num_fails, str(phase))
                 keep_going = self.callback(s)
                 if not keep_going:
                     self.pr("solve stopped by user")

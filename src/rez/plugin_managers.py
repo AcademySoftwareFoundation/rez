@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from yapsy.PluginManager import PluginManager
+from rez.contrib.yapsy.PluginManager import PluginManager
 from rez import module_root_path
 from rez.settings import settings
 from rez.util import LazySingleton

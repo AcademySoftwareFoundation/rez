@@ -34,7 +34,7 @@ from rez.contrib.pygraph.classes.digraph import digraph
 from rez.contrib.pygraph.classes.exceptions import InvalidGraphType
 from rez.contrib.pygraph.classes.graph import graph
 from rez.contrib.pygraph.classes.hypergraph import hypergraph
-import pydot
+from rez.contrib.pydot import pydot
 
 # Values
 colors = ['aquamarine4', 'blue4', 'brown4', 'cornflowerblue', 'cyan4',

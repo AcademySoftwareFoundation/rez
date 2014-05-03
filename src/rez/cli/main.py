@@ -97,6 +97,7 @@ def add_context(parser):
                         metavar='FILE', help="write the resolve graph to FILE")
     parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
                         type=str, help="prune the graph down to PKG")
+    # TODO remove
     parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
                         help="prune the graph down to show conflicts only")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -202,15 +203,10 @@ def add_env(parser):
     parser.add_argument("-i", "--input", type=str, metavar="FILE",
                         help="use a previously saved context. Resolve settings, "
                         "such as PKG, --ni etc are ignored in this case")
-    parser.add_argument("--mf", "--max-fails", dest="max_fails", type=int,
-                        default=-1, metavar='N',
-                        help="exit when the number of failed configuration "
-                        "attempts exceeds N")
-    parser.add_argument("--rv", "--resolve-verbosity", dest="resolve_verbosity",
-                        type=int, default=0, metavar="VERBOSITY",
-                        help="print debugging info during the resolve process")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
+    parser.add_argument("-v", "--verbose", action="count", default=0,
+                        help="verbose mode, repeat for more verbosity")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 

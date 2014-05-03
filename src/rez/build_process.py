@@ -5,7 +5,7 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
-from rez.versions import ExactVersion
+from rez.contrib.version import Version
 from rez.contrib import yaml
 import getpass
 import shutil
@@ -15,6 +15,7 @@ import sys
 import time
 
 
+# TODO convert to use Package/Variant rather than metadata directly
 
 class BuildProcess(object):
     """A BuildProcess builds and possibly releases a package.
@@ -286,7 +287,7 @@ class StandardBuildProcess(BuildProcess):
         return builds
 
     def _get_last_release(self, release_path):
-        ver = ExactVersion(self.metadata.get("version", ''))
+        ver = Version(self.metadata.get("version", ''))
 
         for pkg in iter_packages_in_range(self.pkg_name,
                                           paths=[release_path]):

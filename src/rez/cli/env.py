@@ -22,14 +22,18 @@ def command(opts, parser=None):
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
                              add_bootstrap_path=(not opts.no_bootstrap),
-                             max_fails=opts.max_fails,
-                             verbosity=opts.resolve_verbosity,
-                             store_failure=bool(opts.output))
+                             verbosity=opts.verbose)
+
+        success = (rc.status == "solved")
+        if not success:
+            rc.print_info(buf=sys.stderr)
+
         if opts.output:
-            if not opts.quiet:
-                rc.print_info()
             rc.save(opts.output)
-            sys.exit(0 if rc.success else 1)
+            sys.exit(0 if success else 1)
+
+        if success and not opts.quiet:
+            rc.print_info()
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.

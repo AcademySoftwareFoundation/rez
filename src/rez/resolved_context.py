@@ -1,14 +1,17 @@
 from rez import __version__, module_root_path
-from rez.config import Resolver
+from rez.resolver import Resolver
 from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
     create_forwarding_script
+from rez.contrib.pygraph.readwrite.dot import write as write_dot
+from rez.contrib.pygraph.readwrite.dot import read as read_dot
+from rez.contrib.version.requirement import Requirement
 from rez.rex import RexExecutor, Python
+from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.contrib import yaml
-import pickle
 import getpass
 import inspect
 import time
@@ -30,171 +33,170 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-
-    serialize_version = (1,0)
-
     def __init__(self, \
-        requested_packages,
-        resolve_mode='latest',
+        package_requests,
         quiet=False,
         verbosity=0,
-        max_fails=-1,
         timestamp=0,
         build_requires=False,
-        assume_dt=True,
         caching=True,
         package_paths=None,
         add_implicit_packages=True,
-        add_bootstrap_path=None,
-        store_failure=False):
+        add_bootstrap_path=None):
         """Perform a package resolve, and store the result.
 
-        @param requested_packages List of package strings defining the request,
-            for example ['boost-1.43+', 'python-2.6']
-        @param resolve_mode One of: 'earliest', 'latest'
-        @param quiet If True then hides unnecessary output
-        @param verbosity Print extra debugging info. One of: 0..2
-        @param max_fails Return after N failed configuration attempts
-        @param timestamp Ignore packages newer than this time-date.
-        @param assume_dt Assume dependency transitivity
-        @param caching If True, resolve info is read from and written to a
-            memcache daemon, if possible.
-        @param package_paths List of paths to search for pkgs, defaults to
-            settings.packages_path.
-        @param add_implicit_packages If True, the implicit package list
-            defined by settings.implicit_packages is added to the request.
-        @param add_bootstrap_path If True, append the package search path with
-            the bootstrap path. If False, do not append. If None, use the
-            default specified in settings.add_bootstrap_path.
-        @param store_failure If True, this context will store a resolve failure,
-            instead of raising the associated exception. In the event of failure,
-            self.success is False, and self.dot_graph, if available, will
-            contain a graph detailing the reason for failure.
+        Args:
+            package_requests: List of strings or Requirement objects
+                representing the request.
+            quiet: If True then hides unnecessary output
+            verbosity: Verbosity level. One of [0,1,2].
+            timestamp: Ignore packages newer than this time-date.
+            caching: If True, cache(s) may be used to speed the resolve.
+            package_paths: List of paths to search for pkgs, defaults to
+                settings.packages_path.
+            add_implicit_packages: If True, the implicit package list defined by
+                settings.implicit_packages is added to the request.
+            add_bootstrap_path: If True, append the package search path with
+                the bootstrap path. If False, do not append. If None, use the
+                default specified in settings.add_bootstrap_path.
         """
-        # serialization
-        self.serialize_ver = self.serialize_version
         self.load_path = None
 
         # resolving settings
-        self.package_request_strings = requested_packages
-        self.resolve_mode = resolve_mode
-        self.request_time = timestamp
+        self.timestamp = timestamp
         self.build_requires = build_requires
-        self.assume_dt = assume_dt
         self.caching = caching
-        self.add_implicit_packages = add_implicit_packages
+        self.implicit_packages = []
 
-        self.package_paths = settings.packages_path if package_paths is None \
-            else package_paths
+        self.package_requests = []
+        for req in package_requests:
+            if isinstance(req, basestring):
+                req = Requirement(req)
+            self.package_requests.append(req)
+
+        self.package_paths = settings.packages_path \
+            if package_paths is None else package_paths
         if add_bootstrap_path or \
             (add_bootstrap_path is None and settings.add_bootstrap_path):
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
-        # info about env the resolve occurred in, useful for debugging
+        if add_implicit_packages:
+            pkg_strs = settings.implicit_packages
+            self.implicit_packages = [Requirement(x) for x in pkg_strs]
+            self.package_requests = self.implicit_packages + self.package_requests
+
+        # info about env the resolve occurred in
+        self.rez_version = __version__
+        self.rez_path = module_root_path
         self.user = getpass.getuser()
         self.host = system.fqdn
         self.platform = system.platform
         self.arch = system.arch
         self.os = system.os
-        self.shell = system.shell
-        self.rez_version = __version__
-        self.rez_path = module_root_path
-        self.implicit_packages = settings.implicit_packages
         self.created = int(time.time())
 
-        # the resolve results
-        self.success = False
-        self.error_message = None
-        self.package_requests = None
-        self.resolved_pkgs = None
-        self.dot_graph = None
-        self.failed_attempts = None
-        self.request_timestamp = None
+        # resolve results
+        self.status = "pending"
+        self.resolved_packages_ = None
+        self.failure_description = None
+        self.graph_string = None
+        self.graph_ = None
+        self.solve_time = 0.0
+        self.load_time = 0.0
 
-        # do the resolve
-        resolver = Resolver(resolve_mode=resolve_mode,
-                            quiet=quiet,
-                            verbosity=verbosity,
-                            max_fails=max_fails,
-                            time_epoch=timestamp,
-                            build_requires=build_requires,
-                            assume_dt=assume_dt,
+        # perform the solve
+        def _pr(s):
+            print s
+            return True
+
+        verbose_ = False
+        callback = None
+        if verbosity >= 2:
+            verbose_ = True
+        elif verbosity == 1:
+            callback = _pr
+
+        resolver = Resolver(package_requests=self.package_requests,
+                            package_paths=self.package_paths,
                             caching=caching,
-                            package_paths=self.package_paths)
+                            callback=callback,
+                            verbose=verbose_)
+        resolver.solve()
 
-        exc_type = Exception if store_failure else None
-        result = None
+        # convert the results
+        self.status = resolver.status
+        self.solve_time = resolver.solve_time
+        self.load_time = resolver.load_time
 
-        try:
-            result = resolver.resolve(self.package_request_strings, \
-                no_implicit=(not self.add_implicit_packages),
-                meta_vars=['tools'],
-                shallow_meta_vars=['tools'])
+        if resolver.graph:
+            self.graph_ = resolver.graph
+        if self.status == "solved":
+            # convert solver.Variants to packages.Variants
+            pkgs = []
+            for variant in resolver.resolved_packages:
+                pkg = Variant(name=variant.name,
+                              version=variant.version,
+                              metafile=variant.metafile,
+                              index=variant.index)
 
-            self.success = True
-            self.package_requests = result.package_requests
-            self.resolved_pkgs = result.package_resolves
-            self.failed_attempts = result.failed_attempts
-            self.request_timestamp = result.request_timestamp
-            self.dot_graph = result.dot_graph
-        except exc_type as e:
-            self.success = False
-            self.error_message = str(e)
-            if hasattr(e, "get_dot_graph"):
-                self.dot_graph = e.get_dot_graph()
-
-    @property
-    def requested_packages(self):
-        """ str list of initially requested packages, not including implicit
-        packages """
-        return self.package_request_strings
-
-    @property
-    def added_implicit_packages(self):
-        """ str list of packages implicitly added to the request list """
-        return self.implicit_packages if self.add_implicit_packages else []
+                pkgs.append(pkg)
+            self.resolved_packages_ = pkgs
+        elif self.status == "failed":
+            self.failure_description = resolver.failure_description
 
     @property
     def resolved_packages(self):
-        """ list of `ResolvedPackage` objects representing the resolve """
-        return self.resolved_pkgs
+        """Returns List of `Variant` objects representing the resolve, or None
+        if the resolve was unsuccessful."""
+        return self.resolved_packages_
 
     @property
-    def resolve_graph(self):
-        """ dot-graph string representing the resolve process. If this resolve
-         failed, this will be a graph showing the failure, or None """
-        return self.dot_graph
+    def has_graph(self):
+        """Return True if the resolve has a graph."""
+        return ((self.graph is not None) or self.graph_string)
+
+    def graph(self, as_dot=False):
+        """Get the resolve graph.
+
+        Args:
+            as_dot: If True, get the graph as a dot-language string. Otherwise,
+                a pygraph.digraph object is returned.
+
+        Returns:
+            A string or pygraph.digraph object, or None if there is no graph
+            associated with the resolve.
+        """
+        if not self.has_graph:
+            return None
+        elif as_dot:
+            if not self.graph_string:
+                self.graph_string = write_dot(self.graph_)
+            return self.graph_string
+        elif not self.graph_:
+            self.graph_ = read_dot(self.graph_string)
+
+        return self.graph_
 
     def save(self, path):
         """Save the resolved context to file."""
+        doc = self.to_dict()
+        content = yaml.dump(doc)
         with open(path, 'w') as f:
-            pickle.dump(self, f)
+            f.write(content)
 
-    @staticmethod
-    def load(path):
+    @classmethod
+    def load(cls, path):
         """Load a resolved context from file."""
-        def _v(t):
-            return '%d.%d' % t
-
-        curr_ver = ResolvedContext.serialize_version
         with open(path) as f:
-            r = pickle.load(f)
+            doc = yaml.load(f.read())
 
-        if r.serialize_ver < curr_ver:
-            raise Exception("The version of the context (v%s) is too old, "
-                "must be v%s or greater" % (_v(r.serialize_ver), _v(curr_ver)))
-        if r.serialize_ver[0] > curr_ver[0]:
-            next_major = (curr_ver[0]+1, 0)
-            raise Exception("The version of the context (v%s) is too new - "
-                "this version of Rez can only read contexts earlier than v%s" \
-                % (_v(r.serialize_ver), _v(next_major)))
-
+        r = cls.from_dict(doc)
         r.load_path = os.path.abspath(path)
         return r
 
     def on_success(fn):
         def _check(self, *nargs, **kwargs):
-            if self.success:
+            if self.status == "solved":
                 return fn(self, *nargs, **kwargs)
             else:
                 raise Exception("Cannot perform operation in a failed context")
@@ -209,13 +211,10 @@ class ResolvedContext(object):
         available on the current host.
         """
         # check package paths
-        for pkg in self.resolved_pkgs:
+        for pkg in self.resolved_packages:
             if not os.path.exists(pkg.root):
                 raise Exception("Package %s path does not exist: %s" \
-                    % (pkg.short_name(), pkg.root))
-
-        # check system packages
-        # FIXME TODO
+                    % (pkg.qualified_package_name, pkg.root))
 
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
@@ -230,17 +229,17 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        if not self.success:
-            _pr("This context contains a failed resolve:\n")
-            _pr(self.error_message)
+        if self.status in ("failed", "aborted"):
+            _pr("The context failed to resolve:\n")
+            _pr(self.failure_description)
             return
 
         t_str = _rt(self.created)
         _pr("resolved by %s@%s, on %s, using Rez v%s" \
             % (self.user, self.host, t_str, self.rez_version))
-        if self.request_time:
-            t_str = _rt(self.request_time)
-            _pr("packages released after %s are being ignored" % t_str)
+        if self.timestamp:
+            t_str = _rt(self.timestamp)
+            _pr("packages released after %s were ignored" % t_str)
         _pr()
 
         if verbose:
@@ -249,31 +248,27 @@ class ResolvedContext(object):
                 _pr(path)
             _pr()
 
-        if self.add_implicit_packages and self.implicit_packages:
-            _pr("implicit packages:")
-            for pkg in self.implicit_packages:
-                _pr(pkg)
-            _pr()
-
         _pr("requested packages:")
-        for pkg in self.package_request_strings:
-            _pr(pkg)
+        for pkg in self.package_requests:
+            _pr(str(pkg))
         _pr()
 
         _pr("resolved packages:")
         rows = []
-        for pkg in self.resolved_pkgs:
+        for pkg in self.resolved_packages:
             tok = ''
             if not os.path.exists(pkg.root):
                 tok = 'NOT FOUND'
             elif pkg.root.startswith(settings.local_packages_path):
-                tok = 'local'
-            rows.append((pkg.short_name(), pkg.root, tok))
+                tok = 'local'  # FIXME
+            rows.append((pkg.qualified_package_name, pkg.root, tok))
         _pr('\n'.join(columnise(rows)))
 
         if verbose:
             _pr()
-            _pr("resolved after %d attempts" % self.failed_attempts)
+            _pr("resolve details:")
+            _pr("load time: %.02f secs" % self.load_time)
+            _pr("solve time: %.02f secs" % self.solve_time)
 
     @on_success
     def get_environ(self, parent_environ=None):
@@ -302,18 +297,14 @@ class ResolvedContext(object):
             Dict of {pkg-name: value}.
         """
         values = {}
-        reqs = None
-        if request_only:
-            reqs = [x.split('-',1)[0] for x in self.package_request_strings]
-            reqs = [x for x in reqs if not x.startswith('!')]
-            reqs = [x for x in reqs if not x.startswith('~')]
-            reqs = set(reqs)
+        requested_names = [x.name for x in self.package_requests if not x.confict]
 
-        for pkg_res in self.resolved_pkgs:
-            if (not request_only) or (pkg_res.name.split('-',1)[0] in reqs):
-                val = pkg_res.metadata.get(key)
-                if val is not None:
-                    values[pkg_res.name] = val
+        for pkg in self.resolved_packages:
+            if (not request_only) or (pkg.name in requested_names):
+                value = pkg.metadata.get(key)
+                if value is not None:
+                    values[pkg.name] = value
+
         return values
 
     @on_success
@@ -553,6 +544,63 @@ class ResolvedContext(object):
             print "\n%d tools were written to %s\n" % (n, binpath)
         return binpath
 
+    def to_dict(self):
+        return dict(
+            timestamp=self.timestamp,
+            build_requires=self.build_requires,
+            caching=self.caching,
+            implicit_packages=[str(x) for x in self.implicit_packages],
+            package_requests=[str(x) for x in self.package_requests],
+            package_paths=self.package_paths,
+
+            rez_version=self.rez_version,
+            rez_path=self.rez_path,
+            user=self.user,
+            host=self.host,
+            platform=self.platform,
+            arch=self.arch,
+            os=self.os,
+            created=self.created,
+
+            status=self.status,
+            resolved_packages=[x.to_dict() for x in self.resolved_packages_],
+            failure_description=self.failure_description,
+            graph=self.graph(as_dot=True),
+            solve_time=self.solve_time,
+            load_time=self.load_time)
+
+    @classmethod
+    def from_dict(cls, d):
+        r = ResolvedContext.__new__(ResolvedContext)
+        r.load_path = None
+
+        r.timestamp = d["timestamp"]
+        r.build_requires = d["build_requires"]
+        r.caching = d["caching"]
+        r.implicit_packages = [Requirement(x) for x in d["implicit_packages"]]
+        r.package_requests = [Requirement(x) for x in d["package_requests"]]
+        r.package_paths = d["package_paths"]
+
+        r.rez_version = d["rez_version"]
+        r.rez_path = d["rez_path"]
+        r.user = d["user"]
+        r.host = d["host"]
+        r.platform = d["platform"]
+        r.arch = d["arch"]
+        r.os = d["os"]
+        r.created = d["created"]
+
+        r.status = d["status"]
+        r.resolved_packages_ = [Variant.from_dict(x) for x in d["resolved_packages"]]
+        r.failure_description = d["failure_description"]
+        r.solve_time = d["solve_time"]
+        r.load_time = d["load_time"]
+
+        r.graph_string = d["graph"]
+        r.graph_ = None
+
+        return r
+
     def _create_executor(self, interpreter, parent_environ):
         parent_vars = True if settings.all_parent_variables \
             else settings.parent_variables
@@ -574,70 +622,73 @@ class ResolvedContext(object):
         return sh,context_code
 
     def _execute(self, executor):
-        def _stringify_pkgs(pkgs):
-            return ' '.join(x.short_name() for x in pkgs)
+        request_str = ' '.join(str(x) for x in self.package_requests)
+        resolve_str = ' '.join(x.qualified_package_name for x in self.resolved_packages)
 
         executor.update_env({
             "REZ_USED":             self.rez_path,
             # TODO add back if and when we need this
             #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
             #"REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
-            "REZ_REQUEST":          _stringify_pkgs(self.package_requests),
-            "REZ_RESOLVE":          _stringify_pkgs(self.resolved_pkgs),
-            "REZ_RESOLVE_MODE":     self.resolve_mode,
-            "REZ_FAILED_ATTEMPTS":  self.failed_attempts,
-            "REZ_REQUEST_TIME":     self.request_timestamp})
+            #"REZ_RESOLVE_MODE":     self.resolve_mode,
+            #"REZ_FAILED_ATTEMPTS":  self.failed_attempts,
+            "REZ_REQUEST":          request_str,
+            "REZ_RESOLVE":          resolve_str,
+            # TODO FIXME this should be actual timestamp used even if timestamp not
+            # speicified, but the new solver doesnt do this yet.
+            "REZ_REQUEST_TIME":     self.timestamp})
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
         manager = executor.manager
 
-        for pkg_res in self.resolved_pkgs:
+        for pkg in self.resolved_packages:
             manager.comment("")
-            manager.comment("Commands from package %s" % pkg_res.short_name())
+            manager.comment("Commands from package %s" % pkg.qualified_name)
             manager.comment("")
 
-            prefix = "REZ_" + pkg_res.name.upper()
+            prefix = "REZ_" + pkg.name.upper()
             executor.update_env({
-                prefix+"_VERSION":  pkg_res.version,
-                prefix+"_BASE":     pkg_res.base,
-                prefix+"_ROOT":     pkg_res.root})
+                prefix+"_VERSION":  str(pkg.version),
+                prefix+"_BASE":     pkg.base,
+                prefix+"_ROOT":     pkg.root})
 
-            executor.bind('this', pkg_res)
-            executor.bind('root', pkg_res.root)
-            executor.bind('base', pkg_res.base)
-            executor.bind('version', pkg_res.version)
+            # TODO need rex-specific wrapper for variant/version. ImmDict?
+            #executor.bind('this', pkg)
+            executor.bind('root', pkg.root)
+            executor.bind('base', pkg.base)
+            executor.bind('version', pkg.version)  # FIXME exposes Version instance
 
-            commands = pkg_res.metadata.get("commands")
+            commands = pkg.metadata.get("commands")
             if commands:
                 # old-style, we convert it to a rex code string (ie python)
                 if isinstance(commands, list):
                     if settings.warn_old_commands:
                         print_warning_once("%s is using old-style commands."
-                                           % pkg_res.short_name())
+                                           % pkg.qualified_name)
 
                     # convert expansions from !OLD! style to {new}
                     cmds = []
                     for cmd in commands:
-                        cmd = cmd.replace("!VERSION!",      "{version}")
-                        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
-                        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
-                        cmd = cmd.replace("!BASE!",         "{base}")
-                        cmd = cmd.replace("!ROOT!",         "{root}")
-                        cmd = cmd.replace("!USER!",         "{user}")
+                        cmd = cmd.replace("!VERSION!",       "{version}")
+                        cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
+                        cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
+                        cmd = cmd.replace("!BASE!",          "{base}")
+                        cmd = cmd.replace("!ROOT!",          "{root}")
+                        cmd = cmd.replace("!USER!",          "{user}")
                         cmds.append(cmd)
                     commands = convert_old_commands(cmds)
 
                 try:
                     if isinstance(commands, basestring):
-                        # rex code in a string
-                        executor.execute_code(commands, pkg_res.metafile)
+                        # rex code is in a string
+                        executor.execute_code(commands, pkg.metafile)
                     elif inspect.isfunction(commands):
-                        # function in a package.py
+                        # rex code is a function in a package.py
                         executor.execute_function(commands)
                 except Exception as e:
                     msg = "Error in commands in file %s:\n%s" \
-                          % (pkg_res.metafile, str(e))
+                          % (pkg.metafile, str(e))
                     raise PkgCommandError(msg)
 
 

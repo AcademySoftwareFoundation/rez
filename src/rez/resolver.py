@@ -10,14 +10,14 @@ class Resolver(object):
     package request as quickly as possible.
     """
     def __init__(self, package_requests, package_paths=None,
-                 use_cache=True, callback=None, verbose=True):
+                 caching=True, callback=None, verbose=False):
         """Create a Resolver.
 
         Args:
             package_requests: List of Requirement objects representing the request.
             package_paths: List of paths to search for pkgs, defaults to
                 settings.packages_path.
-            use_cache: If True, utilise cache(s) in order to speed up the resolve.
+            caching: If True, utilise cache(s) in order to speed up the resolve.
             callback: If not None, this callable will be called prior to each
                 solve step. It is passed a single argument - a string showing the
                 current solve state. If the return value of the callable is
@@ -25,13 +25,17 @@ class Resolver(object):
         """
         self.package_requests = package_requests
         self.package_paths = package_paths or settings.packages_path
-        self.use_cache = use_cache
+        self.caching = caching
         self.callback = callback
         self.verbose = verbose
 
         self.status_ = "pending"
         self.resolved_packages_ = None
+        self.failure_description = None
         self.graph_ = None
+
+        self.solve_time = 0.0  # time spent solving
+        self.load_time = 0.0   # time spent loading pkgs from disk
 
     def solve(self):
         """Perform the solve."""
@@ -78,9 +82,14 @@ class Resolver(object):
 
         if st == "unsolved":
             st = "aborted"
+            self.failure_description = "the resolve was aborted by the user"
+        elif st == "failed":
+            self.failure_description = solver.failure_reason.description()
         elif st == "solved":
             pkgs = solver.resolved_packages
 
         self.status_ = st
         self.resolved_packages_ = pkgs
         self.graph_ = solver.get_graph()
+        self.solve_time = solver.solve_time
+        self.load_time = solver.load_time

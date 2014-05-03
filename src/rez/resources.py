@@ -247,9 +247,6 @@ class ResourceInfo(object):
     @staticmethod
     def _expand_pattern(pattern):
         "expand variables in a search pattern with regular expressions"
-        import versions
-        import packages
-
         pattern = re.escape(pattern)
         expansions = [('version', VERSION_REGSTR),
                       ('name', PACKAGE_NAME_REGSTR),
