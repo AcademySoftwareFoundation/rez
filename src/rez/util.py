@@ -610,6 +610,7 @@ def convert_old_commands(commands, annotate=True):
 
             if var == "CMAKE_MODULE_PATH":
                 value = value.replace(';', os.pathsep)
+                value = value.replace('\'', '')
 
             parts = value.split(os.pathsep)
             parts = [x for x in parts if x]
