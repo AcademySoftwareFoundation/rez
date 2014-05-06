@@ -239,7 +239,7 @@ class StandardBuildProcess(BuildProcess):
             print s
 
     def _prd(self, s):
-        if self.settings.debug_package_release:
+        if self.settings.debug("package_release"):
             print s
 
     def _hdr(self, s, h=1):

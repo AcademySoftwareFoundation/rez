@@ -225,6 +225,12 @@ class Variant(PackageBase):
             dirs = [encode_filesystem_name(x) for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
 
+            # backwards compatibility with rez-1
+            if (not os.path.exists(self.root)) and (dirs != var_requires):
+                root = os.path.join(self.base, os.path.join(*var_requires))
+                if os.path.exists(root):
+                    self.root = root
+
     @property
     def qualified_package_name(self):
         return super(Variant,self).qualified_name

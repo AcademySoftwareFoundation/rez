@@ -87,6 +87,8 @@ class TestSolver(unittest.TestCase):
 
     def test_1(self):
         """Extremely basic solves involving a single package."""
+        self._solve([],
+                    [])
         self._solve(["nada"],
                     ["nada"])
         self._solve(["!nada"],

@@ -24,16 +24,16 @@ def command(opts, parser=None):
                              add_bootstrap_path=(not opts.no_bootstrap),
                              verbosity=opts.verbose)
 
-        success = (rc.status == "solved")
-        if not success:
-            rc.print_info(buf=sys.stderr)
+    success = (rc.status == "solved")
+    if not success:
+        rc.print_info(buf=sys.stderr)
 
-        if opts.output:
-            rc.save(opts.output)
-            sys.exit(0 if success else 1)
+    if opts.output:
+        rc.save(opts.output)
+        sys.exit(0 if success else 1)
 
-        if success and not opts.quiet:
-            rc.print_info()
+    if success and not opts.quiet and not opts.command:
+        rc.print_info()
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.

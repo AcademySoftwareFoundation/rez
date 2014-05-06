@@ -9,8 +9,11 @@ from rez.contrib.pygraph.readwrite.dot import write as write_dot
 from rez.contrib.pygraph.readwrite.dot import read as read_dot
 from rez.contrib.version.requirement import Requirement
 from rez.rex import RexExecutor, Python
+from rez.rex_bindings import VersionBinding, VariantBinding, \
+    VariantsBinding, RequirementsBinding
 from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
+from rez.exceptions import RezSystemError, PackageCommandError
 from rez.contrib import yaml
 import getpass
 import inspect
@@ -33,6 +36,8 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
+    serialize_version = 0
+
     def __init__(self, \
         package_requests,
         quiet=False,
@@ -128,8 +133,9 @@ class ResolvedContext(object):
         self.solve_time = resolver.solve_time
         self.load_time = resolver.load_time
 
-        if resolver.graph:
+        if resolver.graph is not None:
             self.graph_ = resolver.graph
+
         if self.status == "solved":
             # convert solver.Variants to packages.Variants
             pkgs = []
@@ -153,7 +159,7 @@ class ResolvedContext(object):
     @property
     def has_graph(self):
         """Return True if the resolve has a graph."""
-        return ((self.graph is not None) or self.graph_string)
+        return ((self.graph_ is not None) or self.graph_string)
 
     def graph(self, as_dot=False):
         """Get the resolve graph.
@@ -172,7 +178,7 @@ class ResolvedContext(object):
             if not self.graph_string:
                 self.graph_string = write_dot(self.graph_)
             return self.graph_string
-        elif not self.graph_:
+        elif self.graph_ is None:
             self.graph_ = read_dot(self.graph_string)
 
         return self.graph_
@@ -190,31 +196,16 @@ class ResolvedContext(object):
         with open(path) as f:
             doc = yaml.load(f.read())
 
+        load_ver = doc["serialize_version"]
+        curr_ver = ResolvedContext.serialize_version
+        if load_ver > curr_ver:
+            raise RezSystemError(("The context stored in %s cannot be " + \
+                "loaded, because it was written by a newer version of Rez " + \
+                "(serialize version %d > %d)") % (path, load_ver, curr_ver))
+
         r = cls.from_dict(doc)
         r.load_path = os.path.abspath(path)
         return r
-
-    def on_success(fn):
-        def _check(self, *nargs, **kwargs):
-            if self.status == "solved":
-                return fn(self, *nargs, **kwargs)
-            else:
-                raise Exception("Cannot perform operation in a failed context")
-        return _check
-
-    @on_success
-    def validate(self):
-        """Check compatibility with the current system.
-
-        For instance, a loaded context may have been created on a different host,
-        with different package search paths, and so may refer to packages not
-        available on the current host.
-        """
-        # check package paths
-        for pkg in self.resolved_packages:
-            if not os.path.exists(pkg.root):
-                raise Exception("Package %s path does not exist: %s" \
-                    % (pkg.qualified_package_name, pkg.root))
 
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
@@ -270,7 +261,29 @@ class ResolvedContext(object):
             _pr("load time: %.02f secs" % self.load_time)
             _pr("solve time: %.02f secs" % self.solve_time)
 
-    @on_success
+    def _on_success(fn):
+        def _check(self, *nargs, **kwargs):
+            if self.status == "solved":
+                return fn(self, *nargs, **kwargs)
+            else:
+                raise RezSystemError("Cannot perform operation in a failed context")
+        return _check
+
+    @_on_success
+    def validate(self):
+        """Check compatibility with the current system.
+
+        For instance, a loaded context may have been created on a different host,
+        with different package search paths, and so may refer to packages not
+        available on the current host.
+        """
+        # check package paths
+        for pkg in self.resolved_packages:
+            if not os.path.exists(pkg.root):
+                raise RezSystemError("Package %s path does not exist: %s" \
+                    % (pkg.qualified_package_name, pkg.root))
+
+    @_on_success
     def get_environ(self, parent_environ=None):
         """Get the environ dict resulting from interpreting this context.
 
@@ -284,7 +297,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return executor.get_output()
 
-    @on_success
+    @_on_success
     def get_key(self, key, request_only=False):
         """Get a metadata key value for each resolved package.
 
@@ -297,7 +310,7 @@ class ResolvedContext(object):
             Dict of {pkg-name: value}.
         """
         values = {}
-        requested_names = [x.name for x in self.package_requests if not x.confict]
+        requested_names = [x.name for x in self.package_requests if not x.conflict]
 
         for pkg in self.resolved_packages:
             if (not request_only) or (pkg.name in requested_names):
@@ -307,7 +320,7 @@ class ResolvedContext(object):
 
         return values
 
-    @on_success
+    @_on_success
     def get_shell_code(self, shell=None, parent_environ=None):
         """Get the shell code resulting from intepreting this context.
 
@@ -322,7 +335,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return executor.get_output()
 
-    @on_success
+    @_on_success
     def apply(self, parent_environ=None):
         """Apply the context to the current python session.
 
@@ -335,7 +348,7 @@ class ResolvedContext(object):
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
 
-    @on_success
+    @_on_success
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
         """Run a command within a resolved context.
 
@@ -354,7 +367,7 @@ class ResolvedContext(object):
         self._execute(executor)
         return interpreter.subprocess(args, **subprocess_kwargs)
 
-    @on_success
+    @_on_success
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
@@ -364,8 +377,8 @@ class ResolvedContext(object):
         Args:
             shell: Shell type, for eg 'bash'. If None, the current shell type
                 is used.
-            parent_environ: Environment to interpret the context within,
-                defaults to os.environ if None.
+            parent_environ: Environment to run the shell process in, if None
+                then the current environment is used.
             rcfile: Specify a file to source instead of shell startup files.
             norc: If True, skip shell startup files, if possible.
             stdin: If True, read commands from stdin, in a non-interactive shell.
@@ -429,6 +442,7 @@ class ResolvedContext(object):
                            norc=norc,
                            stdin=stdin,
                            command=command,
+                           env=parent_environ,
                            quiet=quiet,
                            **Popen_args)
         if block:
@@ -546,6 +560,8 @@ class ResolvedContext(object):
 
     def to_dict(self):
         return dict(
+            serialize_version=ResolvedContext.serialize_version,
+
             timestamp=self.timestamp,
             build_requires=self.build_requires,
             caching=self.caching,
@@ -572,6 +588,7 @@ class ResolvedContext(object):
     @classmethod
     def from_dict(cls, d):
         r = ResolvedContext.__new__(ResolvedContext)
+        sz_ver = d["serialize_version"]  # for backwards compatibility
         r.load_path = None
 
         r.timestamp = d["timestamp"]
@@ -625,6 +642,7 @@ class ResolvedContext(object):
         request_str = ' '.join(str(x) for x in self.package_requests)
         resolve_str = ' '.join(x.qualified_package_name for x in self.resolved_packages)
 
+        # bind various info to the execution context
         executor.update_env({
             "REZ_USED":             self.rez_path,
             # TODO add back if and when we need this
@@ -639,13 +657,14 @@ class ResolvedContext(object):
             "REZ_REQUEST_TIME":     self.timestamp})
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
+        executor.bind('request', RequirementsBinding(self.package_requests))
+        executor.bind('resolve', VariantsBinding(self.resolved_packages))
 
-        manager = executor.manager
-
+        # apply each resolved package to the execution context
         for pkg in self.resolved_packages:
-            manager.comment("")
-            manager.comment("Commands from package %s" % pkg.qualified_name)
-            manager.comment("")
+            executor.comment("")
+            executor.comment("Commands from package %s" % pkg.qualified_name)
+            executor.comment("")
 
             prefix = "REZ_" + pkg.name.upper()
             executor.update_env({
@@ -653,17 +672,16 @@ class ResolvedContext(object):
                 prefix+"_BASE":     pkg.base,
                 prefix+"_ROOT":     pkg.root})
 
-            # TODO need rex-specific wrapper for variant/version. ImmDict?
-            #executor.bind('this', pkg)
-            executor.bind('root', pkg.root)
-            executor.bind('base', pkg.base)
-            executor.bind('version', pkg.version)  # FIXME exposes Version instance
+            executor.bind('this',       VariantBinding(pkg))
+            executor.bind("version",    VersionBinding(pkg.version))
+            executor.bind('root',       pkg.root)
+            executor.bind('base',       pkg.base)
 
             commands = pkg.metadata.get("commands")
             if commands:
                 # old-style, we convert it to a rex code string (ie python)
                 if isinstance(commands, list):
-                    if settings.warn_old_commands:
+                    if settings.warn("old_commands"):
                         print_warning_once("%s is using old-style commands."
                                            % pkg.qualified_name)
 
@@ -689,7 +707,7 @@ class ResolvedContext(object):
                 except Exception as e:
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg.metafile, str(e))
-                    raise PkgCommandError(msg)
+                    raise PackageCommandError(msg)
 
 
 def _invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):

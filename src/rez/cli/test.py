@@ -1,3 +1,4 @@
+from rez.settings import settings
 import unittest
 import threading
 import sys
@@ -8,16 +9,14 @@ def get_suites(opts):
     suites = []
     test_all = \
         (not opts.shells) and \
-        (not opts.resolves) and \
+        (not opts.solver) and \
         (not opts.cli)
 
     if opts.shells or test_all:
         from rez.tests.shells import get_test_suites
         suites += get_test_suites()
 
-    # TODO move to --solver
-    if opts.resolves or test_all:
-        #from rez.tests.resolves import get_test_suites
+    if opts.solver or test_all:
         from rez.tests.solver import get_test_suites
         suites += get_test_suites()
 

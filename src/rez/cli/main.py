@@ -255,7 +255,7 @@ def add_test(parser):
                         help="don't run the multithreaded testing phase")
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
-    parser.add_argument("--resolves", action="store_true",
+    parser.add_argument("--solver", action="store_true",
                         help="test package resolving algorithm")
     parser.add_argument("--cli", action="store_true",
                         help="test commandline tools")

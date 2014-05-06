@@ -36,17 +36,21 @@ class Settings(object):
 
     key_schemas = {
         # bools
+        "add_bootstrap_path":               bool_schema,
         "prefix_prompt":                    bool_schema,
         "warn_shell_startup":               bool_schema,
         "warn_untimestamped":               bool_schema,
         "warn_old_commands":                bool_schema,
+        "warn_all":                         bool_schema,
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,
         "all_parent_variables":             bool_schema,
         "all_resetting_variables":          bool_schema,
+        "quiet":                            bool_schema,
         # integers
         "release_email_smtp_port":          int_schema,
         # strings
+        "build_directory":                  str_schema,
         "local_packages_path":              str_schema,
         "release_packages_path":            str_schema,
         "external_packages_path":           str_schema,
@@ -55,6 +59,7 @@ class Settings(object):
         "tmpdir":                           str_schema,
         "version_sep":                      str_schema,
         "prompt":                           str_schema,
+        "dot_image_format":                 str_schema,
         "build_system":                     str_schema,
         "vcs_tag_name":                     str_schema,
         "release_email_smtp_host":          str_schema,
@@ -77,7 +82,11 @@ class Settings(object):
         "source_retriever_plugin_path":     path_list_schema,
         "release_vcs_plugin_path":          path_list_schema,
         "release_hook_plugin_path":         path_list_schema,
-        "build_system_plugin_path":         path_list_schema
+        "build_system_plugin_path":         path_list_schema,
+
+        # FIXME how to let plugins support their own settings?
+        "cmake_build_system":               str_schema,
+        "cmake_args":                       str_list_schema
     }
 
     def __init__(self, overrides=None):
@@ -101,6 +110,7 @@ class Settings(object):
 
     def set(self, key, value):
         """ Force a setting to the given value """
+        self._validate(key, value)
         self.settings[key] = value
 
     def get_all(self):
@@ -109,6 +119,15 @@ class Settings(object):
         for k in self.config.iterkeys():
             getattr(self, k)
         return self.settings
+
+    def warn(self, param):
+        """Returns True if the warning setting is enabled."""
+        return not self.quiet and \
+            (self.warn_all or getattr(self, "warn_%s" % param))
+
+    def debug(self, param):
+        """Returns True if the debug setting is enabled."""
+        return not self.quiet and getattr(self, "debug_%s" % param)
 
     def env_var_changed(self, varname):
         """ Uncaches matching setting, if any """
@@ -156,12 +175,11 @@ class Settings(object):
 
     @classmethod
     def _validate(cls, key, value):
-        schema = cls.key_schemas.get(key)
-        if schema:
-            try:
-                schema.validate(value)
-            except SchemaError as e:
-                raise ConfigurationError("%s: %s" % (key, str(e)))
+        schema = cls.key_schemas[key]
+        try:
+            schema.validate(value)
+        except SchemaError as e:
+            raise ConfigurationError("%s: %s" % (key, str(e)))
 
     def _load_variables(self):
         if self.variables is None:
@@ -190,6 +208,7 @@ class Settings(object):
         if attr not in self.config:
             raise ConfigurationError("No such Rez setting - '%s'" % attr)
 
+        schema = Settings.key_schemas[attr]
         config_value = self.config.get(attr)
         env_var = "REZ_%s" % attr.upper()
         value = os.getenv(env_var)
@@ -200,20 +219,20 @@ class Settings(object):
                 func = "_get_" + attr
                 if hasattr(self, func):
                     value = getattr(self, func)()
-        elif isinstance(config_value, list):
+        elif schema is Settings.str_list_schema:
             value = value.strip()
-            schema = self.key_schemas.get(attr)
-            if schema is self.path_list_schema:
-                vals = value.split(os.pathsep)
-            else:
-                vals = value.replace(',',' ').strip().split()
+            vals = value.replace(',',' ').strip().split()
             value = [x for x in vals if x]
-        elif isinstance(config_value, int):
+        elif schema is Settings.path_list_schema:
+            value = value.strip()
+            vals = value.split(os.pathsep)
+            value = [x for x in vals if x]
+        elif schema is Settings.int_schema:
             try:
                 value = int(value)
             except ValueError:
                 pass
-        elif isinstance(config_value, bool):
+        elif schema is Settings.bool_schema:
             if value.lower() in ("1", "true", "yes", "y", "on"):
                 value = True
             elif value.lower() in ("0", "false", "no", "n", "off"):

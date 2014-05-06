@@ -362,23 +362,6 @@ def to_ntpath(path):
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
-"""
-class AttrDict(dict):
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-
-    def copy(self):
-        return AttrDict(dict.copy(self))
-"""
-
 
 class AttrDictWrapper(UserDict.UserDict):
     """

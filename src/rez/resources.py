@@ -26,7 +26,7 @@ import re
 from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
-from rez.exceptions import PkgMetadataError
+from rez.exceptions import PackageMetadataError
 from rez.contrib.version.version import Version
 from rez.contrib import yaml
 
@@ -183,7 +183,7 @@ def load_file(filename):
             while frames and frames[0][0] != filename:
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
-            raise PkgMetadataError(filename, "%s\n%s" % (str(e), stack))
+            raise PackageMetadataError(filename, "%s\n%s" % (str(e), stack))
 
 def get_package_file(parent_path):
     """Return the path to package.yaml etc found under given path, or None."""
@@ -204,7 +204,7 @@ def load_package_metadata(parent_path):
     if file:
         return (load_file(file), file)
     else:
-        raise PkgMetadataError("No package definition file found in %s" % parent_path)
+        raise PackageMetadataError("No package definition file found in %s" % parent_path)
 
 # TODO move into PackageDefinition class
 def load_package_settings(metadata):

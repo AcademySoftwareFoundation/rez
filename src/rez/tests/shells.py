@@ -116,8 +116,12 @@ class TestShell(unittest.TestCase):
         _,_,command,_ = self.sh.startup_capabilities(command=True)
         if command:
             r = self._create_context([])
+            e = os.environ.copy()
+            e["REZ_QUIET"] = "true"  # suppress warnings etc
+
             p = r.execute_shell(shell=self.shell,
                                 command="rez-env --bo --ni -c 'hello_world' hello_world",
+                                parent_environ=e,
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 

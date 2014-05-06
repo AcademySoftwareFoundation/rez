@@ -139,11 +139,18 @@ warn_untimestamped: true
 # section is resolved into an environment
 warn_old_commands: true
 
+# turn on all warnings
+warn_all: false
+
 # Print debugging info when loading plugins
 debug_plugins: false
 
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
+
+# Suppress all warnings and debugging messages. Overrides all warn_xxx and
+# debug_xxx settings
+quiet: false
 
 
 ###############################################################################

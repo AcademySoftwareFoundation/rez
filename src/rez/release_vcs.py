@@ -108,7 +108,7 @@ class ReleaseVCS(object):
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
-        if self.settings.debug_package_release:
+        if self.settings.debug("package_release"):
             print "Running command: %s" % cmd_str
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,

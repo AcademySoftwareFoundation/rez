@@ -9,7 +9,7 @@ from rez.contrib.pygraph.classes.digraph import digraph
 from rez.contrib.pygraph.algorithms.cycles import find_cycle
 from rez.contrib.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
-    PkgFamilyNotFoundError
+    PackageFamilyNotFoundError
 from rez.contrib.version.version import VersionRange
 from rez.contrib.version.requirement import VersionedObject, Requirement, \
     RequirementList
@@ -262,7 +262,8 @@ class _PackageVariantList(_Common):
                 self.variants.append(variant)
 
         if not self.variants:
-            raise PkgFamilyNotFoundError(package_name)
+            raise PackageFamilyNotFoundError( \
+                "package family not found: %s" % package_name)
 
     def get_intersection(self, range):
         variants = []
