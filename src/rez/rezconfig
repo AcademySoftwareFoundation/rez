@@ -37,23 +37,24 @@
 # list.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
-- '~/.rez/packages/int'  # internally developed pkgs, deployed
-- '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
+- '/film/tools/packages'  # internally developed pkgs, deployed
+- '/film/tools/packages2'  # external (3rd party) pkgs, such as houdini, boost
+- '{root_dir}/packages'  # bootstrap pkgs created at rez install time, eg arch
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-release_packages_path: '~/.rez/packages/int'
+release_packages_path: '/film/tools/packages'
 
 # The path that rez-install will deploy external packages to. For production use,
 # you will probably want to change this to a site-wide location.
-external_packages_path: '~/.rez/packages/ext'
+external_packages_path: '/film/tools/packages'
 
 # The path that rez-egg-install will deploy packages to. For production use, you
 # will probably want to change this to a site-wide location.
-egg_packages_path: '~/.rez/packages/ext'
+egg_packages_path: '/film/tools/packages'
 
 # The formulae URLs that rez-install searches for packages
 package_repository_url_path:
@@ -142,7 +143,7 @@ warn_untimestamped: true
 
 # If true, print a warning whenever a package with an old-style commands
 # section is resolved into an environment
-warn_old_commands: true
+warn_old_commands: false
 
 # Print debugging info when loading plugins
 debug_plugins: false
