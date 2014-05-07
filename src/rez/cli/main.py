@@ -263,6 +263,8 @@ def add_test(parser):
                         help="test rex string formatting")
     parser.add_argument("--commands", action="store_true",
                         help="test package commands")
+    parser.add_argument("--rex", action="store_true",
+                        help="test the rex command generator API")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 

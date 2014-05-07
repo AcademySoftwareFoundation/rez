@@ -267,7 +267,8 @@ class ActionManager(object):
 
     def getenv(self, key):
         try:
-            return self.environ.get(key, self.parent_environ[key])
+            return self.environ[key] if key in self.environ \
+                else self.parent_environ[key]
         except KeyError:
             raise PackageCommandError("Referenced undefined environment variable: %s" % key)
 
@@ -852,9 +853,7 @@ class RexExecutor(object):
         return fn(*nargs, **kwargs)
 
     def get_output(self):
-        """
-        Returns the result of all previous calls to execute_code.
-        """
+        """Returns the result of all previous calls to execute_code."""
         return self.manager.get_output()
 
     def expand(self, value):

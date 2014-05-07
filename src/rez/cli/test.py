@@ -12,7 +12,8 @@ def get_suites(opts):
         (not opts.solver) and \
         (not opts.cli) and \
         (not opts.formatter) and \
-        (not opts.commands)
+        (not opts.commands) and \
+        (not opts.rex)
 
     if opts.shells or test_all:
         from rez.tests.shells import get_test_suites
@@ -32,6 +33,10 @@ def get_suites(opts):
 
     if opts.commands or test_all:
         from rez.tests.commands import get_test_suites
+        suites += get_test_suites()
+
+    if opts.rex or test_all:
+        from rez.tests.rex import get_test_suites
         suites += get_test_suites()
 
     return suites
