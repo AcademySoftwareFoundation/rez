@@ -54,6 +54,16 @@ class PackageCommandError(RezError):
     pass
 
 
+class RexError(RezError):
+    """There is an error in Rex code."""
+    pass
+
+
+class RexUndefinedVariableError(RexError):
+    """There is a reference to an undefined variable."""
+    pass
+
+
 class BuildSystemError(RezError):
     """Base class for buildsys-related errors."""
     pass

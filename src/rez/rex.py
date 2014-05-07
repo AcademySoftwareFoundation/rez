@@ -14,9 +14,9 @@ import getpass
 from rez import module_root_path
 from rez.system import system
 from rez.settings import settings
+from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path
-from rez.exceptions import PackageCommandError
 
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
@@ -270,7 +270,7 @@ class ActionManager(object):
             return self.environ[key] if key in self.environ \
                 else self.parent_environ[key]
         except KeyError:
-            raise PackageCommandError("Referenced undefined environment variable: %s" % key)
+            raise RexUndefinedVariableError("Referenced undefined environment variable: %s" % key)
 
     def setenv(self, key, value):
         # environment variables may be left unexpanded in values passed to interpreter functions
@@ -570,7 +570,7 @@ class Python(ActionInterpreter):
             p.communicate()
         except Exception as e:
             cmd = shlex_join(value)
-            raise Exception('Error executing command: %s\n%s' % (cmd, str(e)))
+            raise RexError('Error executing command: %s\n%s' % (cmd, str(e)))
 
     def comment(self, value):
         pass
@@ -834,8 +834,7 @@ class RexExecutor(object):
                 frames = frames[1:]
             while frames and __file__.startswith(frames[-1][0]):
                 frames = frames[:-1]
-            stack = ''.join(traceback.format_list(frames)).strip()
-            raise Exception("Error in rex code: %s\n%s" % (str(e), stack))
+            self._raise_rex_error(frames, e)
 
     def execute_function(self, func, *nargs, **kwargs):
         """
@@ -850,7 +849,18 @@ class RexExecutor(object):
                                 argdefs=func.func_defaults,
                                 closure=func.func_closure)
         fn.func_globals.update(self.globals)
-        return fn(*nargs, **kwargs)
+
+        try:
+            return fn(*nargs, **kwargs)
+        except Exception as e:
+            # trim trace down to only what's interesting
+            import traceback
+            frames = traceback.extract_tb(sys.exc_traceback)
+
+            filepath = inspect.getfile(func)
+            if os.path.exists(filepath):
+                frames = [x for x in frames if x[0] == filepath]
+            self._raise_rex_error(frames, e)
 
     def get_output(self):
         """Returns the result of all previous calls to execute_code."""
@@ -858,6 +868,15 @@ class RexExecutor(object):
 
     def expand(self, value):
         return self.formatter.format(str(value))
+
+    def _raise_rex_error(self, frames, e):
+        import traceback
+        stack = ''.join(traceback.format_list(frames)).strip()
+        if isinstance(e, RexError):
+            raise type(e)("%s\n%s" % (str(e), stack))
+        else:
+            raise RexError("Error in rex code: %s - %s\n%s"
+                           % (e.__class__.__name__, str(e), stack))
 
     def _get_syspaths(self):
         from rez.shells import Shell, create_shell
