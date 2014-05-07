@@ -162,7 +162,7 @@ class PackageBase(Common):
         path = os.path.dirname(self.base)
         if not self.version:
             path = os.path.dirname(path)
-        return path
+        return os.path.dirname(path)
 
 
 class Package(PackageBase):
@@ -265,4 +265,4 @@ class Variant(PackageBase):
                        index=d["index"])
 
     def __str__(self):
-        return "%s@%s:%s" % (self.qualified_name, self._base_path(), self.subpath)
+        return "%s@%s,%s" % (self.qualified_name, self._base_path(), self.subpath)

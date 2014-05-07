@@ -13,7 +13,7 @@ def command(opts, parser=None):
     interp = None
     if opts.format is None:
         interp = create_shell()
-    elif opts.format == 'dict':
+    elif opts.format in ('dict', 'actions'):
         interp = Python(passive=True)
     else:
         interp = create_shell(opts.format)
@@ -32,10 +32,15 @@ def command(opts, parser=None):
                      parent_variables=parent_vars,
                      bind_syspaths=False,
                      bind_rez=False)
-    ex.execute_code(code, filename=opts.FILE)
-    o = ex.get_output()
 
-    if isinstance(o, dict):
-        print pretty_env_dict(o)
+    ex.execute_code(code, filename=opts.FILE)
+
+    if opts.format == 'actions':
+        for action in ex.actions:
+            print str(action)
     else:
-        print o
+        o = ex.get_output()
+        if isinstance(o, dict):
+            print pretty_env_dict(o)
+        else:
+            print o

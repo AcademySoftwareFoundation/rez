@@ -319,37 +319,40 @@ class ActionManager(object):
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
-        self.actions.append(action(key, unexpanded_value))
-
+        # expose env-vars from parent env if explicitly told to do so
         if (key not in self.environ) and \
             ((self.parent_variables is True) or (key in self.parent_variables)):
             self.environ[key] = self.parent_environ.get(key, '')
             self.interpreter._saferefenv(key)
 
+        # *pend or setenv depending on whether this is first reference to the var
         if key in self.environ:
+            self.actions.append(action(key, unexpanded_value))
             parts = self.environ[key].split(self._env_sep(key))
             unexpanded_values = self._env_sep(key).join( \
                 addfunc(unexpanded_value, [self._keytoken(key)]))
             expanded_values = self._env_sep(key).join(addfunc(expanded_value, parts))
             self.environ[key] = expanded_values
         else:
+            self.actions.append(Setenv(key, unexpanded_value))
             self.environ[key] = expanded_value
+            expanded_values = expanded_value
             unexpanded_values = unexpanded_value
+            interpfunc = None
 
-        try:
-            if self.interpreter.expand_env_vars:
-                value = expanded_value
-            else:
-                value = unexpanded_value
-            interpfunc(key, value)
-        except NotImplementedError:
-            # if the interpreter does not implement prependenv/appendenv specifically,
-            # we can simply call setenv with the computed value.  Currently only
-            # python requires a special prependenv/appendenv
-            if self.interpreter.expand_env_vars:
-                value = expanded_values
-            else:
-                value = unexpanded_values
+        applied = False
+        if interpfunc:
+            value = expanded_value if self.interpreter.expand_env_vars \
+                else unexpanded_value
+            try:
+                interpfunc(key, value)
+                applied = True
+            except NotImplementedError:
+                pass
+
+        if not applied:
+            value = expanded_values if self.interpreter.expand_env_vars \
+                else unexpanded_values
             self.interpreter.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -417,14 +420,11 @@ class ActionInterpreter(object):
     expand_env_vars = False
 
     def get_output(self, manager):
-        '''
-        Returns any implementation specific data.
+        """Returns any implementation specific data.
 
-        Parameters
-        ----------
-        manager: ActionManager
-            the manager of this interpreter
-        '''
+        Args:
+            manager: ActionManager the manager of this interpreter
+        """
         raise NotImplementedError
 
     # --- commands
@@ -439,15 +439,13 @@ class ActionInterpreter(object):
         raise NotImplementedError
 
     def prependenv(self, key, value):
-        '''
-        this is optional, but if it is not implemented, you must implement setenv
-        '''
+        """This is optional, but if it is not implemented, you must
+        implement setenv."""
         raise NotImplementedError
 
     def appendenv(self, key, value):
-        '''
-        this is optional, but if it is not implemented, you must implement setenv
-        '''
+        """This is optional, but if it is not implemented, you must
+        implement setenv."""
         raise NotImplementedError
 
     def alias(self, key, value):
@@ -522,7 +520,10 @@ class Python(ActionInterpreter):
         return manager.environ
 
     def setenv(self, key, value):
-        self._env_var_changed(key)
+        if self.update_session:
+            settings.env_var_changed(key)
+            if key == 'PYTHONPATH':
+                sys.path = value.split(os.pathsep)
 
     def unsetenv(self, key):
         self._env_var_changed(key)
@@ -596,42 +597,19 @@ class Python(ActionInterpreter):
 #===============================================================================
 # Rex Execution Namespace
 #===============================================================================
-
 class NamespaceFormatter(Formatter):
-    SINGLE_QUOTED_REGEX = re.compile(r"'[^']+'")
-    ENV_VAR_REGEX       = re.compile(r"\${[A-Z_]+}")
+    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
 
     def __init__(self, namespace):
         Formatter.__init__(self)
         self.namespace = namespace
 
     def format(self, format_string, *args, **kwargs):
-        toks = [(format_string, True)]
+        def escape_envvar(matchobj):
+            return "${{%s}}" % (matchobj.group("var"))
 
-        for patt in (self.SINGLE_QUOTED_REGEX, self.ENV_VAR_REGEX):
-            toks_ = []
-            for (s,expand) in toks:
-                if expand:
-                    strs = patt.split(s)
-                    patts = patt.findall(s)
-                    for (s,p) in zip(strs, patts+['']):
-                        toks_.append((s, True))
-                        toks_.append((p, False))
-                else:
-                    toks_.append((s,expand))
-            toks = toks_
-
-        strs = []
-        for (s,expand) in toks:
-            if expand:
-                try:
-                    s_ = Formatter.format(self, s, *args, **kwargs)
-                except KeyError:
-                    s_ = s
-                strs.append(s_)
-            else:
-                strs.append(s)
-        return ''.join(strs)
+        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+        return Formatter.format(self, escaped_format_string, *args, **kwargs)
 
     def get_value(self, key, args, kwds):
         """
@@ -827,29 +805,22 @@ class RexExecutor(object):
     def interpreter(self):
         return self.manager.interpreter
 
+    @property
+    def actions(self):
+        """List of Action objects that will be executed."""
+        return self.manager.actions
+
     def __getattr__(self, attr):
-        """
-        Allows for access such as: self.setenv('FOO','bah')
-        """
+        """Allows for access such as: self.setenv('FOO','bah')."""
         return self.globals[attr] if attr in self.globals \
             else getattr(super(RexExecutor,self), attr)
 
     def bind(self, name, obj):
-        """
-        Binds an object to the execution context.
-        """
+        """Binds an object to the execution context."""
         self.globals[name] = obj
 
-    def update_env(self, d):
-        """
-        Update the environment in the execution context.
-        """
-        self.environ.update(d)
-
     def execute_code(self, code, filename=None):
-        """
-        Execute code within the execution context.
-        """
+        """Execute code within the execution context."""
         filename = filename or 'REX'
         try:
             pyc = compile(code, filename, 'exec')

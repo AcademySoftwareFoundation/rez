@@ -120,7 +120,7 @@ class TestShell(unittest.TestCase):
             e["REZ_QUIET"] = "true"  # suppress warnings etc
 
             p = r.execute_shell(shell=self.shell,
-                                command="rez-env --bo --ni -c 'hello_world' hello_world",
+                                command="rez-env --paths= --ni -c 'hello_world' hello_world",
                                 parent_environ=e,
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")

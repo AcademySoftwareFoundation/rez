@@ -136,6 +136,10 @@ def command(opts, parser=None):
     if opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)
         print pretty_env_dict(env)
+    elif opts.format == 'actions':
+        actions = rc.get_actions(parent_environ=parent_env)
+        for action in actions:
+            print str(action)
     else:
         code = rc.get_shell_code(shell=opts.format, parent_environ=parent_env)
         print code

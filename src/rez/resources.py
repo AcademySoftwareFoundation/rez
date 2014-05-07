@@ -193,7 +193,6 @@ def get_package_file(parent_path):
             return path
     return None
 
-# TODO move into PackageDefinition class
 def load_package_metadata(parent_path):
     """Load the metadata file found under parent_path.
 
@@ -206,7 +205,6 @@ def load_package_metadata(parent_path):
     else:
         raise PackageMetadataError("No package definition file found in %s" % parent_path)
 
-# TODO move into PackageDefinition class
 def load_package_settings(metadata):
     """Return rezconfig settings for this pkg (pkgs can override settings)."""
     return Settings(overrides=metadata["rezconfig"]) \

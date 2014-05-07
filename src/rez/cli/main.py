@@ -79,7 +79,7 @@ def add_settings(parser):
 def add_context(parser):
     from rez.system import system
     from rez.shells import get_shell_types
-    formats = get_shell_types() + ['dict']
+    formats = get_shell_types() + ['dict', 'actions']
 
     parser.add_argument("--req", "--print-request", dest="print_request",
                         action="store_true",
@@ -186,9 +186,8 @@ def add_env(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
-    parser.add_argument("--bo", "--bootstrap-only", dest="bootstrap_only",
-                        action="store_true",
-                        help="only load bootstrap packages. Implies --ni and --nl.")
+    parser.add_argument("-p", "--paths", type=str, default=None,
+                        help="set package search path")
     parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
                         action="store_true",
                         help="don't load bootstrap packages")
@@ -231,12 +230,13 @@ def add_tools(parser):
 def add_exec(parser):
     from rez.system import system
     from rez.shells import get_shell_types
-    formats = get_shell_types() + ['dict']
+    formats = get_shell_types() + ['dict', 'actions']
 
     parser.add_argument("-f", "--format", type=str, choices=formats,
                         help="print output in the given format. If None, the "
                         "current shell language (%s) is used. If 'dict', a "
-                        "dictionary of the resulting environment is printed"
+                        "dictionary of the resulting environment is printed. "
+                        "If 'actions', an agnostic list of actions is printed."
                         % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the code in an empty environment")
@@ -259,6 +259,10 @@ def add_test(parser):
                         help="test package resolving algorithm")
     parser.add_argument("--cli", action="store_true",
                         help="test commandline tools")
+    parser.add_argument("--formatter", action="store_true",
+                        help="test rex string formatting")
+    parser.add_argument("--commands", action="store_true",
+                        help="test package commands")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 

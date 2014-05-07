@@ -129,7 +129,7 @@ setup(
             find_files('_sys', '*.csh') + \
             find_files('_sys', '*.sh') + \
             find_files('plugins/build_system/cmake_files', '*.cmake') + \
-            find_files('tests/data', '*.py')
+            find_files('tests/data', '*.*')
     },
     classifiers = [
         "Development Status :: 2 - Pre-Alpha",

@@ -161,6 +161,12 @@ class ResolvedContext(object):
         """Return True if the resolve has a graph."""
         return ((self.graph_ is not None) or self.graph_string)
 
+    def get_resolved_package(self, name):
+        """Returns a Variant object or None if the package is not in the resolve.
+        """
+        pkgs = [x for x in self.resolved_packages_ if x.name == name]
+        return pkgs[0] if pkgs else None
+
     def graph(self, as_dot=False):
         """Get the resolve graph.
 
@@ -235,7 +241,7 @@ class ResolvedContext(object):
 
         if verbose:
             _pr("search paths:")
-            for path in settings.packages_path:
+            for path in self.package_paths:
                 _pr(path)
             _pr()
 
@@ -334,6 +340,23 @@ class ResolvedContext(object):
         executor = self._create_executor(sh, parent_environ)
         self._execute(executor)
         return executor.get_output()
+
+    @_on_success
+    def get_actions(self, parent_environ=None):
+        """Get the list of rex.Action objects resulting from interpreting this
+        context. This is provided mainly for testing purposes.
+
+        Args:
+            parent_environ Environment to interpret the context within,
+                defaults to os.environ if None.
+
+        Returns:
+            A list of rex.Action subclass instances.
+        """
+        interp = Python(target_environ={}, passive=True)
+        executor = self._create_executor(interp, parent_environ)
+        self._execute(executor)
+        return executor.actions
 
     @_on_success
     def apply(self, parent_environ=None):
@@ -639,10 +662,7 @@ class ResolvedContext(object):
         return sh,context_code
 
     def _execute(self, executor):
-        request_str = ' '.join(str(x) for x in self.package_requests)
-        resolve_str = ' '.join(x.qualified_package_name for x in self.resolved_packages)
-
-        # bind various info to the execution context
+        """
         executor.update_env({
             "REZ_USED":             self.rez_path,
             # TODO add back if and when we need this
@@ -655,6 +675,17 @@ class ResolvedContext(object):
             # TODO FIXME this should be actual timestamp used even if timestamp not
             # speicified, but the new solver doesnt do this yet.
             "REZ_REQUEST_TIME":     self.timestamp})
+        """
+
+        # bind various info to the execution context
+        executor.setenv("REZ_USED", self.rez_path)
+        # TODO FIXME this should be actual timestamp used even if timestamp not specified
+        executor.setenv("REZ_REQUEST_TIME", self.timestamp)
+
+        request_str = ' '.join(str(x) for x in self.package_requests)
+        resolve_str = ' '.join(x.qualified_package_name for x in self.resolved_packages)
+        executor.setenv("REZ_REQUEST", request_str)
+        executor.setenv("REZ_RESOLVE", resolve_str)
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self.package_requests))
@@ -667,10 +698,9 @@ class ResolvedContext(object):
             executor.comment("")
 
             prefix = "REZ_" + pkg.name.upper()
-            executor.update_env({
-                prefix+"_VERSION":  str(pkg.version),
-                prefix+"_BASE":     pkg.base,
-                prefix+"_ROOT":     pkg.root})
+            executor.setenv(prefix+"_VERSION", str(pkg.version))
+            executor.setenv(prefix+"_BASE", pkg.base)
+            executor.setenv(prefix+"_ROOT", pkg.root)
 
             executor.bind('this',       VariantBinding(pkg))
             executor.bind("version",    VersionBinding(pkg.version))
