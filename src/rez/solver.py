@@ -1408,12 +1408,13 @@ class Solver(_Common):
         raise NotImplemented
     """
 
-    def failure_packages(self, failure_index=0):
+    def failure_packages(self, failure_index=None):
         """Get packages involved in a failure.
 
         Args:
             failure_index: Index of the fail to return the graph for (can be
-                negative).
+                negative). If None, the most appropriate failure is chosen -
+                this is the last fail if cyclic, or the first fail otherwise.
 
         Returns:
             A list of Requirement objects.
@@ -1422,12 +1423,13 @@ class Solver(_Common):
         fr = phase.failure_reason
         return fr.involved_requirements() if fr else None
 
-    def failure_reason(self, failure_index=0):
+    def failure_reason(self, failure_index=None):
         """Get the reason for a failure.
 
         Args:
             failure_index: Index of the fail to return the graph for (can be
-                negative).
+                negative). If None, the most appropriate failure is chosen -
+                this is the last fail if cyclic, or the first fail otherwise.
 
         Returns:
             A FailureReason subclass instance describing the failure.
@@ -1456,12 +1458,14 @@ class Solver(_Common):
             i = -1 if self.cyclic_fail else 0
             return self.get_fail_graph(i)
 
-    def get_fail_graph(self, failure_index=0):
+    def get_fail_graph(self, failure_index=None):
         """Returns a graph showing a solve failure.
 
         Args:
             failure_index: Index of the fail to return the graph for (can be
-                negative). Set to -1 to get the most recent failure.
+                negative). Set to -1 to get the most recent failure. If None,
+                the most appropriate failure is chosen - this is the last fail
+                if cyclic, or the first fail otherwise.
 
         Returns:
             A pygraph.digraph object.
@@ -1548,8 +1552,12 @@ class Solver(_Common):
 
     def _get_failed_phase(self, index):
         fails = self.failed_phase_list
-        if self.phase_stack[-1].status in ("failed", "cyclic"):
+        st = self.phase_stack[-1].status
+        if st in ("failed", "cyclic"):
             fails = fails + self.phase_stack[-1:]
+
+        if index is None:
+            index = -1 if st == "cyclic" else 0
         try:
             return fails[index]
         except IndexError:

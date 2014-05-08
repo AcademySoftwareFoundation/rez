@@ -34,6 +34,9 @@ def command(opts, parser=None):
         rc.save(opts.output)
         sys.exit(0 if success else 1)
 
+    if not success:
+        sys.exit(1)
+
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
     if opts.stdin and not select.select([sys.stdin,],[],[],0.0)[0]:

@@ -18,7 +18,6 @@ class GitReleaseVCS(ReleaseVCS):
         super(GitReleaseVCS, self).__init__(path)
 
         try:
-            #self.repo = git.Repo(path, odbt=git.GitCmdObjectDB)
             self.git("rev-parse")
         except ReleaseVCSError:
             raise ReleaseVCSUnsupportedError("%s is not a git repository" % path)

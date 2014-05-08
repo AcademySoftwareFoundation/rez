@@ -1,9 +1,10 @@
-from rez.resources import load_package_metadata, load_package_settings
 from rez.build_system import BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
 from rez.shells import create_shell
+from rez.settings import settings
+from rez.packages import Package
 from rez import plugin_factory
 import functools
 import subprocess
@@ -74,7 +75,7 @@ class CMakeBuildSystem(BuildSystem):
         self.build_target = opts.build_target
 
         self.cmake_build_system = opts.build_system \
-            or self.settings.cmake_build_system
+            or self.package.settings.cmake_build_system
         if self.cmake_build_system == 'xcode' and platform.system() != 'Darwin':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -86,7 +87,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble cmake command
         cmd = [self.executable, "-d", self.working_dir]
-        cmd += (self.settings.cmake_args or [])
+        cmd += (self.package.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
@@ -105,9 +106,7 @@ class CMakeBuildSystem(BuildSystem):
 
         callback = functools.partial(self._add_build_actions,
                                      context=context,
-                                     metadata=self.metadata,
-                                     metafile=self.metafile,
-                                     settings_=self.settings)
+                                     package=self.package)
 
         retcode,_,_ = context.execute_shell(command=cmd,
                                             block=True,
@@ -124,7 +123,7 @@ class CMakeBuildSystem(BuildSystem):
             build_env_script = os.path.join(build_path, "build-env.%s" % ext)
             create_forwarding_script(build_env_script,
                                      module="plugins.build_system.cmake",
-                                     func_name="_spawn_build_shell",
+                                     func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)
             ret["success"] = True
@@ -147,36 +146,34 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, metadata, metafile, settings_):
+    def _add_build_actions(executor, context, package):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_ENV = 1
-        #executor.env.REZ_LOCAL_PACKAGES_PATH = settings_.local_packages_path
-        #executor.env.REZ_RELEASE_PACKAGES_PATH = settings_.release_packages_path
-        executor.env.REZ_BUILD_PROJECT_FILE = metafile
-        executor.env.REZ_BUILD_PROJECT_VERSION = metadata.get("version","")
-        executor.env.REZ_BUILD_PROJECT_NAME = metadata["name"]
+        #executor.env.REZ_LOCAL_PACKAGES_PATH = package.settings.local_packages_path
+        #executor.env.REZ_RELEASE_PACKAGES_PATH = package.settings.release_packages_path
+        executor.env.REZ_BUILD_PROJECT_FILE = package.metafile
+        executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
+        executor.env.REZ_BUILD_PROJECT_NAME = package.name
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
-            ' '.join(x.split('-',1)[0] for x in context.requested_packages)
+            ' '.join(x.name for x in context.package_requests)
 
 
 
-def _spawn_build_shell(working_dir, build_dir):
+def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    metadata,metafile = load_package_metadata(working_dir)
-    settings_ = load_package_settings(metadata)
-    settings_.set("prompt", "BUILD>")
+    package = Package(working_dir)
+    settings.set("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
-                                 metadata=metadata,
-                                 metafile=metafile,
-                                 settings_=settings_)
+                                 package=package)
 
     retcode,_,_ = context.execute_shell(block=True,
                                        cwd=build_dir,
                                        actions_callback=callback)
+    import sys
     sys.exit(retcode)
 
 

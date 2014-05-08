@@ -84,7 +84,7 @@ class Resolver(object):
             st = "aborted"
             self.failure_description = "the resolve was aborted by the user"
         elif st == "failed":
-            self.failure_description = solver.failure_reason.description()
+            self.failure_description = solver.failure_reason().description()
         elif st == "solved":
             pkgs = solver.resolved_packages
 

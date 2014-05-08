@@ -1,7 +1,7 @@
 """
 The main command-line entry point.
 """
-
+import os
 import sys
 import argparse
 from rez import __version__
@@ -156,7 +156,7 @@ def add_build(parser):
 def add_release(parser):
     parser.add_argument("-m", "--message", type=str,
                         help="commit message")
-    parser.add_argument("--no-ensure-latest", dest="no_ensure_latest",
+    parser.add_argument("--no-latest", dest="no_latest",
                         action="store_true",
                         help="allows release of version earlier than the "
                         "latest release.")
@@ -186,7 +186,7 @@ def add_env(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
-    parser.add_argument("-p", "--paths", type=str, default=None,
+    parser.add_argument("--paths", type=str, default=None,
                         help="set package search path")
     parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
                         action="store_true",
@@ -251,8 +251,8 @@ def add_exec(parser):
 
 @subcommand
 def add_test(parser):
-    parser.add_argument("-n", "--no-thread", dest="no_thread", action="store_true",
-                        help="don't run the multithreaded testing phase")
+    parser.add_argument("-t", "--thread", dest="thread", action="store_true",
+                        help="run an additional multithreaded testing phase")
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
     parser.add_argument("--solver", action="store_true",
@@ -330,7 +330,7 @@ def run():
     cmd = opts.cmd
     exec("from rez.cli.%s import command" % _subcmd_name(cmd))
 
-    if opts.debug:
+    if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1","true","on","yes"):
         from rez.util import set_rm_tmpdirs
         exc_type = None
         set_rm_tmpdirs(False)

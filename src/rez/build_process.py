@@ -1,11 +1,11 @@
 from rez.exceptions import RezError, ReleaseError
-from rez.resources import load_package_metadata, load_package_settings
 from rez.packages import iter_packages_in_range
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
-from rez.contrib.version import Version
+from rez.contrib.version.version import Version
+from rez.packages import Package
 from rez.contrib import yaml
 import getpass
 import shutil
@@ -53,11 +53,8 @@ class BuildProcess(object):
         if vcs and (vcs.path != working_dir):
             raise RezError("BuildProcess was provided with mismatched VCS")
 
-        self.metadata,self.metafile = load_package_metadata(working_dir)
-        self.settings = load_package_settings(self.metadata)
-        self.pkg_name = self.metadata["name"]
-
-        hook_names = self.settings.release_hooks or []
+        self.package = Package(working_dir)
+        hook_names = self.package.settings.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
 
     def build(self, install_path=None, clean=False, install=False):
@@ -118,9 +115,9 @@ class StandardBuildProcess(BuildProcess):
     def build(self, install_path=None, clean=False, install=False):
         self._hdr("Building...")
         base_build_path = os.path.join(self.working_dir,
-                                       self.settings.build_directory)
+                                       self.package.settings.build_directory)
         base_build_path = os.path.realpath(base_build_path)
-        install_path = install_path or self.settings.local_packages_path
+        install_path = install_path or self.package.settings.local_packages_path
 
         return self._build(install_path=install_path,
                            build_path=base_build_path,
@@ -129,26 +126,25 @@ class StandardBuildProcess(BuildProcess):
 
     def release(self):
         assert(self.vcs)
-        pkg_str = self._pkg_str()
-        install_path = self.settings.release_packages_path
+        install_path = self.package.settings.release_packages_path
         base_build_path = os.path.join(self.working_dir,
-                                       self.settings.build_directory,
+                                       self.package.settings.build_directory,
                                        "release")
 
         # load installed family config if present
         fam_info = None
-        fam_yaml = os.path.join(install_path, self.pkg_name, "family.yaml")
+        fam_yaml = os.path.join(install_path, self.package.name, "family.yaml")
         if os.path.isfile(fam_yaml):
             with open(fam_yaml) as f:
                 fam_info = yaml.load(f.read())
 
         # check for package name conflict
         if fam_info is not None and "uuid" in fam_info:
-            this_uuid = self.metadata.get("uuid")
+            this_uuid = self.package.metadata.get("uuid")
             if this_uuid != fam_info["uuid"]:
                 raise ReleaseError(("cannot release - '%s' is already " + \
                     "installed but appears to be a different package.") \
-                    % self.pkg_name)
+                    % self.package.qualified_name)
 
         # get last release, this will stop same/earlier version release
         last_pkg,last_release_info = \
@@ -166,8 +162,7 @@ class StandardBuildProcess(BuildProcess):
         # run pre-release hooks
         for hook in self.hooks:
             self._prd("Running pre-release hook '%s'..." % hook.name())
-            if not hook.pre_release(package=pkg_str,
-                                    user=getpass.getuser(),
+            if not hook.pre_release(user=getpass.getuser(),
                                     install_path=release_path,
                                     release_message=self.release_message,
                                     changelog=changelog,
@@ -195,7 +190,7 @@ class StandardBuildProcess(BuildProcess):
         # write family config file if not present
         if fam_info is None:
             fam_info = dict(
-                uuid=self.metadata.get("uuid"))
+                uuid=self.package.metadata.get("uuid"))
 
             fam_content = yaml.dump(fam_info, default_flow_style=False)
             with open(fam_yaml, 'w') as f:
@@ -223,15 +218,15 @@ class StandardBuildProcess(BuildProcess):
         # run post-release hooks
         for hook in self.hooks:
             self._prd("Running post-release hook '%s'..." % hook.name())
-            hook.post_release(package=pkg_str,
-                              user=getpass.getuser(),
+            hook.post_release(user=getpass.getuser(),
                               install_path=release_path,
                               release_message=self.release_message,
                               changelog=changelog,
                               previous_version=last_ver,
                               previous_revision=last_rev)
 
-        print "\nPackage %s was released successfully.\n" % pkg_str
+        print "\nPackage %s was released successfully.\n" \
+            % self.package.qualified_name
         return True
 
     def _pr(self, s):
@@ -239,7 +234,7 @@ class StandardBuildProcess(BuildProcess):
             print s
 
     def _prd(self, s):
-        if self.settings.debug("package_release"):
+        if self.package.settings.debug("package_release"):
             print s
 
     def _hdr(self, s, h=1):
@@ -252,55 +247,24 @@ class StandardBuildProcess(BuildProcess):
             self._pr(s)
             self._pr('-' * len(s))
 
-    def _pkg_str(self):
-        s = self.pkg_name
-        ver = self.metadata.get("version")
-        if ver is not None:
-            s += "-%s" % ver
-        return s
-
     def _get_base_install_path(self, path):
-        p = os.path.join(path, self.pkg_name)
-        ver = self.metadata.get("version")
-        if ver is not None:
-            p = os.path.join(p, str(ver))
+        p = os.path.join(path, self.package.name)
+        if self.package.version:
+            p = os.path.join(p, str(self.package.version))
         return p
 
-    def _get_build_list(self):
-        builds = []
-        requires = self.metadata.get('build_requires', []) + \
-                   self.metadata.get('requires', [])
-        variants = self.metadata.get('variants', [])
-
-        if variants:
-            for i,variant in enumerate(variants):
-                dirs = [encode_filesystem_name(x) for x in variant]
-                build = dict(variant_index=i,
-                             subdir=os.path.join(*dirs),
-                             requires=requires + variant)
-                builds.append(build)
-        else:
-            build = dict(variant_index=None,
-                         subdir="",
-                         requires=requires)
-            builds.append(build)
-        return builds
-
     def _get_last_release(self, release_path):
-        ver = Version(self.metadata.get("version", ''))
-
-        for pkg in iter_packages_in_range(self.pkg_name,
+        for pkg in iter_packages_in_range(self.package.name,
                                           paths=[release_path]):
-            if pkg.version == ver:
+            if pkg.version == self.package.version:
                 raise ReleaseError(("cannot release - an equal package "
                                    "version already exists: %s") % pkg.metafile)
-            elif pkg.version > ver:
+            elif pkg.version > self.package.version:
                 if self.ensure_latest:
                     raise ReleaseError(("cannot release - a newer package "
                                        "version already exists: %s") % pkg.metafile)
             else:
-                path = os.path.dirname(pkg.metafile)
-                release_yaml = os.path.join(path, "release.yaml")
+                release_yaml = os.path.join(pkg.base, "release.yaml")
                 with open(release_yaml) as f:
                     release_info = yaml.load(f.read())
                 return pkg, release_info
@@ -315,17 +279,18 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """
     def _build(self, install_path, build_path, clean=False, install=False):
         base_install_path = self._get_base_install_path(install_path)
-
+        nvariants = max(self.package.num_variants, 1)
         build_env_scripts = []
-        builds = self._get_build_list()
+        timestamp = int(time.time())
 
         # iterate over variants
-        for i,bld in enumerate(builds):
-            self._hdr("Building %d/%d..." % (i+1, len(builds)), 2)
+        for i,variant in enumerate(self.package.iter_variants()):
+            self._hdr("Building %d/%d..." % (i+1, nvariants), 2)
+            subdir = variant.subpath
 
             # create build dir, possibly deleting previous build
-            build_subdir = os.path.join(build_path, bld["subdir"])
-            install_path = os.path.join(base_install_path, bld["subdir"])
+            build_subdir = os.path.join(build_path, variant.subpath)
+            install_path = os.path.join(base_install_path, variant.subpath)
 
             if clean and os.path.exists(build_subdir):
                 shutil.rmtree(build_subdir)
@@ -339,10 +304,10 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 self._pr("Loading existing environment context...")
                 r = ResolvedContext.load(rxt_path)
             else:
-                request = bld["requires"]
+                request = variant.requires
                 self._pr("Resolving build environment: %s" % ' '.join(request))
                 r = ResolvedContext(request,
-                                    timestamp=int(time.time()),
+                                    timestamp=timestamp,
                                     build_requires=True)
                 r.print_info()
                 r.save(rxt_path)
@@ -367,12 +332,12 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
         # write package definition file into release path
         if install:
-            shutil.copy(self.metafile, base_install_path)
+            shutil.copy(self.package.metafile, base_install_path)
 
         if build_env_scripts:
             self._pr("\nThe following executable script(s) have been created:")
             self._pr('\n'.join(build_env_scripts))
             self._pr('')
         else:
-            self._pr("\nAll %d build(s) were successful.\n" % len(builds))
+            self._pr("\nAll %d build(s) were successful.\n" % nvariants)
         return True

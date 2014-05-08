@@ -44,7 +44,7 @@ def get_suites(opts):
 
 def command(opts, parser=None):
     # test for thread safety
-    if not opts.no_thread:
+    if opts.thread:
         nthreads = 4
         threads = []
 

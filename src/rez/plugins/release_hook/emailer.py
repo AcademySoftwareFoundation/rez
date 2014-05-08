@@ -1,6 +1,5 @@
 from rez.release_hook import ReleaseHook
 from rez import plugin_factory
-from rez.resources import load_package_metadata, load_package_settings
 from email.mime.text import MIMEText
 import smtplib
 import sys
@@ -14,15 +13,13 @@ class EmailReleaseHook(ReleaseHook):
 
     def __init__(self, source_path):
         super(EmailReleaseHook,self).__init__(source_path)
-        metadata,_ = load_package_metadata(source_path)
-        self.settings = load_package_settings(metadata)
 
-    def post_release(self, package, user, install_path, release_message=None,
+    def post_release(self, user, install_path, release_message=None,
                      changelog=None, previous_version=None, previous_revision=None):
         # construct email body
         body = []
         body.append("USER: %s" % user)
-        body.append("PACKAGE: %s" % package)
+        body.append("PACKAGE: %s" % self.package.qualified_name)
         body.append("RELEASED TO: %s" % install_path)
         if previous_version:
             body.append("PREVIOUS VERSION: %s" % previous_version)
@@ -31,18 +28,19 @@ class EmailReleaseHook(ReleaseHook):
         body.append("\nCHANGELOG:\n%s" % '\n'.join(changelog))
 
         # send email
-        subject = "[rez] [release] %s released %s" % (user, package)
+        subject = "[rez] [release] %s released %s" \
+            % (user, self.package.qualified_name)
         self.send_email(subject, '\n'.join(body))
 
     def send_email(self, subject, body):
-        smtp_host = self.settings.release_email_smtp_host
-        from_ = self.settings.release_email_from
-        to_ = self.settings.release_email_to
+        smtp_host = self.package.settings.release_email_smtp_host
+        from_ = self.package.settings.release_email_from
+        to_ = self.package.settings.release_email_to
         if not (smtp_host and from_ and to_):
             return
 
         print "Sending release email..."
-        smtp_port = self.settings.release_email_smtp_port
+        smtp_port = self.package.settings.release_email_smtp_port
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = from_

@@ -185,31 +185,6 @@ def load_file(filename):
             stack = ''.join(traceback.format_list(frames)).strip()
             raise PackageMetadataError(filename, "%s\n%s" % (str(e), stack))
 
-def get_package_file(parent_path):
-    """Return the path to package.yaml etc found under given path, or None."""
-    for file in ("package.yaml", "package.py"):
-        path = os.path.join(parent_path, file)
-        if os.path.isfile(path):
-            return path
-    return None
-
-def load_package_metadata(parent_path):
-    """Load the metadata file found under parent_path.
-
-    Returns:
-        A metadata dict, or None if no package definition file found.
-    """
-    file = get_package_file(parent_path)
-    if file:
-        return (load_file(file), file)
-    else:
-        raise PackageMetadataError("No package definition file found in %s" % parent_path)
-
-def load_package_settings(metadata):
-    """Return rezconfig settings for this pkg (pkgs can override settings)."""
-    return Settings(overrides=metadata["rezconfig"]) \
-        if "rezconfig" in metadata else settings
-
 
 #------------------------------------------------------------------------------
 # Resources and Configurations
@@ -596,6 +571,7 @@ class BasePackageConfig_0(MetadataValidator):
         'name': 'str',
         'help': OneOf('str', [['str']]),
         'authors': ['str'],
+        'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
@@ -614,6 +590,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'version': Version('1.2'),
         'help': OneOf('str', [['str']]),
         'authors': ['str'],
+        'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
         'variants': [['name-1.2']],

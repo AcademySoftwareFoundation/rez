@@ -4,7 +4,8 @@ from rez.util import print_warning_once, Common, encode_filesystem_name
 from rez.resources import iter_resources, load_metadata
 from rez.contrib.version.version import Version, VersionRange
 from rez.contrib.version.requirement import VersionedObject
-from rez.settings import settings
+from rez.exceptions import PackageNotFoundError, PackageMetadataError
+from rez.settings import settings, Settings
 
 
 """
@@ -135,17 +136,40 @@ class PackageFamily(Common):
                                   name=self.name)
         for metafile, variables, resource_info in pkg_iter:
             version = Version(variables.get('version', ''))
-            yield Package(self.name, version, metafile)
+            yield Package(path=metafile,
+                          name=self.name,
+                          version=version)
 
 
 class PackageBase(Common):
     """Abstract base class for Package and Variant."""
-    def __init__(self, name, version, metafile):
+    def __init__(self, path, name=None, version=None):
         self.name = name
         self.version = version
-        self.metafile = metafile
-        self.base = os.path.dirname(metafile)
+        self.metafile = None
         self._metadata = None
+        self.base = None
+        self.settings_ = None
+
+        # find metafile
+        if os.path.isfile(path):
+            self.metafile = path
+            self.base = os.path.dirname(path)
+        else:
+            for file in ("package.yaml", "package.py"):
+                fpath = os.path.join(path, file)
+                if os.path.isfile(fpath):
+                    self.metafile = fpath
+                    self.base = path
+                    break
+
+        if self.metafile is None:
+            raise PackageNotFoundError( \
+                "No package definition file found in %s" % path)
+
+        if name is None or version is None:
+            self.name = self.metadata["name"]
+            self.version = self.metadata["version"] or Version()
 
     @property
     def qualified_name(self):
@@ -158,6 +182,14 @@ class PackageBase(Common):
             self._metadata = _load_metadata(self.metafile)
         return self._metadata
 
+    @property
+    def settings(self):
+        """Packages can optionally override rez settings during build."""
+        if self.settings_ is None:
+            overrides = self.metadata["rezconfig"] or None
+            self.settings_ = Settings(overrides=overrides)
+        return self.settings_
+
     def _base_path(self):
         path = os.path.dirname(self.base)
         if not self.version:
@@ -168,12 +200,21 @@ class PackageBase(Common):
 class Package(PackageBase):
     """Class representing a package definition, as read from a package.* file.
     """
-    def __init__(self, name, version, metafile):
-        super(Package,self).__init__(name, version, metafile)
+    def __init__(self, path, name=None, version=None):
+        """Create a package.
+
+        Args:
+            path: Either a filepath to a package definition file, or a path
+                to the directory containing the definition file.
+            name: Name of the package, eg 'maya'.
+            version: Version object - version of the package.
+        """
+        super(Package,self).__init__(path, name, version)
 
     @property
     def num_variants(self):
-        """Return the number of variants in this package."""
+        """Return the number of variants in this package. Returns zero if there
+        are no variants."""
         variants = self.metadata["variants"] or []
         return len(variants)
 
@@ -190,7 +231,10 @@ class Package(PackageBase):
         elif index not in range(n):
             raise IndexError("variant doesn't exist at this index")
 
-        return Variant(self.name, self.version, self.metafile, index)
+        return Variant(path=self.metafile,
+                       name=self.name,
+                       version=self.version,
+                       index=index)
 
     def iter_variants(self):
         n = self.num_variants
@@ -210,8 +254,18 @@ class Variant(PackageBase):
     Note that Variant is also used in packages that don't have a variant - in
     this case, index is None. This helps give a consistent interface.
     """
-    def __init__(self, name, version, metafile, index=None):
-        super(Variant,self).__init__(name, version, metafile)
+    def __init__(self, path, name=None, version=None, index=None):
+        """Create a package variant.
+
+        Args:
+            path: Either a filepath to a package definition file, or a path
+                to the directory containing the definition file.
+            name: Name of the package, eg 'maya'.
+            version: Version object - version of the package.
+            index: Zero-based variant index. If the package does not contain
+                variants, index should be set to None.
+        """
+        super(Variant,self).__init__(path, name, version)
         self.index = index
         self.root = self.base
 
@@ -219,9 +273,13 @@ class Variant(PackageBase):
         self.requires = metadata["requires"] or []
 
         if self.index is not None:
-            var_requires = metadata["variants"][self.index]
-            self.requires = self.requires + var_requires
+            try:
+                var_requires = metadata["variants"][self.index]
+            except IndexError:
+                raise PackageMetadataError(self.metafile,
+                                           "variant index out of range")
 
+            self.requires = self.requires + var_requires
             dirs = [encode_filesystem_name(x) for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
 
@@ -259,9 +317,9 @@ class Variant(PackageBase):
 
     @classmethod
     def from_dict(cls, d):
-        return Variant(name=d["name"],
+        return Variant(path=d["metafile"],
+                       name=d["name"],
                        version=Version(d["version"]),
-                       metafile=d["metafile"],
                        index=d["index"])
 
     def __str__(self):

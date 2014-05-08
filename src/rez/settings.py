@@ -44,6 +44,7 @@ class Settings(object):
         "warn_all":                         bool_schema,
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,
+        "debug_all":                        bool_schema,
         "all_parent_variables":             bool_schema,
         "all_resetting_variables":          bool_schema,
         "quiet":                            bool_schema,
@@ -127,7 +128,8 @@ class Settings(object):
 
     def debug(self, param):
         """Returns True if the debug setting is enabled."""
-        return not self.quiet and getattr(self, "debug_%s" % param)
+        return not self.quiet and \
+               (self.debug_all or getattr(self, "debug_%s" % param))
 
     def env_var_changed(self, varname):
         """ Uncaches matching setting, if any """

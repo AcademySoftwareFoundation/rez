@@ -148,6 +148,9 @@ debug_plugins: false
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
 
+# turn on all debugging messages
+debug_all: false
+
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
 quiet: false
@@ -186,7 +189,7 @@ vcs_tag_name: '{name}-{version}'
 release_hooks:
 - emailer
 
-# Email SMTP host (mandatory).
+# Email SMTP host. If null or empty, emailing is skipped.
 release_email_smtp_host: ''
 
 # Email SMTP port.

@@ -142,7 +142,7 @@ class ResolvedContext(object):
             for variant in resolver.resolved_packages:
                 pkg = Variant(name=variant.name,
                               version=variant.version,
-                              metafile=variant.metafile,
+                              path=variant.metafile,
                               index=variant.index)
 
                 pkgs.append(pkg)
@@ -568,7 +568,7 @@ class ResolvedContext(object):
 
                 n += 1
                 create_forwarding_script(file, "resolved_context",
-                                         "_invoke_wrapped_tool",
+                                         "_FWD__invoke_wrapped_tool",
                                          rxt_file=rxt_name,
                                          tool=tool)
 
@@ -582,6 +582,9 @@ class ResolvedContext(object):
         return binpath
 
     def to_dict(self):
+        resolved_packages = [x.to_dict() for x in self.resolved_packages_] \
+            if self.resolved_packages_ else None
+
         return dict(
             serialize_version=ResolvedContext.serialize_version,
 
@@ -602,7 +605,7 @@ class ResolvedContext(object):
             created=self.created,
 
             status=self.status,
-            resolved_packages=[x.to_dict() for x in self.resolved_packages_],
+            resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=self.graph(as_dot=True),
             solve_time=self.solve_time,
@@ -613,6 +616,8 @@ class ResolvedContext(object):
         r = ResolvedContext.__new__(ResolvedContext)
         sz_ver = d["serialize_version"]  # for backwards compatibility
         r.load_path = None
+
+        resolved_packages = d["resolved_packages"]
 
         r.timestamp = d["timestamp"]
         r.build_requires = d["build_requires"]
@@ -631,7 +636,8 @@ class ResolvedContext(object):
         r.created = d["created"]
 
         r.status = d["status"]
-        r.resolved_packages_ = [Variant.from_dict(x) for x in d["resolved_packages"]]
+        r.resolved_packages_ = [Variant.from_dict(x) for x in resolved_packages] \
+            if resolved_packages else None
         r.failure_description = d["failure_description"]
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]
@@ -740,7 +746,7 @@ class ResolvedContext(object):
                     raise PackageCommandError(msg)
 
 
-def _invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
+def _FWD__invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
     path = os.path.join(os.path.dirname(_script), "..", rxt_file)
     context = ResolvedContext.load(path)
     cmd = [tool] + _cli_args
