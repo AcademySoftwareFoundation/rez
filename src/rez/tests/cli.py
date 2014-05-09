@@ -1,4 +1,4 @@
-import unittest
+import rez.contrib.unittest2 as unittest
 import subprocess
 
 
@@ -15,6 +15,7 @@ tools = [
     "rez-exec",
     "rez-test",
     "rez-bootstrap",
+    "bez",
     "_rez_fwd"]
 
 

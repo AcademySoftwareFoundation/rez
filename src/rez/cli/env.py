@@ -9,6 +9,10 @@ import os
 def command(opts, parser=None):
     if opts.input:
         rc = ResolvedContext.load(opts.input)
+        if rc.status != "solved":
+            print >> sys.stderr, "cannot rez-env into a failed context"
+            sys.exit(1)
+
         rc.validate()
     else:
         t = get_epoch_time_from_str(opts.time) if opts.time else None

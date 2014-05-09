@@ -94,8 +94,7 @@ class BuildSystem(object):
     def find_executable(cls, name):
         exe = which(name)
         if not exe:
-            raise BuildSystemError(("Couldn't find executable '%s' for build "
-                                   "system '%s'") % (name, cls.name()))
+            raise BuildSystemError("Couldn't find executable '%s'" % name)
         return exe
 
     @classmethod

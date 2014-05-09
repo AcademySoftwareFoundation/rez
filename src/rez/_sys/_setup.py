@@ -131,7 +131,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
         dst = os.path.join(new_bin_path, script)
 
         if os.path.isfile(file):
-            if script.startswith('_'):
+            if script in ("_rez_csh_complete",):
                 shutil.copy(file, dst)
             else:
                 if script == "rezolve":
@@ -143,8 +143,19 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                     run()
                     """ % dict(
                         py_exe=sys.executable)).strip()
+                elif script == "bez":
+                    code = textwrap.dedent( \
+                    """
+                    #!%(py_exe)s
+                    __PATCH__
+                    from rez.cli.bez import run
+                    run()
+                    """ % dict(
+                        py_exe=sys.executable)).strip()
                 else:
-                    cmd = script.split('-',1)[-1]
+                    cmd = "forward" if script == "_rez_fwd" \
+                        else script.split('-',1)[-1]
+
                     code = textwrap.dedent( \
                     """
                     #!%(py_exe)s

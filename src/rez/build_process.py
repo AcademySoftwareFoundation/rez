@@ -94,6 +94,16 @@ class StandardBuildProcess(BuildProcess):
     than this class offers, then either override the build() and release()
     methods as well, or subclass BuildProcess directly.
     """
+    def __init__(self, working_dir, buildsys, vcs=None, release_message=None,
+                 ensure_latest=True, verbose=True, **context_kwargs):
+        super(StandardBuildProcess,self).__init__(working_dir=working_dir,
+                                                  buildsys=buildsys,
+                                                  vcs=vcs,
+                                                  release_message=release_message,
+                                                  ensure_latest=ensure_latest,
+                                                  verbose=verbose)
+        self.context_kwargs = context_kwargs
+
     def _build(self, install_path, build_path, clean=False, install=False):
         """Build all the variants of the package.
 
@@ -277,7 +287,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current
     package, on the local host.
     """
-    def _build(self, install_path, build_path, clean=False, install=False):
+    def _build(self, install_path, build_path, clean=False, install=False,
+               **context_kwargs):
         base_install_path = self._get_base_install_path(install_path)
         nvariants = max(self.package.num_variants, 1)
         build_env_scripts = []
@@ -304,11 +315,16 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 self._pr("Loading existing environment context...")
                 r = ResolvedContext.load(rxt_path)
             else:
-                request = variant.requires
-                self._pr("Resolving build environment: %s" % ' '.join(request))
+                request = variant.requires(build_requires=True,
+                                           private_build_requires=True)
+
+                self._pr("Resolving build environment: %s"
+                         % ' '.join(str(x) for x in request))
+
                 r = ResolvedContext(request,
                                     timestamp=timestamp,
-                                    build_requires=True)
+                                    building=True,
+                                    **self.context_kwargs)
                 r.print_info()
                 r.save(rxt_path)
 
@@ -324,14 +340,14 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                     build_env_scripts.append(script)
 
                 extra_files = ret.get("extra_files", []) + [rxt_path]
-                if install and extra_files:
+                if install and extra_files and os.path.exists(install_path):
                     for file in extra_files:
                         shutil.copy(file, install_path)
             else:
                 return False
 
         # write package definition file into release path
-        if install:
+        if install and os.path.exists(base_install_path):
             shutil.copy(self.package.metafile, base_install_path)
 
         if build_env_scripts:

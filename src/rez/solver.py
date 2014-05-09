@@ -214,9 +214,7 @@ class PackageVariant(_Common):
         self.version = version
         self.metafile = metafile
         self.index = index
-
-        reqs = [Requirement(x) for x in requires]
-        self.requires_list = RequirementList(reqs)
+        self.requires_list = RequirementList(requires)
 
         if self.requires_list.conflict:
             raise ResolveError(("The package at %s has an internal requirements "
@@ -245,7 +243,7 @@ class PackageVariant(_Common):
 
 class _PackageVariantList(_Common):
     """A sorted list of package variants."""
-    def __init__(self, package_name, package_paths=None):
+    def __init__(self, package_name, package_paths=None, building=False):
         self.package_name = package_name
         self.package_paths = package_paths
         self.variants = []
@@ -254,10 +252,11 @@ class _PackageVariantList(_Common):
                                           latest=False,
                                           paths=package_paths):
             for var in pkg.iter_variants():
+                requires = var.requires(build_requires=building)
                 variant = PackageVariant(name=package_name,
                                          version=var.version,
                                          metafile=var.metafile,
-                                         requires=var.requires,
+                                         requires=requires,
                                          index=var.index)
                 self.variants.append(variant)
 
@@ -498,14 +497,17 @@ class _PackageVariantSlice(_Common):
 
 # TODO manage timestamps, reloading from disk on change, etc
 class _PackageVariantCache(object):
-    def __init__(self, package_paths=None):
+    def __init__(self, package_paths=None, building=False):
         self.package_paths = package_paths or settings.packages_path
+        self.building = building
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
     def get_variant_slice(self, package_name, range):
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
-            variant_list = _PackageVariantList(package_name, self.package_paths)
+            variant_list = _PackageVariantList(package_name,
+                                               package_paths=self.package_paths,
+                                               building=self.building)
             self.variant_lists[package_name] = variant_list
 
         variants = variant_list.get_intersection(range)
@@ -1210,8 +1212,8 @@ class Solver(_Common):
     non-conflicting packages that include all dependencies.
     """
     def __init__(self, package_requests, package_paths=None,
-                 package_cache=None, callback=None, optimised=True,
-                 verbose=False):
+                 package_cache=None, callback=None, building=False,
+                 optimised=True, verbose=False):
         """Create a Solver.
 
         Args:
@@ -1221,6 +1223,7 @@ class Solver(_Common):
             package_cache: _PackageVariantCache object used for caching package
                 definition file disk reads. If None, a local cache instance
                 is created.
+            building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
             callback: If not None, this callable will be called after each

@@ -9,8 +9,8 @@ class Resolver(object):
     The Resolver uses a combination of Solver(s) and cache(s) to resolve a
     package request as quickly as possible.
     """
-    def __init__(self, package_requests, package_paths=None,
-                 caching=True, callback=None, verbose=False):
+    def __init__(self, package_requests, package_paths=None, caching=True,
+                 callback=None, building=False, verbose=False):
         """Create a Resolver.
 
         Args:
@@ -22,11 +22,13 @@ class Resolver(object):
                 solve step. It is passed a single argument - a string showing the
                 current solve state. If the return value of the callable is
                 truthy, the solve continues, otherwise the solve is stopped.
+            building: True if we're resolving for a build.
         """
         self.package_requests = package_requests
         self.package_paths = package_paths or settings.packages_path
         self.caching = caching
         self.callback = callback
+        self.building = building
         self.verbose = verbose
 
         self.status_ = "pending"
@@ -42,6 +44,7 @@ class Resolver(object):
         solver = Solver(self.package_requests,
                         package_paths=self.package_paths,
                         callback=self.callback,
+                        building=self.building,
                         verbose=self.verbose)
 
         solver.solve()

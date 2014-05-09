@@ -5,7 +5,7 @@ import sys
 
 
 
-def get_suites(opts):
+def get_suites(opts, threaded=False):
     suites = []
     test_all = \
         (not opts.shells) and \
@@ -13,7 +13,8 @@ def get_suites(opts):
         (not opts.cli) and \
         (not opts.formatter) and \
         (not opts.commands) and \
-        (not opts.rex)
+        (not opts.rex) and \
+        (not opts.build)
 
     if opts.shells or test_all:
         from rez.tests.shells import get_test_suites
@@ -39,6 +40,12 @@ def get_suites(opts):
         from rez.tests.rex import get_test_suites
         suites += get_test_suites()
 
+    # the build test isn't amenable to threaded testing - there's class-level
+    # setup, and the package builds would trample over each other
+    if not threaded and (opts.build or test_all):
+        from rez.tests.build import get_test_suites
+        suites += get_test_suites()
+
     return suites
 
 
@@ -54,7 +61,7 @@ def command(opts, parser=None):
                 sys.exit(1)
 
         for i in range(nthreads):
-            suites = get_suites(opts)
+            suites = get_suites(opts, threaded=True)
             test_suite = unittest.TestSuite(suites)
             runner = unittest.TextTestRunner(verbosity=opts.verbosity)
             th = threading.Thread(target=fn, args=(runner, test_suite))

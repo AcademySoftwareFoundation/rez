@@ -4,7 +4,7 @@ from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script
+    create_forwarding_script, is_subdirectory
 from rez.contrib.pygraph.readwrite.dot import write as write_dot
 from rez.contrib.pygraph.readwrite.dot import read as read_dot
 from rez.contrib.version.requirement import Requirement
@@ -43,7 +43,7 @@ class ResolvedContext(object):
         quiet=False,
         verbosity=0,
         timestamp=0,
-        build_requires=False,
+        building=False,
         caching=True,
         package_paths=None,
         add_implicit_packages=True,
@@ -56,6 +56,7 @@ class ResolvedContext(object):
             quiet: If True then hides unnecessary output
             verbosity: Verbosity level. One of [0,1,2].
             timestamp: Ignore packages newer than this time-date.
+            building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve.
             package_paths: List of paths to search for pkgs, defaults to
                 settings.packages_path.
@@ -69,7 +70,7 @@ class ResolvedContext(object):
 
         # resolving settings
         self.timestamp = timestamp
-        self.build_requires = build_requires
+        self.building = building
         self.caching = caching
         self.implicit_packages = []
 
@@ -256,8 +257,8 @@ class ResolvedContext(object):
             tok = ''
             if not os.path.exists(pkg.root):
                 tok = 'NOT FOUND'
-            elif pkg.root.startswith(settings.local_packages_path):
-                tok = 'local'  # FIXME
+            elif is_subdirectory(pkg.root, settings.local_packages_path):
+                tok = '(local)'
             rows.append((pkg.qualified_package_name, pkg.root, tok))
         _pr('\n'.join(columnise(rows)))
 
@@ -589,7 +590,7 @@ class ResolvedContext(object):
             serialize_version=ResolvedContext.serialize_version,
 
             timestamp=self.timestamp,
-            build_requires=self.build_requires,
+            building=self.building,
             caching=self.caching,
             implicit_packages=[str(x) for x in self.implicit_packages],
             package_requests=[str(x) for x in self.package_requests],
@@ -620,7 +621,7 @@ class ResolvedContext(object):
         resolved_packages = d["resolved_packages"]
 
         r.timestamp = d["timestamp"]
-        r.build_requires = d["build_requires"]
+        r.building = d["building"]
         r.caching = d["caching"]
         r.implicit_packages = [Requirement(x) for x in d["implicit_packages"]]
         r.package_requests = [Requirement(x) for x in d["package_requests"]]
@@ -688,17 +689,19 @@ class ResolvedContext(object):
         # TODO FIXME this should be actual timestamp used even if timestamp not specified
         executor.setenv("REZ_REQUEST_TIME", self.timestamp)
 
+        resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self.package_requests)
-        resolve_str = ' '.join(x.qualified_package_name for x in self.resolved_packages)
+        resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
+
         executor.setenv("REZ_REQUEST", request_str)
         executor.setenv("REZ_RESOLVE", resolve_str)
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self.package_requests))
-        executor.bind('resolve', VariantsBinding(self.resolved_packages))
+        executor.bind('resolve', VariantsBinding(resolved_pkgs))
 
         # apply each resolved package to the execution context
-        for pkg in self.resolved_packages:
+        for pkg in resolved_pkgs:
             executor.comment("")
             executor.comment("Commands from package %s" % pkg.qualified_name)
             executor.comment("")

@@ -1,7 +1,7 @@
 from rez.contrib.version.requirement import Requirement
 from rez.solver import Solver, Cycle
+import rez.contrib.unittest2 as unittest
 import itertools
-import unittest
 import os.path
 
 
@@ -10,7 +10,7 @@ class TestSolver(unittest.TestCase):
     def __init__(self, fn):
         unittest.TestCase.__init__(self, fn)
         path = os.path.dirname(__file__)
-        self.packages_path = os.path.join(path, "data", "packages")
+        self.packages_path = os.path.join(path, "data", "solver", "packages")
 
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,

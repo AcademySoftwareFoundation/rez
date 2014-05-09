@@ -10,6 +10,7 @@ import functools
 import subprocess
 import platform
 import os.path
+import sys
 import os
 
 
@@ -100,9 +101,10 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        ext = create_shell().file_extension()
-        context_file = os.path.join(build_path, "build.rxt.%s" % ext)
-        ret = dict(extra_files=[context_file])
+        #ext = create_shell().file_extension()
+        #context_file = os.path.join(build_path, "build.rxt.%s" % ext)
+        #ret = dict(extra_files=[context_file])
+        ret = {}
 
         callback = functools.partial(self._add_build_actions,
                                      context=context,
@@ -111,7 +113,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode,_,_ = context.execute_shell(command=cmd,
                                             block=True,
                                             cwd=build_path,
-                                            context_filepath=context_file,
+                                            #context_filepath=context_file,
                                             actions_callback=callback)
         if retcode:
             ret["success"] = False
@@ -120,6 +122,7 @@ class CMakeBuildSystem(BuildSystem):
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run make directly themselves.
+            ext = create_shell().file_extension()
             build_env_script = os.path.join(build_path, "build-env.%s" % ext)
             create_forwarding_script(build_env_script,
                                      module="plugins.build_system.cmake",
@@ -173,8 +176,8 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
     retcode,_,_ = context.execute_shell(block=True,
                                        cwd=build_dir,
                                        actions_callback=callback)
-    import sys
     sys.exit(retcode)
+
 
 
 class CMakeBuildSystemFactory(plugin_factory.RezPluginFactory):

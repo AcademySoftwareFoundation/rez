@@ -1,7 +1,7 @@
 from rez.contrib.version.requirement import VersionedObject
 from rez.rex import Comment, EnvAction, Shebang, Setenv, Alias, Appendenv
 from rez.resolved_context import ResolvedContext
-import unittest
+import rez.contrib.unittest2 as unittest
 import os
 
 
@@ -10,7 +10,7 @@ class TestRexCommands(unittest.TestCase):
     def __init__(self, fn):
         unittest.TestCase.__init__(self, fn)
         path = os.path.dirname(__file__)
-        self.packages_path = os.path.join(path, "data", "packages")
+        self.packages_path = os.path.join(path, "data", "commands", "packages")
 
     def _test_package(self, pkg, env, expected_commands):
         orig_environ = os.environ.copy()
@@ -21,10 +21,13 @@ class TestRexCommands(unittest.TestCase):
                             add_implicit_packages=False,
                             add_bootstrap_path=False)
 
+        # this environ should not have changed
         self.assertEqual(orig_environ, os.environ)
 
         commands = r.get_actions(parent_environ=env)
         commands_ = []
+
+        # ignore some commands that don't matter or change depending on system
         ignore_keys = set(["REZ_USED",
                            "REZ_REQUEST_TIME",
                            "PATH"
@@ -65,15 +68,20 @@ class TestRexCommands(unittest.TestCase):
         self._test_package(pkg, {"REXTEST_DIRS":"TEST"}, cmds)
 
     def test_old_yaml(self):
+        """Resolve a yaml-based package with old-style bash commands."""
         self._test_rextest_package("1.1")
 
     def test_new_yaml(self):
+        """Resolve a yaml-based package with new rex commands."""
         self._test_rextest_package("1.2")
 
     def test_py(self):
+        """Resolve a new py-based package with rex commands."""
         self._test_rextest_package("1.3")
 
     def test_2(self):
+        """Resolve a package with a dependency, see that their commands are
+        concatenated as expected."""
         pkg = VersionedObject("rextest2-2")
         base = os.path.join(self.packages_path, "rextest2", "2")
 

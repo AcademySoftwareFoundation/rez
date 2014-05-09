@@ -574,6 +574,7 @@ class BasePackageConfig_0(MetadataValidator):
         'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
+        'private_build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
         'commands': OneOf(lambda: None, 'str', ['str'])
     }
@@ -593,6 +594,7 @@ class VersionPackageConfig_0(BasePackageConfig_0):
         'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
+        'private_build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
         'commands': OneOf(lambda: None, 'str', ['str'])
     }

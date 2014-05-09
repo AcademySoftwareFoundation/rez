@@ -265,6 +265,8 @@ def add_test(parser):
                         help="test package commands")
     parser.add_argument("--rex", action="store_true",
                         help="test the rex command generator API")
+    parser.add_argument("--build", action="store_true",
+                        help="test the build system")
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
 

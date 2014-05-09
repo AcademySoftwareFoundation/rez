@@ -3,8 +3,8 @@ from rez.backport.lru_cache import lru_cache
 from rez.util import print_warning_once, Common, encode_filesystem_name
 from rez.resources import iter_resources, load_metadata
 from rez.contrib.version.version import Version, VersionRange
-from rez.contrib.version.requirement import VersionedObject
-from rez.exceptions import PackageNotFoundError, PackageMetadataError
+from rez.contrib.version.requirement import VersionedObject, Requirement
+from rez.exceptions import PackageNotFoundError
 from rez.settings import settings, Settings
 
 
@@ -169,7 +169,10 @@ class PackageBase(Common):
 
         if name is None or version is None:
             self.name = self.metadata["name"]
-            self.version = self.metadata["version"] or Version()
+            try:
+                self.version = self.metadata["version"] or Version()
+            except KeyError:
+                self.version = Version()
 
     @property
     def qualified_name(self):
@@ -229,7 +232,7 @@ class Package(PackageBase):
             if n:
                 raise IndexError("there are variants, index must be non-None")
         elif index not in range(n):
-            raise IndexError("variant doesn't exist at this index")
+            raise IndexError("variant index out of range")
 
         return Variant(path=self.metafile,
                        name=self.name,
@@ -270,16 +273,15 @@ class Variant(PackageBase):
         self.root = self.base
 
         metadata = self.metadata
-        self.requires = metadata["requires"] or []
+        requires = metadata["requires"] or []
 
         if self.index is not None:
             try:
                 var_requires = metadata["variants"][self.index]
             except IndexError:
-                raise PackageMetadataError(self.metafile,
-                                           "variant index out of range")
+                raise IndexError("variant index out of range")
 
-            self.requires = self.requires + var_requires
+            requires = requires + var_requires
             dirs = [encode_filesystem_name(x) for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
 
@@ -288,6 +290,8 @@ class Variant(PackageBase):
                 root = os.path.join(self.base, os.path.join(*var_requires))
                 if os.path.exists(root):
                     self.root = root
+
+        self.requires_ = [Requirement(x) for x in requires]
 
     @property
     def qualified_package_name(self):
@@ -307,6 +311,29 @@ class Variant(PackageBase):
         else:
             path = os.path.relpath(self.root, self.base)
             return os.path.normpath(path)
+
+    def requires(self, build_requires=False, private_build_requires=False):
+        """Get the requirements of the variant.
+
+        Args:
+            build_requires: If True, include build requirements.
+            private_build_requires: If True, include private build requirements.
+
+        Returns:
+            List of Requirement objects.
+        """
+        requires = self.requires_
+        if build_requires:
+            reqs = self.metadata["build_requires"]
+            if reqs:
+                requires = requires + [Requirement(x) for x in reqs]
+
+        if private_build_requires:
+            reqs = self.metadata["private_build_requires"]
+            if reqs:
+                requires = requires + [Requirement(x) for x in reqs]
+
+        return requires
 
     def to_dict(self):
         return dict(
