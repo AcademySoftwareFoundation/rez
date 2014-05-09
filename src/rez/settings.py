@@ -48,6 +48,7 @@ class Settings(object):
         "all_parent_variables":             bool_schema,
         "all_resetting_variables":          bool_schema,
         "quiet":                            bool_schema,
+        "resolve_caching":                  bool_schema,
         # integers
         "release_email_smtp_port":          int_schema,
         # strings
@@ -63,13 +64,13 @@ class Settings(object):
         "dot_image_format":                 str_schema,
         "build_system":                     str_schema,
         "vcs_tag_name":                     str_schema,
-        "release_email_smtp_host":          str_schema,
         "release_email_from":               str_schema,
-        "default_shell":                    str_schema,
         # optional strings
         "editor":                           opt_str_schema,
         "image_viewer":                     opt_str_schema,
         "browser":                          opt_str_schema,
+        "default_shell":                    opt_str_schema,
+        "release_email_smtp_host":          opt_str_schema,
         # string lists
         "implicit_packages":                str_list_schema,
         "cmake_args":                       str_list_schema,
@@ -110,6 +111,15 @@ class Settings(object):
     def get(self, key):
         """Get a setting by name."""
         return getattr(self, key)
+
+    def default(self, value, key):
+        """Returns the given value, or the equivalent setting if value is None.
+        """
+        if value is None:
+            return self.get(key)
+        else:
+            self._validate(key, value)
+            return value
 
     def set(self, key, value):
         """Force a setting to the given value. Once set, a setting cannot be

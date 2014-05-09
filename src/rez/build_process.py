@@ -326,6 +326,12 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 r.print_info()
                 r.save(rxt_path)
 
+            if r.status != "solved":
+                print >> sys.stderr, \
+                    "The build environment could not be resolved:\n%s" \
+                    % r.failure_description
+                return False
+
             # run build system
             self._pr("\nInvoking build system...")
             ret = self.buildsys.build(r,

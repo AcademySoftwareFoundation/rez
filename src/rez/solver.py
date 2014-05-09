@@ -498,7 +498,7 @@ class _PackageVariantSlice(_Common):
 # TODO manage timestamps, reloading from disk on change, etc
 class _PackageVariantCache(object):
     def __init__(self, package_paths=None, building=False):
-        self.package_paths = package_paths or settings.packages_path
+        self.package_paths = settings.default(package_paths, "packages_path")
         self.building = building
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 

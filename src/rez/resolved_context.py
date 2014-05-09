@@ -44,7 +44,7 @@ class ResolvedContext(object):
         verbosity=0,
         timestamp=0,
         building=False,
-        caching=True,
+        caching=None,
         package_paths=None,
         add_implicit_packages=True,
         add_bootstrap_path=None):
@@ -55,13 +55,15 @@ class ResolvedContext(object):
                 representing the request.
             quiet: If True then hides unnecessary output
             verbosity: Verbosity level. One of [0,1,2].
-            timestamp: Ignore packages newer than this time-date.
+            timestamp: Ignore packages newer than this epoch time.
             building: True if we're resolving for a build.
-            caching: If True, cache(s) may be used to speed the resolve.
+            caching: If True, cache(s) may be used to speed the resolve. If
+                False, caches will not be used. If None, defaults to
+                settings.resolve_caching.
             package_paths: List of paths to search for pkgs, defaults to
                 settings.packages_path.
-            add_implicit_packages: If True, the implicit package list defined by
-                settings.implicit_packages is added to the request.
+            add_implicit_packages: If True, the implicit package list defined
+                by settings.implicit_packages is added to the request.
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
                 default specified in settings.add_bootstrap_path.
@@ -71,8 +73,8 @@ class ResolvedContext(object):
         # resolving settings
         self.timestamp = timestamp
         self.building = building
-        self.caching = caching
         self.implicit_packages = []
+        self.caching = settings.default(caching, "resolve_caching")
 
         self.package_requests = []
         for req in package_requests:
@@ -80,10 +82,8 @@ class ResolvedContext(object):
                 req = Requirement(req)
             self.package_requests.append(req)
 
-        self.package_paths = settings.packages_path \
-            if package_paths is None else package_paths
-        if add_bootstrap_path or \
-            (add_bootstrap_path is None and settings.add_bootstrap_path):
+        self.package_paths = settings.default(package_paths, "packages_path")
+        if settings.default(add_bootstrap_path, "add_bootstrap_path"):
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         if add_implicit_packages:

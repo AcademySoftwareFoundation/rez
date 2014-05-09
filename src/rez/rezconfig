@@ -91,12 +91,15 @@ build_system_plugin_path: []
 # Environment Resolution
 ###############################################################################
 
-# System packages that are implicitly added to all package resolves, unless
-# the --no-implicit flag is used.
+# Packages that are implicitly added to all package resolves, unless the
+# --no-implicit flag is used.
 implicit_packages:
 - '~platform=={platform}'
 - '~arch=={arch}'
 - '~os=={os}'
+
+# Use available caching mechanisms to speed up resolves.
+resolve_caching: true
 
 # Rez's default behaviour is to overwrite variables on first reference. This
 # prevents unconfigured software from being used within the resolved environment.
@@ -122,9 +125,9 @@ resetting_variables: []
 all_resetting_variables: false
 
 # The default shell type to use when creating resolved environments (eg when using
-# rez-env, or calling ResolvedContext.execute_shell). If empty, the current shell
-# is used (for eg, 'bash'). You generally would not want to change this settings
-# - it's here primarily for unit testing purposes.
+# rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
+# current shell is used (for eg, 'bash'). You generally would not want to change
+# this setting - it's here primarily for unit testing purposes.
 default_shell: ''
 
 
@@ -196,7 +199,7 @@ release_hooks:
 - emailer
 
 # Email SMTP host. If null or empty, emailing is skipped.
-release_email_smtp_host: ''
+release_email_smtp_host:
 
 # Email SMTP port.
 release_email_smtp_port: 25

@@ -30,6 +30,7 @@ class TestBuild(ShellDependentTest):
         cls.settings = dict(
             packages_path=[cls.install_root],
             add_bootstrap_path=False,
+            resolve_caching=False,
             implicit_packages=[])
 
     @classmethod
@@ -63,6 +64,12 @@ class TestBuild(ShellDependentTest):
         self.assertTrue(builder.build(install_path=self.install_root, install=True, clean=True))
         self.assertTrue(builder.build(install_path=self.install_root, install=True))
 
+    def test_build_whack(self):
+        """Test that a broken build fails correctly."""
+        working_dir = os.path.join(self.src_root, "whack")
+        builder = self._create_builder(working_dir)
+        self.assertFalse(builder.build(clean=True))
+
     def test_build_build_util(self):
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
@@ -81,6 +88,12 @@ class TestBuild(ShellDependentTest):
         self._test_build("foo", "1.1.0")
         self._create_context("foo==1.1.0")
 
+    def test_build_loco(self):
+        """Test that a package with conflicting requirements fails correctly."""
+        working_dir = os.path.join(self.src_root, "loco", "3")
+        builder = self._create_builder(working_dir)
+        self.assertFalse(builder.build(clean=True))
+
     def test_build_bah(self):
         """Build, install, test the bah package."""
         self._test_build("bah", "2.1")
@@ -94,9 +107,11 @@ def get_test_suites():
 
     for shell in get_shell_types():
         suite.addTest(TestBuild("test_create_shell", shell))
+        suite.addTest(TestBuild("test_build_whack", shell))
         suite.addTest(TestBuild("test_build_build_util", shell))
         suite.addTest(TestBuild("test_build_nover", shell))
         suite.addTest(TestBuild("test_build_foo", shell))
+        suite.addTest(TestBuild("test_build_loco", shell))
         suite.addTest(TestBuild("test_build_bah", shell))
 
     suites.append(suite)

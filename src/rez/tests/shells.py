@@ -24,7 +24,8 @@ class TestShell(ShellDependentTest):
     def setUpClass(cls):
         cls.settings = dict(
             packages_path=[],
-            implicit_packages=[])
+            implicit_packages=[],
+            resolve_caching=False)
 
     def _create_context(self, pkgs):
         return ResolvedContext(pkgs,

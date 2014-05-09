@@ -14,9 +14,7 @@ class TestSolver(TestBase):
         packages_path = os.path.join(path, "data", "solver", "packages")
 
         cls.settings = dict(
-            packages_path=[packages_path],
-            add_bootstrap_path=False,
-            implicit_packages=[])
+            packages_path=[packages_path])
 
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,
