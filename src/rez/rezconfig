@@ -64,7 +64,7 @@ package_repository_path: '~/.rez/package-repos'
 package_repository_cache_path: '~/.rez/downloads/package-repos'
 
 # Where temporary files go
-tmpdir: '/tmp'
+tmpdir:
 
 
 ###############################################################################

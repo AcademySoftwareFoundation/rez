@@ -58,7 +58,6 @@ class Settings(object):
         "external_packages_path":           str_schema,
         "package_repository_path":          str_schema,
         "package_repository_cache_path":    str_schema,
-        "tmpdir":                           str_schema,
         "version_sep":                      str_schema,
         "prompt":                           str_schema,
         "dot_image_format":                 str_schema,
@@ -66,6 +65,7 @@ class Settings(object):
         "vcs_tag_name":                     str_schema,
         "release_email_from":               str_schema,
         # optional strings
+        "tmpdir":                           opt_str_schema,
         "editor":                           opt_str_schema,
         "image_viewer":                     opt_str_schema,
         "browser":                          opt_str_schema,
@@ -281,6 +281,15 @@ class Settings(object):
         self._validate(attr, value)
         self.settings[attr] = value
         return value
+
+    # TODO move these into System
+    def _get_tmpdir(self):
+        if system.platform == "windows":
+            path = os.getenv("TEMP")
+            if path and os.path.isdir(path):
+                return path
+
+        return "/tmp"
 
     def _get_image_viewer(self):
         if system.platform == "linux":
