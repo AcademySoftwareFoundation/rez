@@ -423,8 +423,8 @@ def render_template(template, **variables):
     return templ % variables
 
 def encode_filesystem_name(input_str):
-    '''Encodes an arbitrary unicode string to a generic
-    filesystem-compatible filename
+    """Encodes an arbitrary unicode string to a generic filesystem-compatible
+    non-unicode filename.
 
     The result after encoding will only contain the standard ascii lowercase
     letters (a-z), the digits (0-9), or periods, underscores, or dashes
@@ -465,7 +465,7 @@ def encode_filesystem_name(input_str):
 
     As an example, the string "Foo_Bar (fun).txt" would get encoded as:
         _foo___bar_020_028fun_029.txt
-    '''
+    """
     if isinstance(input_str, str):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
@@ -488,15 +488,15 @@ def encode_filesystem_name(input_str):
                 N = 0
             HH = ''.join('%x' % ord(c) for c in utf8)
             result.append('_%d%s' % (N, HH))
-    return ''.join(result)
+    return str(''.join(result))
 
 
 _FILESYSTEM_TOKEN_RE = re.compile(r'(?P<as_is>[a-z0-9.-])|(?P<underscore>__)|_(?P<uppercase>[a-z])|_(?P<N>[0-9])')
 _HEX_RE = re.compile('[0-9a-f]+$')
 
 def decode_filesystem_name(filename):
-    """Decodes a filename encoded using the rules given in
-    encode_filesystem_name to a unicode string
+    """Decodes a filename encoded using the rules given in encode_filesystem_name
+    to a unicode string.
     """
     result = []
     remain = filename

@@ -2,24 +2,32 @@ from rez.contrib.version.requirement import VersionedObject
 from rez.rex import Comment, EnvAction, Shebang, Setenv, Alias, Appendenv
 from rez.resolved_context import ResolvedContext
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import TestBase
 import os
 
 
 
-class TestRexCommands(unittest.TestCase):
-    def __init__(self, fn):
-        unittest.TestCase.__init__(self, fn)
+class TestRexCommands(TestBase):
+
+    @classmethod
+    def get_packages_path(cls):
         path = os.path.dirname(__file__)
-        self.packages_path = os.path.join(path, "data", "commands", "packages")
+        return os.path.join(path, "data", "commands", "packages")
+
+    @classmethod
+    def setUpClass(cls):
+        cls.settings = dict(
+            packages_path=[cls.get_packages_path()],
+            add_bootstrap_path=False,
+            implicit_packages=[])
+
+    def __init__(self, fn):
+        TestBase.__init__(self, fn)
+        self.packages_path = self.get_packages_path()
 
     def _test_package(self, pkg, env, expected_commands):
         orig_environ = os.environ.copy()
-
-        r = ResolvedContext([str(pkg)],
-                            caching=False,
-                            package_paths=self.packages_path,
-                            add_implicit_packages=False,
-                            add_bootstrap_path=False)
+        r = ResolvedContext([str(pkg)], caching=False)
 
         # this environ should not have changed
         self.assertEqual(orig_environ, os.environ)
@@ -30,8 +38,7 @@ class TestRexCommands(unittest.TestCase):
         # ignore some commands that don't matter or change depending on system
         ignore_keys = set(["REZ_USED",
                            "REZ_REQUEST_TIME",
-                           "PATH"
-                           ])
+                           "PATH"])
 
         for cmd in commands:
             if isinstance(cmd, (Comment, Shebang)):

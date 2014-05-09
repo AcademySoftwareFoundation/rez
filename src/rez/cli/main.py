@@ -251,8 +251,6 @@ def add_exec(parser):
 
 @subcommand
 def add_test(parser):
-    parser.add_argument("-t", "--thread", dest="thread", action="store_true",
-                        help="run an additional multithreaded testing phase")
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
     parser.add_argument("--solver", action="store_true",

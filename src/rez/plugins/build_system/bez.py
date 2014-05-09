@@ -4,7 +4,7 @@ from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
-from rez.shells import create_shell
+#from rez.shells import create_shell
 from rez.settings import settings
 from rez import plugin_factory
 import os.path
@@ -34,8 +34,6 @@ class BezBuildSystem(BuildSystem):
     and calls the build() function. Unlike other build tools (such as make), bez
     will only work within an environment that was configured by rez-build.
     """
-    #executable = BuildSystem.find_executable("bez")
-
     @classmethod
     def name(cls):
         return "bez"
@@ -69,8 +67,7 @@ class BezBuildSystem(BuildSystem):
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run bez directly themselves.
-            ext = create_shell().file_extension()
-            build_env_script = os.path.join(build_path, "build-env.%s" % ext)
+            build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
                                      module="plugins.build_system.bez",
                                      func_name="_FWD__spawn_build_shell",

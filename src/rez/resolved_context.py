@@ -124,6 +124,7 @@ class ResolvedContext(object):
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
+                            building=self.building,
                             caching=caching,
                             callback=callback,
                             verbose=verbose_)

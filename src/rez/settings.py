@@ -65,6 +65,7 @@ class Settings(object):
         "vcs_tag_name":                     str_schema,
         "release_email_smtp_host":          str_schema,
         "release_email_from":               str_schema,
+        "default_shell":                    str_schema,
         # optional strings
         "editor":                           opt_str_schema,
         "image_viewer":                     opt_str_schema,
@@ -100,26 +101,46 @@ class Settings(object):
         Args:
             overrides: A dict containing settings that override all others.
         """
-        self.root_config = None
         self.config = None
         self.variables = None
+        self.locked = False
+        self.overrides = overrides
         self.settings = overrides or {}
 
     def get(self, key):
-        """ Get a setting by name """
+        """Get a setting by name."""
         return getattr(self, key)
 
     def set(self, key, value):
-        """ Force a setting to the given value """
+        """Force a setting to the given value. Once set, a setting cannot be
+        overwritten by other means (such as env var, package etc)."""
         self._validate(key, value)
         self.settings[key] = value
 
     def get_all(self):
-        """ Get a dict of all settings """
+        """Get a dict of all settings."""
         self._load_config()
         for k in self.config.iterkeys():
             getattr(self, k)
         return self.settings
+
+    def flush(self):
+        """Clear any cached settings."""
+        self.config = None
+        if self.locked:
+            self.settings = {}
+        else:
+            self.settings = self.overrides or {}
+
+    def lock(self, enable=True):
+        """Locks/unlocks the settings.
+
+        When the settings are locked, they are read from the master rezconfig
+        file, and standard overwrites are all turned off. This is used for unit
+        testing.
+        """
+        self.locked = enable
+        self.flush()
 
     def warn(self, param):
         """Returns True if the warning setting is enabled."""
@@ -151,26 +172,25 @@ class Settings(object):
             root_config = os.path.join(module_root_path, "rezconfig")
             with open(root_config) as f:
                 content = f.read()
-                self.root_config = yaml.load(content)
-                self.config = dict((k,v) for k,v in self.root_config.iteritems() \
-                    if not k.startswith('_'))
+                self.config = yaml.load(content)
 
-            for filepath in ( \
-                os.getenv("REZ_SETTINGS_FILE"),
-                os.path.expanduser("~/.rezconfig")):
-                if filepath and os.path.exists(filepath):
-                    with open(filepath) as f:
-                        content = f.read()
-                        config = yaml.load(content)
+            if not self.locked:
+                for filepath in ( \
+                    os.getenv("REZ_SETTINGS_FILE"),
+                    os.path.expanduser("~/.rezconfig")):
+                    if filepath and os.path.exists(filepath):
+                        with open(filepath) as f:
+                            content = f.read()
+                            config = yaml.load(content)
 
-                        for k,v in config.items():
-                            if k not in self.config:
-                                print >> sys.stderr, \
-                                    "Warning: ignoring unknown setting in %s: '%s'" \
-                                    % (filepath, k)
-                                del config[k]
+                            for k,v in config.items():
+                                if k not in self.config:
+                                    print >> sys.stderr, \
+                                        "Warning: ignoring unknown setting in %s: '%s'" \
+                                        % (filepath, k)
+                                    del config[k]
 
-                        self.config.update(config)
+                            self.config.update(config)
 
         for k,v in self.config.iteritems():
             self._validate(k, v)
@@ -210,10 +230,13 @@ class Settings(object):
         if attr not in self.config:
             raise ConfigurationError("No such Rez setting - '%s'" % attr)
 
-        schema = Settings.key_schemas[attr]
         config_value = self.config.get(attr)
-        env_var = "REZ_%s" % attr.upper()
-        value = os.getenv(env_var)
+        if self.locked:
+            value = None
+        else:
+            schema = Settings.key_schemas[attr]
+            env_var = "REZ_%s" % attr.upper()
+            value = os.getenv(env_var)
 
         if value is None:
             value = config_value

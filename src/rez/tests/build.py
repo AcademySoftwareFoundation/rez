@@ -2,20 +2,22 @@ from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import ShellDependentTest
+from rez.shells import get_shell_types
+from rez.settings import settings
 import shutil
 import tempfile
-import threading
 import os.path
 
 
 
-class TestBuild(unittest.TestCase):
+class TestBuild(ShellDependentTest):
 
     @classmethod
     def setUpClass(cls):
         # copy all the test packages to a temp location, we don't want to
         # pollute the source with 'build' subdirs
-        cls.root = tempfile.mkdtemp(suffix="_rez_build_test")
+        cls.root = tempfile.mkdtemp(prefix="rez_build_test_")
 
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "build", "packages")
@@ -23,13 +25,12 @@ class TestBuild(unittest.TestCase):
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
 
-        cls.context_kwargs = dict(
-            package_paths=[cls.install_root],
-            caching=False,
-            add_implicit_packages=False,
-            add_bootstrap_path=False)
-
         shutil.copytree(packages_path, cls.src_root)
+
+        cls.settings = dict(
+            packages_path=[cls.install_root],
+            add_bootstrap_path=False,
+            implicit_packages=[])
 
     @classmethod
     def tearDownClass(cls):
@@ -41,31 +42,31 @@ class TestBuild(unittest.TestCase):
         buildsys = create_build_system(working_dir)
         return LocalSequentialBuildProcess(working_dir,
                                            buildsys,
-                                           vcs=None,
-                                           **cls.context_kwargs)
+                                           vcs=None)
 
     @classmethod
     def _create_context(cls, *pkgs):
-        return ResolvedContext(pkgs, **cls.context_kwargs)
+        return ResolvedContext(pkgs)
 
-    @classmethod
-    def _test_build(cls, name, version=None):
+    def _test_build(self, name, version=None):
         # create the builder
-        working_dir = os.path.join(cls.src_root, name)
+        working_dir = os.path.join(self.src_root, name)
         if version:
             working_dir = os.path.join(working_dir, version)
-        builder = cls._create_builder(working_dir)
+        builder = self._create_builder(working_dir)
 
-        # build the package, then built it again
-        builder.build()
-        builder.build()
+        # build the package from a clean build dir, then build it again
+        self.assertTrue(builder.build(clean=True))
+        self.assertTrue(builder.build())
 
-        # build and install it, then build and install it again
-        builder.build(install_path=cls.install_root, install=True)
-        builder.build(install_path=cls.install_root, install=True)
+        # build and install it from a clean dir, then build and install it again
+        self.assertTrue(builder.build(install_path=self.install_root, install=True, clean=True))
+        self.assertTrue(builder.build(install_path=self.install_root, install=True))
 
-        # build and install again, from a clean build
-        builder.build(install_path=cls.install_root, clean=True, install=True)
+    def test_build_build_util(self):
+        """Build, install, test the build_util package."""
+        self._test_build("build_util", "1")
+        self._create_context("build_util==1")
 
     def test_build_nover(self):
         """Build, install, test the nover package."""
@@ -77,11 +78,26 @@ class TestBuild(unittest.TestCase):
         self._test_build("foo", "1.0.0")
         self._create_context("foo==1.0.0")
 
+        self._test_build("foo", "1.1.0")
+        self._create_context("foo==1.1.0")
+
+    def test_build_bah(self):
+        """Build, install, test the bah package."""
+        self._test_build("bah", "2.1")
+        self._create_context("bah==2.1", "foo==1.0.0")
+        self._create_context("bah==2.1", "foo==1.1.0")
+
 
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-    suite.addTest(TestBuild("test_build_nover"))
-    suite.addTest(TestBuild("test_build_foo"))
+
+    for shell in get_shell_types():
+        suite.addTest(TestBuild("test_create_shell", shell))
+        suite.addTest(TestBuild("test_build_build_util", shell))
+        suite.addTest(TestBuild("test_build_nover", shell))
+        suite.addTest(TestBuild("test_build_foo", shell))
+        suite.addTest(TestBuild("test_build_bah", shell))
+
     suites.append(suite)
     return suites

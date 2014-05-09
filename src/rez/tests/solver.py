@@ -1,24 +1,28 @@
 from rez.contrib.version.requirement import Requirement
 from rez.solver import Solver, Cycle
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import TestBase
 import itertools
 import os.path
 
 
 
-class TestSolver(unittest.TestCase):
-    def __init__(self, fn):
-        unittest.TestCase.__init__(self, fn)
+class TestSolver(TestBase):
+    @classmethod
+    def setUpClass(cls):
         path = os.path.dirname(__file__)
-        self.packages_path = os.path.join(path, "data", "solver", "packages")
+        packages_path = os.path.join(path, "data", "solver", "packages")
+
+        cls.settings = dict(
+            packages_path=[packages_path],
+            add_bootstrap_path=False,
+            implicit_packages=[])
 
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,
-                    package_paths=[self.packages_path],
                     optimised=True,
                     verbose=True)
         s2 = Solver(reqs,
-                    package_paths=[self.packages_path],
                     optimised=False,
                     verbose=False)
 
@@ -26,7 +30,6 @@ class TestSolver(unittest.TestCase):
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
             s = Solver(reqs_,
-                       package_paths=[self.packages_path],
                        optimised=True,
                        verbose=False)
             s_perms.append(s)

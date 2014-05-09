@@ -2,13 +2,14 @@ from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv
 from rez.exceptions import RexError, RexUndefinedVariableError
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import TestBase
 import inspect
 import textwrap
 import os
 
 
 
-class TestRex(unittest.TestCase):
+class TestRex(TestBase):
 
     def _create_executor(self, env, **kwargs):
         interp = Python(target_environ={}, passive=True)

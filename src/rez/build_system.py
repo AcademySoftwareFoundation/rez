@@ -91,15 +91,8 @@ class BuildSystem(object):
         self.verbose = verbose
 
     @classmethod
-    def find_executable(cls, name):
-        exe = which(name)
-        if not exe:
-            raise BuildSystemError("Couldn't find executable '%s'" % name)
-        return exe
-
-    @classmethod
     def is_valid_root(cls, path):
-        """Return True if this build system can release the source in path."""
+        """Return True if this build system can build the source in path."""
         raise NotImplementedError
 
     @classmethod

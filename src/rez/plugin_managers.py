@@ -122,8 +122,11 @@ class ShellPluginManager(RezPluginManager):
 
     def create_instance(self, shell=None):
         if not shell:
-            from rez.system import system
-            shell = system.shell
+            if settings.default_shell:
+                shell = settings.default_shell
+            else:
+                from rez.system import system
+                shell = system.shell
 
         return super(ShellPluginManager,self).create_instance(shell)
 

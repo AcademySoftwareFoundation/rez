@@ -1249,7 +1249,12 @@ class Solver(_Common):
         self._init()
 
         if self.package_cache is None:
-            self.package_cache = _PackageVariantCache(self.package_paths)
+            self.package_cache = _PackageVariantCache(self.package_paths,
+                                                      building=building)
+        else:
+            # if a cache is provided it is up to the user to ensure the
+            # building setting matches the one provided here
+            assert(self.package_cache.building == building)
 
         # merge the request
         self.pr("request: %s" % ' '.join(str(x) for x in package_requests))

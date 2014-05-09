@@ -121,6 +121,12 @@ all_parent_variables: false
 resetting_variables: []
 all_resetting_variables: false
 
+# The default shell type to use when creating resolved environments (eg when using
+# rez-env, or calling ResolvedContext.execute_shell). If empty, the current shell
+# is used (for eg, 'bash'). You generally would not want to change this settings
+# - it's here primarily for unit testing purposes.
+default_shell: ''
+
 
 ###############################################################################
 # Debugging

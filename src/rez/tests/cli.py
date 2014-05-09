@@ -1,4 +1,5 @@
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import TestBase
 import subprocess
 
 
@@ -19,7 +20,7 @@ tools = [
     "_rez_fwd"]
 
 
-class TestCLI(unittest.TestCase):
+class TestCLI(TestBase):
     def test_tool_invocation(self):
         for tool in tools:
             p = subprocess.Popen([tool, "--help"])

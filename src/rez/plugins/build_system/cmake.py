@@ -2,7 +2,6 @@ from rez.build_system import BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
-from rez.shells import create_shell
 from rez.settings import settings
 from rez.packages import Package
 from rez import plugin_factory
@@ -15,27 +14,11 @@ import os
 
 
 
-class RezCMakeError(RezError):
+class RezCMakeError(BuildSystemError):
     pass
 
 
-def _get_cmake_bin():
-    exe = BuildSystem.find_executable("cmake")
-    try:
-        p = subprocess.Popen([exe, "--version"], stdout=subprocess.PIPE)
-        stdout,_ = p.communicate()
-        vertoks = stdout.strip().split()[-1].split('.')
-        ver = (int(vertoks[0]), int(vertoks[1]))
-        if ver < (2,8):
-            raise BuildSystemError("cmake >= 2.8 required.")
-    except:
-        pass
-    return exe
-
-
 class CMakeBuildSystem(BuildSystem):
-    executable = _get_cmake_bin()
-    make_executable = BuildSystem.find_executable("make")
 
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
@@ -87,7 +70,7 @@ class CMakeBuildSystem(BuildSystem):
                 print s
 
         # assemble cmake command
-        cmd = [self.executable, "-d", self.working_dir]
+        cmd = ["cmake", "-d", self.working_dir]
         cmd += (self.package.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
@@ -101,11 +84,7 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        #ext = create_shell().file_extension()
-        #context_file = os.path.join(build_path, "build.rxt.%s" % ext)
-        #ret = dict(extra_files=[context_file])
         ret = {}
-
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package)
@@ -113,7 +92,6 @@ class CMakeBuildSystem(BuildSystem):
         retcode,_,_ = context.execute_shell(command=cmd,
                                             block=True,
                                             cwd=build_path,
-                                            #context_filepath=context_file,
                                             actions_callback=callback)
         if retcode:
             ret["success"] = False
@@ -122,8 +100,7 @@ class CMakeBuildSystem(BuildSystem):
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run make directly themselves.
-            ext = create_shell().file_extension()
-            build_env_script = os.path.join(build_path, "build-env.%s" % ext)
+            build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
                                      module="plugins.build_system.cmake",
                                      func_name="_FWD__spawn_build_shell",
@@ -134,7 +111,7 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
-        cmd = [self.make_executable]
+        cmd = ["make"]
         cmd += self.child_build_args
         if install and "install" not in cmd:
             cmd.append("install")

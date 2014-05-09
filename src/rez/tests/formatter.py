@@ -1,10 +1,12 @@
 import rez.contrib.unittest2 as unittest
+from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
 
 
 
-class TestNamespaceFormatter(unittest.TestCase):
+class TestNamespaceFormatter(TestBase):
     def setUp(self):
+        TestBase.setUp(self)
         self.formatter = NamespaceFormatter({})
 
     def assert_formatter_equal(self, format, expected, *args, **kwargs):
