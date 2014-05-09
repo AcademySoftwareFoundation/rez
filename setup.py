@@ -50,7 +50,7 @@ scripts = [
     "rez-release",
     "rez-env",
     "rez-context",
-    "rez-wrap",
+    "rez-suite",
     "rez-tools",
     "rez-exec",
     "rez-test",

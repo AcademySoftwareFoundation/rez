@@ -210,15 +210,15 @@ def add_env(parser):
                         help='packages to use in the target environment')
 
 @subcommand
-def add_wrap(parser):
+def add_suite(parser):
     parser.add_argument("-p", "--prefix", type=str,
                         help="Tools prefix")
     parser.add_argument("-s", "--suffix", type=str,
                         help="Tools suffix")
     parser.add_argument("DEST", type=str,
-                        help="Directory to write the wrapped environment into")
+                        help="Directory to write the suite into")
     parser.add_argument("RXT", type=str, nargs='*',
-                        help="Context files to wrap")
+                        help="Context files to add to the suite")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="verbose mode")
 
@@ -311,8 +311,8 @@ def run():
                     "Build a package from source and deploy it.")
     _add_subcommand("env",
                     "Open a rez-configured shell, possibly interactive.")
-    _add_subcommand("wrap",
-                    "Created a wrapped environment from one or more context files")
+    _add_subcommand("suite",
+                    "Create a tool suite from one or more context files")
     _add_subcommand("tools",
                     "List the tools available in the current environment")
     _add_subcommand("exec",

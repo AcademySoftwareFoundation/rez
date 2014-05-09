@@ -476,23 +476,17 @@ class ResolvedContext(object):
         else:
             return p
 
-    # TODO rename to "create_suite"
-    def create_wrapped_context(self, path, rxt_name=None, prefix=None,
-                               suffix=None, request_only=True, overwrite=False,
-                               verbose=False):
-        """Create a 'wrapped context'.
+    def add_to_suite(self, path, rxt_name=None, prefix=None, suffix=None,
+                     request_only=True, overwrite=False, verbose=False):
+        """Add this context to a 'suite'.
 
-        A wrapped context is an rxt file with a set of accompanying executable
-        scripts, which wrap the tools available within the context. When a user
-        runs one of these scripts, the wrapped tool is run within the context.
-        This allows us to expose tools to users in unresolved environments, yet
-        ensure that when the tool is executed, it does so within its correctly
-        resolved environment. You can create multiple wrapped contexts within
-        a single path.
+        When a context is added to a suite, a set of executable scripts are
+        written to the suite's bin/ subdirectory - one for each tool available
+        in this context. When these scripts are run, they spawn a subshell
+        using this context, and run the tool in that shell.
 
         Args:
-            path: Directory to create the wrapped context within. Either this
-                directory or its parent must exist.
+            path: Suite directory. Either this directory or its parent must exist.
             rxt_name: Name of the rxt file to write. If None, a uuid-type string
                 is generated for you. If non-None, but that file already exists
                 in the path, then the name will be suffixed with '_2', '_3' etc
@@ -510,6 +504,9 @@ class ResolvedContext(object):
             Path to a subdirectory within 'path' containing the wrapped tools,
             or None if no tools were wrapped.
         """
+        if self.status != "solved":
+            raise RezSystemError("Cannot add a failed context to a suite")
+
         path = os.path.abspath(path)
         ppath = os.path.dirname(path)
         if not os.path.isdir(ppath):

@@ -13,8 +13,8 @@ def command(opts, parser=None):
     for path in paths:
         r = ResolvedContext.load(path)
         rxt_name = os.path.basename(path)
-        r.create_wrapped_context(opts.DEST,
-                                 rxt_name=rxt_name,
-                                 prefix=opts.prefix,
-                                 suffix=opts.suffix,
-                                 verbose=opts.verbose)
+        r.add_to_suite(opts.DEST,
+                       rxt_name=rxt_name,
+                       prefix=opts.prefix,
+                       suffix=opts.suffix,
+                       verbose=opts.verbose)
