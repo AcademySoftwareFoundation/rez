@@ -98,7 +98,7 @@ def setup_parser(parser):
     from rez.system import system
     from rez.shells import get_shell_types
 
-    formats = get_shell_types() + ['dict']
+    formats = get_shell_types() + ['dict', 'actions']
 
     parser.add_argument("--req", "--print-request", dest="print_request",
                         action="store_true",
@@ -116,6 +116,8 @@ def setup_parser(parser):
                         metavar='FILE', help="write the resolve graph to FILE")
     parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
                         type=str, help="prune the graph down to PKG")
+
+    # TODO remove
     parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
                         help="prune the graph down to show conflicts only")
     parser.add_argument("-v", "--verbose", action="store_true",
@@ -141,8 +143,10 @@ def command(opts, parser=None):
     rxt_file = get_rxt_file(opts.FILE)
     rc = ResolvedContext.load(rxt_file)
 
-    def _check_graph(g):
-        if g is None:
+    def _graph():
+        if rc.has_graph:
+            return rc.graph(as_dot=True)
+        else:
             print >> sys.stderr, "The context does not contain a graph."
             sys.exit(1)
 
@@ -154,14 +158,14 @@ def command(opts, parser=None):
         elif opts.print_tools:
             print_tools(rc)
         elif opts.print_graph:
-            _check_graph(rc.resolve_graph)
-            print rc.resolve_graph
+            gstr = _graph()
+            print gstr
         elif opts.graph:
-            _check_graph(rc.resolve_graph)
-            view_graph(rc.resolve_graph, opts)
+            gstr = _graph()
+            view_graph(gstr, opts)
         elif opts.write_graph:
-            _check_graph(rc.resolve_graph)
-            write_graph(rc.resolve_graph, opts)
+            gstr = _graph()
+            write_graph(gstr, opts)
         else:
             rc.print_info(verbose=opts.verbose)
             if opts.verbose and (rxt_file == current_rxt_file):
@@ -175,6 +179,10 @@ def command(opts, parser=None):
     if opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)
         print pretty_env_dict(env)
+    elif opts.format == 'actions':
+        actions = rc.get_actions(parent_environ=parent_env)
+        for action in actions:
+            print str(action)
     else:
         code = rc.get_shell_code(shell=opts.format, parent_environ=parent_env)
         print code

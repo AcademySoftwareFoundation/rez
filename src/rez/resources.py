@@ -19,35 +19,24 @@ an understanding of the underlying file and folder structure.  This ensures that
 the addition of new resources is localized to the registration functions
 provided by this module.
 """
-# TODO: look into using schema.py (https://github.com/halst/schema) which is pretty
-# similar to MetadataSchema class below, but is more fully-featured.
-# I think the additional features could help consolidate some concepts within
-# this module:
-# Currently we use schemas to describe the contents of files, and we use the
-# concept of a 'path pattern' to define where we will find that file
-# in our directory tree.  I would like to investigate treating the directory
-# structure itself as a schema, with file schemas nested within it.
-#
-# Two other schema validation libraries are jsonschema and pykwalify. The former
-# is generic enough to validate yaml data, but might be a stretch to validate
-# data coming from python files (callables, for example) and the latter supports
-# both json and yaml, but we'd have to port pykwalify from python 3.x to 2.x.
-
-from __future__ import with_statement
-import yaml
 import os
 import sys
 import inspect
 import re
 from collections import defaultdict
-import schema
-from schema import Schema, Use, And, Or, Optional
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
-from rez.exceptions import PkgMetadataError
-from rez.versions import ExactVersion, VersionRange
+from rez.exceptions import PackageMetadataError
+from rez.contrib.version.version import Version
+from rez.contrib import yaml
+from rez.contrib import schema
+from rez.contrib.schema import Schema, Use, And, Or, Optional
 
 _configs = defaultdict(list)
+
+PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
+VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
+VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
 
 #------------------------------------------------------------------------------
@@ -89,38 +78,6 @@ class MetadataValueError(MetadataError, ValueError):
                                                           self.entry_id,
                                                           self.value))
 
-class MetadataUpdate(object):
-    def __init__(self, old_value, new_value):
-        self.old_value = old_value
-        self.new_value = new_value
-
-#------------------------------------------------------------------------------
-# Internal Utilities
-#------------------------------------------------------------------------------
-
-def update_copy(source, updates):
-    """Returns a copy of source_dict, updated with the new key-value
-    pairs in diffs."""
-    result = dict(source)
-    result.update(updates)
-    return result
-
-class AttrDictYamlLoader(yaml.Loader):
-    """
-    A YAML loader that loads mappings into attribute dictionaries.
-    """
-
-    def __init__(self, *args, **kwargs):
-        yaml.Loader.__init__(self, *args, **kwargs)
-
-        self.add_constructor(u'tag:yaml.org,2002:map', type(self).construct_yaml_map)
-
-    def construct_yaml_map(self, node):
-        from rez.util import AttrDict
-        data = AttrDict()
-        yield data
-        value = self.construct_mapping(node)
-        data.update(value)
 
 #------------------------------------------------------------------------------
 # Base Classes and Functions
@@ -224,34 +181,7 @@ def load_file(filename, loader=None):
             while frames and frames[0][0] != filename:
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
-            raise PkgMetadataError(filename, "%s\n%s" % (str(e), stack))
-
-
-
-# FIXME: these two do not seem flexible enough
-def get_package_file(parent_path):
-    """Return the path to package.yaml etc found under given path, or None."""
-    for file in ("package.yaml", "package.py"):
-        path = os.path.join(parent_path, file)
-        if os.path.isfile(path):
-            return path
-    return None
-
-def load_package_metadata(parent_path):
-    """Load the metadata file found under parent_path.
-
-    Returns:
-        A metadata dict, or None if no package definition file found.
-    """
-    file = get_package_file(parent_path)
-    if file:
-        return (load_file(file), file)
-    else:
-        raise PkgMetadataError("No package definition file found in %s" % parent_path)
-
-def load_package_settings(metadata):
-    """Return rezconfig settings for this pkg (pkgs can override settings)."""
-    return Settings(metadata["rezconfig"]) if "rezconfig" in metadata else settings
+            raise PackageMetadataError(filename, "%s\n%s" % (str(e), stack))
 
 
 #------------------------------------------------------------------------------
@@ -283,12 +213,9 @@ class ResourceInfo(object):
     @staticmethod
     def _expand_pattern(pattern):
         "expand variables in a search pattern with regular expressions"
-        import versions
-        import packages
-
         pattern = re.escape(pattern)
-        expansions = [('version', versions.EXACT_VERSION_REGSTR),
-                      ('name', packages.PACKAGE_NAME_REGSTR),
+        expansions = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
                       ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
@@ -416,14 +343,13 @@ class ResourceIterator(object):
         return len(self.path_parts) == 0
 
     def list_matches(self, path):
-        import rez.memcached
         if isinstance(self.current_part, basestring):
             fullpath = os.path.join(path, self.current_part)
             # TODO: check file vs dir here
             if os.path.exists(fullpath):
                 yield fullpath
         else:
-            for name in rez.memcached.get_memcache().list_directory(path):
+            for name in os.listdir(path):
                 match = self.current_part.match(name)
                 if match:
                     # TODO: add match to variables
@@ -476,7 +402,7 @@ package_name = basestring
 package_requirement = basestring
 
 # 'Use' means cast to this type. If it fails to cast, then validation also fails
-exact_version = Use(ExactVersion)
+exact_version = Use(Version)
 
 version_range = Use(VersionRange)
 
@@ -513,18 +439,20 @@ ReleaseTimestamp = Use(int)
 # Base Package:
 #    The standard set of metadata
 VersionlessPackageSchema_0 = {
-    Required('config_version'): 0,  # this will only match 0
-    Optional('uuid'):           basestring,
-    Optional('description'):    basestring,
-    Required('name'):           package_name,
-    Optional('authors'):        [basestring],
-    # Optional('timestamp'):      Use(load_resource, 'release.timetamp'),
-    Optional('help'):           Or(basestring,
-                                   [[basestring]]),
-    Optional('requires'):       [package_requirement],
-    Optional('build_requires'): [package_requirement],
-    Optional('variants'):       [[package_requirement]],
-    Optional('commands'):       rex_command
+    Required('config_version'):         0,  # this will only match 0
+    Optional('uuid'):                   basestring,
+    Optional('description'):            basestring,
+    Required('name'):                   package_name,
+    Optional('authors'):                [basestring],
+    # Optional('timestamp'):              Use(load_resource, 'release.timetamp'),
+    Optional('rezconfig'):              dict,
+    Optional('help'):                   Or(basestring,
+                                           [[basestring]]),
+    Optional('requires'):               [package_requirement],
+    Optional('build_requires'):         [package_requirement],
+    Optional('private_build_requires'): [package_requirement],
+    Optional('variants'):               [[package_requirement]],
+    Optional('commands'):               rex_command
 }
 
 # CompleteSchema = {
@@ -565,12 +493,13 @@ ExternalPackageSchema_0.update({
     Required('versions'): Use(ExactVersionSet),  # TODO: set default to ExactVersionSet([])
     Optional('version_overrides'): {
         version_range: {
-            Optional('help'):           Or(basestring,
-                                           [[basestring]]),
-            Optional('requires'):       [package_requirement],
-            Optional('build_requires'): [package_requirement],
-            Optional('variants'):       [[package_requirement]],
-            Optional('commands'):       rex_command
+            Optional('help'):                   Or(basestring,
+                                                   [[basestring]]),
+            Optional('requires'):               [package_requirement],
+            Optional('build_requires'):         [package_requirement],
+            Optional('private_build_requires'):         [package_requirement],
+            Optional('variants'):               [[package_requirement]],
+            Optional('commands'):               rex_command
         }
     }
 })

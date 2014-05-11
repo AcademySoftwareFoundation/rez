@@ -1,4 +1,3 @@
-from __future__ import with_statement
 from rez.source_retrieval import SourceRetriever, SourceRetrieverError
 from rez import plugin_factory
 import os.path

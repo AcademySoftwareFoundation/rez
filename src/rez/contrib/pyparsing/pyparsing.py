@@ -684,6 +684,8 @@ def nullDebugAction(*args):
 
 # this version is Python 2.x-3.x cross-compatible
 'decorator to trim function calls to match the arity of the target'
+
+"""
 def _trim_arity(func, maxargs=2):
     if func in singleArgBuiltins:
         return lambda s,l,t: func(t)
@@ -701,7 +703,25 @@ def _trim_arity(func, maxargs=2):
                     continue
                 raise
     return wrapper
- 
+"""
+
+#http://stackoverflow.com/questions/13025830/pyparsing-setparseaction-method-in-python-2-7-throws-exeptions
+def _trim_arity(func, maxargs=2):
+    # limit = maxargs
+    def wrapper(*args):
+        limit = maxargs
+        #~ nonlocal limit
+        while 1:
+            try:
+                return func(*args[limit:])
+            except TypeError:
+                if limit:
+                    limit -= 1
+                    continue
+                raise
+    return wrapper
+
+
 class ParserElement(object):
     """Abstract base level parser element class."""
     DEFAULT_WHITE_CHARS = " \n\t\r"

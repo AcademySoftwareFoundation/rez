@@ -39,24 +39,29 @@ then the following cases break the assumption:
 'A-3.4 NOT dependsOn B'
 """
 
-import os
+import os.path
 import time
 import sys
-import inspect
 import random
 import itertools
 from rez.settings import settings
-from rez import module_root_path
-import re
-from rez.packages import BasePackage, ResolvedPackage, split_name, \
-    package_in_range, package_family, iter_packages_in_range
-from rez.versions import ExactVersion, ExactVersionSet, Version, VersionRange, \
-    VersionError, to_range
-from rez.public_enums import *
 from rez.exceptions import *
 from rez.memcached import *
-from rez.system import system
-import rez.rex as rex
+from rez.packages import ResolvedPackage, PackageRangeStatement, \
+    package_in_range, package_family, iter_packages_in_range
+from rez.version import Version, VersionRange, VersionError
+
+#from rez.packages import BasePackage, ResolvedPackage, split_name, \
+#    package_in_range, package_family, iter_packages_in_range
+#from rez.versions import ExactVersion, ExactVersionSet, Version_, VersionRange_, \
+#    VersionError, to_range
+#from rez.system import system
+#from rez.public_enums import *
+#from rez import module_root_path
+#import rez.rex as rex
+#import inspect
+#import re
+
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 
@@ -65,34 +70,66 @@ DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': "';'"}
 # Public Classes
 ##############################################################################
 
-class PackageRequest(BasePackage):
-    """
-    A request for a package.
+class PackageRequest(object):
+    """A request for a package, eg "foo-1.3+".
 
     Parameters
     ----------
-    name : str
-            name of the package.
-            If the package name starts with '!', then this is an ANTI-package request -
-            ie, a requirement that this package, in this version range, is not allowed.
-            This feature exists so that packages can describe conflicts with other packages,
-            that can't be described by conflicting dependencies.
-            If the package name starts with '~' then this is a WEAK package request. It
-            means, "I don't need this package, but if it exists then it must fall within
-            this version range." A weak request is actually converted to a normal anti-
-            package: eg, "~foo-1.3" is equivalent to "!foo-0+<1.3|1.4+".
     version_range : str, ExactVersion, ExactVersionSet, or VersionRange
             may be inexact (for eg '5.4+')
-    resolve_mode : {RESOLVE_MODE_LATEST, RESOLVE_MODE_EARLIEST, RESOLVE_MODE_NONE}
+    resolve_mode : {"latest", "earliest", "none"}
             preference used when determining the order in which available versions
             are tested during the resolve.
     """
-    def __init__(self, name, version_range, resolve_mode=RESOLVE_MODE_LATEST, timestamp=0):
-        if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange)):
+    def __init__(self, pkg_str, resolve_mode="latest", timestamp=0, paths=None):
+        force_latest = pkg_str.endswith("=l")
+        force_earliest = pkg_str.endswith("=e")
+
+        if force_latest or force_earliest:
+            resolve_mode = "latest" if force_latest else "earliest"
+            pkg_str = pkg_str[:-2]
+            self.stmt = PackageRangeStatement(pkg_str)
+            pkg = package_in_range(stmt.name,
+                                   stmt.range,
+                                   latest=force_latest,
+                                   timestamp=timestamp,
+                                   paths=paths)
+            if pkg is None:
+                raise PkgsUnresolvedError([PackageRequest(pkg_str)])
+        else:
+            self.stmt = PackageRangeStatement(pkg_str)
+
+        self.resolve_mode = resolve_mode
+        self._timestamp = timestamp
+        self.timestamp = timestamp
+
+    @property
+    def name(self):
+        return self.stmt.name
+
+    @property
+    def version_range(self):
+        return self.stmt.range
+
+    def is_anti(self):
+        return self.stmt.conflict
+
+    def __eq__(self, other):
+        return (self.stmt == other.stmt)
+
+    def short_name(self):
+        return str(self)
+
+    def __str__(self):
+        return str(self.stmt)
+
+    """
+    def __init__(self, name, version_range, resolve_mode="latest", timestamp=0):
+        if isinstance(version_range, (ExactVersion, ExactVersionSet, VersionRange_)):
             self.version_range = version_range
         else:
             try:
-                self.version_range = VersionRange(version_range)
+                self.version_range = VersionRange_(version_range)
             except VersionError:
                 self.version_range = ExactVersionSet(version_range)
         if self.is_weak(name):
@@ -124,6 +161,8 @@ class PackageRequest(BasePackage):
 
     def __str__(self):
         return self.short_name()
+    """
+
 
 class PackageConflict(object):
     """
@@ -163,7 +202,7 @@ class Resolver(object):
     Where all the action happens. This class performs a package resolve.
     """
     def __init__(self,
-                 resolve_mode=RESOLVE_MODE_LATEST,
+                 resolve_mode="latest",
                  quiet=False,
                  verbosity=0,
                  max_fails=-1,
@@ -173,7 +212,7 @@ class Resolver(object):
                  caching=True,
                  package_paths=None):
         """
-        resolve_mode: one of: RESOLVE_MODE_EARLIEST, RESOLVE_MODE_LATEST
+        resolve_mode: one of: "earliest", "latest"
         quiet: if True then hides unnecessary output (such as the progress dots)
         verbosity: print extra debugging info. One of: 0, 1, 2
         max_fails: return after N failed configuration attempts, default -1 (no limit)
@@ -220,10 +259,16 @@ class Resolver(object):
         """
         def _pkg_request(req):
             return req if isinstance(req, PackageRequest) \
-                else str_to_pkg_req(req,
-                                    self.rctxt.time_epoch,
+                else PackageRequest(req,
                                     self.rctxt.resolve_mode,
+                                    self.rctxt.time_epoch,
                                     self.rctxt.package_paths)
+        """
+        else str_to_pkg_req(req,
+                            self.rctxt.time_epoch,
+                            self.rctxt.resolve_mode,
+                            self.rctxt.package_paths)
+        """
 
         resolve_start_time = time.time()
         raw_package_requests = [_pkg_request(x) for x in pkg_reqs]
@@ -231,10 +276,16 @@ class Resolver(object):
         if not no_implicit:
             to_add = []
             for pkg_str in settings.implicit_packages:
+                im_pkg_req = PackageRequest(pkg_str,
+                                            self.rctxt.resolve_mode,
+                                            self.rctxt.time_epoch,
+                                            self.rctxt.package_paths)
+                """
                 im_pkg_req = str_to_pkg_req(pkg_str,
                                             self.rctxt.time_epoch,
                                             self.rctxt.resolve_mode,
                                             self.rctxt.package_paths)
+                """
                 if im_pkg_req not in raw_package_requests:
                     to_add.append(im_pkg_req)
             self.package_requests = to_add + raw_package_requests
@@ -271,6 +322,9 @@ class Resolver(object):
             config.add_package(pkg_req)
 
         for pkg_req in self.package_requests:
+            config.add_dot_graph_verbatim('"' + str(pkg_req) + \
+                '" [style=filled shape=box fillcolor="rosybrown1"] ;')
+            """
             name = pkg_req.short_name()
             if name.startswith("__wrapper_"):
                 name2 = name.replace("__wrapper_", "")
@@ -280,7 +334,7 @@ class Resolver(object):
             else:
                 config.add_dot_graph_verbatim('"' + name +
                                               '" [style=filled shape=box fillcolor="rosybrown1"] ;')
-
+            """
         if (self.rctxt.verbosity != 0):
             print
             print "initial config:"
@@ -386,28 +440,19 @@ class Resolver(object):
 # Public Functions
 ##############################################################################
 
+"""
 def parse_pkg_req_str(pkg_str):
-    """
-    Helper function: parses a package request string (eg 'boost-1.36').
-    Note that a version string ending in '=e','=l' will result in a package request
-    that immediately resolves to earliest/latest version.
-    """
     if pkg_str.endswith("=l"):
-        mode = RESOLVE_MODE_LATEST
+        mode = "latest"
     elif pkg_str.endswith("=e"):
-        mode = RESOLVE_MODE_EARLIEST
+        mode = "earliest"
     else:
         mode = None
     pkg_str = pkg_str.rsplit("=", 1)[0]
     name, verrange = split_name(pkg_str)
     return name, verrange, mode
 
-def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
-    """
-    Helper function: turns a package string (eg 'boost-1.36') into a `PackageRequest`.
-    Note that a version string ending in '=e','=l' will result in a package request
-    that immediately resolves to earliest/latest version.
-    """
+def str_to_pkg_req(pkg_str, timestamp, mode="latest", paths=None):
     name, verrange, mode_override = parse_pkg_req_str(pkg_str)
     if mode_override is not None:
         # goto filesystem and resolve version immediately
@@ -415,7 +460,7 @@ def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
 
         pkg = package_in_range(name_,
                                ver_range=verrange,
-                               latest=(mode_override==RESOLVE_MODE_LATEST),
+                               latest=(mode_override=="latest"),
                                timestamp=timestamp,
                                paths=paths)
         if pkg is None:
@@ -424,6 +469,7 @@ def str_to_pkg_req(pkg_str, timestamp, mode=RESOLVE_MODE_LATEST, paths=None):
         verrange = pkg.version
         mode = mode_override
     return PackageRequest(name, verrange, mode, timestamp)
+"""
 
 def anti_name(pkg):
     """
@@ -466,7 +512,7 @@ class _ResolvingContext(object):
     Resolving context
     """
     def __init__(self):
-        self.resolve_mode = RESOLVE_MODE_NONE
+        self.resolve_mode = "none"
         self.verbosity = 0
         self.max_fails = -1
         self.config_fail_list = []
@@ -526,6 +572,11 @@ class _Package(object):
         self.root_path = None
         self.timestamp = None
         self.metafile = None
+
+        # this is just caching how many vers are within pkg_req.version_range,
+        # if that's >1 then we can't ever resolve this.
+        self.can_resolve = None
+
         if pkg_req:
             self.name = pkg_req.name
             self.pkg_req = pkg_req
@@ -563,9 +614,10 @@ class _Package(object):
         self.version_range = version_range
         # recreate the iterator.
         # NOTE: not entirely sure this is safe if iteration has already begun.
+        # TODO optimisation put this of til next_request() called for first time
         self.pkg_iter = iter_packages_in_range(self.name,
                                                ver_range=self.version_range,
-                                               latest=(self.pkg_req.resolve_mode==RESOLVE_MODE_LATEST),
+                                               latest=(self.pkg_req.resolve_mode=="latest"),
                                                timestamp=self.pkg_req.timestamp,
                                                paths=self.rctxt.package_paths)
 
@@ -573,9 +625,14 @@ class _Package(object):
         try:
             pkg = self.pkg_iter.next()
             # NOTE: this is always an exact package. no ranges involved
+            return PackageRequest("%s==%s" % (pkg.name, str(pkg.version)),
+                                  self.pkg_req.resolve_mode,
+                                  self.pkg_req.timestamp)
+            """
             return PackageRequest(pkg.name, pkg.version,
                                   self.pkg_req.resolve_mode,
                                   self.pkg_req.timestamp)
+            """
         except StopIteration:
             return None
 
@@ -606,8 +663,6 @@ class _Package(object):
         else:
             return self.name + '-' + str(self.version_range)
 
-        return self.name + '-' + str(self.version_range)
-
     def is_metafile_resolved(self):
         """
         Return True if this package has had its metafile resolved
@@ -631,7 +686,8 @@ class _Package(object):
         self.root_path = root_path
 
     def get_package(self, latest=True, exact=False, timestamp=0):
-        return package_in_range(self.name, self.version_range,
+        return package_in_range(self.name,
+                                self.version_range,
                                 timestamp=timestamp,
                                 latest=latest,
                                 exact=exact,
@@ -642,6 +698,49 @@ class _Package(object):
         attempt to resolve the metafile, the metadata member will be set if
         successful, and True will be returned. If the package has no variants,
         then its root-path is set and this package is regarded as fully-resolved.
+        """
+        if self.can_resolve is None:
+            pkg_iter = iter_packages_in_range(self.name,
+                                              ver_range=self.version_range,
+                                              timestamp=timestamp,
+                                              paths=self.rctxt.package_paths)
+            try:
+                pkg = pkg_iter.next()
+                pkg_iter.next()
+                self.can_resolve = False  # >1 pkg, won't resolve
+                return False
+            except StopIteration:
+                pass
+
+            self.timestamp = pkg.timestamp
+            self.base_path = pkg.base
+            self.metadata = pkg.metadata
+
+            self.metafile = pkg.metafile
+            metafile_variants = self.metadata['variants']
+            if metafile_variants:
+                # convert variants from metafile into _PackageVariants
+                self.variants = []
+                for metavar in metafile_variants:
+                    requests = [PackageRequest(p,
+                                               self.rctxt.resolve_mode,
+                                               self.rctxt.time_epoch,
+                                               self.rctxt.package_paths) for p in metavar]
+                    """
+                    requests = [str_to_pkg_req(p, self.pkg_req.timestamp,
+                                               self.pkg_req.resolve_mode,
+                                               self.rctxt.package_paths) for p in metavar]
+                    """
+                    pkg_var = _PackageVariant(requests)
+                    self.variants.append(pkg_var)
+            else:
+                # no variants, we're fully resolved
+                self.resolve(self.base_path)
+
+            self.can_resolve = True
+
+        return self.can_resolve
+
         """
         is_any = self.version_range.is_any()
         if not is_any and self.version_range.is_inexact():
@@ -670,13 +769,16 @@ class _Package(object):
                     self.resolve(self.base_path)
 
         return (self.base_path != None)
+        """
 
+    """
     def get_metadata(self, latest=True, timestamp=0):
         pkg = self.get_package(latest=latest, exact=False, timestamp=timestamp)
 
         if not pkg:
             return
         return pkg.metadata
+    """
 
     def __str__(self):
         s = self.short_name()
@@ -770,12 +872,14 @@ class _Configuration(object):
         .. note::
                 that if 'create_pkg_add' is False, then 'pkg_add' will always be None.
         """
+        print "test_pkg_req_add", str(pkg_req)
 
         # do a shortcut and test pkg short-names, if they're identical then we can often
         # return 'NOEFFECT'. Sometimes short names can mismatch, but actually be identical,
         # but this is of no real consequence, and testing on short-name is a good optimisation
         # (testing VersionRanges for equality is not trivial)
-        pkg_shortname = pkg_req.short_name()
+        #pkg_shortname = pkg_req.short_name()
+        pkg_shortname = str(pkg_req)
 
         pkg_req_ver_range = pkg_req.version_range
 
@@ -1067,12 +1171,12 @@ class _Configuration(object):
                 break
 
             # fail if not all resolved and mode=none
-            if (not self.all_resolved()) and (self.rctxt.resolve_mode == RESOLVE_MODE_NONE):
+            if (not self.all_resolved()) and (self.rctxt.resolve_mode == "none"):
                 pkg_reqs = self.get_unresolved_packages_as_package_requests()
                 raise PkgsUnresolvedError(pkg_reqs)
 
             # add transitive dependencies
-            self.add_transitive_dependencies()
+            #self.add_transitive_dependencies()
 
             # this shouldn't happen here but just in case...
             if self.all_resolved():
@@ -1255,7 +1359,10 @@ class _Configuration(object):
         for name in ordered_fams:
             pkg = self.pkgs[name]
             if not pkg.is_anti():
-                pkg_res = ResolvedPackage(name, str(pkg.version_range),
+                # HACK - get version from version_range
+                version = Version(str(pkg.version_range).replace("==",""))
+                pkg_res = ResolvedPackage(name,
+                                          version,
                                           pkg.metafile, pkg.timestamp,
                                           pkg.metadata, pkg.base_path,
                                           pkg.root_path)
@@ -1471,10 +1578,16 @@ class _Configuration(object):
 
                     if requires:
                         for pkg_str in requires:
+                            pkg_req = PackageRequest(pkg_str,
+                                                     self.rctxt.resolve_mode,
+                                                     self.rctxt.time_epoch,
+                                                     self.rctxt.package_paths)
+                            """
                             pkg_req = str_to_pkg_req(pkg_str,
                                                      self.rctxt.time_epoch,
                                                      self.rctxt.resolve_mode,
                                                      self.rctxt.package_paths)
+                            """
 
                             if (self.rctxt.verbosity != 0):
                                 print
@@ -1497,12 +1610,8 @@ class _Configuration(object):
             self.swap(config2)
         return num
 
+    """
     def add_transitive_dependencies(self):
-        """
-        for each package that is inexact and not resolved, calculate the package ranges that
-        it must eventually pull in anyway, assuming dependency transitivity, and add those to
-        the current configuration.
-        """
         if not self.rctxt.assume_dt:
             return
         while (self._add_transitive_dependencies() > 0):
@@ -1522,6 +1631,7 @@ class _Configuration(object):
                 continue
 
             # get the requires lists for the earliest and latest versions of this pkg
+            # TODO this is crap, we could take a more refined approach to this. V2.
             metafile_e = pkg.get_metadata(latest=False, timestamp=self.rctxt.time_epoch)
             if not metafile_e:
                 continue
@@ -1558,8 +1668,8 @@ class _Configuration(object):
                         if (pkg_req_e.version_range != pkg_req_l.version_range):
                             # calc version range
                             # FIXME: big assumption here that these ranges can be Versions (will break for e.g. '1.0|2.0'):
-                            v_e = Version(str(pkg_req_e.version_range))
-                            v_l = Version(str(pkg_req_l.version_range))
+                            v_e = Version_(str(pkg_req_e.version_range))
+                            v_l = Version_(str(pkg_req_l.version_range))
                             if(not v_e.ge < v_l.lt):
                                 continue
                             v = v_e.get_span(v_l)
@@ -1623,6 +1733,7 @@ class _Configuration(object):
         if config2:
             self.swap(config2)
         return num
+    """
 
     def remove_conflicting_variants(self):
         """
@@ -1630,7 +1741,6 @@ class _Configuration(object):
         conflict with the current configuration. If a package has all of its variants
         removed in this way, then a pkg-conflict exception will be raised.
         """
-
         if (self.rctxt.verbosity >= 2):
             print
             print "removing conflicting variants..."
@@ -1703,7 +1813,6 @@ class _Configuration(object):
         resolved. Note that if a package contains a single variant, this this
         function will add every package in the variant to the configuration.
         """
-
         num = 0
         config2 = self.copy()
 

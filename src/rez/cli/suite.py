@@ -1,5 +1,5 @@
 '''
-Created a wrapped environment from one or more context files
+Create a tool suite from one or more context files
 '''
 
 import os.path
@@ -10,9 +10,9 @@ def setup_parser(parser):
     parser.add_argument("-s", "--suffix", type=str,
                         help="Tools suffix")
     parser.add_argument("DEST", type=str,
-                        help="Directory to write the wrapped environment into")
+                        help="Directory to write the suite into")
     parser.add_argument("RXT", type=str, nargs='*',
-                        help="Context files to wrap")
+                        help="Context files to add to the suite")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="verbose mode")
 
@@ -28,8 +28,8 @@ def command(opts, parser=None):
     for path in paths:
         r = ResolvedContext.load(path)
         rxt_name = os.path.basename(path)
-        r.create_wrapped_context(opts.DEST,
-                                 rxt_name=rxt_name,
-                                 prefix=opts.prefix,
-                                 suffix=opts.suffix,
-                                 verbose=opts.verbose)
+        r.add_to_suite(opts.DEST,
+                       rxt_name=rxt_name,
+                       prefix=opts.prefix,
+                       suffix=opts.suffix,
+                       verbose=opts.verbose)

@@ -1,7 +1,6 @@
 """
 Misc useful stuff.
 """
-from __future__ import with_statement
 import stat
 import sys
 import atexit
@@ -13,17 +12,22 @@ import posixpath
 import ntpath
 import UserDict
 import re
-import yaml
 import shutil
 import textwrap
 import tempfile
 import threading
 import subprocess as sp
 from rez import module_root_path
+from rez.contrib import yaml
 
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+
+
+class Common(object):
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 class LazySingleton(object):
@@ -112,6 +116,12 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+def is_subdirectory(path, directory):
+    path = os.path.realpath(path)
+    directory = os.path.realpath(directory)
+    relative = os.path.relpath(path, directory)
+    return not relative.startswith(os.pardir)
+
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
     if not os.path.exists(path):
@@ -145,32 +155,6 @@ def shlex_join(value):
         return ' '.join(quote(x) for x in value)
     else:
         return str(value)
-
-# TODO remove
-"""
-def gen_dotgraph_image(dot_data, out_file):
-    # shortcut if writing .dot file
-    if out_file.endswith(".dot"):
-        with open(out_file, 'w') as f:
-            f.write(dot_data)
-        return
-
-    from rez.contrib.pydot import pydot
-    graph = pydot.graph_from_dot_data(dot_data)
-
-    # assume write format from image extension
-    ext = "jpg"
-    if '.' in out_file:
-        ext = out_file.rsplit('.', 1)[-1]
-
-    try:
-        fn = getattr(graph, "write_" + ext)
-    except Exception:
-        sys.stderr.write("could not write to '" + out_file + "': unknown format specified")
-        sys.exit(1)
-
-    fn(out_file)
-"""
 
 # returns path to first program in the list to be successfully found
 def which(*programs):
@@ -384,23 +368,6 @@ def to_ntpath(path):
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
-class AttrDict(dict):
-    """
-    A dictionary with attribute-based lookup.
-    """
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
-
-    def copy(self):
-        return AttrDict(dict.copy(self))
-
 
 class AttrDictWrapper(UserDict.UserDict):
     """
@@ -408,7 +375,6 @@ class AttrDictWrapper(UserDict.UserDict):
     """
     def __init__(self, data):
         self.__dict__['data'] = data
-
 
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
@@ -418,13 +384,22 @@ class AttrDictWrapper(UserDict.UserDict):
         try:
             return d[attr]
         except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
 
     def __setattr__(self, attr, value):
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
+
+
+class RO_AttrDictWrapper(AttrDictWrapper):
+    """Read-only version of AttrDictWrapper."""
+    def __setattr__(self, attr, value):
+        o = self[attr]  # may raise 'no attribute' error
+        raise AttributeError("'%s' object attribute '%s' is read-only"
+                             % (self.__class__.__name__, attr))
 
 
 _templates = {}
@@ -448,8 +423,8 @@ def render_template(template, **variables):
     return templ % variables
 
 def encode_filesystem_name(input_str):
-    '''Encodes an arbitrary unicode string to a generic
-    filesystem-compatible filename
+    """Encodes an arbitrary unicode string to a generic filesystem-compatible
+    non-unicode filename.
 
     The result after encoding will only contain the standard ascii lowercase
     letters (a-z), the digits (0-9), or periods, underscores, or dashes
@@ -490,7 +465,7 @@ def encode_filesystem_name(input_str):
 
     As an example, the string "Foo_Bar (fun).txt" would get encoded as:
         _foo___bar_020_028fun_029.txt
-    '''
+    """
     if isinstance(input_str, str):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
@@ -513,15 +488,15 @@ def encode_filesystem_name(input_str):
                 N = 0
             HH = ''.join('%x' % ord(c) for c in utf8)
             result.append('_%d%s' % (N, HH))
-    return ''.join(result)
+    return str(''.join(result))
 
 
 _FILESYSTEM_TOKEN_RE = re.compile(r'(?P<as_is>[a-z0-9.-])|(?P<underscore>__)|_(?P<uppercase>[a-z])|_(?P<N>[0-9])')
 _HEX_RE = re.compile('[0-9a-f]+$')
 
 def decode_filesystem_name(filename):
-    """Decodes a filename encoded using the rules given in
-    encode_filesystem_name to a unicode string
+    """Decodes a filename encoded using the rules given in encode_filesystem_name
+    to a unicode string.
     """
     result = []
     remain = filename

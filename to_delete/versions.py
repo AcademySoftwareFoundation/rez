@@ -16,6 +16,8 @@ this is true depends on context - for example the version '10.5' may represent a
 in one case, but may represent the superset of all versions '10.5.x' in another.
 """
 import re
+from rez.exceptions import VersionError
+
 
 # can't be zero padded
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-z]|[1-9][0-9]+)'
@@ -118,31 +120,22 @@ def to_range(versions):
     """
     if isinstance(versions, basestring):
         try:
-            return VersionRange(versions)
+            return VersionRange_(versions)
         except VersionError:
             return ExactVersionSet(versions)
     else:
         if not versions:
             # empty range
-            return VersionRange([])
+            return VersionRange_([])
         num_exact = len([v for v in versions if isinstance(v, (ExactVersion, ExactVersionSet))])
         if num_exact > 0:
             if num_exact != len(versions):
                 raise VersionError("Cannot mix exact and inexact versions: %s" % versions)
             return ExactVersionSet(versions)
-        return VersionRange(versions)
+        return VersionRange_(versions)
 
-class VersionError(Exception):
-    """
-    Exception
-    """
-    def __init__(self, value=None):
-        self.value = value
 
-    def __str__(self):
-        return "Invalid version: %s" % self.value
-
-class Version(object):
+class Version_(object):
     """
     Interprets a version string representing a single contiguous range of versions.
 
@@ -174,7 +167,7 @@ class Version(object):
 
                 if plus:
                     # no upper bound
-                    self._lt = Version.INF
+                    self._lt = Version_.INF
                 else:
                     # upper bound is one higher than lower bound
                     # Note: we can be sure that self.ge is bounded here (not infinity),
@@ -196,8 +189,8 @@ class Version(object):
                                                                       version))
         else:
             # empty string or none results in an unbounded version
-            self._ge = Version.NEG_INF
-            self._lt = Version.INF
+            self._ge = Version_.NEG_INF
+            self._lt = Version_.INF
 
     @property
     def ge(self):
@@ -212,8 +205,8 @@ class Version(object):
         return self
 
     def get_ge_plus_one(self):
-        if self.ge == Version.NEG_INF:
-            return Version.INF
+        if self.ge == Version_.NEG_INF:
+            return Version_.INF
         return incr_bound(self.ge)
 
     def is_inexact(self):
@@ -231,7 +224,7 @@ class Version(object):
         """
         Return true if version is 'any', ie was created from an empty string
         """
-        return self.ge == Version.NEG_INF and self.lt == Version.INF
+        return self.ge == Version_.NEG_INF and self.lt == Version_.INF
 
     def contains_version(self, version):
         """
@@ -249,8 +242,7 @@ class Version(object):
         if self.ge >= ver.lt or self.lt <= ver.ge:
             return sorted([self, ver])
         # FIXME: if the lt of the new Version is not INF, should we set ge to ZERO?
-        v = Version([min(self.ge, ver.ge),
-                     max(self.lt, ver.lt)])
+        v = Version_([min(self.ge, ver.ge), max(self.lt, ver.lt)])
         return [v]
 
     def get_span(self, version):
@@ -258,10 +250,10 @@ class Version(object):
         Return a single version spanning the low bound of the current version,
         and the high bound of the passed version.
         """
-        if (self.ge == Version.NEG_INF) and (version.lt != Version.INF):
-            return Version([Version.ZERO, version.lt])
+        if (self.ge == Version_.NEG_INF) and (version.lt != Version_.INF):
+            return Version_([Version_.ZERO, version.lt])
         else:
-            return Version([self.ge, version.lt])
+            return Version_([self.ge, version.lt])
 
     def get_intersection(self, ver):
         """
@@ -279,14 +271,14 @@ class Version(object):
             lt = ver.lt
         else:
             lt = self.lt
-        return Version([ge, lt])
+        return Version_([ge, lt])
 
     def __str__(self):
         def get_str(parts):
             return ".".join([str(part) for part in parts])
 
-        if self.lt == Version.INF:
-            if self.ge == Version.NEG_INF:
+        if self.lt == Version_.INF:
+            if self.ge == Version_.NEG_INF:
                 return ""
             else:
                 return get_str(self.ge) + "+"
@@ -317,13 +309,13 @@ class Version(object):
 
     def __contains__(self, version):
         if isinstance(version, basestring):
-            version = Version(version)
+            version = Version_(version)
         return self.contains_version(version)
 
     def __hash__(self):
         return hash(str(self))
 
-class VersionRange(object):
+class VersionRange_(object):
     """
     A collection of zero or more inexact versions, which do not overlap. If a
     VersionRange is initialised with disparate version ranges which do overlap
@@ -332,11 +324,11 @@ class VersionRange(object):
 
     def __init__(self, version):
         if isinstance(version, (list, tuple)):
-            versions = [Version(v) for v in version]
+            versions = [Version_(v) for v in version]
             self.versions = tuple(get_versions_union(versions))
-        elif type(version) is Version:  # do not want ExactVersion
+        elif type(version) is Version_:  # do not want ExactVersion
             self.versions = (version,)
-        elif type(version) is VersionRange:  # do not want ExactVersionSet
+        elif type(version) is VersionRange_:  # do not want ExactVersionSet
             self.versions = version.versions
         else:
             try:
@@ -345,7 +337,7 @@ class VersionRange(object):
                 raise VersionError("Version range must be initialized with string, "
                                    "list, tuple, or Version instance. got %s" % type(version).__name__)
             else:
-                versions = [Version(v) for v in version.split("|")]
+                versions = [Version_(v) for v in version.split("|")]
                 self.versions = tuple(get_versions_union(versions))
 
     def copy(self):
@@ -380,7 +372,7 @@ class VersionRange(object):
         get union
         """
         union = get_versions_union(self.versions + vers.versions)
-        return VersionRange(union)
+        return VersionRange_(union)
 
     def get_span(self):
         """"
@@ -400,7 +392,7 @@ class VersionRange(object):
             return ExactVersionSet([vers])
 
         vers_int = []
-        if isinstance(vers, Version):
+        if isinstance(vers, Version_):
             vers = [vers]
         else:
             vers = vers.versions
@@ -411,9 +403,9 @@ class VersionRange(object):
                     vers_int.append(vint)
 
         if (len(vers_int) == 0):
-            return VersionRange([])
+            return VersionRange_([])
         else:
-            return VersionRange(vers_int)
+            return VersionRange_(vers_int)
 
     def get_inverse(self):
         """
@@ -421,43 +413,43 @@ class VersionRange(object):
         """
         # inverse of any is none
         if self.is_any():
-            return VersionRange([])
+            return VersionRange_([])
 
         # the inverse of none is any
         if self.is_none():
-            return VersionRange('')
+            return VersionRange_('')
 
         # inverse is the ranges between existing ranges
         vers_inv = []
 
-        ver_front = Version([Version.NEG_INF,
-                             incr_bound(Version.NEG_INF)])
+        ver_front = Version_([Version_.NEG_INF,
+                             incr_bound(Version_.NEG_INF)])
 
-        ver_back = Version([Version.INF,
-                            incr_bound(Version.INF)])
+        ver_back = Version_([Version_.INF,
+                            incr_bound(Version_.INF)])
 
         vers = [ver_front] + list(self.versions) + [ver_back]
         for i in range(0, len(vers) - 1):
             v0 = vers[i]
             v1 = vers[i + 1]
             if v0.lt < v1.ge:
-                v = Version([v0.lt, v1.ge])
+                v = Version_([v0.lt, v1.ge])
                 vers_inv.append(v)
 
         if len(vers_inv) > 0:
             # clamp ge limits back to zero
-            if vers_inv[0].lt <= Version.ZERO:
+            if vers_inv[0].lt <= Version_.ZERO:
                 vers_inv = vers_inv[1:]
 
-            if len(vers_inv) > 0 and vers_inv[0].ge < Version.ZERO:
-                vers_inv[0] = Version([Version.ZERO,
+            if len(vers_inv) > 0 and vers_inv[0].ge < Version_.ZERO:
+                vers_inv[0] = Version_([Version_.ZERO,
                                        strip_trailing_zeros(vers_inv[0].lt)])
                 # we may get something like this when clamping: 0+<0.0, which
                 # is not valid, so detect it and remove it
                 if vers_inv[0].lt == vers_inv[0].ge:
                     vers_inv.pop(0)
 
-        return VersionRange(vers_inv)
+        return VersionRange_(vers_inv)
 
     def is_greater_no_overlap(self, ver):
         """
@@ -521,7 +513,7 @@ class VersionRange(object):
 
     def __contains__(self, version):
         if isinstance(version, basestring):
-            version = Version(version)
+            version = Version_(version)
         return self.contains_version(version)
 
     def __hash__(self):
@@ -563,7 +555,7 @@ def get_versions_union(versions):
 
 # This class is currently only used the ResolvedPackage and the rex command language
 # but it would be great to merge its functionality into the Version class
-class ExactVersion(Version):
+class ExactVersion(Version_):
     """
     Provide access to version parts and perform common reformatting
     """
@@ -586,8 +578,8 @@ class ExactVersion(Version):
         except UnicodeEncodeError:
             raise VersionError("Non-ASCII characters in version string")
         if self.version == '' or LABEL_VERSION_REG.match(self.version):
-            self._ge = Version.NEG_INF
-            self._lt = Version.NEG_INF
+            self._ge = Version_.NEG_INF
+            self._lt = Version_.NEG_INF
             self.parts = ()
         else:
             self._ge = parse_exact_version(self.version)
@@ -673,7 +665,7 @@ class ExactVersion(Version):
         return False
 
     def is_label(self):
-        return self.ge == Version.NEG_INF
+        return self.ge == Version_.NEG_INF
 
     def get_intersection(self, ver):
         """
@@ -685,7 +677,7 @@ class ExactVersion(Version):
         else:
             return None
 
-class ExactVersionSet(VersionRange):
+class ExactVersionSet(VersionRange_):
     def __init__(self, version):
         if isinstance(version, (list, tuple)):
             self.versions = sorted([ExactVersion(v) for v in version])
@@ -739,7 +731,7 @@ class ExactVersionSet(VersionRange):
         """
         get intersection, return None if there are no intersections
         """
-        if isinstance(vers, VersionRange) and vers.is_any():
+        if isinstance(vers, VersionRange_) and vers.is_any():
             return self
 
         versions = set(self.versions)

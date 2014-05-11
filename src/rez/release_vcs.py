@@ -1,5 +1,6 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
-from rez.resources import load_package_metadata, load_package_settings
+from rez.contrib.version.version import Version
+from rez.packages import Package
 from rez.util import which
 import subprocess
 
@@ -30,8 +31,7 @@ class ReleaseVCS(object):
     def __init__(self, path):
         assert(self.is_valid_root(path))
         self.path = path
-        self.metadata,_ = load_package_metadata(path)
-        self.settings = load_package_settings(self.metadata)
+        self.package = Package(path)
 
     @classmethod
     def name(cls):
@@ -87,28 +87,27 @@ class ReleaseVCS(object):
         Args:
             message: Message string to associate with the release.
         """
-        attrs = dict((k,v) for k,v in self.metadata.iteritems() \
-            if isinstance(v, basestring))
+        attrs = dict((k,str(v)) for k,v in self.package.metadata.iteritems() \
+            if isinstance(v, (basestring, Version)))
 
-        tag_name = self.settings.vcs_tag_name.format(**attrs)
+        tag_name = self.package.settings.vcs_tag_name.format(**attrs)
         if not tag_name:
             tag_name = "unversioned"
 
         if message is None:
             message = "Rez created release tag: %s" % tag_name
 
-        return self._create_tag_impl(tag_name, message)
+        self._create_tag_impl(tag_name, message)
 
     def _create_tag_impl(self, tag_name, message=None):
         """Only implement this if you are using the default implementation of
-        create_release_tag()
-        """
+        create_release_tag()."""
         raise NotImplementedError
 
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
-        if self.settings.debug_package_release:
+        if self.package.settings.debug("package_release"):
             print "Running command: %s" % cmd_str
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,

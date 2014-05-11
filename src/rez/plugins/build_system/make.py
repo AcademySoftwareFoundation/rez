@@ -6,8 +6,6 @@ import os.path
 
 
 class MakeBuildSystem(BuildSystem):
-    executable = BuildSystem.find_executable("make")
-
     @classmethod
     def name(cls):
         return "make"
