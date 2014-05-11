@@ -211,7 +211,7 @@ def run():
 
     opts = parser.parse_args()
 
-    if opts.debug:
+    if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1","true","on","yes"):
         from rez.util import set_rm_tmpdirs
         exc_type = None
         set_rm_tmpdirs(False)

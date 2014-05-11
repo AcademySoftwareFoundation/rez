@@ -1,10 +1,9 @@
-import argparse
-__doc__ = argparse.SUPPRESS
-
-# See util.create_forwarding_script().
-
+"""See util.create_forwarding_script()."""
+from rez.contrib import yaml
 import sys
 import os.path
+import argparse
+__doc__ = argparse.SUPPRESS
 
 def setup_parser(parser):
     parser.add_argument("YAML", type=str)

@@ -6,12 +6,13 @@ def setup_parser(parser):
     from rez.shells import get_shell_types
     from rez.system import system
 
-    formats = get_shell_types() + ['dict']
+    formats = get_shell_types() + ['dict', 'actions']
 
     parser.add_argument("-f", "--format", type=str, choices=formats,
                         help="print output in the given format. If None, the "
                         "current shell language (%s) is used. If 'dict', a "
-                        "dictionary of the resulting environment is printed"
+                        "dictionary of the resulting environment is printed. "
+                        "If 'actions', an agnostic list of actions is printed."
                         % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the code in an empty environment")
@@ -36,7 +37,7 @@ def command(opts, parser=None):
     interp = None
     if opts.format is None:
         interp = create_shell()
-    elif opts.format == 'dict':
+    elif opts.format in ('dict', 'actions'):
         interp = Python(passive=True)
     else:
         interp = create_shell(opts.format)
@@ -55,10 +56,15 @@ def command(opts, parser=None):
                      parent_variables=parent_vars,
                      bind_syspaths=False,
                      bind_rez=False)
-    ex.execute_code(code, filename=opts.FILE)
-    o = ex.get_output()
 
-    if isinstance(o, dict):
-        print pretty_env_dict(o)
+    ex.execute_code(code, filename=opts.FILE)
+
+    if opts.format == 'actions':
+        for action in ex.actions:
+            print str(action)
     else:
-        print o
+        o = ex.get_output()
+        if isinstance(o, dict):
+            print pretty_env_dict(o)
+        else:
+            print o

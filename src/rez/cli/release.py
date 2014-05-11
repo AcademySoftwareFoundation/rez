@@ -9,7 +9,7 @@ def setup_parser(parser):
 
     parser.add_argument("-m", "--message", type=str,
                         help="commit message")
-    parser.add_argument("--no-ensure-latest", dest="no_ensure_latest",
+    parser.add_argument("--no-latest", dest="no_latest",
                         action="store_true",
                         help="allows release of version earlier than the "
                         "latest release.")
@@ -41,7 +41,7 @@ def command(opts, parser=None):
     builder = LocalSequentialBuildProcess(working_dir,
                                           buildsys,
                                           vcs=vcs,
-                                          ensure_latest=(not opts.no_ensure_latest),
+                                          ensure_latest=(not opts.no_latest),
                                           release_message=opts.message)
     if not builder.release():
         sys.exit(1)

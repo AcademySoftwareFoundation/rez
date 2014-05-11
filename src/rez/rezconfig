@@ -31,14 +31,16 @@
 # Paths
 ###############################################################################
 
-# The package search path. Rez uses this to find packages. Note that Rez's special
-# 'bootstrap' package path (located inside the module, and containing packages
-# such as 'platform') is always searched last, even if it does not appear in this
-# list.
+# The package search path.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
 - '~/.rez/packages/int'  # internally developed pkgs, deployed
 - '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
+
+# The 'bootstrap' path is where Rez puts some automatically created packages at
+# install time. If this value is true, then the bootstrap path is always
+# implicitly appended to the packages path.
+add_bootstrap_path: true
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
@@ -51,10 +53,6 @@ release_packages_path: '~/.rez/packages/int'
 # you will probably want to change this to a site-wide location.
 external_packages_path: '~/.rez/packages/ext'
 
-# The path that rez-egg-install will deploy packages to. For production use, you
-# will probably want to change this to a site-wide location.
-egg_packages_path: '~/.rez/packages/ext'
-
 # The formulae URLs that rez-install searches for packages
 package_repository_url_path:
 - 'https://github.com/LumaPictures/rez-build/archive/master.zip'
@@ -66,7 +64,7 @@ package_repository_path: '~/.rez/package-repos'
 package_repository_cache_path: '~/.rez/downloads/package-repos'
 
 # Where temporary files go
-tmpdir: '/tmp'
+tmpdir:
 
 
 ###############################################################################
@@ -93,15 +91,15 @@ build_system_plugin_path: []
 # Environment Resolution
 ###############################################################################
 
-# System packages that are implicitly added to all package resolves, unless
-# the --no-implicit flag is used.
+# Packages that are implicitly added to all package resolves, unless the
+# --no-implicit flag is used.
 implicit_packages:
-- 'platform-{platform}'
-- 'arch-{arch}'
-# TODO put this back once version submodule is updated
-#- '~platform-{platform}'
-#- '~arch-{arch}'
-#- '~os-{os}'
+- '~platform=={platform}'
+- '~arch=={arch}'
+- '~os=={os}'
+
+# Use available caching mechanisms to speed up resolves.
+resolve_caching: true
 
 # Rez's default behaviour is to overwrite variables on first reference. This
 # prevents unconfigured software from being used within the resolved environment.
@@ -126,6 +124,12 @@ all_parent_variables: false
 resetting_variables: []
 all_resetting_variables: false
 
+# The default shell type to use when creating resolved environments (eg when using
+# rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
+# current shell is used (for eg, 'bash'). You generally would not want to change
+# this setting - it's here primarily for unit testing purposes.
+default_shell: ''
+
 
 ###############################################################################
 # Debugging
@@ -144,11 +148,21 @@ warn_untimestamped: true
 # section is resolved into an environment
 warn_old_commands: true
 
+# turn on all warnings
+warn_all: false
+
 # Print debugging info when loading plugins
 debug_plugins: false
 
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
+
+# turn on all debugging messages
+debug_all: false
+
+# Suppress all warnings and debugging messages. Overrides all warn_xxx and
+# debug_xxx settings
+quiet: false
 
 
 ###############################################################################
@@ -184,8 +198,8 @@ vcs_tag_name: '{name}-{version}'
 release_hooks:
 - emailer
 
-# Email SMTP host (mandatory).
-release_email_smtp_host: ''
+# Email SMTP host. If null or empty, emailing is skipped.
+release_email_smtp_host:
 
 # Email SMTP port.
 release_email_smtp_port: 25
@@ -222,54 +236,3 @@ prompt: '>'
 
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
-
-
-###############################################################################
-# Internal - Do Not Change
-###############################################################################
-
-# Type specifiers
-_type:
-    packages_path: list
-    local_packages_path: str
-    release_packages_path: str
-    external_packages_path: str
-    egg_packages_path: str
-    package_repository_url_path: list
-    package_repository_path: str
-    package_repository_cache_path: str
-    tmpdir: str
-    implicit_packages: list
-    shell_plugin_path: list
-    source_retriever_plugin_path: list
-    release_vcs_plugin_path: list
-    release_hook_plugin_path: list
-    build_system_plugin_path: list
-    editor: str
-    image_viewer: str
-    browser: str
-    prompt: str
-    prefix_prompt: bool
-    warn_shell_startup: bool
-    warn_untimestamped: bool
-    warn_old_commands: bool
-    debug_plugins: bool
-    debug_package_release: bool
-    build_system: str
-    cmake_args: list
-    vcs_tag_name: str
-    release_hooks: list
-    release_email_smtp_host: str
-    release_email_smtp_port: int
-    release_email_from: str
-    release_email_to: list
-    parent_variables: list
-    all_parent_variables: bool
-    resetting_variables: list
-    all_resetting_variables: bool
-
-
-# What seperator to expect in env-vars
-_sep:
-    implicit_packages: ' '
-    release_email_to: ' '

@@ -3,6 +3,7 @@ Open a rez-configured shell, possibly interactive.
 '''
 import select
 import sys
+import os
 
 def setup_parser(parser):
     from rez.system import system
@@ -26,9 +27,9 @@ def setup_parser(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
-    parser.add_argument("--bo", "--bootstrap-only", dest="bootstrap_only",
+    parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
                         action="store_true",
-                        help="only load bootstrap packages. Implies --ni and --nl.")
+                        help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
@@ -40,15 +41,11 @@ def setup_parser(parser):
     parser.add_argument("-i", "--input", type=str, metavar="FILE",
                         help="use a previously saved context. Resolve settings, "
                         "such as PKG, --ni etc are ignored in this case")
-    parser.add_argument("--mf", "--max-fails", dest="max_fails", type=int,
-                        default=-1, metavar='N',
-                        help="exit when the number of failed configuration "
-                        "attempts exceeds N")
-    parser.add_argument("--rv", "--resolve-verbosity", dest="resolve_verbosity",
-                        type=int, default=0, metavar="VERBOSITY",
-                        help="print debugging info during the resolve process")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
+    # TODO: move verbose flag to top-level parser
+    parser.add_argument("-v", "--verbose", action="count", default=0,
+                        help="verbose mode, repeat for more verbosity")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
@@ -59,35 +56,50 @@ def command(opts, parser=None):
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
+        if rc.status != "solved":
+            print >> sys.stderr, "cannot rez-env into a failed context"
+            sys.exit(1)
+
         rc.validate()
     else:
         t = get_epoch_time_from_str(opts.time) if opts.time else None
-        pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
-        pkg_paths = [] if opts.bootstrap_only else pkg_paths
+
+        if opts.paths is None:
+            pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
+        else:
+            pkg_paths = (opts.paths or "").split(os.pathsep)
+            pkg_paths = [x for x in pkg_paths if x]
 
         rc = ResolvedContext(opts.PKG,
                              timestamp=t,
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
-                             max_fails=opts.max_fails,
-                             verbosity=opts.resolve_verbosity,
-                             store_failure=bool(opts.output))
-        if opts.output:
-            if not opts.quiet:
-                rc.print_info()
-            rc.save(opts.output)
-            sys.exit(0 if rc.success else 1)
+                             add_bootstrap_path=(not opts.no_bootstrap),
+                             verbosity=opts.verbose)
 
-    # generally shells will behave as though the '-s' flag was not present, if
+    success = (rc.status == "solved")
+    if not success:
+        rc.print_info(buf=sys.stderr)
+
+    if opts.output:
+        rc.save(opts.output)
+        sys.exit(0 if success else 1)
+
+    if not success:
+        sys.exit(1)
+
+    # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
     if opts.stdin and not select.select([sys.stdin,] , [], [], 0.0)[0]:
         opts.stdin = False
+
+    quiet = opts.quiet or bool(opts.command)
 
     returncode,_,_ = rc.execute_shell(shell=opts.shell,
                                       rcfile=opts.rcfile,
                                       norc=opts.norc,
                                       command=opts.command,
                                       stdin=opts.stdin,
-                                      quiet=opts.quiet,
+                                      quiet=quiet,
                                       block=True)
     sys.exit(returncode)

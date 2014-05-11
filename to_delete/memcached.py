@@ -248,8 +248,8 @@ class RezMemCache(object):
 
         pkg_res_list = result[0]
         for pkg_res in pkg_res_list:
-            pkg_res_ver = Version(pkg_res.version)
-            fam_path,ver,pkg_epoch = self.find_package2(paths, pkg_res.name, VersionRange(""))
+            pkg_res_ver = Version_(pkg_res.version)
+            fam_path,ver,pkg_epoch = self.find_package2(paths, pkg_res.name, VersionRange_(""))
             if ver is not None and ver > pkg_res_ver and pkg_epoch <= self.epoch:
                 print fam_path
                 print "newer pkg: " + str(ver)

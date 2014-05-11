@@ -1,0 +1,113 @@
+
+name : maya
+
+config_version : 0
+
+versions :
+- "2012.17"
+- "2014.0"
+- "2014.2"
+- "2014.4"
+- "2014.50"
+- "2014.51"
+- "2014.59"
+
+variants:
+- [ platform-linux ]
+
+help: google-chrome http://download.autodesk.com/global/docs/maya2014/en_us/index.html
+
+commands: |
+  # TODO: support padding in rez
+  env.MAYA_VERSION_NUM = version.major
+  env.CMAKE_MODULE_PATH.append('{root}/cmake')
+
+  if machine.platform == 'linux':
+    env.MAYA_LOCATION = '/usr/autodesk/maya{version:#0.#01}-x64'
+  elif machine.platform == 'darwin':
+    env.MAYA_LOCATION = '/Applications/Autodesk/maya{version:#0.#01}/Maya.app/Contents'
+  elif machine.platform == 'windows':
+    env.MAYA_LOCATION = 'C:/Autodesk/maya{version.major}-x64'
+  env.PATH.prepend('$MAYA_LOCATION/bin')
+  env.MAYA_DEBUG_ENABLE_CRASH_REPORTING = 1
+
+tools:
+- maya
+- mayapy
+
+version_overrides:
+
+  '2012|2013' :
+
+    requires:
+    - python-2.6
+
+    # local variant override for 2012/2013:
+    # moving forward we will only support linux
+    variants:
+    - [ platform-linux ]
+    - [ platform-darwin ]
+
+
+  '2014' :
+
+    requires:
+    - python-2.7
+
+---
+
+
+name : maya
+
+config_version : 0
+
+versions :
+- "2012.17"
+- "2014.0"
+- "2014.2"
+- "2014.4"
+- "2014.50"
+- "2014.51"
+- "2014.59"
+
+variants:
+- [ platform-linux ]
+
+help: google-chrome http://download.autodesk.com/global/docs/maya2014/en_us/index.html
+
+commands: |
+  # TODO: support padding in rez
+  env.MAYA_VERSION_NUM = version.major
+  env.CMAKE_MODULE_PATH.append('{root}/cmake')
+
+  if machine.platform == 'linux':
+    env.MAYA_LOCATION = '/usr/autodesk/maya{version:#0.#01}-x64'
+  elif machine.platform == 'darwin':
+    env.MAYA_LOCATION = '/Applications/Autodesk/maya{version:#0.#01}/Maya.app/Contents'
+  elif machine.platform == 'windows':
+    env.MAYA_LOCATION = 'C:/Autodesk/maya{version.major}-x64'
+  env.PATH.prepend('$MAYA_LOCATION/bin')
+  env.MAYA_DEBUG_ENABLE_CRASH_REPORTING = 1
+
+tools:
+- maya
+- mayapy
+
+version_overrides:
+
+  - version: '2012|2013'
+
+    requires:
+    - python-2.6
+
+    # local variant override for 2012/2013:
+    # moving forward we will only support linux
+    variants:
+    - [ platform-linux ]
+    - [ platform-darwin ]
+
+
+  - version: '2014'
+
+    requires:
+    - python-2.7

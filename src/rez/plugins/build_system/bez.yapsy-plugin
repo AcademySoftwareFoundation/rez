@@ -1,0 +1,6 @@
+[Core]
+Name = bez
+Module = bez
+
+[Documentation]
+Description = Rez's builtin simple build system.

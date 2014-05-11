@@ -1,5 +1,5 @@
-from rez.resources import load_package_metadata, load_package_settings
 from rez.exceptions import BuildSystemError
+from rez.packages import Package
 from rez.util import which
 
 
@@ -84,25 +84,15 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.metadata,self.metafile = load_package_metadata(working_dir)
-        self.settings = load_package_settings(self.metadata)
-
+        self.package = Package(working_dir)
         self.write_build_scripts = write_build_scripts
         self.build_args = build_args
         self.child_build_args = child_build_args
         self.verbose = verbose
 
     @classmethod
-    def find_executable(cls, name):
-        exe = which(name)
-        if not exe:
-            raise BuildSystemError(("Couldn't find executable '%s' for build "
-                                   "system '%s'") % (name, cls.name()))
-        return exe
-
-    @classmethod
     def is_valid_root(cls, path):
-        """Return True if this build system can release the source in path."""
+        """Return True if this build system can build the source in path."""
         raise NotImplementedError
 
     @classmethod
