@@ -8,6 +8,7 @@ from rez import __version__
 import rez.sigint
 
 
+raise Exception("deprecated")
 
 class RezHelpFormatter(argparse.HelpFormatter):
     remainder_descs = {

@@ -139,7 +139,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                     """
                     #!%(py_exe)s
                     __PATCH__
-                    from rez.cli.main import run
+                    from rez.cli._main import run
                     run()
                     """ % dict(
                         py_exe=sys.executable)).strip()
@@ -148,7 +148,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                     """
                     #!%(py_exe)s
                     __PATCH__
-                    from rez.cli.bez import run
+                    from rez.cli._bez import run
                     run()
                     """ % dict(
                         py_exe=sys.executable)).strip()

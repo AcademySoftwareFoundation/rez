@@ -44,7 +44,6 @@ class System(object):
         else:
             return plat.machine()
 
-    # TODO remove, this belongs in shells.py and should use the plugins
     @propertycache
     def shell(self):
         """

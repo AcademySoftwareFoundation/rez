@@ -6,6 +6,7 @@ dependency between rex code in package.* files, and versions of Rez.
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
+
 class Binding(object):
     """Abstract base class."""
     def __init__(self, data=None):

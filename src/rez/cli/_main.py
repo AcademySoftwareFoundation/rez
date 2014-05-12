@@ -167,7 +167,7 @@ def _add_common_args(parser):
     parser.add_argument("--debug", dest="debug", action="store_true",
                         help=argparse.SUPPRESS)
 
-def run():
+def run(command=None):
     import rez.cli
     parser = LazyArgumentParser("rez")
 
@@ -182,13 +182,14 @@ def run():
     #     "rez-build" - ie, this will work: "rez-build --debug"
 
     _add_common_args(parser)
-
     subparsers = []
     parents = []
+
     for module_name, ispkg in subpackages(rez.cli):
         short_name = module_name.split('.')[-1]
         if short_name.startswith('_'):
             continue
+
         cmdname = module_to_command_name(module_name)
         if ispkg:
             # a package with sub-modules
@@ -197,6 +198,9 @@ def run():
             # recurse down a level
             subparsers.append(subparser)
             parents.append(module_name)
+        elif command and (short_name != command):
+            # command already chosen, skip other subparsers
+            pass
         else:
             # a module
             if not module_name.startswith(parents[-1]):
@@ -209,7 +213,8 @@ def run():
                                       formatter_class=RezHelpFormatter,
                                       setup_subparser=SetupRezSubParser(module_name))
 
-    opts = parser.parse_args()
+    args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
+    opts = parser.parse_args(args)
 
     if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1","true","on","yes"):
         from rez.util import set_rm_tmpdirs

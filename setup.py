@@ -52,7 +52,7 @@ scripts = [
     "rez-context",
     "rez-suite",
     "rez-tools",
-    "rez-exec",
+    "rez-interpret",
     "rez-test",
     "rez-bootstrap",
     "bez",
@@ -66,7 +66,7 @@ requires = [
     # "pysvn >= 1.7.2"
     #"PyYAML >= 3.9",
     #"Yapsy >= 1.10.0",
-    "python-memcached >= 1.0"
+    #"python-memcached >= 1.0"
 ]
 
 if sys.version_info < (2,7):
