@@ -36,9 +36,8 @@ def iter_package_families(name=None, paths=None):
                               ['package_family.folder'],
                               paths,
                               name=name)
-    for path, variables, resource_info in pkg_iter:
-        if os.path.isdir(path):
-            yield PackageFamily(variables['name'], path)
+    for resource in pkg_iter:
+        yield resource.pkg_class(resource.variables['name'], resource.path)
 
 
 def _iter_packages(family_name, paths=None):
@@ -137,11 +136,63 @@ class PackageFamily(Common):
                                   ['package.versionless', 'package.versioned'],
                                   [os.path.dirname(self.path)],
                                   name=self.name)
-        for metafile, variables, resource_info in pkg_iter:
-            version = Version(variables.get('version', ''))
-            yield Package(path=metafile,
-                          name=self.name,
-                          version=version)
+        for resource in pkg_iter:
+            yield resource.pkg_class(self.name,
+                                     Version(resource.variables.get('version', '')),
+                                     resource.path,
+                                     resource.load)
+
+class ExternalPackageFamily(PackageFamily):
+    """
+    special case where the entire package is stored in one file
+    """
+    def __init__(self, name, path):
+        PackageFamily.__init__(self, name, path)
+        self._metadata = None
+
+    @property
+    def metadata(self):
+        if self._metadata is None:
+            from rez.memcached import get_memcache
+            self._metadata = get_memcache().get_metadata(self.path)
+            # copy data from main metadata into sub-sections
+            if 'version_overrides' in self._metadata:
+                for ver_data in self._metadata['version_overrides'].values():
+                    # only set data from family package that does not exist in version package
+                    for key, value in self._metadata.iteritems():
+                        if key != 'version_overrides':
+                            ver_data.setdefault(key, value)
+            else:
+                self._metadata['version_overrides'] = {}
+            self._metadata.setdefault('versions', ExactVersionSet([]))
+        return self._metadata
+
+
+    def iter_version_packages(self):
+        versions = self.metadata['versions']
+        if versions.is_none():
+            yield Package(self.name, Version(''),
+                          self.path,
+                          0, # pass this through metadata
+                          lambda: self.metadata) # copy this metadata?
+        else:
+            for version in self.versions:
+                # FIXME: order matters here: use OrderedDict or make version_overrides a list instead of a dict
+                for ver_range, ver_data in self.metadata['version_overrides'].items():
+                    if version in ver_range:
+                        data = ver_data.copy()
+                        break
+                else:
+                    data = self.metadata.copy()
+                    data.pop('version_overrides')
+                    data.pop('versions')
+                data['version'] = version
+                yield Package(self.name,
+                              version,
+                              self.path,
+                              0,
+                              # use a keyword arg to 'pin' this value (a callback class would also work)
+                              lambda metadata=data: metadata)
 
 
 class PackageBase(Common):

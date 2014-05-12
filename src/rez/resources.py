@@ -380,7 +380,7 @@ def iter_resources(config_version, resource_keys, search_paths,
                 for path, variables in pattern.walk(search_path):
                     yield path, variables, resource
 
-def get_resource(config_version, resource_keys, search_paths,
+def load_resource(config_version, resource_keys, search_paths,
                  **expansion_variables):
     it = iter_resources(config_version, resource_keys, search_paths, **expansion_variables)
     result = list(it)
@@ -388,7 +388,8 @@ def get_resource(config_version, resource_keys, search_paths,
         raise MetadataError("Could not find resource")
     if len(result) != 1:
         raise MetadataError("Found more than one matching resource")
-    return result
+    path, variables, resource = result
+    return resource(path, variables).load()
 
 #------------------------------------------------------------------------------
 # MetadataSchema Implementations
@@ -503,6 +504,54 @@ ExternalPackageSchema_0.update({
         }
     }
 })
+
+class FileResource(Resource):
+    def __init__(self, path, variables):
+        self.path = path
+        self.variables = variables
+
+    def load(self):
+        return self.schema.validate(resouce.load_file(self.path))
+
+class ReleaseTimestampResource(FileResource):
+    name = 'release.timestamp'
+    path = ['{name}/{version}/.metadata/release_time.txt']
+    schema = Use(int)
+
+class VersionlessPackageResource(FileResource):
+    name = 'package.versionless'
+    path = ['{name}/package.yaml', '{name}/package.py']
+
+    @property
+    def schema(self):
+        return {
+            Required('config_version'):         0,  # this will only match 0
+            Optional('uuid'):                   basestring,
+            Optional('description'):            basestring,
+            Required('name'):                   self.variables['name'],
+            Optional('authors'):                [basestring],
+            Optional('timestamp'):              Use(partial(load_resource,
+                                                            0, 
+                                                           'release.timestamp',
+                                                           [self.rez_package_path],
+                                                           **self.variables)),
+            Optional('rezconfig'):              dict,
+            Optional('help'):                   Or(basestring,
+                                                   [[basestring]]),
+            Optional('requires'):               [package_requirement],
+            Optional('build_requires'):         [package_requirement],
+            Optional('private_build_requires'): [package_requirement],
+            Optional('variants'):               [[package_requirement]],
+            Optional('commands'):               rex_command
+        }
+
+        # try:
+        #     self._timestamp = resource_info.metadata_schema.validate(resouce.load_file(path))
+        # except SchemaError:
+        #     if settings.warn_untimestamped:
+        #         print_warning_once(("%s is not timestamped. To timestamp it " + \
+        #                            "manually, use the rez-timestamp utility.") % self.base)
+
 
 # TODO: look into creating an {ext} token
 register_resource(0,
