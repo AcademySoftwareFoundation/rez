@@ -69,8 +69,13 @@ class CMakeBuildSystem(BuildSystem):
             if self.verbose:
                 print s
 
+        # find cmake binary
+        exe = context.which("cmake", fallback=True)
+        if not exe:
+            raise RezCMakeError("could not find cmake binary")
+
         # assemble cmake command
-        cmd = ["cmake", "-d", self.working_dir]
+        cmd = [exe, "-d", self.working_dir]
         cmd += (self.package.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)

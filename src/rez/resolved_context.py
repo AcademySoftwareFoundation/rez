@@ -8,6 +8,7 @@ from rez.util import columnise, convert_old_commands, shlex_join, \
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
+from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
@@ -374,18 +375,45 @@ class ResolvedContext(object):
         self._execute(executor)
 
     @_on_success
+    def which(self, cmd, parent_environ=None, fallback=False):
+        """Find a program in the resolved environment.
+
+        Args:
+            cmd: String name of the program to find.
+            parent_environ: Environment to interpret the context within,
+                defaults to os.environ if None.
+            fallback: If True, and the program is not found in the context,
+                the current environment will then be searched.
+
+        Returns:
+            Path to the program, or None if the program was not found.
+        """
+        env = self.get_environ(parent_environ=parent_environ)
+        path = which(cmd, env=env)
+        if fallback and path is None:
+            path = which(cmd)
+        return path
+
+    @_on_success
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
         """Run a command within a resolved context.
 
-        This only creates the context within python - to execute within a full
-        context (so that aliases are set, for example) use execute_shell.
+        This applies the context to a python environ dict, then runs a subprocess
+        in that namespace. This is not a fully configured subshell - shell-
+        specific commands such as aliases will not be applied. To execute a
+        command within a subshell instead, use execute_shell().
 
-        @param args Command arguments, can be a string.
-        @param parent_environ Environment to interpret the context within,
-            defaults to os.environ if None.
-        @param subprocess_kwargs Args to pass to subprocess.Popen.
-        @returns a subprocess.Popen object.
-        @note This does not alter the current python session.
+        Args:
+            args: Command arguments, can be a string.
+            parent_environ: Environment to interpret the context within,
+                defaults to os.environ if None.
+            subprocess_kwargs: Args to pass to subprocess.Popen.
+
+        Returns:
+            A subprocess.Popen object.
+
+        Note:
+            This does not alter the current python session.
         """
         interpreter = Python(target_environ={})
         executor = self._create_executor(interpreter, parent_environ)

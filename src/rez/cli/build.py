@@ -3,7 +3,8 @@ Build a package from source.
 '''
 import sys
 import os
-import argparse
+from rez.vendor import argparse
+
 
 def parse_build_args(args, parser):
     def _args_err(args):

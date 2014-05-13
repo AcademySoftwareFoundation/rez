@@ -1,18 +1,17 @@
 import os
+import os.path
 import sys
 
-# Everything below this point has been copied verbatim from the Python-3.3
-# sources.
 
-def which(cmd, mode=os.F_OK | os.X_OK, path=None):
+# Modified version from Python-3.3. 'env' environ dict override has been added.
+
+def which(cmd, mode=os.F_OK | os.X_OK, env=None):
     """Given a command, mode, and a PATH string, return the path which
     conforms to the given mode on the PATH, or None if there is no such
     file.
 
-    `mode` defaults to os.F_OK | os.X_OK. `path` defaults to the result
-    of os.environ.get("PATH"), or can be overridden with a custom search
-    path.
-
+    `mode` defaults to os.F_OK | os.X_OK. `env` defaults to os.environ,
+    if not supplied.
     """
     # Check that a given file can be accessed with the correct mode.
     # Additionally check that `file` is not a directory, as on Windows
@@ -26,7 +25,10 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
     if _access_check(cmd, mode):
         return cmd
 
-    path = (path or os.environ.get("PATH", os.defpath)).split(os.pathsep)
+    if env is None:
+        env = os.environ
+
+    path = env.get("PATH", os.defpath).split(os.pathsep)
 
     if sys.platform == "win32":
         # The current directory takes precedence on Windows.
@@ -34,7 +36,7 @@ def which(cmd, mode=os.F_OK | os.X_OK, path=None):
             path.insert(0, os.curdir)
 
         # PATHEXT is necessary to check on Windows.
-        pathext = os.environ.get("PATHEXT", "").split(os.pathsep)
+        pathext = env.get("PATHEXT", "").split(os.pathsep)
         # See if the given file matches any of the expected path extensions.
         # This will allow us to short circuit when given "python.exe".
         matches = [cmd for ext in pathext if cmd.lower().endswith(ext.lower())]

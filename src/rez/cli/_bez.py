@@ -1,10 +1,9 @@
 import os
 import sys
 import imp
-import argparse
 import os.path
 import inspect
-from rez.vendor import yaml
+from rez.vendor import yaml, argparse
 from rez.resolved_context import ResolvedContext
 
 

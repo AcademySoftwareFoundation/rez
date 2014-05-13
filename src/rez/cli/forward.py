@@ -1,7 +1,7 @@
 """See util.create_forwarding_script()."""
 import sys
 import os.path
-import argparse
+from rez.vendor import argparse
 
 __doc__ = argparse.SUPPRESS
 

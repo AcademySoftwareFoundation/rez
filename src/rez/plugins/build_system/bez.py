@@ -76,8 +76,13 @@ class BezBuildSystem(BuildSystem):
             ret["build_env_script"] = build_env_script
             return ret
 
+        # find bez binary
+        exe = context.which("bez", fallback=True)
+        if not exe:
+            raise RezCMakeError("could not find bez binary")
+
         # run bez in the build environment
-        cmd = ["bez"]
+        cmd = [exe]
         if install and "install" not in cmd:
             cmd.append("install")
 
