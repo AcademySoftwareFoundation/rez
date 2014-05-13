@@ -1,7 +1,7 @@
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv
 from rez.exceptions import RexError, RexUndefinedVariableError
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import inspect
 import textwrap

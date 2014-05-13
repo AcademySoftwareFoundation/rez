@@ -4,7 +4,7 @@ import imp
 import argparse
 import os.path
 import inspect
-from rez.contrib import yaml
+from rez.vendor import yaml
 from rez.resolved_context import ResolvedContext
 
 

@@ -5,13 +5,13 @@ This gives direct access to the solver. You should use the resolve() function
 in resolve.py instead, which will use cached data where possible to provide you
 with a faster resolve.
 """
-from rez.contrib.pygraph.classes.digraph import digraph
-from rez.contrib.pygraph.algorithms.cycles import find_cycle
-from rez.contrib.pygraph.algorithms.accessibility import accessibility
+from rez.vendor.pygraph.classes.digraph import digraph
+from rez.vendor.pygraph.algorithms.cycles import find_cycle
+from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.contrib.version.version import VersionRange
-from rez.contrib.version.requirement import VersionedObject, Requirement, \
+from rez.vendor.version.version import VersionRange
+from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.packages import iter_packages_in_range
 from rez.util import columnise

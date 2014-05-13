@@ -1,7 +1,7 @@
 from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import ShellDependentTest, TempdirMixin
 from rez.shells import get_shell_types
 from rez.settings import settings

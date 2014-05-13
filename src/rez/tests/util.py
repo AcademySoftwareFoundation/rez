@@ -1,4 +1,4 @@
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.settings import settings
 from rez.shells import create_shell
 import tempfile

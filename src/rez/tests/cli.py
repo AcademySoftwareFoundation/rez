@@ -1,4 +1,4 @@
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import subprocess
 

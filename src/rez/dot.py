@@ -2,7 +2,7 @@
 Functions for manipulating dot-based resolve graphs.
 """
 import os.path
-from rez.contrib.pydot import pydot
+from rez.vendor.pydot import pydot
 
 
 

@@ -2,8 +2,8 @@ import os.path
 from rez.backport.lru_cache import lru_cache
 from rez.util import print_warning_once, Common, encode_filesystem_name
 from rez.resources import iter_resources, load_metadata
-from rez.contrib.version.version import Version, VersionRange
-from rez.contrib.version.requirement import VersionedObject, Requirement
+from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.exceptions import PackageNotFoundError
 from rez.settings import settings, Settings
 

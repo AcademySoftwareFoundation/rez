@@ -4,9 +4,9 @@ from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
-from rez.contrib.version.version import Version
+from rez.vendor.version.version import Version
 from rez.packages import Package
-from rez.contrib import yaml
+from rez.vendor import yaml
 import getpass
 import shutil
 import os

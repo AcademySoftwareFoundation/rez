@@ -1,6 +1,6 @@
 from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 import subprocess
 import os.path
 

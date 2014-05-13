@@ -5,16 +5,16 @@ from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
     create_forwarding_script, is_subdirectory
-from rez.contrib.pygraph.readwrite.dot import write as write_dot
-from rez.contrib.pygraph.readwrite.dot import read as read_dot
-from rez.contrib.version.requirement import Requirement
+from rez.vendor.pygraph.readwrite.dot import write as write_dot
+from rez.vendor.pygraph.readwrite.dot import read as read_dot
+from rez.vendor.version.requirement import Requirement
 from rez.rex import RexExecutor, Python
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import RezSystemError, PackageCommandError
-from rez.contrib import yaml
+from rez.vendor import yaml
 import getpass
 import inspect
 import time

@@ -1,7 +1,7 @@
-from rez.contrib.version.requirement import VersionedObject
+from rez.vendor.version.requirement import VersionedObject
 from rez.rex import Comment, EnvAction, Shebang, Setenv, Alias, Appendenv
 from rez.resolved_context import ResolvedContext
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import os
 

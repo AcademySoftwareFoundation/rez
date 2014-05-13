@@ -1,10 +1,9 @@
-from rez.contrib import yaml
+from rez.vendor import yaml
 from rez.build_system import BuildSystem
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
-#from rez.shells import create_shell
 from rez.settings import settings
 from rez import plugin_factory
 import os.path

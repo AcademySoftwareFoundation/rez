@@ -5,7 +5,7 @@ their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 
 from rez.shells import get_shell_types, create_shell
 from rez.resolved_context import ResolvedContext
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import ShellDependentTest
 import subprocess
 import tempfile

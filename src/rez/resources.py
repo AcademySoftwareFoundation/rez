@@ -27,8 +27,8 @@ from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
 from rez.exceptions import PackageMetadataError
-from rez.contrib.version.version import Version
-from rez.contrib import yaml
+from rez.vendor.version.version import Version
+from rez.vendor import yaml
 
 _configs = defaultdict(list)
 
