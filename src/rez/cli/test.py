@@ -17,6 +17,8 @@ def setup_parser(parser):
                         help="test the rex command generator API")
     parser.add_argument("--build", action="store_true",
                         help="test the build system")
+    parser.add_argument("--context", action="store_true",
+                        help="test resolved contexts")
     # TODO: add this to top-level parser
     parser.add_argument("-v", "--verbosity", type=int, default=2,
                         help="set verbosity level")
@@ -31,7 +33,8 @@ def get_suites(opts):
         (not opts.formatter) and \
         (not opts.commands) and \
         (not opts.rex) and \
-        (not opts.build)
+        (not opts.build) and \
+        (not opts.context)
 
     if opts.shells or test_all:
         from rez.tests.shells import get_test_suites
@@ -61,14 +64,17 @@ def get_suites(opts):
         from rez.tests.build import get_test_suites
         suites += get_test_suites()
 
+    if opts.context or test_all:
+        from rez.tests.context import get_test_suites
+        suites += get_test_suites()
+
     return suites
 
 
 def command(opts, parser=None):
-    # FIXME: leaving this here from Allan's branch, but this import seems unused...
-    from rez.settings import settings
     import unittest
     import sys
+
     suites = get_suites(opts)
     test_suite = unittest.TestSuite(suites)
     result = unittest.TextTestRunner(verbosity=opts.verbosity).run(test_suite)

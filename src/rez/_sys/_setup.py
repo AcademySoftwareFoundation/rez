@@ -72,6 +72,7 @@ def _mkhelloworldpkg():
     name = 'python'
     version = '%(version)s'
     requires = ["python"]
+    tools = ["hello_world"]
     def commands():
         env.PATH.append('{this.root}')
     """ % dict(version=version))

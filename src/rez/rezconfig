@@ -126,8 +126,7 @@ all_resetting_variables: false
 
 # The default shell type to use when creating resolved environments (eg when using
 # rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
-# current shell is used (for eg, 'bash'). You generally would not want to change
-# this setting - it's here primarily for unit testing purposes.
+# current shell is used (for eg, 'bash').
 default_shell: ''
 
 
@@ -153,6 +152,9 @@ warn_all: false
 
 # Print debugging info when loading plugins
 debug_plugins: false
+
+# Print debugging info when detecting system values such as platform, shell
+debug_system: false
 
 # Print debugging info such as VCS commands during package release
 debug_package_release: false

@@ -667,21 +667,6 @@ class ResolvedContext(object):
         return sh,context_code
 
     def _execute(self, executor):
-        """
-        executor.update_env({
-            "REZ_USED":             self.rez_path,
-            # TODO add back if and when we need this
-            #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
-            #"REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
-            #"REZ_RESOLVE_MODE":     self.resolve_mode,
-            #"REZ_FAILED_ATTEMPTS":  self.failed_attempts,
-            "REZ_REQUEST":          request_str,
-            "REZ_RESOLVE":          resolve_str,
-            # TODO FIXME this should be actual timestamp used even if timestamp not
-            # speicified, but the new solver doesnt do this yet.
-            "REZ_REQUEST_TIME":     self.timestamp})
-        """
-
         # bind various info to the execution context
         executor.setenv("REZ_USED", self.rez_path)
         # TODO FIXME this should be actual timestamp used even if timestamp not specified

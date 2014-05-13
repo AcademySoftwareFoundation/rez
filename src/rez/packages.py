@@ -250,6 +250,11 @@ class Package(PackageBase):
         else:
             yield self.get_variant()
 
+    def __eq__(self, other):
+        return (self.name == other.name) \
+            and (self.version == other.version) \
+            and (self.metafile == other.metafile)
+
     def __str__(self):
         return "%s@%s" % (self.qualified_name, self._base_path())
 
@@ -351,6 +356,12 @@ class Variant(PackageBase):
                        name=d["name"],
                        version=Version(d["version"]),
                        index=d["index"])
+
+    def __eq__(self, other):
+        return (self.name == other.name) \
+            and (self.version == other.version) \
+            and (self.metafile == other.metafile) \
+            and (self.index == other.index)
 
     def __str__(self):
         return "%s@%s,%s" % (self.qualified_name, self._base_path(), self.subpath)

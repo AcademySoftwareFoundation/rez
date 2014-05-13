@@ -2,26 +2,22 @@ from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 import rez.contrib.unittest2 as unittest
-from rez.tests.util import ShellDependentTest
+from rez.tests.util import ShellDependentTest, TempdirMixin
 from rez.shells import get_shell_types
 from rez.settings import settings
 import shutil
-import tempfile
 import os.path
 
 
 
-class TestBuild(ShellDependentTest):
+class TestBuild(ShellDependentTest, TempdirMixin):
 
     @classmethod
     def setUpClass(cls):
-        # copy all the test packages to a temp location, we don't want to
-        # pollute the source with 'build' subdirs
-        cls.root = tempfile.mkdtemp(prefix="rez_build_test_")
+        TempdirMixin.setUpClass()
 
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "build", "packages")
-        cls.root = tempfile.mkdtemp(suffix="_rez_build_test")
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
 
@@ -35,8 +31,7 @@ class TestBuild(ShellDependentTest):
 
     @classmethod
     def tearDownClass(cls):
-        if os.path.exists(cls.root):
-            shutil.rmtree(cls.root)
+        TempdirMixin.tearDownClass()
 
     @classmethod
     def _create_builder(cls, working_dir):
