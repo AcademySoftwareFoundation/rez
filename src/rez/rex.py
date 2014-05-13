@@ -20,7 +20,7 @@ from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
 from rez.exceptions import PkgCommandError
 
 
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
+DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';', 'AL_MAYA_AUTO_LOADVERSIONEDTOOL':' ', 'AL_MAYA_AUTO_PYEVAL':' ', 'ARTISTTOOLPALETTE_TOOLS':','}
 
 
 _varprog = None

@@ -611,6 +611,10 @@ def convert_old_commands(commands, annotate=True):
             if var == "CMAKE_MODULE_PATH":
                 value = value.replace(';', os.pathsep)
                 value = value.replace('\'', '')
+            elif var in ["AL_MAYA_AUTO_LOADVERSIONEDTOOL","AL_MAYA_AUTO_PYEVAL"]:
+                value = value.replace(' ', os.pathsep)
+            elif var in ["ARTISTTOOLPALETTE_TOOLS"]:
+                value = value.replace(",", os.pathsep)
 
             parts = value.split(os.pathsep)
             parts = [x for x in parts if x]
