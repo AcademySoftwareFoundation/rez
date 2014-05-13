@@ -39,16 +39,9 @@ class ResolvedContext(object):
     """
     serialize_version = 0
 
-    def __init__(self, \
-        package_requests,
-        quiet=False,
-        verbosity=0,
-        timestamp=0,
-        building=False,
-        caching=None,
-        package_paths=None,
-        add_implicit_packages=True,
-        add_bootstrap_path=None):
+    def __init__(self, package_requests, quiet=False, verbosity=0,
+        timestamp=0, building=False, caching=None, package_paths=None,
+        add_implicit_packages=True, add_bootstrap_path=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -125,6 +118,7 @@ class ResolvedContext(object):
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
+                            timestamp=self.timestamp,
                             building=self.building,
                             caching=caching,
                             callback=callback,
@@ -268,7 +262,7 @@ class ResolvedContext(object):
             _pr()
             _pr("resolve details:")
             _pr("load time: %.02f secs" % self.load_time)
-            _pr("solve time: %.02f secs" % self.solve_time)
+            _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):

@@ -1,11 +1,10 @@
 from rez.exceptions import RezError, ReleaseError
-from rez.packages import iter_packages_in_range
+from rez.packages import Package, iter_packages
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
-from rez.packages import Package
 from rez.vendor import yaml
 import getpass
 import shutil
@@ -156,7 +155,7 @@ class StandardBuildProcess(BuildProcess):
                     "installed but appears to be a different package.") \
                     % self.package.qualified_name)
 
-        # get last release, this will stop same/earlier version release
+        # get last release, this stops same/earlier version release
         last_pkg,last_release_info = \
             self._get_last_release(install_path)
 
@@ -208,6 +207,7 @@ class StandardBuildProcess(BuildProcess):
 
         # write release info (changelog etc) into release path
         release_info = dict(
+            timestamp=int(time.time()),
             revision=curr_rev,
             changelog=changelog,
             release_message=self.release_message,
@@ -264,8 +264,7 @@ class StandardBuildProcess(BuildProcess):
         return p
 
     def _get_last_release(self, release_path):
-        for pkg in iter_packages_in_range(self.package.name,
-                                          paths=[release_path]):
+        for pkg in iter_packages(self.package.name, paths=[release_path]):
             if pkg.version == self.package.version:
                 raise ReleaseError(("cannot release - an equal package "
                                    "version already exists: %s") % pkg.metafile)
