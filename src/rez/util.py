@@ -372,6 +372,15 @@ def to_posixpath(path):
 class AttrDictWrapper(UserDict.UserDict):
     """
     Wrap a custom dictionary with attribute-based lookup.
+
+    >>> d = {'one': 1}
+    >>> dd = AttrDictWrapper(d)
+    >>> assert dd.one == 1
+    >>> ddd = dd.copy()
+    >>> ddd.one = 2
+    >>> assert ddd.one == 2
+    >>> assert dd.one == 1
+    >>> assert d['one'] == 1
     """
     def __init__(self, data):
         self.__dict__['data'] = data
@@ -393,6 +402,8 @@ class AttrDictWrapper(UserDict.UserDict):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
 
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
 
 class RO_AttrDictWrapper(AttrDictWrapper):
     """Read-only version of AttrDictWrapper."""
@@ -401,6 +412,15 @@ class RO_AttrDictWrapper(AttrDictWrapper):
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
 
+def convert_to_user_dict(d, dict_class=AttrDictWrapper):
+    """
+    recursively convert all dictionaries in `d`, including `d`, to the
+    `UserDict` specified by `dict_class`.
+    """
+    for key, value in d.iteritems():
+        if isinstance(value, dict):
+            d[key] = convert_to_user_dict(value, dict_class=AttrDictWrapper)
+    return dict_class(d)
 
 _templates = {}
 

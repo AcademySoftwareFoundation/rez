@@ -26,58 +26,17 @@ import re
 from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
-from rez.exceptions import PackageMetadataError
-from rez.contrib.version.version import Version
+from rez.exceptions import PackageMetadataError, ResourceError
+from rez.contrib.version.version import Version, VersionRange
 from rez.contrib import yaml
-from rez.contrib import schema
-from rez.contrib.schema import Schema, Use, And, Or, Optional
+# FIXME: handle this double-module business
+from rez.contrib.schema.schema import Schema, Use, And, Or, Optional, SchemaError
 
 _configs = defaultdict(list)
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
-
-
-#------------------------------------------------------------------------------
-# Exceptions
-#------------------------------------------------------------------------------
-
-class MetadataError(Exception):
-    pass
-
-class MetadataKeyError(MetadataError, KeyError):
-    def __init__(self, filename, entry_id):
-        self.filename = filename
-        self.entry_id = entry_id
-
-    def __str__(self):
-        return "%s: missing required entry %s" % (self.filename, self.entry_id)
-
-class MetadataTypeError(MetadataError, TypeError):
-    def __init__(self, filename, entry_id, expected_type, actual_type):
-        self.filename = filename
-        self.entry_id = entry_id
-        self.expected_type = expected_type
-        self.actual_type = actual_type
-
-    def __str__(self):
-        return ("'%s': entry %r has incorrect data type: "
-                "expected %s. got %s" % (self.filename, self.entry_id,
-                                         self.expected_type.__name__,
-                                         self.actual_type.__name__))
-
-class MetadataValueError(MetadataError, ValueError):
-    def __init__(self, filename, entry_id, value):
-        self.filename = filename
-        self.entry_id = entry_id
-        self.value = value
-
-    def __str__(self):
-        return ("'%s': entry %r has invalid value: %r" % (self.filename,
-                                                          self.entry_id,
-                                                          self.value))
-
 
 #------------------------------------------------------------------------------
 # Base Classes and Functions
@@ -149,11 +108,11 @@ metadata_loaders['yaml'] = load_yaml
 metadata_loaders['txt'] = metadata_loaders['yaml']
 
 def get_file_loader(filename):
-    ext = os.path.splitext(filename)[1]
+    scheme = os.path.splitext(filename)[1]
     try:
         return metadata_loaders[scheme]
     except KeyError:
-        raise MetadataError("Unknown metadata storage scheme: %r" % scheme)
+        raise ResourceError("Unknown metadata storage scheme: %r" % scheme)
 
 def load_file(filename, loader=None):
     """Read metadata from a file.
@@ -174,8 +133,8 @@ def load_file(filename, loader=None):
         try:
             return loader(f)
         except Exception as e:
-            # FIXME: this stack fix is probably specific to `load_python` and should
-            # be moved there.
+            # FIXME: this stack fix is probably specific to `load_python` and
+            # should be moved there.
             import traceback
             frames = traceback.extract_tb(sys.exc_traceback)
             while frames and frames[0][0] != filename:
@@ -188,55 +147,7 @@ def load_file(filename, loader=None):
 # Resources and Configurations
 #------------------------------------------------------------------------------
 
-class ResourceInfo(object):
-    """
-    Stores data regarding a particular resource, including its name, where it
-    should exist on disk, and how to validate its metadata.
-    """
-    def __init__(self, name, path_pattern=None, metadata_schema=None):
-        self.name = name
-        if metadata_schema and not isinstance(metadata_schema, Schema):
-            metadata_schema = Schema(metadata_schema)
-        self.metadata_schema = metadata_schema
-        if path_pattern:
-            self.is_dir = path_pattern.endswith('/')
-            self.path_pattern = path_pattern.rstrip('/')
-        else:
-            self.is_dir = False
-            self.path_pattern = None
-        self._compiled_pattern = None
-
-    def __repr__(self):
-        return "%s(%r, %r)" % (self.__class__.__name__, self.metadata_schema,
-                               self.path_pattern)
-
-    @staticmethod
-    def _expand_pattern(pattern):
-        "expand variables in a search pattern with regular expressions"
-        pattern = re.escape(pattern)
-        expansions = [('version', VERSION_REGSTR),
-                      ('name', PACKAGE_NAME_REGSTR),
-                      ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
-        for key, value in expansions:
-            pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
-        return pattern + '$'
-
-    def filename_is_match(self, filename):
-        "test if filename matches the configuration's path pattern"
-        if not self.path_pattern:
-            return False
-        if self._compiled_pattern:
-            regex = self._compiled_pattern
-        else:
-            pattern = self.path_pattern
-            if not pattern.startswith('/'):
-                pattern = '/' + self.path_pattern
-            regex = re.compile(self._expand_pattern(pattern))
-            self._compiled_pattern = regex
-        return regex.search(to_posixpath(filename))
-
-def register_resource(config_version, resource_key, path_patterns=None,
-                      metadata_schema=None):
+def register_resource(config_version, resource):
     """Register a resource.
 
     This informs rez where to find a resource relative to the
@@ -245,7 +156,7 @@ def register_resource(config_version, resource_key, path_patterns=None,
     Args:
         resource_key (str): unique name used to identify the resource. when
             retrieving metadata from a file, the resource type can be
-            automatically determined from the optional path string, or 
+            automatically determined from the optional path string, or
             explicitly using the resource_key.
         path_patterns (str or list of str): a pattern identifying where the
             resource file resides relative to the rez search path.
@@ -253,61 +164,43 @@ def register_resource(config_version, resource_key, path_patterns=None,
     """
     version_configs = _configs[config_version]
 
+    assert resource.key is not None, \
+        "Resource must implement the 'key' attribute"
     # version_configs is a list and not a dict so that it stays ordered
-    if resource_key in dict(version_configs):
-        raise MetadataError("resource already exists: %r" % resource_key)
+    if resource.key in dict(version_configs):
+        raise ResourceError("resource already exists: %r" % resource.key)
 
-    if path_patterns:
-        if isinstance(path_patterns, basestring):
-            path_patterns = [path_patterns]
-        resources = [ResourceInfo(resource_key, path, metadata_schema) for path in path_patterns]
-    else:
-        resources = [ResourceInfo(resource_key, metadata_schema=metadata_schema)]
-    version_configs.append((resource_key, resources))
+    version_configs.append((resource.key, resource))
 
 def get_resource_by_key(config_version, key):
-    """Get a `ResourceInfo` instance directly, using the name of the resource
+    """Get a `Resource` instance directly, using the name of the resource
     """
     config_resources = _configs.get(config_version)
     if config_resources:
         return dict(config_resources)[key]
 
 def get_resource_by_filename(config_version, filename):
-    """Get a `ResourceInfo` instance indirectly, by comparing a filename to a
+    """Get a `Resource` instance indirectly, by comparing a filename to a
     resource path pattern
     """
     config_resources = _configs.get(config_version)
     if config_resources:
-        return [resource for resource_key, resources in config_resources \
-                if resource.path_pattern and resource.filename_is_match(filename):
-
-def get_metadata_schema(config_version, filename, key=None):
-    """
-    find any resources whose path pattern matches the given filename and return
-    the `Schema` instance associated with that resource.
-    """
-    if key:
-        resource = get_resource_by_key(config_version, key)
-    else:
-        resource = get_resource_by_filename(config_version, filename)
-
-    if resource is None:
-        raise MetadataValueError(filename, 'config_version', config_version)
-
-    return resource.metadata_schema
+        for resource_key, resource in config_resources:
+                if resource.filename_is_match(filename):
+                    return resource
 
 def list_resource_keys(config_version):
     return [info['key'] for info in _configs[config_version]]
 
 class ResourceIterator(object):
-    """Iterates over all occurrences of a resource, given a path pattern such as
-    '{name}/{version}/package.yaml'.
+    """Iterates over all occurrences of a resource, given a path pattern such
+    as '{name}/{version}/package.yaml'.
 
-    For each item found, yields the path to the resource and a dictionary of any
-    variables in the path pattern that were expanded.
+    For each item found, yields the path to the resource and a dictionary of
+    any variables in the path pattern that were expanded.
     """
     def __init__(self, path_pattern, variables):
-        self.path_pattern = path_pattern
+        self.path_pattern = path_pattern.rstrip('/')
         self.path_parts = self.path_pattern.split('/')
         self.variables = variables.copy()
         self.current_part = None
@@ -316,13 +209,13 @@ class ResourceIterator(object):
     def expand_part(self, part):
         """
         Path pattern will be split on directory separator, parts requiring
-        non-constant expansion will be converted to regular expression, and parts with no
-        expansion will remain string literals
+        non-constant expansion will be converted to regular expression, and
+        parts with no expansion will remain string literals
         """
         for key, value in self.variables.iteritems():
             part = part.replace('{%s}' % key, '%s' % value)
         if '{' in part:
-            return re.compile(ResourceInfo._expand_pattern(part))
+            return re.compile(Resource._expand_pattern(part))
         else:
             return part
 
@@ -372,29 +265,32 @@ def iter_resources(config_version, resource_keys, search_paths,
     for k, v in expansion_variables.items():
         if v is None:
             expansion_variables.pop(k)
-    resources = [get_resource_by_key(config_version, key) for key in resource_keys]
+    resources = [get_resource_by_key(config_version, key)
+                 for key in resource_keys]
     for search_path in search_paths:
         for resource in resources:
-            if resource.path_pattern:
-                pattern = ResourceIterator(resource.path_pattern, expansion_variables)
-                for path, variables in pattern.walk(search_path):
-                    yield path, variables, resource
+            if resource.path_patterns:
+                for pattern in resource.path_patterns:
+                    it = ResourceIterator(pattern, expansion_variables)
+                    for path, variables in it.walk(search_path):
+                        yield resource(path, variables, search_path)
 
 def load_resource(config_version, resource_keys, search_paths,
-                 **expansion_variables):
-    it = iter_resources(config_version, resource_keys, search_paths, **expansion_variables)
+                  **expansion_variables):
+    it = iter_resources(config_version, resource_keys, search_paths,
+                        **expansion_variables)
     result = list(it)
     if not result:
-        raise MetadataError("Could not find resource")
+        raise ResourceError("Could not find resource")
     if len(result) != 1:
-        raise MetadataError("Found more than one matching resource")
-    path, variables, resource = result
-    return resource(path, variables).load()
+        raise ResourceError("Found more than one matching resource")
+    return result[0].load()
 
 #------------------------------------------------------------------------------
 # MetadataSchema Implementations
 #------------------------------------------------------------------------------
-# TODO: check for valid package names (or do we want to defer to the package class?)
+# TODO: check for valid package names
+# (or do we want to defer to the package class?)
 
 # 'name'
 package_name = basestring
@@ -402,7 +298,7 @@ package_name = basestring
 # 'name-1.2'
 package_requirement = basestring
 
-# 'Use' means cast to this type. If it fails to cast, then validation also fails
+# 'Use' means cast to this type. If it fails, then validation also fails
 exact_version = Use(Version)
 
 version_range = Use(VersionRange)
@@ -420,122 +316,105 @@ rex_command = Or(callable,     # python function
 # so that our schema are easier to read
 Required = Schema
 
+class Resource(object):
+    """
+    Stores data regarding a particular resource, including its name, where it
+    should exist on disk, and how to validate its metadata.
+    """
+    key = None
+    schema = None
+    path_patterns = None
 
-# FIXME: come up with something better than this. Seems like legacy a format.
-# Why is the release_time in a different file than the release info?
-# Does it store something meaningfully different than ACTUAL_BUILD_TIME and BUILD_TIME?
-# Why isn't the name of the release metadata more informative than info.txt?
-# Why does it assume SVN?
-# Why is it all caps whereas other metadata files use lowercase?
-# Why is it using .txt with custom parsing instead of YAML?
-ReleaseInfo = {
-    Required('ACTUAL_BUILD_TIME'): int,
-    Required('BUILD_TIME'): int,
-    Required('USER'): basestring,
-    Optional('SVN'): basestring
-}
+    def __init__(self, path, variables, search_path=None):
+        super(Resource, self).__init__()
+        # the search path is here so that we can load sub-resources
+        if search_path:
+            self.search_path = [search_path]
+        else:
+            self.search_path = settings.packages_path
 
-ReleaseTimestamp = Use(int)
-
-# Base Package:
-#    The standard set of metadata
-VersionlessPackageSchema_0 = {
-    Required('config_version'):         0,  # this will only match 0
-    Optional('uuid'):                   basestring,
-    Optional('description'):            basestring,
-    Required('name'):                   package_name,
-    Optional('authors'):                [basestring],
-    # Optional('timestamp'):              Use(load_resource, 'release.timetamp'),
-    Optional('rezconfig'):              dict,
-    Optional('help'):                   Or(basestring,
-                                           [[basestring]]),
-    Optional('requires'):               [package_requirement],
-    Optional('build_requires'):         [package_requirement],
-    Optional('private_build_requires'): [package_requirement],
-    Optional('variants'):               [[package_requirement]],
-    Optional('commands'):               rex_command
-}
-
-# CompleteSchema = {
-#     'versions' : And(Use(load_files, '{name}/{version}/package.{ext}'),
-#                      Use(graft, 'timestamp', )
-#                      [VersionlessPackageSchema_0])
-# }
-
-# Version Package:
-#    Same as Base Package, but with a version
-VersionPackageSchema_0 = VersionlessPackageSchema_0.copy()
-VersionPackageSchema_0.update({
-    Required('version'): exact_version
-})
-
-# Package:
-#    The master schema for all metadata passed to the Package class
-PackageSchema_0 = VersionlessPackageSchema_0.copy()
-PackageSchema_0.update({
-    Required('config_version'): int,
-    Optional('version'): exact_version
-})
-
-# Built Package:
-#    A package that is built with the intention to release.
-#    Same as Version Package, but stricter about the existence of certain metadata
-PackageBuildSchema_0 = VersionPackageSchema_0.copy()
-# swap optional to required:
-for _key, _value in PackageBuildSchema_0.iteritems():
-    if _key._schema in ('uuid', 'description', 'authors'):
-        _newkey = Required(_key._schema)
-        PackageBuildSchema_0[_newkey] = PackageBuildSchema_0.pop(_key)
-
-# External Package:
-#    A single package containing settings for multiple versions.
-ExternalPackageSchema_0 = VersionlessPackageSchema_0.copy()
-ExternalPackageSchema_0.update({
-    Required('versions'): Use(ExactVersionSet),  # TODO: set default to ExactVersionSet([])
-    Optional('version_overrides'): {
-        version_range: {
-            Optional('help'):                   Or(basestring,
-                                                   [[basestring]]),
-            Optional('requires'):               [package_requirement],
-            Optional('build_requires'):         [package_requirement],
-            Optional('private_build_requires'):         [package_requirement],
-            Optional('variants'):               [[package_requirement]],
-            Optional('commands'):               rex_command
-        }
-    }
-})
-
-class FileResource(Resource):
-    def __init__(self, path, variables):
         self.path = path
         self.variables = variables
 
-    def load(self):
-        return self.schema.validate(resouce.load_file(self.path))
+    def __repr__(self):
+        return "%s(%r, %r)" % (self.__class__.__name__, self.path,
+                               self.variables)
 
-class ReleaseTimestampResource(FileResource):
-    name = 'release.timestamp'
-    path = ['{name}/{version}/.metadata/release_time.txt']
+    @staticmethod
+    def _expand_pattern(pattern):
+        "expand variables in a search pattern with regular expressions"
+        pattern = re.escape(pattern)
+        expansions = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
+                      ('search_path', '|'.join('(%s)' % p
+                       for p in settings.packages_path))]
+        for key, value in expansions:
+            pattern = pattern.replace(r'\{%s\}' % key,
+                                      '(?P<%s>%s)' % (key, value))
+        return pattern + '$'
+
+    def filename_is_match(cls, filename):
+        "test if filename matches the configuration's path pattern"
+        if not cls.path_pattern:
+            return False
+        if not hasattr(cls, '_compiled_pattern'):
+            patterns = cls.path_patterns
+            if isinstance(patterns, basestring):
+                patterns = [patterns]
+
+            patterns = [('/' + p) if not p.startswith('/') else p
+                        for p in patterns]
+
+            pattern = '|'.join('(%s)' % cls._expand_pattern(p)
+                               for p in patterns)
+            cls._compiled_pattern = re.compile(pattern)
+        return cls._compiled_pattern.search(to_posixpath(filename))
+
+    def load(self):
+        if os.path.isfile(self.path):
+            data = load_file(self.path)
+            if self.schema:
+                try:
+                    return self.schema.validate(data)
+                except SchemaError, err:
+                    raise PackageMetadataError(self.path, str(err))
+            else:
+                return data
+
+class ReleaseTimestampResource(Resource):
+    # Deprecated
+    key = 'release.timestamp'
+    path_patterns = ['{name}/{version}/.metadata/release_time.txt']
     schema = Use(int)
 
-class VersionlessPackageResource(FileResource):
-    name = 'package.versionless'
-    path = ['{name}/package.yaml', '{name}/package.py']
+class ReleaseInfoResource(Resource):
+    # Deprecated
+    key = 'release.info'
+    path_patterns = ['{name}/{version}/.metadata/info.txt']
+    schema = Schema({
+        Required('ACTUAL_BUILD_TIME'): int,
+        Required('BUILD_TIME'): int,
+        Required('USER'): basestring,
+        Optional('SVN'): basestring
+    })
+
+class VersionlessPackageResource(Resource):
+    '''
+    The standard set of package metadata
+    '''
+    key = 'package.versionless'
+    # TODO: look into creating an {ext} token
+    path_patterns = ['{name}/package.yaml', '{name}/package.py']
 
     @property
     def schema(self):
-        return {
+        return Schema({
             Required('config_version'):         0,  # this will only match 0
             Optional('uuid'):                   basestring,
             Optional('description'):            basestring,
             Required('name'):                   self.variables['name'],
             Optional('authors'):                [basestring],
-            Optional('timestamp'):              Use(partial(load_resource,
-                                                            0, 
-                                                           'release.timestamp',
-                                                           [self.rez_package_path],
-                                                           **self.variables)),
-            Optional('rezconfig'):              dict,
+            Optional('settings'):               dict,
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
             Optional('requires'):               [package_requirement],
@@ -543,7 +422,13 @@ class VersionlessPackageResource(FileResource):
             Optional('private_build_requires'): [package_requirement],
             Optional('variants'):               [[package_requirement]],
             Optional('commands'):               rex_command
-        }
+        })
+
+    def load(self):
+        data = super(VersionlessPackageResource, self).load()
+        data['timestamp'] = load_resource(0, 'release.timestamp',
+                                          [self.search_path], **self.variables)
+        return data
 
         # try:
         #     self._timestamp = resource_info.metadata_schema.validate(resouce.load_file(path))
@@ -552,93 +437,106 @@ class VersionlessPackageResource(FileResource):
         #         print_warning_once(("%s is not timestamped. To timestamp it " + \
         #                            "manually, use the rez-timestamp utility.") % self.base)
 
+class VersionedPackageResource(VersionlessPackageResource):
+    key = 'package.versioned'
+    path_patterns = ['{name}/{version}/package.yaml',
+                     '{name}/{version}/package.py']
 
-# TODO: look into creating an {ext} token
-register_resource(0,
-                  'package.versioned',
-                  ['{name}/{version}/package.yaml', '{name}/{version}/package.py'],
-                  VersionPackageSchema_0)
+    @property
+    def schema(self):
+        schema = super(VersionedPackageResource, self).schema._schema
+        # we only need to copy here if we change property to propertycache
+        # schema = schema.copy()
+        schema.update({
+            Required('version'): self.variables['version']
+        })
+        return Schema(schema)
 
-register_resource(0,
-                  'package.versionless',
-                  ['{name}/package.yaml', '{name}/package.py'],
-                  VersionlessPackageSchema_0)
+class PackageFamilyResource(Resource):
+    key = 'package_family.folder'
+    path_patterns = ['{name}/']
 
-register_resource(0,
-                  'package.built',
-                  metadata_schema=PackageBuildSchema_0)
+class ExternalPackageFamilyResource(VersionlessPackageResource):
+    '''
+    A single package containing settings for multiple versions.
+    '''
+    key = 'package_family.external'
+    path_patterns = ['{name}.yaml', '{name}.py']
 
-register_resource(0,
-                  'release.info',
-                  ['{name}/{version}/.metadata/info.txt'],
-                  ReleaseInfo)
+    @property
+    def schema(self):
+        schema = super(ExternalPackageFamilyResource, self).schema._schema
+        # we only need to copy here if we change property to propertycache
+        # schema = schema.copy()
+        schema.update({
+            Required('versions'): Use(ExactVersionSet),  # TODO: set default to ExactVersionSet([])
+            Optional('version_overrides'): {
+                version_range: {
+                    Optional('help'):                   Or(basestring,
+                                                           [[basestring]]),
+                    Optional('requires'):               [package_requirement],
+                    Optional('build_requires'):         [package_requirement],
+                    Optional('private_build_requires'): [package_requirement],
+                    Optional('variants'):               [[package_requirement]],
+                    Optional('commands'):               rex_command
+                }
+            }
+        })
+        return Schema(schema)
 
-register_resource(0,
-                  'release.timetamp',
-                  ['{name}/{version}/.metadata/release_time.txt'],
-                  ReleaseTimestamp)
+class BuiltPackageResource(VersionedPackageResource):
+    '''
+    A package that is built with the intention to release.
+    Same as Version Package, but stricter about the existence of certain
+    metadata
+    '''
+    key = 'package.built'
 
-register_resource(0,
-                  'package_family.folder',
-                  ['{name}/'])
+    @property
+    def schema(self):
+        schema = super(BuiltPackageResource, self).schema._schema
+        # we only need to copy here if we change property to propertycache
+        # schema = schema.copy()
+        # swap optional to required:
+        for key, value in schema.iteritems():
+            if key._schema in ('uuid', 'description', 'authors'):
+                newkey = Required(key._schema)
+                schema[newkey] = schema.pop(key)
+        return Schema(schema)
 
-register_resource(0,
-                  'package_family.external',
-                  ['{name}.yaml', '{name}.py'],
-                  ExternalPackageSchema_0)
+register_resource(0, VersionedPackageResource)
 
-# --- Experimenting with how to represent our directory tree as a Schema 
-# 
-# PackageVersionedFolderSchema = {
-#     And(package_name, Use(PackageFamily)): {
-#         exact_version: Or(File('package.yaml', VersionPackageSchema_0),
-#                           File('package.py',)),
-#     }
-# }
-# 
-# {
-#     Optional('package.py'): And(Use(PythonLoader), VersionPackageSchema_0),
-#     Optional('package.yaml'): And(Use(YAMLLoader), VersionPackageSchema_0)
-# }
+register_resource(0, VersionlessPackageResource)
 
+register_resource(0, BuiltPackageResource)
 
-# this actually works, but you must first cd to a directory with a package file
-_test1 = And(
-             Or('package.py', 'package.yaml'),  # confirm the file is properly named
-             Use(load_file),                    # load the file
-             VersionPackageSchema_0)            # validate its contents
+register_resource(0, ReleaseInfoResource)
 
+register_resource(0, ReleaseTimestampResource)
 
-# PackageVersionedFolderSchema = {
-#     'folders' : {
-#         package_name : Use(PackageFamily)
-#         
-#         : {
-#         exact_version: Or(File('package.yaml', VersionPackageSchema_0),
-#                           File('package.py',)),
-#     }
-#                                 Use(PythonLoader)
-# }
+register_resource(0, PackageFamilyResource)
+
+register_resource(0, ExternalPackageFamilyResource)
 
 #------------------------------------------------------------------------------
 # Main Entry Point
 #------------------------------------------------------------------------------
 
-def load_metadata(filename, resource_key=None, min_config_version=0,
+def load_metadata(filename, variables, resource_key=None, min_config_version=0,
                   force_config_version=None):
     """Return the metadata stored in a file and validate it against a metadata
     configuration.
 
     Args:
         filename (str): path to the file from which to load the metadata
-        resource_key (str, optional): explicitly set the resource used to validate
-            the loaded metadata instead of trying to determine it from
+        resource_key (str, optional): explicitly set the resource used to
+            validate the loaded metadata instead of trying to determine it from
             `filename`
         min_config_version (int, optional): the minimum config version required
         force_config_version (int, optional): used for legacy config files that
             do not store a configuration version
     """
-    metadata = load_file(filename)
+    # metadata = load_file(filename)
     # if isinstance(metadata, list):
     #     config_version = metadata[0].get('config_version', None)
     # elif isinstance(metadata, dict):
@@ -657,12 +555,18 @@ def load_metadata(filename, resource_key=None, min_config_version=0,
     #                             'is less than minimum requested: %d' % (config_version,
     #                                                                     min_config_version))
 
-    schema = get_metadata_schema(config_version, filename, resource_key)
-    try:
-        schema.validate(metadata)
-    except schema.SchemaError, err:
-        raise "Error validating metadata in %r: %s" % (filename, err)
-    return metadata
+    # FIXME:!!!
+    config_version = 0
+
+    if resource_key:
+        resource = get_resource_by_key(config_version, resource_key)
+    else:
+        resource = get_resource_by_filename(config_version, filename)
+
+    if resource is None:
+        raise MetadataValueError(filename, 'config_version', config_version)
+
+    return resource(filename, variables).load()
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
