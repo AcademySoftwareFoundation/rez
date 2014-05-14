@@ -1,7 +1,7 @@
 import os.path
 from rez.backport.lru_cache import lru_cache
 from rez.util import print_warning_once, Common, encode_filesystem_name, \
-    propertycache, is_subdirectory
+    propertycache, is_subdirectory, convert_to_user_dict, RO_AttrDictWrapper
 from rez.resources import iter_resources, load_metadata
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
@@ -51,12 +51,13 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
     precedence - equivalent packages later in the paths are ignored.
 
     Args:
-        name: Name of the package, eg 'maya'.
-        range: VersionRange limiting the versions to return, returns all
-            versions if None.
-        timestamp: Any package newer than this time epoch is ignored.
-        paths: List of paths to search for pkgs, defaults to
-            settings.packages_path.
+        name (str): Name of the package, eg 'maya'.
+        range (VersionRange, optional): If provided, limits the versions
+            returned.
+        timestamp (int, optional): Any package newer than this time epoch is
+            ignored.
+        paths (list of str): paths to search for pkgs, defaults to
+            `settings.packages_path`.
 
     Returns:
         Package object iterator.
@@ -67,8 +68,8 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
         for pkg in fam.iter_version_packages():
             pkgname = pkg.qualified_name
             if pkgname not in consumed:
-                if (timestamp and pkg.timestamp > timestamp) \
-                    or (range and pkg.version not in range):
+                if (timestamp and pkg.data.timestamp > timestamp) \
+                        or (range and pkg.version not in range):
                     continue
 
                 consumed.add(pkgname)
@@ -90,6 +91,13 @@ class PackageFamily(Common):
     def __str__(self):
         return "%s@%s" % (self.name, self.path)
 
+    @property
+    def metadata(self):
+        if callable(self._metadata):
+            # load the metadata
+            self._metadata = self._metadata()
+        return self._metadata
+
     def iter_version_packages(self):
         pkg_iter = iter_resources(0,  # configuration version
                                   ['package.versionless', 'package.versioned'],
@@ -108,49 +116,19 @@ class ExternalPackageFamily(PackageFamily):
     def __init__(self, name, path, data=None):
         super(ExternalPackageFamily, self).__init__(name, path)
 
-    @property
-    def metadata(self):
-        if callable(self._metadata):
-            # load the metadata
-            self._metadata = self._metadata()
-            # copy data from main metadata into sub-sections
-            if 'version_overrides' in self._metadata:
-                for ver_data in self._metadata['version_overrides'].values():
-                    # only set data from family package that does not exist in
-                    # version package
-                    for key, value in self._metadata.iteritems():
-                        if key != 'version_overrides':
-                            ver_data.setdefault(key, value)
-            else:
-                # FIXME: move default to schema
-                self._metadata['version_overrides'] = {}
-            # FIXME: move default to schema
-            self._metadata.setdefault('versions', ExactVersionSet([]))
-        return self._metadata
-
     def iter_version_packages(self):
-        versions = self.metadata['versions']
-        if versions.is_none():
-            yield Package(self.name, Version(''),
-                          self.path,
+        versions = self.metadata.get('versions', None)
+        if not versions:
+            yield Package(name=self.name,
+                          version=Version(''),
+                          path=self.path,
                           data=self.metadata)  # copy this metadata?
         else:
-            for version in self.versions:
-                # FIXME: order matters here: use OrderedDict or make version_overrides a list instead of a dict
-                overrides = self.metadata['version_overrides']
-                for ver_range, ver_data in overrides.items():
-                    if version in ver_range:
-                        data = ver_data.copy()
-                        break
-                else:
-                    data = self.metadata.copy()
-                    data.pop('version_overrides')
-                    data.pop('versions')
-                data['version'] = version
+            for ver_data in versions:
                 yield Package(name=self.name,
-                              version=version,
+                              version=ver_data['version'],
                               path=self.path,
-                              data=data)
+                              data=ver_data)
 
 class PackageBase(Common):
     """Abstract base class for Package and Variant."""
@@ -178,10 +156,21 @@ class PackageBase(Common):
 
     @property
     def metadata(self):
+        """Dictionary of metadata for this package"""
         if callable(self._metadata):
             # load the metadata
             self._metadata = self._metadata()
         return self._metadata
+
+    @propertycache
+    def data(self):
+        """Read-only dictionary of metadata for this package with nested,
+        attribute-based access for the keys in the dictionary.
+
+        Returns:
+            RO_AttrDictWrapper
+        """
+        return convert_to_user_dict(self.metadata, RO_AttrDictWrapper)
 
     @propertycache
     def settings(self):
@@ -193,33 +182,6 @@ class PackageBase(Common):
     def is_local(self):
         """Returns True if this package is in the local packages path."""
         return is_subdirectory(self.metafile, self.settings.local_packages_path)
-
-    @propertycache
-    def timestamp(self):
-        timestamp = 0
-        path = os.path.dirname(self.metafile)
-        file = os.path.join(path, "release.yaml")
-
-        if os.path.exists(file):
-            with open(file) as f:
-                doc = yaml.load(f.read())
-            timestamp = doc.get("timestamp", 0)
-
-        # backwards compatibility with rez-1
-        if not timestamp:
-            file = os.path.join(path, ".metadata", "release_time.txt")
-            if os.path.exists(file):
-                with open(file) as f:
-                    content = f.read()
-                try:
-                    timestamp = int(content.strip())
-                except:
-                    pass
-
-        if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
-            print_warning_once("Package is not timestamped: %s" % str(self))
-
-        return timestamp
 
     def _base_path(self):
         path = os.path.dirname(self.base)
@@ -238,10 +200,10 @@ class Package(PackageBase):
         """Create a package.
 
         Args:
-            path: Either a filepath to a package definition file, or a path
-                to the directory containing the definition file.
-            name: Name of the package, eg 'maya'.
-            version: Version object - version of the package.
+            path (str): Either a filepath to a package definition file, or a
+                path to the directory containing the definition file.
+            name (str): Name of the package, eg 'maya'.
+            version (Version): version of the package.
         """
         super(Package, self).__init__(path, name, version, data)
 
@@ -249,6 +211,7 @@ class Package(PackageBase):
     def num_variants(self):
         """Return the number of variants in this package. Returns zero if there
         are no variants."""
+        # FIXME: move default to resources
         variants = self.metadata["variants"] or []
         return len(variants)
 
@@ -268,7 +231,8 @@ class Package(PackageBase):
         return Variant(path=self.metafile,
                        name=self.name,
                        version=self.version,
-                       index=index)
+                       index=index,
+                       data=self._metadata)
 
     def iter_variants(self):
         """Returns an iterator over the variants in this package."""
@@ -295,12 +259,12 @@ class Variant(PackageBase):
         """Create a package variant.
 
         Args:
-            path: Either a filepath to a package definition file, or a path
-                to the directory containing the definition file.
-            name: Name of the package, eg 'maya'.
-            version: Version object - version of the package.
-            index: Zero-based variant index. If the package does not contain
-                variants, index should be set to None.
+            path (str): Either a filepath to a package definition file, or a
+                path to the directory containing the definition file.
+            name (str): Name of the package, eg 'maya'.
+            version (Version): Version of the package.
+            index (int): Zero-based variant index. If the package does not
+                contain variants, index should be set to None.
         """
         super(Variant, self).__init__(path, name, version, data)
         self.index = index
@@ -351,12 +315,12 @@ class Variant(PackageBase):
         """Get the requirements of the variant.
 
         Args:
-            build_requires: If True, include build requirements.
-            private_build_requires: If True, include private build
-            requirements.
+            build_requires (bool): If True, include build requirements.
+            private_build_requires (bool): If True, include private build
+                requirements.
 
         Returns:
-            List of Requirement objects.
+            List of `Requirement` objects.
         """
         requires = self._requires
         if build_requires:

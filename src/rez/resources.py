@@ -25,7 +25,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez.settings import settings, Settings
-from rez.util import to_posixpath
+from rez.util import to_posixpath, propertycache
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor import yaml
@@ -114,6 +114,7 @@ def get_file_loader(filename):
     except KeyError:
         raise ResourceError("Unknown metadata storage scheme: %r" % scheme)
 
+# FIXME: add lru_cache here?
 def load_file(filename, loader=None):
     """Read metadata from a file.
 
@@ -121,8 +122,8 @@ def load_file(filename, loader=None):
 
     Args:
         filename (str): Path to the file from which to read metadata.
-        loader (callable, optional): callable which will take an open file handle
-            and return a metadata dictionary.
+        loader (callable, optional): callable which will take an open file
+            handle and return a metadata dictionary.
     Returns:
         dict: the metadata
     """
@@ -312,8 +313,8 @@ rex_command = Or(callable,     # python function
                                # but would need to figure out how to get the package name/path for warning message)
                  )
 
-# make an alias which just so happens to be the same number of characters as 'Optional'
-# so that our schema are easier to read
+# make an alias which just so happens to be the same number of characters as
+# 'Optional'  so that our schema are easier to read
 Required = Schema
 
 class Resource(object):
@@ -398,6 +399,18 @@ class ReleaseInfoResource(Resource):
         Optional('SVN'): basestring
     })
 
+class ReleaseResource(Resource):
+    key = 'release.data'
+    path_patterns = ['{name}/{version}/release.yaml']
+    schema = Schema({
+        Required('timestamp'): int,
+        Required('revision'): basestring,
+        Required('changelog'): basestring,
+        Required('release_message'): basestring,
+        Required('previous_version'): basestring,
+        Required('previous_revision'): basestring
+    })
+
 class VersionlessPackageResource(Resource):
     '''
     The standard set of package metadata
@@ -406,7 +419,7 @@ class VersionlessPackageResource(Resource):
     # TODO: look into creating an {ext} token
     path_patterns = ['{name}/package.yaml', '{name}/package.py']
 
-    @property
+    @propertycache
     def schema(self):
         return Schema({
             Required('config_version'):         0,  # this will only match 0
@@ -414,7 +427,7 @@ class VersionlessPackageResource(Resource):
             Optional('description'):            basestring,
             Required('name'):                   self.variables['name'],
             Optional('authors'):                [basestring],
-            Optional('settings'):               dict,
+            Optional('rezconfig'):              dict,
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
             Optional('requires'):               [package_requirement],
@@ -426,27 +439,30 @@ class VersionlessPackageResource(Resource):
 
     def load(self):
         data = super(VersionlessPackageResource, self).load()
-        data['timestamp'] = load_resource(0, 'release.timestamp',
-                                          [self.search_path], **self.variables)
-        return data
+        try:
+            release_data = load_resource(0, 'release.data',
+                                         [self.search_path], **self.variables)
+            timestamp = release_data.get('timestamp', 0)
+        except ResourceError:
+            timestamp = load_resource(0, 'release.timestamp',
+                                      [self.search_path], **self.variables)
+        data['timestamp'] = timestamp
 
-        # try:
-        #     self._timestamp = resource_info.metadata_schema.validate(resouce.load_file(path))
-        # except SchemaError:
-        #     if settings.warn_untimestamped:
-        #         print_warning_once(("%s is not timestamped. To timestamp it " + \
-        #                            "manually, use the rez-timestamp utility.") % self.base)
+        # # TODO: handle warning.  should we deal is_local here or in rez.packages?
+        # if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
+        #     print_warning_once("Package is not timestamped: %s" % str(self))
+
+        return data
 
 class VersionedPackageResource(VersionlessPackageResource):
     key = 'package.versioned'
     path_patterns = ['{name}/{version}/package.yaml',
                      '{name}/{version}/package.py']
 
-    @property
+    @propertycache
     def schema(self):
         schema = super(VersionedPackageResource, self).schema._schema
-        # we only need to copy here if we change property to propertycache
-        # schema = schema.copy()
+        schema = schema.copy()
         schema.update({
             Required('version'): self.variables['version']
         })
@@ -463,13 +479,12 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
     key = 'package_family.external'
     path_patterns = ['{name}.yaml', '{name}.py']
 
-    @property
+    @propertycache
     def schema(self):
         schema = super(ExternalPackageFamilyResource, self).schema._schema
-        # we only need to copy here if we change property to propertycache
-        # schema = schema.copy()
+        schema = schema.copy()
         schema.update({
-            Required('versions'): Use(ExactVersionSet),  # TODO: set default to ExactVersionSet([])
+            Optional('versions'): [exact_version],
             Optional('version_overrides'): {
                 version_range: {
                     Optional('help'):                   Or(basestring,
@@ -483,6 +498,31 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
             }
         })
         return Schema(schema)
+
+    def load(self):
+        # do not use super because VersionlessPackageResource loads the
+        # the timestamp from file
+        data = Resource.load(self)
+
+        # convert 'versions' from a list of `Version` to a list of complete
+        # package data
+        versions = data.pop('versions', [])
+        overrides = self.metadata.pop('version_overrides', {})
+        if versions:
+            new_versions = []
+            for version in versions:
+                # FIXME: order matters here: use OrderedDict or make
+                # version_overrides a list instead of a dict?
+                ver_data = data.copy()
+                for ver_range in sorted(overrides.keys()):
+                    if version in ver_range:
+                        ver_data.update(overrides[ver_range])
+                        break
+                ver_data['version'] = version
+                new_versions.append(ver_data)
+
+            data['versions'] = new_versions
+        return data
 
 class BuiltPackageResource(VersionedPackageResource):
     '''
