@@ -41,7 +41,7 @@ def write_graph(graph_str, opts):
     from rez.dot import save_graph
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file, prune_to_package=opts.prune_pkg,
-               prune_to_conflict=opts.prune_conflict)
+               prune_to_conflict=False)
     return dest_file, cleanup
 
 
@@ -108,6 +108,8 @@ def setup_parser(parser):
                         help="print only the resolve list")
     parser.add_argument("-t", "--print-tools", dest="print_tools", action="store_true",
                         help="print a list of the executables available in the context")
+    parser.add_argument("--which", type=str, metavar="CMD",
+                        help="locate a program within the context")
     parser.add_argument("-g", "--graph", action="store_true",
                         help="display the resolve graph as an image")
     parser.add_argument("--pg", "--print-graph", dest="print_graph", action="store_true",
@@ -116,13 +118,6 @@ def setup_parser(parser):
                         metavar='FILE', help="write the resolve graph to FILE")
     parser.add_argument("--pp", "--prune-package", dest="prune_pkg", metavar="PKG",
                         type=str, help="prune the graph down to PKG")
-
-    # TODO remove
-    parser.add_argument("--pc", "--prune-conflict", dest="prune_conflict", action="store_true",
-                        help="prune the graph down to show conflicts only")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="print more information about the context. "
-                        "Ignored if --interpret is used.")
     parser.add_argument("-i", "--interpret", action="store_true",
                         help="interpret the context and print the resulting code")
     parser.add_argument("-f", "--format", type=str, choices=formats,
@@ -132,6 +127,9 @@ def setup_parser(parser):
                         "Ignored if --interpret is False" % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
+    parser.add_argument("-v", "--verbose", action="store_true",
+                        help="print more information about the context. "
+                        "Ignored if --interpret is used.")
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
 
@@ -150,6 +148,8 @@ def command(opts, parser=None):
             print >> sys.stderr, "The context does not contain a graph."
             sys.exit(1)
 
+    parent_env = {} if opts.no_env else None
+
     if not opts.interpret:
         if opts.print_request:
             print ' '.join(rc.added_implicit_packages + rc.requested_packages)
@@ -157,6 +157,13 @@ def command(opts, parser=None):
             print ' '.join(x.short_name() for x in rc.resolved_packages)
         elif opts.print_tools:
             print_tools(rc)
+        elif opts.which:
+            cmd = opts.which
+            path = rc.which(cmd, parent_environ=parent_env)
+            if path:
+                print path
+            else:
+                print >> sys.stderr, "'%s' not found in the context" % cmd
         elif opts.print_graph:
             gstr = _graph()
             print gstr
@@ -173,8 +180,6 @@ def command(opts, parser=None):
                 print "rxt file:\n%s" % rxt_file
             print
         return
-
-    parent_env = {} if opts.no_env else None
 
     if opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)

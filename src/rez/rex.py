@@ -558,9 +558,9 @@ class Python(ActionInterpreter):
 
         if not hasattr(args, '__iter__'):
             import shlex
-            args = shlex.split(value)
+            args = shlex.split(args)
 
-        return subprocess.Popen(value, env=self.target_environ, **subproc_kwargs)
+        return subprocess.Popen(args, env=self.target_environ, **subproc_kwargs)
 
     def command(self, value):
         if self.passive:

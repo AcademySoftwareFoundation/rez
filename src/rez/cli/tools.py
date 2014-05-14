@@ -1,5 +1,5 @@
 '''
-Display a list of available tools and the packages that provide them.
+Display a list of available tools and the packages or contexts that provide them.
 '''
 
 def setup_parser(parser):

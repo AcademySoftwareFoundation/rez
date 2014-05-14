@@ -126,8 +126,7 @@ all_resetting_variables: false
 
 # The default shell type to use when creating resolved environments (eg when using
 # rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
-# current shell is used (for eg, 'bash'). You generally would not want to change
-# this setting - it's here primarily for unit testing purposes.
+# current shell is used (for eg, 'bash').
 default_shell: ''
 
 
@@ -139,7 +138,7 @@ default_shell: ''
 # tools such as rez-env. For example, if the target shell type is 'sh', and
 # the 'rcfile' param is used, you would get a warning, because the sh shell
 # does not support rcfile.
-warn_shell_startup: true
+warn_shell_startup: false
 
 # If true, print a warning when an untimestamped package is found.
 warn_untimestamped: true
@@ -153,6 +152,9 @@ warn_all: false
 
 # Print debugging info when loading plugins
 debug_plugins: false
+
+# Print debugging info when detecting system values such as platform, shell
+debug_system: false
 
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
@@ -193,7 +195,7 @@ vcs_tag_name: '{name}-{version}'
 
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a
-# release hook plugin being loaded does not mean it will run, it does need to be
+# release hook plugin being loaded does not mean it will run - it needs to be
 # listed here as well.
 release_hooks:
 - emailer

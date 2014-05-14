@@ -10,7 +10,7 @@ class Resolver(object):
     package request as quickly as possible.
     """
     def __init__(self, package_requests, package_paths=None, caching=True,
-                 callback=None, building=False, verbose=False):
+                 timestamp=0, callback=None, building=False, verbose=False):
         """Create a Resolver.
 
         Args:
@@ -27,6 +27,7 @@ class Resolver(object):
         self.package_requests = package_requests
         self.package_paths = settings.default(package_paths, "packages_path")
         self.caching = caching
+        self.timestamp = timestamp
         self.callback = callback
         self.building = building
         self.verbose = verbose
@@ -43,6 +44,7 @@ class Resolver(object):
         """Perform the solve."""
         solver = Solver(self.package_requests,
                         package_paths=self.package_paths,
+                        timestamp=self.timestamp,
                         callback=self.callback,
                         building=self.building,
                         verbose=self.verbose)

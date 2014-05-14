@@ -27,6 +27,8 @@ def setup_parser(parser):
                         help="don't add implicit packages to the request")
     parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
                         help="don't load local packages")
+    parser.add_argument("--paths", type=str, default=None,
+                        help="set package search path")
     parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
                         action="store_true",
                         help="don't load bootstrap packages")

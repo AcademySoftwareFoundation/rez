@@ -1,5 +1,5 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
-from rez.contrib.version.version import Version
+from rez.vendor.version.version import Version
 from rez.packages import Package
 from rez.util import which
 import subprocess

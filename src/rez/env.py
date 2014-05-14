@@ -1,7 +1,7 @@
 """Get information about the current environment.
 """
 from rez.resolved_context import ResolvedContext
-from rez.contrib import yaml
+from rez.vendor import yaml
 import os
 import os.path
 

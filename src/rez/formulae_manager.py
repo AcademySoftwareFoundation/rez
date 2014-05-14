@@ -1,5 +1,5 @@
 from rez.util import encode_filesystem_name, movetree
-from rez.packages import iter_package_families, iter_packages_in_range
+from rez.packages import iter_package_families, iter_packages
 from rez.source_retrieval import get_source
 from rez.settings import settings
 import os.path
@@ -27,7 +27,7 @@ class FormulaeManager(object):
             repo_dir = self._get_repo_dir(url)
             if os.path.exists(repo_dir):
                 for pkg_fam in iter_package_families(paths=[repo_dir]):
-                    for pkg in iter_packages_in_range(pkg_fam.name, paths=[repo_dir]):
+                    for pkg in iter_packages(pkg_fam.name, paths=[repo_dir]):
                         pkgs.append(pkg.short_name())
             repo["pkgs"] = pkgs
 

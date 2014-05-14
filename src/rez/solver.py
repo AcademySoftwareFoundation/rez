@@ -5,15 +5,15 @@ This gives direct access to the solver. You should use the resolve() function
 in resolve.py instead, which will use cached data where possible to provide you
 with a faster resolve.
 """
-from rez.contrib.pygraph.classes.digraph import digraph
-from rez.contrib.pygraph.algorithms.cycles import find_cycle
-from rez.contrib.pygraph.algorithms.accessibility import accessibility
+from rez.vendor.pygraph.classes.digraph import digraph
+from rez.vendor.pygraph.algorithms.cycles import find_cycle
+from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.contrib.version.version import VersionRange
-from rez.contrib.version.requirement import VersionedObject, Requirement, \
+from rez.vendor.version.version import VersionRange
+from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
-from rez.packages import iter_packages_in_range
+from rez.packages import iter_packages
 from rez.util import columnise
 from rez.settings import settings
 import os.path
@@ -243,14 +243,15 @@ class PackageVariant(_Common):
 
 class _PackageVariantList(_Common):
     """A sorted list of package variants."""
-    def __init__(self, package_name, package_paths=None, building=False):
+    def __init__(self, package_name, package_paths=None, timestamp=0,
+                 building=False):
         self.package_name = package_name
         self.package_paths = package_paths
         self.variants = []
 
-        for pkg in iter_packages_in_range(package_name,
-                                          latest=False,
-                                          paths=package_paths):
+        for pkg in iter_packages(package_name,
+                                 timestamp=timestamp,
+                                 paths=package_paths):
             for var in pkg.iter_variants():
                 requires = var.requires(build_requires=building)
                 variant = PackageVariant(name=package_name,
@@ -495,10 +496,10 @@ class _PackageVariantSlice(_Common):
 
 
 
-# TODO manage timestamps, reloading from disk on change, etc
 class _PackageVariantCache(object):
-    def __init__(self, package_paths=None, building=False):
+    def __init__(self, package_paths=None, timestamp=0, building=False):
         self.package_paths = settings.default(package_paths, "packages_path")
+        self.timestamp = timestamp
         self.building = building
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
@@ -507,6 +508,7 @@ class _PackageVariantCache(object):
         if variant_list is None:
             variant_list = _PackageVariantList(package_name,
                                                package_paths=self.package_paths,
+                                               timestamp=self.timestamp,
                                                building=self.building)
             self.variant_lists[package_name] = variant_list
 
@@ -1211,18 +1213,14 @@ class Solver(_Common):
     runs a resolve algorithm in order to determine the 'resolve' - the list of
     non-conflicting packages that include all dependencies.
     """
-    def __init__(self, package_requests, package_paths=None,
-                 package_cache=None, callback=None, building=False,
-                 optimised=True, verbose=False):
+    def __init__(self, package_requests, package_paths=None, timestamp=0,
+                 callback=None, building=False, optimised=True, verbose=False):
         """Create a Solver.
 
         Args:
             package_requests: List of Requirement objects representing the request.
             package_paths: List of paths to search for pkgs, defaults to
                 settings.packages_path.
-            package_cache: _PackageVariantCache object used for caching package
-                definition file disk reads. If None, a local cache instance
-                is created.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1233,9 +1231,9 @@ class Solver(_Common):
         """
         self.package_requests = package_requests
         self.package_paths = package_paths or settings.packages_path
-        self.package_cache = package_cache
         self.pr = _Printer(verbose)
         self.optimised = optimised
+        self.timestamp = timestamp
         self.callback = callback
         self.request_list = None
 
@@ -1248,13 +1246,9 @@ class Solver(_Common):
         self.solve_begun = None
         self._init()
 
-        if self.package_cache is None:
-            self.package_cache = _PackageVariantCache(self.package_paths,
-                                                      building=building)
-        else:
-            # if a cache is provided it is up to the user to ensure the
-            # building setting matches the one provided here
-            assert(self.package_cache.building == building)
+        self.package_cache = _PackageVariantCache(self.package_paths,
+                                                  timestamp=timestamp,
+                                                  building=building)
 
         # merge the request
         self.pr("request: %s" % ' '.join(str(x) for x in package_requests))

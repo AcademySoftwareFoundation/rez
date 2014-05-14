@@ -5,16 +5,17 @@ from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
     create_forwarding_script, is_subdirectory
-from rez.contrib.pygraph.readwrite.dot import write as write_dot
-from rez.contrib.pygraph.readwrite.dot import read as read_dot
-from rez.contrib.version.requirement import Requirement
+from rez.vendor.pygraph.readwrite.dot import write as write_dot
+from rez.vendor.pygraph.readwrite.dot import read as read_dot
+from rez.vendor.version.requirement import Requirement
+from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import RezSystemError, PackageCommandError
-from rez.contrib import yaml
+from rez.vendor import yaml
 import getpass
 import inspect
 import time
@@ -38,16 +39,9 @@ class ResolvedContext(object):
     """
     serialize_version = 0
 
-    def __init__(self, \
-        package_requests,
-        quiet=False,
-        verbosity=0,
-        timestamp=0,
-        building=False,
-        caching=None,
-        package_paths=None,
-        add_implicit_packages=True,
-        add_bootstrap_path=None):
+    def __init__(self, package_requests, quiet=False, verbosity=0,
+        timestamp=0, building=False, caching=None, package_paths=None,
+        add_implicit_packages=True, add_bootstrap_path=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -124,6 +118,7 @@ class ResolvedContext(object):
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
+                            timestamp=self.timestamp,
                             building=self.building,
                             caching=caching,
                             callback=callback,
@@ -267,7 +262,7 @@ class ResolvedContext(object):
             _pr()
             _pr("resolve details:")
             _pr("load time: %.02f secs" % self.load_time)
-            _pr("solve time: %.02f secs" % self.solve_time)
+            _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -374,18 +369,45 @@ class ResolvedContext(object):
         self._execute(executor)
 
     @_on_success
+    def which(self, cmd, parent_environ=None, fallback=False):
+        """Find a program in the resolved environment.
+
+        Args:
+            cmd: String name of the program to find.
+            parent_environ: Environment to interpret the context within,
+                defaults to os.environ if None.
+            fallback: If True, and the program is not found in the context,
+                the current environment will then be searched.
+
+        Returns:
+            Path to the program, or None if the program was not found.
+        """
+        env = self.get_environ(parent_environ=parent_environ)
+        path = which(cmd, env=env)
+        if fallback and path is None:
+            path = which(cmd)
+        return path
+
+    @_on_success
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
         """Run a command within a resolved context.
 
-        This only creates the context within python - to execute within a full
-        context (so that aliases are set, for example) use execute_shell.
+        This applies the context to a python environ dict, then runs a subprocess
+        in that namespace. This is not a fully configured subshell - shell-
+        specific commands such as aliases will not be applied. To execute a
+        command within a subshell instead, use execute_shell().
 
-        @param args Command arguments, can be a string.
-        @param parent_environ Environment to interpret the context within,
-            defaults to os.environ if None.
-        @param subprocess_kwargs Args to pass to subprocess.Popen.
-        @returns a subprocess.Popen object.
-        @note This does not alter the current python session.
+        Args:
+            args: Command arguments, can be a string.
+            parent_environ: Environment to interpret the context within,
+                defaults to os.environ if None.
+            subprocess_kwargs: Args to pass to subprocess.Popen.
+
+        Returns:
+            A subprocess.Popen object.
+
+        Note:
+            This does not alter the current python session.
         """
         interpreter = Python(target_environ={})
         executor = self._create_executor(interpreter, parent_environ)
@@ -667,21 +689,6 @@ class ResolvedContext(object):
         return sh,context_code
 
     def _execute(self, executor):
-        """
-        executor.update_env({
-            "REZ_USED":             self.rez_path,
-            # TODO add back if and when we need this
-            #"REZ_PREV_REQUEST":     "$REZ_REQUEST",
-            #"REZ_RAW_REQUEST":      _stringify_pkgs(self.result.raw_package_requests),
-            #"REZ_RESOLVE_MODE":     self.resolve_mode,
-            #"REZ_FAILED_ATTEMPTS":  self.failed_attempts,
-            "REZ_REQUEST":          request_str,
-            "REZ_RESOLVE":          resolve_str,
-            # TODO FIXME this should be actual timestamp used even if timestamp not
-            # speicified, but the new solver doesnt do this yet.
-            "REZ_REQUEST_TIME":     self.timestamp})
-        """
-
         # bind various info to the execution context
         executor.setenv("REZ_USED", self.rez_path)
         # TODO FIXME this should be actual timestamp used even if timestamp not specified

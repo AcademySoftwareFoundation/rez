@@ -1,9 +1,10 @@
 import os.path
 from rez.backport.lru_cache import lru_cache
-from rez.util import print_warning_once, Common, encode_filesystem_name
+from rez.util import print_warning_once, Common, encode_filesystem_name, \
+    propertycache, is_subdirectory
 from rez.resources import iter_resources, load_metadata
-from rez.contrib.version.version import Version, VersionRange
-from rez.contrib.version.requirement import VersionedObject, Requirement
+from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.exceptions import PackageNotFoundError
 from rez.settings import settings, Settings
 
@@ -30,99 +31,51 @@ resource_classes = {}
 
 def iter_package_families(name=None, paths=None):
     """Iterate through top-level `PackageFamily` instances."""
-    if paths is None:
-        paths = settings.packages_path
-    elif isinstance(paths, basestring):
-        paths = [paths]
+    paths = settings.default(paths, "packages_path")
 
     pkg_iter = iter_resources(0,  # configuration version
                               ['package_family.folder',
                                'package_family.external'],
                               paths,
                               name=name)
+
     for resource in pkg_iter:
         yield resource_classes[resource.key](path=resource.path,
                                              **resource.variables)
 
 
-def _iter_packages(family_name, paths=None):
-    """
-    Iterate through all packages in UNSORTED order.
-    """
-    done = set()
-    for pkg_fam in iter_package_families(family_name, paths):
-        for pkg in pkg_fam.iter_version_packages():
-            pkgname = pkg.qualified_name
-            if pkgname not in done:
-                done.add(pkgname)
-                yield pkg
+def iter_packages(name, range=None, timestamp=None, paths=None):
+    """Iterate over `Package` instances, sorted by version.
 
-# TODO simplify this
-def iter_packages_in_range(family_name, ver_range=None, latest=True,
-                           timestamp=0, exact=False, paths=None):
-    """
-    Iterate over `Package` instances, sorted by version.
-
-    Parameters
-    ----------
-    family_name : str
-        name of the package without a version
-    ver_range : VersionRange
-        range of versions in package to iterate over, or all if None
-    latest : bool
-        whether to sort by latest version first (default) or earliest
-    timestamp : int
-        time since epoch: any packages newer than this will be ignored. 0 means
-        no effect.
-    exact : bool
-        only match if ver_range represents an exact version
-    paths : list of str
-        search path. defaults to settings.package_path
-
-    If two versions in two different paths are the same, then the package in
-    the first path is returned in preference.
-    """
-    if (ver_range is not None) and (not isinstance(ver_range, VersionRange)):
-        ver_range = VersionRange(ver_range)
-
-    # store the generator. no paths have been walked yet
-    results = _iter_packages(family_name, paths)
-
-    if timestamp:
-        results = [x for x in results if x.timestamp <= timestamp]
-    # sort
-    results = sorted(results, key=lambda x: x.version, reverse=latest)
-
-    # yield versions only inside range
-    for result in results:
-        if ver_range is None or result.version in ver_range:
-            yield result
-
-
-def find_package(name, version, timestamp=None, paths=None):
-    """Find the given package.
+    Packages of the same name and version earlier in the search path take
+    precedence - equivalent packages later in the paths are ignored.
 
     Args:
-        name: package name.
-        version: package version (Version object).
-        timestamp: integer time since epoch - any packages newer than this
-            will be ignored. If None, no packages are ignored.
-        paths: List of paths to search for packages, defaults to
+        name: Name of the package, eg 'maya'.
+        range: VersionRange limiting the versions to return, returns all
+            versions if None.
+        timestamp: Any package newer than this time epoch is ignored.
+        paths: List of paths to search for pkgs, defaults to
             settings.packages_path.
 
     Returns:
-        Package object, or None if the package was not found.
+        Package object iterator.
     """
-    range = VersionRange.from_version(version)
-    result = iter_packages_in_range(name,
-                                    ver_range=range,
-                                    latest=True,
-                                    timestamp=timestamp or 0,
-                                    paths=paths)
-    try:
-        return result.next()
-    except StopIteration:
-        return None
+    packages = []
+    consumed = set()
+    for fam in iter_package_families(name, paths):
+        for pkg in fam.iter_version_packages():
+            pkgname = pkg.qualified_name
+            if pkgname not in consumed:
+                if (timestamp and pkg.timestamp > timestamp) \
+                    or (range and pkg.version not in range):
+                    continue
+
+                consumed.add(pkgname)
+                packages.append(pkg)
+
+    packages = sorted(packages, key=lambda x: x.version)
+    return iter(packages)
 
 
 class PackageFamily(Common):
@@ -142,6 +95,7 @@ class PackageFamily(Common):
                                   ['package.versionless', 'package.versioned'],
                                   [self.path],
                                   name=self.name)
+
         for resource in pkg_iter:
             yield resource_classes[resource.key](path=resource.path,
                                                  data=resource.load,
@@ -209,7 +163,6 @@ class PackageBase(Common):
         self.metafile = path
         self.base = os.path.dirname(path)
         self._metadata = data
-        self._settings = None
 
         if name is None or version is None:
             self.name = self.metadata["name"]
@@ -218,7 +171,7 @@ class PackageBase(Common):
             except KeyError:
                 self.version = Version()
 
-    @property
+    @propertycache
     def qualified_name(self):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
@@ -230,20 +183,52 @@ class PackageBase(Common):
             self._metadata = self._metadata()
         return self._metadata
 
-    @property
+    @propertycache
     def settings(self):
         """Packages can optionally override rez settings during build."""
-        # FIXME: move to resources?
-        if self._settings is None:
-            overrides = self.metadata["settings"] or None
-            self._settings = Settings(overrides=overrides)
-        return self._settings
+        overrides = self.metadata["rezconfig"] or None
+        return Settings(overrides=overrides)
+
+    @propertycache
+    def is_local(self):
+        """Returns True if this package is in the local packages path."""
+        return is_subdirectory(self.metafile, self.settings.local_packages_path)
+
+    @propertycache
+    def timestamp(self):
+        timestamp = 0
+        path = os.path.dirname(self.metafile)
+        file = os.path.join(path, "release.yaml")
+
+        if os.path.exists(file):
+            with open(file) as f:
+                doc = yaml.load(f.read())
+            timestamp = doc.get("timestamp", 0)
+
+        # backwards compatibility with rez-1
+        if not timestamp:
+            file = os.path.join(path, ".metadata", "release_time.txt")
+            if os.path.exists(file):
+                with open(file) as f:
+                    content = f.read()
+                try:
+                    timestamp = int(content.strip())
+                except:
+                    pass
+
+        if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
+            print_warning_once("Package is not timestamped: %s" % str(self))
+
+        return timestamp
 
     def _base_path(self):
         path = os.path.dirname(self.base)
         if not self.version:
             path = os.path.dirname(path)
         return os.path.dirname(path)
+
+    def __str__(self):
+        return "%s@%s" % (self.qualified_name, self._base_path())
 
 
 class Package(PackageBase):
@@ -286,6 +271,7 @@ class Package(PackageBase):
                        index=index)
 
     def iter_variants(self):
+        """Returns an iterator over the variants in this package."""
         n = self.num_variants
         if n:
             for i in range(n):
@@ -293,8 +279,10 @@ class Package(PackageBase):
         else:
             yield self.get_variant()
 
-    def __str__(self):
-        return "%s@%s" % (self.qualified_name, self._base_path())
+    def __eq__(self, other):
+        return (self.name == other.name) \
+            and (self.version == other.version) \
+            and (self.metafile == other.metafile)
 
 
 class Variant(PackageBase):
@@ -396,6 +384,12 @@ class Variant(PackageBase):
                        name=d["name"],
                        version=Version(d["version"]),
                        index=d["index"])
+
+    def __eq__(self, other):
+        return (self.name == other.name) \
+            and (self.version == other.version) \
+            and (self.metafile == other.metafile) \
+            and (self.index == other.index)
 
     def __str__(self):
         return "%s@%s,%s" % (self.qualified_name, self._base_path(),

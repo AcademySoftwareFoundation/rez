@@ -1,11 +1,6 @@
-import sys
-import os
-import os.path
+from rez.cli._main import run
 
 
 def _forward_script(cmd=None):
-    if cmd == 'rez':
-        cmd = None
-    rezolve_exe = os.path.join(os.path.dirname(sys.argv[0]), "rezolve")
-    args = ["rezolve"] + ([cmd] if cmd else []) + sys.argv[1:]
-    os.execve(rezolve_exe, args, os.environ)
+    from rez.cli._main import run
+    run(cmd)

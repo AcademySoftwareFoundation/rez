@@ -6,6 +6,7 @@ dependency between rex code in package.* files, and versions of Rez.
 The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
+
 class Binding(object):
     """Abstract base class."""
     def __init__(self, data=None):
@@ -67,37 +68,37 @@ class VariantBinding(Binding):
             root=variant.root,
             version=VersionBinding(variant.version))
         super(VariantBinding,self).__init__(doc)
-        self._variant = variant
+        self.__variant = variant
 
     def __attr_error(self, attr):
         raise AttributeError("package object has no attribute '%s'" % attr)
 
     def __str__(self):
-        return self._variant.qualified_package_name
+        return self.__variant.qualified_package_name
 
 
 class VariantsBinding(Binding):
     """Binds a list of packages.Variant objects, under the package name of
     each variant."""
     def __init__(self, variants):
-        self._variants = dict((x.name, VariantBinding(x)) for x in variants)
-        super(VariantsBinding,self).__init__(self._variants)
+        self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
+        super(VariantsBinding,self).__init__(self.__variants)
 
     def __attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
 
     def __contains__(self, name):
-        return (name in self._variants)
+        return (name in self.__variants)
 
 
 class RequirementsBinding(Binding):
     """Binds a list of version.Requirement objects."""
     def __init__(self, requirements):
-        self._requirements = dict((x.name, str(x)) for x in requirements)
-        super(RequirementsBinding,self).__init__(self._requirements)
+        self.__requirements = dict((x.name, str(x)) for x in requirements)
+        super(RequirementsBinding,self).__init__(self.__requirements)
 
     def __attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
 
     def __contains__(self, name):
-        return (name in self._requirements)
+        return (name in self.__requirements)

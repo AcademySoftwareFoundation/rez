@@ -1,6 +1,6 @@
-from rez.contrib.version.requirement import Requirement
+from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import itertools
 import os.path

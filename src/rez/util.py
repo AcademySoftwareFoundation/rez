@@ -18,7 +18,7 @@ import tempfile
 import threading
 import subprocess as sp
 from rez import module_root_path
-from rez.contrib import yaml
+from rez.vendor import yaml
 
 
 

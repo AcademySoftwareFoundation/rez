@@ -12,7 +12,7 @@ def setup_parser(parser):
 def command(opts, parser=None):
     from rez.settings import settings
     from rez.util import _add_bootstrap_pkg_path
-    from rez.contrib import yaml
+    from rez.vendor import yaml
 
     def _val(v):
         return ' '.join(str(x) for x in v) if isinstance(v, list) else v

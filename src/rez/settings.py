@@ -9,12 +9,12 @@ import os.path
 import sys
 import string
 import getpass
-from rez.contrib import yaml
+from rez.vendor import yaml
 from rez.util import which
 from rez import module_root_path
 from rez.system import system
 from rez.exceptions import ConfigurationError
-from rez.contrib.schema.schema import Schema, SchemaError, Or
+from rez.vendor.schema.schema import Schema, SchemaError, Or
 
 
 
@@ -44,6 +44,7 @@ class Settings(object):
         "warn_all":                         bool_schema,
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,
+        "debug_system":                     bool_schema,
         "debug_all":                        bool_schema,
         "all_parent_variables":             bool_schema,
         "all_resetting_variables":          bool_schema,

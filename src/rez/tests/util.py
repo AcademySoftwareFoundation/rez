@@ -1,6 +1,9 @@
-import rez.contrib.unittest2 as unittest
+import rez.vendor.unittest2 as unittest
 from rez.settings import settings
 from rez.shells import create_shell
+import tempfile
+import shutil
+import os.path
 
 
 
@@ -36,3 +39,15 @@ class ShellDependentTest(TestBase):
     def test_create_shell(self):
         print "\n\nSHELL TYPE: %s" % self.shell
         self.create_shell()
+
+
+class TempdirMixin(object):
+    """Mixin that adds tmpdir create/delete."""
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tempfile.mkdtemp(prefix="rez_test_")
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.root):
+            shutil.rmtree(cls.root)

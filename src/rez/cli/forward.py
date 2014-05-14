@@ -1,36 +1,33 @@
 """See util.create_forwarding_script()."""
-from rez.contrib import yaml
 import sys
 import os.path
-import argparse
+from rez.vendor import argparse
+
 __doc__ = argparse.SUPPRESS
+
 
 def setup_parser(parser):
     parser.add_argument("YAML", type=str)
     parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 
 def command(opts):
-    import yaml
+    from rez.vendor import yaml
+    import importlib
     import inspect
 
-    args = sys.argv
-    assert(len(args) >= 3)
-    assert(os.path.basename(args[0]) == "rezolve")
-    assert(args[1] == "forward")
-    assert(args[2] == opts.YAML)
-
     yaml_file = os.path.abspath(opts.YAML)
-    cli_args = args[3:]
+    cli_args = opts.ARG
 
     with open(yaml_file) as f:
         doc = yaml.load(f.read())
 
-    module = "rez.%s" % doc["module"]
+    namespace = "rez.%s" % doc["module"]
     func_name = doc["func_name"]
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
 
-    module = __import__(module, globals(), locals(), [], -1)
+    module = importlib.import_module(namespace)
+
     target_func = getattr(module, func_name)
     func_args = inspect.getargspec(target_func).args
     if "_script" in func_args:

@@ -40,7 +40,7 @@ with open("src/rez/__init__.py") as f:
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.41"
+version = "2.0.ALPHA.1"
 
 scripts = [
     "rezolve",
@@ -52,31 +52,13 @@ scripts = [
     "rez-context",
     "rez-suite",
     "rez-tools",
-    "rez-exec",
+    "rez-interpret",
     "rez-test",
     "rez-bootstrap",
     "bez",
     "_rez_fwd",
     "_rez_csh_complete"
 ]
-
-requires = [
-    # pysvn is problematic, it doesn't play nice with setuptools. If you need
-    # it, install it separately.
-    # "pysvn >= 1.7.2"
-<<<<<<< HEAD
-    "PyYAML >= 3.9",
-    "Yapsy >= 1.10.0",
-    "schema >= 0.3",
-=======
-    #"PyYAML >= 3.9",
-    #"Yapsy >= 1.10.0",
->>>>>>> refs/remotes/origin/2.0
-    "python-memcached >= 1.0"
-]
-
-if sys.version_info < (2,7):
-    requires.append('argparse')
 
 # post install hook. Don't believe google - this is how you do it.
 class install_(install):
@@ -124,7 +106,7 @@ setup(
     license="LGPL",
     cmdclass={'install': install_},
     scripts=[os.path.join('bin',x) for x in scripts],
-    install_requires=requires,
+    #install_requires=requires,
     include_package_data=True,
     package_dir = {'': 'src'},
     packages=find_packages('src', exclude=["tests"]),
@@ -139,7 +121,7 @@ setup(
             find_files('tests/data', '*.*')
     },
     classifiers = [
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
