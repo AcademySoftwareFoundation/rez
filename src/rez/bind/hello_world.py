@@ -1,5 +1,9 @@
 """
 Creates the 'hello_world' testing package.
+
+Note: Even though this is a python-based package, it does not list python as a
+requirement. This is not typical! This package is intended as a very simple test
+case, and for that reason we do not want any dependencies.
 """
 from rez.package_maker_ import make_py_package, root, code_provider
 from rez.exceptions import RezBindError
@@ -35,7 +39,6 @@ def bind(path, version_range=None, opts=None, parser=None):
                            "be bound as version 1.0")
 
     with make_py_package("hello_world", version, path) as pkg:
-        pkg.set_requires("python")
         pkg.set_tools("hello_world")
         pkg.set_commands(commands)
 

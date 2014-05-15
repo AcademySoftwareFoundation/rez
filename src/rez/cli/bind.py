@@ -4,7 +4,7 @@ Create a Rez package for existing software.
 from rez.settings import settings
 from rez.exceptions import RezBindError
 from rez import module_root_path
-from rez.util import get_close_pkgs
+from rez.util import get_close_pkgs, columnise
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.vendor import argparse
 import os.path
@@ -16,6 +16,8 @@ def setup_parser(parser):
     parser.add_argument("-i", "--install-path", dest="install_path", type=str,
                         default=None, metavar="PATH",
                         help="install path, defaults to local package path")
+    parser.add_argument("-s", "--search", action="store_true",
+                        help="search for the binding but do not do the bind")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="verbose mode")
     parser.add_argument("PKG", type=str,
@@ -38,7 +40,7 @@ def command(opts, parser):
     builtin_path = os.path.join(module_root_path, "bind")
     searchpaths = settings.bind_module_path + [builtin_path]
     bindfile = None
-    bindnames = []
+    bindnames = {}
 
     for path in searchpaths:
         if opts.verbose:
@@ -48,23 +50,37 @@ def command(opts, parser):
 
         file = os.path.join(path, name+".py")
         if os.path.isfile(file):
-            bindfile = file
-            break
+            if opts.search:
+                print file
+                sys.exit(0)
+            else:
+                bindfile = file
+                break
         else:
             for file in os.listdir(path):
                 fpath = os.path.join(path, file)
                 fname,ext = os.path.splitext(file)
                 if os.path.isfile(fpath) and ext == ".py":
-                    bindnames.append(fname)
+                    bindnames[fname] = fpath
 
     if not bindfile:
-        msg = "bind module not found for '%s'" % name
-        fuzzy_matches = get_close_pkgs(name, bindnames)
-        if fuzzy_matches:
-            matches_s = ', '.join(x[0] for x in fuzzy_matches)
-            msg += "\ndid you mean one of: %s" % matches_s
+        fuzzy_matches = get_close_pkgs(name, bindnames.keys())
 
-        raise RezBindError(msg)
+        if opts.search:
+            if fuzzy_matches:
+                rows = [(x[0], bindnames[x[0]]) for x in fuzzy_matches]
+                print "'%s' not found. Close matches:" % name
+                print '\n'.join(columnise(rows))
+            else:
+                print "No matches."
+            sys.exit(0)
+        else:
+            msg = "bind module not found for '%s'" % name
+            if fuzzy_matches:
+                matches_s = ', '.join(x[0] for x in fuzzy_matches)
+                msg += "\ndid you mean one of: %s" % matches_s
+
+            raise RezBindError(msg)
 
     # load the bind module
     stream = open(bindfile)

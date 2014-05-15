@@ -6,7 +6,8 @@ their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 from rez.shells import get_shell_types, create_shell
 from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
-from rez.tests.util import ShellDependentTest
+from rez.tests.util import ShellDependentTest, TempdirMixin
+from rez.bind import hello_world
 import subprocess
 import tempfile
 import os
@@ -19,13 +20,24 @@ def _stdout(proc):
     return out_.strip()
 
 
-class TestShell(ShellDependentTest):
+class TestShell(ShellDependentTest, TempdirMixin):
     @classmethod
     def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
+        packages_path = os.path.join(cls.root, "packages")
+        os.makedirs(packages_path)
+        hello_world.bind(packages_path)
+
         cls.settings = dict(
-            packages_path=[],
+            packages_path=[packages_path],
             implicit_packages=[],
+            add_bootstrap_path=False,
             resolve_caching=False)
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
 
     def _create_context(self, pkgs):
         return ResolvedContext(pkgs,
@@ -111,13 +123,13 @@ class TestShell(ShellDependentTest):
 
         if command:
             r = self._create_context([])
-            e = os.environ.copy()
-            e["REZ_QUIET"] = "true"  # suppress warnings etc
+            p = r.execute_shell(command="rezolve -h")
+            p.wait()
+            self.assertEqual(p.returncode, 0)
 
-            p = r.execute_shell(command="rez-env --paths= --ni -c 'hello_world' hello_world",
-                                parent_environ=e,
-                                stdout=subprocess.PIPE)
-            self.assertEqual(_stdout(p), "Hello Rez World!")
+            p = r.execute_shell(command="rez-env -h")
+            p.wait()
+            self.assertEqual(p.returncode, 0)
 
 
 def get_test_suites():
