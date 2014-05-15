@@ -2,7 +2,7 @@ import os.path
 from rez.backport.lru_cache import lru_cache
 from rez.util import print_warning_once, Common, encode_filesystem_name, \
     propertycache, is_subdirectory, convert_to_user_dict, RO_AttrDictWrapper
-from rez.resources import iter_resources, load_metadata
+from rez.resources import iter_resources, load_metadata, package_schema, Schema
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.exceptions import PackageNotFoundError
@@ -40,8 +40,7 @@ def iter_package_families(name=None, paths=None):
                               name=name)
 
     for resource in pkg_iter:
-        yield resource_classes[resource.key](path=resource.path,
-                                             **resource.variables)
+        yield resource_classes[resource.key](path=resource.path)
 
 
 def iter_packages(name, range=None, timestamp=None, paths=None):
@@ -68,7 +67,7 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
         for pkg in fam.iter_version_packages():
             pkgname = pkg.qualified_name
             if pkgname not in consumed:
-                if (timestamp and pkg.data.timestamp > timestamp) \
+                if (timestamp and pkg.timestamp > timestamp) \
                         or (range and pkg.version not in range):
                     continue
 
@@ -86,17 +85,20 @@ class PackageFamily(Common):
     def __init__(self, name, path, data=None):
         self.name = name
         self.path = path
-        self._metadata = data
+        self._raw_data = data
 
     def __str__(self):
         return "%s@%s" % (self.name, self.path)
 
-    @property
+    @propertycache
     def metadata(self):
-        if callable(self._metadata):
+        if callable(self._raw_data):
             # load the metadata
-            self._metadata = self._metadata()
-        return self._metadata
+            data = self._raw_data()
+        else:
+            # metadata was passed in directly
+            data = self._raw_data
+        return data
 
     def iter_version_packages(self):
         pkg_iter = iter_resources(0,  # configuration version
@@ -106,8 +108,7 @@ class PackageFamily(Common):
 
         for resource in pkg_iter:
             yield resource_classes[resource.key](path=resource.path,
-                                                 data=resource.load,
-                                                 **resource.variables)
+                                                 data=resource.load)
 
 class ExternalPackageFamily(PackageFamily):
     """
@@ -119,48 +120,57 @@ class ExternalPackageFamily(PackageFamily):
     def iter_version_packages(self):
         versions = self.metadata.get('versions', None)
         if not versions:
-            yield Package(name=self.name,
-                          version=Version(''),
-                          path=self.path,
-                          data=self.metadata)  # copy this metadata?
+            # no need to copy the metadata, it will be copied on validation by
+            # the Package class
+            yield Package(path=self.path,
+                          data=self.metadata)
         else:
             for ver_data in versions:
-                yield Package(name=self.name,
-                              version=ver_data['version'],
-                              path=self.path,
+                yield Package(path=self.path,
                               data=ver_data)
+
+class WithDataAccessors(type):
+    """Metaclass for creating property accessors to its metadata dictionary.
+
+    The metadata keys are derived from the keys of the class's `schema` object.
+    """
+    def __new__(cls, name, parents, members):
+        for name in members['schema'].keys():
+            while isinstance(name, Schema):
+                name = name._schema
+            members[name] = cls.make_getter(name)
+        return super(WithDataAccessors, cls).__new__(cls, name, parents, members)
+
+    @classmethod
+    def make_getter(cls, key):
+        def getter(self):
+            return self.metadata[key]
+        return property(getter)
 
 class PackageBase(Common):
     """Abstract base class for Package and Variant."""
-    def __init__(self, path, name=None, version=None, data=None):
-        self.name = name
-        if isinstance(version, basestring):
-            self.version = Version(version)
-        else:
-            self.version = version
+    def __init__(self, path, data=None):
         self.metafile = path
         self.base = os.path.dirname(path)
-        self._metadata = data
-
-        if name is None or version is None:
-            self.name = self.metadata["name"]
-            try:
-                self.version = self.metadata["version"] or Version()
-            except KeyError:
-                self.version = Version()
+        self._raw_data = data
 
     @propertycache
     def qualified_name(self):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
 
-    @property
+    @propertycache
     def metadata(self):
-        """Dictionary of metadata for this package"""
-        if callable(self._metadata):
+        if callable(self._raw_data):
             # load the metadata
-            self._metadata = self._metadata()
-        return self._metadata
+            data = self._raw_data()
+        else:
+            data = self._raw_data
+        new_data = self.schema.validate(data)
+        # note: `new_data` is a copy of `data`, so let's free the raw data to
+        # be garbage collected
+        self._raw_data = None
+        return new_data
 
     @propertycache
     def data(self):
@@ -171,12 +181,6 @@ class PackageBase(Common):
             RO_AttrDictWrapper
         """
         return convert_to_user_dict(self.metadata, RO_AttrDictWrapper)
-
-    @propertycache
-    def settings(self):
-        """Packages can optionally override rez settings during build."""
-        overrides = self.metadata["rezconfig"] or None
-        return Settings(overrides=overrides)
 
     @propertycache
     def is_local(self):
@@ -196,7 +200,11 @@ class PackageBase(Common):
 class Package(PackageBase):
     """Class representing a package definition, as read from a package.* file.
     """
-    def __init__(self, path, name=None, version=None, data=None):
+    __metaclass__ = WithDataAccessors
+
+    schema = package_schema
+
+    def __init__(self, path, data=None):
         """Create a package.
 
         Args:
@@ -205,7 +213,7 @@ class Package(PackageBase):
             name (str): Name of the package, eg 'maya'.
             version (Version): version of the package.
         """
-        super(Package, self).__init__(path, name, version, data)
+        super(Package, self).__init__(path, data)
 
     @property
     def num_variants(self):
@@ -229,8 +237,6 @@ class Package(PackageBase):
             raise IndexError("variant index out of range")
 
         return Variant(path=self.metafile,
-                       name=self.name,
-                       version=self.version,
                        index=index,
                        data=self._metadata)
 
@@ -255,7 +261,7 @@ class Variant(PackageBase):
     Note that Variant is also used in packages that don't have a variant - in
     this case, index is None. This helps give a consistent interface.
     """
-    def __init__(self, path, name=None, version=None, index=None, data=None):
+    def __init__(self, path, index=None, data=None):
         """Create a package variant.
 
         Args:
@@ -266,7 +272,7 @@ class Variant(PackageBase):
             index (int): Zero-based variant index. If the package does not
                 contain variants, index should be set to None.
         """
-        super(Variant, self).__init__(path, name, version, data)
+        super(Variant, self).__init__(path, data)
         self.index = index
         self.root = self.base
 

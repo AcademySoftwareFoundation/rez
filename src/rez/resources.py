@@ -310,11 +310,6 @@ package_name = basestring
 # 'name-1.2'
 package_requirement = basestring
 
-# 'Use' means cast to this type. If it fails, then validation also fails
-exact_version = Use(Version)
-
-version_range = Use(VersionRange)
-
 # TODO: inspect arguments of the function to confirm proper number?
 rex_command = Or(callable,     # python function
                  basestring,   # new-style rex
@@ -323,6 +318,26 @@ rex_command = Or(callable,     # python function
 # make an alias which just so happens to be the same number of characters as
 # 'Optional'  so that our schema are easier to read
 Required = Schema
+
+# The master package schema.  All resources delivering metadata to the Package
+# class must validate against this master schema
+package_schema = Schema({
+    Required('config_version'):         int,
+    Optional('uuid'):                   basestring,
+    Optional('description'):            basestring,
+    Required('name'):                   basestring,
+    Required('version'):                Version,
+    Optional('authors'):                [basestring],
+    Required('timestamp'):              int,
+    Optional('config'):                 Settings,
+    Optional('help'):                   Or(basestring,
+                                           [[basestring]]),
+    Optional('requires'):               [package_requirement],
+    Optional('build_requires'):         [package_requirement],
+    Optional('private_build_requires'): [package_requirement],
+    Optional('variants'):               [[package_requirement]],
+    Optional('commands'):               rex_command
+})
 
 class Resource(object):
     """Stores data regarding a particular resource.
@@ -454,7 +469,9 @@ class VersionlessPackageResource(Resource):
             Optional('description'):            basestring,
             Required('name'):                   self.variables['name'],
             Optional('authors'):                [basestring],
-            Optional('rezconfig'):              dict,
+            Optional('config'):                 And(dict,
+                                                    Use(lambda x:
+                                                        Settings(overrides=x))),
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
             Optional('requires'):               [package_requirement],
@@ -476,7 +493,7 @@ class VersionlessPackageResource(Resource):
             timestamp = load_resource(0, 'release.timestamp',
                                       [self.search_path], **self.variables)
         data['timestamp'] = timestamp
-
+        data['version'] = Version()
         # # TODO: handle warning.  should we deal is_local here or in rez.packages?
         # if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
         #     print_warning_once("Package is not timestamped: %s" % str(self))
@@ -493,7 +510,8 @@ class VersionedPackageResource(VersionlessPackageResource):
         schema = super(VersionedPackageResource, self).schema._schema
         schema = schema.copy()
         schema.update({
-            Required('version'): self.variables['version']
+            Required('version'): And(self.variables['version'],
+                                     Use(Version))
         })
         return Schema(schema)
 
@@ -516,9 +534,9 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
         schema = super(ExternalPackageFamilyResource, self).schema._schema
         schema = schema.copy()
         schema.update({
-            Optional('versions'): [exact_version],
+            Optional('versions'): [Use(Version)],
             Optional('version_overrides'): {
-                version_range: {
+                Use(VersionRange): {
                     Optional('help'):                   Or(basestring,
                                                            [[basestring]]),
                     Optional('requires'):               [package_requirement],
