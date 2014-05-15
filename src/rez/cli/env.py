@@ -4,6 +4,8 @@ Open a rez-configured shell, possibly interactive.
 import select
 import sys
 import os
+import os.path
+
 
 def setup_parser(parser):
     from rez.system import system
@@ -70,7 +72,7 @@ def command(opts, parser):
             pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
         else:
             pkg_paths = (opts.paths or "").split(os.pathsep)
-            pkg_paths = [x for x in pkg_paths if x]
+            pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
         rc = ResolvedContext(opts.PKG,
                              timestamp=t,

@@ -2,9 +2,9 @@
 Binds a python executable as a rez package.
 """
 from rez.package_maker_ import make_py_package, code_provider, root
+from rez.bind_utils import check_version, find_exe, extract_version
 from rez.exceptions import RezBindError
 from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import VersionedObject
 from rez.system import system
 import subprocess
 import sys
@@ -22,29 +22,17 @@ def commands():
 
 
 def bind(path, version_range=None, opts=None, parser=None):
-    # get path to exe, version
+    # find executable, determine version
     if opts and opts.exe:
-        exepath = opts.exe
-        p = subprocess.Popen([exepath, "-V"], stdout=subprocess.PIPE)
-        stdout,_ = p.communicate()
-        if p.returncode:
-            raise RezBindError("failed to execute provided interpreter")
-
-        try:
-            strver = stdout.strip().split()[-1]
-            toks = strver.replace('.',' ').replace('-',' ').split()
-            strver = '.'.join(toks[:3])
-            version = Version(strver)
-        except Exception as e:
-            raise RezBindError("failed to parse python version: %s" % str(e))
+        exepath = find_exe("python", opts.exe)
+        code = "import sys; print '.'.join(str(x) for x in sys.version_info)"
+        version = extract_version(exepath, ["-c", code])
     else:
         exepath = sys.executable
         strver = '.'.join(str(x) for x in sys.version_info[:3])
         version = Version(strver)
 
-    if version_range and version not in version_range:
-        raise RezBindError("found version %s is not within range %s"
-                           % (str(version), str(version_range)))
+    check_version(version, version_range)
 
     with make_py_package("python", version, path) as pkg:
         pkg.add_variant(*system.variant)

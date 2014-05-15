@@ -162,6 +162,10 @@ debug_system: false
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
 
+# Print debugging info in binding modules. Binding modules should print using
+# the bind_utils.log() function - it is controlled with this setting
+debug_bind_modules: false
+
 # turn on all debugging messages
 debug_all: false
 

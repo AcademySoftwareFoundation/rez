@@ -45,6 +45,7 @@ class Settings(object):
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,
         "debug_system":                     bool_schema,
+        "debug_bind_modules":               bool_schema,
         "debug_all":                        bool_schema,
         "all_parent_variables":             bool_schema,
         "all_resetting_variables":          bool_schema,
