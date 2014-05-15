@@ -51,7 +51,7 @@ def setup_parser(parser):
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.resolved_context import ResolvedContext
     from rez.util import get_epoch_time_from_str
     from rez.settings import settings

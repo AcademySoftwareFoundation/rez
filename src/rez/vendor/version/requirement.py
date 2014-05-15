@@ -194,6 +194,16 @@ class Requirement(_Common):
         """True if the requirement is a conflict requirement, eg "!foo"."""
         return self.conflict_
 
+    def safe_str(self):
+        """Return a string representation that is safe for the current filesystem,
+        and guarantees that no two different Requirement objects will encode to
+        the same value."""
+        import platform
+        if platform.system() == "Windows":
+            raise NotImplemented
+        else:
+            return str(self)
+
     def conflicts_with(self, other):
         """Returns True if this requirement conflicts with another."""
         if (self.name_ != other.name_) or (self.range is None) \

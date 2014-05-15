@@ -13,11 +13,11 @@ import rez.sigint
 
 class RezHelpFormatter(argparse.HelpFormatter):
     remainder_descs = {
-        "BUILD_ARG": "[-- ARG [ARG ...] [-- ARG [ARG ...]]]"
+        "BUILD_ARG": "[ARG [ARG ...] [-- ARG [ARG ...]]]",
+        "BIND_ARG": "[ARG [ARG ...]]"
     }
 
     def _fill_text(self, text, width, indent):
-        #text = self._whitespace_matcher.sub(' ', text).strip()
         text = text.strip()
         return '\n\n'.join([textwrap.fill(x, width,
                                           initial_indent=indent,
@@ -142,7 +142,7 @@ class SetupRezSubParser(object):
 
         mod.setup_parser(parser)
         parser.description = mod.__doc__
-        parser.set_defaults(func=mod.command)
+        parser.set_defaults(func=mod.command, parser=parser)
         # add the common args to the subparser
         _add_common_args(parser)
 
@@ -224,7 +224,7 @@ def run(command=None):
         exc_type = Exception
 
     try:
-        returncode = opts.func(opts)
+        returncode = opts.func(opts, opts.parser)
     except NotImplementedError as e:
         import traceback
         raise Exception(traceback.format_exc())

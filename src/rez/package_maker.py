@@ -1,20 +1,19 @@
 import os
-import yaml
+from rez.vendor import yaml
+import inspect
+import textwrap
 from rez.util import OrderedDict
+from rez.vendor.version.requirement import VersionedObject
 from contextlib import contextmanager
 
 class quoted(str):
-    """
-    wrap a string in this class to force a quoted representation when passed
-    to `yaml.dump`.
-    """
+    """Wrap a string in this class to force a quoted representation when passed
+    to `yaml.dump`."""
     pass
 
 class literal(str):
-    """
-    wrap a string in this class to force a (multi-line) representation
-    when passed to `yaml.dump`.
-    """
+    """Wrap a string in this class to force a (multi-line) representation when
+    passed to `yaml.dump`."""
     pass
 
 # create a shortcut that is more rez-friendly
@@ -34,7 +33,7 @@ yaml.add_representer(OrderedDict, ordered_dict_presenter)
 
 
 def _entab(text, spaces=4):
-    '\n'.join([(' ' * 4) + t for t in text.split('\n')])
+    return '\n'.join([(' ' * 4) + t for t in text.split('\n')])
 
 def make_version_directory(path, metadata):
     name = metadata['name']
@@ -53,12 +52,13 @@ def make_version_directory(path, metadata):
 
 def _get_metadata(name):
     metadata = OrderedDict()
-    metadata['config_version'] = 0  # note that even if this value is overridden, it will appear first
-    parts = name.split('-')
-    if len(parts) == 1:
-        metadata['name'] = name
-    else:
-        metadata['name'], metadata['version'] = parts
+    metadata['config_version'] = 0  # even if this value is overridden, it will appear first
+
+    o = VersionedObject(name)
+    metadata['name'] = o.name
+    if o.version:
+        metadata['version'] = str(o.version)
+
     return metadata
 
 def write_package_yaml(metafile, metadata):
@@ -70,9 +70,13 @@ def write_package_py(metafile, metadata):
         for key, value in metadata.iteritems():
             if isinstance(value, rex):
                 text = 'def %s():\n%s\n' % (key, _entab(value))
+            elif inspect.isfunction(value):
+                loc = inspect.getsourcelines(value)[0][1:]
+                code = textwrap.dedent(''.join(loc))
+                text = 'def %s():\n%s\n' % (key, _entab(code))
             else:
                 text = '%s = %r\n' % (key, value)
-            f.write(text)
+            f.write(text + '\n')
 
 @contextmanager
 def make_package_yaml(name, path):
@@ -86,11 +90,10 @@ def make_package_yaml(name, path):
             pass
     """
     metadata = _get_metadata(name)
-
     yield metadata
 
+    # post-with-block:
     basedir = make_version_directory(path, metadata)
-
     metafile = os.path.join(basedir, 'package.yaml')
     write_package_yaml(metafile, metadata)
 
@@ -106,14 +109,13 @@ def make_package_py(name, path):
             pass
     """
     metadata = _get_metadata(name)
-
     yield metadata
 
     # post-with-block:
     basedir = make_version_directory(path, metadata)
-
     metafile = os.path.join(basedir, 'package.py')
     write_package_py(metafile, metadata)
+
 
 class PackageMaker(object):
     """

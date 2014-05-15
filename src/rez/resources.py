@@ -34,7 +34,7 @@ _configs = defaultdict(list)
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
-VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
+VERSION_REGSTR = '%(comp)s(?:[.-]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
 
 #------------------------------------------------------------------------------

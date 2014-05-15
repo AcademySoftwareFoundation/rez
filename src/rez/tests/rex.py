@@ -15,7 +15,6 @@ class TestRex(TestBase):
         interp = Python(target_environ={}, passive=True)
         return RexExecutor(interpreter=interp,
                            parent_environ=env,
-                           bind_syspaths=False,
                            bind_rez=False,
                            shebang=False,
                            **kwargs)

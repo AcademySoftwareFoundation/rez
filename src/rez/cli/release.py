@@ -16,7 +16,7 @@ def setup_parser(parser):
     add_extra_build_args(parser)
     add_build_system_args(parser)
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.cli.build import parse_build_args
     from rez.build_system import create_build_system

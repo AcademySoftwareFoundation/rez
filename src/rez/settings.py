@@ -10,7 +10,7 @@ import sys
 import string
 import getpass
 from rez.vendor import yaml
-from rez.util import which
+from rez.util import which, YamlCache
 from rez import module_root_path
 from rez.system import system
 from rez.exceptions import ConfigurationError
@@ -87,11 +87,14 @@ class Settings(object):
         "release_vcs_plugin_path":          path_list_schema,
         "release_hook_plugin_path":         path_list_schema,
         "build_system_plugin_path":         path_list_schema,
+        "bind_module_path":                 path_list_schema,
 
         # FIXME how to let plugins support their own settings?
         "cmake_build_system":               str_schema,
         "cmake_args":                       str_list_schema
     }
+
+    configs = YamlCache()
 
     def __init__(self, overrides=None):
         """Create a Settings object.
@@ -180,20 +183,17 @@ class Settings(object):
 
     def _load_config(self):
         if self.config is None:
-            root_config = os.path.join(module_root_path, "rezconfig")
-            with open(root_config) as f:
-                content = f.read()
-                self.config = yaml.load(content)
+            path = os.path.join(module_root_path, "rezconfig")
+            self.config = self.configs.load(path)
 
             if not self.locked:
                 for filepath in ( \
                     os.getenv("REZ_SETTINGS_FILE"),
                     os.path.expanduser("~/.rezconfig")):
-                    if filepath and os.path.exists(filepath):
-                        with open(filepath) as f:
-                            content = f.read()
-                            config = yaml.load(content)
 
+                    if filepath:
+                        config = self.configs.load(filepath)
+                        if config:
                             for k,v in config.items():
                                 if k not in self.config:
                                     print >> sys.stderr, \

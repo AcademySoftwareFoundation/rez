@@ -740,7 +740,7 @@ class RexExecutor(object):
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
                  parent_variables=None, output_style='file', bind_rez=True,
-                 bind_syspaths=True, shebang=True, add_default_namespaces=True):
+                 shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -756,8 +756,6 @@ class RexExecutor(object):
             list, all variables are treated as parent variables.
         bind_rez: bool
             if True, expose Rez cli tools in the target environment
-        bind_syspaths: bool
-            whether to append OS-specific paths to PATH when creating the environment
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
@@ -785,15 +783,8 @@ class RexExecutor(object):
         self.environ = EnvironmentDict(self.manager)
         self.bind('env', AttrDictWrapper(self.environ))
 
-        # expose Rez/system in PATH
-        paths = []
         if bind_rez:
-            paths = [get_script_path()]
-        # TODO make this configurable. Will probably be better to append syspaths at the end
-        if bind_syspaths:
-            paths += self._get_syspaths()
-        if paths:
-            self.environ["PATH"] = os.pathsep.join(paths)
+            self.environ["PATH"] = get_script_path()
 
         for cmd,func in self.manager.get_public_methods():
             self.bind(cmd, func)
@@ -819,6 +810,16 @@ class RexExecutor(object):
     def bind(self, name, obj):
         """Binds an object to the execution context."""
         self.globals[name] = obj
+
+    def append_system_paths(self):
+        """Append system paths to $PATH."""
+        from rez.shells import Shell, create_shell
+        sh = self.interpreter if isinstance(self.interpreter, Shell) \
+            else create_shell()
+
+        paths = sh.get_syspaths()
+        paths_str = os.pathsep.join(paths)
+        self.env.PATH.append(paths_str)
 
     def execute_code(self, code, filename=None):
         """Execute code within the execution context."""
@@ -877,9 +878,3 @@ class RexExecutor(object):
         else:
             raise RexError("Error in rex code: %s - %s\n%s"
                            % (e.__class__.__name__, str(e), stack))
-
-    def _get_syspaths(self):
-        from rez.shells import Shell, create_shell
-        sh = self.interpreter if isinstance(self.interpreter, Shell) \
-            else create_shell()
-        return sh.get_syspaths()

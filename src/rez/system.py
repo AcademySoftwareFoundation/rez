@@ -45,6 +45,68 @@ class System(object):
             return plat.machine()
 
     @propertycache
+    def os(self):
+        """
+        Get the current operating system.
+        @returns The current operating system. Examples:
+        Ubuntu-12.04
+        CentOS-5.4
+        windows-6.1.7600.sp1
+        osx-10.6.2
+        """
+        if plat.system() == 'Linux':
+            try:
+                self._pr("detecting os: trying platform.linux_distribution...")
+                distname,version,_ = plat.linux_distribution()
+            except AttributeError:
+                self._pr("detecting os: trying platform.dist...")
+                distname,version,_ = plat.dist()
+                try:
+                    import subprocess as sp
+                    proc = sp.Popen(['/usr/bin/env', 'lsb_release', '-i'],
+                                    stdout=sp.PIPE, stderr=sp.PIPE)
+                    out_, err_ = proc.communicate()
+                    if proc.returncode:
+                        self._pr(("lsb_release failed when detecting OS: "
+                                 "[errorcode %d] %s") % (proc.returncode, err_))
+                    else:
+                        m = re.search(r'^Distributor ID:\s*(\w+)\s*$',
+                                      str(out_).strip())
+                        if m is not None:
+                            distname = m.group(1)
+                except Exception as e:
+                    self._pr("")
+                    pass  # not an lsb compliant distro?
+
+            final_release = distname
+            final_version = version
+        elif plat.system() == 'Darwin':
+            release, versioninfo, machine = plat.mac_ver()
+            final_release = 'osx'
+            final_version = release
+        elif plat.system() == 'Windows':
+            release, version, csd, ptype = plat.win32_ver()
+            final_release = 'windows'
+            toks = []
+            for item in (version, csd):
+                if item:  # initial release would not have a service pack (csd)
+                    toks.append(item)
+            final_version = str('.').join(toks)
+        # other
+        else:
+            raise RuntimeError("Could not detect operating system")
+
+        return '%s-%s' % (final_release, final_version)
+
+    @propertycache
+    def variant(self):
+        """Returns a list of the form ["platform-X", "arch-X", "os-X"] suitable
+        for use as a variant in a system-dependent package."""
+        return ["platform-%s" % self.platform,
+                "arch-%s" % self.arch,
+                "os-%s" % self.os]
+
+    @propertycache
     def shell(self):
         """
         Get the current shell.
@@ -132,60 +194,6 @@ class System(object):
                 return "tcsh"
             else:
                 return shell
-
-    @propertycache
-    def os(self):
-        """
-        Get the current operating system.
-        @returns The current operating system. Examples:
-        Ubuntu-12.04
-        CentOS-5.4
-        windows-6.1.7600.sp1
-        osx-10.6.2
-        """
-        if plat.system() == 'Linux':
-            try:
-                self._pr("detecting os: trying platform.linux_distribution...")
-                distname,version,_ = plat.linux_distribution()
-            except AttributeError:
-                self._pr("detecting os: trying platform.dist...")
-                distname,version,_ = plat.dist()
-                try:
-                    import subprocess as sp
-                    proc = sp.Popen(['/usr/bin/env', 'lsb_release', '-i'],
-                                    stdout=sp.PIPE, stderr=sp.PIPE)
-                    out_, err_ = proc.communicate()
-                    if proc.returncode:
-                        self._pr(("lsb_release failed when detecting OS: "
-                                 "[errorcode %d] %s") % (proc.returncode, err_))
-                    else:
-                        m = re.search(r'^Distributor ID:\s*(\w+)\s*$',
-                                      str(out_).strip())
-                        if m is not None:
-                            distname = m.group(1)
-                except Exception as e:
-                    self._pr("")
-                    pass  # not an lsb compliant distro?
-
-            final_release = distname
-            final_version = version
-        elif plat.system() == 'Darwin':
-            release, versioninfo, machine = plat.mac_ver()
-            final_release = 'osx'
-            final_version = release
-        elif plat.system() == 'Windows':
-            release, version, csd, ptype = plat.win32_ver()
-            final_release = 'windows'
-            toks = []
-            for item in (version, csd):
-                if item:  # initial release would not have a service pack (csd)
-                    toks.append(item)
-            final_version = str('.').join(toks)
-        # other
-        else:
-            raise RuntimeError("Could not detect operating system")
-
-        return '%s-%s' % (final_release, final_version)
 
     @propertycache
     def fqdn(self):

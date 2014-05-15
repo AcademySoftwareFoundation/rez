@@ -16,7 +16,7 @@ def setup_parser(parser):
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="verbose mode")
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.resolved_context import ResolvedContext
     from rez.cli._util import get_rxt_file
 

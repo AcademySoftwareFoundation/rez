@@ -262,6 +262,7 @@ class ResolvedContext(object):
             _pr()
             _pr("resolve details:")
             _pr("load time: %.02f secs" % self.load_time)
+            # solve time includes load time
             _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
 
     def _on_success(fn):
@@ -742,6 +743,9 @@ class ResolvedContext(object):
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg.metafile, str(e))
                     raise PackageCommandError(msg)
+
+        # append system paths
+        executor.append_system_paths()
 
 
 def _FWD__invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):

@@ -17,7 +17,7 @@ class TestBuild(ShellDependentTest, TempdirMixin):
         TempdirMixin.setUpClass()
 
         path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "build", "packages")
+        packages_path = os.path.join(path, "data", "builds", "packages")
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
 
@@ -65,17 +65,17 @@ class TestBuild(ShellDependentTest, TempdirMixin):
         builder = self._create_builder(working_dir)
         self.assertFalse(builder.build(clean=True))
 
-    def test_build_build_util(self):
+    def _test_build_build_util(self):
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
         self._create_context("build_util==1")
 
-    def test_build_nover(self):
+    def _test_build_nover(self):
         """Build, install, test the nover package."""
         self._test_build("nover")
         self._create_context("nover==")
 
-    def test_build_foo(self):
+    def _test_build_foo(self):
         """Build, install, test the foo package."""
         self._test_build("foo", "1.0.0")
         self._create_context("foo==1.0.0")
@@ -83,17 +83,25 @@ class TestBuild(ShellDependentTest, TempdirMixin):
         self._test_build("foo", "1.1.0")
         self._create_context("foo==1.1.0")
 
-    def test_build_loco(self):
+    def _test_build_loco(self):
         """Test that a package with conflicting requirements fails correctly."""
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
         self.assertFalse(builder.build(clean=True))
 
-    def test_build_bah(self):
+    def _test_build_bah(self):
         """Build, install, test the bah package."""
         self._test_build("bah", "2.1")
         self._create_context("bah==2.1", "foo==1.0.0")
         self._create_context("bah==2.1", "foo==1.1.0")
+
+    def test_builds(self):
+        """Test an interdependent set of builds."""
+        self._test_build_build_util()
+        self._test_build_nover()
+        self._test_build_foo()
+        self._test_build_loco()
+        self._test_build_bah()
 
 
 def get_test_suites():
@@ -103,11 +111,7 @@ def get_test_suites():
     for shell in get_shell_types():
         suite.addTest(TestBuild("test_create_shell", shell))
         suite.addTest(TestBuild("test_build_whack", shell))
-        suite.addTest(TestBuild("test_build_build_util", shell))
-        suite.addTest(TestBuild("test_build_nover", shell))
-        suite.addTest(TestBuild("test_build_foo", shell))
-        suite.addTest(TestBuild("test_build_loco", shell))
-        suite.addTest(TestBuild("test_build_bah", shell))
+        suite.addTest(TestBuild("test_builds", shell))
 
     suites.append(suite)
     return suites

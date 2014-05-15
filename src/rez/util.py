@@ -806,3 +806,28 @@ class propertycache(object):
             return e.default
         setattr(instance, self.name, result)
         return result
+
+
+class YamlCache(object):
+    """Caches yaml files, no file update checking."""
+    def __init__(self):
+        self.docs = {}
+
+    def load(self, path):
+        """Returns dict, or None if the file does not exist."""
+        doc = self.docs.get(path)
+
+        if doc is False:
+            return None
+        elif doc is not None:
+            return doc.copy()
+
+        if os.path.exists(path):
+            with open(path) as f:
+                doc = yaml.load(f.read())
+        else:
+            self.docs[path] = False
+            return None
+
+        self.docs[path] = doc
+        return doc.copy()

@@ -198,7 +198,6 @@ class UnixShell(Shell):
             return RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
                                bind_rez=False,
-                               bind_syspaths=False,
                                add_default_namespaces=False)
 
         executor = _create_ex()

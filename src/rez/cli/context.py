@@ -133,7 +133,7 @@ def setup_parser(parser):
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.cli._util import get_rxt_file, current_rxt_file
     from rez.util import pretty_env_dict
     from rez.resolved_context import ResolvedContext

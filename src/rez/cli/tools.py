@@ -5,7 +5,7 @@ Display a list of available tools and the packages or contexts that provide them
 def setup_parser(parser):
     pass
 
-def command(opts):
+def command(opts, parser):
     from rez.env import get_tools
     from rez.util import columnise
     import sys

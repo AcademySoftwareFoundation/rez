@@ -1,7 +1,6 @@
 import os.path
 from rez.backport.lru_cache import lru_cache
-from rez.util import print_warning_once, Common, encode_filesystem_name, \
-    propertycache, is_subdirectory
+from rez.util import print_warning_once, Common, propertycache, is_subdirectory
 from rez.resources import iter_resources, load_metadata
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
@@ -18,14 +17,12 @@ PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 """
 
 
+# TODO replace with more general resource cacher
 # cached package.* file reads
 @lru_cache(maxsize=1024)
 def _load_metadata(path):
     return load_metadata(path)
 
-
-def join_name(family_name, version):
-    return '%s-%s' % (family_name, version)
 
 def iter_package_families(name=None, paths=None):
     """Iterate through top-level `PackageFamily` instances."""
@@ -272,14 +269,8 @@ class Variant(PackageBase):
                 raise IndexError("variant index out of range")
 
             requires = requires + var_requires
-            dirs = [encode_filesystem_name(x) for x in var_requires]
+            dirs = [Requirement(x).safe_str() for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
-
-            # backwards compatibility with rez-1
-            if (not os.path.exists(self.root)) and (dirs != var_requires):
-                root = os.path.join(self.base, os.path.join(*var_requires))
-                if os.path.exists(root):
-                    self.root = root
 
         self.requires_ = [Requirement(x) for x in requires]
 

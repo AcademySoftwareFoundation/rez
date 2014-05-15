@@ -68,7 +68,7 @@ tmpdir:
 
 
 ###############################################################################
-# Plugins
+# Extensions
 ###############################################################################
 
 # Search path for shell plugins
@@ -85,6 +85,9 @@ release_hook_plugin_path: []
 
 # Search path for build-system plugins
 build_system_plugin_path: []
+
+# Search path for bind modules
+bind_module_path: []
 
 
 ###############################################################################

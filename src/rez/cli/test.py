@@ -71,7 +71,7 @@ def get_suites(opts):
     return suites
 
 
-def command(opts, parser=None):
+def command(opts, parser):
     import unittest
     import sys
 
