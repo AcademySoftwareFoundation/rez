@@ -25,7 +25,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez.settings import settings, Settings
-from rez.util import to_posixpath, propertycache
+from rez.util import to_posixpath, propertycache, Namespace
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor import yaml
@@ -149,19 +149,13 @@ def load_file(filename, loader=None):
 #------------------------------------------------------------------------------
 
 def register_resource(config_version, resource):
-    """Register a resource.
+    """Register a `Resource` class.
 
     This informs rez where to find a resource relative to the
     rez search path, and optionally how to validate its data.
 
     Args:
-        resource_key (str): unique name used to identify the resource. when
-            retrieving metadata from a file, the resource type can be
-            automatically determined from the optional path string, or
-            explicitly using the resource_key.
-        path_patterns (str or list of str): a pattern identifying where the
-            resource file resides relative to the rez search path.
-        metadata_schema (Schema): `Schema` instance used to validate metadata
+        resource (Resource): the resource class.
     """
     version_configs = _configs[config_version]
 
@@ -314,9 +308,10 @@ rex_command = Or(callable,     # python function
 Required = Schema
 
 class Resource(object):
-    """
-    Stores data regarding a particular resource, including its name, where it
-    should exist on disk, and how to validate its metadata.
+    """Stores data regarding a particular resource.
+
+    This includes its name, where it should exist on disk, and how to validate
+    its metadata.
     """
     key = None
     schema = None
@@ -351,7 +346,7 @@ class Resource(object):
         return pattern + '$'
 
     def filename_is_match(cls, filename):
-        "test if filename matches the configuration's path pattern"
+        "test if `filename` matches the resource's `path_patterns`"
         if not cls.path_pattern:
             return False
         if not hasattr(cls, '_compiled_pattern'):
@@ -368,6 +363,17 @@ class Resource(object):
         return cls._compiled_pattern.search(to_posixpath(filename))
 
     def load(self):
+        """load the resource data.
+
+        For a file this means use `load_file` to deserialize the data, and then
+        validate it against the `Schema` instance provided by the resource's
+        `schema` attribute.
+
+        This gives the resource a chance to do further modifications to the
+        loaded metadata (beyond what is possible or practical to do with the
+        schema), for example, changing the name of keys, or grafting on data
+        loaded from other reources.
+        """
         if os.path.isfile(self.path):
             data = load_file(self.path)
             if self.schema:
@@ -408,9 +414,9 @@ class ReleaseResource(Resource):
     })
 
 class VersionlessPackageResource(Resource):
-    '''
+    """
     The standard set of package metadata
-    '''
+    """
     key = 'package.versionless'
     # TODO: look into creating an {ext} token
     path_patterns = ['{name}/package.yaml', '{name}/package.py']
@@ -479,9 +485,12 @@ class PackageFamilyResource(Resource):
     path_patterns = ['{name}/']
 
 class ExternalPackageFamilyResource(VersionlessPackageResource):
-    '''
+    """
     A single package containing settings for multiple versions.
-    '''
+
+    An external package does not have a directory in which to put package
+    resources.
+    """
     key = 'package_family.external'
     path_patterns = ['{name}.yaml', '{name}.py']
 
@@ -533,11 +542,11 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
         return data
 
 class BuiltPackageResource(VersionedPackageResource):
-    '''
-    A package that is built with the intention to release.
-    Same as Version Package, but stricter about the existence of certain
-    metadata
-    '''
+    """A package that is built with the intention to release.
+
+    Same as `VersionedPackageResource`, but stricter about the existence of
+    certain metadata.
+    """
     key = 'package.built'
 
     @property
