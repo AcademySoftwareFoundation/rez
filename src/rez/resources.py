@@ -42,6 +42,26 @@ VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR
 # Base Classes and Functions
 #------------------------------------------------------------------------------
 
+def _process_python_objects(data):
+    """process special objects.
+
+    Changes made:
+      - functions with an `immediate` attribute that evaluates to True will be
+        called immediately.
+    """
+    # FIXME: the `immediate` attribute is used to tell us if a function
+    # should be executed immediately on load, but we need to work
+    # out the exact syntax.  maybe a 'rex' attribute that conveys
+    # the opposite meaning (i.e. defer execution until later) would be better.
+    # We could also provide a @rex decorator to set the attribute.
+    for k, v in data.iteritems():
+        if inspect.isfunction(v) and getattr(v, 'immediate', False):
+            data[k] = v()
+        elif isinstance(v, dict):
+            # because dicts are changed in place, we don't need to re-assign
+            _process_python_objects(v)
+    return data
+
 def load_python(stream):
     """load a python module into a metadata dictionary.
 
@@ -67,19 +87,16 @@ def load_python(stream):
     # TODO: support class-based design, where the attributes and methods of the
     # class become values in the dictionary
     g = __builtins__.copy()
+    g['Namespace'] = Namespace
     exec stream in g
     result = {}
     for k, v in g.iteritems():
-        if k != '__builtins__' and (k not in __builtins__ or __builtins__[k] != v):
-            # module-level functions which take no arguments will be called immediately
-            # FIXME: the immediate attribute is used to tell us if a function
-            # should be deferred or executed immediately, but we need to work
-            # out the exact syntax.  maybe a 'rex' attribute that conveys
-            # the opposite meaning would be better along with a @rex decorator
-            # to set the attribute.
-            if inspect.isfunction(v) and getattr(v, 'immediate', False):
-                v = v()
+        if k != '__builtins__' and \
+                (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
+    # add in any namespaces used
+    result.update(Namespace.get_namespace())
+    result = _process_python_objects(result)
     return result
 
 def load_yaml(stream):

@@ -826,3 +826,58 @@ class propertycache(object):
             return e.default
         setattr(instance, self.name, result)
         return result
+
+class Namespace(object):
+    """
+    A context manager for creating nested dictionaries::
+
+        foo = 0
+        bar = 'original'
+
+        with Namespace('first'):
+            foo = 1
+            bar = 'string'
+            spangle = 0
+
+            with Namespace('nested'):
+                foo = 2
+                say = 'yay!'
+
+            say = 'boo!'
+
+        with Namespace('second'):
+            foo = 3
+    """
+    namespace = {}
+
+    @classmethod
+    def get_namespace(cls):
+        """
+        Get the namesapce and reset it for another run
+        """
+        ns = cls.namespace
+        cls.namespace = {}
+        return ns
+
+    def __init__(self, key):
+        self.key = key
+        self.updates = {}
+
+    def __enter__(self):
+        f = sys._getframe(1)
+        self.locals = f.f_locals.copy()
+        self.parent_namespace = Namespace.namespace
+        Namespace.namespace = self.updates
+
+    def __exit__(self, *args):
+        f = sys._getframe(1)
+        # find what's new or changed
+        for key, value in f.f_locals.items():
+            if key not in self.locals or value != self.locals[key]:
+                self.updates[key] = value
+
+        self.parent_namespace[self.key] = self.updates
+        # restore
+        Namespace.namespace = self.parent_namespace
+        f.f_locals.clear()
+        f.f_locals.update(self.locals)
