@@ -723,14 +723,6 @@ class ResolvedContext(object):
 
             commands = pkg.metadata.get("commands")
             if commands:
-                # old-style, we convert it to a rex code string (ie python)
-                if isinstance(commands, list):
-                    if settings.warn("old_commands"):
-                        print_warning_once("%s is using old-style commands."
-                                           % pkg.qualified_name)
-
-                    commands = convert_old_commands(commands)
-
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string

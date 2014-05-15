@@ -307,10 +307,6 @@ version_range = Use(VersionRange)
 # TODO: inspect arguments of the function to confirm proper number?
 rex_command = Or(callable,     # python function
                  basestring,   # new-style rex
-                 [basestring]  # old-style rex
-                               # to automatically convert to new-style we could replace with
-                               #   And([basestring], Use(convert_old_commands))
-                               # but would need to figure out how to get the package name/path for warning message)
                  )
 
 # make an alias which just so happens to be the same number of characters as
@@ -419,6 +415,14 @@ class VersionlessPackageResource(Resource):
     # TODO: look into creating an {ext} token
     path_patterns = ['{name}/package.yaml', '{name}/package.py']
 
+    def convert_to_rex(self, commands):
+        from rez.util import convert_old_commands, print_warning_once
+        if settings.warn("old_commands"):
+            print_warning_once("%s is using old-style commands."
+                               % self.path)
+
+        return convert_old_commands(commands)
+
     @propertycache
     def schema(self):
         return Schema({
@@ -434,7 +438,9 @@ class VersionlessPackageResource(Resource):
             Optional('build_requires'):         [package_requirement],
             Optional('private_build_requires'): [package_requirement],
             Optional('variants'):               [[package_requirement]],
-            Optional('commands'):               rex_command
+            Optional('commands'):               Or(rex_command,
+                                                   And([basestring],
+                                                       Use(self.convert_to_rex)))
         })
 
     def load(self):
@@ -493,7 +499,9 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
                     Optional('build_requires'):         [package_requirement],
                     Optional('private_build_requires'): [package_requirement],
                     Optional('variants'):               [[package_requirement]],
-                    Optional('commands'):               rex_command
+                    Optional('commands'):               Or(rex_command,
+                                                           And([basestring],
+                                                               Use(self.convert_to_rex)))
                 }
             }
         })
