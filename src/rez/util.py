@@ -116,10 +116,13 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+def relative_path(from_path, to_path):
+    from_path = os.path.realpath(from_path)
+    to_path = os.path.realpath(to_path)
+    return os.path.relpath(from_path, to_path)
+
 def is_subdirectory(path, directory):
-    path = os.path.realpath(path)
-    directory = os.path.realpath(directory)
-    relative = os.path.relpath(path, directory)
+    relative = relative_path(path, directory)
     return not relative.startswith(os.pardir)
 
 def _get_rez_dist_path(dirname):

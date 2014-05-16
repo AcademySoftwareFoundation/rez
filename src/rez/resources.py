@@ -25,7 +25,7 @@ import inspect
 import re
 from collections import defaultdict
 from rez.settings import settings, Settings
-from rez.util import to_posixpath, propertycache, Namespace
+from rez.util import to_posixpath, propertycache, relative_path, Namespace
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor import yaml
@@ -124,30 +124,30 @@ metadata_loaders['yaml'] = load_yaml
 # will be going away
 metadata_loaders['txt'] = metadata_loaders['yaml']
 
-def get_file_loader(filename):
-    scheme = os.path.splitext(filename)[1]
+def get_file_loader(filepath):
+    scheme = os.path.splitext(filepath)[1][1:]
     try:
         return metadata_loaders[scheme]
     except KeyError:
         raise ResourceError("Unknown metadata storage scheme: %r" % scheme)
 
 # FIXME: add lru_cache here?
-def load_file(filename, loader=None):
+def load_file(filepath, loader=None):
     """Read metadata from a file.
 
     Determines the proper de-serialization scheme based on file extension.
 
     Args:
-        filename (str): Path to the file from which to read metadata.
+        filepath (str): Path to the file from which to read metadata.
         loader (callable, optional): callable which will take an open file
             handle and return a metadata dictionary.
     Returns:
         dict: the metadata
     """
     if loader is None:
-        loader = get_file_loader(filename)
+        loader = get_file_loader(filepath)
 
-    with open(filename, 'r') as f:
+    with open(filepath, 'r') as f:
         try:
             return loader(f)
         except Exception as e:
@@ -155,10 +155,10 @@ def load_file(filename, loader=None):
             # should be moved there.
             import traceback
             frames = traceback.extract_tb(sys.exc_traceback)
-            while frames and frames[0][0] != filename:
+            while frames and frames[0][0] != filepath:
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
-            raise PackageMetadataError(filename, "%s\n%s" % (str(e), stack))
+            raise PackageMetadataError(filepath, "%s\n%s" % (str(e), stack))
 
 
 #------------------------------------------------------------------------------
@@ -183,26 +183,6 @@ def register_resource(config_version, resource):
         raise ResourceError("resource already exists: %r" % resource.key)
 
     version_configs.append((resource.key, resource))
-
-def get_resource_by_key(config_version, key):
-    """Get a `Resource` instance directly, using the name of the resource
-    """
-    config_resources = _configs.get(config_version)
-    if config_resources:
-        return dict(config_resources)[key]
-
-def get_resource_by_filename(config_version, filename):
-    """Get a `Resource` instance indirectly, by comparing a filename to a
-    resource path pattern
-    """
-    config_resources = _configs.get(config_version)
-    if config_resources:
-        for resource_key, resource in config_resources:
-                if resource.filename_is_match(filename):
-                    return resource
-
-def list_resource_keys(config_version):
-    return [info['key'] for info in _configs[config_version]]
 
 class ResourceIterator(object):
     """Iterates over all occurrences of a resource, given a path pattern such
@@ -271,32 +251,6 @@ class ResourceIterator(object):
                 for res in child.walk(fullpath):
                     yield res
 
-def iter_resources(config_version, resource_keys, search_paths,
-                   **expansion_variables):
-    # convenience:
-    for k, v in expansion_variables.items():
-        if v is None:
-            expansion_variables.pop(k)
-    resources = [get_resource_by_key(config_version, key)
-                 for key in resource_keys]
-    for search_path in search_paths:
-        for resource in resources:
-            if resource.path_patterns:
-                for pattern in resource.path_patterns:
-                    it = ResourceIterator(pattern, expansion_variables)
-                    for path, variables in it.walk(search_path):
-                        yield resource(path, variables, search_path)
-
-def load_resource(config_version, resource_keys, search_paths,
-                  **expansion_variables):
-    it = iter_resources(config_version, resource_keys, search_paths,
-                        **expansion_variables)
-    result = list(it)
-    if not result:
-        raise ResourceError("Could not find resource")
-    if len(result) != 1:
-        raise ResourceError("Found more than one matching resource")
-    return result[0].load()
 
 #------------------------------------------------------------------------------
 # MetadataSchema Implementations
@@ -349,16 +303,14 @@ class Resource(object):
     schema = None
     path_patterns = None
 
-    def __init__(self, path, variables, search_path=None):
+    def __init__(self, path, variables, search_path):
         super(Resource, self).__init__()
         # the search path is here so that we can load sub-resources
-        if search_path:
-            self.search_path = [search_path]
-        else:
-            self.search_path = settings.packages_path
-
+        self.search_path = search_path
+        self.variables = variables
         self.path = path
         self.variables = variables
+        self.search_path = search_path
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
@@ -377,22 +329,55 @@ class Resource(object):
                                       '(?P<%s>%s)' % (key, value))
         return pattern + '$'
 
-    def filename_is_match(cls, filename):
-        "test if `filename` matches the resource's `path_patterns`"
-        if not cls.path_pattern:
-            return False
-        if not hasattr(cls, '_compiled_pattern'):
-            patterns = cls.path_patterns
-            if isinstance(patterns, basestring):
-                patterns = [patterns]
+    @classmethod
+    def from_filepath(cls, filepath):
+        if not cls.path_patterns:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "does not have path patterns" % (cls.key, filepath))
+        for path in settings.packages_path:
+            relpath = relative_path(filepath, path)
+            if not relpath.startswith(os.pardir):
+                break
+        else:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "file is not in settings.packages_path" % (cls.key, filepath))
 
-            patterns = [('/' + p) if not p.startswith('/') else p
-                        for p in patterns]
+        print relpath
+        result = cls.parse_filepath(relpath)
+        if result is None:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "file did not match path patterns" % (cls.key, filepath))
+        match_path, variables = result
+        search_path = filepath[:-len(match_path)]
+        return cls(filepath, variables, search_path)
 
-            pattern = '|'.join('(%s)' % cls._expand_pattern(p)
-                               for p in patterns)
-            cls._compiled_pattern = re.compile(pattern)
-        return cls._compiled_pattern.search(to_posixpath(filename))
+    @classmethod
+    def parse_filepath(cls, filepath):
+        """parse `filepath` against the resource's `path_patterns`.
+
+        Returns:
+            string: part of `filepath` that matched
+            dict: dictionary of variables
+        """
+        if not cls.path_patterns:
+            return
+
+        if os.path.isabs(filepath):
+            raise ResourceError("Error parsing file path. Path must be "
+                                "relative to rez search path: %s" % filepath)
+
+        if not hasattr(cls, '_compiled_patterns'):
+            cls._compiled_patterns = []
+            for pattern in cls.path_patterns:
+                pattern = cls._expand_pattern(pattern)
+                pattern = r'^' + pattern
+                reg = re.compile(pattern)
+                cls._compiled_patterns.append(reg)
+
+        for pattern in cls._compiled_patterns:
+            m = pattern.search(to_posixpath(filepath))
+            if m:
+                return m.group(0), m.groupdict()
 
     def load(self):
         """load the resource data.
@@ -433,7 +418,7 @@ class ReleaseInfoResource(Resource):
         Optional('SVN'): basestring
     })
 
-class ReleaseResource(Resource):
+class ReleaseDataResource(Resource):
     key = 'release.data'
     path_patterns = ['{name}/{version}/release.yaml']
     schema = Schema({
@@ -445,13 +430,10 @@ class ReleaseResource(Resource):
         Required('previous_revision'): basestring
     })
 
-class VersionlessPackageResource(Resource):
+class BasePackageResource(Resource):
     """
     The standard set of package metadata
     """
-    key = 'package.versionless'
-    # TODO: look into creating an {ext} token
-    path_patterns = ['{name}/package.yaml', '{name}/package.py']
 
     def convert_to_rex(self, commands):
         from rez.util import convert_old_commands, print_warning_once
@@ -483,24 +465,36 @@ class VersionlessPackageResource(Resource):
                                                        Use(self.convert_to_rex)))
         })
 
-    def load(self):
-        data = super(VersionlessPackageResource, self).load()
+    def load_timestamp(self):
         try:
-            release_data = load_resource(0, 'release.data',
-                                         [self.search_path], **self.variables)
+            release_data = load_resource(0,
+                                         resource_keys=['release.data'],
+                                         search_paths=[self.search_path],
+                                         **self.variables)
             timestamp = release_data.get('timestamp', 0)
         except ResourceError:
-            timestamp = load_resource(0, 'release.timestamp',
-                                      [self.search_path], **self.variables)
-        data['timestamp'] = timestamp
-        data['version'] = Version()
+            timestamp = load_resource(0,
+                                      resource_keys=['release.timestamp'],
+                                      search_paths=[self.search_path],
+                                      **self.variables)
+        return timestamp
         # # TODO: handle warning.  should we deal is_local here or in rez.packages?
         # if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
         #     print_warning_once("Package is not timestamped: %s" % str(self))
 
+class VersionlessPackageResource(BasePackageResource):
+    key = 'package.versionless'
+    # TODO: look into creating an {ext} token
+    path_patterns = ['{name}/package.yaml', '{name}/package.py']
+
+    def load(self):
+        data = super(VersionlessPackageResource, self).load()
+        data['timestamp'] = self.load_timestamp()
+        data['version'] = Version()
+
         return data
 
-class VersionedPackageResource(VersionlessPackageResource):
+class VersionedPackageResource(BasePackageResource):
     key = 'package.versioned'
     path_patterns = ['{name}/{version}/package.yaml',
                      '{name}/{version}/package.py']
@@ -515,11 +509,17 @@ class VersionedPackageResource(VersionlessPackageResource):
         })
         return Schema(schema)
 
+    def load(self):
+        data = super(VersionedPackageResource, self).load()
+        data['timestamp'] = self.load_timestamp()
+
+        return data
+
 class PackageFamilyResource(Resource):
     key = 'package_family.folder'
     path_patterns = ['{name}/']
 
-class ExternalPackageFamilyResource(VersionlessPackageResource):
+class ExternalPackageFamilyResource(BasePackageResource):
     """
     A single package containing settings for multiple versions.
 
@@ -552,9 +552,7 @@ class ExternalPackageFamilyResource(VersionlessPackageResource):
         return Schema(schema)
 
     def load(self):
-        # do not use super because VersionlessPackageResource loads the
-        # the timestamp from file
-        data = Resource.load(self)
+        data = super(ExternalPackageFamilyResource, self).load()
 
         # convert 'versions' from a list of `Version` to a list of complete
         # package data
@@ -583,6 +581,7 @@ class BuiltPackageResource(VersionedPackageResource):
     certain metadata.
     """
     key = 'package.built'
+    path_patterns = None
 
     @property
     def schema(self):
@@ -606,59 +605,120 @@ register_resource(0, ReleaseInfoResource)
 
 register_resource(0, ReleaseTimestampResource)
 
+register_resource(0, ReleaseDataResource)
+
 register_resource(0, PackageFamilyResource)
 
 register_resource(0, ExternalPackageFamilyResource)
 
 #------------------------------------------------------------------------------
-# Main Entry Point
+# Main Entry Points
 #------------------------------------------------------------------------------
 
-def load_metadata(filename, variables, resource_key=None, min_config_version=0,
-                  force_config_version=None):
-    """Return the metadata stored in a file and validate it against a metadata
-    configuration.
+def get_resource_class(config_version, key):
+    """Find a `Resource` class matching the provided `key`.
 
     Args:
-        filename (str): path to the file from which to load the metadata
-        resource_key (str, optional): explicitly set the resource used to
-            validate the loaded metadata instead of trying to determine it from
-            `filename`
-        min_config_version (int, optional): the minimum config version required
-        force_config_version (int, optional): used for legacy config files that
-            do not store a configuration version
+        key (str): Name of the resource.
     """
-    # metadata = load_file(filename)
-    # if isinstance(metadata, list):
-    #     config_version = metadata[0].get('config_version', None)
-    # elif isinstance(metadata, dict):
-    #     config_version = metadata.get('config_version', None)
-    # else:
-    #     raise MetadataError("Unknown type at metadata root")
+    config_resources = _configs.get(config_version)
+    if config_resources:
+        return dict(config_resources)[key]
 
-    # if config_version is None:
-    #     if force_config_version is not None:
-    #         config_version = force_config_version
-    #     else:
-    #         raise MetadataKeyError(filename, 'config_version')
-    # else:
-    #     if config_version < min_config_version:
-    #         raise MetadataError('configuration version %d '
-    #                             'is less than minimum requested: %d' % (config_version,
-    #                                                                     min_config_version))
 
-    # FIXME:!!!
-    config_version = 0
+def iter_resources(config_version, resource_keys, search_paths=None,
+                   **expansion_variables):
+    """Iterate over `Resource` instances.
 
-    if resource_key:
-        resource = get_resource_by_key(config_version, resource_key)
+    Args:
+        resource_keys (str or list of str): Name(s) of the type of `Resources`
+            to find.
+        search_paths (list of str, optional): List of root paths under which
+            to search for resources.  These typicall correspond to the rez
+            packages path.
+    """
+    search_paths = settings.default(search_paths, "packages_path")
+
+    # convenience:
+    for k, v in expansion_variables.items():
+        if v is None:
+            expansion_variables.pop(k)
+
+    if isinstance(resource_keys, basestring):
+        resource_keys = [resource_keys]
+
+    resources = [get_resource_class(config_version, key)
+                 for key in resource_keys]
+    for search_path in search_paths:
+        for resource_class in resources:
+            if resource_class.path_patterns:
+                for pattern in resource_class.path_patterns:
+                    it = ResourceIterator(pattern, expansion_variables)
+                    for path, variables in it.walk(search_path):
+                        yield resource_class(path, variables, search_path)
+
+def get_resource(config_version, filepath=None,  resource_keys=None,
+                 search_paths=None, **expansion_variables):
+    """Find and instantiate a `Resource` instance.
+
+    Errors if exactly one resource is not found.
+
+    Either provide `resource_keys` and `search_paths`, or just `filepath`.
+
+    Args:
+        keys (str or list of str): Name(s) of the type of `Resources`
+            to find.
+        search_paths (list of str, optional): List of root paths under which
+            to search for resources.  These typicall correspond to the rez
+            packages path.
+        filepath (str): file to load
+    """
+    if filepath is None and resource_keys is None:
+        raise ResourceError("You must provide either filepath or resource_keys")
+
+    result = []
+
+    if filepath:
+        config_resources = _configs.get(config_version)
+        assert config_resources
+
+        for resource_key, resource_class in config_resources:
+            try:
+                resource = resource_class.from_filepath(filepath)
+            except ResourceError, err:
+                pass
+            else:
+                result.append(resource)
     else:
-        resource = get_resource_by_filename(config_version, filename)
+        it = iter_resources(config_version, resource_keys, search_paths,
+                            **expansion_variables)
+        result = list(it)
 
-    if resource is None:
-        raise MetadataValueError(filename, 'config_version', config_version)
+    if not result:
+        raise ResourceError("Could not find resource")
+    if len(result) != 1:
+        raise ResourceError("Found more than one matching resource: %s" %
+                            ', '.join([r.key for r in result]))
+    return result[0]
 
-    return resource(filename, variables).load()
+def load_resource(config_version, filepath=None,  resource_keys=None,
+                  search_paths=None, **expansion_variables):
+    """Find a resource and load its metadata.
+
+    Errors if exactly one resource is not found.
+
+    Either provide `resource_keys` and `search_paths`, or just `filepath`.
+
+    Args:
+        keys (str or list of str): Name(s) of the type of `Resources`
+            to find.
+        search_paths (list of str, optional): List of root paths under which
+            to search for resources.  These typicall correspond to the rez
+            packages path.
+        filepath (str): file to load
+    """
+    return get_resource(config_version, filepath, resource_keys, search_paths,
+                        **expansion_variables).load()
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

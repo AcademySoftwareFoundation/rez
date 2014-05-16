@@ -6,7 +6,7 @@ from rez.resources import iter_resources, load_metadata, package_schema, Schema
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.exceptions import PackageNotFoundError
-from rez.settings import settings, Settings
+from rez.settings import settings
 
 
 """
@@ -16,14 +16,6 @@ PACKAGE_NAME_SEP_REGEX = re.compile(r'[-@#]')
 PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 """
 
-
-# cached package.* file reads
-# FIXME: we're no longer caching metadata loads
-@lru_cache(maxsize=1024)
-def _load_metadata(path, variables):
-    return load_metadata(path, variables)
-
-
 def join_name(family_name, version):
     return '%s-%s' % (family_name, version)
 
@@ -31,8 +23,6 @@ resource_classes = {}
 
 def iter_package_families(name=None, paths=None):
     """Iterate through top-level `PackageFamily` instances."""
-    paths = settings.default(paths, "packages_path")
-
     pkg_iter = iter_resources(0,  # configuration version
                               ['package_family.folder',
                                'package_family.external'],
@@ -204,14 +194,13 @@ class Package(PackageBase):
 
     schema = package_schema
 
-    def __init__(self, path, data=None):
+    def __init__(self, path, data):
         """Create a package.
 
         Args:
             path (str): Either a filepath to a package definition file, or a
                 path to the directory containing the definition file.
-            name (str): Name of the package, eg 'maya'.
-            version (Version): version of the package.
+            data (dict or callable):
         """
         super(Package, self).__init__(path, data)
 
@@ -267,8 +256,6 @@ class Variant(PackageBase):
         Args:
             path (str): Either a filepath to a package definition file, or a
                 path to the directory containing the definition file.
-            name (str): Name of the package, eg 'maya'.
-            version (Version): Version of the package.
             index (int): Zero-based variant index. If the package does not
                 contain variants, index should be set to None.
         """
