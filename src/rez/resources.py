@@ -106,7 +106,7 @@ def load_python(stream):
     return result
 
 def load_yaml(stream):
-    """load a yaml data into a metadata dictionary.
+    """load a yaml stream into a metadata dictionary.
 
     Args:
         stream (string, or open file object): stream of text which will be
@@ -300,27 +300,68 @@ package_schema = Schema({
 })
 
 class Resource(object):
-    """Stores data regarding a particular resource.
+    """Stores data regarding a particular data resource.
 
     This includes its name, where it should exist on disk, and how to validate
     its metadata.
+
+    The `Package` class expects its metadata to match a specific schema, but
+    each individual resource may have its own schema specific to the file it
+    loads, and that schema is able to modify the data on validation so that it
+    conforms to the Package's master schema.
+
+    As an additional conform layer, each resource implements a `load` method,
+    which is the main entry point for loading that resource's metadata. By
+    default, this method loads the contents of the resource file and validates
+    its contents using the Resource's schema, however, this method can also
+    be used to mutate the metadata and graft other resources into it.
+
+    In this paradigm, the responsibility for handling variability is shifted
+    from the package to the resource. This makes it easier to implement
+    different resources that present the same metatada interface to the
+    `Package` class.  As long as the `Package` class gets metadata that matches
+    its expected schema, it doesn't care how it gets there. The end result is
+    that it is much easier to add new file and folder structures to rez
+    without the need to modify the `Package` class, which remains a fairly
+    static public interface.
+
+    Attributes:
+        key (str): The name of the resource. Used with the resource utilty
+            functions `iter_resources`, `get_resource`, and `load_resource`
+            when the type of resource desired is known. This attribute must be
+            overridden by `Resource` subclasses.
+        schema (Schema, optional): schema defining the structure of the data
+            which will be loaded,
+        path_pattern (str, optional): a path str, relative to the rez search
+            path, containing variable tokens such as ``{name}``.  This is used
+            to determine if a resource is compatible with a given file path. If
+            a resource does not provide a `path_pattern` it will only be used
+            if explictly requested.
+        variable_regex (list of (str, str) pairs): the names of the tokens
+            which can be expanded within the `path_pattern` and their
+            corresponding regular expressions.
     """
     key = None
     schema = None
     path_pattern = None
-
     variable_regex = [('version', VERSION_REGSTR),
                       ('name', PACKAGE_NAME_REGSTR),
                       ('ext', _or_regex(metadata_loaders.keys()))
                       ]
 
     def __init__(self, path, variables, search_path):
+        """
+        Args:
+            path (str): path of the file to be loaded.
+            variables (dict): the values of the variables within
+                the resource `path_pattern`.
+            search_path (str): the root rez search directory, under which
+                `path` can be found.
+        """
         super(Resource, self).__init__()
-        # the search path is here so that we can load sub-resources
         self.search_path = search_path
         self.variables = variables
         self.path = path
-        self.variables = variables
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
@@ -367,8 +408,10 @@ class Resource(object):
     def parse_filepath(cls, filepath):
         """parse `filepath` against the resource's `path_pattern`.
 
+        Args:
+            filepath (str): path to parse.
         Returns:
-            string: part of `filepath` that matched
+            str: part of `filepath` that matched
             dict: dictionary of variables
         """
         if not cls.path_pattern:
@@ -441,7 +484,7 @@ class ReleaseDataResource(Resource):
 
 class BasePackageResource(Resource):
     """
-    The standard set of package metadata
+    Abstract class providing the standard set of package metadata.
     """
 
     def convert_to_rex(self, commands):
@@ -493,7 +536,6 @@ class BasePackageResource(Resource):
 
 class VersionlessPackageResource(BasePackageResource):
     key = 'package.versionless'
-    # TODO: look into creating an {ext} token
     path_pattern = '{name}/package.{ext}'
 
     def load(self):
@@ -527,19 +569,19 @@ class PackageFamilyResource(Resource):
     key = 'package_family.folder'
     path_pattern = '{name}/'  # trailing slash is required to denote folder
 
-class ExternalPackageFamilyResource(BasePackageResource):
+class CombinedPackageFamilyResource(BasePackageResource):
     """
     A single package containing settings for multiple versions.
 
     An external package does not have a directory in which to put package
     resources.
     """
-    key = 'package_family.external'
+    key = 'package_family.combined'
     path_pattern = '{name}.{ext}'
 
     @propertycache
     def schema(self):
-        schema = super(ExternalPackageFamilyResource, self).schema._schema
+        schema = super(CombinedPackageFamilyResource, self).schema._schema
         schema = schema.copy()
         schema.update({
             Optional('versions'): [Use(Version)],
@@ -560,7 +602,7 @@ class ExternalPackageFamilyResource(BasePackageResource):
         return Schema(schema)
 
     def load(self):
-        data = super(ExternalPackageFamilyResource, self).load()
+        data = super(CombinedPackageFamilyResource, self).load()
 
         # convert 'versions' from a list of `Version` to a list of complete
         # package data
@@ -620,7 +662,7 @@ register_resource(0, ReleaseDataResource)
 
 register_resource(0, PackageFamilyResource)
 
-register_resource(0, ExternalPackageFamilyResource)
+register_resource(0, CombinedPackageFamilyResource)
 
 #------------------------------------------------------------------------------
 # Main Entry Points

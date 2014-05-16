@@ -120,9 +120,10 @@ class ExternalPackageFamily(PackageFamily):
                               data=ver_data)
 
 class WithDataAccessors(type):
-    """Metaclass for creating property accessors to its metadata dictionary.
+    """Metaclass for adding properties to a class for accessing top-level keys
+    in its metadata dictionary.
 
-    The metadata keys are derived from the keys of the class's `schema` object.
+    The property names are derived from the keys of the class's `schema` object.
     """
     def __new__(cls, name, parents, members):
         for name in members['schema'].keys():
@@ -353,6 +354,6 @@ class Variant(PackageBase):
                              self.subpath)
 
 resource_classes['package_family.folder'] = PackageFamily
-resource_classes['package_family.external'] = ExternalPackageFamily
+resource_classes['package_family.combined'] = ExternalPackageFamily
 resource_classes['package.versionless'] = Package
 resource_classes['package.versioned'] = Package
