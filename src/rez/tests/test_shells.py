@@ -3,10 +3,11 @@ Test noninteractive invocation of each type of shell (bash etc), and ensure that
 their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 """
 
-from rez.shells import get_shell_types, create_shell
+from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
-from rez.tests.util import ShellDependentTest, TempdirMixin
+from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
+    install_dependent
 from rez.bind import hello_world
 import subprocess
 import tempfile
@@ -20,7 +21,7 @@ def _stdout(proc):
     return out_.strip()
 
 
-class TestShell(ShellDependentTest, TempdirMixin):
+class TestShells(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
@@ -33,6 +34,7 @@ class TestShell(ShellDependentTest, TempdirMixin):
             packages_path=[packages_path],
             implicit_packages=[],
             add_bootstrap_path=False,
+            warn_untimestamped=False,
             resolve_caching=False)
 
     @classmethod
@@ -43,8 +45,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
         return ResolvedContext(pkgs,
                                caching=False)
 
+    @shell_dependent
     def test_no_output(self):
-        sh = self.create_shell()
+        sh = create_shell()
         _,_,command,_ = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
@@ -56,8 +59,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
 
+    @shell_dependent
     def test_command(self):
-        sh = self.create_shell()
+        sh = create_shell()
         _,_,command,_ = sh.startup_capabilities(command=True)
 
         if command:
@@ -66,8 +70,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
+    @shell_dependent
     def test_command_returncode(self):
-        sh = self.create_shell()
+        sh = create_shell()
         _,_,command,_ = sh.startup_capabilities(command=True)
 
         if command:
@@ -77,8 +82,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
             p.wait()
             self.assertEqual(p.returncode, 66)
 
+    @shell_dependent
     def test_norc(self):
-        sh = self.create_shell()
+        sh = create_shell()
         _,norc,command,_ = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
@@ -88,8 +94,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
+    @shell_dependent
     def test_stdin(self):
-        sh = self.create_shell()
+        sh = create_shell()
         _,_,_,stdin = sh.startup_capabilities(stdin=True)
 
         if stdin:
@@ -100,8 +107,9 @@ class TestShell(ShellDependentTest, TempdirMixin):
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
+    @shell_dependent
     def test_rcfile(self):
-        sh = self.create_shell()
+        sh = create_shell()
         rcfile,_,command,_ = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
@@ -116,9 +124,10 @@ class TestShell(ShellDependentTest, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
+    @shell_dependent
+    @install_dependent
     def test_rez_command(self):
-        """Test that the Rez cli tools have been bound in the target env."""
-        sh = self.create_shell()
+        sh = create_shell()
         _,_,command,_ = sh.startup_capabilities(command=True)
 
         if command:
@@ -135,16 +144,15 @@ class TestShell(ShellDependentTest, TempdirMixin):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-
-    for shell in get_shell_types():
-        suite.addTest(TestShell("test_create_shell", shell))
-        suite.addTest(TestShell("test_no_output", shell))
-        suite.addTest(TestShell("test_command", shell))
-        suite.addTest(TestShell("test_command_returncode", shell))
-        suite.addTest(TestShell("test_norc", shell))
-        suite.addTest(TestShell("test_stdin", shell))
-        suite.addTest(TestShell("test_rcfile", shell))
-        suite.addTest(TestShell("test_rez_command", shell))
-
+    suite.addTest(TestShells("test_no_output"))
+    suite.addTest(TestShells("test_command"))
+    suite.addTest(TestShells("test_command_returncode"))
+    suite.addTest(TestShells("test_norc"))
+    suite.addTest(TestShells("test_stdin"))
+    suite.addTest(TestShells("test_rcfile"))
+    suite.addTest(TestShells("test_rez_command"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

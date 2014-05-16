@@ -129,7 +129,12 @@ def _get_rez_dist_path(dirname):
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         path = os.path.realpath(path)
         path = os.path.join(path, dirname)
-        assert(os.path.exists(path))
+
+        # the dist may not be available - this happens when unit tests are
+        # run from source
+        if not os.path.exists(path):
+            return None
+
     return path
 
 def get_bootstrap_path():

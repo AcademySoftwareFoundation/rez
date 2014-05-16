@@ -2,15 +2,15 @@ from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
-from rez.tests.util import ShellDependentTest, TempdirMixin
-from rez.shells import get_shell_types
+from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
+    install_dependent
 from rez.settings import settings
 import shutil
 import os.path
 
 
 
-class TestBuild(ShellDependentTest, TempdirMixin):
+class TestBuild(TestBase, TempdirMixin):
 
     @classmethod
     def setUpClass(cls):
@@ -27,6 +27,7 @@ class TestBuild(ShellDependentTest, TempdirMixin):
             packages_path=[cls.install_root],
             add_bootstrap_path=False,
             resolve_caching=False,
+            warn_untimestamped=False,
             implicit_packages=[])
 
     @classmethod
@@ -59,12 +60,6 @@ class TestBuild(ShellDependentTest, TempdirMixin):
         self.assertTrue(builder.build(install_path=self.install_root, install=True, clean=True))
         self.assertTrue(builder.build(install_path=self.install_root, install=True))
 
-    def test_build_whack(self):
-        """Test that a broken build fails correctly."""
-        working_dir = os.path.join(self.src_root, "whack")
-        builder = self._create_builder(working_dir)
-        self.assertFalse(builder.build(clean=True))
-
     def _test_build_build_util(self):
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
@@ -95,6 +90,16 @@ class TestBuild(ShellDependentTest, TempdirMixin):
         self._create_context("bah==2.1", "foo==1.0.0")
         self._create_context("bah==2.1", "foo==1.1.0")
 
+    @shell_dependent
+    @install_dependent
+    def test_build_whack(self):
+        """Test that a broken build fails correctly."""
+        working_dir = os.path.join(self.src_root, "whack")
+        builder = self._create_builder(working_dir)
+        self.assertFalse(builder.build(clean=True))
+
+    @shell_dependent
+    @install_dependent
     def test_builds(self):
         """Test an interdependent set of builds."""
         self._test_build_build_util()
@@ -107,11 +112,10 @@ class TestBuild(ShellDependentTest, TempdirMixin):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-
-    for shell in get_shell_types():
-        suite.addTest(TestBuild("test_create_shell", shell))
-        suite.addTest(TestBuild("test_build_whack", shell))
-        suite.addTest(TestBuild("test_builds", shell))
-
+    suite.addTest(TestBuild("test_build_whack"))
+    suite.addTest(TestBuild("test_builds"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

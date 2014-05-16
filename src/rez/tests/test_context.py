@@ -21,6 +21,7 @@ class TestContext(TestBase, TempdirMixin):
             packages_path=[packages_path],
             implicit_packages=[],
             add_bootstrap_path=False,
+            warn_untimestamped=False,
             resolve_caching=False)
 
     @classmethod
@@ -80,3 +81,6 @@ def get_test_suites():
     suite.addTest(TestContext("test_suite"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

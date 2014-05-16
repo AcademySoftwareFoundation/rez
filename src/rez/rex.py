@@ -620,11 +620,14 @@ class NamespaceFormatter(Formatter):
         it represents a named argument in 'kwargs'.
         """
         if isinstance(key, str):
-            try:
-                # Check explicitly passed arguments first
-                return kwds[key]
-            except KeyError:
-                return self.namespace[key]
+            if key:
+                try:
+                    # Check explicitly passed arguments first
+                    return kwds[key]
+                except KeyError:
+                    return self.namespace[key]
+            else:
+                raise ValueError("zero length field name in format")
         else:
             return Formatter.get_value(self, key, args, kwds)
 
@@ -784,7 +787,11 @@ class RexExecutor(object):
         self.bind('env', AttrDictWrapper(self.environ))
 
         if bind_rez:
-            self.environ["PATH"] = get_script_path()
+            script_path = get_script_path()
+            # may not be available, this happens when unit tests are run from
+            # source, in this case just silently skip rez binding
+            if script_path:
+                self.environ["PATH"] = script_path
 
         for cmd,func in self.manager.get_public_methods():
             self.bind(cmd, func)

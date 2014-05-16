@@ -293,3 +293,6 @@ def get_test_suites():
     suite.addTest(TestRex("test_7"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()
