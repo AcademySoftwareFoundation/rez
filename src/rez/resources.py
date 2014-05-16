@@ -38,6 +38,12 @@ PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = '%(comp)s(?:[.]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
+def _split_path(path):
+    return path.rstrip(os.path.sep).split(os.path.sep)
+
+def _or_regex(strlist):
+    return '|'.join('(%s)' % e for e in strlist)
+
 #------------------------------------------------------------------------------
 # Base Classes and Functions
 #------------------------------------------------------------------------------
@@ -303,6 +309,11 @@ class Resource(object):
     schema = None
     path_patterns = None
 
+    variable_regex = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
+                      ('ext', _or_regex(metadata_loaders.keys()))
+                      ]
+
     def __init__(self, path, variables, search_path):
         super(Resource, self).__init__()
         # the search path is here so that we can load sub-resources
@@ -310,21 +321,18 @@ class Resource(object):
         self.variables = variables
         self.path = path
         self.variables = variables
-        self.search_path = search_path
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
                                self.variables)
 
-    @staticmethod
-    def _expand_pattern(pattern):
+    @classmethod
+    def _expand_pattern(cls, pattern):
         "expand variables in a search pattern with regular expressions"
         pattern = re.escape(pattern)
-        expansions = [('version', VERSION_REGSTR),
-                      ('name', PACKAGE_NAME_REGSTR),
-                      ('search_path', '|'.join('(%s)' % p
-                       for p in settings.packages_path))]
-        for key, value in expansions:
+        # FIXME: determine if this search_path expansion is necessary
+        expansions = [('search_path', _or_regex(settings.packages_path))]
+        for key, value in cls.variable_regex + expansions:
             pattern = pattern.replace(r'\{%s\}' % key,
                                       '(?P<%s>%s)' % (key, value))
         return pattern + '$'
@@ -333,16 +341,20 @@ class Resource(object):
     def from_filepath(cls, filepath):
         if not cls.path_patterns:
             raise ResourceError("Cannot create resource %r from %r: "
-                                "does not have path patterns" % (cls.key, filepath))
-        for path in settings.packages_path:
-            relpath = relative_path(filepath, path)
-            if not relpath.startswith(os.pardir):
+                                "does not have path patterns" % (cls.key,
+                                                                 filepath))
+        # create a relative path from filepath without hitting the disk
+        path_parts = _split_path(filepath)
+        for search_path in settings.packages_path:
+            search_parts = _split_path(search_path)
+            n = len(search_parts)
+            if n < len(path_parts) and path_parts[:n] == search_parts:
+                relpath = os.path.sep.join(path_parts[n:])
                 break
         else:
             raise ResourceError("Cannot create resource %r from %r: "
                                 "file is not in settings.packages_path" % (cls.key, filepath))
 
-        print relpath
         result = cls.parse_filepath(relpath)
         if result is None:
             raise ResourceError("Cannot create resource %r from %r: "
@@ -485,7 +497,7 @@ class BasePackageResource(Resource):
 class VersionlessPackageResource(BasePackageResource):
     key = 'package.versionless'
     # TODO: look into creating an {ext} token
-    path_patterns = ['{name}/package.yaml', '{name}/package.py']
+    path_patterns = ['{name}/package.{ext}']
 
     def load(self):
         data = super(VersionlessPackageResource, self).load()
@@ -496,8 +508,7 @@ class VersionlessPackageResource(BasePackageResource):
 
 class VersionedPackageResource(BasePackageResource):
     key = 'package.versioned'
-    path_patterns = ['{name}/{version}/package.yaml',
-                     '{name}/{version}/package.py']
+    path_patterns = ['{name}/{version}/package.{ext}']
 
     @propertycache
     def schema(self):
@@ -517,7 +528,7 @@ class VersionedPackageResource(BasePackageResource):
 
 class PackageFamilyResource(Resource):
     key = 'package_family.folder'
-    path_patterns = ['{name}/']
+    path_patterns = ['{name}/']  # trailing slash is required to denote folder
 
 class ExternalPackageFamilyResource(BasePackageResource):
     """
@@ -527,7 +538,7 @@ class ExternalPackageFamilyResource(BasePackageResource):
     resources.
     """
     key = 'package_family.external'
-    path_patterns = ['{name}.yaml', '{name}.py']
+    path_patterns = ['{name}.{ext}']
 
     @propertycache
     def schema(self):
@@ -579,6 +590,9 @@ class BuiltPackageResource(VersionedPackageResource):
 
     Same as `VersionedPackageResource`, but stricter about the existence of
     certain metadata.
+
+    This resource has no path_patterns because it is striclty for validation
+    during the build process.
     """
     key = 'package.built'
     path_patterns = None
@@ -663,15 +677,19 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
 
     Errors if exactly one resource is not found.
 
-    Either provide `resource_keys` and `search_paths`, or just `filepath`.
+    Provide `resource_keys` and `search_paths` and `expansion_variables`, or
+    just `filepath`.
 
     Args:
-        keys (str or list of str): Name(s) of the type of `Resources`
+        resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
         search_paths (list of str, optional): List of root paths under which
             to search for resources.  These typicall correspond to the rez
             packages path.
         filepath (str): file to load
+        **expansion_variables (optional): variables which should be used to
+            fill the resource's path patterns (e.g. to expand the variables in
+            braces in the string '{name}/{version}/package.{ext}')
     """
     if filepath is None and resource_keys is None:
         raise ResourceError("You must provide either filepath or resource_keys")
@@ -707,15 +725,19 @@ def load_resource(config_version, filepath=None,  resource_keys=None,
 
     Errors if exactly one resource is not found.
 
-    Either provide `resource_keys` and `search_paths`, or just `filepath`.
+    Provide `resource_keys` and `search_paths` and `expansion_variables`, or
+    just `filepath`.
 
     Args:
-        keys (str or list of str): Name(s) of the type of `Resources`
+        resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
         search_paths (list of str, optional): List of root paths under which
             to search for resources.  These typicall correspond to the rez
             packages path.
         filepath (str): file to load
+        **expansion_variables (optional): variables which should be used to
+            fill the resource's path patterns (e.g. to expand the variables in
+            braces in the string '{name}/{version}/package.{ext}')
     """
     return get_resource(config_version, filepath, resource_keys, search_paths,
                         **expansion_variables).load()
