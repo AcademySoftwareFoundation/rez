@@ -307,7 +307,7 @@ class Resource(object):
     """
     key = None
     schema = None
-    path_patterns = None
+    path_pattern = None
 
     variable_regex = [('version', VERSION_REGSTR),
                       ('name', PACKAGE_NAME_REGSTR),
@@ -339,7 +339,7 @@ class Resource(object):
 
     @classmethod
     def from_filepath(cls, filepath):
-        if not cls.path_patterns:
+        if not cls.path_pattern:
             raise ResourceError("Cannot create resource %r from %r: "
                                 "does not have path patterns" % (cls.key,
                                                                  filepath))
@@ -365,31 +365,28 @@ class Resource(object):
 
     @classmethod
     def parse_filepath(cls, filepath):
-        """parse `filepath` against the resource's `path_patterns`.
+        """parse `filepath` against the resource's `path_pattern`.
 
         Returns:
             string: part of `filepath` that matched
             dict: dictionary of variables
         """
-        if not cls.path_patterns:
+        if not cls.path_pattern:
             return
 
         if os.path.isabs(filepath):
             raise ResourceError("Error parsing file path. Path must be "
                                 "relative to rez search path: %s" % filepath)
 
-        if not hasattr(cls, '_compiled_patterns'):
-            cls._compiled_patterns = []
-            for pattern in cls.path_patterns:
-                pattern = cls._expand_pattern(pattern)
-                pattern = r'^' + pattern
-                reg = re.compile(pattern)
-                cls._compiled_patterns.append(reg)
+        if not hasattr(cls, '_compiled_pattern'):
+            pattern = cls._expand_pattern(pattern)
+            pattern = r'^' + pattern
+            reg = re.compile(pattern)
+            cls._compiled_pattern = reg
 
-        for pattern in cls._compiled_patterns:
-            m = pattern.search(to_posixpath(filepath))
-            if m:
-                return m.group(0), m.groupdict()
+        m = cls._compiled_pattern.search(to_posixpath(filepath))
+        if m:
+            return m.group(0), m.groupdict()
 
     def load(self):
         """load the resource data.
@@ -416,13 +413,13 @@ class Resource(object):
 class ReleaseTimestampResource(Resource):
     # Deprecated
     key = 'release.timestamp'
-    path_patterns = ['{name}/{version}/.metadata/release_time.txt']
+    path_pattern = '{name}/{version}/.metadata/release_time.txt'
     schema = Use(int)
 
 class ReleaseInfoResource(Resource):
     # Deprecated
     key = 'release.info'
-    path_patterns = ['{name}/{version}/.metadata/info.txt']
+    path_pattern = '{name}/{version}/.metadata/info.txt'
     schema = Schema({
         Required('ACTUAL_BUILD_TIME'): int,
         Required('BUILD_TIME'): int,
@@ -432,7 +429,7 @@ class ReleaseInfoResource(Resource):
 
 class ReleaseDataResource(Resource):
     key = 'release.data'
-    path_patterns = ['{name}/{version}/release.yaml']
+    path_pattern = '{name}/{version}/release.yaml'
     schema = Schema({
         Required('timestamp'): int,
         Required('revision'): basestring,
@@ -497,7 +494,7 @@ class BasePackageResource(Resource):
 class VersionlessPackageResource(BasePackageResource):
     key = 'package.versionless'
     # TODO: look into creating an {ext} token
-    path_patterns = ['{name}/package.{ext}']
+    path_pattern = '{name}/package.{ext}'
 
     def load(self):
         data = super(VersionlessPackageResource, self).load()
@@ -508,7 +505,7 @@ class VersionlessPackageResource(BasePackageResource):
 
 class VersionedPackageResource(BasePackageResource):
     key = 'package.versioned'
-    path_patterns = ['{name}/{version}/package.{ext}']
+    path_pattern = '{name}/{version}/package.{ext}'
 
     @propertycache
     def schema(self):
@@ -528,7 +525,7 @@ class VersionedPackageResource(BasePackageResource):
 
 class PackageFamilyResource(Resource):
     key = 'package_family.folder'
-    path_patterns = ['{name}/']  # trailing slash is required to denote folder
+    path_pattern = '{name}/'  # trailing slash is required to denote folder
 
 class ExternalPackageFamilyResource(BasePackageResource):
     """
@@ -538,7 +535,7 @@ class ExternalPackageFamilyResource(BasePackageResource):
     resources.
     """
     key = 'package_family.external'
-    path_patterns = ['{name}.{ext}']
+    path_pattern = '{name}.{ext}'
 
     @propertycache
     def schema(self):
@@ -591,11 +588,11 @@ class BuiltPackageResource(VersionedPackageResource):
     Same as `VersionedPackageResource`, but stricter about the existence of
     certain metadata.
 
-    This resource has no path_patterns because it is striclty for validation
+    This resource has no path_pattern because it is striclty for validation
     during the build process.
     """
     key = 'package.built'
-    path_patterns = None
+    path_pattern = None
 
     @property
     def schema(self):
@@ -665,11 +662,11 @@ def iter_resources(config_version, resource_keys, search_paths=None,
                  for key in resource_keys]
     for search_path in search_paths:
         for resource_class in resources:
-            if resource_class.path_patterns:
-                for pattern in resource_class.path_patterns:
-                    it = ResourceIterator(pattern, expansion_variables)
-                    for path, variables in it.walk(search_path):
-                        yield resource_class(path, variables, search_path)
+            if resource_class.path_pattern:
+                pattern = resource_class.path_pattern
+                it = ResourceIterator(pattern, expansion_variables)
+                for path, variables in it.walk(search_path):
+                    yield resource_class(path, variables, search_path)
 
 def get_resource(config_version, filepath=None,  resource_keys=None,
                  search_paths=None, **expansion_variables):
