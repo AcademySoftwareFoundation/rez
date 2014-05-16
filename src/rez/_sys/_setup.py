@@ -97,7 +97,7 @@ def post_install(install_base_dir, install_scripts_dir, scripts):
 
     # create bootstrap packages
     def _bind(name):
-        import importlib
+        from rez.vendor import importlib 
         module = importlib.import_module("rez.bind.%s" % name)
         print "creating bootstrap package for %s..." % name
         module.bind(bootstrap_path)
