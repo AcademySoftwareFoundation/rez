@@ -1,13 +1,14 @@
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez import plugin_factory
+from rez.contrib.animallogic.overrides.plugins import release_vcs_git as overrides
 import os.path
 import re
 import sys
 
 
 
-class GitReleaseVCS(ReleaseVCS):
+class GitReleaseVCS(ReleaseVCS, overrides.AnimalLogicGitReleaseVCSMixin):
     executable = ReleaseVCS.find_executable('git')
 
     @classmethod

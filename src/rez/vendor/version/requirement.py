@@ -1,5 +1,6 @@
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.util import _Common
+from rez.contrib.animallogic.overrides import requirement as overrides
 import re
 
 
@@ -194,6 +195,7 @@ class Requirement(_Common):
         """True if the requirement is a conflict requirement, eg "!foo"."""
         return self.conflict_
 
+    @overrides.safe_str
     def safe_str(self):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to

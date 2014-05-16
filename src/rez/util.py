@@ -19,7 +19,7 @@ import threading
 import subprocess as sp
 from rez import module_root_path
 from rez.vendor import yaml
-
+from rez.contrib.animallogic.overrides import util as overrides
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
@@ -422,6 +422,7 @@ def render_template(template, **variables):
     # TODO support template plugins, probably using Jinja2
     return templ % variables
 
+@overrides.encode_filesystem_name
 def encode_filesystem_name(input_str):
     """Encodes an arbitrary unicode string to a generic filesystem-compatible
     non-unicode filename.
@@ -494,6 +495,7 @@ def encode_filesystem_name(input_str):
 _FILESYSTEM_TOKEN_RE = re.compile(r'(?P<as_is>[a-z0-9.-])|(?P<underscore>__)|_(?P<uppercase>[a-z])|_(?P<N>[0-9])')
 _HEX_RE = re.compile('[0-9a-f]+$')
 
+@overrides.decode_filesystem_name
 def decode_filesystem_name(filename):
     """Decodes a filename encoded using the rules given in encode_filesystem_name
     to a unicode string.
@@ -567,6 +569,7 @@ def test_encode_decode():
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
 
 
+@overrides.convert_old_commands
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     def _en(s):
@@ -593,11 +596,6 @@ def convert_old_commands(commands, annotate=True):
 
             if var == "CMAKE_MODULE_PATH":
                 value = value.replace(';', os.pathsep)
-                value = value.replace('\'', '')
-            elif var in ["AL_MAYA_AUTO_LOADVERSIONEDTOOL","AL_MAYA_AUTO_PYEVAL"]:
-                value = value.replace(' ', os.pathsep)
-            elif var in ["ARTISTTOOLPALETTE_TOOLS"]:
-                value = value.replace(",", os.pathsep)
 
             parts = value.split(os.pathsep)
             parts = [x for x in parts if x]

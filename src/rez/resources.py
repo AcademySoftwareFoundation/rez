@@ -29,6 +29,7 @@ from rez.util import to_posixpath
 from rez.exceptions import PackageMetadataError
 from rez.vendor.version.version import Version
 from rez.vendor import yaml
+from rez.contrib.animallogic.overrides import resources as overrides
 
 _configs = defaultdict(list)
 
@@ -442,6 +443,7 @@ class MetadataSchema(object):
                 return False
         return True
 
+    @overrides.check_node
     def check_node(self, node, refnode, id=''):
         """
         check a node against the reference node. checks type and existence.

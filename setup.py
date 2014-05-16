@@ -58,7 +58,8 @@ scripts = [
     "rez-bootstrap",
     "bez",
     "_rez_fwd",
-    "_rez_csh_complete"
+    "_rez_csh_complete",
+    "rez-unleash"
 ]
 
 # post install hook. Don't believe google - this is how you do it.
@@ -119,7 +120,8 @@ setup(
             find_files('_sys', '*.csh') + \
             find_files('_sys', '*.sh') + \
             find_files('plugins/build_system/cmake_files', '*.cmake') + \
-            find_files('tests/data', '*.*')
+            find_files('tests/data', '*.*') + \
+            find_files('contrib/animallogic/bin', '_unleasher')
     },
     classifiers = [
         "Development Status :: 3 - Alpha",
