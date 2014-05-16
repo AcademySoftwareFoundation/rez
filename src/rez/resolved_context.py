@@ -40,7 +40,7 @@ class ResolvedContext(object):
     serialize_version = 0
 
     def __init__(self, package_requests, quiet=False, verbosity=0,
-        timestamp=0, building=False, caching=None, package_paths=None,
+        timestamp=None, building=False, caching=None, package_paths=None,
         add_implicit_packages=True, add_bootstrap_path=None):
         """Perform a package resolve, and store the result.
 
@@ -65,7 +65,7 @@ class ResolvedContext(object):
         self.load_path = None
 
         # resolving settings
-        self.timestamp = timestamp
+        self.timestamp = timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
         self.caching = settings.default(caching, "resolve_caching")
@@ -692,7 +692,6 @@ class ResolvedContext(object):
     def _execute(self, executor):
         # bind various info to the execution context
         executor.setenv("REZ_USED", self.rez_path)
-        # TODO FIXME this should be actual timestamp used even if timestamp not specified
         executor.setenv("REZ_REQUEST_TIME", self.timestamp)
 
         resolved_pkgs = self.resolved_packages or []

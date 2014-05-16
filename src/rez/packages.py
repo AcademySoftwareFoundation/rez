@@ -38,7 +38,7 @@ def iter_package_families(name=None, paths=None):
             yield PackageFamily(variables['name'], path)
 
 
-def iter_packages(name, range=None, timestamp=None, paths=None):
+def iter_packages(name, range=None, timestamp=None, paths=None, descending=False):
     """Iterate over `Package` instances, sorted by version.
 
     Packages of the same name and version earlier in the search path take
@@ -51,6 +51,7 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
         timestamp: Any package newer than this time epoch is ignored.
         paths: List of paths to search for pkgs, defaults to
             settings.packages_path.
+        descending: If True, return packages in descending order.
 
     Returns:
         Package object iterator.
@@ -68,7 +69,7 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
                 consumed.add(pkgname)
                 packages.append(pkg)
 
-    packages = sorted(packages, key=lambda x: x.version)
+    packages = sorted(packages, key=lambda x: x.version, reverse=descending)
     return iter(packages)
 
 
