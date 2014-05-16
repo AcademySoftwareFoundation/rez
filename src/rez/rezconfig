@@ -46,7 +46,7 @@ local_packages_path: '~/packages'
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-release_packages_path: '/film/tools/packages'
+release_packages_path: '~/packages/.unleash'
 
 # The path that rez-install will deploy external packages to. For production use,
 # you will probably want to change this to a site-wide location.
