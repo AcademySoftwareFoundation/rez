@@ -1,8 +1,9 @@
-from rez.build_process import LocalSequentialBuildProcess
-from rez.build_system import create_build_system
+'''
+Build a package from source.
+'''
 import sys
 import os
-
+from rez.vendor import argparse
 
 
 def parse_build_args(args, parser):
@@ -31,8 +32,44 @@ def parse_build_args(args, parser):
     else:
         return ([], [])
 
+def add_build_system_args(parser):
+    from rez.build_system import get_valid_build_systems
+    clss = get_valid_build_systems(os.getcwd())
 
-def command(opts, parser=None):
+    if len(clss) == 1:
+        cls = iter(clss).next()
+        cls.bind_cli(parser)
+    elif clss:
+        types = [x.name() for x in clss]
+        parser.add_argument("-b", "--build-system", dest="buildsys",
+                            type=str, choices=types,
+                            help="the build system to use.")
+
+def add_extra_build_args(parser):
+    parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
+                        help="extra arguments to build system. To pass args to "
+                        "a child build system also, list them after another "
+                        "'--' arg.")
+
+def setup_parser(parser):
+    parser.add_argument("-c", "--clean", action="store_true",
+                        help="clear the current build before rebuilding.")
+    parser.add_argument("-i", "--install", action="store_true",
+                        help="install the build to the local packages path. "
+                        "Use --prefix to choose a custom install path.")
+    parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
+                        help="install to a custom path")
+    parser.add_argument("-s", "--scripts", action="store_true",
+                        help="create build scripts rather than performing the "
+                        "full build. Running these scripts will place you into "
+                        "a build environment, where you can invoke the build "
+                        "system directly.")
+    add_extra_build_args(parser)
+    add_build_system_args(parser)
+
+def command(opts, parser):
+    from rez.build_process import LocalSequentialBuildProcess
+    from rez.build_system import create_build_system
     working_dir = os.getcwd()
     build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 

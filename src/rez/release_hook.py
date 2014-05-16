@@ -1,5 +1,6 @@
 from rez.exceptions import ReleaseHookError
 from rez.util import print_warning_once
+from rez.packages import Package
 
 
 
@@ -41,19 +42,19 @@ class ReleaseHook(object):
             source_path: Path containing source that was released.
         """
         self.source_path = source_path
+        self.package = Package(source_path)
 
-    def pre_release(self, package, user, install_path, release_message=None,
-                     changelog=None, previous_version=None, previous_revision=None):
+    def pre_release(self, user, install_path, release_message=None,
+                    changelog=None, previous_version=None, previous_revision=None):
         """Pre-release hook.
 
         Args:
-            package: String describing the package, eg 'foo-1.0.0'.
             user: Name of person who did the release.
             install_path: Directory the package was installed into.
             release_message: User-supplied release message.
             changelog: List of strings describing changes since last release.
-            previous_version: Version of previously-release package, None if
-                no previous release.
+            previous_version: Version object - previously-release package, or
+                None if no previous release.
             previous_revision: Revision of previously-releaved package (type
                 depends on repo - see ReleaseVCS.get_current_revision().
 
@@ -62,12 +63,11 @@ class ReleaseHook(object):
         """
         return True
 
-    def post_release(self, package, user, install_path, release_message=None,
+    def post_release(self, user, install_path, release_message=None,
                      changelog=None, previous_version=None, previous_revision=None):
         """Post-release hook.
 
         Args:
-            package: String describing the package, eg 'foo-1.0.0'.
             user: Name of person who did the release.
             install_path: Directory the package was installed into.
             release_message: User-supplied release message.

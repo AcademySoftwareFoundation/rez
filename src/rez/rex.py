@@ -1,4 +1,3 @@
-from __future__ import with_statement
 import os
 import subprocess
 import sys
@@ -15,9 +14,9 @@ import getpass
 from rez import module_root_path
 from rez.system import system
 from rez.settings import settings
+from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path
-from rez.exceptions import PkgCommandError
 
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';', 'AL_MAYA_AUTO_LOADVERSIONEDTOOL':' ', 'AL_MAYA_AUTO_PYEVAL':' ', 'ARTISTTOOLPALETTE_TOOLS':','}
@@ -268,9 +267,10 @@ class ActionManager(object):
 
     def getenv(self, key):
         try:
-            return self.environ.get(key, self.parent_environ[key])
+            return self.environ[key] if key in self.environ \
+                else self.parent_environ[key]
         except KeyError:
-            raise PkgCommandError("Referenced undefined environment variable: %s" % key)
+            raise RexUndefinedVariableError("Referenced undefined environment variable: %s" % key)
 
     def setenv(self, key, value):
         # environment variables may be left unexpanded in values passed to interpreter functions
@@ -320,37 +320,40 @@ class ActionManager(object):
         # environment variables are expanded when storing in the environ dict
         expanded_value = self._expand(unexpanded_value)
 
-        self.actions.append(action(key, unexpanded_value))
-
+        # expose env-vars from parent env if explicitly told to do so
         if (key not in self.environ) and \
             ((self.parent_variables is True) or (key in self.parent_variables)):
             self.environ[key] = self.parent_environ.get(key, '')
             self.interpreter._saferefenv(key)
 
+        # *pend or setenv depending on whether this is first reference to the var
         if key in self.environ:
+            self.actions.append(action(key, unexpanded_value))
             parts = self.environ[key].split(self._env_sep(key))
             unexpanded_values = self._env_sep(key).join( \
                 addfunc(unexpanded_value, [self._keytoken(key)]))
             expanded_values = self._env_sep(key).join(addfunc(expanded_value, parts))
             self.environ[key] = expanded_values
         else:
+            self.actions.append(Setenv(key, unexpanded_value))
             self.environ[key] = expanded_value
+            expanded_values = expanded_value
             unexpanded_values = unexpanded_value
+            interpfunc = None
 
-        try:
-            if self.interpreter.expand_env_vars:
-                value = expanded_value
-            else:
-                value = unexpanded_value
-            interpfunc(key, value)
-        except NotImplementedError:
-            # if the interpreter does not implement prependenv/appendenv specifically,
-            # we can simply call setenv with the computed value.  Currently only
-            # python requires a special prependenv/appendenv
-            if self.interpreter.expand_env_vars:
-                value = expanded_values
-            else:
-                value = unexpanded_values
+        applied = False
+        if interpfunc:
+            value = expanded_value if self.interpreter.expand_env_vars \
+                else unexpanded_value
+            try:
+                interpfunc(key, value)
+                applied = True
+            except NotImplementedError:
+                pass
+
+        if not applied:
+            value = expanded_values if self.interpreter.expand_env_vars \
+                else unexpanded_values
             self.interpreter.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -418,14 +421,11 @@ class ActionInterpreter(object):
     expand_env_vars = False
 
     def get_output(self, manager):
-        '''
-        Returns any implementation specific data.
+        """Returns any implementation specific data.
 
-        Parameters
-        ----------
-        manager: ActionManager
-            the manager of this interpreter
-        '''
+        Args:
+            manager: ActionManager the manager of this interpreter
+        """
         raise NotImplementedError
 
     # --- commands
@@ -440,15 +440,13 @@ class ActionInterpreter(object):
         raise NotImplementedError
 
     def prependenv(self, key, value):
-        '''
-        this is optional, but if it is not implemented, you must implement setenv
-        '''
+        """This is optional, but if it is not implemented, you must
+        implement setenv."""
         raise NotImplementedError
 
     def appendenv(self, key, value):
-        '''
-        this is optional, but if it is not implemented, you must implement setenv
-        '''
+        """This is optional, but if it is not implemented, you must
+        implement setenv."""
         raise NotImplementedError
 
     def alias(self, key, value):
@@ -523,7 +521,10 @@ class Python(ActionInterpreter):
         return manager.environ
 
     def setenv(self, key, value):
-        self._env_var_changed(key)
+        if self.update_session:
+            settings.env_var_changed(key)
+            if key == 'PYTHONPATH':
+                sys.path = value.split(os.pathsep)
 
     def unsetenv(self, key):
         self._env_var_changed(key)
@@ -557,9 +558,9 @@ class Python(ActionInterpreter):
 
         if not hasattr(args, '__iter__'):
             import shlex
-            args = shlex.split(value)
+            args = shlex.split(args)
 
-        return subprocess.Popen(value, env=self.target_environ, **subproc_kwargs)
+        return subprocess.Popen(args, env=self.target_environ, **subproc_kwargs)
 
     def command(self, value):
         if self.passive:
@@ -569,7 +570,7 @@ class Python(ActionInterpreter):
             p.communicate()
         except Exception as e:
             cmd = shlex_join(value)
-            raise Exception('Error executing command: %s\n%s' % (cmd, str(e)))
+            raise RexError('Error executing command: %s\n%s' % (cmd, str(e)))
 
     def comment(self, value):
         pass
@@ -597,42 +598,19 @@ class Python(ActionInterpreter):
 #===============================================================================
 # Rex Execution Namespace
 #===============================================================================
-
 class NamespaceFormatter(Formatter):
-    SINGLE_QUOTED_REGEX = re.compile(r"'[^']+'")
-    ENV_VAR_REGEX       = re.compile(r"\${[A-Z_]+}")
+    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
 
     def __init__(self, namespace):
         Formatter.__init__(self)
         self.namespace = namespace
 
     def format(self, format_string, *args, **kwargs):
-        toks = [(format_string, True)]
+        def escape_envvar(matchobj):
+            return "${{%s}}" % (matchobj.group("var"))
 
-        for patt in (self.SINGLE_QUOTED_REGEX, self.ENV_VAR_REGEX):
-            toks_ = []
-            for (s,expand) in toks:
-                if expand:
-                    strs = patt.split(s)
-                    patts = patt.findall(s)
-                    for (s,p) in zip(strs, patts+['']):
-                        toks_.append((s, True))
-                        toks_.append((p, False))
-                else:
-                    toks_.append((s,expand))
-            toks = toks_
-
-        strs = []
-        for (s,expand) in toks:
-            if expand:
-                try:
-                    s_ = Formatter.format(self, s, *args, **kwargs)
-                except KeyError:
-                    s_ = s
-                strs.append(s_)
-            else:
-                strs.append(s)
-        return ''.join(strs)
+        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+        return Formatter.format(self, escaped_format_string, *args, **kwargs)
 
     def get_value(self, key, args, kwds):
         """
@@ -649,42 +627,6 @@ class NamespaceFormatter(Formatter):
                 return self.namespace[key]
         else:
             return Formatter.get_value(self, key, args, kwds)
-
-
-class MissingPackage(object):
-    def __init__(self, name):
-        self.name = name
-
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self.name)
-
-    def __nonzero__(self):
-        return False
-
-
-class Packages(object):
-    """
-    Provides attribute-based lookups for `package.BasePackage` instances.
-
-    If the package does not exist, the attribute value will be an empty string.
-    This allows for attributes to be used to test the presence of a package and
-    for non-existent packages to be used in string formatting without causing an
-    error.
-    """
-    def __init__(self, pkg_list):
-        for pkg in pkg_list:
-            setattr(self, pkg.name, pkg)
-
-    def __getattr__(self, attr):
-        # For things like '__class__', for instance
-        if attr.startswith('__') and attr.endswith('__'):
-            try:
-                self.__dict__[attr]
-            except KeyError:
-                raise AttributeError("'%s' object has no attribute "
-                                     "'%s'" % (self.__class__.__name__,
-                                               attr))
-        return MissingPackage(attr)
 
 
 #===============================================================================
@@ -798,7 +740,7 @@ class RexExecutor(object):
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
                  parent_variables=None, output_style='file', bind_rez=True,
-                 bind_syspaths=True, shebang=True, add_default_namespaces=True):
+                 shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -814,8 +756,6 @@ class RexExecutor(object):
             list, all variables are treated as parent variables.
         bind_rez: bool
             if True, expose Rez cli tools in the target environment
-        bind_syspaths: bool
-            whether to append OS-specific paths to PATH when creating the environment
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
@@ -843,15 +783,8 @@ class RexExecutor(object):
         self.environ = EnvironmentDict(self.manager)
         self.bind('env', AttrDictWrapper(self.environ))
 
-        # expose Rez/system in PATH
-        paths = []
         if bind_rez:
-            paths = [get_script_path()]
-        # TODO make this configurable. Will probably be better to append syspaths at the end
-        if bind_syspaths:
-            paths += self._get_syspaths()
-        if paths:
-            self.environ["PATH"] = os.pathsep.join(paths)
+            self.environ["PATH"] = get_script_path()
 
         for cmd,func in self.manager.get_public_methods():
             self.bind(cmd, func)
@@ -864,29 +797,32 @@ class RexExecutor(object):
     def interpreter(self):
         return self.manager.interpreter
 
+    @property
+    def actions(self):
+        """List of Action objects that will be executed."""
+        return self.manager.actions
+
     def __getattr__(self, attr):
-        """
-        Allows for access such as: self.setenv('FOO','bah')
-        """
+        """Allows for access such as: self.setenv('FOO','bah')."""
         return self.globals[attr] if attr in self.globals \
             else getattr(super(RexExecutor,self), attr)
 
     def bind(self, name, obj):
-        """
-        Binds an object to the execution context.
-        """
+        """Binds an object to the execution context."""
         self.globals[name] = obj
 
-    def update_env(self, d):
-        """
-        Update the environment in the execution context.
-        """
-        self.environ.update(d)
+    def append_system_paths(self):
+        """Append system paths to $PATH."""
+        from rez.shells import Shell, create_shell
+        sh = self.interpreter if isinstance(self.interpreter, Shell) \
+            else create_shell()
+
+        paths = sh.get_syspaths()
+        paths_str = os.pathsep.join(paths)
+        self.env.PATH.append(paths_str)
 
     def execute_code(self, code, filename=None):
-        """
-        Execute code within the execution context.
-        """
+        """Execute code within the execution context."""
         filename = filename or 'REX'
         try:
             pyc = compile(code, filename, 'exec')
@@ -899,8 +835,7 @@ class RexExecutor(object):
                 frames = frames[1:]
             while frames and __file__.startswith(frames[-1][0]):
                 frames = frames[:-1]
-            stack = ''.join(traceback.format_list(frames)).strip()
-            raise Exception("Error in rex code: %s\n%s" % (str(e), stack))
+            self._raise_rex_error(frames, e)
 
     def execute_function(self, func, *nargs, **kwargs):
         """
@@ -915,261 +850,31 @@ class RexExecutor(object):
                                 argdefs=func.func_defaults,
                                 closure=func.func_closure)
         fn.func_globals.update(self.globals)
-        return fn(*nargs, **kwargs)
+
+        try:
+            return fn(*nargs, **kwargs)
+        except Exception as e:
+            # trim trace down to only what's interesting
+            import traceback
+            frames = traceback.extract_tb(sys.exc_traceback)
+
+            filepath = inspect.getfile(func)
+            if os.path.exists(filepath):
+                frames = [x for x in frames if x[0] == filepath]
+            self._raise_rex_error(frames, e)
 
     def get_output(self):
-        """
-        Returns the result of all previous calls to execute_code.
-        """
+        """Returns the result of all previous calls to execute_code."""
         return self.manager.get_output()
 
     def expand(self, value):
         return self.formatter.format(str(value))
 
-    def _get_syspaths(self):
-        from rez.shells import Shell, create_shell
-        sh = self.interpreter if isinstance(self.interpreter, Shell) \
-            else create_shell()
-        return sh.get_syspaths()
-
-
-
-
-"""
-class RexResolveExecutor(RexExecutor):
-    def __init__(self, interpreter, resolve_result, globals_map=None,
-                 environ=None, sys_path_append=True):
-        super(RexResolveExecutor,self).__init__(interpreter,
-                                                globals_map=globals_map,
-                                                environ=environ,
-                                                sys_path_append=sys_path_append,
-                                                add_default_namespaces=True)
-        self.resolve = resolve_result
-        if add_default_namespaces:
-            self.bind('resolve', Packages(self.resolve.package_resolves))
-            self.bind('request', Packages(self.resolve.package_requests))
-
-    def execute_package(self, pkg_res, commands):
-        prefix = "REZ_" + pkg_res.name.upper()
-        self.environ[prefix + "_VERSION"] = pkg_res.version
-        self.environ[prefix + "_BASE"] = pkg_res.base
-        self.environ[prefix + "_ROOT"] = pkg_res.root
-
-        self.bind('this', pkg_res)
-        self.bind('root', pkg_res.root)
-        self.bind('base', pkg_res.base)
-        self.bind('version', pkg_res.version)
-
-        # new style package.yaml:
-        if isinstance(commands, basestring):
-            # compile to get tracebacks with line numbers and file.
-            code = compile(commands, pkg_res.metafile, 'exec')
-            try:
-                exec code in self.globals
-            except Exception, err:
-                import traceback
-                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
-                                                         pkg_res.metafile,
-                                                         traceback.format_exc()))
-        # python function from package.py:
-        elif inspect.isfunction(commands):
-            commands.func_globals.update(self.globals)
-            try:
-                commands()
-            except Exception, err:
-                import traceback
-                raise PkgCommandError("%s (%s):\n %s" % (pkg_res.short_name(),
-                                                         pkg_res.metafile,
-                                                         traceback.format_exc()))
-        # old style package.yaml:
-        elif isinstance(commands, list):
-            if settings.warn_old_commands:
-                print_warning_once("%s is using old-style commands."
-                                   % pkg_res.short_name())
-            expansions = []
-            expansions.append(("!VERSION!", str(pkg_res.version)))
-            if len(pkg_res.version.parts):
-                expansions.append(("!MAJOR_VERSION!", str(pkg_res.version.major)))
-                if len(pkg_res.version.parts) > 1:
-                    expansions.append(("!MINOR_VERSION!", str(pkg_res.version.minor)))
-            expansions.append(("!BASE!", str(pkg_res.base)))
-            expansions.append(("!ROOT!", str(pkg_res.root)))
-            expansions.append(("!USER!", os.getenv("USER", "UNKNOWN_USER")))
-
-            for cmd in commands:
-                for find, replace in expansions:
-                    cmd = cmd.replace(find, replace)
-                # convert to new-style
-                self._parse_export_command(cmd)
-
-    def execute_packages(self, metadata_commands_section='commands'):
-        # build the environment commands
-        # the environment dictionary to be passed during execution of python code.
-        #self = self._setup_execution_namespace()
-
-        def stringify(pkg_list):
-            return ' '.join([x.short_name() for x in pkg_list])
-
-        self.environ["REZ_USED"] = module_root_path
-        self.environ["REZ_PREV_REQUEST"] = "$REZ_REQUEST"
-        self.environ["REZ_REQUEST"] = stringify(self.resolve.package_requests)
-        self.environ["REZ_RAW_REQUEST"] = stringify(self.resolve.raw_package_requests)
-        self.environ["REZ_RESOLVE"] = stringify(self.resolve.package_resolves)
-        self.environ["REZ_RESOLVE_MODE"] = self.resolve.resolve_mode
-        self.environ["REZ_FAILED_ATTEMPTS"] = self.resolve.failed_attempts
-        self.environ["REZ_REQUEST_TIME"] = self.resolve.request_timestamp
-
-        # TODO remove this and have Rez create a proper rez package for itself
-        #self.environ["PYTHONPATH"] = os.path.join(module_root_path, 'python')
-
-        # TODO improve mgmt of system paths, make more configurable
-        # we need to inject system paths here. They're not there already because they can't be cached
-        sys_paths = [os.path.join(module_root_path, "bin")]
-        if self.sys_path_append:
-            sys_paths += system.executable_paths
-        self.environ["PATH"] = os.pathsep.join(sys_paths)
-
-        self.environ["REZ_PACKAGES_PATH"] = '$REZ_PACKAGES_PATH'
-
-        self.manager.comment("-" * 30)
-        self.manager.comment("START of package commands")
-        self.manager.comment("-" * 30)
-
-        set_vars = {}
-
-        for pkg_res in self.resolve.package_resolves:
-#             # swap the command self.manager so we can isolate commands for this package
-#             self.manager = rex.CommandRecorder()
-#             self.set_command_recorder(self.manager)
-            self.manager.comment("")
-            self.manager.comment("Commands from package %s" % pkg_res.name)
-
-            self.execute_package(pkg_res, pkg_res.metadata[metadata_commands_section])
-
-#             pkg_res.commands = self.manager.get_commands()
-# 
-#             # FIXME: getting an error with an append, which should not happen
-#             # check for variables set by multiple packages
-#             for cmd in pkg_res.commands:
-#                 if cmd.name == 'setenv':
-#                     if set_vars.get(cmd.key, None) not in [None, pkg_res.name]:
-#                         raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
-#                                               "package '%s'" % (pkg_res.name, cmd.key,
-#                                                               set_vars[cmd.key]))
-#                     set_vars[cmd.key] = pkg_res.name
-# 
-#                 elif cmd.name == 'resetenv':
-#                     prev_pkg_name = set_vars.get(cmd.key, None)
-#                     if cmd.friends:
-#                         if prev_pkg_name not in cmd.friends + [None, pkg_res.name]:
-#                             raise PkgCommandError("Package '%s' overwrote the value '%s' set by "
-#                                                   "package '%s', and is not in the list "
-#                                                   "of friends %s" % (pkg_res.name, cmd.key,
-#                                                                      prev_pkg_name, cmd.friends))
-#                     set_vars[cmd.key] = pkg_res.name
-
-        self.manager.comment("-" * 30)
-        self.manager.comment("END of package commands")
-        self.manager.comment("-" * 30)
-
-        # TODO: add in execution time?
-        self.manager.setenv('REZ_TIME_TO_RESOLVE', str(self.resolve.resolve_time))
-
-        return self.manager.get_output()
-
-    def add_meta_vars(self, meta_vars, shallow_meta_vars):
-        "
-        meta_vars: list of str
-                each string is a key whos value will be saved into an
-                env-var named REZ_META_<KEY> (lists are comma-separated).
-        shallow_meta_vars: list of str
-                same as meta-vars, but only the values from those packages directly
-                requested are baked into the env var REZ_META_SHALLOW_<KEY>.
-        "
-        # add meta env vars
-        pkg_req_fam_set = set([x.name for x in self.package_requests if not x.is_anti()])
-        meta_envvars = {}
-        shallow_meta_envvars = {}
-        for pkg_res in self.package_resolves:
-            def _add_meta_vars(mvars, target):
-                for key in mvars:
-                    if key in pkg_res.metadata:
-                        val = pkg_res.metadata[key]
-                        if isinstance(val, list):
-                            val = ','.join(val)
-                        if key not in target:
-                            target[key] = []
-                        target[key].append(pkg_res.name + ':' + val)
-
-            if meta_vars:
-                _add_meta_vars(meta_vars, meta_envvars)
-
-            if shallow_meta_vars and pkg_res.name in pkg_req_fam_set:
-                _add_meta_vars(shallow_meta_vars, shallow_meta_envvars)
-
-        for k, v in meta_envvars.iteritems():
-            self.manager.setenv('REZ_META_' + k.upper(), ' '.join(v))
-        for k, v in shallow_meta_envvars.iteritems():
-            self.manager.setenv('REZ_META_SHALLOW_' + k.upper(), ' '.join(v))
-
-    def _parse_export_command(self, cmd):
-        if isinstance(cmd, list):
-            cmd = cmd[0]
-            pkgname = cmd[1]
+    def _raise_rex_error(self, frames, e):
+        import traceback
+        stack = ''.join(traceback.format_list(frames)).strip()
+        if isinstance(e, RexError):
+            raise type(e)("%s\n%s" % (str(e), stack))
         else:
-            cmd = cmd
-            pkgname = None
-
-        if cmd.startswith('export '):
-            var, value = cmd.split(' ', 1)[1].split('=', 1)
-            value = value.strip('"')
-            # get an EnvironmentVariable instance
-            var_obj = self.environ[var]
-            parts = value.split(PARSE_EXPORT_COMMAND_ENV_SEP_MAP.get(var, os.pathsep))
-            if len(parts) > 1:
-                orig_parts = parts
-                parts = [x for x in parts if x]
-                if '$' + var in parts:
-                    # append / prepend
-                    index = parts.index('$' + var)
-                    if index == 0:
-                        # APPEND   X=$X:foo
-                        for part in parts[1:]:
-                            var_obj.append(part)
-                    elif index == len(parts) - 1:
-                        # PREPEND  X=foo:$X
-                        # loop in reverse order
-                        for part in parts[-2::-1]:
-                            var_obj.prepend(part)
-                    else:
-                        raise PkgCommandError("%s: self-referencing used in middle "
-                                              "of list: %s" % (pkgname, value))
-
-                else:
-                    if len(parts) == 1:
-                        # use blank values in list to determine if the original
-                        # operation was prepend or append
-                        assert len(orig_parts) == 2
-                        if orig_parts[0] == '':
-                            var_obj.append(parts[0])
-                        elif orig_parts[1] == '':
-                            var_obj.prepend(parts[0])
-                        else:
-                            print "only one value", parts
-                    else:
-                        var_obj.set(os.pathsep.join(parts))
-            else:
-                var_obj.set(value)
-        elif cmd.startswith('#'):
-            self.manager.comment(cmd[1:].lstrip())
-        elif cmd.startswith('alias '):
-            match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
-            key = match.groupdict()['key'].strip()
-            value = match.groupdict()['value'].strip()
-            if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
-                value = value[1:-1]
-            self.manager.alias(key, value)
-        else:
-            # assume we can execute this as a straight command
-            self.manager.command(cmd)
-"""
+            raise RexError("Error in rex code: %s - %s\n%s"
+                           % (e.__class__.__name__, str(e), stack))

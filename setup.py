@@ -1,8 +1,10 @@
 from __future__ import with_statement
 from distutils.command.install import install as _install
+import fnmatch
 import os
 import os.path
 import sys
+
 
 try:
     from setuptools import setup, find_packages
@@ -11,18 +13,34 @@ except ImportError:
     print >> sys.stderr, "install failed - requires setuptools"
     sys.exit(1)
 
+
 if sys.version_info < (2,6):
     print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
 
+
 os.environ['__rez_is_installing'] = '1'
+
+
+def find_files(path, pattern):
+    paths = []
+    basepath = os.path.realpath(os.path.join("src", "rez"))
+    path = os.path.join(basepath, path)
+
+    for root,_,files in os.walk(path):
+        files = [x for x in files if fnmatch.fnmatch(x, pattern)]
+        files = [os.path.join(root, x) for x in files]
+        paths += [x[len(basepath):].lstrip(os.path.sep) for x in files]
+
+    return paths
+
 
 with open("src/rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
 #version = ver_loc.split()[-1].replace('"','')
-version = "2.0.PRE-ALPHA.41"
+version = "2.0.ALPHA.1"
 
 scripts = [
     "rezolve",
@@ -32,26 +50,16 @@ scripts = [
     "rez-release",
     "rez-env",
     "rez-context",
-    "rez-wrap",
+    "rez-suite",
     "rez-tools",
-    "rez-exec",
+    "rez-interpret",
     "rez-test",
+    "rez-bind",
     "rez-bootstrap",
+    "bez",
     "_rez_fwd",
     "_rez_csh_complete"
 ]
-
-requires = [
-    # pysvn is problematic, it doesn't play nice with setuptools. If you need
-    # it, install it separately.
-    # "pysvn >= 1.7.2"
-    "PyYAML >= 3.9",
-    "Yapsy >= 1.10.0",
-    "python-memcached >= 1.0"
-]
-
-if sys.version_info < (2,7):
-    requires.append('argparse')
 
 # post install hook. Don't believe google - this is how you do it.
 class install_(install):
@@ -99,25 +107,22 @@ setup(
     license="LGPL",
     cmdclass={'install': install_},
     scripts=[os.path.join('bin',x) for x in scripts],
-    install_requires=requires,
+    #install_requires=requires,
     include_package_data=True,
     package_dir = {'': 'src'},
     packages=find_packages('src', exclude=["tests"]),
     package_data = {
-        'rez': [
-            'rezconfig',
-            'README*',
-            'plugins/shell/*.yapsy-plugin',
-            'plugins/release_vcs/*.yapsy-plugin',
-            'plugins/release_hook/*.yapsy-plugin',
-            'plugins/source_retriever/*.yapsy-plugin',
-            'plugins/build_system/*.yapsy-plugin',
-            'plugins/build_system/cmake_files/*.cmake',
-            '_sys/*'
-        ]
+        'rez': \
+            ['rezconfig'] + \
+            ['README*'] + \
+            find_files('plugins', '*.yapsy-plugin') + \
+            find_files('_sys', '*.csh') + \
+            find_files('_sys', '*.sh') + \
+            find_files('plugins/build_system/cmake_files', '*.cmake') + \
+            find_files('tests/data', '*.*')
     },
     classifiers = [
-        "Development Status :: 2 - Pre-Alpha",
+        "Development Status :: 3 - Alpha",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",

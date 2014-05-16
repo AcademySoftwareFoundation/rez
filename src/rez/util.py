@@ -1,7 +1,6 @@
 """
 Misc useful stuff.
 """
-from __future__ import with_statement
 import stat
 import sys
 import atexit
@@ -13,17 +12,22 @@ import posixpath
 import ntpath
 import UserDict
 import re
-import yaml
 import shutil
 import textwrap
 import tempfile
 import threading
 import subprocess as sp
 from rez import module_root_path
+from rez.vendor import yaml
 
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+
+
+class Common(object):
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 class LazySingleton(object):
@@ -112,6 +116,12 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+def is_subdirectory(path, directory):
+    path = os.path.realpath(path)
+    directory = os.path.realpath(directory)
+    relative = os.path.relpath(path, directory)
+    return not relative.startswith(os.pardir)
+
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
     if not os.path.exists(path):
@@ -145,32 +155,6 @@ def shlex_join(value):
         return ' '.join(quote(x) for x in value)
     else:
         return str(value)
-
-# TODO remove
-"""
-def gen_dotgraph_image(dot_data, out_file):
-    # shortcut if writing .dot file
-    if out_file.endswith(".dot"):
-        with open(out_file, 'w') as f:
-            f.write(dot_data)
-        return
-
-    from rez.contrib.pydot import pydot
-    graph = pydot.graph_from_dot_data(dot_data)
-
-    # assume write format from image extension
-    ext = "jpg"
-    if '.' in out_file:
-        ext = out_file.rsplit('.', 1)[-1]
-
-    try:
-        fn = getattr(graph, "write_" + ext)
-    except Exception:
-        sys.stderr.write("could not write to '" + out_file + "': unknown format specified")
-        sys.exit(1)
-
-    fn(out_file)
-"""
 
 # returns path to first program in the list to be successfully found
 def which(*programs):
@@ -384,23 +368,6 @@ def to_ntpath(path):
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
-class AttrDict(dict):
-    """
-    A dictionary with attribute-based lookup.
-    """
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
-
-    def copy(self):
-        return AttrDict(dict.copy(self))
-
 
 class AttrDictWrapper(UserDict.UserDict):
     """
@@ -408,7 +375,6 @@ class AttrDictWrapper(UserDict.UserDict):
     """
     def __init__(self, data):
         self.__dict__['data'] = data
-
 
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
@@ -418,13 +384,22 @@ class AttrDictWrapper(UserDict.UserDict):
         try:
             return d[attr]
         except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'" % (self.__class__.__name__, attr))
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
 
     def __setattr__(self, attr, value):
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
+
+
+class RO_AttrDictWrapper(AttrDictWrapper):
+    """Read-only version of AttrDictWrapper."""
+    def __setattr__(self, attr, value):
+        o = self[attr]  # may raise 'no attribute' error
+        raise AttributeError("'%s' object attribute '%s' is read-only"
+                             % (self.__class__.__name__, attr))
 
 
 _templates = {}
@@ -448,8 +423,8 @@ def render_template(template, **variables):
     return templ % variables
 
 def encode_filesystem_name(input_str):
-    '''Encodes an arbitrary unicode string to a generic
-    filesystem-compatible filename
+    """Encodes an arbitrary unicode string to a generic filesystem-compatible
+    non-unicode filename.
 
     The result after encoding will only contain the standard ascii lowercase
     letters (a-z), the digits (0-9), or periods, underscores, or dashes
@@ -490,7 +465,7 @@ def encode_filesystem_name(input_str):
 
     As an example, the string "Foo_Bar (fun).txt" would get encoded as:
         _foo___bar_020_028fun_029.txt
-    '''
+    """
     if isinstance(input_str, str):
         input_str = unicode(input_str)
     elif not isinstance(input_str, unicode):
@@ -513,15 +488,15 @@ def encode_filesystem_name(input_str):
                 N = 0
             HH = ''.join('%x' % ord(c) for c in utf8)
             result.append('_%d%s' % (N, HH))
-    return ''.join(result)
+    return str(''.join(result))
 
 
 _FILESYSTEM_TOKEN_RE = re.compile(r'(?P<as_is>[a-z0-9.-])|(?P<underscore>__)|_(?P<uppercase>[a-z])|_(?P<N>[0-9])')
 _HEX_RE = re.compile('[0-9a-f]+$')
 
 def decode_filesystem_name(filename):
-    """Decodes a filename encoded using the rules given in
-    encode_filesystem_name to a unicode string
+    """Decodes a filename encoded using the rules given in encode_filesystem_name
+    to a unicode string.
     """
     result = []
     remain = filename
@@ -602,9 +577,17 @@ def convert_old_commands(commands, annotate=True):
         if annotate:
             loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
 
+        # convert expansions from !OLD! style to {new}
+        cmd = cmd.replace("!VERSION!",      "{version}")
+        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
+        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
+        cmd = cmd.replace("!BASE!",         "{base}")
+        cmd = cmd.replace("!ROOT!",         "{root}")
+        cmd = cmd.replace("!USER!",         "{user}")
+
         toks = cmd.strip().split()
         if toks[0] == "export":
-            var,value = cmd.split(' ', 1)[1].split('=', 1)
+            var, value = cmd.split(' ', 1)[1].split('=', 1)
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
 
@@ -626,9 +609,9 @@ def convert_old_commands(commands, annotate=True):
                     idx = parts.index(var1)
                 elif var2 in parts:
                     idx = parts.index(var2)
-                if idx in (0, len(parts)-1):
-                    func = "appendenv" if idx==0 else "prependenv"
-                    parts = parts[1:] if idx==0 else parts[:-1]
+                if idx in (0, len(parts) - 1):
+                    func = "appendenv" if idx == 0 else "prependenv"
+                    parts = parts[1:] if idx == 0 else parts[:-1]
                     val = os.pathsep.join(parts)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
@@ -648,3 +631,208 @@ def convert_old_commands(commands, annotate=True):
             loc.append("command('%s')" % _en(cmd))
 
     return '\n'.join(loc)
+
+
+try:
+    import collections
+    OrderedDict = collections.OrderedDict  # @UndefinedVariable
+except AttributeError:
+    from UserDict import DictMixin
+
+    class OrderedDict(dict, DictMixin):
+
+        def __init__(self, *args, **kwds):
+            if len(args) > 1:
+                raise TypeError('expected at most 1 arguments, got %d' % len(args))
+            try:
+                self.__end
+            except AttributeError:
+                self.clear()
+            self.update(*args, **kwds)
+
+        def clear(self):
+            self.__end = end = []
+            end += [None, end, end]         # sentinel node for doubly linked list
+            self.__map = {}                 # key --> [key, prev, next]
+            dict.clear(self)
+
+        def __setitem__(self, key, value):
+            if key not in self:
+                end = self.__end
+                curr = end[1]
+                curr[2] = end[1] = self.__map[key] = [key, curr, end]
+            dict.__setitem__(self, key, value)
+
+        def __delitem__(self, key):
+            dict.__delitem__(self, key)
+            key, prev, next = self.__map.pop(key)
+            prev[2] = next
+            next[1] = prev
+
+        def __iter__(self):
+            end = self.__end
+            curr = end[2]
+            while curr is not end:
+                yield curr[0]
+                curr = curr[2]
+
+        def __reversed__(self):
+            end = self.__end
+            curr = end[1]
+            while curr is not end:
+                yield curr[0]
+                curr = curr[1]
+
+        def popitem(self, last=True):
+            if not self:
+                raise KeyError('dictionary is empty')
+            if last:
+                key = reversed(self).next()
+            else:
+                key = iter(self).next()
+            value = self.pop(key)
+            return key, value
+
+        def __reduce__(self):
+            items = [[k, self[k]] for k in self]
+            tmp = self.__map, self.__end
+            del self.__map, self.__end
+            inst_dict = vars(self).copy()
+            self.__map, self.__end = tmp
+            if inst_dict:
+                return (self.__class__, (items,), inst_dict)
+            return self.__class__, (items,)
+
+        def keys(self):
+            return list(self)
+
+        setdefault = DictMixin.setdefault
+        update = DictMixin.update
+        pop = DictMixin.pop
+        values = DictMixin.values
+        items = DictMixin.items
+        iterkeys = DictMixin.iterkeys
+        itervalues = DictMixin.itervalues
+        iteritems = DictMixin.iteritems
+
+        def __repr__(self):
+            if not self:
+                return '%s()' % (self.__class__.__name__,)
+            return '%s(%r)' % (self.__class__.__name__, self.items())
+
+        def copy(self):
+            return self.__class__(self)
+
+        @classmethod
+        def fromkeys(cls, iterable, value=None):
+            d = cls()
+            for key in iterable:
+                d[key] = value
+            return d
+
+        def __eq__(self, other):
+            if isinstance(other, OrderedDict):
+                if len(self) != len(other):
+                    return False
+                for p, q in  zip(self.items(), other.items()):
+                    if p != q:
+                        return False
+                return True
+            return dict.__eq__(self, other)
+
+        def __ne__(self, other):
+            return not self == other
+
+class propertycache(object):
+    '''Class for creating properties where the value is initially calculated then stored.
+
+    Intended for use as a descriptor, ie:
+
+    >>> class MyClass(object):
+    ...     @propertycache
+    ...     def aValue(self):
+    ...         print "This is taking awhile"
+    ...         return 42
+    >>> c = MyClass()
+    >>> c.aValue
+    This is taking awhile
+    42
+    >>> c.aValue
+    42
+
+    If you wish to signal that the return result of the decorated function
+    should NOT be cached, raise a DoNotCacheSignal, with the value to return
+    as the first argument (defaults to None):
+
+    >>> class MyOtherClass(object):
+    ...     def __init__(self):
+    ...         self._timesCalled = 0
+    ...
+    ...     @propertycache
+    ...     def aValue(self):
+    ...         print "calcing aValue..."
+    ...         self._timesCalled += 1
+    ...         if self._timesCalled < 2:
+    ...             raise propertycache.DoNotCacheSignal('foo')
+    ...         return 'bar'
+    >>> c = MyOtherClass()
+    >>> c.aValue
+    calcing aValue...
+    'foo'
+    >>> c.aValue
+    calcing aValue...
+    'bar'
+    >>> c.aValue
+    'bar'
+
+    '''
+    class DoNotCacheSignal(Exception):
+        def __init__(self, default=None):
+            self.default = default
+
+        def __repr__(self):
+            default = self.default
+            try:
+                defaultRepr = repr(default)
+            except Exception:
+                defaultRepr = '<<unable to get repr for default>>'
+            return '%s(%s)' % (type(self).__name__, defaultRepr)
+
+    def __init__(self, func):
+        self.func = func
+        self.name = func.__name__
+
+    def __get__(self, instance, owner=None):
+        if instance is None:
+            return None
+        try:
+            result = self.func(instance)
+        except self.DoNotCacheSignal, e:
+            return e.default
+        setattr(instance, self.name, result)
+        return result
+
+
+class YamlCache(object):
+    """Caches yaml files, no file update checking."""
+    def __init__(self):
+        self.docs = {}
+
+    def load(self, path):
+        """Returns dict, or None if the file does not exist."""
+        doc = self.docs.get(path)
+
+        if doc is False:
+            return None
+        elif doc is not None:
+            return doc.copy()
+
+        if os.path.exists(path):
+            with open(path) as f:
+                doc = yaml.load(f.read())
+        else:
+            self.docs[path] = False
+            return None
+
+        self.docs[path] = doc
+        return doc.copy()

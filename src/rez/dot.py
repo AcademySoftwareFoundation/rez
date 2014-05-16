@@ -2,10 +2,10 @@
 Functions for manipulating dot-based resolve graphs.
 """
 import os.path
-from rez.contrib.pydot import pydot
+from rez.vendor.pydot import pydot
 
 
-
+# TODO remove prune_to_conflict, conflict always pruned now
 def save_graph(graph, path, fmt=None, image_ratio=None,
                prune_to_conflict=False, prune_to_package=None):
     # create the graph

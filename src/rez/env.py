@@ -1,7 +1,7 @@
 """Get information about the current environment.
 """
 from rez.resolved_context import ResolvedContext
-import yaml
+from rez.vendor import yaml
 import os
 import os.path
 
@@ -27,7 +27,7 @@ def get_tools():
 
     Tools are available in two ways:
     - They are supplied by a package in the current context;
-    - They are supplied by a wrapped environment on PATH.
+    - They are supplied by a suite whos bin directory is on PATH.
 
     Returns:
         A list of 3-tuples, where each tuple contains:

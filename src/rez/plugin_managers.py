@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from yapsy.PluginManager import PluginManager
+from rez.vendor.yapsy.PluginManager import PluginManager
 from rez import module_root_path
 from rez.settings import settings
 from rez.util import LazySingleton
@@ -29,11 +29,12 @@ class RezPluginManager(object):
         """
         self.type_name = plugin_type_name
         self.pretty_type_name = self.type_name.replace('_',' ')
+        debugging = settings.debug("plugins")
         self.factories = {}
 
         yapsy_logger = logging.getLogger("yapsy")
         if not yapsy_logger.handlers:
-            h = logging.StreamHandler() if settings.debug_plugins else NullHandler()
+            h = logging.StreamHandler() if debugging else NullHandler()
             yapsy_logger.addHandler(h)
 
         plugin_path = os.path.join(module_root_path, "plugins", self.type_name)
@@ -44,14 +45,14 @@ class RezPluginManager(object):
         plugin_paths = [plugin_path] + configured_paths
         mgr = PluginManager()
         mgr.setPluginPlaces(plugin_paths)
-        if settings.debug_plugins:
+        if debugging:
             print "\nLoading %s plugins from:\n%s" \
                   % (self.pretty_type_name, '\n'.join(plugin_paths))
 
         mgr.collectPlugins()
         for plugin in mgr.getAllPlugins():
             factory = plugin.plugin_object
-            if settings.debug_plugins:
+            if debugging:
                 print "Loaded %s plugin: '%s'" % (self.pretty_type_name, factory.name())
             self.factories[factory.name()] = factory
 
@@ -121,8 +122,11 @@ class ShellPluginManager(RezPluginManager):
 
     def create_instance(self, shell=None):
         if not shell:
-            from rez.system import system
-            shell = system.shell
+            if settings.default_shell:
+                shell = settings.default_shell
+            else:
+                from rez.system import system
+                shell = system.shell
 
         return super(ShellPluginManager,self).create_instance(shell)
 

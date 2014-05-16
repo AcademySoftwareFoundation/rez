@@ -1,39 +1,24 @@
-from rez.resources import load_package_metadata, load_package_settings
 from rez.build_system import BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
-from rez.shells import create_shell
+from rez.settings import settings
+from rez.packages import Package
 from rez import plugin_factory
 import functools
 import subprocess
 import platform
 import os.path
+import sys
 import os
 
 
 
-class RezCMakeError(RezError):
+class RezCMakeError(BuildSystemError):
     pass
 
 
-def _get_cmake_bin():
-    exe = BuildSystem.find_executable("cmake")
-    try:
-        p = subprocess.Popen([exe, "--version"], stdout=subprocess.PIPE)
-        stdout,_ = p.communicate()
-        vertoks = stdout.strip().split()[-1].split('.')
-        ver = (int(vertoks[0]), int(vertoks[1]))
-        if ver < (2,8):
-            raise BuildSystemError("cmake >= 2.8 required.")
-    except:
-        pass
-    return exe
-
-
 class CMakeBuildSystem(BuildSystem):
-    executable = _get_cmake_bin()
-    make_executable = BuildSystem.find_executable("make")
 
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
@@ -74,7 +59,7 @@ class CMakeBuildSystem(BuildSystem):
         self.build_target = opts.build_target
 
         self.cmake_build_system = opts.build_system \
-            or self.settings.cmake_build_system
+            or self.package.settings.cmake_build_system
         if self.cmake_build_system == 'xcode' and platform.system() != 'Darwin':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -84,9 +69,14 @@ class CMakeBuildSystem(BuildSystem):
             if self.verbose:
                 print s
 
+        # find cmake binary
+        exe = context.which("cmake", fallback=True)
+        if not exe:
+            raise RezCMakeError("could not find cmake binary")
+
         # assemble cmake command
-        cmd = [self.executable, "-d", self.working_dir]
-        cmd += (self.settings.cmake_args or [])
+        cmd = [exe, "-d", self.working_dir]
+        cmd += (self.package.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
@@ -99,20 +89,14 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        ext = create_shell().file_extension()
-        context_file = os.path.join(build_path, "build.rxt.%s" % ext)
-        ret = dict(extra_files=[context_file])
-
+        ret = {}
         callback = functools.partial(self._add_build_actions,
                                      context=context,
-                                     metadata=self.metadata,
-                                     metafile=self.metafile,
-                                     settings_=self.settings)
+                                     package=self.package)
 
         retcode,_,_ = context.execute_shell(command=cmd,
                                             block=True,
                                             cwd=build_path,
-                                            context_filepath=context_file,
                                             actions_callback=callback)
         if retcode:
             ret["success"] = False
@@ -121,10 +105,10 @@ class CMakeBuildSystem(BuildSystem):
         if self.write_build_scripts:
             # write out the script that places the user in a build env, where
             # they can run make directly themselves.
-            build_env_script = os.path.join(build_path, "build-env.%s" % ext)
+            build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
                                      module="plugins.build_system.cmake",
-                                     func_name="_spawn_build_shell",
+                                     func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)
             ret["success"] = True
@@ -132,7 +116,7 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
-        cmd = [self.make_executable]
+        cmd = ["make"]
         cmd += self.child_build_args
         if install and "install" not in cmd:
             cmd.append("install")
@@ -147,37 +131,35 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, metadata, metafile, settings_):
+    def _add_build_actions(executor, context, package):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_ENV = 1
-        #executor.env.REZ_LOCAL_PACKAGES_PATH = settings_.local_packages_path
-        #executor.env.REZ_RELEASE_PACKAGES_PATH = settings_.release_packages_path
-        executor.env.REZ_BUILD_PROJECT_FILE = metafile
-        executor.env.REZ_BUILD_PROJECT_VERSION = metadata.get("version","")
-        executor.env.REZ_BUILD_PROJECT_NAME = metadata["name"]
+        #executor.env.REZ_LOCAL_PACKAGES_PATH = package.settings.local_packages_path
+        #executor.env.REZ_RELEASE_PACKAGES_PATH = package.settings.release_packages_path
+        executor.env.REZ_BUILD_PROJECT_FILE = package.metafile
+        executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
+        executor.env.REZ_BUILD_PROJECT_NAME = package.name
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
-            ' '.join(x.split('-',1)[0] for x in context.requested_packages)
+            ' '.join(x.name for x in context.package_requests)
 
 
 
-def _spawn_build_shell(working_dir, build_dir):
+def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    metadata,metafile = load_package_metadata(working_dir)
-    settings_ = load_package_settings(metadata)
-    settings_.set("prompt", "BUILD>")
+    package = Package(working_dir)
+    settings.set("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
-                                 metadata=metadata,
-                                 metafile=metafile,
-                                 settings_=settings_)
+                                 package=package)
 
     retcode,_,_ = context.execute_shell(block=True,
                                        cwd=build_dir,
                                        actions_callback=callback)
     sys.exit(retcode)
+
 
 
 class CMakeBuildSystemFactory(plugin_factory.RezPluginFactory):

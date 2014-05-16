@@ -1,10 +1,26 @@
+'''
+Rez installation-related operations.
+'''
 import sys
-import os.path
-from rez.bootstrap import print_info, install_into, is_bootstrapped, \
-    is_in_virtualenv
 
+def setup_parser(parser):
+    from rez.shells import get_shell_types
+    from rez.system import system
+    shells = get_shell_types()
+    parser.add_argument("--install-path", dest="install_path", type=str,
+                        help="create a bootstrapped install of Rez in the "
+                        "given path")
+    parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
+                        help="target shell type of the install, defaults to the "
+                        "current shell (%s)" % system.shell)
+    parser.add_argument("--force", action="store_true",
+                        help="create a bootstrapped Rez install, even if "
+                        "advised not to")
 
-def command(opts, parser=None):
+def command(opts, parser):
+    from rez.bootstrap import print_info, install_into, is_bootstrapped, \
+        is_in_virtualenv
+
     if opts.install_path:
         if (not opts.force) and (not is_bootstrapped()) and (not is_in_virtualenv()):
             print >> sys.stderr, \

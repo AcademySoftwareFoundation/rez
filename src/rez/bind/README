@@ -1,0 +1,39 @@
+Rez "bind" modules.
+
+A bind module is a python file implementing the function 'bind'. Its purpose is
+to find some existing piece of software on the system, and to create the relevant
+directories and package definition file to interface that software with Rez. In
+some rare instances (such as the bootstrap 'hello_world' package) the software
+is created from scratch.
+
+As well as 'bind', each file can optionally implement a 'setup_parser' function,
+which exposes settings to the 'rez-bind' cli tool. For example, a bind module
+will often expose a 'root' string parameter, which tells the binder where it
+should look for the software install to bind.
+
+The rez-bind cli tool is given the name of a piece of software to bind. It then
+searches for a python file of the same name in the searchpath defined by the
+rezconfig setting 'bind_module_path' and lastly, it searches the builtin bind
+module path (rez/bind/). The name passed to rez-bind can also include a version
+requirement (eg 'foo-1.0', 'foo==1.0', 'foo-1.0+'). In this case, the binder is
+restricted to binding a version of the software within this range, and will
+raise an error if this isn't possible.
+
+The signature of bind() is as follows:
+
+def bind(path, version_range=None, opts=None, parser=None):
+    """Bind existing software to Rez.
+
+    Args:
+        path: Path to create the bound Rez package in. Note that this is the
+            base path, so for example a package 'foo-1.0' will be created in
+            "{PATH}/foo/1.0/".
+        version_range: A VersionRange object specifying the possible versions
+            of the software that can be installed. This function should bind the
+            latest found version of the software in this range, or raise a
+            RezBindingError. If None, any version can be bound.
+
+    Returns:
+        (name, Version) tuple, representing the package that was bound.
+    """
+    pass

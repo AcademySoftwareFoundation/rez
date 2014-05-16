@@ -19,8 +19,12 @@ def get_shell_types():
 def create_shell(shell=None, **kwargs):
     """Returns a Shell of the given type, or the current shell type if shell
     is None."""
+    if not shell:
+        from rez.system import system
+        shell = system.shell
+
     from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager().create_instance(shell=shell, **kwargs)
+    return shell_plugin_manager().create_instance(shell, **kwargs)
 
 
 
@@ -68,7 +72,8 @@ class Shell(ActionInterpreter):
         return type(self)()
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, quiet=False, **Popen_args):
+                    stdin=False, command=None, env=None, quiet=False,
+                    **Popen_args):
         """
         Spawn a possibly interactive subshell.
         @param context_file File that must be sourced in the new shell, this
@@ -80,6 +85,8 @@ class Shell(ActionInterpreter):
             If a different non-False value, such as subprocess.PIPE, the same
             occurs, but stid is also passed to the resulting subprocess.Popen object.
         @param command If not None, execute this command in a non-interactive shell.
+        @param env Environ dict to execute the shell within; uses the current
+            environment if None.
         @param quiet If True, don't show the configuration summary, and suppress
             any stdout from startup scripts.
         @param popen_args args to pass to the shell process object constructor.
@@ -142,18 +149,19 @@ class UnixShell(Shell):
 
     @classmethod
     def _unsupported_option(cls, option, val):
-        if val and settings.warn_shell_startup:
+        if val and settings.warn("shell_startup"):
             print >> sys.stderr, "WARNING: %s ignored, not supported by %s shell" \
                                  % (option, cls.name())
 
     @classmethod
     def _overruled_option(cls, option, overruling_option, val):
-        if val and settings.warn_shell_startup:
+        if val and settings.warn("shell_startup"):
             print >> sys.stderr, ("WARNING: %s ignored by %s shell - " + \
                 "overruled by %s option") % (option, cls.name(), overruling_option)
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
-                    stdin=False, command=None, quiet=False, **Popen_args):
+                    stdin=False, command=None, env=None, quiet=False,
+                    **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         envvar = d["envvar"]
@@ -190,7 +198,6 @@ class UnixShell(Shell):
             return RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
                                bind_rez=False,
-                               bind_syspaths=False,
                                add_default_namespaces=False)
 
         executor = _create_ex()
@@ -248,7 +255,7 @@ class UnixShell(Shell):
 
                     executor.setenv("HOME", tmpdir)
                 else:
-                    if settings.warn_shell_startup:
+                    if settings.warn("shell_startup"):
                         print >> sys.stderr, ("WARNING: Could not configure "
                         "environment from within the target shell (%s); this "
                         "has been done in the parent process instead.") % self.name()
@@ -266,7 +273,8 @@ class UnixShell(Shell):
         if d["stdin"] and stdin and (stdin is not True):
             Popen_args["stdin"] = stdin
 
-        p = subprocess.Popen([self.executable, self.norc_arg, target_file], **Popen_args)
+        p = subprocess.Popen([self.executable, self.norc_arg, target_file],
+                             env=env, **Popen_args)
         return p
 
     def resetenv(self, key, value, friends=None):

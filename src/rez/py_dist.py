@@ -2,7 +2,7 @@
 Functions for converting python distributions to rez packages.
 """
 from rez.util import _mkdirs
-from rez.exceptions import PkgSystemError
+from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil
 import sys
@@ -155,7 +155,7 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None):
             eggpath = os.path.join(dist.location, egginfo_dir)
             file = os.path.join(eggpath, "installed-files.txt")
             if not os.path.isfile(file):
-                raise PkgSystemError((\
+                raise RezSystemError((\
                     "There is not enough information on disk to convert the "
                     "python distribution '%s' into a Rez package. The distribution "
                     "is installed to a common site, but the installed file "

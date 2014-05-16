@@ -7,7 +7,7 @@ A resource is given a hierarchical name and a file path pattern (like
 "{name}/{version}/package.yaml") and are collected under a particular
 configuration version.
 
-If the resource is a file, an optional metadata validator can be provided to
+If the resource is a file, an optional metadata schema can be provided to
 validate the contents (e.g. enforce data types and document structure) of the
 data. This validation is run after the data is deserialized, so it is decoupled
 from the storage format. New resource formats can be added and share the same
@@ -19,8 +19,6 @@ an understanding of the underlying file and folder structure.  This ensures that
 the addition of new resources is localized to the registration functions
 provided by this module.
 """
-from __future__ import with_statement
-import yaml
 import os
 import sys
 import inspect
@@ -28,10 +26,15 @@ import re
 from collections import defaultdict
 from rez.settings import settings, Settings
 from rez.util import to_posixpath
-from rez.exceptions import PkgMetadataError
-from rez.versions import ExactVersion, VersionRange
+from rez.exceptions import PackageMetadataError
+from rez.vendor.version.version import Version
+from rez.vendor import yaml
 
 _configs = defaultdict(list)
+
+PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
+VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
+VERSION_REGSTR = '%(comp)s(?:[.-]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
 
 
 #------------------------------------------------------------------------------
@@ -78,33 +81,6 @@ class MetadataUpdate(object):
         self.old_value = old_value
         self.new_value = new_value
 
-#------------------------------------------------------------------------------
-# Internal Utilities
-#------------------------------------------------------------------------------
-
-def update_copy(source, updates):
-    """Returns a copy of source_dict, updated with the new key-value
-       pairs in diffs."""
-    result = dict(source)
-    result.update(updates)
-    return result
-
-class AttrDictYamlLoader(yaml.Loader):
-    """
-    A YAML loader that loads mappings into attribute dictionaries.
-    """
-
-    def __init__(self, *args, **kwargs):
-        yaml.Loader.__init__(self, *args, **kwargs)
-
-        self.add_constructor(u'tag:yaml.org,2002:map', type(self).construct_yaml_map)
-
-    def construct_yaml_map(self, node):
-        from rez.util import AttrDict
-        data = AttrDict()
-        yield data
-        value = self.construct_mapping(node)
-        data.update(value)
 
 #------------------------------------------------------------------------------
 # Base Classes and Functions
@@ -207,31 +183,7 @@ def load_file(filename):
             while frames and frames[0][0] != filename:
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
-            raise PkgMetadataError(filename, "%s\n%s" % (str(e), stack))
-
-def get_package_file(parent_path):
-    """Return the path to package.yaml etc found under given path, or None."""
-    for file in ("package.yaml", "package.py"):
-        path = os.path.join(parent_path, file)
-        if os.path.isfile(path):
-            return path
-    return None
-
-def load_package_metadata(parent_path):
-    """Load the metadata file found under parent_path.
-
-    Returns:
-        A metadata dict, or None if no package definition file found.
-    """
-    file = get_package_file(parent_path)
-    if file:
-        return (load_file(file), file)
-    else:
-        raise PkgMetadataError("No package definition file found in %s" % parent_path)
-
-def load_package_settings(metadata):
-    """Return rezconfig settings for this pkg (pkgs can override settings)."""
-    return Settings(metadata["rezconfig"]) if "rezconfig" in metadata else settings
+            raise PackageMetadataError(filename, "%s\n%s" % (str(e), stack))
 
 
 #------------------------------------------------------------------------------
@@ -249,7 +201,7 @@ class ResourceInfo(object):
             if not isinstance(metadata_validators, list):
                 metadata_validators = [metadata_validators]
             for cls in metadata_validators:
-                assert issubclass(cls, MetadataValidator)
+                assert issubclass(cls, MetadataSchema)
         else:
             metadata_validators = []
         self.metadata_validators = metadata_validators
@@ -268,12 +220,9 @@ class ResourceInfo(object):
     @staticmethod
     def _expand_pattern(pattern):
         "expand variables in a search pattern with regular expressions"
-        import versions
-        import packages
-
         pattern = re.escape(pattern)
-        expansions = [('version', versions.EXACT_VERSION_REGSTR),
-                      ('name', packages.PACKAGE_NAME_REGSTR),
+        expansions = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
                       ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
@@ -306,7 +255,7 @@ def register_resource(config_version, resource_key, path_patterns=None,
     path_patterns : str or list of str
         a string pattern identifying where the resource file resides relative to
         the rez search path
-    metadata_validators : MetadataValidator class or list of MetadataValidator classes
+    metadata_validators : MetadataSchema class or list of MetadataSchema classes
         used to validate metadata
     """
     version_configs = _configs[config_version]
@@ -344,7 +293,7 @@ def get_resources(config_version, key=None):
 def get_metadata_validators(config_version, filename, key=None):
     """
     find any resources whose path pattern matches the given filename and yield
-    a list of MetadataValidator instances.
+    a list of MetadataSchema instances.
     """
     resources = get_resources(config_version, key)
     if resources is None:
@@ -403,14 +352,13 @@ class ResourceIterator(object):
         return len(self.path_parts) == 0
 
     def list_matches(self, path):
-        import rez.memcached
         if isinstance(self.current_part, basestring):
             fullpath = os.path.join(path, self.current_part)
             # TODO: check file vs dir here
             if os.path.exists(fullpath):
                 yield fullpath
         else:
-            for name in rez.memcached.get_memcache().list_directory(path):
+            for name in os.listdir(path):
                 match = self.current_part.match(name)
                 if match:
                     # TODO: add match to variables
@@ -442,15 +390,15 @@ def iter_resources(config_version, resource_keys, search_paths, **expansion_vari
 
 
 #------------------------------------------------------------------------------
-# Base MetadataValidator
+# Base MetadataSchema
 #------------------------------------------------------------------------------
 
-class MetadataValidator(object):
+class MetadataSchema(object):
     """
-    The MetadataValidator class provides a means to validate the structure of hierarchical
+    The MetadataSchema class provides a means to validate the structure of hierarchical
     metadata.
 
-    The STRUCTURE attribute defines a reference document which is compared
+    The `REFERENCE` attribute defines a reference document which is compared
     against the metadata document passed to `validate()`. The reference document
     provided by the STRUCTURE attribute can either be a single document or a
     list of documents. If it is a list, the additional documents provide
@@ -596,7 +544,7 @@ class OneOf(object):
         self.options = options
 
 #------------------------------------------------------------------------------
-# MetadataValidator Implementations
+# MetadataSchema Implementations
 #------------------------------------------------------------------------------
 
 # FIXME: come up with something better than this. Seems like legacy a format.
@@ -606,7 +554,7 @@ class OneOf(object):
 # Why does it assume SVN?
 # Why is it all caps whereas other metadata files use lowercase?
 # Why is it using .txt with custom parsing instead of YAML?
-class ReleaseInfo(MetadataValidator):
+class ReleaseInfo(MetadataSchema):
     REFERENCE = {
         'ACTUAL_BUILD_TIME': 0,
         'BUILD_TIME': 0,
@@ -615,7 +563,7 @@ class ReleaseInfo(MetadataValidator):
     }
     REQUIRED = ('ACTUAL_BUILD_TIME', 'BUILD_TIME', 'USER')
 
-class BasePackageConfig_0(MetadataValidator):
+class BasePackageSchema_0(MetadataSchema):
     REFERENCE = {
         'config_version': 0,
         'uuid': 'str',
@@ -623,8 +571,10 @@ class BasePackageConfig_0(MetadataValidator):
         'name': 'str',
         'help': OneOf('str', [['str']]),
         'authors': ['str'],
+        'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
+        'private_build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
         'commands': OneOf(lambda: None, 'str', ['str'])
     }
@@ -632,23 +582,25 @@ class BasePackageConfig_0(MetadataValidator):
     REQUIRED = ('config_version', 'name')
     PROTECTED = ('requires', 'build_requires', 'variants', 'commands')
 
-class VersionPackageConfig_0(BasePackageConfig_0):
+class VersionPackageSchema_0(BasePackageSchema_0):
     REFERENCE = {
         'config_version': 0,
         'uuid': 'str',
         'description': 'str',
         'name': 'str',
-        'version': ExactVersion('1.2'),
+        'version': Version('1.2'),
         'help': OneOf('str', [['str']]),
         'authors': ['str'],
+        'rezconfig': {},
         'requires': ['name-1.2'],
         'build_requires': ['name-1.2'],
+        'private_build_requires': ['name-1.2'],
         'variants': [['name-1.2']],
         'commands': OneOf(lambda: None, 'str', ['str'])
     }
     REQUIRED = ('config_version', 'name', 'version')
 
-class PackageBuildConfig_0(VersionPackageConfig_0):
+class PackageBuildSchema_0(VersionPackageSchema_0):
     """
     A package that is built with the intention to release is stricter about
     the existence of certain metadata values
@@ -659,16 +611,16 @@ class PackageBuildConfig_0(VersionPackageConfig_0):
 register_resource(0,
                   'package.versioned',
                   ['{name}/{version}/package.yaml', '{name}/{version}/package.py'],
-                  [VersionPackageConfig_0])
+                  [VersionPackageSchema_0])
 
 register_resource(0,
                   'package.versionless',
                   ['{name}/package.yaml', '{name}/package.py'],
-                  [BasePackageConfig_0])
+                  [BasePackageSchema_0])
 
 register_resource(0,
                   'package.built',
-                  metadata_validators=[PackageBuildConfig_0])
+                  metadata_validators=[PackageBuildSchema_0])
 
 register_resource(0,
                   'release.info',
@@ -732,7 +684,7 @@ def load_metadata(filename, strip=False, resource_key=None, min_config_version=0
         return metadata
 
     msg = "Could not find registered metadata configuration for %r" % filename
-    for val,err in errors:
+    for val, err in errors:
         msg += "\n%s: %s" % (val.__class__.__name__, str(err))
     raise MetadataError(msg)
 
