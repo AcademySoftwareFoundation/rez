@@ -639,8 +639,7 @@ class BuiltPackageResource(VersionedPackageResource):
     @property
     def schema(self):
         schema = super(BuiltPackageResource, self).schema._schema
-        # we only need to copy here if we change property to propertycache
-        # schema = schema.copy()
+        schema = schema.copy()
         # swap optional to required:
         for key, value in schema.iteritems():
             if key._schema in ('uuid', 'description', 'authors'):
