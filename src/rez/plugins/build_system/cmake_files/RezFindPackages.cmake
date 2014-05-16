@@ -121,8 +121,8 @@ macro (rez_find_packages)
 		# ----------------------
 
 		# pull in the module, this should define the pkg_XXX output vars
-		include(${pkg})
 		message("rez_find_packages: included ${pkg}.cmake")
+		include(${pkg})
 
 		if(${pkg}_INCLUDE_DIRS)
 			message("    include dirs: ${${pkg}_INCLUDE_DIRS}")
