@@ -1,6 +1,8 @@
 from rez.release_vcs import ReleaseVCS
+from rez.settings import settings
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez import plugin_factory
+import functools
 import os.path
 import re
 import sys
@@ -97,10 +99,38 @@ class GitReleaseVCS(ReleaseVCS):
             return self.git("log")
 
     def get_current_revision(self):
-        commit = self.git("rev-parse", "HEAD")[0]
-        branch = self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
-        return dict(commit=commit,
-                    branch=branch)
+        doc = dict(commit=self.git("rev-parse", "HEAD")[0])
+
+        def _branch():
+            return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
+
+        def _tracking_branch():
+            return self.git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")[0]
+
+        def _url(op):
+            origin = doc["tracking_branch"].split('/')[0]
+            lines = self.git("remote", "-v")
+            lines = [x for x in lines if origin in x.split()]
+            lines = [x for x in lines if ("(%s)"%op) in x.split()]
+            try:
+                return lines[0].split()[1]
+            except:
+                raise ReleaseVCSError("failed to parse %s url from:\n%s"
+                                      % (op, '\n'.join(lines)))
+
+        def _get(key, fn):
+            try:
+                doc[key] = fn()
+            except Exception as e:
+                if settings.debug("package_release"):
+                    print >> sys.stderr, "WARNING: Error retrieving %s: %s" \
+                        % (key, str(e))
+
+        _get("branch", _branch)
+        _get("tracking_branch", _tracking_branch)
+        _get("fetch_url", functools.partial(_url, "fetch"))
+        _get("push_url", functools.partial(_url, "push"))
+        return doc
 
     def _create_tag_impl(self, tag_name, message=None):
         # create tag

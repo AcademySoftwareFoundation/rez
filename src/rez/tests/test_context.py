@@ -1,8 +1,10 @@
 from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
+from rez.bind import hello_world
 import rez.vendor.unittest2 as unittest
 import subprocess
 import os.path
+import os
 
 
 
@@ -11,9 +13,15 @@ class TestContext(TestBase, TempdirMixin):
     def setUpClass(cls):
         TempdirMixin.setUpClass()
 
+        packages_path = os.path.join(cls.root, "packages")
+        os.makedirs(packages_path)
+        hello_world.bind(packages_path)
+
         cls.settings = dict(
-            packages_path=[],
+            packages_path=[packages_path],
             implicit_packages=[],
+            add_bootstrap_path=False,
+            warn_untimestamped=False,
             resolve_caching=False)
 
     @classmethod
@@ -73,3 +81,6 @@ def get_test_suites():
     suite.addTest(TestContext("test_suite"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

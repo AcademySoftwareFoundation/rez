@@ -9,7 +9,7 @@ def setup_parser(parser):
                         help="print the package search path, including any "
                         "system paths")
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.settings import settings
     from rez.util import _add_bootstrap_pkg_path
     from rez.vendor import yaml

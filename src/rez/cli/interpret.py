@@ -26,7 +26,7 @@ def setup_parser(parser):
                         help='file containing rex code to execute')
 
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.shells import create_shell
     from rez.util import pretty_env_dict
     from rez.rex import RexExecutor, Python
@@ -54,7 +54,6 @@ def command(opts, parser=None):
     ex = RexExecutor(interpreter=interp,
                      parent_environ=parent_env,
                      parent_variables=parent_vars,
-                     bind_syspaths=False,
                      bind_rez=False)
 
     ex.execute_code(code, filename=opts.FILE)

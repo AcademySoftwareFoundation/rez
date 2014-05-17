@@ -21,8 +21,12 @@ class ConfigurationError(RezError):
 
 
 class RezSystemError(RezError):
-    """Rez system error.
-    """
+    """Rez system error."""
+    pass
+
+
+class RezBindError(RezError):
+    """A bind-related error."""
     pass
 
 

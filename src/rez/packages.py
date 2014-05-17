@@ -1,7 +1,7 @@
 import os.path
 from rez.backport.lru_cache import lru_cache
-from rez.util import print_warning_once, Common, encode_filesystem_name, \
-    propertycache, is_subdirectory, convert_to_user_dict, RO_AttrDictWrapper
+from rez.util import print_warning_once, Common, propertycache, is_subdirectory, \
+    convert_to_user_dict, RO_AttrDictWrapper
 from rez.resources import iter_resources, load_metadata, package_schema, Schema
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
@@ -15,9 +15,6 @@ PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
 PACKAGE_NAME_SEP_REGEX = re.compile(r'[-@#]')
 PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 """
-
-def join_name(family_name, version):
-    return '%s-%s' % (family_name, version)
 
 resource_classes = {}
 
@@ -33,7 +30,7 @@ def iter_package_families(name=None, paths=None):
         yield resource_classes[resource.key](path=resource.path)
 
 
-def iter_packages(name, range=None, timestamp=None, paths=None):
+def iter_packages(name, range=None, timestamp=None, paths=None, descending=False):
     """Iterate over `Package` instances, sorted by version.
 
     Packages of the same name and version earlier in the search path take
@@ -47,6 +44,7 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
             ignored.
         paths (list of str): paths to search for pkgs, defaults to
             `settings.packages_path`.
+        descending (bool): If True, return packages in descending order.
 
     Returns:
         Package object iterator.
@@ -64,7 +62,7 @@ def iter_packages(name, range=None, timestamp=None, paths=None):
                 consumed.add(pkgname)
                 packages.append(pkg)
 
-    packages = sorted(packages, key=lambda x: x.version)
+    packages = sorted(packages, key=lambda x: x.version, reverse=descending)
     return iter(packages)
 
 
@@ -275,16 +273,10 @@ class Variant(PackageBase):
                 raise IndexError("variant index out of range")
 
             requires = requires + var_requires
-            dirs = [encode_filesystem_name(x) for x in var_requires]
+            dirs = [Requirement(x).safe_str() for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
 
-            # backwards compatibility with rez-1
-            if (not os.path.exists(self.root)) and (dirs != var_requires):
-                root = os.path.join(self.base, os.path.join(*var_requires))
-                if os.path.exists(root):
-                    self.root = root
-
-        self._requires = [Requirement(x) for x in requires]
+        self.requires_ = [Requirement(x) for x in requires]
 
     @property
     def qualified_package_name(self):

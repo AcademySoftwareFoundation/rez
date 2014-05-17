@@ -132,7 +132,12 @@ def _get_rez_dist_path(dirname):
         path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
         path = os.path.realpath(path)
         path = os.path.join(path, dirname)
-        assert(os.path.exists(path))
+
+        # the dist may not be available - this happens when unit tests are
+        # run from source
+        if not os.path.exists(path):
+            return None
+
     return path
 
 def get_bootstrap_path():
@@ -884,3 +889,27 @@ class Namespace(object):
         Namespace.namespace = self.parent_namespace
         f.f_locals.clear()
         f.f_locals.update(self.locals)
+
+class YamlCache(object):
+    """Caches yaml files, no file update checking."""
+    def __init__(self):
+        self.docs = {}
+
+    def load(self, path):
+        """Returns dict, or None if the file does not exist."""
+        doc = self.docs.get(path)
+
+        if doc is False:
+            return None
+        elif doc is not None:
+            return doc.copy()
+
+        if os.path.exists(path):
+            with open(path) as f:
+                doc = yaml.load(f.read())
+        else:
+            self.docs[path] = False
+            return None
+
+        self.docs[path] = doc
+        return doc.copy()

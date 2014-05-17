@@ -203,3 +203,6 @@ def get_test_suites():
     suite.addTest(TestSolver("test_8"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

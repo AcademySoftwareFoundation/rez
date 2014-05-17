@@ -15,7 +15,6 @@ class TestRex(TestBase):
         interp = Python(target_environ={}, passive=True)
         return RexExecutor(interpreter=interp,
                            parent_environ=env,
-                           bind_syspaths=False,
                            bind_rez=False,
                            shebang=False,
                            **kwargs)
@@ -294,3 +293,6 @@ def get_test_suites():
     suite.addTest(TestRex("test_7"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

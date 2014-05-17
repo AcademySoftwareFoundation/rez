@@ -146,7 +146,6 @@ def install_into(path, shell=None):
     interpreter = create_shell(shell)
     ex = RexExecutor(interpreter=interpreter,
                      parent_variables=["PATH"],
-                     bind_syspaths=False,
                      bind_rez=False)
 
     init_file = "init.%s" % interpreter.file_extension()

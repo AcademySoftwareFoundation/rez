@@ -7,7 +7,7 @@ import os
 
 
 
-class TestRexCommands(TestBase):
+class TestCommands(TestBase):
 
     @classmethod
     def get_packages_path(cls):
@@ -20,6 +20,7 @@ class TestRexCommands(TestBase):
             packages_path=[cls.get_packages_path()],
             add_bootstrap_path=False,
             resolve_caching=False,
+            warn_untimestamped=False,
             implicit_packages=[])
 
     def __init__(self, fn):
@@ -112,9 +113,12 @@ class TestRexCommands(TestBase):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-    suite.addTest(TestRexCommands("test_old_yaml"))
-    suite.addTest(TestRexCommands("test_new_yaml"))
-    suite.addTest(TestRexCommands("test_py"))
-    suite.addTest(TestRexCommands("test_2"))
+    suite.addTest(TestCommands("test_old_yaml"))
+    suite.addTest(TestCommands("test_new_yaml"))
+    suite.addTest(TestCommands("test_py"))
+    suite.addTest(TestCommands("test_2"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()

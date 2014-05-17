@@ -67,7 +67,7 @@ def setup_parser(parser):
     add_extra_build_args(parser)
     add_build_system_args(parser)
 
-def command(opts, parser=None):
+def command(opts, parser):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     working_dir = os.getcwd()

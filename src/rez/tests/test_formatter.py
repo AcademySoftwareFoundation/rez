@@ -1,10 +1,11 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
+import sys
 
 
 
-class TestNamespaceFormatter(TestBase):
+class TestFormatter(TestBase):
     def setUp(self):
         TestBase.setUp(self)
         self.formatter = NamespaceFormatter({})
@@ -230,6 +231,10 @@ class TestNamespaceFormatter(TestBase):
         self.assert_formatter_raises("{0!}", ValueError, 0)
         self.assert_formatter_raises("{0!rs}", ValueError, 0)
         self.assert_formatter_raises("{!}", ValueError)
+
+        # in python 2.7 onwards, string.Formatter raises KeyError here, rather
+        # than ValueError. In rex we keep this as ValueError (the change is due
+        # to implicit positional arguments, not applicable in rex).
         self.assert_formatter_raises("{:}", ValueError)
         self.assert_formatter_raises("{:s}", ValueError)
         self.assert_formatter_raises("{}", ValueError)
@@ -254,7 +259,10 @@ class TestNamespaceFormatter(TestBase):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-    suite.addTest(TestNamespaceFormatter("test_formatter_stdlib"))
-    suite.addTest(TestNamespaceFormatter("test_formatter_rex"))
+    suite.addTest(TestFormatter("test_formatter_stdlib"))
+    suite.addTest(TestFormatter("test_formatter_rex"))
     suites.append(suite)
     return suites
+
+if __name__ == '__main__':
+    unittest.main()
