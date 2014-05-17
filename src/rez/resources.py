@@ -191,11 +191,11 @@ def register_resource(config_version, resource):
     version_configs.append((resource.key, resource))
 
 class ResourceIterator(object):
-    """Iterates over all occurrences of a resource, given a path pattern such
-    as '{name}/{version}/package.yaml'.
+    """Iterates over all occurrences of a resource, as defined by a path pattern
+    such as '{name}/{version}/package.yaml'.
 
-    For each item found, yields the path to the resource and a dictionary of
-    any variables in the path pattern that were expanded.
+    For each item found, yields the expanded path to the resource and a
+    dictionary of any variables in the path pattern that were expanded.
     """
     def __init__(self, path_pattern, variables):
         self.path_pattern = path_pattern.rstrip('/')
@@ -422,7 +422,7 @@ class Resource(object):
                                 "relative to rez search path: %s" % filepath)
 
         if not hasattr(cls, '_compiled_pattern'):
-            pattern = cls._expand_pattern(pattern)
+            pattern = cls._expand_pattern(cls.path_pattern)
             pattern = r'^' + pattern
             reg = re.compile(pattern)
             cls._compiled_pattern = reg
@@ -508,6 +508,7 @@ class BasePackageResource(Resource):
                                                         Settings(overrides=x))),
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
+            Optional('tools'):                  [basestring],
             Optional('requires'):               [package_requirement],
             Optional('build_requires'):         [package_requirement],
             Optional('private_build_requires'): [package_requirement],
@@ -589,6 +590,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
                 Use(VersionRange): {
                     Optional('help'):                   Or(basestring,
                                                            [[basestring]]),
+                    Optional('tools'):                  [basestring],
                     Optional('requires'):               [package_requirement],
                     Optional('build_requires'):         [package_requirement],
                     Optional('private_build_requires'): [package_requirement],
@@ -606,8 +608,8 @@ class CombinedPackageFamilyResource(BasePackageResource):
 
         # convert 'versions' from a list of `Version` to a list of complete
         # package data
-        versions = data.pop('versions', [])
-        overrides = self.metadata.pop('version_overrides', {})
+        versions = data.pop('versions', [Version()])
+        overrides = data.pop('version_overrides', {})
         if versions:
             new_versions = []
             for version in versions:
