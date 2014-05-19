@@ -24,8 +24,9 @@ import sys
 import inspect
 import re
 from collections import defaultdict
+from fnmatch import fnmatch
 from rez.settings import settings, Settings
-from rez.util import to_posixpath, propertycache, relative_path, Namespace
+from rez.util import to_posixpath, propertycache, print_warning_once, Namespace
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor import yaml
@@ -94,10 +95,11 @@ def load_python(stream):
     # class become values in the dictionary
     g = __builtins__.copy()
     g['Namespace'] = Namespace
+    excludes = set(['Namespace', '__builtins__'])
     exec stream in g
     result = {}
     for k, v in g.iteritems():
-        if k != '__builtins__' and \
+        if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
     # add in any namespaces used
@@ -185,78 +187,80 @@ def register_resource(config_version, resource):
     assert resource.key is not None, \
         "Resource must implement the 'key' attribute"
     # version_configs is a list and not a dict so that it stays ordered
-    if resource.key in dict(version_configs):
+    if resource.key in set(r.key for r in version_configs):
         raise ResourceError("resource already exists: %r" % resource.key)
 
-    version_configs.append((resource.key, resource))
+    version_configs.append(resource)
 
-class ResourceIterator(object):
-    """Iterates over all occurrences of a resource, as defined by a path pattern
-    such as '{name}/{version}/package.yaml'.
+    if resource.parent_resource:
+        Resource._children[resource.parent_resource].append(resource)
 
-    For each item found, yields the expanded path to the resource and a
-    dictionary of any variables in the path pattern that were expanded.
-    """
-    def __init__(self, path_pattern, variables):
-        self.path_pattern = path_pattern.rstrip('/')
-        self.path_parts = self.path_pattern.split('/')
-        self.variables = variables.copy()
-        self.current_part = None
-        self.next_part()
+# class ResourceIterator(object):
+#     """Iterates over all occurrences of a resource, as defined by a path pattern
+#     such as '{name}/{version}/package.yaml'.
 
-    def expand_part(self, part):
-        """
-        Path pattern will be split on directory separator, parts requiring
-        non-constant expansion will be converted to regular expression, and
-        parts with no expansion will remain string literals
-        """
-        for key, value in self.variables.iteritems():
-            part = part.replace('{%s}' % key, '%s' % value)
-        if '{' in part:
-            return re.compile(Resource._expand_pattern(part))
-        else:
-            return part
+#     For each item found, yields the expanded path to the resource and a
+#     dictionary of any variables in the path pattern that were expanded.
+#     """
+#     def __init__(self, path_pattern, variables):
+#         self.path_pattern = path_pattern.rstrip('/')
+#         self.path_parts = self.path_pattern.split('/')
+#         self.variables = variables.copy()
+#         self.current_part = None
+#         self.next_part()
 
-    def copy(self):
-        new = ResourceIterator(self.path_pattern, self.variables.copy())
-        new.path_parts = self.path_parts[:]
-        return new
+#     def expand_part(self, part):
+#         """
+#         Path pattern will be split on directory separator, parts requiring
+#         non-constant expansion will be converted to regular expression, and
+#         parts with no expansion will remain string literals
+#         """
+#         for key, value in self.variables.iteritems():
+#             part = part.replace('{%s}' % key, '%s' % value)
+#         if '{' in part:
+#             return re.compile(Resource._expand_pattern(part))
+#         else:
+#             return part
 
-    def next_part(self):
-        try:
-#             print self.path_pattern, "compiling:", self.path_parts[0]
-            self.current_part = self.expand_part(self.path_parts.pop(0))
-#             print self.path_pattern, "result:", self.current_part
-        except IndexError:
-            pass
+#     def copy(self):
+#         new = ResourceIterator(self.path_pattern, self.variables.copy())
+#         new.path_parts = self.path_parts[:]
+#         return new
 
-    def is_final_part(self):
-        return len(self.path_parts) == 0
+#     def next_part(self):
+#         try:
+# #             print self.path_pattern, "compiling:", self.path_parts[0]
+#             self.current_part = self.expand_part(self.path_parts.pop(0))
+# #             print self.path_pattern, "result:", self.current_part
+#         except IndexError:
+#             pass
 
-    def list_matches(self, path):
-        if isinstance(self.current_part, basestring):
-            fullpath = os.path.join(path, self.current_part)
-            # TODO: check file vs dir here
-            if os.path.exists(fullpath):
-                yield fullpath
-        else:
-            for name in os.listdir(path):
-                match = self.current_part.match(name)
-                if match:
-                    # TODO: add match to variables
-                    self.variables.update(match.groupdict())
-                    yield os.path.join(path, name)
+#     def is_final_part(self):
+#         return len(self.path_parts) == 0
 
-    def walk(self, root):
-        for fullpath in self.list_matches(root):
-            if self.is_final_part():
-                yield fullpath, self.variables
-            else:
-                child = self.copy()
-                child.next_part()
-                for res in child.walk(fullpath):
-                    yield res
+#     def list_matches(self, path):
+#         if isinstance(self.current_part, basestring):
+#             fullpath = os.path.join(path, self.current_part)
+#             # TODO: check file vs dir here
+#             if os.path.exists(fullpath):
+#                 yield fullpath
+#         else:
+#             for name in os.listdir(path):
+#                 match = self.current_part.match(name)
+#                 if match:
+#                     # TODO: add match to variables
+#                     self.variables.update(match.groupdict())
+#                     yield os.path.join(path, name)
 
+#     def walk(self, root):
+#         for fullpath in self.list_matches(root):
+#             if self.is_final_part():
+#                 yield fullpath, self.variables
+#             else:
+#                 child = self.copy()
+#                 child.next_part()
+#                 for res in child.walk(fullpath):
+#                     yield res
 
 #------------------------------------------------------------------------------
 # MetadataSchema Implementations
@@ -292,6 +296,7 @@ package_schema = Schema({
     Optional('config'):                 Settings,
     Optional('help'):                   Or(basestring,
                                            [[basestring]]),
+    Optional('tools'):                  [basestring],
     Optional('requires'):               [package_requirement],
     Optional('build_requires'):         [package_requirement],
     Optional('private_build_requires'): [package_requirement],
@@ -344,10 +349,11 @@ class Resource(object):
     key = None
     schema = None
     path_pattern = None
-    variable_regex = [('version', VERSION_REGSTR),
-                      ('name', PACKAGE_NAME_REGSTR),
-                      ('ext', _or_regex(metadata_loaders.keys()))
-                      ]
+    parent_resource = None
+    variable_regex = []
+    is_file = None
+
+    _children = defaultdict(list)
 
     def __init__(self, path, variables, search_path):
         """
@@ -379,33 +385,7 @@ class Resource(object):
         return pattern + '$'
 
     @classmethod
-    def from_filepath(cls, filepath):
-        if not cls.path_pattern:
-            raise ResourceError("Cannot create resource %r from %r: "
-                                "does not have path patterns" % (cls.key,
-                                                                 filepath))
-        # create a relative path from filepath without hitting the disk
-        path_parts = _split_path(filepath)
-        for search_path in settings.packages_path:
-            search_parts = _split_path(search_path)
-            n = len(search_parts)
-            if n < len(path_parts) and path_parts[:n] == search_parts:
-                relpath = os.path.sep.join(path_parts[n:])
-                break
-        else:
-            raise ResourceError("Cannot create resource %r from %r: "
-                                "file is not in settings.packages_path" % (cls.key, filepath))
-
-        result = cls.parse_filepath(relpath)
-        if result is None:
-            raise ResourceError("Cannot create resource %r from %r: "
-                                "file did not match path patterns" % (cls.key, filepath))
-        match_path, variables = result
-        search_path = filepath[:-len(match_path)]
-        return cls(filepath, variables, search_path)
-
-    @classmethod
-    def parse_filepath(cls, filepath):
+    def _parse_filepart(cls, filepath):
         """parse `filepath` against the resource's `path_pattern`.
 
         Args:
@@ -416,20 +396,139 @@ class Resource(object):
         """
         if not cls.path_pattern:
             return
+        return cls._parse_pattern(filepath, cls.path_pattern,
+                                  '_compiled_pattern')
 
+    @classmethod
+    def _parse_filepath(cls, filepath):
+        """parse `filepath` against the joined `path_pattern` of this resource
+        and all of its parents.
+
+        Args:
+            filepath (str): path to parse.
+        Returns:
+            str: part of `filepath` that matched
+            dict: dictionary of variables
+        """
+        # FIXME: figure out a way to avoid having to explicitly exclude the root
+        parts = [r.path_pattern for r in cls.resource_chain()[1:]]
+        if any(p for p in parts if p is None):
+            raise ResourceError("All path resources must have path patterns")
+
+        pattern = '/'.join(parts)
+        return cls._parse_pattern(filepath, pattern,
+                                  '_compiled_full_pattern')
+
+    @classmethod
+    def _parse_pattern(cls, filepath, pattern, class_storage):
         if os.path.isabs(filepath):
             raise ResourceError("Error parsing file path. Path must be "
                                 "relative to rez search path: %s" % filepath)
 
-        if not hasattr(cls, '_compiled_pattern'):
-            pattern = cls._expand_pattern(cls.path_pattern)
+        if not hasattr(cls, class_storage):
+            pattern = cls._expand_pattern(pattern)
             pattern = r'^' + pattern
             reg = re.compile(pattern)
-            cls._compiled_pattern = reg
+            setattr(cls, class_storage, reg)
+        else:
+            reg = getattr(cls, class_storage)
 
-        m = cls._compiled_pattern.search(to_posixpath(filepath))
+        m = reg.search(to_posixpath(filepath))
         if m:
             return m.group(0), m.groupdict()
+
+    # --- info
+
+    @classmethod
+    def child_classes(cls):
+        """Get a list of the resource classes which consider this class its
+        parent"""
+        return tuple(cls._children[cls])
+
+    @classmethod
+    def resource_chain(cls):
+        def it():
+            if cls.parent_resource:
+                for parent in cls.parent_resource.resource_chain():
+                    yield parent
+            yield cls
+        return tuple(it())
+
+    # --- instantiation
+
+    @classmethod
+    def iter_instances(cls, parent_resource):
+        """Iterate over instances of this class which reside under the given
+        parent resource
+
+        Args:
+            parent_resource (Resource): resource instance of the type specified
+                by this class's `parent_resource` attribute
+        """
+        # FIXME: cache these disk crawls
+        for path in os.listdir(parent_resource.path):
+            fullpath = os.path.join(parent_resource.path, path)
+            if os.path.isfile(fullpath) == cls.is_file:
+                match = cls._parse_filepart(path)
+                if match is not None:
+                    variables = match[1]
+                    variables.update(parent_resource.variables)
+                    yield cls(fullpath, variables, parent_resource.search_path)
+
+    @classmethod
+    def from_filepath(cls, filepath):
+        """Create a resource from a file path"""
+
+        if not cls.path_pattern:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "does not have path patterns" %
+                                (cls.key, filepath))
+        # create a relative path from filepath without hitting the disk
+        path_parts = _split_path(filepath)
+        for search_path in settings.packages_path:
+            search_parts = _split_path(search_path)
+            n = len(search_parts)
+            if n < len(path_parts) and path_parts[:n] == search_parts:
+                relpath = '/'.join(path_parts[n:])
+                break
+        else:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "file is not in settings.packages_path" %
+                                (cls.key, filepath))
+
+        result = cls._parse_filepath(relpath)
+        if result is None:
+            raise ResourceError("Cannot create resource %r from %r: "
+                                "file did not match path patterns" %
+                                (cls.key, filepath))
+        match_path, variables = result
+        search_path = filepath[:-len(match_path)]
+        return cls(filepath, variables, search_path)
+
+
+class FolderResource(Resource):
+    variable_regex = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
+                      ]
+    is_file = False
+
+class PackagesRoot(FolderResource):
+    key = 'folder.packages_root'
+
+class NameFolder(FolderResource):
+    key = 'folder.name'
+    path_pattern = '{name}'
+    parent_resource = PackagesRoot
+
+class VersionFolder(FolderResource):
+    key = 'folder.version'
+    path_pattern = '{version}'
+    parent_resource = NameFolder
+
+class FileResource(FolderResource):
+    variable_regex = FolderResource.variable_regex + \
+        [('ext', _or_regex(metadata_loaders.keys()))]
+    is_file = True
 
     def load(self):
         """load the resource data.
@@ -453,16 +552,25 @@ class Resource(object):
             else:
                 return data
 
-class ReleaseTimestampResource(Resource):
+# -- deprecated
+
+class MetadataFolder(FolderResource):
+    key = 'folder.metadata'
+    path_pattern = '.metadata'
+    parent_resource = VersionFolder
+
+class ReleaseTimestampResource(FileResource):
     # Deprecated
     key = 'release.timestamp'
-    path_pattern = '{name}/{version}/.metadata/release_time.txt'
+    path_pattern = 'release_time.txt'
+    parent_resource = MetadataFolder
     schema = Use(int)
 
-class ReleaseInfoResource(Resource):
+class ReleaseInfoResource(FileResource):
     # Deprecated
     key = 'release.info'
-    path_pattern = '{name}/{version}/.metadata/info.txt'
+    path_pattern = 'info.txt'
+    parent_resource = MetadataFolder
     schema = Schema({
         Required('ACTUAL_BUILD_TIME'): int,
         Required('BUILD_TIME'): int,
@@ -470,9 +578,13 @@ class ReleaseInfoResource(Resource):
         Optional('SVN'): basestring
     })
 
-class ReleaseDataResource(Resource):
+# -- END deprecated
+
+class ReleaseDataResource(FileResource):
     key = 'release.data'
-    path_pattern = '{name}/{version}/release.yaml'
+    path_pattern = 'release.yaml'
+    parent_resource = VersionFolder
+
     schema = Schema({
         Required('timestamp'): int,
         Required('revision'): basestring,
@@ -482,7 +594,7 @@ class ReleaseDataResource(Resource):
         Required('previous_revision'): basestring
     })
 
-class BasePackageResource(Resource):
+class BasePackageResource(FileResource):
     """
     Abstract class providing the standard set of package metadata.
     """
@@ -515,10 +627,12 @@ class BasePackageResource(Resource):
             Optional('variants'):               [[package_requirement]],
             Optional('commands'):               Or(rex_command,
                                                    And([basestring],
-                                                       Use(self.convert_to_rex)))
+                                                       Use(self.convert_to_rex))),
+            # basestring: object  # uncomment this to allow arbitrary metadata
         })
 
     def load_timestamp(self):
+        timestamp = 0
         try:
             release_data = load_resource(0,
                                          resource_keys=['release.data'],
@@ -526,18 +640,24 @@ class BasePackageResource(Resource):
                                          **self.variables)
             timestamp = release_data.get('timestamp', 0)
         except ResourceError:
-            timestamp = load_resource(0,
-                                      resource_keys=['release.timestamp'],
-                                      search_paths=[self.search_path],
-                                      **self.variables)
+            try:
+                timestamp = load_resource(0,
+                                          resource_keys=['release.timestamp'],
+                                          search_paths=[self.search_path],
+                                          **self.variables)
+            except ResourceError:
+                pass
+        if not timestamp:
+            # FIXME: should we deal is_local here or in rez.packages? We can't
+            # check (not self.is_local) here...
+            if not timestamp and settings.warn("untimestamped"):
+                print_warning_once("Package is not timestamped: %s" % self.path)
         return timestamp
-        # # TODO: handle warning.  should we deal is_local here or in rez.packages?
-        # if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
-        #     print_warning_once("Package is not timestamped: %s" % str(self))
 
 class VersionlessPackageResource(BasePackageResource):
     key = 'package.versionless'
-    path_pattern = '{name}/package.{ext}'
+    path_pattern = 'package.{ext}'
+    parent_resource = NameFolder
 
     def load(self):
         data = super(VersionlessPackageResource, self).load()
@@ -548,7 +668,8 @@ class VersionlessPackageResource(BasePackageResource):
 
 class VersionedPackageResource(BasePackageResource):
     key = 'package.versioned'
-    path_pattern = '{name}/{version}/package.{ext}'
+    path_pattern = 'package.{ext}'
+    parent_resource = VersionFolder
 
     @propertycache
     def schema(self):
@@ -566,10 +687,6 @@ class VersionedPackageResource(BasePackageResource):
 
         return data
 
-class PackageFamilyResource(Resource):
-    key = 'package_family.folder'
-    path_pattern = '{name}/'  # trailing slash is required to denote folder
-
 class CombinedPackageFamilyResource(BasePackageResource):
     """
     A single package containing settings for multiple versions.
@@ -579,6 +696,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
     """
     key = 'package_family.combined'
     path_pattern = '{name}.{ext}'
+    parent_resource = PackagesRoot
 
     @propertycache
     def schema(self):
@@ -598,6 +716,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     Optional('commands'):               Or(rex_command,
                                                            And([basestring],
                                                                Use(self.convert_to_rex)))
+                    # basestring: object  # uncomment this to allow arbitrary metadata
                 }
             }
         })
@@ -626,6 +745,18 @@ class CombinedPackageFamilyResource(BasePackageResource):
             data['versions'] = new_versions
         return data
 
+class CombinedPackageResource(CombinedPackageFamilyResource):
+    key = 'package.combined'
+    parent_resource = CombinedPackageFamilyResource
+
+    @classmethod
+    def iter_instances(cls, parent_resource):
+        data = parent_resource.load()
+        for ver_data in data['versions']:
+            variables = parent_resource.variables.copy()
+            variables['version'] = str(ver_data['version'])
+            yield cls(parent_resource.path, variables, parent_resource.search_path)
+
 class BuiltPackageResource(VersionedPackageResource):
     """A package that is built with the intention to release.
 
@@ -637,6 +768,7 @@ class BuiltPackageResource(VersionedPackageResource):
     """
     key = 'package.built'
     path_pattern = None
+    parent_resource = None
 
     @property
     def schema(self):
@@ -661,9 +793,13 @@ register_resource(0, ReleaseTimestampResource)
 
 register_resource(0, ReleaseDataResource)
 
-register_resource(0, PackageFamilyResource)
+register_resource(0, NameFolder)
+
+register_resource(0, VersionFolder)
 
 register_resource(0, CombinedPackageFamilyResource)
+
+register_resource(0, CombinedPackageResource)
 
 #------------------------------------------------------------------------------
 # Main Entry Points
@@ -677,10 +813,53 @@ def get_resource_class(config_version, key):
     """
     config_resources = _configs.get(config_version)
     if config_resources:
-        return dict(config_resources)[key]
+        return dict([(r.key, r) for r in config_resources])[key]
 
+# def iter_resources(config_version, resource_keys, search_paths=None,
+#                    **expansion_variables):
+#     """Iterate over `Resource` instances.
 
-def iter_resources(config_version, resource_keys, search_paths=None,
+#     Args:
+#         resource_keys (str or list of str): Name(s) of the type of `Resources`
+#             to find.
+#         search_paths (list of str, optional): List of root paths under which
+#             to search for resources.  These typicall correspond to the rez
+#             packages path.
+#     """
+#     search_paths = settings.default(search_paths, "packages_path")
+
+#     # convenience:
+#     for k, v in expansion_variables.items():
+#         if v is None:
+#             expansion_variables.pop(k)
+
+#     if isinstance(resource_keys, basestring):
+#         resource_keys = [resource_keys]
+
+#     resources = [get_resource_class(config_version, key)
+#                  for key in resource_keys]
+#     for search_path in search_paths:
+#         for resource_class in resources:
+#             if resource_class.path_pattern:
+#                 pattern = resource_class.path_pattern
+#                 it = ResourceIterator(pattern, expansion_variables)
+#                 for path, variables in it.walk(search_path):
+#                     yield resource_class(path, variables, search_path)
+
+def list_resource_classes(config_version, keys=None):
+    resources = _configs.get(config_version)
+    if keys:
+        resources = [r for r in resources if any(fnmatch(r.key, k) for k in keys)]
+    return resources
+
+def _iter_resources(parent_resource):
+    for child_class in parent_resource.child_classes():
+        for child in child_class.iter_instances(parent_resource):
+            yield child
+            for grand_child in _iter_resources(child):
+                yield grand_child
+
+def iter_resources(config_version, resource_keys=None, search_paths=None,
                    **expansion_variables):
     """Iterate over `Resource` instances.
 
@@ -693,23 +872,13 @@ def iter_resources(config_version, resource_keys, search_paths=None,
     """
     search_paths = settings.default(search_paths, "packages_path")
 
-    # convenience:
-    for k, v in expansion_variables.items():
-        if v is None:
-            expansion_variables.pop(k)
+    resource_classes = list_resource_classes(config_version, resource_keys)
 
-    if isinstance(resource_keys, basestring):
-        resource_keys = [resource_keys]
-
-    resources = [get_resource_class(config_version, key)
-                 for key in resource_keys]
-    for search_path in search_paths:
-        for resource_class in resources:
-            if resource_class.path_pattern:
-                pattern = resource_class.path_pattern
-                it = ResourceIterator(pattern, expansion_variables)
-                for path, variables in it.walk(search_path):
-                    yield resource_class(path, variables, search_path)
+    for path in search_paths:
+        resource = PackagesRoot(path, {}, path)
+        for child in _iter_resources(resource):
+            if isinstance(child, tuple(resource_classes)):
+                yield child
 
 def get_resource(config_version, filepath=None,  resource_keys=None,
                  search_paths=None, **expansion_variables):
@@ -740,20 +909,24 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
         config_resources = _configs.get(config_version)
         assert config_resources
 
-        for resource_key, resource_class in config_resources:
+        for resource_class in config_resources:
             try:
                 resource = resource_class.from_filepath(filepath)
             except ResourceError, err:
                 pass
             else:
                 result.append(resource)
+        if not result:
+            raise ResourceError("Could not find resource matching file %r" %
+                                filepath)
     else:
         it = iter_resources(config_version, resource_keys, search_paths,
                             **expansion_variables)
         result = list(it)
+        if not result:
+            raise ResourceError("Could not find resource matching key(s): %s" %
+                                ', '.join(['%r' % r for r in resource_keys]))
 
-    if not result:
-        raise ResourceError("Could not find resource")
     if len(result) != 1:
         raise ResourceError("Found more than one matching resource: %s" %
                             ', '.join([r.key for r in result]))

@@ -1,12 +1,10 @@
 import os.path
-from rez.backport.lru_cache import lru_cache
-from rez.util import print_warning_once, Common, propertycache, is_subdirectory, \
+from rez.util import Common, propertycache, is_subdirectory, \
     convert_to_user_dict, RO_AttrDictWrapper
-from rez.resources import iter_resources, load_metadata, package_schema, Schema
+from rez.resources import iter_resources, package_schema, Schema
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.exceptions import PackageNotFoundError
-from rez.settings import settings
 
 
 """
@@ -18,19 +16,30 @@ PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
 
 resource_classes = {}
 
-def iter_package_families(name=None, paths=None):
-    """Iterate through top-level `PackageFamily` instances."""
+# def iter_package_families(name=None, paths=None):
+#     """Iterate through top-level `PackageFamily` instances."""
+#     pkg_iter = iter_resources(0,  # configuration version
+#                               ['package_family.folder',
+#                                'package_family.external'],
+#                               paths,
+#                               name=name)
+
+#     for resource in pkg_iter:
+#         yield resource_classes[resource.key](path=resource.path)
+
+
+def _iter_packages(name=None, paths=None):
+    """Iterate over `Package` instances."""
     pkg_iter = iter_resources(0,  # configuration version
-                              ['package_family.folder',
-                               'package_family.external'],
+                              ['package.*'],
                               paths,
                               name=name)
 
     for resource in pkg_iter:
-        yield resource_classes[resource.key](path=resource.path)
+        yield Package(resource=resource)
 
-
-def iter_packages(name, range=None, timestamp=None, paths=None, descending=False):
+def iter_packages(name, range=None, timestamp=None, paths=None,
+                  descending=False):
     """Iterate over `Package` instances, sorted by version.
 
     Packages of the same name and version earlier in the search path take
@@ -51,71 +60,103 @@ def iter_packages(name, range=None, timestamp=None, paths=None, descending=False
     """
     packages = []
     consumed = set()
-    for fam in iter_package_families(name, paths):
-        for pkg in fam.iter_version_packages():
-            pkgname = pkg.qualified_name
-            if pkgname not in consumed:
-                if (timestamp and pkg.timestamp > timestamp) \
-                        or (range and pkg.version not in range):
-                    continue
+    for pkg in _iter_packages(name, paths):
+        pkgname = pkg.qualified_name
+        if pkgname not in consumed:
+            if (timestamp and pkg.timestamp > timestamp) \
+                    or (range and pkg.version not in range):
+                continue
 
-                consumed.add(pkgname)
-                packages.append(pkg)
+            consumed.add(pkgname)
+            packages.append(pkg)
 
     packages = sorted(packages, key=lambda x: x.version, reverse=descending)
     return iter(packages)
 
+def list_packages(name, range=None, timestamp=None, paths=None,
+                  descending=False):
+    """List `Package` instances with the given parameters, sorted by version.
 
-class PackageFamily(Common):
-    """A package family has a single root directory, with a sub-directory for
-    each version.
+    Packages of the same name and version earlier in the search path take
+    precedence - equivalent packages later in the paths are ignored.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+        range (VersionRange, optional): If provided, limits the versions
+            returned.
+        timestamp (int, optional): Any package newer than this time epoch is
+            ignored.
+        paths (list of str): paths to search for pkgs, defaults to
+            `settings.packages_path`.
+        descending (bool): If True, return packages in descending order.
+
+    Returns:
+        list of Package instances
     """
-    def __init__(self, name, path, data=None):
-        self.name = name
-        self.path = path
-        self._raw_data = data
+    packages = []
+    consumed = set()
+    for pkg in iter_packages(name, paths):
+        pkgname = pkg.qualified_name
+        if pkgname not in consumed:
+            if (timestamp and pkg.timestamp > timestamp) \
+                    or (range and pkg.version not in range):
+                continue
 
-    def __str__(self):
-        return "%s@%s" % (self.name, self.path)
+            consumed.add(pkgname)
+            packages.append(pkg)
 
-    @propertycache
-    def metadata(self):
-        if callable(self._raw_data):
-            # load the metadata
-            data = self._raw_data()
-        else:
-            # metadata was passed in directly
-            data = self._raw_data
-        return data
+    return sorted(packages, key=lambda x: x.version, reverse=descending)
 
-    def iter_version_packages(self):
-        pkg_iter = iter_resources(0,  # configuration version
-                                  ['package.versionless', 'package.versioned'],
-                                  [self.path],
-                                  name=self.name)
+# class PackageFamily(Common):
+#     """A package family has a single root directory, with a sub-directory for
+#     each version.
+#     """
+#     def __init__(self, name, path, data=None):
+#         self.name = name
+#         self.path = path
+#         self._resource = data
 
-        for resource in pkg_iter:
-            yield resource_classes[resource.key](path=resource.path,
-                                                 data=resource.load)
+#     def __str__(self):
+#         return "%s@%s" % (self.name, self.path)
 
-class ExternalPackageFamily(PackageFamily):
-    """
-    special case where the entire package is stored in one file
-    """
-    def __init__(self, name, path, data=None):
-        super(ExternalPackageFamily, self).__init__(name, path)
+#     @propertycache
+#     def metadata(self):
+#         if callable(self._resource):
+#             # load the metadata
+#             data = self._resource()
+#         else:
+#             # metadata was passed in directly
+#             data = self._resource
+#         return data
 
-    def iter_version_packages(self):
-        versions = self.metadata.get('versions', None)
-        if not versions:
-            # no need to copy the metadata, it will be copied on validation by
-            # the Package class
-            yield Package(path=self.path,
-                          data=self.metadata)
-        else:
-            for ver_data in versions:
-                yield Package(path=self.path,
-                              data=ver_data)
+#     def iter_version_packages(self):
+#         pkg_iter = iter_resources(0,  # configuration version
+#                                   ['package.versionless', 'package.versioned'],
+#                                   [self.path],
+#                                   name=self.name)
+
+#         for resource in pkg_iter:
+#             yield resource_classes[resource.key](path=resource.path,
+#                                                  data=resource.load)
+
+# class ExternalPackageFamily(PackageFamily):
+#     """
+#     special case where the entire package is stored in one file
+#     """
+#     def __init__(self, name, path, data=None):
+#         super(ExternalPackageFamily, self).__init__(name, path)
+
+#     def iter_version_packages(self):
+#         versions = self.metadata.get('versions', None)
+#         if not versions:
+#             # no need to copy the metadata, it will be copied on validation by
+#             # the Package class
+#             yield Package(path=self.path,
+#                           data=self.metadata)
+#         else:
+#             for ver_data in versions:
+#                 yield Package(path=self.path,
+#                               data=ver_data)
 
 class WithDataAccessors(type):
     """Metaclass for adding properties to a class for accessing top-level keys
@@ -124,24 +165,29 @@ class WithDataAccessors(type):
     The property names are derived from the keys of the class's `schema` object.
     """
     def __new__(cls, name, parents, members):
-        for name in members['schema'].keys():
+        schema_dict = members['schema']._schema
+        for name in schema_dict.keys():
             while isinstance(name, Schema):
                 name = name._schema
-            members[name] = cls.make_getter(name)
+            if name not in members:
+                members[name] = cls.make_getter(name)
         return super(WithDataAccessors, cls).__new__(cls, name, parents, members)
 
     @classmethod
     def make_getter(cls, key):
         def getter(self):
-            return self.metadata[key]
+            return getattr(self.data, key)
         return property(getter)
 
 class PackageBase(Common):
     """Abstract base class for Package and Variant."""
-    def __init__(self, path, data=None):
-        self.metafile = path
-        self.base = os.path.dirname(path)
-        self._raw_data = data
+
+    schema = None
+
+    def __init__(self, resource):
+        self.metafile = resource.path
+        self.base = os.path.dirname(self.metafile)
+        self._resource = resource
 
     @propertycache
     def qualified_name(self):
@@ -150,16 +196,10 @@ class PackageBase(Common):
 
     @propertycache
     def metadata(self):
-        if callable(self._raw_data):
-            # load the metadata
-            data = self._raw_data()
-        else:
-            data = self._raw_data
-        new_data = self.schema.validate(data)
-        # note: `new_data` is a copy of `data`, so let's free the raw data to
-        # be garbage collected
-        self._raw_data = None
-        return new_data
+        data = self._resource.load()
+        if self.schema:
+            data = self.schema.validate(data)
+        return data
 
     @propertycache
     def data(self):
@@ -193,22 +233,22 @@ class Package(PackageBase):
 
     schema = package_schema
 
-    def __init__(self, path, data):
+    def __init__(self, resource):
         """Create a package.
 
         Args:
             path (str): Either a filepath to a package definition file, or a
                 path to the directory containing the definition file.
-            data (dict or callable):
+            resource (Resource):
         """
-        super(Package, self).__init__(path, data)
+        super(Package, self).__init__(resource)
 
     @property
     def num_variants(self):
         """Return the number of variants in this package. Returns zero if there
         are no variants."""
         # FIXME: move default to resources
-        variants = self.metadata["variants"] or []
+        variants = self.metadata.get("variants", [])
         return len(variants)
 
     def get_variant(self, index=None):
@@ -224,9 +264,8 @@ class Package(PackageBase):
         elif index not in range(n):
             raise IndexError("variant index out of range")
 
-        return Variant(path=self.metafile,
-                       index=index,
-                       data=self._metadata)
+        return Variant(index=index,
+                       resource=self._resource)
 
     def iter_variants(self):
         """Returns an iterator over the variants in this package."""
@@ -249,7 +288,13 @@ class Variant(PackageBase):
     Note that Variant is also used in packages that don't have a variant - in
     this case, index is None. This helps give a consistent interface.
     """
-    def __init__(self, path, index=None, data=None):
+
+    # FIXME: move to PackageBase?
+    __metaclass__ = WithDataAccessors
+
+    schema = package_schema
+
+    def __init__(self, index=None, resource=None):
         """Create a package variant.
 
         Args:
@@ -258,13 +303,13 @@ class Variant(PackageBase):
             index (int): Zero-based variant index. If the package does not
                 contain variants, index should be set to None.
         """
-        super(Variant, self).__init__(path, data)
+        super(Variant, self).__init__(resource)
         self.index = index
         self.root = self.base
 
         metadata = self.metadata
         # FIXME: move default to schema
-        requires = metadata["requires"] or []
+        requires = metadata.get("requires", [])
 
         if self.index is not None:
             try:
@@ -276,7 +321,7 @@ class Variant(PackageBase):
             dirs = [Requirement(x).safe_str() for x in var_requires]
             self.root = os.path.join(self.base, os.path.join(*dirs))
 
-        self.requires_ = [Requirement(x) for x in requires]
+        self._requires = [Requirement(x) for x in requires]
 
     @property
     def qualified_package_name(self):
@@ -345,7 +390,7 @@ class Variant(PackageBase):
         return "%s@%s,%s" % (self.qualified_name, self._base_path(),
                              self.subpath)
 
-resource_classes['package_family.folder'] = PackageFamily
-resource_classes['package_family.combined'] = ExternalPackageFamily
-resource_classes['package.versionless'] = Package
-resource_classes['package.versioned'] = Package
+# resource_classes['package_family.folder'] = PackageFamily
+# resource_classes['package_family.combined'] = ExternalPackageFamily
+# resource_classes['package.versionless'] = Package
+# resource_classes['package.versioned'] = Package
