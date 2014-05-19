@@ -26,9 +26,8 @@ class FormulaeManager(object):
             pkgs = []
             repo_dir = self._get_repo_dir(url)
             if os.path.exists(repo_dir):
-                for pkg_fam in iter_package_families(paths=[repo_dir]):
-                    for pkg in iter_packages(pkg_fam.name, paths=[repo_dir]):
-                        pkgs.append(pkg.short_name())
+                for pkg in iter_packages(paths=[repo_dir]):
+                    pkgs.append(pkg.short_name())
             repo["pkgs"] = pkgs
 
         return repo["pkgs"]
