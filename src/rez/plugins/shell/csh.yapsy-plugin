@@ -1,6 +1,0 @@
-[Core]
-Name = csh
-Module = csh
-
-[Documentation]
-Description = CSH shell.

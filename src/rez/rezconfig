@@ -71,20 +71,8 @@ tmpdir:
 # Extensions
 ###############################################################################
 
-# Search path for shell plugins
-shell_plugin_path: []
-
-# Search path for source retrieval plugins
-source_retriever_plugin_path: []
-
-# Search path for release-VCS plugins
-release_vcs_plugin_path: []
-
-# Search path for release-hook plugins
-release_hook_plugin_path: []
-
-# Search path for build-system plugins
-build_system_plugin_path: []
+# Search path for plugins
+plugin_path: []
 
 # Search path for bind modules
 bind_module_path: []
