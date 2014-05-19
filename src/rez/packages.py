@@ -36,9 +36,10 @@ def _iter_packages(name=None, paths=None):
                               name=name)
 
     for resource in pkg_iter:
-        yield Package(resource=resource)
+        if name is None or name in resource.variables.get('name', None):
+            yield Package(resource=resource)
 
-def iter_packages(name, range=None, timestamp=None, paths=None,
+def iter_packages(name=None, range=None, timestamp=None, paths=None,
                   descending=False):
     """Iterate over `Package` instances, sorted by version.
 
@@ -70,7 +71,8 @@ def iter_packages(name, range=None, timestamp=None, paths=None,
             consumed.add(pkgname)
             packages.append(pkg)
 
-    packages = sorted(packages, key=lambda x: x.version, reverse=descending)
+    packages = sorted(packages, key=lambda x: (x.name, x.version),
+                      reverse=descending)
     return iter(packages)
 
 def list_packages(name, range=None, timestamp=None, paths=None,
@@ -166,11 +168,11 @@ class WithDataAccessors(type):
     """
     def __new__(cls, name, parents, members):
         schema_dict = members['schema']._schema
-        for name in schema_dict.keys():
-            while isinstance(name, Schema):
-                name = name._schema
-            if name not in members:
-                members[name] = cls.make_getter(name)
+        for key in schema_dict.keys():
+            while isinstance(key, Schema):
+                key = key._schema
+            if key not in members:
+                members[key] = cls.make_getter(key)
         return super(WithDataAccessors, cls).__new__(cls, name, parents, members)
 
     @classmethod
