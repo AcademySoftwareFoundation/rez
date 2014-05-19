@@ -10,6 +10,7 @@ import os.path
 import sys
 import re
 import platform as plat
+from rez.exceptions import RezSystemError
 from rez.util import propertycache
 
 
@@ -39,7 +40,7 @@ class System(object):
             arch = os.environ.get("PROCESSOR_ARCHITEW6432",
                                   os.environ.get('PROCESSOR_ARCHITECTURE', ''))
             if not arch:
-                raise RuntimeError("Could not detect architecture")
+                raise RezSystemError("Could not detect architecture")
             return arch
         else:
             return plat.machine()
@@ -94,7 +95,7 @@ class System(object):
             final_version = str('.').join(toks)
         # other
         else:
-            raise RuntimeError("Could not detect operating system")
+            raise RezSystemError("Could not detect operating system")
 
         return '%s-%s' % (final_release, final_version)
 
@@ -116,22 +117,12 @@ class System(object):
         """
         from rez.shells import get_shell_types
         shells = set(get_shell_types())
-
-        # trivial case - only one possible shell
-        if len(shells) == 1:
-            return iter(shells).next()
+        if not shells:
+            raise RezSystemError("no shells available")
 
         if self.platform == "windows":
             raise NotImplemented
         else:
-            # trivial case - must be bash
-            if shells == set(["sh", "bash"]):
-                return "bash"
-
-            # trivial case - must be tcsh
-            if shells == set(["csh", "tcsh"]):
-                return "tcsh"
-
             import subprocess as sp
             shell = None
 
@@ -147,7 +138,7 @@ class System(object):
 
             # check $SHELL
             if shell not in shells:
-                self._pr("detecting shell: testing SHELL...")
+                self._pr("detecting shell: testing $SHELL...")
                 shell = os.path.basename(os.getenv("SHELL", ''))
 
             # traverse parent procs via /proc/(pid)/status
@@ -181,19 +172,44 @@ class System(object):
                         self._pr("traversal ended: %s" % str(e))
                         break
 
-            # give up - just choose an arbitrary shell
-            if shell not in shells:
-                shell = iter(shells).next()
-                print >> sys.stderr, \
-                    ("could not detect shell, chose '%s'. Set " + \
-                    "'default_shell' to force shell type.") % shell
+            if (shell not in shells) and ("sh" in shells):
+                shell = "sh"  # failed detection, fall back on 'sh'
+            elif (shell not in shells) and ("bash" in shells):
+                shell = "bash"  # failed detection, fall back on 'bash'
+            elif shell not in shells:
+                shell = iter(shells).next()  # give up - just choose a shell
+                self._pr("could not detect shell, chose '%s'") % shell
 
+            # sh has to be handled as a special case
             if shell == "sh":
-                return "bash"
-            elif shell == "csh":
-                return "tcsh"
-            else:
-                return shell
+                if os.path.islink("/bin/sh"):
+                    path = os.readlink("/bin/sh")
+                    self._pr("detected: /bin/sh -> %s" % path)
+                    shell2 = os.path.split(path)[-1]
+
+                    if shell2 == "bash":
+                        # bash switches to sh-like shell when invoked as sh,
+                        # so we want to use the sh shell plugin
+                        pass
+                    elif shell2 == "dash":
+                        # dash doesn't have an sh emulation mode, so we have
+                        # to use the dash shell plugin
+                        if "dash" in shells:
+                            shell = "dash"
+                        else:
+                            # this isn't good!
+                            self._pr("dash is the current shell, but the "
+                                     "plugin is not available.")
+
+                            if "bash" in shells:
+                                shell = "bash"  # fall back on bash
+                            else:
+                                shell = iter(shells).next()  # give up - just choose a shell
+
+                            self._pr("fell back to %s" % shell)
+
+            self._pr("selected shell: %s" % shell)
+            return shell
 
     @propertycache
     def fqdn(self):
