@@ -131,7 +131,7 @@ class PackageBase(Common):
         Returns:
             RO_AttrDictWrapper
         """
-        return convert_to_user_dict(self.metadata, RO_AttrDictWrapper)
+        return convert_to_user_dict(self._data, RO_AttrDictWrapper)
 
     @propertycache
     def is_local(self):
