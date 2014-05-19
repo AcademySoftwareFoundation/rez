@@ -200,6 +200,7 @@ def register_resource(config_version, resource):
 #------------------------------------------------------------------------------
 
 # 'name-1.2'
+# FIXME: cast to version.Requirment?
 package_requirement = basestring
 
 # TODO: inspect arguments of the function to confirm proper number?
@@ -212,7 +213,9 @@ rex_command = Or(callable,     # python function
 Required = Schema
 
 # The master package schema.  All resources delivering metadata to the Package
-# class must validate against this master schema
+# class must ultimately validate against this master schema. This schema
+# intentionally does no casting of types: that should happen on the resource
+# schemas.
 package_schema = Schema({
     Required('config_version'):         int,
     Optional('uuid'):                   basestring,
@@ -229,14 +232,14 @@ package_schema = Schema({
     Optional('build_requires'):         [package_requirement],
     Optional('private_build_requires'): [package_requirement],
     Optional('variants'):               [[package_requirement]],
-    Optional('commands'):               rex_command
+    Optional('commands'):               rex_command,
+    # swap-comment these 2 lines if we decide to allow arbitrary root metadata
+    Optional('custom'):                 object,
+    # Optional(object):                   object
 })
 
 class Resource(object):
-    """Stores data regarding a particular data resource.
-
-    This includes its name, where it should exist on disk, and how to validate
-    its metadata.
+    """Abstract base class for data resources.
 
     The `Package` class expects its metadata to match a specific schema, but
     each individual resource may have its own schema specific to the file it
@@ -264,24 +267,17 @@ class Resource(object):
             when the type of resource desired is known. This attribute must be
             overridden by `Resource` subclasses.
         schema (Schema, optional): schema defining the structure of the data
-            which will be loaded,
-        path_pattern (str, optional): a path str, relative to the rez search
-            path, containing variable tokens such as ``{name}``.  This is used
-            to determine if a resource is compatible with a given file path. If
-            a resource does not provide a `path_pattern` it will only be used
-            if explictly requested.
-        variable_regex (list of (str, str) pairs): the names of the tokens
-            which can be expanded within the `path_pattern` and their
-            corresponding regular expressions.
+            which will be loaded
+        parent_resource (Resource class): the resource above this one in the
+            tree.  An instance of this type is passed to `iter_instances`
+            on this class to allow this resource to determine which instances
+            of itself exist under an instance of its parent resource.
     """
     key = None
     schema = None
-    path_pattern = None
     parent_resource = None
-    variable_regex = []
-    is_file = None
 
-    _children = defaultdict(list)
+    _children = defaultdict(list)  # gets filled by register_resource
 
     def __init__(self, path, variables, search_path):
         """
@@ -300,6 +296,62 @@ class Resource(object):
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
                                self.variables)
+
+    # --- info
+
+    @classmethod
+    def children(cls):
+        """Get a tuple of the resource classes which consider this class its
+        parent"""
+        return tuple(cls._children[cls])
+
+    @classmethod
+    def parents(cls):
+        """Get a tuple of all the resources above this one, in descending order
+        """
+        def it():
+            if cls.parent_resource:
+                for parent in cls.parent_resource.parents():
+                    yield parent
+        return tuple(it())
+
+    # --- instantiation
+
+    @classmethod
+    def iter_instances(cls, parent_resource):
+        """Iterate over instances of this class which reside under the given
+        parent resource.
+
+        Args:
+            parent_resource (Resource): resource instance of the type specified
+                by this class's `parent_resource` attribute
+
+        Returns:
+            iterator of `Resource` instances
+        """
+        raise NotImplementedError
+
+
+class FileSystemResource(Resource):
+    """A resource that resides on disk.
+
+    Attributes:
+        path_pattern (str, optional): a path str, relative to the rez search
+            path, containing variable tokens such as ``{name}``.  This is used
+            to determine if a resource is compatible with a given file path. If
+            a resource does not provide a `path_pattern` it will only be used
+            if explictly requested.
+        variable_regex (list of (str, str) pairs): the names of the tokens
+            which can be expanded within the `path_pattern` and their
+            corresponding regular expressions.
+    """
+    path_pattern = None
+    is_file = None
+    variable_regex = [('version', VERSION_REGSTR),
+                      ('name', PACKAGE_NAME_REGSTR),
+                      ]
+
+    # -- path pattern helpers
 
     @classmethod
     def _expand_pattern(cls, pattern):
@@ -350,6 +402,11 @@ class Resource(object):
 
     @classmethod
     def _parse_pattern(cls, filepath, pattern, class_storage):
+        """
+        Returns:
+            str: the part of `filepath` that matches `pattern`
+            dict: the variables in `pattern` that matched
+        """
         if os.path.isabs(filepath):
             raise ResourceError("Error parsing file path. Path must be "
                                 "relative to rez search path: %s" % filepath)
@@ -366,25 +423,7 @@ class Resource(object):
         if m:
             return m.group(0), m.groupdict()
 
-    # --- info
-
-    @classmethod
-    def children(cls):
-        """Get a tuple of the resource classes which consider this class its
-        parent"""
-        return tuple(cls._children[cls])
-
-    @classmethod
-    def parents(cls):
-        """Get a tuple of all the resources above this one, in descending order
-        """
-        def it():
-            if cls.parent_resource:
-                for parent in cls.parent_resource.parents():
-                    yield parent
-        return tuple(it())
-
-    # --- instantiation
+    # -- instantiation
 
     @classmethod
     def iter_instances(cls, parent_resource):
@@ -394,6 +433,9 @@ class Resource(object):
         Args:
             parent_resource (Resource): resource instance of the type specified
                 by this class's `parent_resource` attribute
+
+        Returns:
+            iterator of `Resource` instances
         """
         # FIXME: cache these disk crawls
         for path in os.listdir(parent_resource.path):
@@ -435,28 +477,13 @@ class Resource(object):
         search_path = filepath[:-len(match_path)]
         return cls(filepath, variables, search_path)
 
-
-class FolderResource(Resource):
-    variable_regex = [('version', VERSION_REGSTR),
-                      ('name', PACKAGE_NAME_REGSTR),
-                      ]
+class FolderResource(FileSystemResource):
+    "A resource representing a directory on disk"
     is_file = False
 
-class PackagesRoot(FolderResource):
-    key = 'folder.packages_root'
-
-class NameFolder(FolderResource):
-    key = 'folder.name'
-    path_pattern = '{name}'
-    parent_resource = PackagesRoot
-
-class VersionFolder(FolderResource):
-    key = 'folder.version'
-    path_pattern = '{version}'
-    parent_resource = NameFolder
-
-class FileResource(FolderResource):
-    variable_regex = FolderResource.variable_regex + \
+class FileResource(FileSystemResource):
+    "A resource representing a file on disk"
+    variable_regex = FileSystemResource.variable_regex + \
         [('ext', _or_regex(metadata_loaders.keys()))]
     is_file = True
 
@@ -481,6 +508,20 @@ class FileResource(FolderResource):
                     raise PackageMetadataError(self.path, str(err))
             else:
                 return data
+
+class PackagesRoot(FolderResource):
+    """Represents a root directory in Settings.pakcages_path"""
+    key = 'folder.packages_root'
+
+class NameFolder(FolderResource):
+    key = 'folder.name'
+    path_pattern = '{name}'
+    parent_resource = PackagesRoot
+
+class VersionFolder(FolderResource):
+    key = 'folder.version'
+    path_pattern = '{version}'
+    parent_resource = NameFolder
 
 # -- deprecated
 
@@ -558,7 +599,9 @@ class BasePackageResource(FileResource):
             Optional('commands'):               Or(rex_command,
                                                    And([basestring],
                                                        Use(self.convert_to_rex))),
-            # basestring: object  # uncomment this to allow arbitrary metadata
+            # swap-comment these 2 lines if we decide to allow arbitrary root metadata
+            Optional('custom'):                 object,
+            # basestring: object
         })
 
     def load_timestamp(self):
@@ -578,8 +621,7 @@ class BasePackageResource(FileResource):
             except ResourceError:
                 pass
         if not timestamp:
-            # FIXME: should we deal is_local here or in rez.packages? We can't
-            # check (not self.is_local) here...
+            # FIXME: should we deal with is_local here or in rez.packages?
             if not timestamp and settings.warn("untimestamped"):
                 print_warning_once("Package is not timestamped: %s" % self.path)
         return timestamp
@@ -621,8 +663,8 @@ class CombinedPackageFamilyResource(BasePackageResource):
     """
     A single package containing settings for multiple versions.
 
-    An external package does not have a directory in which to put package
-    resources.
+    A combined package consists of a single file and thus does not have a
+    directory in which to put package resources.
     """
     key = 'package_family.combined'
     path_pattern = '{name}.{ext}'
@@ -645,8 +687,10 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     Optional('variants'):               [[package_requirement]],
                     Optional('commands'):               Or(rex_command,
                                                            And([basestring],
-                                                               Use(self.convert_to_rex)))
-                    # basestring: object  # uncomment this to allow arbitrary metadata
+                                                               Use(self.convert_to_rex))),
+                    # swap-comment these 2 lines if we decide to allow arbitrary root metadata
+                    Optional('custom'):                 object,
+                    # basestring:                         object
                 }
             }
         })
@@ -734,47 +778,6 @@ register_resource(0, CombinedPackageResource)
 #------------------------------------------------------------------------------
 # Main Entry Points
 #------------------------------------------------------------------------------
-
-def get_resource_class(config_version, key):
-    """Find a `Resource` class matching the provided `key`.
-
-    Args:
-        key (str): Name of the resource.
-    """
-    config_resources = _configs.get(config_version)
-    if config_resources:
-        return dict([(r.key, r) for r in config_resources])[key]
-
-# def iter_resources(config_version, resource_keys, search_paths=None,
-#                    **expansion_variables):
-#     """Iterate over `Resource` instances.
-
-#     Args:
-#         resource_keys (str or list of str): Name(s) of the type of `Resources`
-#             to find.
-#         search_paths (list of str, optional): List of root paths under which
-#             to search for resources.  These typicall correspond to the rez
-#             packages path.
-#     """
-#     search_paths = settings.default(search_paths, "packages_path")
-
-#     # convenience:
-#     for k, v in expansion_variables.items():
-#         if v is None:
-#             expansion_variables.pop(k)
-
-#     if isinstance(resource_keys, basestring):
-#         resource_keys = [resource_keys]
-
-#     resources = [get_resource_class(config_version, key)
-#                  for key in resource_keys]
-#     for search_path in search_paths:
-#         for resource_class in resources:
-#             if resource_class.path_pattern:
-#                 pattern = resource_class.path_pattern
-#                 it = ResourceIterator(pattern, expansion_variables)
-#                 for path, variables in it.walk(search_path):
-#                     yield resource_class(path, variables, search_path)
 
 def list_resource_classes(config_version, keys=None):
     resources = _configs.get(config_version)
