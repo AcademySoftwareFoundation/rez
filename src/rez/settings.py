@@ -83,11 +83,7 @@ class Settings(object):
         # path lists
         "packages_path":                    path_list_schema,
         "package_repository_url_path":      path_list_schema,
-        "shell_plugin_path":                path_list_schema,
-        "source_retriever_plugin_path":     path_list_schema,
-        "release_vcs_plugin_path":          path_list_schema,
-        "release_hook_plugin_path":         path_list_schema,
-        "build_system_plugin_path":         path_list_schema,
+        "plugin_path":                      path_list_schema,
         "bind_module_path":                 path_list_schema,
 
         # FIXME how to let plugins support their own settings?

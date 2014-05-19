@@ -3,20 +3,19 @@ from rez.packages import Package
 from rez.util import which
 
 
-
 def get_buildsys_types():
     """Returns the available build system implementations - cmake, make etc."""
-    from rez.plugin_managers import build_system_plugin_manager
-    return build_system_plugin_manager().get_plugins()
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugins('build_system')
 
 
 def get_valid_build_systems(working_dir):
     """Returns the build system classes that could build the source in given dir."""
-    from rez.plugin_managers import build_system_plugin_manager
+    from rez.plugin_managers import plugin_manager
 
     clss = []
     for buildsys_name in get_buildsys_types():
-        cls = build_system_plugin_manager().get_plugin_class(buildsys_name)
+        cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
         if cls.is_valid_root(working_dir):
             clss.append(cls)
     return clss
@@ -26,10 +25,10 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
                         write_build_scripts=False, verbose=False,
                         build_args=[], child_build_args=[]):
     """Return a new build system that can build the source in working_dir."""
-    from rez.plugin_managers import build_system_plugin_manager
+    from rez.plugin_managers import plugin_manager
 
     if buildsys_type:
-        cls = build_system_plugin_manager().get_plugin_class(buildsys_type)
+        cls = plugin_manager.get_plugin_class('build_system', buildsys_type)
         clss = [cls]
     else:
         clss = get_valid_build_systems(working_dir)

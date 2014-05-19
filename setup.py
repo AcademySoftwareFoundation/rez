@@ -120,6 +120,9 @@ setup(
             find_files('_sys', '*.sh') + \
             find_files('plugins/build_system/cmake_files', '*.cmake') + \
             find_files('tests/data', '*.*')
+        'rezplugins': [
+            'build_system/cmake_files/*.cmake',
+        ]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",
