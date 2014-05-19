@@ -195,81 +195,9 @@ def register_resource(config_version, resource):
     if resource.parent_resource:
         Resource._children[resource.parent_resource].append(resource)
 
-# class ResourceIterator(object):
-#     """Iterates over all occurrences of a resource, as defined by a path pattern
-#     such as '{name}/{version}/package.yaml'.
-
-#     For each item found, yields the expanded path to the resource and a
-#     dictionary of any variables in the path pattern that were expanded.
-#     """
-#     def __init__(self, path_pattern, variables):
-#         self.path_pattern = path_pattern.rstrip('/')
-#         self.path_parts = self.path_pattern.split('/')
-#         self.variables = variables.copy()
-#         self.current_part = None
-#         self.next_part()
-
-#     def expand_part(self, part):
-#         """
-#         Path pattern will be split on directory separator, parts requiring
-#         non-constant expansion will be converted to regular expression, and
-#         parts with no expansion will remain string literals
-#         """
-#         for key, value in self.variables.iteritems():
-#             part = part.replace('{%s}' % key, '%s' % value)
-#         if '{' in part:
-#             return re.compile(Resource._expand_pattern(part))
-#         else:
-#             return part
-
-#     def copy(self):
-#         new = ResourceIterator(self.path_pattern, self.variables.copy())
-#         new.path_parts = self.path_parts[:]
-#         return new
-
-#     def next_part(self):
-#         try:
-# #             print self.path_pattern, "compiling:", self.path_parts[0]
-#             self.current_part = self.expand_part(self.path_parts.pop(0))
-# #             print self.path_pattern, "result:", self.current_part
-#         except IndexError:
-#             pass
-
-#     def is_final_part(self):
-#         return len(self.path_parts) == 0
-
-#     def list_matches(self, path):
-#         if isinstance(self.current_part, basestring):
-#             fullpath = os.path.join(path, self.current_part)
-#             # TODO: check file vs dir here
-#             if os.path.exists(fullpath):
-#                 yield fullpath
-#         else:
-#             for name in os.listdir(path):
-#                 match = self.current_part.match(name)
-#                 if match:
-#                     # TODO: add match to variables
-#                     self.variables.update(match.groupdict())
-#                     yield os.path.join(path, name)
-
-#     def walk(self, root):
-#         for fullpath in self.list_matches(root):
-#             if self.is_final_part():
-#                 yield fullpath, self.variables
-#             else:
-#                 child = self.copy()
-#                 child.next_part()
-#                 for res in child.walk(fullpath):
-#                     yield res
-
 #------------------------------------------------------------------------------
 # MetadataSchema Implementations
 #------------------------------------------------------------------------------
-# TODO: check for valid package names
-# (or do we want to defer to the package class?)
-
-# 'name'
-package_name = basestring
 
 # 'name-1.2'
 package_requirement = basestring
@@ -411,7 +339,8 @@ class Resource(object):
             dict: dictionary of variables
         """
         # FIXME: figure out a way to avoid having to explicitly exclude the root
-        parts = [r.path_pattern for r in cls.resource_chain()[1:]]
+        hierachy = cls.resource_chain()[1:] + (cls,)
+        parts = [r.path_pattern for r in hierachy]
         if any(p for p in parts if p is None):
             raise ResourceError("All path resources must have path patterns")
 
@@ -440,18 +369,19 @@ class Resource(object):
     # --- info
 
     @classmethod
-    def child_classes(cls):
-        """Get a list of the resource classes which consider this class its
+    def children(cls):
+        """Get a tuple of the resource classes which consider this class its
         parent"""
         return tuple(cls._children[cls])
 
     @classmethod
-    def resource_chain(cls):
+    def parents(cls):
+        """Get a tuple of all the resources above this one, in descending order
+        """
         def it():
             if cls.parent_resource:
-                for parent in cls.parent_resource.resource_chain():
+                for parent in cls.parent_resource.parents():
                     yield parent
-            yield cls
         return tuple(it())
 
     # --- instantiation
@@ -459,7 +389,7 @@ class Resource(object):
     @classmethod
     def iter_instances(cls, parent_resource):
         """Iterate over instances of this class which reside under the given
-        parent resource
+        parent resource.
 
         Args:
             parent_resource (Resource): resource instance of the type specified
@@ -853,7 +783,7 @@ def list_resource_classes(config_version, keys=None):
     return resources
 
 def _iter_resources(parent_resource):
-    for child_class in parent_resource.child_classes():
+    for child_class in parent_resource.children():
         for child in child_class.iter_instances(parent_resource):
             yield child
             for grand_child in _iter_resources(child):
