@@ -314,6 +314,7 @@ class Resource(object):
             if cls.parent_resource:
                 for parent in cls.parent_resource.parents():
                     yield parent
+                yield cls.parent_resource
         return tuple(it())
 
     # --- instantiation
@@ -456,9 +457,14 @@ class FileSystemResource(Resource):
             raise ResourceError("Cannot create resource %r from %r: "
                                 "does not have path patterns" %
                                 (cls.key, filepath))
+        # first make sure the path is absolute (and normalized), since a
+        # relative path could start anywhere
+        filepath = os.path.abspath(filepath)
         # create a relative path from filepath without hitting the disk
         path_parts = _split_path(filepath)
         for search_path in settings.packages_path:
+            # FIXME: should this be made absolute in settings?
+            search_path = os.path.abspath(search_path)
             search_parts = _split_path(search_path)
             n = len(search_parts)
             if n < len(path_parts) and path_parts[:n] == search_parts:
@@ -469,9 +475,10 @@ class FileSystemResource(Resource):
             raise ResourceError("Cannot create resource %r from %r: "
                                 "file is not in settings.packages_path" %
                                 (cls.key, filepath))
-
+        print cls.key, "parsing", relpath
         result = cls._parse_filepath(relpath)
         if result is None:
+            print "NONE"
             raise ResourceError("Cannot create resource %r from %r: "
                                 "file did not match path patterns" %
                                 (cls.key, filepath))
