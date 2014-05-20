@@ -1,18 +1,12 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez import module_root_path
 from rez.settings import settings
 from rez.util import LazySingleton
-import logging
+from rez.exceptions import RezPluginError
 import os.path
 import sys
-import re
 
-if sys.version_info < (2, 7):
-    from rez.backport.null_handler import NullHandler
-else:
-    from logging import NullHandler
 
 # modified from pkgutil standard library:
 # this function is called from the __init__.py files of each plugin type inside
@@ -50,12 +44,14 @@ def extend_path(path, name):
     pname = os.path.join(*name.split('.'))  # Reconstitute as relative path
     # Just in case os.extsep != '.'
     init_py = "__init__" + os.extsep + "py"
-
-    path = path[:]  # Start with a copy of the existing path
+    path = path[:]
 
     for dir in settings.get("plugin_path"):
-        if not isinstance(dir, basestring) or not os.path.isdir(dir):
+        if not os.path.isdir(dir):
+            if settings.debug("plugins"):
+                print "skipped nonexistant rez plugin path: %s" % dir
             continue
+
         subdir = os.path.join(dir, pname)
         # XXX This may still add duplicate entries to path on
         # case-insensitive filesystems
@@ -90,41 +86,49 @@ class RezPluginType(object):
 
     def load_plugins(self):
         import pkgutil
+        from rez.backport.importlib import import_module
         type_module_name = 'rezplugins.' + self.type_name
-        __import__(type_module_name, globals(), locals(), [], -1)
-        package = sys.modules[type_module_name]
+        package = import_module(type_module_name)
+
         # on import, the `__path__` variable of the imported package is extended
         # to include existing directories on the plugin search path (via
         # extend_path, above). this means that `walk_packages` will walk over all
         # modules on the search path at the same level (.e.g in a
         # 'rezplugins/type_name' sub-directory).
-        for loader, modname, ispkg in pkgutil.walk_packages(package.__path__,
-                                                            package.__name__ + '.'):
-            if loader is not None:
-                plugin_name = modname.split('.')[-1]
-                if plugin_name.startswith('_'):
-                    continue
-                module = loader.find_module(modname).load_module(modname)
-                try:
-                    if hasattr(module, 'register_plugin') and \
-                            hasattr(module.register_plugin, '__call__'):
-                        plugin_class = module.register_plugin()
-                        self.register_plugin(plugin_name, plugin_class)
-                    else:
-                        # delete from sys.modules?
-                        pass
-                except:
-                    import traceback
-                    traceback.print_exc()
+        paths = [package.__path__] if isinstance(package.__path__, basestring) \
+            else package.__path__
+        for path in paths:
+            for loader, modname, ispkg in pkgutil.walk_packages([path],
+                                                                package.__name__ + '.'):
+                if loader is not None:
+                    plugin_name = modname.split('.')[-1]
+                    if plugin_name.startswith('_'):
+                        continue
+                    if settings.debug("plugins"):
+                        print "loading %s plugin at %s: %s..." % (self.type_name,
+                                                                  path, modname)
+
+                    try:
+                        module = loader.find_module(modname).load_module(modname)
+                        if hasattr(module, 'register_plugin') and \
+                                hasattr(module.register_plugin, '__call__'):
+                            plugin_class = module.register_plugin()
+                            self.register_plugin(plugin_name, plugin_class)
+                        else:
+                            # delete from sys.modules?
+                            pass
+                    except:
+                        if settings.debug("plugins"):
+                            import traceback
+                            traceback.print_exc()
 
     def get_plugin_class(self, plugin_name):
         """Returns the class registered under the given plugin name."""
         try:
             return self.plugin_classes[plugin_name]
         except KeyError:
-            # TODO add a PluginManagerError
-            raise ValueError("Unrecognised %s plugin: '%s'"
-                             % (self.pretty_type_name, plugin_name))
+            raise RezPluginError("Unrecognised %s plugin: '%s'"
+                                 % (self.pretty_type_name, plugin_name))
 
     def create_instance(self, plugin, **instance_kwargs):
         """Create and return an instance of the given plugin."""
@@ -140,8 +144,8 @@ class RezPluginManager(object):
     rez, and the modules below that are individual custom plugins extending that
     type.
 
-    For example, rez provides two plugins of type 'build_system': 'cmake', and
-    'make'::
+    For example, rez provides three plugins of type 'build_system': 'cmake',
+    'make' and 'bez'::
 
         rezplugins/
           __init__.py
@@ -149,6 +153,7 @@ class RezPluginManager(object):
             __init__.py
             cmake.py
             make.py
+            bez.py
           ...
 
     Here is an example of how to provide your own plugin.  In the example, we'll
@@ -196,8 +201,7 @@ class RezPluginManager(object):
         try:
             return self._plugin_types[plugin_type]()
         except KeyError:
-            # TODO add a PluginManagerError
-            raise ValueError("Unrecognised plugin type: '%s'" % (plugin_type))
+            raise RezPluginError("Unrecognised plugin type: '%s'" % (plugin_type))
 
     def register_plugin_type(self, type_class):
         if not issubclass(type_class, RezPluginType):
@@ -218,9 +222,8 @@ class RezPluginManager(object):
         try:
             return self._get_plugin_type(plugin_type).get_plugin_class(plugin_name)
         except KeyError:
-            # TODO add a PluginManagerError
-            raise ValueError("Unrecognised %s plugin: '%s'"
-                             % (self.pretty_type_name, plugin_name))
+            raise RezPluginError("Unrecognised %s plugin: '%s'"
+                                 % (self.pretty_type_name, plugin_name))
 
     def get_plugins(self, plugin_type):
         """Return a list of the registered names available for the given plugin
@@ -230,7 +233,7 @@ class RezPluginManager(object):
     def create_instance(self, plugin_type, plugin_name, **instance_kwargs):
         """Create and return an instance of the given plugin."""
         plugin_type = self._get_plugin_type(plugin_type)
-        return plugin_type().create_instance(plugin_name, **instance_kwargs)
+        return plugin_type.create_instance(plugin_name, **instance_kwargs)
 
 #------------------------------------
 # Plugin Types
