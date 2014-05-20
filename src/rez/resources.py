@@ -148,13 +148,16 @@ def load_file(filepath, loader=None):
 
     Args:
         filepath (str): Path to the file from which to read metadata.
-        loader (callable, optional): callable which will take an open file
-            handle and return a metadata dictionary.
+        loader (callable or str, optional): callable which will take an open
+            file handle and return a metadata dictionary. Can also be a key
+            to the `metadata_loaders` dictionary.
     Returns:
         dict: the metadata
     """
     if loader is None:
         loader = get_file_loader(filepath)
+    elif isinstance(loader, basestring):
+        loader = metadata_loaders[loader]
 
     with open(filepath, 'r') as f:
         try:
@@ -472,6 +475,7 @@ class FileResource(FileSystemResource):
     variable_regex = FileSystemResource.variable_regex + \
         [('ext', _or_regex(metadata_loaders.keys()))]
     is_file = True
+    loader = None
 
     def load(self):
         """load the resource data.
@@ -486,7 +490,7 @@ class FileResource(FileSystemResource):
         loaded from other reources.
         """
         if os.path.isfile(self.path):
-            data = load_file(self.path)
+            data = load_file(self.path, self.loader)
             if self.schema:
                 try:
                     return self.schema.validate(data)
