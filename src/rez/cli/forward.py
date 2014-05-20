@@ -12,7 +12,7 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.vendor import yaml
-    import importlib
+    from rez.backport.importlib import import_module
     import inspect
 
     yaml_file = os.path.abspath(opts.YAML)
@@ -26,7 +26,7 @@ def command(opts, parser):
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
 
-    module = importlib.import_module(namespace)
+    module = import_module(namespace)
 
     target_func = getattr(module, func_name)
     func_args = inspect.getargspec(target_func).args

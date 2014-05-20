@@ -41,9 +41,11 @@ class System(object):
                                   os.environ.get('PROCESSOR_ARCHITECTURE', ''))
             if not arch:
                 raise RezSystemError("Could not detect architecture")
-            return arch
         else:
-            return plat.machine()
+            arch = plat.machine()
+
+        arch = self._make_safe_version(arch)
+        return arch
 
     @propertycache
     def os(self):
@@ -97,6 +99,7 @@ class System(object):
         else:
             raise RezSystemError("Could not detect operating system")
 
+        final_version = self._make_safe_version(final_version)
         return '%s-%s' % (final_release, final_version)
 
     @propertycache
@@ -233,6 +236,18 @@ class System(object):
         @returns The domain, eg 'somestudio.com'
         """
         return self.fqdn.split('.', 1)[1]
+
+    def _make_safe_version(self, s):
+        # this just replaces any invalid chars with underscores
+        from rez.vendor.version.version import Version
+        s_ = ''
+        for ch in s:
+            try:
+                v = Version(ch)
+                s_ += ch
+            except:
+                s_ += '_'
+        return s_
 
     def _pr(self, s):
         from rez.settings import settings

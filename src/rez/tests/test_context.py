@@ -30,7 +30,11 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_create_context(self):
         """Test creation of context."""
+        r = ResolvedContext([])
+        r.print_info()
+
         r = ResolvedContext(["hello_world"])
+        r.print_info()
 
     def test_execute_command(self):
         """Test command execution in context."""

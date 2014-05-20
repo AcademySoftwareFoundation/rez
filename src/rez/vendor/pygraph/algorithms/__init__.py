@@ -28,4 +28,4 @@ Algorithms
 This subpackage contains a set of modules, each one of them containing some algorithms.
 """
 
-__import__('pkg_resources').declare_namespace(__name__)
+#__import__('pkg_resources').declare_namespace(__name__)

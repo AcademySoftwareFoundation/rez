@@ -30,4 +30,4 @@ Base classes used to compose the the graph classes.
 The classes in this namespace should not be used directly.
 """
 
-__import__('pkg_resources').declare_namespace(__name__)
+#__import__('pkg_resources').declare_namespace(__name__)

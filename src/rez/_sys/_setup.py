@@ -97,10 +97,13 @@ def post_install(install_base_dir, install_scripts_dir, scripts):
 
     # create bootstrap packages
     def _bind(name):
-        import importlib
-        module = importlib.import_module("rez.bind.%s" % name)
+        from rez.backport.importlib import import_module
+        module = import_module("rez.bind.%s" % name)
         print "creating bootstrap package for %s..." % name
-        module.bind(bootstrap_path)
+        try:
+            module.bind(bootstrap_path)
+        except Exception as e:
+            print >> sys.stderr, "Failed making package: %s" % str(e)
 
     _bind("platform")
     _bind("arch")

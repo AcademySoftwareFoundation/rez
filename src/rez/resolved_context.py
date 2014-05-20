@@ -249,7 +249,7 @@ class ResolvedContext(object):
 
         _pr("resolved packages:")
         rows = []
-        for pkg in self.resolved_packages:
+        for pkg in (self.resolved_packages or []):
             tok = ''
             if not os.path.exists(pkg.root):
                 tok = 'NOT FOUND'
