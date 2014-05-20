@@ -1,6 +1,0 @@
-[Core]
-Name = git
-Module = git
-
-[Documentation]
-Description = Clones and updates from git repositories.

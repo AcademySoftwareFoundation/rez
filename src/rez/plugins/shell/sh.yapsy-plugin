@@ -1,6 +1,0 @@
-[Core]
-Name = sh
-Module = sh
-
-[Documentation]
-Description = SH shell.
