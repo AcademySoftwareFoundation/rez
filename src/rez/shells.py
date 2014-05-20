@@ -12,8 +12,8 @@ import sys
 
 def get_shell_types():
     """Returns the available shell types: bash, tcsh etc."""
-    from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager().get_plugins()
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugins('shell')
 
 
 def create_shell(shell=None, **kwargs):
@@ -23,8 +23,8 @@ def create_shell(shell=None, **kwargs):
         from rez.system import system
         shell = system.shell
 
-    from rez.plugin_managers import shell_plugin_manager
-    return shell_plugin_manager().create_instance(shell, **kwargs)
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.create_instance('shell', shell, **kwargs)
 
 
 

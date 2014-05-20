@@ -1,5 +1,5 @@
 config_version = 0
 name = "pyodd"
-version = "1"
+version = "2"
 
 requires = ["pybah"]

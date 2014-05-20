@@ -1,6 +1,0 @@
-[Core]
-Name = hg
-Module = hg
-
-[Documentation]
-Description = Mercurial VCS support.

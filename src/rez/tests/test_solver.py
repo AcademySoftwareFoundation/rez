@@ -40,25 +40,25 @@ class TestSolver(TestBase):
         s1,s2,s_perms = self._create_solvers(reqs)
 
         s1.solve()
-        self.assertTrue(s1.status == "solved")
+        self.assertEqual(s1.status, "solved")
         resolve = [str(x) for x in s1.resolved_packages]
 
         print
         print "request: %s" % ' '.join(packages)
         print "expecting: %s" % ' '.join(expected_resolve)
         print "result: %s" % ' '.join(str(x) for x in resolve)
-        self.assertTrue(resolve == expected_resolve)
+        self.assertEqual(resolve, expected_resolve)
 
         print "checking that unoptimised solve matches optimised..."
         s2.solve()
-        self.assertTrue(s2.status == "solved")
+        self.assertEqual(s2.status, "solved")
         resolve2 = [str(x) for x in s2.resolved_packages]
-        self.assertTrue(resolve2 == resolve)
+        self.assertEqual(resolve2, resolve)
 
         print "checking that permutations also succeed..."
         for s in s_perms:
             s.solve()
-            self.assertTrue(s.status == "solved")
+            self.assertEqual(s.status, "solved")
 
         return s1
 
@@ -71,18 +71,18 @@ class TestSolver(TestBase):
         print
         print "request: %s" % ' '.join(packages)
         print "expecting failure"
-        self.assertTrue(s1.status == "failed")
+        self.assertEqual(s1.status, "failed")
         print "result: %s" % str(s1.failure_reason())
 
         print "checking that unoptimised solve fail matches optimised..."
         s2.solve()
-        self.assertTrue(s2.status == "failed")
-        self.assertTrue(s1.failure_reason() == s2.failure_reason())
+        self.assertEqual(s2.status, "failed")
+        self.assertEqual(s1.failure_reason(), s2.failure_reason())
 
         print "checking that permutations also fail..."
         for s in s_perms:
             s.solve()
-            self.assertTrue(s.status == "failed")
+            self.assertEqual(s.status, "failed")
 
         return s1
 
