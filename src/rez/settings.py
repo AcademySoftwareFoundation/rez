@@ -14,7 +14,7 @@ from rez.util import which, YamlCache
 from rez import module_root_path
 from rez.system import system
 from rez.exceptions import ConfigurationError
-from rez.vendor.schema.schema import Schema, SchemaError, Or
+from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 
 
 
@@ -32,7 +32,8 @@ class Settings(object):
     opt_str_schema      = Schema(Or(str,None), error="Expected string or null")
     int_schema          = Schema(int, error="Expected integer")
     str_list_schema     = Schema([str], error="Expected list of strings")
-    path_list_schema    = Schema([str], error="Expected list of strings")
+    path_list_schema    = Schema([And(str, Use(os.path.abspath))],
+                                 error="Expected list of strings")
 
     key_schemas = {
         # bools

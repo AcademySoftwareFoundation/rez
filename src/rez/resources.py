@@ -280,17 +280,14 @@ class Resource(object):
 
     _children = defaultdict(list)  # gets filled by register_resource
 
-    def __init__(self, path, variables, search_path):
+    def __init__(self, path, variables):
         """
         Args:
             path (str): path of the file to be loaded.
             variables (dict): the values of the variables within
                 the resource `path_pattern`.
-            search_path (str): the root rez search directory, under which
-                `path` can be found.
         """
         super(Resource, self).__init__()
-        self.search_path = search_path
         self.variables = variables
         self.path = path
 
@@ -358,11 +355,16 @@ class FileSystemResource(Resource):
     @classmethod
     def _expand_pattern(cls, pattern):
         "expand variables in a search pattern with regular expressions"
+        # escape literals:
+        #   '{package}.{ext}' --> '\{package\}\.\{ext\}'
         pattern = re.escape(pattern)
-        # FIXME: determine if this search_path expansion is necessary
+        # search path cannot be handled at the class-level because it may
+        # change after import
         expansions = [('search_path', _or_regex(settings.packages_path))]
         for key, value in cls.variable_regex + expansions:
-            pattern = pattern.replace(r'\{%s\}' % key,
+            # escape key so it matches escaped pattern:
+            #   'search_path' --> 'search\_path'
+            pattern = pattern.replace(r'\{%s\}' % re.escape(key),
                                       '(?P<%s>%s)' % (key, value))
         return pattern + '$'
 
@@ -392,13 +394,12 @@ class FileSystemResource(Resource):
             str: part of `filepath` that matched
             dict: dictionary of variables
         """
-        # FIXME: figure out a way to avoid having to explicitly exclude the root
-        hierachy = cls.parents()[1:] + (cls,)
+        hierachy = cls.parents() + (cls,)
         parts = [r.path_pattern for r in hierachy]
         if any(p for p in parts if p is None):
             raise ResourceError("All path resources must have path patterns")
 
-        pattern = '/'.join(parts)
+        pattern = os.path.sep.join(parts)
         return cls._parse_pattern(filepath, pattern,
                                   '_compiled_full_pattern')
 
@@ -409,10 +410,6 @@ class FileSystemResource(Resource):
             str: the part of `filepath` that matches `pattern`
             dict: the variables in `pattern` that matched
         """
-        if os.path.isabs(filepath):
-            raise ResourceError("Error parsing file path. Path must be "
-                                "relative to rez search path: %s" % filepath)
-
         if not hasattr(cls, class_storage):
             pattern = cls._expand_pattern(pattern)
             pattern = r'^' + pattern
@@ -421,7 +418,7 @@ class FileSystemResource(Resource):
         else:
             reg = getattr(cls, class_storage)
 
-        m = reg.search(to_posixpath(filepath))
+        m = reg.match(to_posixpath(filepath))
         if m:
             return m.group(0), m.groupdict()
 
@@ -447,7 +444,7 @@ class FileSystemResource(Resource):
                 if match is not None:
                     variables = match[1]
                     variables.update(parent_resource.variables)
-                    yield cls(fullpath, variables, parent_resource.search_path)
+                    yield cls(fullpath, variables)
 
     @classmethod
     def from_filepath(cls, filepath):
@@ -457,34 +454,14 @@ class FileSystemResource(Resource):
             raise ResourceError("Cannot create resource %r from %r: "
                                 "does not have path patterns" %
                                 (cls.key, filepath))
-        # first make sure the path is absolute (and normalized), since a
-        # relative path could start anywhere
         filepath = os.path.abspath(filepath)
-        # create a relative path from filepath without hitting the disk
-        path_parts = _split_path(filepath)
-        for search_path in settings.packages_path:
-            # FIXME: should this be made absolute in settings?
-            search_path = os.path.abspath(search_path)
-            search_parts = _split_path(search_path)
-            n = len(search_parts)
-            if n < len(path_parts) and path_parts[:n] == search_parts:
-                relpath = '/'.join(path_parts[n:])
-                break
-        else:
-            print settings.packages_path
-            raise ResourceError("Cannot create resource %r from %r: "
-                                "file is not in settings.packages_path" %
-                                (cls.key, filepath))
-        print cls.key, "parsing", relpath
-        result = cls._parse_filepath(relpath)
+        result = cls._parse_filepath(filepath)
         if result is None:
-            print "NONE"
             raise ResourceError("Cannot create resource %r from %r: "
                                 "file did not match path patterns" %
                                 (cls.key, filepath))
         match_path, variables = result
-        search_path = filepath[:-len(match_path)]
-        return cls(filepath, variables, search_path)
+        return cls(filepath, variables)
 
 class FolderResource(FileSystemResource):
     "A resource representing a directory on disk"
@@ -521,6 +498,7 @@ class FileResource(FileSystemResource):
 class PackagesRoot(FolderResource):
     """Represents a root directory in Settings.pakcages_path"""
     key = 'folder.packages_root'
+    path_pattern = '{search_path}'
 
 class NameFolder(FolderResource):
     key = 'folder.name'
@@ -617,23 +595,26 @@ class BasePackageResource(FileResource):
     def load_timestamp(self):
         timestamp = 0
         try:
-            release_data = load_resource(0,
-                                         resource_keys=['release.data'],
-                                         search_paths=[self.search_path],
-                                         **self.variables)
+            release_data = load_resource(
+                0,
+                resource_keys=['release.data'],
+                search_path=self.variables['search_path'],
+                variables=self.variables)
             timestamp = release_data.get('timestamp', 0)
         except ResourceError:
             try:
-                timestamp = load_resource(0,
-                                          resource_keys=['release.timestamp'],
-                                          search_paths=[self.search_path],
-                                          **self.variables)
+                timestamp = load_resource(
+                    0,
+                    resource_keys=['release.timestamp'],
+                    search_path=self.variables['search_path'],
+                    variables=self.variables)
             except ResourceError:
                 pass
         if not timestamp:
             # FIXME: should we deal with is_local here or in rez.packages?
             if not timestamp and settings.warn("untimestamped"):
-                print_warning_once("Package is not timestamped: %s" % self.path)
+                print_warning_once("Package is not timestamped: %s" %
+                                   self.path)
         return timestamp
 
 class VersionlessPackageResource(BasePackageResource):
@@ -739,7 +720,7 @@ class CombinedPackageResource(CombinedPackageFamilyResource):
         for ver_data in data['versions']:
             variables = parent_resource.variables.copy()
             variables['version'] = str(ver_data['version'])
-            yield cls(parent_resource.path, variables, parent_resource.search_path)
+            yield cls(parent_resource.path, variables)
 
 class BuiltPackageResource(VersionedPackageResource):
     """A package that is built with the intention to release.
@@ -792,7 +773,8 @@ register_resource(0, CombinedPackageResource)
 def list_resource_classes(config_version, keys=None):
     resources = _configs.get(config_version)
     if keys:
-        resources = [r for r in resources if any(fnmatch(r.key, k) for k in keys)]
+        resources = [r for r in resources if
+                     any(fnmatch(r.key, k) for k in keys)]
     return resources
 
 def _iter_resources(parent_resource):
@@ -802,36 +784,41 @@ def _iter_resources(parent_resource):
             for grand_child in _iter_resources(child):
                 yield grand_child
 
-def iter_resources(config_version, resource_keys=None, search_paths=None,
-                   **expansion_variables):
+def iter_resources(config_version, resource_keys=None, search_path=None,
+                   variables=None):
     """Iterate over `Resource` instances.
 
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
-        search_paths (list of str, optional): List of root paths under which
+        search_path (list of str, optional): List of root paths under which
             to search for resources.  These typicall correspond to the rez
             packages path.
+        variables (dict, optional): variables which should be used to
+            fill the resource's path patterns (e.g. to expand the variables in
+            braces in the string '{name}/{version}/package.{ext}')
     """
     def _is_subset(d1, d2):
         return set(d1.items()).issubset(d2.items())
-
-    search_paths = settings.default(search_paths, "packages_path")
+    if isinstance(search_path, basestring):
+        search_path = [search_path]
+    search_path = settings.default(search_path, "packages_path")
 
     resource_classes = list_resource_classes(config_version, resource_keys)
 
-    for path in search_paths:
-        resource = PackagesRoot(path, {}, path)
+    for path in search_path:
+        resource = PackagesRoot(path, {'search_path': path})
         for child in _iter_resources(resource):
-            if isinstance(child, tuple(resource_classes)) and \
-                    _is_subset(expansion_variables, child.variables):
+            if isinstance(child, tuple(resource_classes)) and (
+                    variables is None or
+                    _is_subset(variables, child.variables)):
                 yield child
 
 def get_resource(config_version, filepath=None,  resource_keys=None,
-                 search_paths=None, **expansion_variables):
+                 search_path=None, variables=None):
     """Find and instantiate a `Resource` instance.
 
-    Provide `resource_keys` and `search_paths` and `expansion_variables`, or
+    Provide `resource_keys` and `search_path` and `variables`, or
     just `filepath`.
 
     Returns the first match.
@@ -839,16 +826,17 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
-        search_paths (list of str, optional): List of root paths under which
+        search_path (list of str, optional): List of root paths under which
             to search for resources.  These typicall correspond to the rez
             packages path.
         filepath (str): file to load
-        **expansion_variables (optional): variables which should be used to
+        variables (dict, optional): variables which should be used to
             fill the resource's path patterns (e.g. to expand the variables in
             braces in the string '{name}/{version}/package.{ext}')
     """
-    if filepath is None and resource_keys is None:
-        raise ResourceError("You must provide either filepath or resource_keys")
+    if filepath is None and resource_keys is None and variables is None:
+        raise ResourceError("You must provide either filepath or "
+                            "resource_keys + variables")
 
     if filepath:
         config_resources = _configs.get(config_version)
@@ -862,23 +850,19 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
         raise ResourceError("Could not find resource matching file %r" %
                             filepath)
     else:
-        it = iter_resources(config_version, resource_keys, search_paths,
-                            **expansion_variables)
+        it = iter_resources(config_version, resource_keys, search_path,
+                            variables)
         try:
             return it.next()
         except StopIteration:
             raise ResourceError("Could not find resource matching key(s): %s" %
                                 ', '.join(['%r' % r for r in resource_keys]))
-    # if len(result) != 1:
-    #     raise ResourceError("Found more than one matching resource: %s" %
-    #                         ', '.join([r.key for r in result]))
-
 
 def load_resource(config_version, filepath=None,  resource_keys=None,
-                  search_paths=None, **expansion_variables):
+                  search_path=None, variables=None):
     """Find a resource and load its metadata.
 
-    Provide `resource_keys` and `search_paths` and `expansion_variables`, or
+    Provide `resource_keys` and `search_path` and `variables`, or
     just `filepath`.
 
     Returns the first match.
@@ -886,16 +870,16 @@ def load_resource(config_version, filepath=None,  resource_keys=None,
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
-        search_paths (list of str, optional): List of root paths under which
+        search_path (list of str, optional): List of root paths under which
             to search for resources.  These typicall correspond to the rez
             packages path.
         filepath (str): file to load
-        **expansion_variables (optional): variables which should be used to
+        variables (dict, optional): variables which should be used to
             fill the resource's path patterns (e.g. to expand the variables in
             braces in the string '{name}/{version}/package.{ext}')
     """
-    return get_resource(config_version, filepath, resource_keys, search_paths,
-                        **expansion_variables).load()
+    return get_resource(config_version, filepath, resource_keys, search_path,
+                        variables).load()
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
