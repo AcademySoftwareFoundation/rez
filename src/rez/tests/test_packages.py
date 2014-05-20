@@ -1,8 +1,5 @@
-from rez.vendor.version.requirement import Requirement
 from rez.packages import iter_packages
-import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
-import itertools
 import os.path
 
 ALL_PACKAGES = [
@@ -15,7 +12,7 @@ ALL_PACKAGES = [
 def _to_names(it):
     return [p.qualified_name for p in it]
 
-class TestSolver(TestBase):
+class TestPackages(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.dirname(__file__)

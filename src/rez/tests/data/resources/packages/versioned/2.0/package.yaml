@@ -1,0 +1,4 @@
+config_version: 0
+name: versioned
+# this is wrong!
+version: '1.0'

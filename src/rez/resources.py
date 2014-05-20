@@ -23,6 +23,7 @@ import os
 import sys
 import inspect
 import re
+import string
 from collections import defaultdict
 from fnmatch import fnmatch
 from rez.settings import settings, Settings
@@ -391,7 +392,7 @@ class FileSystemResource(Resource):
             dict: dictionary of variables
         """
         # FIXME: figure out a way to avoid having to explicitly exclude the root
-        hierachy = cls.resource_chain()[1:] + (cls,)
+        hierachy = cls.parents()[1:] + (cls,)
         parts = [r.path_pattern for r in hierachy]
         if any(p for p in parts if p is None):
             raise ResourceError("All path resources must have path patterns")
@@ -464,6 +465,7 @@ class FileSystemResource(Resource):
                 relpath = '/'.join(path_parts[n:])
                 break
         else:
+            print settings.packages_path
             raise ResourceError("Cannot create resource %r from %r: "
                                 "file is not in settings.packages_path" %
                                 (cls.key, filepath))
@@ -583,7 +585,8 @@ class BasePackageResource(FileResource):
         return Schema({
             Required('config_version'):         0,  # this will only match 0
             Optional('uuid'):                   basestring,
-            Optional('description'):            basestring,
+            Optional('description'):            And(basestring,
+                                                    Use(string.strip)),
             Required('name'):                   self.variables['name'],
             Optional('authors'):                [basestring],
             Optional('config'):                 And(dict,
@@ -803,6 +806,9 @@ def iter_resources(config_version, resource_keys=None, search_paths=None,
             to search for resources.  These typicall correspond to the rez
             packages path.
     """
+    def _is_subset(d1, d2):
+        return set(d1.items()).issubset(d2.items())
+
     search_paths = settings.default(search_paths, "packages_path")
 
     resource_classes = list_resource_classes(config_version, resource_keys)
@@ -810,17 +816,18 @@ def iter_resources(config_version, resource_keys=None, search_paths=None,
     for path in search_paths:
         resource = PackagesRoot(path, {}, path)
         for child in _iter_resources(resource):
-            if isinstance(child, tuple(resource_classes)):
+            if isinstance(child, tuple(resource_classes)) and \
+                    _is_subset(expansion_variables, child.variables):
                 yield child
 
 def get_resource(config_version, filepath=None,  resource_keys=None,
                  search_paths=None, **expansion_variables):
     """Find and instantiate a `Resource` instance.
 
-    Errors if exactly one resource is not found.
-
     Provide `resource_keys` and `search_paths` and `expansion_variables`, or
     just `filepath`.
+
+    Returns the first match.
 
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
@@ -836,43 +843,38 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
     if filepath is None and resource_keys is None:
         raise ResourceError("You must provide either filepath or resource_keys")
 
-    result = []
-
     if filepath:
         config_resources = _configs.get(config_version)
         assert config_resources
 
         for resource_class in config_resources:
             try:
-                resource = resource_class.from_filepath(filepath)
+                return resource_class.from_filepath(filepath)
             except ResourceError, err:
                 pass
-            else:
-                result.append(resource)
-        if not result:
-            raise ResourceError("Could not find resource matching file %r" %
-                                filepath)
+        raise ResourceError("Could not find resource matching file %r" %
+                            filepath)
     else:
         it = iter_resources(config_version, resource_keys, search_paths,
                             **expansion_variables)
-        result = list(it)
-        if not result:
+        try:
+            return it.next()
+        except StopIteration:
             raise ResourceError("Could not find resource matching key(s): %s" %
                                 ', '.join(['%r' % r for r in resource_keys]))
+    # if len(result) != 1:
+    #     raise ResourceError("Found more than one matching resource: %s" %
+    #                         ', '.join([r.key for r in result]))
 
-    if len(result) != 1:
-        raise ResourceError("Found more than one matching resource: %s" %
-                            ', '.join([r.key for r in result]))
-    return result[0]
 
 def load_resource(config_version, filepath=None,  resource_keys=None,
                   search_paths=None, **expansion_variables):
     """Find a resource and load its metadata.
 
-    Errors if exactly one resource is not found.
-
     Provide `resource_keys` and `search_paths` and `expansion_variables`, or
     just `filepath`.
+
+    Returns the first match.
 
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
