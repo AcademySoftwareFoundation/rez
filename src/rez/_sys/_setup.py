@@ -55,7 +55,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                 if script == "rezolve":
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
                     from rez.cli._main import run
                     run()
@@ -64,7 +64,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                 elif script == "bez":
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
                     from rez.cli._bez import run
                     run()
@@ -76,7 +76,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
 
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
                     from rez._sys import _forward_script
                     _forward_script('%(cmd)s')
