@@ -1,5 +1,5 @@
 from rez.util import encode_filesystem_name, movetree
-from rez.packages import iter_package_families, iter_packages
+from rez.packages import iter_packages
 from rez.source_retrieval import get_source
 from rez.settings import settings
 import os.path
