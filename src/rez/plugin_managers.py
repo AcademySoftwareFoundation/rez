@@ -75,14 +75,16 @@ class RezPluginType(object):
                             "'type_name' attribute")
         self.pretty_type_name = self.type_name.replace('_', ' ')
         self.plugin_classes = {}
+        self.plugin_modules = {}
         self.load_plugins()
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, self.plugin_classes.keys())
 
-    def register_plugin(self, plugin_name, plugin_class):
+    def register_plugin(self, plugin_name, plugin_class, plugin_module):
         # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
         self.plugin_classes[plugin_name] = plugin_class
+        self.plugin_modules[plugin_name] = plugin_module
 
     def load_plugins(self):
         import pkgutil
@@ -113,7 +115,7 @@ class RezPluginType(object):
                         if hasattr(module, 'register_plugin') and \
                                 hasattr(module.register_plugin, '__call__'):
                             plugin_class = module.register_plugin()
-                            self.register_plugin(plugin_name, plugin_class)
+                            self.register_plugin(plugin_name, plugin_class, module)
                         else:
                             # delete from sys.modules?
                             pass
@@ -126,6 +128,14 @@ class RezPluginType(object):
         """Returns the class registered under the given plugin name."""
         try:
             return self.plugin_classes[plugin_name]
+        except KeyError:
+            raise RezPluginError("Unrecognised %s plugin: '%s'"
+                                 % (self.pretty_type_name, plugin_name))
+
+    def get_plugin_module(self, plugin_name):
+        """Returns the module containing the plugin of the given name."""
+        try:
+            return self.plugin_modules[plugin_name]
         except KeyError:
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))
@@ -221,6 +231,14 @@ class RezPluginManager(object):
         """Return the class registered under the given plugin name."""
         try:
             return self._get_plugin_type(plugin_type).get_plugin_class(plugin_name)
+        except KeyError:
+            raise RezPluginError("Unrecognised %s plugin: '%s'"
+                                 % (self.pretty_type_name, plugin_name))
+
+    def get_plugin_module(self, plugin_type, plugin_name):
+        """Return the module defining the class registered under the given plugin name."""
+        try:
+            return self._get_plugin_type(plugin_type).get_plugin_module(plugin_name)
         except KeyError:
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))

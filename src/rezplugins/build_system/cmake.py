@@ -18,6 +18,12 @@ class RezCMakeError(BuildSystemError):
 
 
 class CMakeBuildSystem(BuildSystem):
+    """The CMake build system.
+
+    The 'cmake' executable is run within the build environment. Rez supplies a
+    library of cmake macros in the 'cmake_files' directory; these are added to
+    cmake's searchpath and are available to use in your own CMakeLists.txt file.
+    """
 
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
@@ -68,6 +74,7 @@ class CMakeBuildSystem(BuildSystem):
                 print s
 
         # find cmake binary
+        # TODO what if cmake is an alias?
         exe = context.which("cmake", fallback=True)
         if not exe:
             raise RezCMakeError("could not find cmake binary")
@@ -105,7 +112,7 @@ class CMakeBuildSystem(BuildSystem):
             # they can run make directly themselves.
             build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
-                                     module="plugins.build_system.cmake",
+                                     module=("build_system", "cmake"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)
@@ -140,7 +147,6 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
-
 
 
 def _FWD__spawn_build_shell(working_dir, build_dir):

@@ -350,13 +350,6 @@ def movetree(src, dst):
         copytree(src, dst, symlinks=True, hardlinks=True)
         shutil.rmtree(src)
 
-def get_epoch_time():
-    """
-    get time since the epoch as an int
-    TODO switch everything to UTC
-    """
-    return int(time.mktime(time.localtime()))
-
 def safe_chmod(path, mode):
     """
     set the permissions mode on path, but only if it differs from the current mode.

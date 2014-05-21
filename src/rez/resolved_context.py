@@ -589,8 +589,9 @@ class ResolvedContext(object):
                     continue
 
                 n += 1
-                create_forwarding_script(file, "resolved_context",
-                                         "_FWD__invoke_wrapped_tool",
+                create_forwarding_script(file,
+                                         module="resolved_context",
+                                         func_name="_FWD__invoke_wrapped_tool",
                                          rxt_file=rxt_name,
                                          tool=tool)
 

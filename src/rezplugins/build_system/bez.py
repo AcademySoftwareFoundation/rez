@@ -13,24 +13,26 @@ import sys
 class BezBuildSystem(BuildSystem):
     """The Bez build system.
 
-    Bez is a very simple build system, which configures the build environment,
-    then runs the 'build' function in the file rezbuild.py. The code in rezbuild.py
-    has full access to the Rez API. Because it is executed within the resolved
-    build environment, it also has access to any of the python modules the
-    package depends on. The function signature of 'build' is as follows:
+    Bez is a simple build system, which runs the 'bez' binary in the build
+    environment. All bez does is run the file 'rezbuild.py' (your package's
+    build file) in a python subprocess. The code in rezbuild.py has access to
+    any python module dependencies of the project.
 
-    build(context, source_path, build_path, install_path, targets)
-        context: ResolvedContext object representing the build environment;
-        source_path: Path containing the project;
-        build_path: Path to store build files;
-        install_path: Path to install targets to, if install is True;
-        targets: List of targets to build, assume build all if None. Your build
-            code should recognise 'install' as a special build target, meaning
-            to install the entire build.
+    Unless told otherwise, Bez expects to find a 'python' executable in the
+    build environment. If you have a specific interpreter you want to use, it
+    needs to be available as a rez python package, and you should list it as a
+    private build requirement in your package.
 
-    There is a corresponding 'bez' cli tool, which does the loading of rezbuild.py
-    and calls the build() function. Unlike other build tools (such as make), bez
-    will only work within an environment that was configured by rez-build.
+    The function signature of 'build' is as follows:
+
+    build(source_path, build_path, install_path, targets):
+        Args:
+            source_path (str): Path containing the project;
+            build_path (str): Path to store build files;
+            install_path (str): Path to install targets to, if install is True;
+            targets (list of str): List of targets to build, assume build all if
+                None. Your build code should recognise 'install' as a special
+                build target, meaning to install the entire build.
     """
     @classmethod
     def name(cls):
@@ -67,7 +69,7 @@ class BezBuildSystem(BuildSystem):
             # they can run bez directly themselves.
             build_env_script = os.path.join(build_path, "build-env")
             create_forwarding_script(build_env_script,
-                                     module="plugins.build_system.bez",
+                                     module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path)
@@ -75,13 +77,8 @@ class BezBuildSystem(BuildSystem):
             ret["build_env_script"] = build_env_script
             return ret
 
-        # find bez binary
-        exe = context.which("bez", fallback=True)
-        if not exe:
-            raise RezCMakeError("could not find bez binary")
-
         # run bez in the build environment
-        cmd = [exe]
+        cmd = ["bez"]
         if install and "install" not in cmd:
             cmd.append("install")
 
@@ -92,9 +89,8 @@ class BezBuildSystem(BuildSystem):
         return ret
 
 
-
 def _FWD__spawn_build_shell(working_dir, build_dir):
-    # This spawns a shell that the user can run 'make' in directly
+    # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     package = Package(working_dir)
     settings.set("prompt", "BUILD>")
