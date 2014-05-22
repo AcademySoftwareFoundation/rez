@@ -218,7 +218,7 @@ class PackageVariant(_Common):
 
         if self.requires_list.conflict:
             raise ResolveError(("The package at %s has an internal requirements "
-                               "conflict: %s") % (path, str(self.requires_list)))
+                               "conflict: %s") % (self.metafile, str(self.requires_list)))
 
     @property
     def request_fams(self):

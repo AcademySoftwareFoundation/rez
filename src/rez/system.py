@@ -99,8 +99,12 @@ class System(object):
         else:
             raise RezSystemError("Could not detect operating system")
 
-        final_version = self._make_safe_version(final_version)
-        return '%s-%s' % (final_release, final_version)
+        toks = []
+        if final_release:
+            toks.append(final_release)
+        if final_version:
+            toks.append(final_version)
+        return '-'.join(self._make_safe_version(x) for x in toks)
 
     @propertycache
     def variant(self):
@@ -238,16 +242,29 @@ class System(object):
         return self.fqdn.split('.', 1)[1]
 
     def _make_safe_version(self, s):
-        # this just replaces any invalid chars with underscores
         from rez.vendor.version.version import Version
-        s_ = ''
-        for ch in s:
+        def _test(verstr):
             try:
-                v = Version(ch)
-                s_ += ch
+                Version(verstr)
+                return True
             except:
-                s_ += '_'
-        return s_
+                return False
+
+        def _reduce(verstr, pattern):
+            import re
+            r = re.compile(pattern)
+            return ''.join(x for x in verstr if r.match(x))
+
+        if _test(s):
+            return s
+
+        # remove invalid chars
+        s_ = _reduce(s, r"[a-zA-Z0-9_.-]")
+        if _test(s_):
+            return s_
+
+        # remove token seperators
+        return _reduce(s, r"[a-zA-Z0-9_]")
 
     def _pr(self, s):
         from rez.settings import settings
