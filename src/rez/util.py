@@ -855,6 +855,25 @@ class Namespace(object):
 
         with Namespace('second'):
             foo = 3
+
+    The dictionaries can then be retrieved::
+
+        >>> Namespace.get_namespace()
+        {
+            'first': {
+                'foo': 1,
+                'bar': 'string',
+                'spangle': 0,
+                'nested': {
+                    'foo': 2,
+                    'say': 'yay!'
+                },
+                'say': 'boo!'
+            }
+            'second': {
+                'foo': 3
+            }
+        }
     """
     namespace = {}
 
@@ -884,7 +903,11 @@ class Namespace(object):
             if key not in self.locals or value != self.locals[key]:
                 self.updates[key] = value
 
-        self.parent_namespace[self.key] = self.updates
+        if self.key in self.parent_namespace:
+            # merge
+            self.parent_namespace[self.key].update(self.updates)
+        else:
+            self.parent_namespace[self.key] = self.updates
         # restore
         Namespace.namespace = self.parent_namespace
         f.f_locals.clear()
