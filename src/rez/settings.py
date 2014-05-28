@@ -1,8 +1,5 @@
 """
 API for querying Rez settings. See 'rezconfig' file for more details.
-Example:
-from rez.settings import settings
-print settings.packages_path
 """
 import os
 import os.path
@@ -11,7 +8,7 @@ import string
 import getpass
 from rez.vendor import yaml
 from rez.util import which, YamlCache
-from rez import module_root_path
+from rez import module_root_path, install_package_base
 from rez.system import system
 from rez.exceptions import ConfigurationError
 from rez.vendor.schema.schema import Schema, SchemaError, Or
@@ -27,16 +24,16 @@ class PartialFormatter(string.Formatter):
 
 
 class Settings(object):
-    bool_schema         = Schema(bool, error="Expected boolean")
-    str_schema          = Schema(str, error="Expected string")
-    opt_str_schema      = Schema(Or(str,None), error="Expected string or null")
-    int_schema          = Schema(int, error="Expected integer")
-    str_list_schema     = Schema([str], error="Expected list of strings")
-    path_list_schema    = Schema([str], error="Expected list of strings")
+    bool_schema             = Schema(bool, error="Expected boolean")
+    str_schema              = Schema(str, error="Expected string")
+    opt_str_schema          = Schema(Or(str, None), error="Expected string or null")
+    int_schema              = Schema(int, error="Expected integer")
+    str_list_schema         = Schema([str], error="Expected list of strings")
+    path_list_schema        = Schema([str], error="Expected list of strings")
+    opt_path_list_schema    = Schema(Or([str], None), error="Expected list of strings or null")
 
     key_schemas = {
         # bools
-        "add_bootstrap_path":               bool_schema,
         "prefix_prompt":                    bool_schema,
         "warn_shell_startup":               bool_schema,
         "warn_untimestamped":               bool_schema,
@@ -56,8 +53,6 @@ class Settings(object):
         # strings
         "build_directory":                  str_schema,
         "local_packages_path":              str_schema,
-        "release_packages_path":            str_schema,
-        "external_packages_path":           str_schema,
         "package_repository_path":          str_schema,
         "package_repository_cache_path":    str_schema,
         "version_sep":                      str_schema,
@@ -67,6 +62,7 @@ class Settings(object):
         "vcs_tag_name":                     str_schema,
         "release_email_from":               str_schema,
         # optional strings
+        "release_packages_path":            opt_str_schema,
         "tmpdir":                           opt_str_schema,
         "editor":                           opt_str_schema,
         "image_viewer":                     opt_str_schema,
@@ -80,8 +76,9 @@ class Settings(object):
         "release_email_to":                 str_list_schema,
         "parent_variables":                 str_list_schema,
         "resetting_variables":              str_list_schema,
+        # optional path lists
+        "packages_path":                    opt_path_list_schema,
         # path lists
-        "packages_path":                    path_list_schema,
         "package_repository_url_path":      path_list_schema,
         "plugin_path":                      path_list_schema,
         "bind_module_path":                 path_list_schema,
@@ -170,13 +167,42 @@ class Settings(object):
             if setting in self.settings:
                 del self.settings[setting]
 
-    @property
-    def nonlocal_packages_path(self):
-        """ Get the package search paths, with local packages path removed """
+    def get_packages_path(self):
+        """Returns the effective packages path, which defaults if the config
+        setting is null."""
+        paths = self.packages_path
+        if not paths:
+            paths = [self.local_packages_path,
+                     install_package_base,
+                     os.path.join(module_root_path, "packages")]
+        return paths
+
+    def get_nonlocal_packages_path(self):
+        """Get the package search paths, with local packages path removed."""
         paths = self.packages_path[:]
         if self.local_packages_path in paths:
             paths.remove(self.local_packages_path)
         return paths
+
+    def get_local_packages_path(self):
+        """Returns the path to install local packages to."""
+        path = self.local_packages_path
+        searchpaths = self.get_packages_path()
+        if path not in searchpaths:
+            raise ConfigurationError("Local packages path '%s' does not appear "
+                                     "in the packages searchpath '%s'"
+                                     % (path, os.path.pathsep.join(searchpaths)))
+        return path
+
+    def get_release_packages_path(self):
+        """Returns the path to install released packages to."""
+        path = self.release_packages_path or install_package_base
+        searchpaths = self.get_packages_path()
+        if path not in searchpaths:
+            raise ConfigurationError("Release packages path '%s' does not appear "
+                                     "in the packages searchpath '%s'"
+                                     % (path, os.path.pathsep.join(searchpaths)))
+        return path
 
     def _load_config(self):
         if self.config is None:
@@ -256,7 +282,8 @@ class Settings(object):
             value = value.strip()
             vals = value.replace(',',' ').strip().split()
             value = [x for x in vals if x]
-        elif schema is Settings.path_list_schema:
+        elif (schema is Settings.path_list_schema) \
+                or (schema is Settings.opt_path_list_schema):
             value = value.strip()
             vals = value.split(os.pathsep)
             value = [x for x in vals if x]

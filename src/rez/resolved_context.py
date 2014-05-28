@@ -3,8 +3,8 @@ from rez.resolver import Resolver
 from rez.system import system
 from rez.settings import settings
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory
+    mkdtemp_, rmdtemp, print_warning_once, create_forwarding_script, \
+    is_subdirectory
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -41,7 +41,7 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, quiet=False, verbosity=0,
         timestamp=None, building=False, caching=None, package_paths=None,
-        add_implicit_packages=True, add_bootstrap_path=None):
+        add_implicit_packages=True):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -58,9 +58,6 @@ class ResolvedContext(object):
                 settings.packages_path.
             add_implicit_packages: If True, the implicit package list defined
                 by settings.implicit_packages is added to the request.
-            add_bootstrap_path: If True, append the package search path with
-                the bootstrap path. If False, do not append. If None, use the
-                default specified in settings.add_bootstrap_path.
         """
         self.load_path = None
 
@@ -69,16 +66,13 @@ class ResolvedContext(object):
         self.building = building
         self.implicit_packages = []
         self.caching = settings.default(caching, "resolve_caching")
+        self.package_paths = package_paths or settings.get_packages_path()
 
         self.package_requests = []
         for req in package_requests:
             if isinstance(req, basestring):
                 req = Requirement(req)
             self.package_requests.append(req)
-
-        self.package_paths = settings.default(package_paths, "packages_path")
-        if settings.default(add_bootstrap_path, "add_bootstrap_path"):
-            self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         if add_implicit_packages:
             pkg_strs = settings.implicit_packages

@@ -25,7 +25,7 @@ class Resolver(object):
             building: True if we're resolving for a build.
         """
         self.package_requests = package_requests
-        self.package_paths = settings.default(package_paths, "packages_path")
+        self.package_paths = package_paths or settings.get_packages_path()
         self.caching = caching
         self.timestamp = timestamp
         self.callback = callback

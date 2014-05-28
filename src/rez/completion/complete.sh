@@ -5,7 +5,7 @@ _software_packages()
     cur="${COMP_WORDS[COMP_CWORD]}"
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-    pkgs_path=`rezolve settings --packages-path`
+    pkgs_path=`rez-settings --packages-path`
 
     fam=''
     entries=''

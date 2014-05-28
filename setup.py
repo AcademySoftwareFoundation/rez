@@ -76,7 +76,8 @@ setup(
             find_files('_sys', '*.csh') +
             find_files('_sys', '*.sh') +
             find_files('tests/data', '*.*') +
-            find_files('packages', '*.*'),
+            find_files('packages', '*.*') +
+            find_files('completion', '*.*'),
         'rezplugins': [
             'build_system/cmake_files/*.cmake',
         ]

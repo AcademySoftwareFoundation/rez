@@ -23,10 +23,10 @@ def create_setup_cfg(install_path):
     """
     [install]
     install-base=%(base)s
-    install-purelib=$base/rez/%(ver)s/%(os)s/python-$py_version_short/lib
-    install-platlib=$base/rez/%(ver)s/%(os)s/python-$py_version_short/lib.$PLAT
-    install-headers=$base/rez/%(ver)s/%(os)s/python-$py_version_short/headers
-    install-scripts=$base/rez/%(ver)s/%(os)s/python-$py_version_short/bin
+    install-purelib=$base/rez/%(ver)s/os-%(os)s/python-$py_version_short/lib
+    install-platlib=$base/rez/%(ver)s/os-%(os)s/python-$py_version_short/lib.$PLAT
+    install-headers=$base/rez/%(ver)s/os-%(os)s/python-$py_version_short/headers
+    install-scripts=$base/rez/%(ver)s/os-%(os)s/python-$py_version_short/bin
     install-data=$base
     """) % dict(base=install_path,
                 ver=__version__,

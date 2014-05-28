@@ -126,7 +126,7 @@ class StandardBuildProcess(BuildProcess):
         base_build_path = os.path.join(self.working_dir,
                                        self.package.settings.build_directory)
         base_build_path = os.path.realpath(base_build_path)
-        install_path = install_path or self.package.settings.local_packages_path
+        install_path = install_path or self.package.settings.get_local_packages_path()
 
         return self._build(install_path=install_path,
                            build_path=base_build_path,
@@ -135,7 +135,7 @@ class StandardBuildProcess(BuildProcess):
 
     def release(self):
         assert(self.vcs)
-        install_path = self.package.settings.release_packages_path
+        install_path = self.package.settings.get_release_packages_path()
         base_build_path = os.path.join(self.working_dir,
                                        self.package.settings.build_directory,
                                        "release")

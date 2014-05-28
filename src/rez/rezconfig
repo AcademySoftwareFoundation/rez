@@ -31,27 +31,22 @@
 # Paths
 ###############################################################################
 
-# The package search path.
+# The package search path. If null, defaults to the following three paths:
+# - local_packages_path
+# - <REZ_INSTALL_BASE>
+# - <REZ_INSTALL_BASE>/rez/<REZ_VERSION>/packages
+# The first path is the default path for local rez package installs; the second
+# is the path containing rez, which also acts as its own rez package; the third
+# is a path containing a set of static packages, such as platforms and operating
+# systems.
 packages_path:
-- '~/packages'           # locally installed pkgs, not yet deployed
-- '~/.rez/packages/int'  # internally developed pkgs, deployed
-- '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
-
-# The 'bootstrap' path is where Rez puts some automatically created packages at
-# install time. If this value is true, then the bootstrap path is always
-# implicitly appended to the packages path.
-add_bootstrap_path: true
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
 
-# The path that Rez will deploy packages to when rez-release is used. For
-# production use, you will probably want to change this to a site-wide location.
-release_packages_path: '~/.rez/packages/int'
-
-# The path that rez-install will deploy external packages to. For production use,
-# you will probably want to change this to a site-wide location.
-external_packages_path: '~/.rez/packages/ext'
+# The path that Rez will deploy packages to when rez-release is used. If null,
+# defaults to <REZ_INSTALL_BASE>.
+release_packages_path:
 
 # The formulae URLs that rez-install searches for packages
 package_repository_url_path:

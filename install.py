@@ -34,6 +34,8 @@ def check_dependency(name, min_ver=None):
 
 
 if __name__ == "__main__":
+    print "starting installer..."
+
     # check dependencies
     if sys.version_info[:2] < [2, 6]:
         print >> sys.stderr, "requires python>=2.6"

@@ -29,7 +29,7 @@ def setup_parser(parser):
 
 def command(opts, parser):
     # gather the params
-    install_path = settings.default(opts.install_path, "local_packages_path")
+    install_path = opts.install_path or settings.get_local_packages_path()
     req = Requirement(opts.PKG)
     name = req.name
     version_range = None if req.range.is_any() else req.range

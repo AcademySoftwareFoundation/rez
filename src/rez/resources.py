@@ -223,7 +223,7 @@ class ResourceInfo(object):
         pattern = re.escape(pattern)
         expansions = [('version', VERSION_REGSTR),
                       ('name', PACKAGE_NAME_REGSTR),
-                      ('search_path', '|'.join('(%s)' % p for p in settings.packages_path))]
+                      ('search_path', '|'.join('(%s)' % p for p in settings.get_packages_path()))]
         for key, value in expansions:
             pattern = pattern.replace(r'\{%s\}' % key, '(?P<%s>%s)' % (key, value))
         return pattern + '$'

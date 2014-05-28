@@ -140,8 +140,6 @@ class CMakeBuildSystem(BuildSystem):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_ENV = 1
-        #executor.env.REZ_LOCAL_PACKAGES_PATH = package.settings.local_packages_path
-        #executor.env.REZ_RELEASE_PACKAGES_PATH = package.settings.release_packages_path
         executor.env.REZ_BUILD_PROJECT_FILE = package.metafile
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name

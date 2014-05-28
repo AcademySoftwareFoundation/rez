@@ -1,4 +1,5 @@
 # Backport of Python-2.6 zipfile class
+# TODO remove, we only support python-2.6+ now
 
 """
 Read and write ZIP files.
