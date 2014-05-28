@@ -122,6 +122,7 @@ def is_subdirectory(path, directory):
     relative = os.path.relpath(path, directory)
     return not relative.startswith(os.pardir)
 
+# TODO deprecate
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
     if not os.path.exists(path):
@@ -137,19 +138,25 @@ def _get_rez_dist_path(dirname):
 
     return path
 
+# TODO deprecate
 def get_bootstrap_path():
     return _get_rez_dist_path("packages")
 
+# TODO deprecate
 def get_script_path():
-    return _get_rez_dist_path("bin")
+    #return _get_rez_dist_path("bin")
+    return os.path.join(module_root_path, os.pardir, os.pardir, "bin")
 
+# TODO deprecate
 def get_rez_install_path():
     path = os.path.join(get_script_path(), "..")
     return os.path.realpath(path)
 
+# TODO deprecate
 def _add_bootstrap_pkg_path(paths):
-    bootstrap_path = get_bootstrap_path()
-    return paths[:] + [bootstrap_path]
+    return paths[:]
+    #bootstrap_path = get_bootstrap_path()
+    #return paths[:] + [bootstrap_path]
 
 def shlex_join(value):
     import pipes

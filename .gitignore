@@ -1,7 +1,10 @@
 *.pyc
+*.whl
 .project
 .pydevproject
+setup.cfg
 src/rez.egg-info/
 build/
 dist/
+wheelhouse/
 *~
