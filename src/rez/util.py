@@ -18,7 +18,6 @@ import tempfile
 import threading
 import subprocess as sp
 from rez import module_root_path
-from rez.vendor import yaml
 
 
 
@@ -56,6 +55,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     is used internally by Rez to dynamically create a script that uses Rez, even
     though the parent environ may not be configured to do so.
     """
+    from rez.vendor import yaml
+
     doc = dict(
         module=module,
         func_name=func_name)
@@ -820,6 +821,8 @@ class YamlCache(object):
 
     def load(self, path):
         """Returns dict, or None if the file does not exist."""
+        from rez.vendor import yaml
+
         doc = self.docs.get(path)
 
         if doc is False:

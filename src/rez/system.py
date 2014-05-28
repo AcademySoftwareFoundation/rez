@@ -266,10 +266,15 @@ class System(object):
         # remove token seperators
         return _reduce(s, r"[a-zA-Z0-9_]")
 
+    # TODO deprecate once shell detection is removed from here - it needs to go
+    # into shell plugins
     def _pr(self, s):
-        from rez.settings import settings
-        if settings.debug("system"):
-            print s
+        # remove for now, allows us to make a smaller get-rez.py - settings not
+        # being imported means vendor/schema not needed
+        pass
+        #from rez.settings import settings
+        #if settings.debug("system"):
+        #    print s
 
 # singleton
 system = System()

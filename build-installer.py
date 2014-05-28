@@ -9,16 +9,16 @@ sys.path.insert(0, path)
 
 from packager import generate_script
 
-ignores = dict(
-    rez=set([
-        "cli",
-        "bind",
-        "tests",
-        "packages",
-        os.path.join("vendor", "pydot"),
-        os.path.join("vendor", "pygraph"),
-        os.path.join("vendor", "unittest2")
-    ]))
+ignores = set([
+        os.path.join("rez", "cli"),
+        os.path.join("rez", "bind"),
+        os.path.join("rez", "tests"),
+        os.path.join("rez", "packages"),
+        os.path.join("rez", "vendor", "pydot"),
+        os.path.join("rez", "vendor", "pygraph"),
+        os.path.join("rez", "vendor", "schema"),
+        os.path.join("rez", "vendor", "unittest2"),
+        os.path.join("rez", "vendor", "yaml")])
 
 patterns = ("*.py",
             "*.pem",

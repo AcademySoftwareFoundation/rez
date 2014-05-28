@@ -19,7 +19,7 @@ def find_toplevel(name):
     raise LookupError(name)
 
 
-def path_to_source(name, ignore=None, patterns=None):
+def path_to_source(name, ignores=None, patterns=None):
     toplevel = find_toplevel(name)
     if os.path.isfile(toplevel):
         return {name: toplevel.read()}
@@ -29,9 +29,9 @@ def path_to_source(name, ignore=None, patterns=None):
         return os.path.join(name, relpath)
 
     def _ignore(path):
-        if ignore:
+        if ignores:
             rpath = _relpath(path)
-            return (rpath in ignore)
+            return (rpath in ignores)
         else:
             return False
 
@@ -39,7 +39,9 @@ def path_to_source(name, ignore=None, patterns=None):
     patterns = patterns or ("*.py",)
 
     for root, dirs, files in os.walk(toplevel):
-        if not _ignore(root):
+        if _ignore(root):
+            dirs = []
+        else:
             for file in files:
                 match = False
                 for pattern in patterns:
@@ -67,8 +69,7 @@ def encode_mapping(mapping):
 def encode_packages(names, ignores=None, patterns=None):
     mapping = {}
     for name in names:
-        ignore = (ignores or {}).get(name)
-        mapping.update(path_to_source(name, ignore, patterns))
+        mapping.update(path_to_source(name, ignores, patterns))
     return encode_mapping(mapping)
 
 
