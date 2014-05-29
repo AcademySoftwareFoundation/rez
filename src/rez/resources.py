@@ -1,5 +1,5 @@
 """
-Class for loading and verifying rez metafiles
+Class for loading and verifying rez metafiles.
 
 Resources are an abstraction of rez's file and directory structure. Currently,
 a resource can be a file or directory (with eventual support for other types).
@@ -34,6 +34,8 @@ from rez.vendor import yaml
 # FIXME: handle this double-module business
 from rez.vendor.schema.schema import Schema, Use, And, Or, Optional, SchemaError
 
+
+# list of resource classes, keyed by config_version
 _configs = defaultdict(list)
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
@@ -69,6 +71,7 @@ def _process_python_objects(data):
             # because dicts are changed in place, we don't need to re-assign
             _process_python_objects(v)
     return data
+
 
 def load_python(stream):
     """load a python module into a metadata dictionary.
@@ -108,6 +111,7 @@ def load_python(stream):
     result = _process_python_objects(result)
     return result
 
+
 def load_yaml(stream):
     """load a yaml stream into a metadata dictionary.
 
@@ -133,12 +137,14 @@ metadata_loaders['yaml'] = load_yaml
 # will be going away
 metadata_loaders['txt'] = metadata_loaders['yaml']
 
+
 def get_file_loader(filepath):
     scheme = os.path.splitext(filepath)[1][1:]
     try:
         return metadata_loaders[scheme]
     except KeyError:
         raise ResourceError("Unknown metadata storage scheme: %r" % scheme)
+
 
 # FIXME: add lru_cache here?
 def load_file(filepath, loader=None):
@@ -242,6 +248,7 @@ package_schema = Schema({
     # Optional(object):                   object
 })
 
+
 class Resource(object):
     """Abstract base class for data resources.
 
@@ -287,12 +294,31 @@ class Resource(object):
         """
         Args:
             path (str): path of the file to be loaded.
-            variables (dict): the values of the variables within
-                the resource `path_pattern`.
+            variables (dict): variables that define this resource. For example,
+                a package has a name and a version. Some of these variables may
+                have been used to construct `path`.
         """
         super(Resource, self).__init__()
         self.variables = variables
         self.path = path
+
+    def load(self):
+        """load the resource's data.
+
+        Returns:
+            The resource data as a dict. The implementation should validate the
+            data against the schema, if any.
+        """
+        raise NotImplemented
+
+    @classmethod
+    def from_path(cls, path):
+        """Create a resource from a path.
+
+        Returns:
+            A `Resource` instance.
+        """
+        raise NotImplemented
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
@@ -450,14 +476,14 @@ class FileSystemResource(Resource):
                     yield cls(fullpath, variables)
 
     @classmethod
-    def from_filepath(cls, filepath):
+    def from_path(cls, path):
         """Create a resource from a file path"""
 
         if not cls.path_pattern:
             raise ResourceError("Cannot create resource %r from %r: "
                                 "does not have path patterns" %
-                                (cls.key, filepath))
-        filepath = os.path.abspath(filepath)
+                                (cls.key, path))
+        filepath = os.path.abspath(path)
         result = cls._parse_filepath(filepath)
         if result is None:
             raise ResourceError("Cannot create resource %r from %r: "
@@ -466,9 +492,11 @@ class FileSystemResource(Resource):
         match_path, variables = result
         return cls(filepath, variables)
 
+
 class FolderResource(FileSystemResource):
     "A resource representing a directory on disk"
     is_file = False
+
 
 class FileResource(FileSystemResource):
     "A resource representing a file on disk"
@@ -499,20 +527,24 @@ class FileResource(FileSystemResource):
             else:
                 return data
 
+
 class PackagesRoot(FolderResource):
     """Represents a root directory in Settings.pakcages_path"""
     key = 'folder.packages_root'
     path_pattern = '{search_path}'
+
 
 class NameFolder(FolderResource):
     key = 'folder.name'
     path_pattern = '{name}'
     parent_resource = PackagesRoot
 
+
 class VersionFolder(FolderResource):
     key = 'folder.version'
     path_pattern = '{version}'
     parent_resource = NameFolder
+
 
 # -- deprecated
 
@@ -521,12 +553,14 @@ class MetadataFolder(FolderResource):
     path_pattern = '.metadata'
     parent_resource = VersionFolder
 
+
 class ReleaseTimestampResource(FileResource):
     # Deprecated
     key = 'release.timestamp'
     path_pattern = 'release_time.txt'
     parent_resource = MetadataFolder
     schema = Use(int)
+
 
 class ReleaseInfoResource(FileResource):
     # Deprecated
@@ -542,6 +576,7 @@ class ReleaseInfoResource(FileResource):
 
 # -- END deprecated
 
+
 class ReleaseDataResource(FileResource):
     key = 'release.data'
     path_pattern = 'release.yaml'
@@ -555,6 +590,7 @@ class ReleaseDataResource(FileResource):
         Required('previous_version'): basestring,
         Required('previous_revision'): basestring
     })
+
 
 class BasePackageResource(FileResource):
     """
@@ -621,6 +657,7 @@ class BasePackageResource(FileResource):
                                    self.path)
         return timestamp
 
+
 class VersionlessPackageResource(BasePackageResource):
     key = 'package.versionless'
     path_pattern = 'package.{ext}'
@@ -632,6 +669,7 @@ class VersionlessPackageResource(BasePackageResource):
         data['version'] = Version()
 
         return data
+
 
 class VersionedPackageResource(BasePackageResource):
     key = 'package.versioned'
@@ -654,9 +692,10 @@ class VersionedPackageResource(BasePackageResource):
 
         return data
 
+
 class CombinedPackageFamilyResource(BasePackageResource):
     """
-    A single package containing settings for multiple versions.
+    A single file containing multiple versioned packages.
 
     A combined package consists of a single file and thus does not have a
     directory in which to put package resources.
@@ -714,9 +753,15 @@ class CombinedPackageFamilyResource(BasePackageResource):
             data['versions'] = new_versions
         return data
 
+
 class CombinedPackageResource(CombinedPackageFamilyResource):
+    """A versioned package that is contained within a
+    `CombinedPackageFamilyResource`.
+    """
     key = 'package.combined'
     parent_resource = CombinedPackageFamilyResource
+
+    # FIXME is load() missing here??
 
     @classmethod
     def iter_instances(cls, parent_resource):
@@ -726,13 +771,14 @@ class CombinedPackageResource(CombinedPackageFamilyResource):
             variables['version'] = str(ver_data['version'])
             yield cls(parent_resource.path, variables)
 
+
 class BuiltPackageResource(VersionedPackageResource):
     """A package that is built with the intention to release.
 
     Same as `VersionedPackageResource`, but stricter about the existence of
     certain metadata.
 
-    This resource has no path_pattern because it is striclty for validation
+    This resource has no path_pattern because it is strictly for validation
     during the build process.
     """
     key = 'package.built'
@@ -749,6 +795,7 @@ class BuiltPackageResource(VersionedPackageResource):
                 newkey = Required(key._schema)
                 schema[newkey] = schema.pop(key)
         return Schema(schema)
+
 
 register_resource(0, VersionedPackageResource)
 
@@ -770,23 +817,36 @@ register_resource(0, CombinedPackageFamilyResource)
 
 register_resource(0, CombinedPackageResource)
 
+
 #------------------------------------------------------------------------------
 # Main Entry Points
 #------------------------------------------------------------------------------
 
 def list_resource_classes(config_version, keys=None):
-    resources = _configs.get(config_version)
+    """List resource classes matching the search criteria.
+
+    Args:
+        keys (list of str): Name(s) of the type of `Resources` to list. If None,
+            all resource types are listed.
+
+    Returns:
+        List of `Resource` subclass types.
+    """
+    resource_classes = _configs.get(config_version)
     if keys:
-        resources = [r for r in resources if
-                     any(fnmatch(r.key, k) for k in keys)]
-    return resources
+        resource_classes = [r for r in resource_classes if
+                            any(fnmatch(r.key, k) for k in keys)]
+    return resource_classes
+
 
 def _iter_resources(parent_resource):
+    # FIXME limited scope
     for child_class in parent_resource.children():
         for child in child_class.iter_instances(parent_resource):
             yield child
             for grand_child in _iter_resources(child):
                 yield grand_child
+
 
 def iter_resources(config_version, resource_keys=None, search_path=None,
                    variables=None):
@@ -794,10 +854,10 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
 
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
-            to find.
+            to find. If None, all resource types are searched.
         search_path (list of str, optional): List of root paths under which
-            to search for resources.  These typicall correspond to the rez
-            packages path.
+            to search for resources.  These typically correspond to the rez
+            packages path. Defaults to configured packages path.
         variables (dict, optional): variables which should be used to
             fill the resource's path patterns (e.g. to expand the variables in
             braces in the string '{name}/{version}/package.{ext}')
@@ -808,22 +868,24 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
         search_path = [search_path]
     search_path = settings.default(search_path, "packages_path")
 
-    resource_classes = list_resource_classes(config_version, resource_keys)
+    resource_classes = tuple(list_resource_classes(config_version,
+                                                   resource_keys))
 
     for path in search_path:
         resource = PackagesRoot(path, {'search_path': path})
         for child in _iter_resources(resource):
-            if isinstance(child, tuple(resource_classes)) and (
+            if isinstance(child, resource_classes) and (
                     variables is None or
                     _is_subset(variables, child.variables)):
                 yield child
 
-def get_resource(config_version, filepath=None,  resource_keys=None,
+
+def get_resource(config_version, filepath=None, resource_keys=None,
                  search_path=None, variables=None):
     """Find and instantiate a `Resource` instance.
 
-    Provide `resource_keys` and `search_path` and `variables`, or
-    just `filepath`.
+    Provide `resource_keys` and `search_path` and `variables`, or just
+    `filepath`.
 
     Returns the first match.
 
@@ -831,7 +893,7 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
         resource_keys (str or list of str): Name(s) of the type of `Resources`
             to find.
         search_path (list of str, optional): List of root paths under which
-            to search for resources.  These typicall correspond to the rez
+            to search for resources. These typicall correspond to the rez
             packages path.
         filepath (str): file to load
         variables (dict, optional): variables which should be used to
@@ -839,16 +901,16 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
             braces in the string '{name}/{version}/package.{ext}')
     """
     if filepath is None and resource_keys is None and variables is None:
-        raise ResourceError("You must provide either filepath or "
-                            "resource_keys + variables")
+        raise ValueError("You must provide either filepath or "
+                         "resource_keys + variables")
 
     if filepath:
-        config_resources = _configs.get(config_version)
-        assert config_resources
+        resource_classes = list_resource_classes(config_version, resource_keys)
+        assert resource_classes
 
-        for resource_class in config_resources:
+        for resource_class in resource_classes:
             try:
-                return resource_class.from_filepath(filepath)
+                return resource_class.from_path(filepath)
             except ResourceError, err:
                 pass
         raise ResourceError("Could not find resource matching file %r" %
@@ -862,28 +924,32 @@ def get_resource(config_version, filepath=None,  resource_keys=None,
             raise ResourceError("Could not find resource matching key(s): %s" %
                                 ', '.join(['%r' % r for r in resource_keys]))
 
-def load_resource(config_version, filepath=None,  resource_keys=None,
+
+def load_resource(config_version, filepath=None, resource_keys=None,
                   search_path=None, variables=None):
     """Find a resource and load its metadata.
 
-    Provide `resource_keys` and `search_path` and `variables`, or
-    just `filepath`.
+    Provide `resource_keys` and `search_path` and `variables`, or just
+    `filepath`.
 
     Returns the first match.
 
     Args:
-        resource_keys (str or list of str): Name(s) of the type of `Resources`
-            to find.
-        search_path (list of str, optional): List of root paths under which
-            to search for resources.  These typicall correspond to the rez
-            packages path.
-        filepath (str): file to load
-        variables (dict, optional): variables which should be used to
-            fill the resource's path patterns (e.g. to expand the variables in
-            braces in the string '{name}/{version}/package.{ext}')
+    resource_keys (str or list of str): Name(s) of the type of `Resources`
+    to find.
+    search_path (list of str, optional): List of root paths under which
+    to search for resources. These typicall correspond to the rez
+    packages path.
+    filepath (str): file to load
+    variables (dict, optional): variables which should be used to
+    fill the resource's path patterns (e.g. to expand the variables in
+    braces in the string '{name}/{version}/package.{ext}')
     """
     return get_resource(config_version, filepath, resource_keys, search_path,
                         variables).load()
+
+
+
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

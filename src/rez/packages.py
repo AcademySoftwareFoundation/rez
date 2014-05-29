@@ -18,11 +18,11 @@ resource_classes = {}
 
 
 def _iter_packages(name=None, paths=None):
-    """Iterate over `Package` instances."""
+    """Iterate over `Package` instances, in no specific order."""
     pkg_iter = iter_resources(0,  # configuration version
                               ['package.*'],
                               paths,
-                              name=name)
+                              variables=dict(name=name))
 
     for resource in pkg_iter:
         if name is None or name in resource.variables.get('name', None):
@@ -88,9 +88,10 @@ class WithDataAccessors(type):
             return getattr(self.metadata, key)
         return property(getter)
 
+
 class PackageBase(Common):
     """Abstract base class for Package and Variant."""
-
+    __metaclass__ = WithDataAccessors
     schema = None
 
     def __init__(self, resource):
@@ -152,8 +153,6 @@ class PackageBase(Common):
 class Package(PackageBase):
     """Class representing a package definition, as read from a package.* file.
     """
-    __metaclass__ = WithDataAccessors
-
     schema = package_schema
 
     def __init__(self, resource):
@@ -211,10 +210,6 @@ class Variant(PackageBase):
     Note that Variant is also used in packages that don't have a variant - in
     this case, index is None. This helps give a consistent interface.
     """
-
-    # FIXME: move to PackageBase?
-    __metaclass__ = WithDataAccessors
-
     schema = package_schema
 
     def __init__(self, index=None, resource=None):
