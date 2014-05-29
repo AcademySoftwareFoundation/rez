@@ -1,0 +1,4 @@
+config_version: 0
+name: custom
+
+other_data: bad

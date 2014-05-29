@@ -50,7 +50,11 @@ class PackageNotFoundError(RezError):
     pass
 
 
-class PackageMetadataError(RezError):
+class ResourceError(RezError):
+    """There is a problem with a rez resource configuration."""
+    pass
+
+class PackageMetadataError(ResourceError):
     """There is an error in a package's definition file"""
     def __init__(self, filepath, value):
         msg = "Error in package definition file: %s\n%s" % (filepath, value)

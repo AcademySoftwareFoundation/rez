@@ -116,10 +116,13 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+def relative_path(from_path, to_path):
+    from_path = os.path.realpath(from_path)
+    to_path = os.path.realpath(to_path)
+    return os.path.relpath(from_path, to_path)
+
 def is_subdirectory(path, directory):
-    path = os.path.realpath(path)
-    directory = os.path.realpath(directory)
-    relative = os.path.relpath(path, directory)
+    relative = relative_path(path, directory)
     return not relative.startswith(os.pardir)
 
 def _get_rez_dist_path(dirname):
@@ -370,6 +373,15 @@ def to_posixpath(path):
 class AttrDictWrapper(UserDict.UserDict):
     """
     Wrap a custom dictionary with attribute-based lookup.
+
+    >>> d = {'one': 1}
+    >>> dd = AttrDictWrapper(d)
+    >>> assert dd.one == 1
+    >>> ddd = dd.copy()
+    >>> ddd.one = 2
+    >>> assert ddd.one == 2
+    >>> assert dd.one == 1
+    >>> assert d['one'] == 1
     """
     def __init__(self, data):
         self.__dict__['data'] = data
@@ -391,6 +403,8 @@ class AttrDictWrapper(UserDict.UserDict):
             super(AttrDictWrapper, self).__setattr__(attr, value)
         self.data[attr] = value
 
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
 
 class RO_AttrDictWrapper(AttrDictWrapper):
     """Read-only version of AttrDictWrapper."""
@@ -399,6 +413,15 @@ class RO_AttrDictWrapper(AttrDictWrapper):
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
 
+def convert_to_user_dict(d, dict_class=AttrDictWrapper):
+    """
+    recursively convert all dictionaries in `d`, including `d`, to the
+    `UserDict` specified by `dict_class`.
+    """
+    for key, value in d.iteritems():
+        if isinstance(value, dict):
+            d[key] = convert_to_user_dict(value, dict_class=AttrDictWrapper)
+    return dict_class(d)
 
 _templates = {}
 
@@ -805,6 +828,83 @@ class propertycache(object):
         setattr(instance, self.name, result)
         return result
 
+class Namespace(object):
+    """
+    A context manager for creating nested dictionaries::
+
+        foo = 0
+        bar = 'original'
+
+        with Namespace('first'):
+            foo = 1
+            bar = 'string'
+            spangle = 0
+
+            with Namespace('nested'):
+                foo = 2
+                say = 'yay!'
+
+            say = 'boo!'
+
+        with Namespace('second'):
+            foo = 3
+
+    The dictionaries can then be retrieved::
+
+        >>> Namespace.get_namespace()
+        {
+            'first': {
+                'foo': 1,
+                'bar': 'string',
+                'spangle': 0,
+                'nested': {
+                    'foo': 2,
+                    'say': 'yay!'
+                },
+                'say': 'boo!'
+            }
+            'second': {
+                'foo': 3
+            }
+        }
+    """
+    namespace = {}
+
+    @classmethod
+    def get_namespace(cls):
+        """
+        Get the namesapce and reset it for another run
+        """
+        ns = cls.namespace
+        cls.namespace = {}
+        return ns
+
+    def __init__(self, key):
+        self.key = key
+        self.updates = {}
+
+    def __enter__(self):
+        f = sys._getframe(1)
+        self.locals = f.f_locals.copy()
+        self.parent_namespace = Namespace.namespace
+        Namespace.namespace = self.updates
+
+    def __exit__(self, *args):
+        f = sys._getframe(1)
+        # find what's new or changed
+        for key, value in f.f_locals.items():
+            if key not in self.locals or value != self.locals[key]:
+                self.updates[key] = value
+
+        if self.key in self.parent_namespace:
+            # merge
+            self.parent_namespace[self.key].update(self.updates)
+        else:
+            self.parent_namespace[self.key] = self.updates
+        # restore
+        Namespace.namespace = self.parent_namespace
+        f.f_locals.clear()
+        f.f_locals.update(self.locals)
 
 class YamlCache(object):
     """Caches yaml files, no file update checking."""
