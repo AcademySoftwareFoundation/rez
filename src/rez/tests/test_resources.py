@@ -1,6 +1,6 @@
 import rez.resources as resources
 from rez.resources import iter_resources, load_resource, get_resource, \
-    ResourceError, PackageMetadataError
+    ResourceError, PackageMetadataError, Resource
 from rez.vendor.version.version import Version
 from rez.tests.util import TestBase
 import rez.vendor.unittest2 as unittest
@@ -36,7 +36,6 @@ def _to_tuples(it):
 
 ALL_PACKAGES = _abspaths([
     'packages/bad/1/package.yaml',
-    'packages/whack/2.0.0/package.yaml',
 
     'packages/unversioned/package.yaml',
     'packages/versioned/1.0/package.yaml',
@@ -56,8 +55,6 @@ ALL_FOLDERS = _abspaths([
     'packages/unversioned',
     'packages/bad',
     'packages/bad/1',
-    'packages/whack',
-    'packages/whack/2.0.0',
 
     'packages/versioned',
     'packages/versioned/1.0',
@@ -75,14 +72,12 @@ ALL_RESOURCES = _abstuples([
     ('NameFolder', '-', 'packages/versioned'),
     ('NameFolder', '-', 'packages/unversioned'),
     ('NameFolder', '-', 'packages/bad'),
-    ('NameFolder', '-', 'packages/whack'),
 
     ('VersionFolder', '1.0', 'pypackages/versioned/1.0'),
     ('VersionFolder', '2.0', 'pypackages/versioned/2.0'),
     ('VersionFolder', '1.0', 'packages/versioned/1.0'),
     ('VersionFolder', '2.0', 'packages/versioned/2.0'),
     ('VersionFolder', '1', 'packages/bad/1'),
-    ('VersionFolder', '2.0.0', 'packages/whack/2.0.0'),
 
     ('VersionlessPackageResource', '-', 'pypackages/unversioned/package.py'),
     ('VersionlessPackageResource', '-', 'packages/unversioned/package.yaml'),
@@ -92,7 +87,6 @@ ALL_RESOURCES = _abstuples([
     ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
     ('VersionedPackageResource', '2.0', 'packages/versioned/2.0/package.yaml'),
     ('VersionedPackageResource', '1', 'packages/bad/1/package.yaml'),
-    ('VersionedPackageResource', '2.0.0', 'packages/whack/2.0.0/package.yaml'),
 
     ('CombinedPackageFamilyResource', '-', 'packages/single_unversioned.yaml'),
     ('CombinedPackageFamilyResource', '-', 'pypackages/single_unversioned.py'),
@@ -145,7 +139,28 @@ class TestResources(TestBase):
                               resources.VersionlessPackageResource)))
 
     def test_2(self):
-        """basic iteration"""
+        """resource sanity checks"""
+        resources = list(iter_resources(0,
+                                root_resource_key="folder.packages_root"))
+        for resource in resources:
+            # check that get_resource gives back the same instance
+            r = get_resource(0, resource_keys=resource.key,
+                             variables=resource.variables,
+                             search_path=[resource.variables["search_path"]])
+            self.assertEqual(r, resource)
+
+            # check that we are a child of our parent
+            parent = resource.parent_instance()
+            it = resource.iter_instances(parent)
+            self.assertTrue(resource in it)
+
+            # check that loading the handle recreates the same resource
+            h = resource.handle
+            r = Resource.from_handle(h)
+            self.assertEqual(r, resource)
+
+    def test_3(self):
+        """resource iteration"""
 
         # iterate over explicit resource type
         result = list(iter_resources(0, resource_keys=['package.versionless']))
@@ -182,34 +197,58 @@ class TestResources(TestBase):
                                     'pypackages/versioned/1.0/package.py',
                                     'pypackages/versioned/2.0/package.py',
                                     # error in metadata only, so iteration ok
-                                    'packages/bad/1/package.yaml',
-                                    'packages/whack/2.0.0/package.yaml']))
+                                    'packages/bad/1/package.yaml']))
 
-        # iterate over glob pattern of resource types
-        result = list(iter_resources(0, resource_keys=['package.*']))
+        # iterate over glob pattern of resource types in a hierarchy
+        result = list(iter_resources(0, resource_keys=['package.*'],
+                                     root_resource_key="folder.packages_root"))
         self.assertEqual(_to_paths(result), ALL_PACKAGES)
 
-        result = list(iter_resources(0, resource_keys=['folder.*']))
+        result = list(iter_resources(0, resource_keys=['folder.*'],
+                                     root_resource_key="folder.packages_root"))
         self.assertEqual(_to_paths(result), ALL_FOLDERS)
 
-        # iterate over all resources
-        result = list(iter_resources(0))
+        # iterate over all resources in a hierarchy
+        result = list(iter_resources(0,
+                                root_resource_key="folder.packages_root"))
         self.assertEqual(_to_tuples(result), ALL_RESOURCES)
 
-    def test_3(self):
+        # iterate over sub-resources
+        result = list(iter_resources(0, resource_keys='package.combined',
+                                     variables=dict(name='multi',
+                                                    ext='yaml')))
+        self.assertEqual(_to_tuples(result), _abstuples([ \
+            ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
+            ('CombinedPackageResource', '1.1', 'packages/multi.yaml'),
+            ('CombinedPackageResource', '1.2', 'packages/multi.yaml')]))
+
+        # iterate over a broad slice of resources, based on a variable
+        result = list(iter_resources(0, variables=dict(version='1.0'),
+                      root_resource_key="folder.packages_root"))
+        self.assertEqual(_to_tuples(result), _abstuples([ \
+            ('VersionFolder', '1.0', 'pypackages/versioned/1.0'),
+            ('VersionFolder', '1.0', 'packages/versioned/1.0'),
+            ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
+            ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
+            ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
+            ('CombinedPackageResource', '1.0', 'pypackages/multi.py')]))
+
+    def test_4(self):
         """resource loading"""
 
         # find a resource given a set of variables, check data is as expected
         resource = get_resource(0, resource_keys=['package.*'],
+                                root_resource_key="folder.packages_root",
                                 variables=dict(name='versioned',
                                                version='1.0',
                                                ext='py'))
 
+        resource_key = 'package.versioned'
+        path = _abspath('pypackages/versioned/1.0/package.py')
         expected_variables = {'name': 'versioned',
                               'version': '1.0',
                               'ext': 'py',
                               'search_path': self.pypackages_path}
-
         expected_data = {'config_version': 0,
                          'description': 'this description spans multiple lines.',
                          'name': 'versioned',
@@ -218,22 +257,34 @@ class TestResources(TestBase):
                          'tools': ['amazeballs'],
                          'version': Version('1.0')}
 
-        path = _abspath('pypackages/versioned/1.0/package.py')
+        self.assertEqual(resource.key, resource_key)
         self.assertEqual(resource.path, path)
         self.assertEqual(resource.variables, expected_variables)
         self.assertEqual(resource.load(), expected_data)
 
-        # load the same resource given a filepath rather than variables
-        resource = get_resource(0, filepath=path)
+        # check the parent of this resource is a versioned folder
+        parent = resource.parent_instance()
+        self.assertEqual(parent.key, "folder.version")
+        self.assertEqual(parent.path, _abspath('pypackages/versioned/1.0'))
+        self.assertEqual(parent.variables, {'name': 'versioned',
+                                            'version': '1.0',
+                                            'search_path': self.pypackages_path})
+
+        # load the same resource again, given a filepath rather than variables
+        resource = get_resource(0, filepath=path,
+                                root_resource_key="folder.packages_root")
+        self.assertEqual(resource.key, resource_key)
         self.assertEqual(resource.path, path)
         self.assertEqual(resource.variables, expected_variables)
         self.assertEqual(resource.load(), expected_data)
 
-        # find the same resource but from different resource types (py, yaml)
-        # and verify that they are the same
+        # find the same resource but from various file types (py, yaml) and
+        # verify that they are the same
         for resource in iter_resources(0, resource_keys=['package.*'],
+                                       root_resource_key="folder.packages_root",
                                        variables=dict(name='versioned',
                                                       version='1.0')):
+            self.assertEqual(resource.key, resource_key)
             self.assertEqual(resource.load(), expected_data)
 
         # iterate over packages in a combined family package, test that the
@@ -245,18 +296,58 @@ class TestResources(TestBase):
                     'version': version,
                     'tools': [tool]}
 
-        resources = list(iter_resources(0, resource_keys=['package.combined'],
+        resource_key = 'package.combined'
+        resources = list(iter_resources(0, resource_keys=resource_key,
                                         variables=dict(name='multi')))
         for resource in resources:
             expected_data = _expected_data(Version(resource.get("version")))
+            self.assertEqual(resource.key, resource_key)
             self.assertEqual(resource.load(), expected_data)
 
-    def test_4(self):
+        # load a sub-resource
+        path = _abspath('pypackages/multi.py')
+        expected_variables = {'name': 'multi',
+                              'version': '1.1',
+                              'ext': 'py',
+                              'search_path': self.pypackages_path}
+        expected_data = {'config_version': 0,
+                         'name': 'multi',
+                         'version': Version("1.1"),
+                         'tools': ["twerk"]}
+
+        resource = get_resource(0, filepath=path,
+                                resource_keys='package.combined',
+                                variables=dict(version="1.1"))
+        self.assertEqual(resource.path, path)
+        self.assertEqual(resource.variables, expected_variables)
+        self.assertEqual(resource.load(), expected_data)
+
+        # load the same sub-resource again, but don't explicitly set the
+        # resource key - instead, rely on the provided variables to cause
+        # selection of the correct resource.
+        resource = get_resource(0, filepath=path,
+                                root_resource_key="folder.packages_root",
+                                variables=dict(version="1.1"))
+        self.assertEqual(resource.path, path)
+        self.assertEqual(resource.variables, expected_variables)
+        self.assertEqual(resource.load(), expected_data)
+
+        # get the parent instance of this resource. Because it is a
+        # sub-resource, the parent's path will be the same
+        parent = resource.parent_instance()
+        self.assertEqual(parent.key, "package_family.combined")
+        self.assertEqual(parent.path, path)
+        self.assertEqual(parent.variables, {'name': 'multi',
+                                            'ext': 'py',
+                                            'search_path': self.pypackages_path})
+
+    def test_5(self):
         """invalid resource loading"""
         with self.assertRaises(PackageMetadataError):
             # the resource has a mismatch between the folder version and the
             # version in the file
             load_resource(0, resource_keys=['package.*'],
+                          root_resource_key="folder.packages_root",
                           variables=dict(name='versioned',
                                          version='2.0',
                                          ext='yaml'))
@@ -264,14 +355,13 @@ class TestResources(TestBase):
         with self.assertRaises(PackageMetadataError):
             # the resource has a custom key at the root
             load_resource(0, resource_keys=['package.*'],
+                          root_resource_key="folder.packages_root",
                           variables=dict(name='bad',
                                          version='1'))
 
-        with self.assertRaises(PackageMetadataError):
-            # the resource version key does not match the versioned folder
-            load_resource(0, resource_keys=['package.*'],
-                          variables=dict(name='whack',
-                                         version='2.0.0'))
+        with self.assertRaises(ResourceError):
+            # a request for resource types from different hierarchies
+            load_resource(0, resource_keys=["package.versioned", "package.dev"])
 
         with self.assertRaises(ResourceError):
             load_resource(0, resource_keys=['non_existent'])
@@ -287,6 +377,7 @@ def get_test_suites():
     suite.addTest(TestResources("test_2"))
     suite.addTest(TestResources("test_3"))
     suite.addTest(TestResources("test_4"))
+    suite.addTest(TestResources("test_5"))
     suites.append(suite)
     return suites
 
