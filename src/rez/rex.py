@@ -666,6 +666,9 @@ class EnvironmentDict(UserDict.DictMixin):
     def __setitem__(self, key, value):
         self[key].set(value)
 
+    def __contains__(self, key):
+        return (key in self._var_cache)
+
 
 class EnvironmentVariable(object):
     '''
