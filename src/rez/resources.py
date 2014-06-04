@@ -30,6 +30,7 @@ from rez.settings import settings, Settings
 from rez.util import to_posixpath, propertycache, print_warning_once, Namespace
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.requirement import Requirement
 from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
 # FIXME: handle this double-module business
@@ -42,17 +43,36 @@ _configs = defaultdict(list)
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = '%(comp)s(?:[.-]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
+UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[a-f0-9]{4}-?[a-f0-9]{12}\Z")
 
-
-def _split_path(path):
-    return path.rstrip(os.path.sep).split(os.path.sep)
-
-def _or_regex(strlist):
-    return '|'.join('(%s)' % e for e in strlist)
 
 #------------------------------------------------------------------------------
 # Base Classes and Functions
 #------------------------------------------------------------------------------
+
+def _or_regex(strlist):
+    return '|'.join('(%s)' % e for e in strlist)
+
+
+def _updated_schema(schema, items=None, rm_keys=None):
+    """Get an updated copy of a schema."""
+    items = items or ()
+    rm_keys = rm_keys or ()
+    items_ = dict((x[0]._schema, x) for x in items)
+    schema_ = {}
+
+    for key, value in schema._schema.iteritems():
+        k = key._schema
+        if k not in rm_keys:
+            item = items_.get(k)
+            if item is not None:
+                del items_[k]
+                key, value = item
+            schema_[key] = value
+
+    schema_.update(dict(items_.itervalues()))
+    return Schema(schema_)
+
 
 def _process_python_objects(data):
     """process special objects.
@@ -213,14 +233,19 @@ def register_resource(config_version, resource):
 # MetadataSchema Implementations
 #------------------------------------------------------------------------------
 
-# 'name-1.2'
-# FIXME: cast to version.Requirment?
-package_requirement = basestring
+#package_requirement = Requirement
 
 # TODO: inspect arguments of the function to confirm proper number?
 rex_command = Or(callable,     # python function
                  basestring,   # new-style rex
                  )
+
+def is_uuid(s):
+    if not UUID_REGEX.match(s):
+        import uuid
+        u = uuid.uuid4()
+        raise ValueError("Not a valid identifier. Try: '%s'" % u.hex)
+    return True
 
 # make an alias which just so happens to be the same number of characters as
 # 'Optional'  so that our schema are easier to read
@@ -231,6 +256,7 @@ Required = Schema
 # intentionally does no casting of types: that should happen on the resource
 # schemas.
 # TODO should this be here? It's only used in packages.py
+"""
 package_schema = Schema({
     Required('config_version'):         int,
     Optional('uuid'):                   basestring,
@@ -252,6 +278,7 @@ package_schema = Schema({
     Optional('custom'):                 object,
     # Optional(object):                   object
 })
+"""
 
 
 #------------------------------------------------------------------------------
@@ -328,6 +355,8 @@ class _ResourcePathParser(object):
         if parse_all:
             pattern += '$'
         else:
+            # assertion lookaehead so '/foo/ba' matches 'foo/ba' and 
+            # /foo/ba/whee', but not '/foo/barry'
             pattern += "(?=$|%s)" % re.escape(os.path.sep)
         reg = re.compile(pattern)
         return reg
@@ -432,25 +461,30 @@ class Resource(object):
         return tuple(cls._children[cls])
 
     @classmethod
-    def _iter_parents(cls):
+    def _iter_ancestors(cls):
         if cls.parent_resource:
-            for parent in cls.parent_resource.parents():
+            for parent in cls.parent_resource.ancestors():
                 yield parent
             yield cls.parent_resource
 
     @classmethod
-    def parents(cls):
+    def ancestors(cls):
         """Get a tuple of all the resources above this one, in descending order
         """
-        return tuple(cls._iter_parents())
+        return tuple(cls._iter_ancestors())
 
     @classmethod
     def topmost(cls):
         """Get the root resource type in this hierarchy."""
         if cls.parent_resource:
-            return cls._iter_parents().next()
+            return cls._iter_ancestors().next()
         else:
             return cls
+
+    @classmethod
+    def has_ancestor(cls, other_cls):
+        """Returns True if other_cls is an ancestor of cls."""
+        return (other_cls in cls._iter_ancestors())
 
     @classmethod
     def _default_search_paths(cls, path=None):
@@ -476,13 +510,13 @@ class Resource(object):
 
     @classmethod
     def _path_pattern(cls):
-        hierarchy = cls.parents() + (cls,)
+        hierarchy = cls.ancestors() + (cls,)
         parts = [r.path_pattern for r in hierarchy if r]
         return os.path.sep.join(parts)
 
     @classmethod
     def _variable_keys(cls):
-        hierarchy = cls.parents() + (cls,)
+        hierarchy = cls.ancestors() + (cls,)
         keys = set()
         for r in hierarchy:
             keys |= set(r.variable_keys)
@@ -490,7 +524,7 @@ class Resource(object):
 
     @classmethod
     def _variable_regex(cls):
-        hierarchy = cls.parents() + (cls,)
+        hierarchy = cls.ancestors() + (cls,)
         keys = {}
         for r in hierarchy:
             keys.update(r.variable_regex)
@@ -578,7 +612,7 @@ class Resource(object):
 
     def ancestor_instance(self, ancestor_cls):
         """Get an instance of a resource type higher in the hierarchy."""
-        if ancestor_cls not in self.parents():
+        if not self.has_ancestor(ancestor_cls):
             raise ResourceError("%s is not a resource ancestor of %s"
                         % (ancestor_cls.__name__, self.__class__.__name__))
         return self._ancestor_instance(ancestor_cls)
@@ -586,6 +620,15 @@ class Resource(object):
     def parent_instance(self):
         """Get an instance of the parent resource type."""
         return self._ancestor_instance(self.parent_resource)
+
+
+class SubResource(Resource):
+    """A resource that is extracted from another resource.
+
+    For example, one package.yaml file contains several variants. Variant
+    resources are extracted from package resources.
+    """
+    pass
 
 
 class FileSystemResource(Resource):
@@ -655,11 +698,8 @@ class SearchPath(FolderResource):
     variable_keys = ["search_path"]
 
 
-class ArbitraryPath(FolderResource):
+class ArbitraryPath(SearchPath):
     """Represents an arbitrary path in the filesystem."""
-    path_pattern = '{search_path}'
-    variable_keys = ["search_path"]
-
     @classmethod
     def _default_search_paths(cls, path=None):
         if path:
@@ -680,12 +720,6 @@ class PackagesRoot(SearchPath):
     @classmethod
     def _default_search_paths(cls, path=None):
         return settings.packages_path
-
-
-class DeveloperPackagesRoot(ArbitraryPath):
-    """Represents a path containing a developer package resource."""
-    key = "folder.dev_packages_root"
-    pass
 
 
 class NameFolder(FolderResource):
@@ -744,11 +778,11 @@ class ReleaseDataResource(FileResource):
 
     schema = Schema({
         Required('timestamp'): int,
-        Required('revision'): basestring, # FIXME this is any POD type
+        Required('revision'): object,
         Required('changelog'): basestring,
         Required('release_message'): basestring,
-        Required('previous_version'): basestring,
-        Required('previous_revision'): basestring # FIXME this is any POD type
+        Optional('previous_version'): Use(Version),
+        Optional('previous_revision'): object
     })
 
 
@@ -758,19 +792,17 @@ class BasePackageResource(FileResource):
     def convert_to_rex(self, commands):
         from rez.util import convert_old_commands, print_warning_once
         if settings.warn("old_commands"):
-            print_warning_once("%s is using old-style commands."
-                               % self.path)
-
+            print_warning_once("%s is using old-style commands." % self.path)
         return convert_old_commands(commands)
 
     @propertycache
     def schema(self):
         return Schema({
             Required('config_version'):         0,  # this will only match 0
-            Optional('uuid'):                   basestring,
+            Optional('uuid'):                   is_uuid,
             Optional('description'):            And(basestring,
                                                     Use(string.strip)),
-            Required('name'):                   self.variables['name'],
+            Required('name'):                   self.variables.get('name'),
             Optional('authors'):                [basestring],
             Optional('config'):                 And(dict,
                                                     Use(lambda x:
@@ -778,10 +810,10 @@ class BasePackageResource(FileResource):
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
             Optional('tools'):                  [basestring],
-            Optional('requires'):               [package_requirement],
-            Optional('build_requires'):         [package_requirement],
-            Optional('private_build_requires'): [package_requirement],
-            Optional('variants'):               [[package_requirement]],
+            Optional('requires'):               [Use(Requirement)],
+            Optional('variants'):               [[Use(Requirement)]],
+            Optional('build_requires'):         [Use(Requirement)],
+            Optional('private_build_requires'): [Use(Requirement)],
             Optional('commands'):               Or(rex_command,
                                                    And([basestring],
                                                        Use(self.convert_to_rex))),
@@ -790,6 +822,7 @@ class BasePackageResource(FileResource):
             # basestring: object
         })
 
+    # TODO deprecate, will move into VariantResource
     def load_timestamp(self):
         timestamp = 0
         try:
@@ -816,7 +849,48 @@ class BasePackageResource(FileResource):
         return timestamp
 
 
+class BaseVariantResource(BasePackageResource):
+    """Abstract base class for all package variants."""
+    @propertycache
+    def schema(self):
+        schema = super(BaseVariantResource, self).schema
+        return _updated_schema(schema, rm_keys=("variants",))
+
+    def load(self):
+        parent = self.parent_instance()
+        data = parent.load()
+        variants = data.get("variants")
+        if "variants" in data:
+            data = data.copy()
+            del data["variants"]
+
+        idx = self.variables["index"]
+        if idx is not None:
+            try:
+                requires = data.get("requires", []) + variants[idx]
+                data["requires"] = requires
+            except IndexError:
+                raise ResourceError("variant not found in parent package "
+                                    "resource")
+        return data
+
+    @classmethod
+    def iter_instances(cls, parent_resource):
+        data = parent_resource.load()
+        variants = data.get("variants")
+        if variants:
+            for i in range(len(variants)):
+                variables = parent_resource.variables.copy()
+                variables["index"] = i
+                yield cls(parent_resource.path, variables)
+        else:
+            variables = parent_resource.variables.copy()
+            variables['index'] = None
+            yield cls(parent_resource.path, variables)
+
+
 class VersionlessPackageResource(BasePackageResource):
+    """A versionless package from a single file."""
     key = 'package.versionless'
     path_pattern = 'package.{ext}'
     parent_resource = NameFolder
@@ -827,11 +901,24 @@ class VersionlessPackageResource(BasePackageResource):
         data = super(VersionlessPackageResource, self).load()
         data['timestamp'] = self.load_timestamp()
         data['version'] = Version()
+        return data
 
+
+class VersionlessVariantResource(BaseVariantResource):
+    """A variant within a `VersionlessPackageResource`."""
+    key = 'variant.versionless'
+    parent_resource = VersionlessPackageResource
+    variable_keys = ["index"]
+    sub_resource = True
+
+    def load(self):
+        data = super(VersionlessVariantResource, self).load()
+        data['version'] = Version()
         return data
 
 
 class VersionedPackageResource(BasePackageResource):
+    """A versioned package from a single file."""
     key = 'package.versioned'
     path_pattern = 'package.{ext}'
     parent_resource = VersionFolder
@@ -840,18 +927,30 @@ class VersionedPackageResource(BasePackageResource):
 
     @propertycache
     def schema(self):
-        schema = super(VersionedPackageResource, self).schema._schema
-        schema = schema.copy()
-        schema.update({
-            Required('version'): And(self.variables['version'], Use(Version))
-        })
-        return Schema(schema)
+        schema = super(VersionedPackageResource, self).schema
+        return _updated_schema(schema,
+            [(Required('version'), 
+                And(self.variables['version'], Use(Version)))])
 
     def load(self):
         data = super(VersionedPackageResource, self).load()
         data['timestamp'] = self.load_timestamp()
-
         return data
+
+
+class VersionedVariantResource(BaseVariantResource):
+    """A variant within a `VersionedPackageResource`."""
+    key = 'variant.versioned'
+    parent_resource = VersionedPackageResource
+    variable_keys = ["index"]
+    sub_resource = True
+
+    @propertycache
+    def schema(self):
+        schema = super(VersionedVariantResource, self).schema
+        return _updated_schema(schema,
+            [(Required('version'), 
+                And(self.variables['version'], Use(Version)))])
 
 
 class CombinedPackageFamilyResource(BasePackageResource):
@@ -869,19 +968,18 @@ class CombinedPackageFamilyResource(BasePackageResource):
 
     @propertycache
     def schema(self):
-        schema = super(CombinedPackageFamilyResource, self).schema._schema
-        schema = schema.copy()
-        schema.update({
-            Optional('versions'): [Use(Version)],
-            Optional('version_overrides'): {
+        schema = super(CombinedPackageFamilyResource, self).schema
+        return _updated_schema(schema,
+            [(Optional('versions'), [Use(Version)]),
+             (Optional('version_overrides'), {
                 Use(VersionRange): {
                     Optional('help'):                   Or(basestring,
                                                            [[basestring]]),
                     Optional('tools'):                  [basestring],
-                    Optional('requires'):               [package_requirement],
-                    Optional('build_requires'):         [package_requirement],
-                    Optional('private_build_requires'): [package_requirement],
-                    Optional('variants'):               [[package_requirement]],
+                    Optional('requires'):               [Use(Requirement)],
+                    Optional('build_requires'):         [Use(Requirement)],
+                    Optional('private_build_requires'): [Use(Requirement)],
+                    Optional('variants'):               [[Use(Requirement)]],
                     Optional('commands'):               Or(rex_command,
                                                            And([basestring],
                                                                Use(self.convert_to_rex))),
@@ -889,9 +987,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     Optional('custom'):                 object,
                     # basestring:                         object
                 }
-            }
-        })
-        return Schema(schema)
+            })])
 
     def load(self):
         data = super(CombinedPackageFamilyResource, self).load()
@@ -925,16 +1021,13 @@ class CombinedPackageResource(BasePackageResource):
     sub_resource = True
     parent_resource = CombinedPackageFamilyResource
     variable_keys = ["version"]
-    variable_regex = dict(version=VERSION_REGSTR)
 
     @propertycache
     def schema(self):
-        schema = super(CombinedPackageResource, self).schema._schema
-        schema = schema.copy()
-        schema.update({
-            Required('version'): And(self.variables['version'], Use(Version))
-        })
-        return Schema(schema)
+        schema = super(CombinedPackageResource, self).schema
+        return _updated_schema(schema,
+            [(Required('version'), 
+                And(self.variables['version'], Use(Version)))])
 
     def load(self):
         parent = self.parent_instance()
@@ -942,7 +1035,7 @@ class CombinedPackageResource(BasePackageResource):
         this_version = Version(self.variables["version"])
         for ver_data in data['versions']:
             if ver_data['version'] == this_version:
-                return ver_data.copy()
+                return ver_data
 
         raise ResourceError("resource couldn't find itself in parent "
                             "resource data")
@@ -956,15 +1049,23 @@ class CombinedPackageResource(BasePackageResource):
             yield cls(parent_resource.path, variables)
 
 
-class DeveloperPackageResource(VersionedPackageResource):
-    """A package that is built with the intention to release.
 
-    Same as `VersionedPackageResource`, but stricter about the existence of
-    certain metadata.
+#------------------------------------------------------------------------------
+# Developer Package Resources
+#------------------------------------------------------------------------------
+
+class DeveloperPackagesRoot(ArbitraryPath):
+    """Represents a path containing a developer package resource."""
+    key = "folder.dev_packages_root"
+    pass
+
+
+class DeveloperPackageResource(BasePackageResource):
+    """A package that is created with the intention to release.
 
     This resource belongs to its own resource hierarchy, because a development
     package has not yet been deployed and is stored in an arbitrary location in
-    the filesystem (typically a developer's home directory).
+    the filesystem (typically under a developer's home directory).
     """
     key = 'package.dev'
     path_pattern = 'package.{ext}'
@@ -972,21 +1073,25 @@ class DeveloperPackageResource(VersionedPackageResource):
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
 
-    @property
+    @propertycache
     def schema(self):
-        schema = super(DeveloperPackageResource, self).schema._schema
-        schema = schema.copy()
-        # swap optional to required:
-        for key, value in schema.iteritems():
-            if key._schema in ('uuid', 'description', 'authors'):
-                newkey = Required(key._schema)
-                schema[newkey] = schema.pop(key)
-        return Schema(schema)
+        schema = super(DeveloperPackageResource, self).schema
+        return _updated_schema(schema,
+                               [(Required('name'), basestring),
+                                (Required('version'), Use(Version)),
+                                (Required('description'), And(basestring,
+                                                            Use(string.strip))),
+                                (Required('authors'), [basestring]),
+                                (Required('uuid'), is_uuid)])
 
+
+#------------------------------------------------------------------------------
+# Resource Hierarchies
+#------------------------------------------------------------------------------
+
+# -- deployed packages
 
 register_resource(0, PackagesRoot)
-
-register_resource(0, DeveloperPackagesRoot)
 
 register_resource(0, NameFolder)
 
@@ -994,9 +1099,11 @@ register_resource(0, VersionFolder)
 
 register_resource(0, VersionedPackageResource)
 
+#register_resource(0, VersionedVariantResource)
+
 register_resource(0, VersionlessPackageResource)
 
-register_resource(0, DeveloperPackageResource)
+#register_resource(0, VersionlessVariantResource)
 
 register_resource(0, ReleaseInfoResource)
 
@@ -1007,6 +1114,13 @@ register_resource(0, ReleaseDataResource)
 register_resource(0, CombinedPackageFamilyResource)
 
 register_resource(0, CombinedPackageResource)
+
+
+# -- development packages
+
+register_resource(0, DeveloperPackagesRoot)
+
+register_resource(0, DeveloperPackageResource)
 
 
 #------------------------------------------------------------------------------
@@ -1092,16 +1206,31 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
         return root_class, list(resource_classes)
 
 
-def _iter_resources(parent_resource):
+def _iter_resources(parent_resource, child_resource_classes=None):
+    """Iterate over child resources of the given parent.
+
+    If `child_resource_classes` is supplied, this prunes the search so that 
+    only parent or equal resource types are iterated over.
+    """
+    if child_resource_classes is not None:
+        child_resource_classes = [x for x in child_resource_classes
+                                  if x.has_ancestor(parent_resource.__class__)]
+        if not child_resource_classes:
+            return
+
     for child_class in parent_resource.children():
+        if child_resource_classes and \
+                not any((child_class is x or x.has_ancestor(child_class)) 
+                        for x in child_resource_classes):
+            continue
         for child in child_class.iter_instances(parent_resource):
             yield child
-            for grand_child in _iter_resources(child):
+            for grand_child in _iter_resources(child, child_resource_classes):
                 yield grand_child
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
-    for child in _iter_resources(parent_resource):
+    for child in _iter_resources(parent_resource, resource_classes):
         if isinstance(child, tuple(resource_classes)) and \
                 set((variables or {}).items()).issubset(child.variables.items()):
             yield child
@@ -1111,7 +1240,7 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
                    variables=None, root_resource_key=None):
     """Iterate over `Resource` instances.
 
-    Must provide `resource_keys` or `root_resource_key`
+    Must provide `resource_keys` or `root_resource_key`.
 
     Args:
         resource_keys (str or list of str): Name(s) of the type of `Resources`
@@ -1130,9 +1259,10 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
     """
     if isinstance(search_path, basestring):
         search_path = [search_path]
-    search_path = settings.default(search_path, "packages_path")
     root_cls, resource_classes = list_common_resource_classes(config_version,
         root_resource_key, resource_keys)
+    if search_path is None:
+        search_path = root_cls._default_search_paths()
 
     for path in search_path:
         resource = root_cls(path, {'search_path': path})
@@ -1176,9 +1306,9 @@ def get_resource(config_version, filepath=None, resource_keys=None,
     Args:
         resource_keys (str or list of str, optional): Name(s) of the type of
             `Resources` to find. If None, all resource types are searched.
-        search_path (list of str, optional): List of root paths under which
-            to search for resources. These typically correspond to the rez
-            packages path. Default depends on `root_resource_key`.
+        search_path (str or list of str, optional): List of root paths under 
+            which to search for resources. These typically correspond to the 
+            rez packages path. Default depends on `root_resource_key`.
         filepath (str, optional): file that contains the resource - either the
             resource is the entire file, or the resource is a 'sub-resource',
             meaning it is one of possibly several resources contained in the
@@ -1193,6 +1323,8 @@ def get_resource(config_version, filepath=None, resource_keys=None,
     Returns:
         A `Resource` instance.
     """
+    if isinstance(search_path, basestring):
+        search_path = [search_path]
     if isinstance(resource_keys, basestring):
         resource_keys = [resource_keys]
 
@@ -1232,7 +1364,7 @@ def get_resource(config_version, filepath=None, resource_keys=None,
         resource_classes_2 = [r for r in resource_classes if r.sub_resource]
         resource_classes_3 = set()
         for resource_class in resource_classes_2:
-            resource_classes_3 |= set(resource_class.parents())
+            resource_classes_3 |= set(resource_class.ancestors())
         resource_classes_3 = set(r for r in resource_classes_3
                                  if not r.sub_resource)
 
@@ -1265,9 +1397,9 @@ def load_resource(config_version, filepath=None, resource_keys=None,
     Args:
         resource_keys (str or list of str, optional): Name(s) of the type of
             `Resources` to find. If None, all resource types are searched.
-        search_path (list of str, optional): List of root paths under which
-            to search for resources. These typically correspond to the rez
-            packages path. Default depends on the resource hierarchy.
+        search_path (str or list of str, optional): List of root paths under 
+            which to search for resources. These typically correspond to the 
+            rez packages path. Default depends on the resource hierarchy.
         filepath (str, optional): file that contains the resource - either the
             resource is the entire file, or the resource is a 'sub-resource',
             meaning it is one of possibly several resources contained in the

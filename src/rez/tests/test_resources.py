@@ -2,6 +2,8 @@ import rez.resources as resources
 from rez.resources import iter_resources, load_resource, get_resource, \
     ResourceError, PackageMetadataError, Resource
 from rez.vendor.version.version import Version
+from rez.vendor.version.requirement import Requirement
+from rez.vendor.schema.schema import SchemaError
 from rez.tests.util import TestBase
 import rez.vendor.unittest2 as unittest
 import os.path
@@ -119,18 +121,21 @@ class TestResources(TestBase):
 
     def test_1(self):
         """class methods"""
-        self.assertEqual(resources.VersionlessPackageResource.parents(),
+        self.assertEqual(resources.VersionlessPackageResource.ancestors(),
                          (resources.PackagesRoot,
                           resources.NameFolder))
 
-        self.assertEqual(resources.VersionedPackageResource.parents(),
+        self.assertEqual(resources.VersionedPackageResource.ancestors(),
                          (resources.PackagesRoot,
                           resources.NameFolder,
                           resources.VersionFolder))
 
-        self.assertEqual(resources.CombinedPackageResource.parents(),
+        self.assertEqual(resources.CombinedPackageResource.ancestors(),
                          (resources.PackagesRoot,
                           resources.CombinedPackageFamilyResource))
+
+        self.assertEqual(resources.DeveloperPackageResource.ancestors(),
+                         (resources.DeveloperPackagesRoot,))
 
         # order is determined by the order in which resources were registered
         # which ultimately does not matter. hence, we test with sets.
@@ -140,24 +145,32 @@ class TestResources(TestBase):
 
     def test_2(self):
         """resource sanity checks"""
+        def _test_resources(resources):
+            for resource in resources:
+                # check that get_resource gives back the same instance
+                r = get_resource(0, resource_keys=resource.key,
+                                 variables=resource.variables,
+                                 search_path=resource.variables["search_path"])
+                self.assertEqual(r, resource)
+
+                # check that we are a child of our parent
+                parent = resource.parent_instance()
+                it = resource.iter_instances(parent)
+                self.assertTrue(resource in it)
+
+                # check that loading the handle recreates the same resource
+                h = resource.handle
+                r = Resource.from_handle(h)
+                self.assertEqual(r, resource)
+
         resources = list(iter_resources(0,
                                 root_resource_key="folder.packages_root"))
-        for resource in resources:
-            # check that get_resource gives back the same instance
-            r = get_resource(0, resource_keys=resource.key,
-                             variables=resource.variables,
-                             search_path=[resource.variables["search_path"]])
-            self.assertEqual(r, resource)
+        _test_resources(resources)
 
-            # check that we are a child of our parent
-            parent = resource.parent_instance()
-            it = resource.iter_instances(parent)
-            self.assertTrue(resource in it)
-
-            # check that loading the handle recreates the same resource
-            h = resource.handle
-            r = Resource.from_handle(h)
-            self.assertEqual(r, resource)
+        resources = list(iter_resources(0,
+                                root_resource_key="folder.dev_packages_root",
+                                search_path=_abspath("developer")))
+        _test_resources(resources)
 
     def test_3(self):
         """resource iteration"""
@@ -167,6 +180,11 @@ class TestResources(TestBase):
         self.assertEqual(_to_paths(result),
                          _abspaths(['packages/unversioned/package.yaml',
                                     'pypackages/unversioned/package.py']))
+
+        result = list(iter_resources(0, resource_keys=['package.dev'],
+                                     search_path=_abspath("developer")))
+        self.assertEqual(_to_paths(result),
+                         _abspaths(['developer/package.yaml']))
 
         # iterate over explicit resource type, specifying 'name' variable. Also
         # check that expanded variables in the result are correct.
@@ -236,7 +254,26 @@ class TestResources(TestBase):
     def test_4(self):
         """resource loading"""
 
-        # find a resource given a set of variables, check data is as expected
+        # find a developer package resource given a set of variables
+        search_path = _abspath("developer")
+        resource = get_resource(0, resource_keys="package.dev",
+                                search_path=search_path)
+        path = _abspath("developer/package.yaml")
+        expected_variables = {"ext": "yaml",
+                              "search_path": search_path}
+        expected_data = {'config_version': 0,
+                         'description': 'a foo type thing.',
+                         'authors': ['joe.bloggs'],
+                         'name': 'foo',
+                         'uuid': '28d94bcd1a934bb4999bcf70a21106cc',
+                         'requires': [Requirement('bah-1.2+<2')],
+                         'version': Version('3.0.1')}
+
+        self.assertEqual(resource.path, path)
+        self.assertEqual(resource.variables, expected_variables)
+        self.assertEqual(resource.load(), expected_data)
+
+        # find a package resource given a set of variables
         resource = get_resource(0, resource_keys=['package.*'],
                                 root_resource_key="folder.packages_root",
                                 variables=dict(name='versioned',
@@ -252,7 +289,8 @@ class TestResources(TestBase):
         expected_data = {'config_version': 0,
                          'description': 'this description spans multiple lines.',
                          'name': 'versioned',
-                         'requires': ['amaze', 'wow'],
+                         'requires': [Requirement('amaze'), 
+                                      Requirement('wow')],
                          'timestamp': 0,
                          'tools': ['amazeballs'],
                          'version': Version('1.0')}
@@ -286,6 +324,9 @@ class TestResources(TestBase):
                                                       version='1.0')):
             self.assertEqual(resource.key, resource_key)
             self.assertEqual(resource.load(), expected_data)
+
+        # find a package on an explicit searchpath
+        # TODO
 
         # iterate over packages in a combined family package, test that the
         # version override feature is working
@@ -329,6 +370,7 @@ class TestResources(TestBase):
                                 root_resource_key="folder.packages_root",
                                 variables=dict(version="1.1"))
         self.assertEqual(resource.path, path)
+        self.assertEqual(resource.key, 'package.combined')
         self.assertEqual(resource.variables, expected_variables)
         self.assertEqual(resource.load(), expected_data)
 
@@ -343,6 +385,7 @@ class TestResources(TestBase):
 
     def test_5(self):
         """invalid resource loading"""
+        """
         with self.assertRaises(PackageMetadataError):
             # the resource has a mismatch between the folder version and the
             # version in the file
@@ -351,13 +394,17 @@ class TestResources(TestBase):
                           variables=dict(name='versioned',
                                          version='2.0',
                                          ext='yaml'))
-
+        """
         with self.assertRaises(PackageMetadataError):
             # the resource has a custom key at the root
             load_resource(0, resource_keys=['package.*'],
                           root_resource_key="folder.packages_root",
                           variables=dict(name='bad',
                                          version='1'))
+
+        with self.assertRaises(ResourceError):
+            # this resource type requires a searchpath or filepath
+            resource = get_resource(0, resource_keys="package.dev")
 
         with self.assertRaises(ResourceError):
             # a request for resource types from different hierarchies

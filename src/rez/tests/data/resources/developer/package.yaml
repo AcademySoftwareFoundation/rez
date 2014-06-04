@@ -1,0 +1,14 @@
+config_version: 0
+name: foo
+version: '3.0.1'
+
+description: >
+    a foo type thing.
+
+requires:
+- 'bah-1.2+<2'
+
+uuid: 28d94bcd1a934bb4999bcf70a21106cc
+
+authors:
+- joe.bloggs
