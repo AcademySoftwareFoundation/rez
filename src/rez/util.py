@@ -759,6 +759,12 @@ except AttributeError:
         def __ne__(self, other):
             return not self == other
 
+
+class _Missing(object):
+    pass
+_missing = _Missing()
+
+
 class propertycache(object):
     '''Class for creating properties where the value is initially calculated then stored.
 
@@ -800,7 +806,6 @@ class propertycache(object):
     'bar'
     >>> c.aValue
     'bar'
-
     '''
     class DoNotCacheSignal(Exception):
         def __init__(self, default=None):
@@ -821,12 +826,21 @@ class propertycache(object):
     def __get__(self, instance, owner=None):
         if instance is None:
             return None
+        value = instance.__dict__.get(self.name, _missing)
+        if value is not _missing:
+            return value
+
         try:
             result = self.func(instance)
         except self.DoNotCacheSignal, e:
             return e.default
-        setattr(instance, self.name, result)
+
+        try:
+            setattr(instance, self.name, result)
+        except AttributeError:
+            instance.__dict__[self.name] = result
         return result
+
 
 class Namespace(object):
     """
@@ -905,6 +919,7 @@ class Namespace(object):
         Namespace.namespace = self.parent_namespace
         f.f_locals.clear()
         f.f_locals.update(self.locals)
+
 
 class YamlCache(object):
     """Caches yaml files, no file update checking."""
