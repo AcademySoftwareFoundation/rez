@@ -8,3 +8,6 @@ description = "this description " \
 tools = ['amazeballs']
 
 requires = ['amaze', 'wow']
+
+variants = [['yolo-1'],
+            ['yolo-2']]

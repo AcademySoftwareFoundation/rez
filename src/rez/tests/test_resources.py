@@ -37,8 +37,6 @@ def _to_tuples(it):
     return entries
 
 ALL_PACKAGES = _abspaths([
-    'packages/bad/1/package.yaml',
-
     'packages/unversioned/package.yaml',
     'packages/versioned/1.0/package.yaml',
     'packages/versioned/2.0/package.yaml',
@@ -55,9 +53,6 @@ ALL_PACKAGES = _abspaths([
 
 ALL_FOLDERS = _abspaths([
     'packages/unversioned',
-    'packages/bad',
-    'packages/bad/1',
-
     'packages/versioned',
     'packages/versioned/1.0',
     'packages/versioned/2.0',
@@ -73,22 +68,27 @@ ALL_RESOURCES = _abstuples([
     ('NameFolder', '-', 'pypackages/versioned'),
     ('NameFolder', '-', 'packages/versioned'),
     ('NameFolder', '-', 'packages/unversioned'),
-    ('NameFolder', '-', 'packages/bad'),
 
     ('VersionFolder', '1.0', 'pypackages/versioned/1.0'),
     ('VersionFolder', '2.0', 'pypackages/versioned/2.0'),
     ('VersionFolder', '1.0', 'packages/versioned/1.0'),
     ('VersionFolder', '2.0', 'packages/versioned/2.0'),
-    ('VersionFolder', '1', 'packages/bad/1'),
 
     ('VersionlessPackageResource', '-', 'pypackages/unversioned/package.py'),
     ('VersionlessPackageResource', '-', 'packages/unversioned/package.yaml'),
+
+    ('VersionlessVariantResource', '-', 'pypackages/unversioned/package.py'),
+    ('VersionlessVariantResource', '-', 'packages/unversioned/package.yaml'),
 
     ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
     ('VersionedPackageResource', '2.0', 'pypackages/versioned/2.0/package.py'),
     ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
     ('VersionedPackageResource', '2.0', 'packages/versioned/2.0/package.yaml'),
-    ('VersionedPackageResource', '1', 'packages/bad/1/package.yaml'),
+
+    ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml'),
+    ('VersionedVariantResource', '2.0', 'packages/versioned/2.0/package.yaml'),
+    ('VersionedVariantResource', '1.0', 'pypackages/versioned/1.0/package.py'),
+    ('VersionedVariantResource', '2.0', 'pypackages/versioned/2.0/package.py'),
 
     ('CombinedPackageFamilyResource', '-', 'packages/single_unversioned.yaml'),
     ('CombinedPackageFamilyResource', '-', 'pypackages/single_unversioned.py'),
@@ -213,9 +213,7 @@ class TestResources(TestBase):
                                     'packages/versioned/1.0/package.yaml',
                                     'packages/versioned/2.0/package.yaml',
                                     'pypackages/versioned/1.0/package.py',
-                                    'pypackages/versioned/2.0/package.py',
-                                    # error in metadata only, so iteration ok
-                                    'packages/bad/1/package.yaml']))
+                                    'pypackages/versioned/2.0/package.py']))
 
         # iterate over glob pattern of resource types in a hierarchy
         result = list(iter_resources(0, resource_keys=['package.*'],
@@ -231,7 +229,7 @@ class TestResources(TestBase):
                                 root_resource_key="folder.packages_root"))
         self.assertEqual(_to_tuples(result), ALL_RESOURCES)
 
-        # iterate over sub-resources
+        # iterate over sub-resources (combined packages)
         result = list(iter_resources(0, resource_keys='package.combined',
                                      variables=dict(name='multi',
                                                     ext='yaml')))
@@ -239,6 +237,15 @@ class TestResources(TestBase):
             ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
             ('CombinedPackageResource', '1.1', 'packages/multi.yaml'),
             ('CombinedPackageResource', '1.2', 'packages/multi.yaml')]))
+
+        # iterate over sub-resources (variants)
+        result = list(iter_resources(0, resource_keys='variant.*',
+                                    variables=dict(version='1.0',
+                                                   ext='yaml'),
+                                    root_resource_key="folder.packages_root"))
+        self.assertEqual(_to_tuples(result), _abstuples([ \
+            ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml')]))
+        self.assertEqual(len(result), 2)
 
         # iterate over a broad slice of resources, based on a variable
         result = list(iter_resources(0, variables=dict(version='1.0'),
@@ -248,6 +255,8 @@ class TestResources(TestBase):
             ('VersionFolder', '1.0', 'packages/versioned/1.0'),
             ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
             ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
+            ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml'),
+            ('VersionedVariantResource', '1.0', 'pypackages/versioned/1.0/package.py'),
             ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
             ('CombinedPackageResource', '1.0', 'pypackages/multi.py')]))
 
@@ -291,6 +300,8 @@ class TestResources(TestBase):
                          'name': 'versioned',
                          'requires': [Requirement('amaze'), 
                                       Requirement('wow')],
+                         'variants': [[Requirement('yolo-1')],
+                                      [Requirement('yolo-2')]],
                          'timestamp': 0,
                          'tools': ['amazeballs'],
                          'version': Version('1.0')}
@@ -324,9 +335,6 @@ class TestResources(TestBase):
                                                       version='1.0')):
             self.assertEqual(resource.key, resource_key)
             self.assertEqual(resource.load(), expected_data)
-
-        # find a package on an explicit searchpath
-        # TODO
 
         # iterate over packages in a combined family package, test that the
         # version override feature is working
@@ -385,21 +393,28 @@ class TestResources(TestBase):
 
     def test_5(self):
         """invalid resource loading"""
-        """
+        search_path = _abspath('badpackages')
+
         with self.assertRaises(PackageMetadataError):
-            # the resource has a mismatch between the folder version and the
-            # version in the file
+            # the resource name is mismatched with the name folder
             load_resource(0, resource_keys=['package.*'],
                           root_resource_key="folder.packages_root",
-                          variables=dict(name='versioned',
-                                         version='2.0',
-                                         ext='yaml'))
-        """
+                          search_path=search_path,
+                          variables=dict(name='nameclash'))
+
+        with self.assertRaises(PackageMetadataError):
+            # the resource version is mismatched with the version folder
+            load_resource(0, resource_keys=['package.*'],
+                          root_resource_key="folder.packages_root",
+                          search_path=search_path,
+                          variables=dict(name='versionclash'))
+
         with self.assertRaises(PackageMetadataError):
             # the resource has a custom key at the root
             load_resource(0, resource_keys=['package.*'],
                           root_resource_key="folder.packages_root",
-                          variables=dict(name='bad',
+                          search_path=search_path,
+                          variables=dict(name='customkey',
                                          version='1'))
 
         with self.assertRaises(ResourceError):
@@ -408,7 +423,8 @@ class TestResources(TestBase):
 
         with self.assertRaises(ResourceError):
             # a request for resource types from different hierarchies
-            load_resource(0, resource_keys=["package.versioned", "package.dev"])
+            load_resource(0, resource_keys=["package.versioned", 
+                                            "package.dev"])
 
         with self.assertRaises(ResourceError):
             load_resource(0, resource_keys=['non_existent'])

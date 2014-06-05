@@ -1,5 +1,5 @@
 config_version: 0
-name: bad
+name: customkey
 version: '1'
 
 other_data: bad

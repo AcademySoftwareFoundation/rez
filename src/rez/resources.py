@@ -622,15 +622,6 @@ class Resource(object):
         return self._ancestor_instance(self.parent_resource)
 
 
-class SubResource(Resource):
-    """A resource that is extracted from another resource.
-
-    For example, one package.yaml file contains several variants. Variant
-    resources are extracted from package resources.
-    """
-    pass
-
-
 class FileSystemResource(Resource):
     """A resource that resides on disk.
 
@@ -851,11 +842,6 @@ class BasePackageResource(FileResource):
 
 class BaseVariantResource(BasePackageResource):
     """Abstract base class for all package variants."""
-    @propertycache
-    def schema(self):
-        schema = super(BaseVariantResource, self).schema
-        return _updated_schema(schema, rm_keys=("variants",))
-
     def load(self):
         parent = self.parent_instance()
         data = parent.load()
@@ -910,11 +896,7 @@ class VersionlessVariantResource(BaseVariantResource):
     parent_resource = VersionlessPackageResource
     variable_keys = ["index"]
     sub_resource = True
-
-    def load(self):
-        data = super(VersionlessVariantResource, self).load()
-        data['version'] = Version()
-        return data
+    schema = None
 
 
 class VersionedPackageResource(BasePackageResource):
@@ -944,13 +926,7 @@ class VersionedVariantResource(BaseVariantResource):
     parent_resource = VersionedPackageResource
     variable_keys = ["index"]
     sub_resource = True
-
-    @propertycache
-    def schema(self):
-        schema = super(VersionedVariantResource, self).schema
-        return _updated_schema(schema,
-            [(Required('version'), 
-                And(self.variables['version'], Use(Version)))])
+    schema = None
 
 
 class CombinedPackageFamilyResource(BasePackageResource):
@@ -1019,15 +995,9 @@ class CombinedPackageResource(BasePackageResource):
     """
     key = 'package.combined'
     sub_resource = True
+    schema = None
     parent_resource = CombinedPackageFamilyResource
     variable_keys = ["version"]
-
-    @propertycache
-    def schema(self):
-        schema = super(CombinedPackageResource, self).schema
-        return _updated_schema(schema,
-            [(Required('version'), 
-                And(self.variables['version'], Use(Version)))])
 
     def load(self):
         parent = self.parent_instance()
@@ -1099,11 +1069,11 @@ register_resource(0, VersionFolder)
 
 register_resource(0, VersionedPackageResource)
 
-#register_resource(0, VersionedVariantResource)
+register_resource(0, VersionedVariantResource)
 
 register_resource(0, VersionlessPackageResource)
 
-#register_resource(0, VersionlessVariantResource)
+register_resource(0, VersionlessVariantResource)
 
 register_resource(0, ReleaseInfoResource)
 

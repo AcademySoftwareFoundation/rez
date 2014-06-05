@@ -12,3 +12,7 @@ tools:
 requires:
   - amaze
   - wow
+
+variants:
+- [ 'yolo-1' ]
+- [ 'yolo-2' ]
