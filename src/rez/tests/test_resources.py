@@ -1,7 +1,10 @@
-import rez.resources as resources
 from rez.resources import iter_resources, iter_descendant_resources, \
-    iter_child_resources, load_resource, get_resource, ResourceError, \
-    PackageMetadataError, Resource
+    iter_child_resources, load_resource, get_resource, ResourceError, Resource
+from rez.package_resources import PackagesRoot, NameFolder, VersionFolder, \
+    VersionlessPackageResource, VersionedPackageResource, \
+    CombinedPackageFamilyResource, CombinedPackageResource, \
+    DeveloperPackagesRoot, DeveloperPackageResource
+from rez.exceptions import PackageMetadataError
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import SchemaError
@@ -122,27 +125,27 @@ class TestResources(TestBase):
 
     def test_1(self):
         """class methods"""
-        self.assertEqual(resources.VersionlessPackageResource.ancestors(),
-                         (resources.PackagesRoot,
-                          resources.NameFolder))
+        self.assertEqual(VersionlessPackageResource.ancestors(),
+                         (PackagesRoot,
+                          NameFolder))
 
-        self.assertEqual(resources.VersionedPackageResource.ancestors(),
-                         (resources.PackagesRoot,
-                          resources.NameFolder,
-                          resources.VersionFolder))
+        self.assertEqual(VersionedPackageResource.ancestors(),
+                         (PackagesRoot,
+                          NameFolder,
+                          VersionFolder))
 
-        self.assertEqual(resources.CombinedPackageResource.ancestors(),
-                         (resources.PackagesRoot,
-                          resources.CombinedPackageFamilyResource))
+        self.assertEqual(CombinedPackageResource.ancestors(),
+                         (PackagesRoot,
+                          CombinedPackageFamilyResource))
 
-        self.assertEqual(resources.DeveloperPackageResource.ancestors(),
-                         (resources.DeveloperPackagesRoot,))
+        self.assertEqual(DeveloperPackageResource.ancestors(),
+                         (DeveloperPackagesRoot,))
 
         # order is determined by the order in which resources were registered
         # which ultimately does not matter. hence, we test with sets.
-        self.assertEqual(set(resources.NameFolder.children()),
-                         set((resources.VersionFolder,
-                              resources.VersionlessPackageResource)))
+        self.assertEqual(set(NameFolder.children()),
+                         set((VersionFolder,
+                              VersionlessPackageResource)))
 
     def test_2(self):
         """resource sanity checks"""
