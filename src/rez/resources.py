@@ -694,7 +694,7 @@ class ArbitraryPath(SearchPath):
     @classmethod
     def _default_search_paths(cls, path=None):
         if path:
-            return os.path.dirname(path)
+            return [os.path.dirname(path)]
         else:
             raise ResourceError("This type of resources requires explicit "
                                 "search path(s)")
@@ -819,7 +819,7 @@ class BasePackageResource(FileResource):
         try:
             release_data = load_resource(
                 0,
-                resource_keys=['release.data'],
+                resource_keys='release.data',
                 search_path=self.variables['search_path'],
                 variables=self.variables)
             timestamp = release_data.get('timestamp', 0)
@@ -827,7 +827,7 @@ class BasePackageResource(FileResource):
             try:
                 timestamp = load_resource(
                     0,
-                    resource_keys=['release.timestamp'],
+                    resource_keys='release.timestamp',
                     search_path=self.variables['search_path'],
                     variables=self.variables)
             except ResourceError:
@@ -850,6 +850,7 @@ class BaseVariantResource(BasePackageResource):
             data = data.copy()
             del data["variants"]
 
+        # TODO we need to move away from indexes
         idx = self.variables["index"]
         if idx is not None:
             try:
@@ -1033,6 +1034,8 @@ class DeveloperPackagesRoot(ArbitraryPath):
 class DeveloperPackageResource(BasePackageResource):
     """A package that is created with the intention to release.
 
+    A development package must be versioned.
+
     This resource belongs to its own resource hierarchy, because a development
     package has not yet been deployed and is stored in an arbitrary location in
     the filesystem (typically under a developer's home directory).
@@ -1053,6 +1056,15 @@ class DeveloperPackageResource(BasePackageResource):
                                                             Use(string.strip))),
                                 (Required('authors'), [basestring]),
                                 (Required('uuid'), is_uuid)])
+
+
+class DeveloperVariantResource(BaseVariantResource):
+    """A variant within a `DeveloperPackageResource`."""
+    key = 'variant.dev'
+    parent_resource = DeveloperPackageResource
+    variable_keys = ["index"]
+    sub_resource = True
+    schema = None
 
 
 #------------------------------------------------------------------------------
@@ -1091,6 +1103,8 @@ register_resource(0, CombinedPackageResource)
 register_resource(0, DeveloperPackagesRoot)
 
 register_resource(0, DeveloperPackageResource)
+
+register_resource(0, DeveloperVariantResource)
 
 
 #------------------------------------------------------------------------------
@@ -1180,7 +1194,7 @@ def _iter_resources(parent_resource, child_resource_classes=None):
     """Iterate over child resources of the given parent.
 
     If `child_resource_classes` is supplied, this prunes the search so that 
-    only parent or equal resource types are iterated over.
+    only ancestor-or-equal resource types are iterated over.
     """
     if child_resource_classes is not None:
         child_resource_classes = [x for x in child_resource_classes
@@ -1227,12 +1241,15 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
     Returns:
         A `Resource` iterator.
     """
-    if isinstance(search_path, basestring):
-        search_path = [search_path]
     root_cls, resource_classes = list_common_resource_classes(config_version,
         root_resource_key, resource_keys)
+    if not resource_classes:
+        return
+
     if search_path is None:
         search_path = root_cls._default_search_paths()
+    elif isinstance(search_path, basestring):
+        search_path = [search_path]
 
     for path in search_path:
         resource = root_cls(path, {'search_path': path})
@@ -1241,16 +1258,14 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
             yield child
 
 
-def iter_child_resources(parent_resource, resource_keys=None, variables=None):
-    """Iterate over all child `Resource` instances of the given resource.
-
-    Note that child resources refers to resources found at all depths below
-    the given resource, not just direct children.
+def iter_descendant_resources(parent_resource, resource_keys=None, 
+                              variables=None):
+    """Iterate over all descendant `Resource` instances of the given resource.
 
     Args:
         parent_resource (`Resource`): The resource to search under.
         resource_keys (str or list of str): Name(s) of the type of `Resources`
-            to find. If None, all resource types are searched.
+            to find. If None, all descendant resource types are searched.
         variables (dict, optional): variables that identify the resource. Some
             of these variables may be used to expand the resource path pattern,
             eg '{name}/{version}/package.{ext}'.
@@ -1258,8 +1273,39 @@ def iter_child_resources(parent_resource, resource_keys=None, variables=None):
     Returns:
         A `Resource` iterator.
     """
-    config_version = parent_resource.get("config_version")
-    resource_classes = list_resource_classes(config_version, resource_keys)
+    root_resource_key = parent_resource.topmost().key
+    _, resource_classes = list_common_resource_classes(0, root_resource_key, 
+                                                       resource_keys)
+    if not resource_classes:
+        return
+
+    for child in _iter_filtered_resources(parent_resource, resource_classes,
+                                          variables):
+        yield child
+
+
+def iter_child_resources(parent_resource, resource_keys=None, 
+                              variables=None):
+    """Iterate over all child `Resource` instances of the given resource.
+
+    Args:
+        parent_resource (`Resource`): The resource to search under.
+        resource_keys (str or list of str): Name(s) of the type of `Resources`
+            to find. If None, all child resource types are searched.
+        variables (dict, optional): variables that identify the resource. Some
+            of these variables may be used to expand the resource path pattern,
+            eg '{name}/{version}/package.{ext}'.
+
+    Returns:
+        A `Resource` iterator.
+    """
+    root_resource_key = parent_resource.topmost().key
+    _, resource_classes = list_common_resource_classes(0, root_resource_key, 
+                                                       resource_keys)
+    resource_classes = set(resource_classes) & set(parent_resource.children())
+    if not resource_classes:
+        return
+
     for child in _iter_filtered_resources(parent_resource, resource_classes,
                                           variables):
         yield child
@@ -1321,6 +1367,9 @@ def get_resource(config_version, filepath=None, resource_keys=None,
         # first try to find a matching resource that is not a sub-resource
         _, resource_classes = list_common_resource_classes(config_version,
             root_resource_key, resource_keys)
+        if not resource_classes:
+            _err()
+
         resource_classes_1 = set(r for r in resource_classes
                                  if not r.sub_resource)
         resource = _match_resource(resource_classes_1)

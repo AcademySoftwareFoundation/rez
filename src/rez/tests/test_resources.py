@@ -1,6 +1,7 @@
 import rez.resources as resources
-from rez.resources import iter_resources, load_resource, get_resource, \
-    ResourceError, PackageMetadataError, Resource
+from rez.resources import iter_resources, iter_descendant_resources, \
+    iter_child_resources, load_resource, get_resource, ResourceError, \
+    PackageMetadataError, Resource
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import SchemaError
@@ -51,7 +52,7 @@ ALL_PACKAGES = _abspaths([
     'pypackages/single_versioned.py',
     'pypackages/multi.py'])
 
-ALL_FOLDERS = _abspaths([
+ALL_PACKAGE_FOLDERS = _abspaths([
     'packages/unversioned',
     'packages/versioned',
     'packages/versioned/1.0',
@@ -63,7 +64,7 @@ ALL_FOLDERS = _abspaths([
     'pypackages/versioned/2.0'])
 
 
-ALL_RESOURCES = _abstuples([
+ALL_PACKAGE_RESOURCES = _abstuples([
     ('NameFolder', '-', 'pypackages/unversioned'),
     ('NameFolder', '-', 'pypackages/versioned'),
     ('NameFolder', '-', 'packages/versioned'),
@@ -222,12 +223,12 @@ class TestResources(TestBase):
 
         result = list(iter_resources(0, resource_keys=['folder.*'],
                                      root_resource_key="folder.packages_root"))
-        self.assertEqual(_to_paths(result), ALL_FOLDERS)
+        self.assertEqual(_to_paths(result), ALL_PACKAGE_FOLDERS)
 
         # iterate over all resources in a hierarchy
         result = list(iter_resources(0,
                                 root_resource_key="folder.packages_root"))
-        self.assertEqual(_to_tuples(result), ALL_RESOURCES)
+        self.assertEqual(_to_tuples(result), ALL_PACKAGE_RESOURCES)
 
         # iterate over sub-resources (combined packages)
         result = list(iter_resources(0, resource_keys='package.combined',
@@ -260,6 +261,40 @@ class TestResources(TestBase):
             ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
             ('CombinedPackageResource', '1.0', 'pypackages/multi.py')]))
 
+        # iterate over packages in a combined family package, test that the
+        # version override feature is working
+        def _expected_data(version):
+            tool = "twerk" if version >= Version("1.1") else "tweak"
+            return {'config_version': 0,
+                    'name': 'multi',
+                    'version': version,
+                    'tools': [tool]}
+
+        resource_key = 'package.combined'
+        resources = list(iter_resources(0, resource_keys=resource_key,
+                                        variables=dict(name='multi')))
+        for resource in resources:
+            expected_data = _expected_data(Version(resource.get("version")))
+            self.assertEqual(resource.key, resource_key)
+            self.assertEqual(resource.load(), expected_data)
+
+        # iterate over the variants in a developer package
+        resource = get_resource(0, resource_keys="package.dev",
+                                filepath=_abspath("developer/package.yaml"))
+        result = list(iter_child_resources(resource))
+        result2 = list(iter_descendant_resources(resource))
+        self.assertEqual(result, result2)
+        self.assertEqual(len(result), 2)
+        requires1 = result[0].load().get("requires")
+        requires2 = result[1].load().get("requires")
+        self.assertEqual(len(requires1), 2)
+        self.assertEqual(len(requires2), 2)
+        s = set(requires1) & set(requires2)
+        self.assertEqual(s, set([Requirement("bah-1.2+<2")]))
+        s = set(requires1) ^ set(requires2)
+        self.assertEqual(s, set([Requirement("floob-4.1"),
+                                 Requirement("flaab-2.0")]))
+
     def test_4(self):
         """resource loading"""
 
@@ -276,6 +311,8 @@ class TestResources(TestBase):
                          'name': 'foo',
                          'uuid': '28d94bcd1a934bb4999bcf70a21106cc',
                          'requires': [Requirement('bah-1.2+<2')],
+                         'variants': [[Requirement('floob-4.1')], 
+                                      [Requirement('flaab-2.0')]],
                          'version': Version('3.0.1')}
 
         self.assertEqual(resource.path, path)
@@ -333,23 +370,6 @@ class TestResources(TestBase):
                                        root_resource_key="folder.packages_root",
                                        variables=dict(name='versioned',
                                                       version='1.0')):
-            self.assertEqual(resource.key, resource_key)
-            self.assertEqual(resource.load(), expected_data)
-
-        # iterate over packages in a combined family package, test that the
-        # version override feature is working
-        def _expected_data(version):
-            tool = "twerk" if version >= Version("1.1") else "tweak"
-            return {'config_version': 0,
-                    'name': 'multi',
-                    'version': version,
-                    'tools': [tool]}
-
-        resource_key = 'package.combined'
-        resources = list(iter_resources(0, resource_keys=resource_key,
-                                        variables=dict(name='multi')))
-        for resource in resources:
-            expected_data = _expected_data(Version(resource.get("version")))
             self.assertEqual(resource.key, resource_key)
             self.assertEqual(resource.load(), expected_data)
 
