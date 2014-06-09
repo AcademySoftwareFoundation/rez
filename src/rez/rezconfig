@@ -79,6 +79,19 @@ bind_module_path: []
 
 
 ###############################################################################
+# Resources
+###############################################################################
+
+# If True, enable resource caching. This caches things such as disk reads of
+# package.yaml files, post data validation. You would only turn this off for
+# debugging purposes.
+resource_caching: true
+
+# The size of the resource cache, measured in resources
+resource_caching_maxsize: 10000
+
+
+###############################################################################
 # Environment Resolution
 ###############################################################################
 

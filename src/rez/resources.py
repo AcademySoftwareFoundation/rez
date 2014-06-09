@@ -25,7 +25,8 @@ import inspect
 import re
 from collections import defaultdict
 from fnmatch import fnmatch
-from rez.util import to_posixpath, print_warning_once, Namespace
+from rez.util import to_posixpath, Namespace
+from rez.settings import settings
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
@@ -42,7 +43,7 @@ Required = Schema
 
 
 #------------------------------------------------------------------------------
-# Base Classes and Functions
+# Misc Functions
 #------------------------------------------------------------------------------
 
 def _or_regex(strlist):
@@ -68,6 +69,10 @@ def _updated_schema(schema, items=None, rm_keys=None):
     schema_.update(dict(items_.itervalues()))
     return Schema(schema_)
 
+
+#------------------------------------------------------------------------------
+# File Loading
+#------------------------------------------------------------------------------
 
 def _process_python_objects(data):
     """process special objects.
@@ -163,7 +168,6 @@ def get_file_loader(filepath):
         raise ResourceError("Unknown metadata storage scheme: %r" % scheme)
 
 
-# FIXME: add lru_cache here?
 def load_file(filepath, loader=None):
     """Read metadata from a file.
 
@@ -197,7 +201,7 @@ def load_file(filepath, loader=None):
 
 
 #------------------------------------------------------------------------------
-# Resources and Configurations
+# Resource Registration
 #------------------------------------------------------------------------------
 
 def register_resource(config_version, resource):
@@ -309,6 +313,55 @@ class _ResourcePathParser(object):
 # Resource Implementations
 #------------------------------------------------------------------------------
 
+class ResourceHandle(object):
+    """A `Resource` handle.
+
+    A handle uniquely identifies a resource. A handle can be stored and used
+    to recreate the same resource at a later date.
+
+    Do not create a resource handle directly, instead use the `Resource`
+    property 'handle' to get a resource handle.
+    """
+    def __init__(self, key, path, variables):
+        self.key = key
+        self.path = path
+        self.variables = variables
+
+    def get_resource(self):
+        """Get a resource instance from the resource handle."""
+        clss = list_resource_classes(0, self.key)
+        if not clss:
+            raise ResourceError("Unknown resource type %s" % self.key)
+        assert len(clss) == 1
+        return clss[0](self.path, self.variables)
+
+    def to_dict(self):
+        return dict(key=self.key,
+                    path=self.path,
+                    variables=self.variables)
+
+    @classmethod
+    def from_dict(cls, d):
+        return ResourceHandle(**d)
+
+    def __str__(self):
+        return "%s(%s)" % (self.key, self.path)
+
+    def __repr__(self):
+        return "%s(%r, %r, %r)" % (self.__class__.__name__, self.key,
+                                   self.path, self.variables)
+
+    def __eq__(self, other):
+        return (self.key == other.key) \
+            and (self.path == other.path) \
+            and (self.variables == other.variables)
+
+    def __hash__(self):
+        return hash((self.key,
+                     self.path,
+                     frozenset(self.variables.items())))
+
+
 class Resource(object):
     """Abstract base class for data resources.
 
@@ -366,7 +419,6 @@ class Resource(object):
 
     _children = defaultdict(list)  # gets filled by register_resource
 
-    # TODO promote search_path to first-class member?
     def __init__(self, path, variables=None):
         """
         Args:
@@ -386,14 +438,17 @@ class Resource(object):
     @property
     def handle(self):
         """Get the resource handle."""
-        return dict(config_version=0,
-                    resource_key=self.key,
-                    path=self.path,
-                    variables=self.variables)
+        return ResourceHandle(self.key, self.path, self.variables)
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.path,
                                self.variables)
+
+    def __hash__(self):
+        return hash(self.handle)
+
+    def __eq__(self, other):
+        return (self.handle == other.handle)
 
     # --- info
 
@@ -473,10 +528,6 @@ class Resource(object):
             keys.update(r.variable_regex)
         return keys
 
-    def __eq__(self, other):
-        return (self.path == other.path) \
-            and (self.variables == other.variables)
-
     # --- instantiation
 
     def load(self):
@@ -487,15 +538,6 @@ class Resource(object):
             data against the schema, if any.
         """
         raise NotImplemented
-
-    @classmethod
-    def from_handle(cls, handle):
-        """Get a resource instance from a resource handle."""
-        key = handle["resource_key"]
-        clss = list_resource_classes(handle["config_version"], key)
-        if not clss:
-            raise ResourceError("Unknown resource type %s" % key)
-        return clss[0](handle["path"], handle["variables"])
 
     @classmethod
     def from_path(cls, path, search_paths=None):
@@ -564,15 +606,34 @@ class Resource(object):
         """Get an instance of the parent resource type."""
         return self._ancestor_instance(self.parent_resource)
 
+    # -- caching
+
+    @staticmethod
+    @settings.lru_cache("resource_caching", "resource_caching_maxsize")
+    def _cached(fn, instance):
+        return fn(instance)
+
+    @classmethod
+    def cached(cls, f):
+        """load() implementations should be decorated with @Resource.cached."""
+        def decorated(instance):
+            return Resource._cached(f, instance)
+        return decorated
+
 
 class FileSystemResource(Resource):
     """A resource that resides on disk.
 
     Attributes:
         is_file (bool): True if the resources is stored in a file, False if not
-            (the resource may be a directory, not a file).
+            (the resource may be a directory).
     """
     is_file = None
+
+    @classmethod
+    @lru_cache(1024)
+    def _listdir(self, path):
+        return list(os.listdir(path))
 
     @classmethod
     def from_path(cls, path, search_paths=None):
@@ -582,8 +643,7 @@ class FileSystemResource(Resource):
 
     @classmethod
     def iter_instances(cls, parent_resource):
-        # FIXME: cache these disk crawls
-        for name in os.listdir(parent_resource.path):
+        for name in cls._listdir(parent_resource.path):
             fullpath = os.path.join(parent_resource.path, name)
             if os.path.isfile(fullpath) == cls.is_file:
                 match = _ResourcePathParser.parse_filepart(cls, name)
@@ -603,6 +663,7 @@ class FileResource(FileSystemResource):
     is_file = True
     loader = None
 
+    @Resource.cached
     def load(self):
         """load the resource data.
 
@@ -624,6 +685,11 @@ class FileResource(FileSystemResource):
                     raise PackageMetadataError(self.path, str(err))
             else:
                 return data
+        else:
+            msg = "not a file" if os.path.exists(self.path) \
+                else "file does not exist"
+            raise ResourceError("Could not load %s from %s: %s"
+                                % (self.key, self.path, msg))
 
 
 class SearchPath(FolderResource):
@@ -685,44 +751,37 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
     if root_key is None and not keys:
         raise ResourceError("Most provide root key or resource key(s)")
 
-    root_class = None
     if root_key:
         clss = list_resource_classes(config_version, root_key)
-        if len(clss) > 1:
+        if len(clss) > 1: 
             raise ResourceError("Specified multiple resource roots: %s"
                                 % root_key)
         elif not clss:
-            raise ResourceError("Unknown root resource type %s" % root_key)
-        root_class = iter(clss).next()
-
-    if keys is None:
-        clss = list_resource_classes(config_version)
-        return root_class, [c for c in clss if c.topmost() == root_class]
+            raise ResourceError("Unknown root resource type %s" % root_key) 
+        root_class = clss[0]
+        # if keys is none, will return all resource classes
+        clss = list_resource_classes(config_version, keys)
+        return root_class, [c for c in clss if c.topmost() == root_class] 
     else:
-        if isinstance(keys, basestring):
-            keys = [keys]
-
         resource_classes = set()
-        root_classes = set()
-        keys_ = set()
+        clss = list_resource_classes(config_version, keys)
+        if not clss:
+            if isinstance(keys, basestring):
+                keys = [keys]
+            msg = "no such resource type(s) %s" % ", ".join(keys)
+            if root_key:
+                msg += " in resource hierarchy %s" % root_key
+            raise ResourceError(msg)
 
-        for key in keys:
-            clss = list_resource_classes(config_version, keys)
-            for cls in clss:
-                if root_class:
-                    if cls.topmost() == root_class:
-                        resource_classes.add(cls)
-                else:
-                    root_classes.add(cls.topmost())
-                    if len(root_classes) > 1:
-                        raise ResourceError("Resources from different "
-                            "hierarchies were requested: %s, %s"
-                            % (iter(keys_).next(), cls.key))
-                    resource_classes.add(cls)
-                    keys_.add(cls.key)
-
-        if root_class is None:
-            root_class = iter(root_classes).next()
+        # all root classes must match 
+        root_class = clss[0].topmost()
+        for cls in clss:
+            if root_class != cls.topmost():
+                raise ResourceError(
+                    "Resources from different " 
+                    "hierarchies were requested: %s, %s"
+                    % (list(resource_classes)[-1].key, cls.key))
+            resource_classes.add(cls)
         return root_class, list(resource_classes)
 
 

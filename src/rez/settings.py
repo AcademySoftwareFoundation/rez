@@ -9,6 +9,7 @@ import os.path
 import sys
 import string
 import getpass
+from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
 from rez.util import which, YamlCache
 from rez import module_root_path
@@ -52,8 +53,10 @@ class Settings(object):
         "all_resetting_variables":          bool_schema,
         "quiet":                            bool_schema,
         "resolve_caching":                  bool_schema,
+        "resource_caching":                 bool_schema,
         # integers
         "release_email_smtp_port":          int_schema,
+        "resource_caching_maxsize":         int_schema,
         # strings
         "build_directory":                  str_schema,
         "local_packages_path":              str_schema,
@@ -178,6 +181,17 @@ class Settings(object):
         if self.local_packages_path in paths:
             paths.remove(self.local_packages_path)
         return paths
+
+    # use as decorator
+    def lru_cache(self, param, maxsize_param=None):
+        def decorated(f):
+            if self.get(param):
+                maxsize = self.get(maxsize_param) \
+                    if maxsize_param else 100
+                return lru_cache(maxsize)(f)
+            else:
+                return f
+        return decorated
 
     def _load_config(self):
         if self.config is None:

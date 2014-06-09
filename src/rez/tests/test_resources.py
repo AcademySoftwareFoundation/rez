@@ -164,7 +164,7 @@ class TestResources(TestBase):
 
                 # check that loading the handle recreates the same resource
                 h = resource.handle
-                r = Resource.from_handle(h)
+                r = h.get_resource()
                 self.assertEqual(r, resource)
 
         resources = list(iter_resources(0,

@@ -1,6 +1,6 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
-	SearchPath, ArbitraryPath, FolderResource, FileResource, Required, \
-	metadata_loaders, load_resource
+	Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
+	Required, metadata_loaders, load_resource
 from rez.settings import settings, Settings
 from rez.exceptions import ResourceError
 from rez.util import propertycache
@@ -14,7 +14,7 @@ import re
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = '%(comp)s(?:[.-]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
-UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?4[a-f0-9]{3}-?[a-f0-9]{4}-?[a-f0-9]{12}\Z")
+UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\Z")
 
 
 #------------------------------------------------------------------------------
@@ -205,6 +205,7 @@ class BasePackageResource(FileResource):
 
 class BaseVariantResource(BasePackageResource):
     """Abstract base class for all package variants."""
+    @Resource.cached
     def load(self):
         parent = self.parent_instance()
         data = parent.load()
@@ -247,8 +248,9 @@ class VersionlessPackageResource(BasePackageResource):
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
 
+    @Resource.cached
     def load(self):
-        data = super(VersionlessPackageResource, self).load()
+        data = super(VersionlessPackageResource, self).load().copy()
         data['timestamp'] = self.load_timestamp()
         data['version'] = Version()
         return data
@@ -278,8 +280,9 @@ class VersionedPackageResource(BasePackageResource):
             [(Required('version'), 
                 And(self.variables['version'], Use(Version)))])
 
+    @Resource.cached
     def load(self):
-        data = super(VersionedPackageResource, self).load()
+        data = super(VersionedPackageResource, self).load().copy()
         data['timestamp'] = self.load_timestamp()
         return data
 
@@ -328,10 +331,12 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     # basestring:                         object
                 }
             })])
-
+	
+	# TODO delete this, it's going to cause NVARIANT* storage of each package
+	# in the cache, which won't even get used
+    @Resource.cached
     def load(self):
-        data = super(CombinedPackageFamilyResource, self).load()
-
+        data = super(CombinedPackageFamilyResource, self).load().copy()
         # convert 'versions' from a list of `Version` to a list of complete
         # package data
         versions = data.pop('versions', [Version()])
@@ -363,6 +368,7 @@ class CombinedPackageResource(BasePackageResource):
     parent_resource = CombinedPackageFamilyResource
     variable_keys = ["version"]
 
+    @Resource.cached
     def load(self):
         parent = self.parent_instance()
         data = parent.load()
