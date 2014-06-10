@@ -243,28 +243,38 @@ class System(object):
 
     def _make_safe_version(self, s):
         from rez.vendor.version.version import Version
-        def _test(verstr):
-            try:
-                Version(verstr)
-                return True
-            except:
-                return False
 
-        def _reduce(verstr, pattern):
-            import re
-            r = re.compile(pattern)
-            return ''.join(x for x in verstr if r.match(x))
+        sep_regex = re.compile("[\.\-]")
+        char_regex = re.compile("[a-zA-Z0-9_]")
 
-        if _test(s):
-            return s
+        s = s.strip('.').strip('-')
+        toks = sep_regex.split(s)
+        seps = sep_regex.findall(s)
+        valid_toks = []
+        b = True
 
-        # remove invalid chars
-        s_ = _reduce(s, r"[a-zA-Z0-9_.-]")
-        if _test(s_):
-            return s_
+        while toks or seps:
+            if b:
+                tok = toks[0]
+                toks = toks[1:]
+                if tok:
+                    valid_tok = ''
+                    for ch in tok:
+                        if char_regex.match(ch):
+                            valid_tok += ch
+                        else:
+                            valid_tok += '_'
+                    valid_toks.append(valid_tok)
+                else:
+                    seps = seps[1:]  # skip empty string between seps
+                    b = not b
+            else:
+                sep = seps[0]
+                seps = seps[1:]
+                valid_toks.append(sep)
+            b = not b
 
-        # remove token seperators
-        return _reduce(s, r"[a-zA-Z0-9_]")
+        return ''.join(valid_toks)
 
     def _pr(self, s):
         from rez.settings import settings
