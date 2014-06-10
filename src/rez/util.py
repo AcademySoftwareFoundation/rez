@@ -370,59 +370,6 @@ def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
 
 
-class AttrDictWrapper(UserDict.UserDict):
-    """
-    Wrap a custom dictionary with attribute-based lookup.
-
-    >>> d = {'one': 1}
-    >>> dd = AttrDictWrapper(d)
-    >>> assert dd.one == 1
-    >>> ddd = dd.copy()
-    >>> ddd.one = 2
-    >>> assert ddd.one == 2
-    >>> assert dd.one == 1
-    >>> assert d['one'] == 1
-    """
-    def __init__(self, data):
-        self.__dict__['data'] = data
-
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self.data
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-
-    def __setattr__(self, attr, value):
-        # For things like '__class__', for instance
-        if attr.startswith('__') and attr.endswith('__'):
-            super(AttrDictWrapper, self).__setattr__(attr, value)
-        self.data[attr] = value
-
-    def copy(self):
-        return self.__class__(self.__dict__['data'].copy())
-
-class RO_AttrDictWrapper(AttrDictWrapper):
-    """Read-only version of AttrDictWrapper."""
-    def __setattr__(self, attr, value):
-        o = self[attr]  # may raise 'no attribute' error
-        raise AttributeError("'%s' object attribute '%s' is read-only"
-                             % (self.__class__.__name__, attr))
-
-def convert_to_user_dict(d, dict_class=AttrDictWrapper):
-    """
-    recursively convert all dictionaries in `d`, including `d`, to the
-    `UserDict` specified by `dict_class`.
-    """
-    for key, value in d.iteritems():
-        if isinstance(value, dict):
-            d[key] = convert_to_user_dict(value, dict_class=AttrDictWrapper)
-    return dict_class(d)
-
 _templates = {}
 
 # Note this is the very start of adding support for pluggable project template, ala rez-make-project.
@@ -739,6 +686,61 @@ class propertycache(object):
         return result
 
 
+class AttrDictWrapper(UserDict.UserDict):
+    """Wrap a custom dictionary with attribute-based lookup::
+
+        >>> d = {'one': 1}
+        >>> dd = AttrDictWrapper(d)
+        >>> assert dd.one == 1
+        >>> ddd = dd.copy()
+        >>> ddd.one = 2
+        >>> assert ddd.one == 2
+        >>> assert dd.one == 1
+        >>> assert d['one'] == 1
+    """
+    def __init__(self, data):
+        self.__dict__['data'] = data
+
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            d = self.__dict__
+        else:
+            d = self.data
+        try:
+            return d[attr]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
+
+    def __setattr__(self, attr, value):
+        # For things like '__class__', for instance
+        if attr.startswith('__') and attr.endswith('__'):
+            super(AttrDictWrapper, self).__setattr__(attr, value)
+        self.data[attr] = value
+
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
+
+
+class RO_AttrDictWrapper(AttrDictWrapper):
+    """Read-only version of AttrDictWrapper."""
+    def __setattr__(self, attr, value):
+        o = self[attr]  # may raise 'no attribute' error
+        raise AttributeError("'%s' object attribute '%s' is read-only"
+                             % (self.__class__.__name__, attr))
+
+
+def convert_to_user_dict(d, dict_class=AttrDictWrapper):
+    """
+    recursively convert all dictionaries in `d`, including `d`, to the
+    `UserDict` specified by `dict_class`.
+    """
+    for key, value in d.iteritems():
+        if isinstance(value, dict):
+            d[key] = convert_to_user_dict(value, dict_class=AttrDictWrapper)
+    return dict_class(d)
+
+
 class Namespace(object):
     """
     A context manager for creating nested dictionaries::
@@ -841,3 +843,153 @@ class YamlCache(object):
 
         self.docs[path] = doc
         return doc.copy()
+
+
+class RecursiveAttribute(object):
+    """An object that can have new attributes added recursively::
+
+        >>> a = RecursiveAttribute()
+        >>> a.foo.bah = 5
+        >>> a.foo.eek = 'hey'
+        >>> a.fee = 1
+
+        >>> print a.to_dict()
+        {'foo': {'bah': 5, 'eek': 'hey'}, 'fee': 1}
+    """
+    def __init__(self, d=None):
+        self.__dict__["data"] = {}
+        self.update(d or {})
+
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            return self.__dict__[attr]
+        if attr in self.__dict__["data"]:
+            return self.__dict__["data"][attr]
+        attr_ = RecursiveAttribute()
+        self.__dict__["data"][attr] = attr_
+        return attr_
+
+    def __setattr__(self, attr, value):
+        if attr.startswith('__') and attr.endswith('__'):
+            super(RecursiveAttribute, self).__setattr__(attr, value)
+        else:
+            self.__dict__["data"][attr] = value
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.to_dict())
+
+    def to_dict(self):
+        """Get an equivalent dict representation."""
+        d = {}
+        for k, v in self.__dict__["data"].iteritems():
+            if isinstance(v, RecursiveAttribute):
+                d_ = v.to_dict()
+                if d_:
+                    d[k] = d_
+            else:
+                d[k] = v
+        return d
+
+    def update(self, d):
+        """Dict-like update operation."""
+        for k, v in d.iteritems():
+            if isinstance(v, dict):
+                v = RecursiveAttribute(v)
+            self.__dict__["data"][k] = v
+
+
+class _Scope(RecursiveAttribute):
+    def __init__(self, name=None, context=None):
+        super(_Scope, self).__init__()
+        self.__dict__.update(dict(name=name,
+                                  context=context,
+                                  locals=None))
+
+    def __enter__(self):
+        locals_ = sys._getframe(1).f_locals
+        self.__dict__["locals"] = locals_.copy()
+        return self
+
+    def __exit__(self, *args):
+        # find what's changed
+        updates = {}
+        locals_ = sys._getframe(1).f_locals
+        self_locals = self.__dict__["locals"]
+        for k, v in locals_.iteritems():
+            if not (k.startswith("__") and k.endswith("__")) \
+                    and (k not in self_locals or v != self_locals[k]) \
+                    and not isinstance(v, _Scope):
+                updates[k] = v
+
+        # merge updated local vars with attributes
+        self.__dict__["data"].update(updates)
+
+        # restore upper scope
+        locals_.clear()
+        locals_.update(self_locals)
+
+        self_context = self.__dict__["context"]
+        if self_context:
+            self_context._scope_exit(self.__dict__["name"])
+
+
+class ScopeContext(object):
+    """A context manager for creating nested dictionaries::
+
+        >>> scope = ScopeContext()
+        >>>
+        >>> with scope("animal"):
+        >>>     count = 2
+        >>>     with scope("cat"):
+        >>>         friendly = False
+        >>>     with scope("dog") as d:
+        >>>         friendly = True
+        >>>         d.num_legs = 4
+        >>>         d.breed.sub_breed = 'yorkshire terrier'
+        >>> with scope("animal"):
+        >>>     with scope("ostrich"):
+        >>>         friendly = False
+        >>>         num_legs = 2
+
+    The dictionaries can then be retrieved::
+
+        >>> print pprint.pformat(scope.to_dict())
+        {'animal': {'count': 2,
+                    'cat': {'friendly': False},
+                    'dog': {'breed': {'sub_breed': 'yorkshire terrier'},
+                            'friendly': True,
+                            'num_legs': 4},
+                    'ostrich': {'friendly': False, 'num_legs': 2}}}
+    """
+    def __init__(self):
+        self.scopes = {}
+        self.scope_stack = [_Scope()]
+
+    def __call__(self, name):
+        path = tuple([x.name for x in self.scope_stack[1:]] + [name])
+        if path in self.scopes:
+            scope = self.scopes[path]
+        else:
+            scope = _Scope(name, self)
+            self.scopes[path] = scope
+
+        self.scope_stack.append(scope)
+        return scope
+
+    def _scope_exit(self, name):
+        scope = self.scope_stack.pop()
+        assert(self.scope_stack)
+        assert(name == scope.name)
+        data = {scope.name: scope.to_dict()}
+        self.scope_stack[-1].update(data)
+
+    def to_dict(self):
+        """Get an equivalent dict representation."""
+        return self.scope_stack[-1].to_dict()
+
+    def __str__(self):
+        names = ('.'.join(y for y in x) for x in self.scopes.keys())
+        return "%r" % (tuple(names),)
