@@ -925,7 +925,7 @@ class _Scope(RecursiveAttribute):
                 updates[k] = v
 
         # merge updated local vars with attributes
-        self.__dict__["data"].update(updates)
+        self.update(updates)
 
         # restore upper scope
         locals_.clear()
@@ -950,6 +950,9 @@ class ScopeContext(object):
         >>>         d.num_legs = 4
         >>>         d.breed.sub_breed = 'yorkshire terrier'
         >>> with scope("animal"):
+        >>>     count = 3
+        >>>     with scope("cat"):
+        >>>         num_legs = 4
         >>>     with scope("ostrich"):
         >>>         friendly = False
         >>>         num_legs = 2
@@ -957,12 +960,17 @@ class ScopeContext(object):
     The dictionaries can then be retrieved::
 
         >>> print pprint.pformat(scope.to_dict())
-        {'animal': {'count': 2,
-                    'cat': {'friendly': False},
+        {'animal': {'count': 3,
+                    'cat': {'friendly': False,
+                            'num_legs': 4},
                     'dog': {'breed': {'sub_breed': 'yorkshire terrier'},
                             'friendly': True,
                             'num_legs': 4},
                     'ostrich': {'friendly': False, 'num_legs': 2}}}
+
+    Note that scopes and nested attributes can be referenced multiple times,
+    and the assigned properties will be merged. If the same property is set
+    multiple times, it will be overwritten.
     """
     def __init__(self):
         self.scopes = {}
