@@ -15,8 +15,8 @@ validators.
 
 The upshot is that once a resource is registered, instances of the resource can
 be iterated over using `iter_resources` without the higher level code requiring
-an understanding of the underlying file and folder structure.  This ensures that
-the addition of new resources is localized to the registration functions
+an understanding of the underlying file and folder structure.  This ensures
+that the addition of new resources is localized to the registration functions
 provided by this module.
 """
 import os
@@ -42,9 +42,9 @@ _configs = defaultdict(list)
 Required = Schema
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Misc Functions
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def _or_regex(strlist):
     return '|'.join('(%s)' % e for e in strlist)
@@ -70,9 +70,9 @@ def _updated_schema(schema, items=None, rm_keys=None):
     return Schema(schema_)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # File Loading
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def _process_python_objects(data):
     """process special objects.
@@ -200,9 +200,9 @@ def load_file(filepath, loader=None):
             raise PackageMetadataError(filepath, "%s\n%s" % (str(e), stack))
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Resource Registration
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def register_resource(config_version, resource):
     """Register a `Resource` class.
@@ -228,9 +228,9 @@ def register_resource(config_version, resource):
         Resource._children[resource.parent_resource].append(resource)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Utility Classes
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class _ResourcePathParser(object):
     @classmethod
@@ -302,7 +302,7 @@ class _ResourcePathParser(object):
         if parse_all:
             pattern += '$'
         else:
-            # assertion lookaehead so '/foo/ba' matches 'foo/ba' and 
+            # assertion lookaehead so '/foo/ba' matches 'foo/ba' and
             # /foo/ba/whee', but not '/foo/barry'
             pattern += "(?=$|%s)" % re.escape(os.path.sep)
         reg = re.compile(pattern)
@@ -753,15 +753,15 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
 
     if root_key:
         clss = list_resource_classes(config_version, root_key)
-        if len(clss) > 1: 
+        if len(clss) > 1:
             raise ResourceError("Specified multiple resource roots: %s"
                                 % root_key)
         elif not clss:
-            raise ResourceError("Unknown root resource type %s" % root_key) 
+            raise ResourceError("Unknown root resource type %s" % root_key)
         root_class = clss[0]
         # if keys is none, will return all resource classes
         clss = list_resource_classes(config_version, keys)
-        return root_class, [c for c in clss if c.topmost() == root_class] 
+        return root_class, [c for c in clss if c.topmost() == root_class]
     else:
         resource_classes = set()
         clss = list_resource_classes(config_version, keys)
@@ -773,12 +773,12 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
                 msg += " in resource hierarchy %s" % root_key
             raise ResourceError(msg)
 
-        # all root classes must match 
+        # all root classes must match
         root_class = clss[0].topmost()
         for cls in clss:
             if root_class != cls.topmost():
                 raise ResourceError(
-                    "Resources from different " 
+                    "Resources from different "
                     "hierarchies were requested: %s, %s"
                     % (list(resource_classes)[-1].key, cls.key))
             resource_classes.add(cls)
@@ -788,7 +788,7 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
 def _iter_resources(parent_resource, child_resource_classes=None):
     """Iterate over child resources of the given parent.
 
-    If `child_resource_classes` is supplied, this prunes the search so that 
+    If `child_resource_classes` is supplied, this prunes the search so that
     only ancestor-or-equal resource types are iterated over.
     """
     if child_resource_classes is not None:
@@ -799,7 +799,7 @@ def _iter_resources(parent_resource, child_resource_classes=None):
 
     for child_class in parent_resource.children():
         if child_resource_classes and \
-                not any((child_class is x or x.has_ancestor(child_class)) 
+                not any((child_class is x or x.has_ancestor(child_class))
                         for x in child_resource_classes):
             continue
         for child in child_class.iter_instances(parent_resource):
@@ -853,7 +853,7 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
             yield child
 
 
-def iter_descendant_resources(parent_resource, resource_keys=None, 
+def iter_descendant_resources(parent_resource, resource_keys=None,
                               variables=None):
     """Iterate over all descendant `Resource` instances of the given resource.
 
@@ -869,7 +869,7 @@ def iter_descendant_resources(parent_resource, resource_keys=None,
         A `Resource` iterator.
     """
     root_resource_key = parent_resource.topmost().key
-    _, resource_classes = list_common_resource_classes(0, root_resource_key, 
+    _, resource_classes = list_common_resource_classes(0, root_resource_key,
                                                        resource_keys)
     if not resource_classes:
         return
@@ -879,7 +879,7 @@ def iter_descendant_resources(parent_resource, resource_keys=None,
         yield child
 
 
-def iter_child_resources(parent_resource, resource_keys=None, 
+def iter_child_resources(parent_resource, resource_keys=None,
                               variables=None):
     """Iterate over all child `Resource` instances of the given resource.
 
@@ -895,7 +895,7 @@ def iter_child_resources(parent_resource, resource_keys=None,
         A `Resource` iterator.
     """
     root_resource_key = parent_resource.topmost().key
-    _, resource_classes = list_common_resource_classes(0, root_resource_key, 
+    _, resource_classes = list_common_resource_classes(0, root_resource_key,
                                                        resource_keys)
     resource_classes = set(resource_classes) & set(parent_resource.children())
     if not resource_classes:
@@ -917,8 +917,8 @@ def get_resource(config_version, filepath=None, resource_keys=None,
     Args:
         resource_keys (str or list of str, optional): Name(s) of the type of
             `Resources` to find. If None, all resource types are searched.
-        search_path (str or list of str, optional): List of root paths under 
-            which to search for resources. These typically correspond to the 
+        search_path (str or list of str, optional): List of root paths under
+            which to search for resources. These typically correspond to the
             rez packages path. Default depends on `root_resource_key`.
         filepath (str, optional): file that contains the resource - either the
             resource is the entire file, or the resource is a 'sub-resource',
@@ -1011,8 +1011,8 @@ def load_resource(config_version, filepath=None, resource_keys=None,
     Args:
         resource_keys (str or list of str, optional): Name(s) of the type of
             `Resources` to find. If None, all resource types are searched.
-        search_path (str or list of str, optional): List of root paths under 
-            which to search for resources. These typically correspond to the 
+        search_path (str or list of str, optional): List of root paths under
+            which to search for resources. These typically correspond to the
             rez packages path. Default depends on the resource hierarchy.
         filepath (str, optional): file that contains the resource - either the
             resource is the entire file, or the resource is a 'sub-resource',
