@@ -21,10 +21,18 @@ from rez import module_root_path
 from rez.vendor import yaml
 
 
-
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 
+try:
+    import collections
+    OrderedDict = collections.OrderedDict  # @UndefinedVariable
+except AttributeError:
+    import backport.ordereddict
+    OrderedDict = backport.ordereddict.OrderedDict
+
+
+# TODO deprecate
 class Common(object):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
@@ -586,7 +594,8 @@ def convert_old_commands(commands, annotate=True):
             match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
             value = match.groupdict()['value'].strip()
-            if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            if (value.startswith('"') and value.endswith('"')) or \
+                    (value.startswith("'") and value.endswith("'")):
                 value = value[1:-1]
             loc.append("alias('%s', '%s')" % (key, _en(value)))
         else:
@@ -596,12 +605,13 @@ def convert_old_commands(commands, annotate=True):
     return '\n'.join(loc)
 
 
-try:
-    import collections
-    OrderedDict = collections.OrderedDict  # @UndefinedVariable
-except AttributeError:
-    import backport.ordereddict
-    OrderedDict = backport.ordereddict.OrderedDict
+def deep_update(dict1, dict2):
+    """Perform a deep merge of dict2 into dict1."""
+    for k, v in dict2.iteritems():
+        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
+            deep_update(dict1[k], v)
+        else:
+            dict1[k] = v
 
 
 class _Missing(object):
@@ -610,7 +620,8 @@ _missing = _Missing()
 
 
 class propertycache(object):
-    '''Class for creating properties where the value is initially calculated then stored.
+    '''Class for creating properties where the value is initially calculated
+    then stored.
 
     Intended for use as a descriptor, ie:
 
@@ -684,6 +695,31 @@ class propertycache(object):
         except AttributeError:
             instance.__dict__[self.name] = result
         return result
+
+
+class YamlCache(object):
+    """Caches yaml files, no file update checking."""
+    def __init__(self):
+        self.docs = {}
+
+    def load(self, path):
+        """Returns dict, or None if the file does not exist."""
+        doc = self.docs.get(path)
+
+        if doc is False:
+            return None
+        elif doc is not None:
+            return doc.copy()
+
+        if os.path.exists(path):
+            with open(path) as f:
+                doc = yaml.load(f.read())
+        else:
+            self.docs[path] = False
+            return None
+
+        self.docs[path] = doc
+        return doc.copy()
 
 
 class AttrDictWrapper(UserDict.UserDict):
@@ -820,60 +856,72 @@ class Namespace(object):
         f.f_locals.update(self.locals)
 
 
-class YamlCache(object):
-    """Caches yaml files, no file update checking."""
-    def __init__(self):
-        self.docs = {}
-
-    def load(self, path):
-        """Returns dict, or None if the file does not exist."""
-        doc = self.docs.get(path)
-
-        if doc is False:
-            return None
-        elif doc is not None:
-            return doc.copy()
-
-        if os.path.exists(path):
-            with open(path) as f:
-                doc = yaml.load(f.read())
-        else:
-            self.docs[path] = False
-            return None
-
-        self.docs[path] = doc
-        return doc.copy()
-
-
-class RecursiveAttribute(object):
+class RecursiveAttribute(UserDict.UserDict):
     """An object that can have new attributes added recursively::
 
         >>> a = RecursiveAttribute()
         >>> a.foo.bah = 5
-        >>> a.foo.eek = 'hey'
+        >>> a.foo['eek'] = 'hey'
         >>> a.fee = 1
 
         >>> print a.to_dict()
         {'foo': {'bah': 5, 'eek': 'hey'}, 'fee': 1}
+
+    A recursive attribute can also be created from a dict, and made read-only::
+
+        >>> d = {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
+        >>> a = RecursiveAttribute(d, read_only=True)
+        >>> print str(a)
+        {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
+        >>> print a.ho
+        hum
+        >>> a.new = True
+        AttributeError: 'RecursiveAttribute' object has no attribute 'new'
     """
-    def __init__(self, d=None):
-        self.__dict__["data"] = {}
-        self.update(d or {})
+    def __init__(self, data=None, read_only=False):
+        self.__dict__.update(dict(data={}, read_only=read_only))
+        self._update(data or {})
 
     def __getattr__(self, attr):
+        def _noattrib():
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
+        d = self.__dict__
         if attr.startswith('__') and attr.endswith('__'):
-            return self.__dict__[attr]
-        if attr in self.__dict__["data"]:
-            return self.__dict__["data"][attr]
-        attr_ = RecursiveAttribute()
-        self.__dict__["data"][attr] = attr_
+            try:
+                return d[attr]
+            except KeyError:
+                _noattrib()
+        if attr in d["data"]:
+            return d["data"][attr]
+        if d["read_only"]:
+            _noattrib()
+
+        # the new attrib isn't actually added to this instance until it's set
+        # to something. This stops code like "print instance.notexist" from
+        # adding empty attributes
+        attr_ = self._create_child_attribute(attr)
+        assert(isinstance(attr_, RecursiveAttribute))
+        attr_.__dict__["pending"] = (attr, self)
         return attr_
 
     def __setattr__(self, attr, value):
-        if attr.startswith('__') and attr.endswith('__'):
-            super(RecursiveAttribute, self).__setattr__(attr, value)
+        d = self.__dict__
+        if d["read_only"]:
+            if attr in d["data"]:
+                raise AttributeError("'%s' object attribute '%s' is read-only"
+                                     % (self.__class__.__name__, attr))
+            else:
+                raise AttributeError("'%s' object has no attribute '%s'"
+                                     % (self.__class__.__name__, attr))
+        elif attr.startswith('__') and attr.endswith('__'):
+            d[attr] = value
         else:
-            self.__dict__["data"][attr] = value
+            d["data"][attr] = value
+            self._reparent()
+
+    def __getitem__(self, attr):
+        return getattr(self, attr)
 
     def __str__(self):
         return str(self.to_dict())
@@ -881,29 +929,51 @@ class RecursiveAttribute(object):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.to_dict())
 
+    def _create_child_attribute(self, attr):
+        """Override this method to create new child attributes.
+
+        Returns:
+            `RecursiveAttribute` instance.
+        """
+        return self.__class__()
+
     def to_dict(self):
         """Get an equivalent dict representation."""
         d = {}
         for k, v in self.__dict__["data"].iteritems():
             if isinstance(v, RecursiveAttribute):
-                d_ = v.to_dict()
-                if d_:
-                    d[k] = d_
+                d[k] = v.to_dict()
             else:
                 d[k] = v
         return d
 
-    def update(self, d):
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
+
+    def update(self, data):
         """Dict-like update operation."""
-        for k, v in d.iteritems():
+        if self.__dict__["read_only"]:
+            raise AttributeError("read-only, cannot be updated")
+        self._update(data)
+
+    def _update(self, data):
+        for k, v in data.iteritems():
             if isinstance(v, dict):
                 v = RecursiveAttribute(v)
             self.__dict__["data"][k] = v
 
+    def _reparent(self):
+        d = self.__dict__
+        if "pending" in d:
+            attr_, parent = d["pending"]
+            parent._reparent()
+            parent.__dict__["data"][attr_] = self
+            del d["pending"]
+
 
 class _Scope(RecursiveAttribute):
     def __init__(self, name=None, context=None):
-        super(_Scope, self).__init__()
+        RecursiveAttribute.__init__(self)
         self.__dict__.update(dict(name=name,
                                   context=context,
                                   locals=None))
@@ -916,8 +986,9 @@ class _Scope(RecursiveAttribute):
     def __exit__(self, *args):
         # find what's changed
         updates = {}
+        d = self.__dict__
         locals_ = sys._getframe(1).f_locals
-        self_locals = self.__dict__["locals"]
+        self_locals = d["locals"]
         for k, v in locals_.iteritems():
             if not (k.startswith("__") and k.endswith("__")) \
                     and (k not in self_locals or v != self_locals[k]) \
@@ -931,9 +1002,12 @@ class _Scope(RecursiveAttribute):
         locals_.clear()
         locals_.update(self_locals)
 
-        self_context = self.__dict__["context"]
+        self_context = d["context"]
         if self_context:
-            self_context._scope_exit(self.__dict__["name"])
+            self_context._scope_exit(d["name"])
+
+    def _create_child_attribute(self, attr):
+        return RecursiveAttribute()
 
 
 class ScopeContext(object):
@@ -966,9 +1040,10 @@ class ScopeContext(object):
                     'dog': {'breed': {'sub_breed': 'yorkshire terrier'},
                             'friendly': True,
                             'num_legs': 4},
-                    'ostrich': {'friendly': False, 'num_legs': 2}}}
+                    'ostrich': {'friendly': False,
+                                'num_legs': 2}}}
 
-    Note that scopes and nested attributes can be referenced multiple times,
+    Note that scopes and recursive attributes can be referenced multiple times,
     and the assigned properties will be merged. If the same property is set
     multiple times, it will be overwritten.
     """

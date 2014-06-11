@@ -14,8 +14,7 @@
 #    settings in this section will override all others.
 #
 # If a setting type is a list, then an overriding env-var is expected to be
-# separated by the path seperator for the current os (eg ':' in Linux), unless
-# overridden in the '_sep' section.
+# separated by the path seperator for the current os (eg ':' in Linux).
 #
 # There are a set of special variables that will expand at runtime. These can be
 # referred to by any string-based setting, using the format '{varname}'. The
@@ -63,7 +62,8 @@ package_repository_path: '~/.rez/package-repos'
 # The directory where rez caches package repository downloads
 package_repository_cache_path: '~/.rez/downloads/package-repos'
 
-# Where temporary files go
+# Where temporary files go. Defaults to appropriate path depending on your
+# system, for example linux distributions will probably set this to /tmp.
 tmpdir:
 
 

@@ -3,7 +3,7 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
 	Required, metadata_loaders, load_resource
 from rez.settings import settings, Settings
 from rez.exceptions import ResourceError
-from rez.util import propertycache
+from rez.util import propertycache, deep_update
 from rez.vendor.schema.schema import Schema, Use, And, Or, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -277,8 +277,8 @@ class VersionedPackageResource(BasePackageResource):
     def schema(self):
         schema = super(VersionedPackageResource, self).schema
         return _updated_schema(schema,
-            [(Required('version'), 
-                And(self.variables['version'], Use(Version)))])
+            [(Required('version'),
+              And(self.variables['version'], Use(Version)))])
 
     @Resource.cached
     def load(self):
@@ -331,31 +331,6 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     # basestring:                         object
                 }
             })])
-	
-	# TODO delete this, it's going to cause NVARIANT* storage of each package
-	# in the cache, which won't even get used
-    @Resource.cached
-    def load(self):
-        data = super(CombinedPackageFamilyResource, self).load().copy()
-        # convert 'versions' from a list of `Version` to a list of complete
-        # package data
-        versions = data.pop('versions', [Version()])
-        overrides = data.pop('version_overrides', {})
-        if versions:
-            new_versions = []
-            for version in versions:
-                # FIXME: order matters here: use OrderedDict or make
-                # version_overrides a list instead of a dict?
-                ver_data = data.copy()
-                for ver_range in sorted(overrides.keys()):
-                    if version in ver_range:
-                        ver_data.update(overrides[ver_range])
-                        break
-                ver_data['version'] = version
-                new_versions.append(ver_data)
-
-            data['versions'] = new_versions
-        return data
 
 
 class CombinedPackageResource(BasePackageResource):
@@ -371,27 +346,33 @@ class CombinedPackageResource(BasePackageResource):
     @Resource.cached
     def load(self):
         parent = self.parent_instance()
-        data = parent.load()
-        this_version = Version(self.variables["version"])
-        for ver_data in data['versions']:
-            if ver_data['version'] == this_version:
-                return ver_data
+        parent_data = parent.load()
+        data = parent_data.copy()
+        version = Version(self.variables["version"])
+        data["version"] = version
+        versions = data.pop("versions", [Version()])
+        if version not in versions:
+            raise ResourceError("version '%s' not present in %s"
+                                % (str(version), self.path))
 
-        raise ResourceError("resource couldn't find itself in parent "
-                            "resource data")
+        overrides = data.pop("version_overrides", {})
+        for ver_range, doc in overrides.iteritems():
+            if version in ver_range:
+                deep_update(data, doc)
+        return data
 
     @classmethod
     def iter_instances(cls, parent_resource):
         data = parent_resource.load()
-        for ver_data in data['versions']:
+        for version in data.get('versions', [Version()]):
             variables = parent_resource.variables.copy()
-            variables['version'] = str(ver_data['version'])
+            variables['version'] = str(version)
             yield cls(parent_resource.path, variables)
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Developer Package Resources
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class DeveloperPackagesRoot(ArbitraryPath):
     """Represents a path containing a developer package resource."""

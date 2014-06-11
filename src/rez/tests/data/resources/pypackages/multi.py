@@ -6,8 +6,6 @@ versions = ["1.0",
             "1.1",
             "1.2"]
 
-version_overrides = {
-    "1.1+": {
-        "tools": ["twerk"]
-    }
-}
+with scope("version_overrides"):
+    with scope("1.1+"):
+        tools = ["twerk"]

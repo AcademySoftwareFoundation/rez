@@ -25,7 +25,7 @@ import inspect
 import re
 from collections import defaultdict
 from fnmatch import fnmatch
-from rez.util import to_posixpath, Namespace
+from rez.util import to_posixpath, ScopeContext # Namespace
 from rez.settings import settings
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.backport.lru_cache import lru_cache
@@ -120,8 +120,9 @@ def load_python(stream):
     # TODO: support class-based design, where the attributes and methods of the
     # class become values in the dictionary
     g = __builtins__.copy()
-    g['Namespace'] = Namespace
-    excludes = set(['Namespace', '__builtins__'])
+    scopes = ScopeContext()
+    g['scope'] = scopes
+    excludes = set(['scope', '__builtins__'])
     exec stream in g
     result = {}
     for k, v in g.iteritems():
@@ -129,7 +130,7 @@ def load_python(stream):
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
     # add in any namespaces used
-    result.update(Namespace.get_namespace())
+    result.update(scopes.to_dict())
     result = _process_python_objects(result)
     return result
 
