@@ -4,14 +4,13 @@ import os.path
 
 
 class HgReleaseVCS(ReleaseVCS):
-    executable = ReleaseVCS.find_executable('hg')
-
     @classmethod
     def name(cls):
         return 'hg'
 
     def __init__(self, path):
         super(HgReleaseVCS, self).__init__(path)
+        self.executable = self.find_executable('hg')
 
         hgdir = os.path.join(self.path, '.hg')
         if not os.path.isdir(hgdir):

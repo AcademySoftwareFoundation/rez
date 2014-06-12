@@ -3,6 +3,12 @@ from rez.util import print_warning_once
 from rez.packages import Package
 
 
+def get_release_hook_types():
+    """Returns the available release hook implementations."""
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugins('release_hook')
+
+
 def create_release_hook(name, source_path):
     """Return a new release hook of the given type."""
     from rez.plugin_managers import plugin_manager
@@ -20,7 +26,6 @@ def create_release_hooks(names, source_path):
         except:
             print_warning_once("Release hook '%s' is not available." % name)
     return hooks
-
 
 
 class ReleaseHook(object):

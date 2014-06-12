@@ -8,14 +8,13 @@ import sys
 
 
 class GitReleaseVCS(ReleaseVCS):
-    executable = ReleaseVCS.find_executable('git')
-
     @classmethod
     def name(cls):
         return 'git'
 
     def __init__(self, path):
         super(GitReleaseVCS, self).__init__(path)
+        self.executable = self.find_executable('git')
 
         try:
             self.git("rev-parse")

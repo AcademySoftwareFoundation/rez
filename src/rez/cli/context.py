@@ -127,9 +127,9 @@ def setup_parser(parser):
                         "Ignored if --interpret is False" % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
-    parser.add_argument("-v", "--verbose", action="store_true",
-                        help="print more information about the context. "
-                        "Ignored if --interpret is used.")
+    #parser.add_argument("-v", "--verbose", action="store_true",
+    #                    help="print more information about the context. "
+    #                    "Ignored if --interpret is used.")
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
 

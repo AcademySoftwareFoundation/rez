@@ -17,9 +17,8 @@ def setup_parser(parser):
                         help="test the build system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
-    # TODO: add this to top-level parser
-    parser.add_argument("-v", "--verbosity", type=int, default=2,
-                        help="set verbosity level")
+    #parser.add_argument("-v", "--verbosity", type=int, default=2,
+    #                    help="set verbosity level")
 
 
 def get_suites(opts):
@@ -73,6 +72,6 @@ def command(opts, parser):
 
     suites = get_suites(opts)
     test_suite = unittest.TestSuite(suites)
-    result = unittest.TextTestRunner(verbosity=opts.verbosity).run(test_suite)
+    result = unittest.TextTestRunner(verbosity=opts.verbose).run(test_suite)
     if not result.wasSuccessful():
         sys.exit(1)

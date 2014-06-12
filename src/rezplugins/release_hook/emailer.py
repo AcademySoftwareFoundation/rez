@@ -1,5 +1,4 @@
 from rez.release_hook import ReleaseHook
-from rez import plugin_factory
 from email.mime.text import MIMEText
 import smtplib
 import sys

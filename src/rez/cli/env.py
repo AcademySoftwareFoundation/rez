@@ -48,8 +48,8 @@ def setup_parser(parser):
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
     # TODO: move verbose flag to top-level parser
-    parser.add_argument("-v", "--verbose", action="count", default=0,
-                        help="verbose mode, repeat for more verbosity")
+    #parser.add_argument("-v", "--verbose", action="count", default=0,
+    #                    help="verbose mode, repeat for more verbosity")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 

@@ -160,17 +160,35 @@ class SetupRezSubParser(object):
                 return None
         return sys.modules[self.module_name]
 
+
 def module_to_command_name(module_name):
     return module_name.split('.')[-1].rstrip('_').replace('_', '-')
 
+
 def _add_common_args(parser):
+    parser.add_argument("-v", "--verbose", action="count", default=0,
+                        help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
                         help=argparse.SUPPRESS)
+
+
+class InfoAction(argparse._StoreTrueAction):
+    def __call__(self, parser, args, values, option_string=None):
+        print
+        print "Rez %s" % __version__
+        print
+        from rez.plugin_managers import plugin_manager
+        print plugin_manager.get_summary_string()
+        print
+        sys.exit(0)
+
 
 def run(command=None):
     import rez.cli
     parser = LazyArgumentParser("rez")
 
+    parser.add_argument("-i", "--info", action=InfoAction,
+                        help="print information about rez and exit")
     parser.add_argument("-V", "--version", action="version",
                         version="Rez %s" % __version__)
 

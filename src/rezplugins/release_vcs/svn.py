@@ -4,6 +4,7 @@ import subprocess
 import os.path
 import pysvn
 
+# TODO this needs a rewrite
 
 def svn_get_client():
     # check we're in an svn working copy
@@ -13,6 +14,7 @@ def svn_get_client():
     client.set_store_passwords(False)
     client.callback_get_login = get_svn_login
     return client
+
 
 def get_last_changed_revision(client, url):
     """
@@ -27,6 +29,7 @@ def get_last_changed_revision(client, url):
         return svn_entries[0][1].last_changed_rev
     except pysvn.ClientError, ce:
         raise ReleaseVCSError("svn.info2() raised ClientError: %s" % ce)
+
 
 def get_svn_login(realm, username, may_save):
     """
@@ -49,7 +52,7 @@ class SvnReleaseVCS(ReleaseVCS):
         return 'svn'
 
     def __init__(self, path):
-        super(GitReleaseVCS, self).__init__(path)
+        super(SvnReleaseVCS, self).__init__(path)
 
         self.svnc = svn_get_client()
         svn_entry = self.svnc.info(self.path)

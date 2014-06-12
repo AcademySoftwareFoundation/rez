@@ -2,7 +2,7 @@
 Manages loading of all types of Rez plugins.
 """
 from rez.settings import settings
-from rez.util import LazySingleton
+from rez.util import LazySingleton, columnise
 from rez.exceptions import RezPluginError
 import os.path
 import sys
@@ -61,6 +61,7 @@ def extend_path(path, name):
 
     return path
 
+
 class RezPluginType(object):
     """An abstract base class representing a single type of plugin.
 
@@ -75,6 +76,7 @@ class RezPluginType(object):
                             "'type_name' attribute")
         self.pretty_type_name = self.type_name.replace('_', ' ')
         self.plugin_classes = {}
+        self.failed_plugins = {}
         self.plugin_modules = {}
         self.load_plugins()
 
@@ -119,7 +121,9 @@ class RezPluginType(object):
                         else:
                             # delete from sys.modules?
                             pass
-                    except:
+                    except Exception as e:
+                        nameish = modname.split('.')[-1]
+                        self.failed_plugins[nameish] = str(e)
                         if settings.debug("plugins"):
                             import traceback
                             traceback.print_exc()
@@ -248,14 +252,38 @@ class RezPluginManager(object):
         type."""
         return self._get_plugin_type(plugin_type).plugin_classes.keys()
 
+    def get_failed_plugins(self, plugin_type):
+        """Return a list of plugins for the given type that failed to load.
+
+        Returns:
+            List of 2-tuples:
+            name (str): Name of the plugin.
+            reason (str): Error message.
+        """
+        return self._get_plugin_type(plugin_type).failed_plugins.items()
+
     def create_instance(self, plugin_type, plugin_name, **instance_kwargs):
         """Create and return an instance of the given plugin."""
         plugin_type = self._get_plugin_type(plugin_type)
         return plugin_type.create_instance(plugin_name, **instance_kwargs)
 
-#------------------------------------
+    def get_summary_string(self):
+        """Get a formatted string summarising the plugins that were loaded."""
+        rows = [["PLUGIN TYPE", "NAME", "STATUS"],
+                ["-----------", "----", "------"]]
+        for plugin_type in sorted(self.get_plugin_types()):
+            type_name = plugin_type.replace('_', ' ')
+            for name in sorted(self.get_plugins(plugin_type)):
+                rows.append((type_name, name, "loaded"))
+            for (name,reason) in sorted(self.get_failed_plugins(plugin_type)):
+                msg = "FAILED: %s" % reason
+                rows.append((type_name, name, msg))
+        return '\n'.join(columnise(rows))
+
+
+# -----------------------------------------------------------------------------
 # Plugin Types
-#------------------------------------
+# -----------------------------------------------------------------------------
 
 class SourceRetrieverPluginType(RezPluginType):
     """Source retrievers download data from sources such as archives or

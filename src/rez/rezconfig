@@ -144,6 +144,7 @@ warn_all: false
 # Print debugging info when loading plugins
 debug_plugins: false
 
+# TODO kinda useful for debugging right now, but deprecate before 2.0 release
 # Print debugging info when detecting system values such as platform, shell
 debug_system: false
 
