@@ -42,10 +42,10 @@ class GitReleaseVCS(ReleaseVCS):
                 assert(adj in ("ahead", "behind"))
                 n = int(n)
                 return -n if adj == "behind" else n
-            except e:
-                raise ReleaseVCSError( \
-                    ("Problem parsing first line of result of 'git status " + \
-                    "--short -b' (%s):\n%s") % (s, str(e)))
+            except Exception as e:
+                raise ReleaseVCSError(
+                    ("Problem parsing first line of result of 'git status "
+                     "--short -b' (%s):\n%s") % (s, str(e)))
         else:
             return 0
 
@@ -55,8 +55,8 @@ class GitReleaseVCS(ReleaseVCS):
             remote_uri = self.git("rev-parse", "--abbrev-ref",
                                   "--symbolic-full-name", "@{u}")[0]
             return remote_uri.split('/', 1)
-        except e:
-            if "No upstream" not in str(e):
+        except Exception as e:
+            if "No upstream branch" not in str(e):
                 raise e
         return (None,None)
 
