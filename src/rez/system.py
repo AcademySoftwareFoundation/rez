@@ -1,110 +1,48 @@
-"""
-Access to underlying system data.
-
-Example:
-from rez.system import system
-print system.arch
-"""
 import os
 import os.path
 import sys
 import re
-import platform as plat
+from rez.platform_ import current_platform
 from rez.exceptions import RezSystemError
 from rez.util import propertycache
 
 
 class System(object):
+    """Access to underlying system data.
 
+
+    """
     @propertycache
     def platform(self):
-        """
-        Get the current platform.
+        """Get the current platform.
         @returns The current platform. Examples:
         linux
         windows
         osx
         """
-        return plat.system().lower()
+        return current_platform.name()
 
     @propertycache
     def arch(self):
-        """
-        Get the current architecture.
+        """Get the current architecture.
         @returns The current architecture. Examples:
         x86_64
         i386
         """
-        # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
-        if os.name == 'nt' and sys.version_info[:2] < (2, 7):
-            arch = os.environ.get("PROCESSOR_ARCHITEW6432",
-                                  os.environ.get('PROCESSOR_ARCHITECTURE', ''))
-            if not arch:
-                raise RezSystemError("Could not detect architecture")
-        else:
-            arch = plat.machine()
-
-        arch = self._make_safe_version(arch)
-        return arch
+        r = current_platform.arch()
+        return self._make_safe_version_string(r)
 
     @propertycache
     def os(self):
-        """
-        Get the current operating system.
+        """Get the current operating system.
         @returns The current operating system. Examples:
         Ubuntu-12.04
         CentOS-5.4
         windows-6.1.7600.sp1
         osx-10.6.2
         """
-        if plat.system() == 'Linux':
-            try:
-                self._pr("detecting os: trying platform.linux_distribution...")
-                distname,version,_ = plat.linux_distribution()
-            except AttributeError:
-                self._pr("detecting os: trying platform.dist...")
-                distname,version,_ = plat.dist()
-                try:
-                    import subprocess as sp
-                    proc = sp.Popen(['/usr/bin/env', 'lsb_release', '-i'],
-                                    stdout=sp.PIPE, stderr=sp.PIPE)
-                    out_, err_ = proc.communicate()
-                    if proc.returncode:
-                        self._pr(("lsb_release failed when detecting OS: "
-                                 "[errorcode %d] %s") % (proc.returncode, err_))
-                    else:
-                        m = re.search(r'^Distributor ID:\s*(\w+)\s*$',
-                                      str(out_).strip())
-                        if m is not None:
-                            distname = m.group(1)
-                except Exception as e:
-                    self._pr("")
-                    pass  # not an lsb compliant distro?
-
-            final_release = distname
-            final_version = version
-        elif plat.system() == 'Darwin':
-            release, versioninfo, machine = plat.mac_ver()
-            final_release = 'osx'
-            final_version = release
-        elif plat.system() == 'Windows':
-            release, version, csd, ptype = plat.win32_ver()
-            final_release = 'windows'
-            toks = []
-            for item in (version, csd):
-                if item:  # initial release would not have a service pack (csd)
-                    toks.append(item)
-            final_version = str('.').join(toks)
-        # other
-        else:
-            raise RezSystemError("Could not detect operating system")
-
-        toks = []
-        if final_release:
-            toks.append(final_release)
-        if final_version:
-            toks.append(final_version)
-        return '-'.join(self._make_safe_version(x) for x in toks)
+        r = current_platform.os()
+        return self._make_safe_version_string(r)
 
     @propertycache
     def variant(self):
@@ -116,8 +54,7 @@ class System(object):
 
     @propertycache
     def shell(self):
-        """
-        Get the current shell.
+        """Get the current shell.
         @returns The current shell this process is running in. Examples:
         bash
         tcsh
@@ -241,7 +178,8 @@ class System(object):
         """
         return self.fqdn.split('.', 1)[1]
 
-    def _make_safe_version(self, s):
+    @classmethod
+    def _make_safe_version_string(cls, s):
         from rez.vendor.version.version import Version
 
         sep_regex = re.compile("[\.\-]")
