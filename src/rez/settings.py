@@ -43,6 +43,7 @@ class Settings(object):
         "warn_shell_startup":               bool_schema,
         "warn_untimestamped":               bool_schema,
         "warn_old_commands":                bool_schema,
+        "warn_nonstring_version":           bool_schema,
         "warn_all":                         bool_schema,
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,

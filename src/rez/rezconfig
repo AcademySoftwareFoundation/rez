@@ -145,11 +145,16 @@ default_shell: ''
 warn_shell_startup: false
 
 # If true, print a warning when an untimestamped package is found.
-warn_untimestamped: true
+warn_untimestamped: false
 
 # If true, print a warning whenever a package with an old-style commands
 # section is resolved into an environment
-warn_old_commands: true
+warn_old_commands: false
+
+# If true, print a warning whenever a package definition contains a version
+# that is not a string. This is not allowed in new packages created for Rez-2,
+# but older packages may still have this error.
+warn_nonstring_version: true
 
 # turn on all warnings
 warn_all: false

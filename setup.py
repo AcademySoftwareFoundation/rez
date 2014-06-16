@@ -55,6 +55,7 @@ scripts = [
     "rez-interpret",
     "rez-test",
     "rez-bind",
+    "rez-search",
     "rez-bootstrap",
     "bez",
     "_rez_fwd",

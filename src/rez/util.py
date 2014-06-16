@@ -555,8 +555,8 @@ def convert_old_commands(commands, annotate=True):
 
         # convert expansions from !OLD! style to {new}
         cmd = cmd.replace("!VERSION!",      "{version}")
-        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
-        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
+        cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
+        cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
         cmd = cmd.replace("!BASE!",         "{base}")
         cmd = cmd.replace("!ROOT!",         "{root}")
         cmd = cmd.replace("!USER!",         "{user}")
@@ -605,6 +605,25 @@ def convert_old_commands(commands, annotate=True):
     return '\n'.join(loc)
 
 
+def is_dict_subset(dict1, dict2):
+    """Returns True if dict1 is a subset of dict2."""
+    for k, v in dict1.iteritems():
+        if k in dict2:
+            if dict2[k] != v:
+                return False
+        else:
+            return False
+    return True
+
+
+def dicts_conflicting(dict1, dict2):
+    """Returns True if any key present in both dicts has differing values."""
+    for k, v in dict1.iteritems():
+        if k in dict2 and dict2[k] != v:
+            return True
+    return False
+
+
 def deep_update(dict1, dict2):
     """Perform a deep merge of dict2 into dict1."""
     for k, v in dict2.iteritems():
@@ -612,11 +631,6 @@ def deep_update(dict1, dict2):
             deep_update(dict1[k], v)
         else:
             dict1[k] = v
-
-
-class _Missing(object):
-    pass
-_missing = _Missing()
 
 
 class propertycache(object):
@@ -681,9 +695,8 @@ class propertycache(object):
     def __get__(self, instance, owner=None):
         if instance is None:
             return None
-        value = instance.__dict__.get(self.name, _missing)
-        if value is not _missing:
-            return value
+        if self.name in instance.__dict__:
+            return instance.__dict__[self.name]
 
         try:
             result = self.func(instance)

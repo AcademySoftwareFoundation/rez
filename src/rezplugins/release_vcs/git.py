@@ -131,6 +131,8 @@ class GitReleaseVCS(ReleaseVCS):
         return doc
 
     def _create_tag_impl(self, tag_name, message=None):
+        # TODO check if tag already exists and nop if so
+
         # create tag
         print "Creating tag '%s'..." % tag_name
         args = ["tag", "-a", tag_name]

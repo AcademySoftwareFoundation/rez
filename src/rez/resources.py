@@ -23,15 +23,18 @@ import os
 import sys
 import inspect
 import re
+import string
 from collections import defaultdict
 from fnmatch import fnmatch
-from rez.util import to_posixpath, ScopeContext # Namespace
+from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
+    propertycache, convert_to_user_dict, RO_AttrDictWrapper, dicts_conflicting
 from rez.settings import settings
-from rez.exceptions import PackageMetadataError, ResourceError
+from rez.exceptions import PackageMetadataError, ResourceError, \
+    ResourceNotFoundError
 from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
 # FIXME: handle this double-module business
-from rez.vendor.schema.schema import Schema, SchemaError
+from rez.vendor.schema.schema import Schema, SchemaError, Optional
 
 
 # list of resource classes, keyed by config_version
@@ -73,6 +76,16 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # -----------------------------------------------------------------------------
 # File Loading
 # -----------------------------------------------------------------------------
+
+@settings.lru_cache("resource_caching", "resource_caching_maxsize")
+def _listdir(path, is_file=None):
+    names = []
+    for name in os.listdir(path):
+        filepath = os.path.join(path, name)
+        if is_file is None or os.path.isfile(filepath) == is_file:
+            names.append(name)
+    return names
+
 
 def _process_python_objects(data):
     """process special objects.
@@ -145,20 +158,34 @@ def load_yaml(stream):
     Returns:
         dict
     """
-
     if hasattr(stream, 'read'):
         text = stream.read()
     else:
         text = stream
     return yaml.load(text) or {}
 
-# keep a simple dictionary of loaders for now
+
+def load_text(stream):
+    """Load a text file.
+
+    Args:
+        stream (string, or open file object): stream of text to load.
+
+    Returns:
+        str
+    """
+    if hasattr(stream, 'read'):
+        text = stream.read()
+    else:
+        text = stream
+    return text
+
+
+# TODO pluggize
 metadata_loaders = {}
 metadata_loaders['py'] = load_python
 metadata_loaders['yaml'] = load_yaml
-# hack for info.txt. for now we force .txt to parse using yaml. this format
-# will be going away
-metadata_loaders['txt'] = metadata_loaders['yaml']
+metadata_loaders['txt'] = load_text
 
 
 def get_file_loader(filepath):
@@ -310,9 +337,9 @@ class _ResourcePathParser(object):
         return reg
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Resource Implementations
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 class ResourceHandle(object):
     """A `Resource` handle.
@@ -446,7 +473,7 @@ class Resource(object):
                                self.variables)
 
     def __hash__(self):
-        return hash(self.handle)
+        return hash((self.__class__, self.handle))
 
     def __eq__(self, other):
         return (self.handle == other.handle)
@@ -536,9 +563,10 @@ class Resource(object):
 
         Returns:
             The resource data as a dict. The implementation should validate the
-            data against the schema, if any.
+            data against the schema, if any. If no data is associated with this
+            resource, None is returned.
         """
-        raise NotImplemented
+        return None
 
     @classmethod
     def from_path(cls, path, search_paths=None):
@@ -632,26 +660,21 @@ class FileSystemResource(Resource):
     is_file = None
 
     @classmethod
-    @lru_cache(1024)
-    def _listdir(self, path):
-        return list(os.listdir(path))
-
-    @classmethod
     def from_path(cls, path, search_paths=None):
         if not os.path.exists(path):
-            raise ResourceError("File or directory does not exist: %s" % path)
+            raise ResourceNotFoundError("File or directory does not exist: %s"
+                                        % path)
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
     def iter_instances(cls, parent_resource):
-        for name in cls._listdir(parent_resource.path):
-            fullpath = os.path.join(parent_resource.path, name)
-            if os.path.isfile(fullpath) == cls.is_file:
-                match = _ResourcePathParser.parse_filepart(cls, name)
-                if match is not None:
-                    variables = match[1]
-                    variables.update(parent_resource.variables)
-                    yield cls(fullpath, variables)
+        for name in _listdir(parent_resource.path, cls.is_file):
+            match = _ResourcePathParser.parse_filepart(cls, name)
+            if match is not None:
+                variables = match[1]
+                variables.update(parent_resource.variables)
+                filepath = os.path.join(parent_resource.path, name)
+                yield cls(filepath, variables)
 
 
 class FolderResource(FileSystemResource):
@@ -710,9 +733,154 @@ class ArbitraryPath(SearchPath):
                                 "search path(s)")
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
+# Resource Wrapper
+# -----------------------------------------------------------------------------
+
+class _WithDataAccessors(type):
+    """Metaclass for adding properties to a class for accessing top-level keys
+    in its metadata dictionary.
+
+    Property names are derived from the keys of the class's `schema` object.
+    If a schema key is optional, then the class property will evaluate to None
+    if the key is not present in the resource.
+    """
+    def __new__(cls, name, parents, members):
+        schema = members.get('schema')
+        if schema:
+            schema_dict = schema._schema
+            for key in schema_dict.keys():
+                optional = isinstance(key, Optional)
+                while isinstance(key, Schema):
+                    key = key._schema
+                if key not in members and \
+                        not any(hasattr(x, key) for x in parents):
+                    members[key] = cls._make_getter(key, optional)
+        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
+                                                      members)
+
+    @classmethod
+    def _make_getter(cls, key, optional):
+        def getter(self):
+            if optional:
+                return getattr(self.metadata, key, None)
+            else:
+                return getattr(self.metadata, key)
+        return property(getter)
+
+
+class ResourceWrapper(object):
+    """Base class for implementing a class that wraps a resource.
+    """
+    __metaclass__ = _WithDataAccessors
+    schema = None
+
+    def __init__(self, resource):
+        self._resource = resource
+
+    @property
+    def path(self):
+        return self._resource.path
+
+    def validate(self):
+        """Check that the resource's data is valid."""
+        _ = self._data
+
+    @propertycache
+    def _data(self):
+        """Dictionary of data loaded from the package's resource.
+
+        This is private because it is preferred for users to go through the
+        `metadata` property.  This is here to preserve the original dictionary
+        loaded directly from the package's resource.
+
+        Returns:
+            Resource data as a dict, or None if the resource has no data.
+        """
+        data = self._resource.load()
+        if data and self.schema:
+            data = self.schema.validate(data)
+        return data
+
+    @propertycache
+    def metadata(self):
+        """Read-only dictionary of metadata for this package with nested,
+        attribute-based access for the keys in the dictionary.
+
+        All of the dictionaries in `_data` have are replaced with custom
+        `UserDicts` to provide the attribute-lookups.  If you need the raw
+        dictionary, use `_data`.
+
+        Note that the `UserDict` references the dictionaries in `_data`, so
+        the data is not copied, and thus the two will always be in sync.
+
+        Returns:
+            `RO_AttrDictWrapper` instance, or None if the resource has no data.
+        """
+        if self._data is None:
+            return None
+        else:
+            return convert_to_user_dict(self._data, RO_AttrDictWrapper)
+
+    def format(self, s, pretty=False):
+        """Format a string.
+
+        Args:
+            s (str): String to format, eg "hello {name}"
+
+        Returns:
+            The formatting string.
+        """
+        f = ResourceWrapperStringFormatter(self, pretty=pretty)
+        return f.format(s)
+
+    def __eq__(self, other):
+        return (self._resource == other._resource)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._resource)
+
+    def __hash__(self):
+        return hash((self.__class__, self._resource))
+
+
+class ResourceWrapperStringFormatter(string.Formatter):
+    """String formatter for resource wrappers.
+
+    This formatter will expand any reference to a resource wrapper's
+    attributes.
+    """
+    def __init__(self, resource_wrapper, pretty=False):
+        """Create a formatter.
+
+        Args:
+            resource_wrapper: The resource to format with.
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parenthesis removed.
+        """
+        self.resource = resource_wrapper
+        self.pretty = pretty
+
+    def convert_field(self, value, conversion):
+        if self.pretty:
+            if value is None:
+                return ''
+            elif isinstance(value, list):
+                return ' '.join(str(x) for x in value)
+        return string.Formatter.convert_field(self, value, conversion)
+
+    def get_value(self, key, args, kwds):
+        if isinstance(key, basestring):
+            attr = getattr(self.resource, key, '')
+            return '' if callable(attr) else attr
+        else:
+            return string.Formatter.get_value(self, key, args, kwds)
+
+
+# -----------------------------------------------------------------------------
 # Main Entry Points
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 def list_resource_classes(config_version, keys=None):
     """List resource classes matching the search criteria.
@@ -742,8 +910,9 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
 
     Args:
         root_key (str, optional): Root type in the hierarchy.
-        keys (str or list of str, optional): Name(s) of the type of `Resources`
-            to list. If None, all resource types in the hierarchy are listed.
+        keys (str or tuple of str, optional): Name(s) of the type of
+            `Resources` to list. If None, all resource types in the hierarchy
+            are listed.
 
     Returns:
         `Resource` class: Root resource type.
@@ -786,11 +955,18 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
         return root_class, list(resource_classes)
 
 
-def _iter_resources(parent_resource, child_resource_classes=None):
+def _iter_resources(parent_resource, child_resource_classes=None,
+                    variables=None):
     """Iterate over child resources of the given parent.
 
     If `child_resource_classes` is supplied, this prunes the search so that
     only ancestor-or-equal resource types are iterated over.
+
+    If `variables` is supplied, this prunes the search so that any resource
+    with clashing variable values is not iterated over.
+
+    If supplied, both `child_resource_classes` and `variables` can greatly
+    increase the speed of resource iteration.
     """
     if child_resource_classes is not None:
         child_resource_classes = [x for x in child_resource_classes
@@ -804,15 +980,18 @@ def _iter_resources(parent_resource, child_resource_classes=None):
                         for x in child_resource_classes):
             continue
         for child in child_class.iter_instances(parent_resource):
-            yield child
-            for grand_child in _iter_resources(child, child_resource_classes):
-                yield grand_child
+            if not dicts_conflicting(variables or {}, child.variables):
+                yield child
+                for grand_child in _iter_resources(child,
+                                                   child_resource_classes,
+                                                   variables):
+                    yield grand_child
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
-    for child in _iter_resources(parent_resource, resource_classes):
-        if isinstance(child, tuple(resource_classes)) and \
-                set((variables or {}).items()).issubset(child.variables.items()):
+    for child in _iter_resources(parent_resource, resource_classes, variables):
+        if isinstance(child, tuple(resource_classes)) \
+                and is_dict_subset(variables or {}, child.variables):
             yield child
 
 
@@ -837,8 +1016,8 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
     Returns:
         A `Resource` iterator.
     """
-    root_cls, resource_classes = list_common_resource_classes(config_version,
-        root_resource_key, resource_keys)
+    root_cls, resource_classes = list_common_resource_classes(
+        config_version, root_resource_key, resource_keys)
     if not resource_classes:
         return
 
@@ -880,8 +1059,7 @@ def iter_descendant_resources(parent_resource, resource_keys=None,
         yield child
 
 
-def iter_child_resources(parent_resource, resource_keys=None,
-                              variables=None):
+def iter_child_resources(parent_resource, resource_keys=None, variables=None):
     """Iterate over all child `Resource` instances of the given resource.
 
     Args:
@@ -948,21 +1126,21 @@ def get_resource(config_version, filepath=None, resource_keys=None,
             kstr = ', '.join('%s' % str(r) for r in (resource_keys or []))
             toks.append("resource types: %s" % kstr)
         if variables:
-            vstr = ', '.join('%s=%r' % r for r in (variables or {}).iteritems())
-            toks.append("variables: %s" % vstr)
-        raise ResourceError("Could not find resource: %s" % "; ".join(toks))
+            toks.append("variables: %r" % variables)
+        raise ResourceNotFoundError("Could not find resource: %s"
+                                    % "; ".join(toks))
 
     if filepath:
         def _match_resource(resource_classes):
             for resource_class in resource_classes:
                 try:
                     return resource_class.from_path(filepath, search_path)
-                except ResourceError, err:
+                except ResourceError:
                     pass
 
         # first try to find a matching resource that is not a sub-resource
-        _, resource_classes = list_common_resource_classes(config_version,
-            root_resource_key, resource_keys)
+        _, resource_classes = list_common_resource_classes(
+            config_version, root_resource_key, resource_keys)
         if not resource_classes:
             _err()
 
@@ -970,7 +1148,7 @@ def get_resource(config_version, filepath=None, resource_keys=None,
                                  if not r.sub_resource)
         resource = _match_resource(resource_classes_1)
         if resource is not None and \
-                set((variables or {}).items()).issubset(resource.variables.items()):
+                is_dict_subset(variables or {}, resource.variables):
             return resource
 
         # find all parents of sub-resource classes in the requested resource

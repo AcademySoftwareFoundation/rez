@@ -55,6 +55,11 @@ class ResourceError(RezError):
     pass
 
 
+class ResourceNotFoundError(ResourceError):
+    """A resource could not be found."""
+    pass
+
+
 class PackageMetadataError(ResourceError):
     """There is an error in a package's definition file"""
     def __init__(self, filepath, value):
