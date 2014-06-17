@@ -258,7 +258,9 @@ class BasePackageResource(FileResource):
         release_data = self._load_component("release.data")
         if release_data:
             data.update(release_data)
-        data['timestamp'] = self._load_timestamp()
+        timestamp = self._load_timestamp()
+        if timestamp:
+            data['timestamp'] = timestamp
 
         # load old-style changelog if necessary
         if "changelog" not in data:
@@ -401,7 +403,8 @@ class CombinedPackageFamilyResource(BasePackageResource):
     @propertycache
     def schema(self):
         schema = super(CombinedPackageFamilyResource, self).schema
-        return _updated_schema(schema,
+        return _updated_schema(
+            schema,
             [(Optional('versions'), [Use(Version)]),
              (Optional('version_overrides'), {
                 Use(VersionRange): {
@@ -490,8 +493,8 @@ class DeveloperPackageResource(BasePackageResource):
         return _updated_schema(schema,
                                [(Required('name'), basestring),
                                 (Required('version'), Use(Version)),
-                                (Required('description'), And(basestring,
-                                                            Use(string.strip))),
+                                (Required('description'),
+                                    And(basestring, Use(string.strip))),
                                 (Required('authors'), [basestring]),
                                 (Required('uuid'), is_uuid)])
 

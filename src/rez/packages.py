@@ -73,6 +73,33 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
             yield pkg
 
 
+def load_developer_package(path):
+    """Load a developer package.
+
+    A developer package may for example be a package.yaml or package.py in a
+    user's source directory.
+
+    Args:
+        path: Directory containing the package definition file.
+
+    Returns:
+        `Package` object.
+    """
+    it = iter_resources(
+        0,
+        resource_keys='package.*',
+        search_path=path,
+        root_resource_key="folder.dev_packages_root")
+    resources = list(it)
+    if not resources:
+        raise ResourceError("No package definition file found under %s" % path)
+    elif len(resources) > 1:
+        files = [os.path.basename(x.path) for x in resources]
+        raise ResourceError("Multiple package definition files found under "
+                            "%s: %s" % (path, ", ".join(files)))
+    return Package(resources[0])
+
+
 class PackageFamily(ResourceWrapper):
     """Class representing a package family.
 
@@ -130,7 +157,7 @@ class Package(_PackageBase):
     or similar.
 
     You should not instantiate this class directly - instead, call
-    `iter_packages` or `load_development_package`.
+    `iter_packages` or `load_developer_package`.
     """
     schema = package_schema
 

@@ -1,9 +1,9 @@
 from rez.resources import iter_resources, iter_descendant_resources, \
     iter_child_resources, load_resource, get_resource, ResourceError, Resource
-from rez.package_resources import PackagesRoot, NameFolder, VersionFolder, \
-    VersionlessPackageResource, VersionedPackageResource, \
-    CombinedPackageFamilyResource, CombinedPackageResource, \
-    DeveloperPackagesRoot, DeveloperPackageResource
+from rez.package_resources import PackagesRoot, PackageFamilyFolder, \
+    PackageVersionFolder, VersionlessPackageResource, \
+    VersionedPackageResource, CombinedPackageFamilyResource, \
+    CombinedPackageResource, DeveloperPackagesRoot, DeveloperPackageResource
 from rez.exceptions import PackageMetadataError
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
@@ -20,17 +20,22 @@ data_root = os.path.join(here, "data", "resources")
 def _abspath(path):
     return os.path.join(data_root, path)
 
+
 def _abspaths(it):
     return set(_abspath(path) for path in it)
+
 
 def _abstuple(r):
     return (r[0], r[1], _abspath(r[2]))
 
+
 def _abstuples(it):
     return set(_abstuple(r) for r in it)
 
+
 def _to_paths(it):
     return _abspaths(r.path for r in it)
+
 
 def _to_tuples(it):
     entries = set()
@@ -39,6 +44,7 @@ def _to_tuples(it):
              _abspath(r.path)]
         entries.add(tuple(e))
     return entries
+
 
 ALL_PACKAGES = _abspaths([
     'packages/unversioned/package.yaml',
@@ -55,6 +61,7 @@ ALL_PACKAGES = _abspaths([
     'pypackages/single_versioned.py',
     'pypackages/multi.py'])
 
+
 ALL_PACKAGE_FOLDERS = _abspaths([
     'packages/unversioned',
     'packages/versioned',
@@ -68,15 +75,15 @@ ALL_PACKAGE_FOLDERS = _abspaths([
 
 
 ALL_PACKAGE_RESOURCES = _abstuples([
-    ('NameFolder', '-', 'pypackages/unversioned'),
-    ('NameFolder', '-', 'pypackages/versioned'),
-    ('NameFolder', '-', 'packages/versioned'),
-    ('NameFolder', '-', 'packages/unversioned'),
+    ('PackageFamilyFolder', '-', 'pypackages/unversioned'),
+    ('PackageFamilyFolder', '-', 'pypackages/versioned'),
+    ('PackageFamilyFolder', '-', 'packages/versioned'),
+    ('PackageFamilyFolder', '-', 'packages/unversioned'),
 
-    ('VersionFolder', '1.0', 'pypackages/versioned/1.0'),
-    ('VersionFolder', '2.0', 'pypackages/versioned/2.0'),
-    ('VersionFolder', '1.0', 'packages/versioned/1.0'),
-    ('VersionFolder', '2.0', 'packages/versioned/2.0'),
+    ('PackageVersionFolder', '1.0', 'pypackages/versioned/1.0'),
+    ('PackageVersionFolder', '2.0', 'pypackages/versioned/2.0'),
+    ('PackageVersionFolder', '1.0', 'packages/versioned/1.0'),
+    ('PackageVersionFolder', '2.0', 'packages/versioned/2.0'),
 
     ('VersionlessPackageResource', '-', 'pypackages/unversioned/package.py'),
     ('VersionlessPackageResource', '-', 'packages/unversioned/package.yaml'),
@@ -127,12 +134,12 @@ class TestResources(TestBase):
         """class methods"""
         self.assertEqual(VersionlessPackageResource.ancestors(),
                          (PackagesRoot,
-                          NameFolder))
+                          PackageFamilyFolder))
 
         self.assertEqual(VersionedPackageResource.ancestors(),
                          (PackagesRoot,
-                          NameFolder,
-                          VersionFolder))
+                          PackageFamilyFolder,
+                          PackageVersionFolder))
 
         self.assertEqual(CombinedPackageResource.ancestors(),
                          (PackagesRoot,
@@ -143,8 +150,8 @@ class TestResources(TestBase):
 
         # order is determined by the order in which resources were registered
         # which ultimately does not matter. hence, we test with sets.
-        self.assertEqual(set(NameFolder.children()),
-                         set((VersionFolder,
+        self.assertEqual(set(PackageFamilyFolder.children()),
+                         set((PackageVersionFolder,
                               VersionlessPackageResource)))
 
     def test_2(self):
@@ -168,12 +175,12 @@ class TestResources(TestBase):
                 self.assertEqual(r, resource)
 
         resources = list(iter_resources(0,
-                                root_resource_key="folder.packages_root"))
+                         root_resource_key="folder.packages_root"))
         _test_resources(resources)
 
         resources = list(iter_resources(0,
-                                root_resource_key="folder.dev_packages_root",
-                                search_path=_abspath("developer")))
+                         root_resource_key="folder.dev_packages_root",
+                         search_path=_abspath("developer")))
         _test_resources(resources)
 
     def test_3(self):
@@ -224,7 +231,7 @@ class TestResources(TestBase):
                                      root_resource_key="folder.packages_root"))
         self.assertEqual(_to_paths(result), ALL_PACKAGES)
 
-        result = list(iter_resources(0, resource_keys=['folder.*'],
+        result = list(iter_resources(0, resource_keys=['*.folder'],
                                      root_resource_key="folder.packages_root"))
         self.assertEqual(_to_paths(result), ALL_PACKAGE_FOLDERS)
 
@@ -255,8 +262,8 @@ class TestResources(TestBase):
         result = list(iter_resources(0, variables=dict(version='1.0'),
                       root_resource_key="folder.packages_root"))
         self.assertEqual(_to_tuples(result), _abstuples([ \
-            ('VersionFolder', '1.0', 'pypackages/versioned/1.0'),
-            ('VersionFolder', '1.0', 'packages/versioned/1.0'),
+            ('PackageVersionFolder', '1.0', 'pypackages/versioned/1.0'),
+            ('PackageVersionFolder', '1.0', 'packages/versioned/1.0'),
             ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
             ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
             ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml'),
@@ -314,7 +321,7 @@ class TestResources(TestBase):
                          'name': 'foo',
                          'uuid': '28d94bcd1a934bb4999bcf70a21106cc',
                          'requires': [Requirement('bah-1.2+<2')],
-                         'variants': [[Requirement('floob-4.1')], 
+                         'variants': [[Requirement('floob-4.1')],
                                       [Requirement('flaab-2.0')]],
                          'version': Version('3.0.1')}
 
@@ -338,11 +345,10 @@ class TestResources(TestBase):
         expected_data = {'config_version': 0,
                          'description': 'this description spans multiple lines.',
                          'name': 'versioned',
-                         'requires': [Requirement('amaze'), 
+                         'requires': [Requirement('amaze'),
                                       Requirement('wow')],
                          'variants': [[Requirement('yolo-1')],
                                       [Requirement('yolo-2')]],
-                         'timestamp': 0,
                          'tools': ['amazeballs'],
                          'version': Version('1.0')}
 
@@ -353,7 +359,7 @@ class TestResources(TestBase):
 
         # check the parent of this resource is a versioned folder
         parent = resource.parent_instance()
-        self.assertEqual(parent.key, "folder.version")
+        self.assertEqual(parent.key, "version.folder")
         self.assertEqual(parent.path, _abspath('pypackages/versioned/1.0'))
         self.assertEqual(parent.variables, {'name': 'versioned',
                                             'version': '1.0',
@@ -446,7 +452,7 @@ class TestResources(TestBase):
 
         with self.assertRaises(ResourceError):
             # a request for resource types from different hierarchies
-            load_resource(0, resource_keys=["package.versioned", 
+            load_resource(0, resource_keys=["package.versioned",
                                             "package.dev"])
 
         with self.assertRaises(ResourceError):
