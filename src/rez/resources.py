@@ -827,6 +827,9 @@ class ResourceWrapper(object):
 
         Args:
             s (str): String to format, eg "hello {name}"
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parenthesis removed.
 
         Returns:
             The formatting string.
@@ -859,7 +862,7 @@ class ResourceWrapperStringFormatter(string.Formatter):
                 are converted to basic form, with characters such as brackets
                 and parenthesis removed.
         """
-        self.resource = resource_wrapper
+        self.instance = resource_wrapper
         self.pretty = pretty
 
     def convert_field(self, value, conversion):
@@ -872,7 +875,7 @@ class ResourceWrapperStringFormatter(string.Formatter):
 
     def get_value(self, key, args, kwds):
         if isinstance(key, basestring):
-            attr = getattr(self.resource, key, '')
+            attr = getattr(self.instance, key, '')
             return '' if callable(attr) else attr
         else:
             return string.Formatter.get_value(self, key, args, kwds)

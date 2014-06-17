@@ -95,7 +95,10 @@ class _PackageBase(ResourceWrapper):
     """Abstract base class for Package and Variant."""
     @propertycache
     def name(self):
-        return self._resource.get("name")
+        value = self._resource.get("name")
+        if value is None:
+            value = self.metadata.get("name")
+        return value
 
     @propertycache
     def search_path(self):
@@ -104,7 +107,9 @@ class _PackageBase(ResourceWrapper):
     @propertycache
     def version(self):
         ver_str = self._resource.get("version")
-        return None if ver_str is None else Version(ver_str)
+        if ver_str is None:
+            return self.metadata.get("version")
+        return Version(ver_str)
 
     @propertycache
     def qualified_name(self):
@@ -131,8 +136,7 @@ class Package(_PackageBase):
 
     @property
     def num_variants(self):
-        """Return the number of variants in this package. Returns zero if there
-        are no variants."""
+        """Return the number of variants in this package."""
         return len(self.variants or [])
 
     def get_variant(self, index=None):
@@ -155,6 +159,7 @@ class Package(_PackageBase):
             resource = it.next()
         except StopIteration:
             raise ResourceNotFoundError("variant not found in package")
+        return Variant(resource)
 
     def iter_variants(self):
         """Returns an iterator over the variants in this package."""
@@ -171,29 +176,28 @@ class Variant(_PackageBase):
     """
     schema = package_schema
 
-    @property
+    @propertycache
+    def index(self):
+        return self._resource.get("index")
+
+    @propertycache
     def qualified_package_name(self):
         return super(Variant, self).qualified_name
 
-    @property
+    @propertycache
     def qualified_name(self):
-        s = super(Variant, self).qualified_name
-        index = self._resource.get("index")
-        if index is not None:
-            s += "[%d]" % index
-        return s
+        idxstr = '' if self.index is None else ("%d" % self.index)
+        return "%s[%s]" % (self.qualified_package_name, idxstr)
 
-    @property
+    @propertycache
     def subpath(self):
         if self.index is None:
             return ''
         else:
-            path = os.path.relpath(self.root, self.base)
-            return os.path.normpath(path)
+            dirs = [x.safe_str() for x in self._internal.variant_requires]
+            return os.path.join(dirs)
 
-    # FIXME: rename to get_requires or requirements to avoid conflict with
-    # requires property
-    def requires(self, build_requires=False, private_build_requires=False):
+    def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
 
         Args:
@@ -204,39 +208,15 @@ class Variant(_PackageBase):
         Returns:
             List of `Requirement` objects.
         """
-        requires = self._all_requires
+        requires = self.requires
         if build_requires:
-            reqs = self.metadata["build_requires"]
-            if reqs:
-                requires = requires + [Requirement(x) for x in reqs]
-
+            requires = requires + (self.build_requires or [])
         if private_build_requires:
-            reqs = self.metadata["private_build_requires"]
-            if reqs:
-                requires = requires + [Requirement(x) for x in reqs]
-
+            requires = requires + (self.private_build_requires or [])
         return requires
 
-    def to_dict(self):
-        return dict(
-            name=self.name,
-            version=str(self.version),
-            metafile=self.metafile,
-            index=self.index)
-
-    @classmethod
-    def from_dict(cls, d):
-        return Variant(path=d["metafile"],
-                       name=d["name"],
-                       version=Version(d["version"]),
-                       index=d["index"])
-
-    def __eq__(self, other):
-        return (self.name == other.name) \
-            and (self.version == other.version) \
-            and (self.metafile == other.metafile) \
-            and (self.index == other.index)
-
     def __str__(self):
-        return "%s@%s,%s" % (self.qualified_name, self._base_path(),
-                             self.subpath)
+        s = "%s@%s" % (self.qualified_name, self.search_path)
+        if self.subpath:
+            s += "(%s)" % self.subpath
+        return s

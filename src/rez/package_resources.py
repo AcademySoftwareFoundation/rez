@@ -45,16 +45,13 @@ class VersionLoader(object):
     '1.10' would convert incorrectly to '1.1'. When this validator encounters
     these cases, it prints a warning, and uses the version decoded from the
     resource path instead.
-
-    This workaround is only allowed for older packages. In all packages
-    created after a certain date, 'version' is always validated properly.
     """
     def __init__(self, resource):
         self.resource = resource
         self.version_str = resource.variables['version']
         # schema module incorrectly assumes that the callable passed to Use is
         # a class, this is a workaround
-        self.__name__ = "_VersionValidatorInstance"
+        self.__name__ = "VersionLoaderInstance"
 
     def __call__(self, v):
         if isinstance(v, basestring):
@@ -63,10 +60,6 @@ class VersionLoader(object):
                                   % (v, self.version_str))
         else:
             filepath = self.resource.path
-            if os.path.isfile(filepath):
-                t = int(os.path.getctime(filepath))
-                if t > 1402690000:  # june 15th, 2014
-                    raise SchemaError(None, "Expected a string: %r" % v)
             if settings.warn("nonstring_version"):
                 print_warning_once(("Package at %s contains a non-string "
                                     "version.") % filepath)
@@ -99,6 +92,9 @@ package_schema = Schema({
     # swap-comment these 2 lines if we decide to allow arbitrary root metadata
     Optional('custom'):                 object,
     # Optional(object):                   object
+
+    # a dict for internal use
+    Optional('_internal'):              dict,
 
     # release data
     Optional('revision'):               object,
@@ -247,6 +243,9 @@ class BasePackageResource(FileResource):
             Optional('custom'):                 object,
             # basestring: object
 
+            # a dict for internal use
+            Optional('_internal'):              dict,
+
             # backwards compatibility for rez-egg-install- generated packages
             Optional('unsafe_name'):            object,
             Optional('unsafe_version'):         object,
@@ -268,6 +267,8 @@ class BasePackageResource(FileResource):
                 data["changelog"] = changelog
         return data
 
+    # TODO just load the handle rather than the resource data, and add lazy
+    # loading mechanism
     def _load_component(self, resource_key):
         variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in ("name", "version"))
@@ -306,11 +307,12 @@ class BaseVariantResource(BasePackageResource):
             data = data.copy()
             del data["variants"]
 
-        # TODO we need to move away from indexes
         idx = self.variables["index"]
         if idx is not None:
             try:
-                requires = data.get("requires", []) + variants[idx]
+                variant_requires = variants[idx]
+                data["_internal"] = dict(variant_requires=variant_requires)
+                requires = data.get("requires", []) + variant_requires
                 data["requires"] = requires
             except IndexError:
                 raise ResourceNotFoundError("variant not found in parent "
@@ -372,15 +374,6 @@ class VersionedPackageResource(BasePackageResource):
             schema,
             [(Required('version'),
               And(object, Use(ver_validator)))])
-
-    """
-    @Resource.cached
-    def load(self):
-        data = super(VersionedPackageResource, self).load().copy()
-        data.update(self.load_release_data())
-        data['timestamp'] = self.load_timestamp()
-        return data
-    """
 
 
 class VersionedVariantResource(BaseVariantResource):
@@ -512,9 +505,9 @@ class DeveloperVariantResource(BaseVariantResource):
     schema = None
 
 
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Resource Registration
-#------------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 # -- deployed packages
 
