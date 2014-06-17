@@ -782,8 +782,12 @@ class ResourceWrapper(object):
     def path(self):
         return self._resource.path
 
+    @property
+    def resource_handle(self):
+        return self._resource.handle
+
     def validate(self):
-        """Check that the resource's data is valid."""
+        """Check that the resource's contents are valid."""
         _ = self._data
 
     @propertycache

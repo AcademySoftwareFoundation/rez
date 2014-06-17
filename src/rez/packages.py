@@ -222,7 +222,7 @@ class Variant(_PackageBase):
             return ''
         else:
             dirs = [x.safe_str() for x in self._internal.variant_requires]
-            return os.path.join(dirs)
+            return os.path.join(*dirs)
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
@@ -235,7 +235,7 @@ class Variant(_PackageBase):
         Returns:
             List of `Requirement` objects.
         """
-        requires = self.requires
+        requires = self.requires or []
         if build_requires:
             requires = requires + (self.build_requires or [])
         if private_build_requires:

@@ -195,7 +195,7 @@ class Cycle(FailureReason):
 
 class PackageVariant(_Common):
     """A variant of a package."""
-    def __init__(self, name, version, metafile, requires, index=None):
+    def __init__(self, name, version, requires, index=None, userdata=None):
         """Create a package variant.
 
         Args:
@@ -204,11 +204,12 @@ class PackageVariant(_Common):
             requires: List of strings representing the package dependencies.
             index: Zero-based index of the variant within this package. If
                 None, this package does not have variants.
+            userdata: Arbitrary extra data to attach to the variant.
         """
         self.name = name
         self.version = version
-        self.metafile = metafile
         self.index = index
+        self.userdata = userdata
         self.requires_list = RequirementList(requires)
 
         if self.requires_list.conflict:
@@ -228,12 +229,14 @@ class PackageVariant(_Common):
         return self.requires_list.get(pkg_name)
 
     def __eq__(self, other):
-        return (self.version == other.version) and (self.index == other.index)
+        return (self.name == other.name
+                and self.version == other.version
+                and self.index == other.index)
 
     def __str__(self):
         stmt = VersionedObject.construct(self.name, self.version)
-        variant_str = '' if self.index is None else "[%d]" % self.index
-        return "%s%s" % (str(stmt), variant_str)
+        idxstr = '' if self.index is None else str(self.index)
+        return "%s[%s]" % (str(stmt), idxstr)
 
 
 class _PackageVariantList(_Common):
@@ -244,16 +247,17 @@ class _PackageVariantList(_Common):
         self.package_paths = package_paths
         self.variants = []
 
-        for pkg in iter_packages(package_name,
-                                 timestamp=timestamp,
-                                 paths=package_paths):
+        it = iter_packages(package_name,
+                           timestamp=timestamp,
+                           paths=package_paths)
+        for pkg in sorted(it, key=lambda x: x.version):
             for var in pkg.iter_variants():
                 requires = var.get_requires(build_requires=building)
                 variant = PackageVariant(name=package_name,
                                          version=var.version,
-                                         metafile=var.metafile,
                                          requires=requires,
-                                         index=var.index)
+                                         index=var.index,
+                                         userdata=var.resource_handle)
                 self.variants.append(variant)
 
         if not self.variants:
@@ -1260,7 +1264,7 @@ class Solver(_Common):
             return
         else:
             s = ' '.join(str(x) for x in self.request_list.requirements)
-            self.pr("merged request: %s" % s
+            self.pr("merged request: %s" % s)
 
         # create the initial phase
         phase = _ResolvePhase(self.request_list.requirements, solver=self)
