@@ -102,13 +102,14 @@ class GitReleaseVCS(ReleaseVCS):
             return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
 
         def _tracking_branch():
-            return self.git("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{u}")[0]
+            return self.git("rev-parse", "--abbrev-ref",
+                            "--symbolic-full-name", "@{u}")[0]
 
         def _url(op):
             origin = doc["tracking_branch"].split('/')[0]
             lines = self.git("remote", "-v")
             lines = [x for x in lines if origin in x.split()]
-            lines = [x for x in lines if ("(%s)"%op) in x.split()]
+            lines = [x for x in lines if ("(%s)" % op) in x.split()]
             try:
                 return lines[0].split()[1]
             except:
@@ -130,6 +131,11 @@ class GitReleaseVCS(ReleaseVCS):
         return doc
 
     def _create_tag_impl(self, tag_name, message=None):
+        # check if tag already exists
+        if self.git("tag", tag_name):
+            print "Skipped tag creation, tag '%s' already exists" % tag_name
+            return
+
         # create tag
         print "Creating tag '%s'..." % tag_name
         args = ["tag", "-a", tag_name]
@@ -138,7 +144,7 @@ class GitReleaseVCS(ReleaseVCS):
         self.git(*args)
 
         # push tag
-        remote,remote_branch = self.get_tracking_branch()
+        remote, remote_branch = self.get_tracking_branch()
         if remote is None:
             return
 
