@@ -120,6 +120,7 @@ ALL_PACKAGE_RESOURCES = _abstuples([
     ('CombinedPackageResource', '1.2', 'pypackages/multi.py')])
 
 
+# TODO add variant tests
 class TestResources(TestBase):
     @classmethod
     def setUpClass(cls):
