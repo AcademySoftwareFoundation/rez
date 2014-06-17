@@ -2,7 +2,6 @@ from rez.solver import Solver
 from rez.settings import settings
 
 
-
 class Resolver(object):
     """The package resolver.
 
@@ -14,13 +13,15 @@ class Resolver(object):
         """Create a Resolver.
 
         Args:
-            package_requests: List of Requirement objects representing the request.
+            package_requests: List of Requirement objects representing the
+                request.
             package_paths: List of paths to search for pkgs, defaults to
                 settings.packages_path.
-            caching: If True, utilise cache(s) in order to speed up the resolve.
+            caching: If True, utilise cache(s) in order to speed up the
+                resolve.
             callback: If not None, this callable will be called prior to each
-                solve step. It is passed a single argument - a string showing the
-                current solve state. If the return value of the callable is
+                solve step. It is passed a single argument - a string showing
+                the current solve state. If the return value of the callable is
                 truthy, the solve continues, otherwise the solve is stopped.
             building: True if we're resolving for a build.
         """
@@ -38,7 +39,7 @@ class Resolver(object):
         self.graph_ = None
 
         self.solve_time = 0.0  # time spent solving
-        self.load_time = 0.0   # time spent loading pkgs from disk
+        self.load_time = 0.0   # time spent loading package resources
 
     def solve(self):
         """Perform the solve."""
@@ -52,14 +53,15 @@ class Resolver(object):
         solver.solve()
         self._set_result(solver)
 
-
     @property
     def status(self):
-        """Return the current status of the resolve. One of:
-        pending - the resolve has not yet started.
-        solved - the resolve has completed successfully.
-        failed - the resolve is not possible.
-        aborted - the resolve was stopped by the user (via callback).
+        """Return the current status of the resolve.
+
+        Returns one of:
+            pending - the resolve has not yet started.
+            solved - the resolve has completed successfully.
+            failed - the resolve is not possible.
+            aborted - the resolve was stopped by the user (via callback).
         """
         return self.status_
 
