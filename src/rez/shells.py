@@ -41,7 +41,8 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
+                             command=False):
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.
@@ -83,7 +84,7 @@ class Shell(ActionInterpreter):
         @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
             If a different non-False value, such as subprocess.PIPE, the same
-            occurs, but stid is also passed to the resulting subprocess.Popen object.
+            occurs, but stdin is also passed to the resulting subprocess.Popen object.
         @param command If not None, execute this command in a non-interactive shell.
         @param env Environ dict to execute the shell within; uses the current
             environment if None.
@@ -174,9 +175,9 @@ class UnixShell(Shell):
             # TODO make context sourcing position configurable?
             if bind_rez:
                 ex.source(context_file)
-            for file in files:
-                if os.path.exists(os.path.expanduser(file)):
-                    ex.source(file)
+            for file_ in files:
+                if os.path.exists(os.path.expanduser(file_)):
+                    ex.source(file_)
             if envvar:
                 ex.unsetenv(envvar)
             if bind_rez:

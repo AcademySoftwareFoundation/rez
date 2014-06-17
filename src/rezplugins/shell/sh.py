@@ -28,28 +28,33 @@ class SH(UnixShell):
                   % (cls.name(), cls.norc_arg, cls.command_arg)
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, shell=True)
-            out_,err_ = p.communicate()
+            out_, err_ = p.communicate()
             if p.returncode:
-                raise RuntimeError("Could not get executable paths: %s" % err_)
+                paths = []
             else:
                 lines = out_.split('\n')
                 line = [x for x in lines if "__PATHS_" in x.split()][0]
                 paths = line.strip().split()[-1].split(os.pathsep)
-                cls.syspaths = [x for x in paths if x]
+
+            for path in os.defpath.split(os.path.pathsep):
+                if path not in paths:
+                    paths.append(path)
+            cls.syspaths = [x for x in paths if x]
         return cls.syspaths
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
+                             command=False):
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
         if command:
             cls._overruled_option('stdin', 'command', stdin)
             stdin = False
-        return (norc, rcfile, command, stdin)
+        return (rcfile, norc, stdin, command)
 
     @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):
-        rcfile, norc, stdin, command = \
+        _, norc, stdin, command = \
             cls.startup_capabilities(rcfile, norc, stdin, command)
 
         envvar = None
@@ -72,8 +77,7 @@ class SH(UnixShell):
             envvar=envvar,
             files=files,
             bind_files=[],
-            source_bind_files=False
-        )
+            source_bind_files=False)
 
     def _bind_interactive_rez(self):
         if settings.prompt:
