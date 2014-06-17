@@ -2,7 +2,7 @@ import os
 import os.path
 import sys
 import re
-from rez.platform_ import current_platform
+from rez.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.util import propertycache
 
@@ -20,7 +20,7 @@ class System(object):
         windows
         osx
         """
-        return current_platform.name()
+        return platform_.name
 
     @propertycache
     def arch(self):
@@ -29,7 +29,7 @@ class System(object):
         x86_64
         i386
         """
-        r = current_platform.arch()
+        r = platform_.arch
         return self._make_safe_version_string(r)
 
     @propertycache
@@ -41,7 +41,7 @@ class System(object):
         windows-6.1.7600.sp1
         osx-10.6.2
         """
-        r = current_platform.os()
+        r = platform_.os
         return self._make_safe_version_string(r)
 
     @propertycache

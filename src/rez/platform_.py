@@ -2,33 +2,32 @@ import platform
 import sys
 import os
 import os.path
+from rez.util import propertycache
 from rez.exceptions import RezSystemError
-
-
-# class matching the current platform
-current_platform = None
 
 
 class Platform(object):
     """Abstraction of a platform.
     """
-    @classmethod
-    def name(cls):
+    def __init__(self):
+        pass
+
+    @property
+    def name(self):
         """Returns the name of the platform."""
         raise NotImplemented
 
-    @classmethod
-    def arch(cls):
+    @property
+    def arch(self):
         """Returns the name of the architecture."""
         return platform.machine()
 
-    @classmethod
-    def os(cls):
+    @property
+    def os(self):
         """Returns the name of the operating system."""
         raise NotImplemented
 
-    @classmethod
-    def symlink(cls, source, link_name):
+    def symlink(self, source, link_name):
         """Create a symbolic link pointing to source named link_name."""
         os.symlink(source, link_name)
 
@@ -37,12 +36,12 @@ class Platform(object):
 # Linux
 # -----------------------------------------------------------------------------
 class LinuxPlatform(Platform):
-    @classmethod
-    def name(cls):
+    @property
+    def name(self):
         return "linux"
 
-    @classmethod
-    def os(cls):
+    @propertycache
+    def os(self):
         distributor = None
         release = None
 
@@ -88,8 +87,8 @@ class LinuxPlatform(Platform):
         import subprocess
         p = subprocess.Popen(['/usr/bin/env', 'lsb_release', '-a'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        txt = proc.communicate()[0]
-        if not proc.returncode:
+        txt = p.communicate()[0]
+        if not p.returncode:
             distributor_, release_ = _parse(txt,
                                             "Distributor ID:",
                                             "Release:")
@@ -127,12 +126,12 @@ class LinuxPlatform(Platform):
 # OSX
 # -----------------------------------------------------------------------------
 class OSXPlatform(Platform):
-    @classmethod
-    def name(cls):
+    @property
+    def name(self):
         return "osx"
 
-    @classmethod
-    def os(cls):
+    @propertycache
+    def os(self):
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
@@ -141,22 +140,22 @@ class OSXPlatform(Platform):
 # Windows
 # -----------------------------------------------------------------------------
 class WindowsPlatform(Platform):
-    @classmethod
-    def name(cls):
+    @property
+    def name(self):
         return "windows"
 
-    @classmethod
-    def arch(cls):
+    @propertycache
+    def arch(self):
         # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
         if os.name == 'nt' and sys.version_info[:2] < (2, 7):
             arch = os.environ.get("PROCESSOR_ARCHITEW6432",
                                   os.environ.get('PROCESSOR_ARCHITECTURE'))
             if arch:
                 return arch
-        return super(WindowsPlatform, cls).arch()
+        return super(WindowsPlatform, self).arch()
 
-    @classmethod
-    def os(cls):
+    @propertycache
+    def os(self):
         release, version, csd, ptype = platform.win32_ver()
         toks = []
         for item in (version, csd):
@@ -166,10 +165,12 @@ class WindowsPlatform(Platform):
         return "windows-%s" % final_version
 
 
+# singleton
+platform_ = None
 name = platform.system().lower()
 if name == "linux":
-    current_platform = LinuxPlatform
+    platform_ = LinuxPlatform()
 elif name == "osx":
-    current_platform = OSXPlatform
+    platform_ = OSXPlatform()
 elif name == "windows":
-    current_platform = WindowsPlatform
+    platform_ = WindowsPlatform()
