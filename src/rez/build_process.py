@@ -59,8 +59,8 @@ class BuildProcess(object):
     def build(self, install_path=None, clean=False, install=False):
         """Perform the build process.
 
-        Iterates over the package's variants, resolves the environment for each,
-        and runs the build system within each resolved environment.
+        Iterates over the package's variants, resolves the environment for
+        each, and runs the build system within each resolved environment.
 
         Args:
             install_path: The path to install the package to, if installing.
@@ -85,7 +85,6 @@ class BuildProcess(object):
         raise NotImplementedError
 
 
-
 class StandardBuildProcess(BuildProcess):
     """An abstract base class that defines some useful common functionality.
 
@@ -95,12 +94,13 @@ class StandardBuildProcess(BuildProcess):
     """
     def __init__(self, working_dir, buildsys, vcs=None, release_message=None,
                  ensure_latest=True, verbose=True):
-        super(StandardBuildProcess,self).__init__(working_dir=working_dir,
-                                                  buildsys=buildsys,
-                                                  vcs=vcs,
-                                                  release_message=release_message,
-                                                  ensure_latest=ensure_latest,
-                                                  verbose=verbose)
+        super(StandardBuildProcess, self).__init__(
+            working_dir=working_dir,
+            buildsys=buildsys,
+            vcs=vcs,
+            release_message=release_message,
+            ensure_latest=ensure_latest,
+            verbose=verbose)
 
     def _build(self, install_path, build_path, clean=False, install=False):
         """Build all the variants of the package.
@@ -126,7 +126,8 @@ class StandardBuildProcess(BuildProcess):
         base_build_path = os.path.join(self.working_dir,
                                        self.package.settings.build_directory)
         base_build_path = os.path.realpath(base_build_path)
-        install_path = install_path or self.package.settings.local_packages_path
+        install_path = (install_path or
+                        self.package.settings.local_packages_path)
 
         return self._build(install_path=install_path,
                            build_path=base_build_path,
@@ -151,12 +152,13 @@ class StandardBuildProcess(BuildProcess):
         if fam_info is not None and "uuid" in fam_info:
             this_uuid = self.package.metadata.get("uuid")
             if this_uuid != fam_info["uuid"]:
-                raise ReleaseError(("cannot release - '%s' is already " + \
-                    "installed but appears to be a different package.") \
+                raise ReleaseError(
+                    ("cannot release - '%s' is already "
+                     "installed but appears to be a different package.")
                     % self.package.qualified_name)
 
         # get last release, this stops same/earlier version release
-        last_pkg,last_release_info = \
+        last_pkg, last_release_info = \
             self._get_last_release(install_path)
 
         print "Checking state of repository..."
@@ -177,7 +179,8 @@ class StandardBuildProcess(BuildProcess):
                                     changelog=changelog,
                                     previous_version=last_ver,
                                     previous_revision=last_rev):
-                self._prd("Release cancelled by pre-release hook '%s'" % hook.name())
+                self._prd("Release cancelled by pre-release hook '%s'"
+                          % hook.name())
                 return False
 
         # do the initial build
@@ -216,7 +219,8 @@ class StandardBuildProcess(BuildProcess):
             previous_revision=last_rev)
 
         if self.release_message:
-            msg = [x.rstrip() for x in self.release_message.strip().split('\n')]
+            msg = [x.rstrip() for x in
+                   self.release_message.strip().split('\n')]
             release_info["release_message"] = msg
 
         release_content = yaml.dump(release_info, default_flow_style=False)
@@ -269,11 +273,13 @@ class StandardBuildProcess(BuildProcess):
                                  descending=True):
             if pkg.version == self.package.version:
                 raise ReleaseError(("cannot release - an equal package "
-                                   "version already exists: %s") % pkg.metafile)
+                                    "version already exists: %s")
+                                   % pkg.metafile)
             elif pkg.version > self.package.version:
                 if self.ensure_latest:
                     raise ReleaseError(("cannot release - a newer package "
-                                       "version already exists: %s") % pkg.metafile)
+                                       "version already exists: %s")
+                                       % pkg.metafile)
             else:
                 release_yaml = os.path.join(pkg.base, "release.yaml")
                 try:
@@ -283,8 +289,7 @@ class StandardBuildProcess(BuildProcess):
                 except:
                     pass
 
-        return (None,None)
-
+        return (None, None)
 
 
 class LocalSequentialBuildProcess(StandardBuildProcess):
@@ -298,7 +303,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         timestamp = int(time.time())
 
         # iterate over variants
-        for i,variant in enumerate(self.package.iter_variants()):
+        for i, variant in enumerate(self.package.iter_variants()):
             self._hdr("Building %d/%d..." % (i+1, nvariants), 2)
             subdir = variant.subpath
 
