@@ -63,6 +63,16 @@ class _Printer(object):
         return self.verbose
 
 
+class SolverState(object):
+    def __init__(self, num_solves, num_fails, phase):
+        self.num_solves = num_solves
+        self.num_fails = num_fails
+        self.phase = phase
+
+    def __str__(self):
+        return "solve #%d (%d fails so far): %s" \
+                    % (self.num_solves, self.num_fails, str(self.phase))
+
 
 class _Common(object):
     def __repr__(self):
@@ -1518,8 +1528,7 @@ class Solver(_Common):
         if self.callback:
             phase = self._latest_unsolved_phase()
             if phase:
-                s = "solve #%d (%d fails so far): %s" \
-                    % (self.num_solves, self.num_fails, str(phase))
+                s = SolverState(self.num_solves, self.num_fails, str(phase))
                 keep_going = self.callback(s)
                 if not keep_going:
                     self.pr("solve stopped by user")

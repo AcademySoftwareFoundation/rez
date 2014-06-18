@@ -16,6 +16,7 @@ from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import RezSystemError, PackageCommandError
 from rez.vendor import yaml
+import functools
 import getpass
 import inspect
 import time
@@ -41,7 +42,7 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, quiet=False, verbosity=0,
         timestamp=None, building=False, caching=None, package_paths=None,
-        add_implicit_packages=True, add_bootstrap_path=None):
+        add_implicit_packages=True, add_bootstrap_path=None, max_fails=-1):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -94,6 +95,7 @@ class ResolvedContext(object):
         self.arch = system.arch
         self.os = system.os
         self.created = int(time.time())
+        self.max_fails = max_fails
 
         # resolve results
         self.status = "pending"
@@ -105,16 +107,20 @@ class ResolvedContext(object):
         self.load_time = 0.0
 
         # perform the solve
-        def _pr(s):
-            print s
-            return True
+        def _pr(print_state, max_fails, state):
+            if print_state:
+                print state
+            return  max_fails == -1 or max_fails < state.num_fails
 
         verbose_ = False
-        callback = None
-        if verbosity >= 2:
+
+        print_state = False
+        if verbosity >= 1:
+            print_state = True
+        if verbosity == 2:
             verbose_ = True
-        elif verbosity == 1:
-            callback = _pr
+
+        callback = functools.partial(_pr, print_state, self.max_fails)
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
@@ -213,6 +219,41 @@ class ResolvedContext(object):
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
         """
+
+        from rez.vendor.colorama import init
+        from rez.vendor.colorama import Fore
+        from rez.vendor.colorama import Style          
+
+        init()
+        indent = 2
+
+        def _bright(s):
+            return Style.BRIGHT + s + Style.RESET_ALL
+
+        def _dim(s):
+            return Style.DIM + s + Style.RESET_ALL
+
+        def _red(s):
+            return Fore.RED + s + Fore.RESET
+
+        def _cyan(s):
+            return Fore.CYAN + s + Fore.RESET
+
+        def _green(s):
+            return Fore.GREEN + s + Fore.RESET
+
+        def _maxwidths(rows, fields):
+            maxwidths = {}
+
+            for row in rows:
+                for field in fields:
+                    nse = len(str(getattr(row, field)))
+                    w = maxwidths.get(field, -1)
+                    if nse > w:
+                        maxwidths[field] = nse
+
+            return maxwidths
+
         def _pr(s=''):
             print >> buf, s
 
@@ -223,44 +264,98 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
+        class _Row(object):
+
+            padding = 2
+
+            def __init__(self, pkg):
+                self._pkg = pkg
+
+            @property
+            def name(self):
+                return self._pkg.qualified_package_name
+
+            @property
+            def root(self):
+                return self._pkg.root
+
+            @property
+            def tokens(self):
+                tokens = []
+                if not os.path.exists(self._pkg.root):
+                    tokens.append('NOT FOUND')
+                elif self._pkg.is_local:
+                   tokens.append('local')
+                if self._pkg.is_implicit:
+                    tokens.append('implicit')
+                stokens = ", ".join(tokens)
+                return "(" + stokens + ")" if stokens else ""
+
+            def format(self, widths, fields):
+                s = ''
+                for field in fields:
+                    value = str(getattr(self, field))
+                    spacing = widths[field] - len(value) + self.padding
+                    s += value + ' ' * spacing
+                if self._pkg.is_local:
+                    s = _green(s)
+                if self._pkg.is_implicit:
+                    s = _cyan(s)
+                return s
+
         if self.status in ("failed", "aborted"):
-            _pr("The context failed to resolve:\n")
-            _pr(self.failure_description)
+            _pr(_red(_bright("The context failed to resolve:\n")))
+            _pr(_red(str(self.failure_description)))
             return
 
         t_str = _rt(self.created)
         _pr("resolved by %s@%s, on %s, using Rez v%s" \
-            % (self.user, self.host, t_str, self.rez_version))
+            % (_bright(self.user), _bright(self.host), _bright(t_str), _bright(self.rez_version)))
         if self.timestamp:
             t_str = _rt(self.timestamp)
-            _pr("packages released after %s were ignored" % t_str)
+            _pr(_red("packages released after ") + _red(_bright(t_str)) + _red(" were ignored"))
         _pr()
 
         if verbose:
-            _pr("search paths:")
+            _pr(_bright("search paths:"))
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr("requested packages:")
+        _pr(_bright("requested packages:"))
         for pkg in self.package_requests:
-            _pr(str(pkg))
+            pkgs = str(pkg)
+            if pkg in self.implicit_packages:
+                pkgs = _cyan(pkgs)
+            _pr(' ' * indent + pkgs)
         _pr()
 
-        _pr("resolved packages:")
+        _lpkgs = []
+        ipkgs = [i.name for i in self.implicit_packages]
+        for pkg in self.resolved_packages:
+            pkg.is_implicit = False
+            if pkg.name in ipkgs:
+               pkg.is_implicit = True
+            if pkg.is_local:
+                _lpkgs.append(' ' * indent + pkg.qualified_package_name)
+        if _lpkgs:
+            _pr(_bright("local packages:"))
+            for _lpkg in _lpkgs:
+                _pr(_green(_lpkg))
+            _pr()
+
+        _pr(_bright("resolved packages:"))
+        fields = ["name", "root", "tokens"]
         rows = []
         for pkg in (self.resolved_packages or []):
-            tok = ''
-            if not os.path.exists(pkg.root):
-                tok = 'NOT FOUND'
-            elif is_subdirectory(pkg.root, settings.local_packages_path):
-                tok = '(local)'
-            rows.append((pkg.qualified_package_name, pkg.root, tok))
-        _pr('\n'.join(columnise(rows)))
+            rows.append(_Row(pkg))
+        widths = _maxwidths(rows, fields)
+        for row in rows:
+            _pr(' ' * indent + row.format(widths, fields))
 
         if verbose:
             _pr()
-            _pr("resolve details:")
+            _pr(_bright("resolve details:"))
             _pr("load time: %.02f secs" % self.load_time)
             # solve time includes load time
             _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
