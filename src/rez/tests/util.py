@@ -1,9 +1,10 @@
 import rez.vendor.unittest2 as unittest
 from rez.settings import settings
-from rez.shells import create_shell
+from rez.shells import get_shell_types
 import tempfile
 import shutil
 import os.path
+import os
 
 
 
@@ -23,24 +24,6 @@ class TestBase(unittest.TestCase):
         settings.lock(False)
 
 
-class ShellDependentTest(TestBase):
-    """Base class for tests that are sensitive to shell type."""
-    def __init__(self, fn, shell=None):
-        TestBase.__init__(self, fn)
-        self.shell = shell
-
-    def setUp(self):
-        TestBase.setUp(self)
-        settings.set("default_shell", self.shell)
-
-    def create_shell(self):
-        return create_shell(self.shell)
-
-    def test_create_shell(self):
-        print "\n\nSHELL TYPE: %s" % self.shell
-        self.create_shell()
-
-
 class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
     @classmethod
@@ -51,3 +34,23 @@ class TempdirMixin(object):
     def tearDownClass(cls):
         if os.path.exists(cls.root):
             shutil.rmtree(cls.root)
+
+
+def shell_dependent(fn):
+    """Function decorator that runs the function over all shell types."""
+    def _fn(self, *args, **kwargs):
+        for shell in get_shell_types():
+            print "\ntesting in shell: %s..." % shell
+            settings.set("default_shell", shell)
+            fn(self, *args, **kwargs)
+    return _fn
+
+
+def install_dependent(fn):
+    """Function decorator that skips tests if not run via 'rez-cli' tool."""
+    def _fn(self, *args, **kwargs):
+        if os.getenv("__REZ_TEST_RUNNING"):
+            fn(self, *args, **kwargs)
+        else:
+            print "\nskipping test, must be run via 'rez-test' tool"
+    return _fn

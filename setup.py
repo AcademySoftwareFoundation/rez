@@ -119,9 +119,12 @@ setup(
             find_files('plugins', '*.yapsy-plugin') + \
             find_files('_sys', '*.csh') + \
             find_files('_sys', '*.sh') + \
-            find_files('plugins/build_system/cmake_files', '*.cmake') + \
+            #find_files('plugins/build_system/cmake_files', '*.cmake') + \
             find_files('tests/data', '*.*') + \
             find_files('contrib/animallogic/bin', '_unleasher')
+        'rezplugins': [
+            'build_system/cmake_files/*.cmake',
+        ]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

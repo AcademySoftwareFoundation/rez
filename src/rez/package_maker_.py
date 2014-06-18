@@ -231,11 +231,9 @@ class PackageMaker(object):
             if reqlist.conflict:
                 raise PackageMetadataError("The package contains an internal "
                                            "conflict: %s" % str(reqlist))
-        # make dirs
+
+        # make base dir. Variant dirs are created only if needed
         os.makedirs(self.base_path)
-        for i in range(self.num_variants):
-            varpath = self.variant_path(i)
-            os.makedirs(varpath)
 
         # make python tools
         for (name,path),body in self.python_tools.iteritems():
@@ -341,9 +339,8 @@ class YamlPackageMaker(PackageMaker):
 
         doc = OrderedDict()
         for key,value in self._get_metadata().iteritems():
-            if inspect.isfunction(value):
-                loc = inspect.getsourcelines(value)[0][1:]
-                code = textwrap.dedent(''.join(loc))
+            if inspect.isfunction(value) or isinstance(value, code_provider):
+                code = _get_code(value)
                 value = rex(code)
             elif key == "commands" and not isinstance(value, rex):
                 value = rex(value)

@@ -35,9 +35,8 @@ def parse_build_args(args, parser):
 def add_build_system_args(parser):
     from rez.build_system import get_valid_build_systems
     clss = get_valid_build_systems(os.getcwd())
-
     if len(clss) == 1:
-        cls = iter(clss).next()
+        cls = clss[0]
         cls.bind_cli(parser)
     elif clss:
         types = [x.name() for x in clss]

@@ -35,12 +35,20 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
         bootpaths = [os.path.realpath(os.path.join(p,x)) for x in rel_pypaths]
         sys.path = bootpaths + sys.path
     else:
-        import site
         _script_dir = os.path.dirname(__file__)
-        _install_base = os.path.join(_script_dir, '%(rel_path)s')
-        _install_base = os.path.realpath(_install_base)
-        site.addsitedir(_install_base)
-        sys.path.insert(0, _install_base)
+        bootfile = os.path.join(_script_dir, '../../../../../.rez-bootstrapped')
+        bootfile = os.path.realpath(bootfile)
+        if os.path.exists(bootfile):
+            _install_base = os.path.join(_script_dir, '../..')
+            _install_base = os.path.realpath(_install_base)
+            sys.path.insert(0, _install_base)
+        else:
+            import site
+            _script_dir = os.path.dirname(__file__)
+            _install_base = os.path.join(_script_dir, '%(rel_path)s')
+            _install_base = os.path.realpath(_install_base)
+            site.addsitedir(_install_base)
+            sys.path.insert(0, _install_base)
     """ % dict(
         rel_path=rel_install_base_dir)).strip()
 
@@ -52,10 +60,10 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
             if script in ("_rez_csh_complete",):
                 shutil.copy(file, dst)
             else:
-                if script == "rezolve":
+                if script in ("rezolve", "rez"):
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
                     from rez.cli._main import run
                     run()
@@ -64,7 +72,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
                 elif script == "bez":
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
                     from rez.cli._bez import run
                     run()
@@ -76,10 +84,10 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
 
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s
+                    #!%(py_exe)s -E
                     __PATCH__
-                    from rez._sys import _forward_script
-                    _forward_script('%(cmd)s')
+                    from rez.cli._main import run
+                    run('%(cmd)s')
                     """ % dict(
                         py_exe=sys.executable,
                         cmd=cmd)).strip()
@@ -97,10 +105,13 @@ def post_install(install_base_dir, install_scripts_dir, scripts):
 
     # create bootstrap packages
     def _bind(name):
-        from rez.vendor import importlib 
-        module = importlib.import_module("rez.bind.%s" % name)
+        from rez.backport.importlib import import_module
+        module = import_module("rez.bind.%s" % name)
         print "creating bootstrap package for %s..." % name
-        module.bind(bootstrap_path)
+        try:
+            module.bind(bootstrap_path)
+        except Exception as e:
+            print >> sys.stderr, "Failed making package: %s" % str(e)
 
     _bind("platform")
     _bind("arch")

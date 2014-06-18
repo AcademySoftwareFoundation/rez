@@ -15,14 +15,27 @@ def log(msg):
 
 
 def check_version(version, range=None):
-    """Check that the found software version is within supplied range."""
+    """Check that the found software version is within supplied range.
+
+    Args:
+        version: Version of the package as a Version object.
+        range: Allowable version range as a VersionRange object.
+    """
     if range and version not in range:
         raise RezBindError("found version %s is not within range %s"
                            % (str(version), str(range)))
 
 
 def find_exe(name, filepath=None):
-    """Find an executable."""
+    """Find an executable.
+
+    Args:
+        name: Name of the program, eg 'python'.
+        filepath: Path to executable, a search is performed if None.
+
+    Returns:
+        Path to the executable if found, otherwise an error is raised.
+    """
     if filepath:
         if not os.path.exists(filepath):
             open(filepath)  # raise IOError

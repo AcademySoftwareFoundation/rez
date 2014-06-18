@@ -8,15 +8,15 @@ import subprocess
 
 def get_release_vcs_types():
     """Returns the available VCS implementations - git, hg etc."""
-    from rez.plugin_managers import release_vcs_plugin_manager
-    return release_vcs_plugin_manager().get_plugins()
+    from rez.plugin_managers import plugin_manager
+    return plugin_manager.get_plugins('release_vcs')
 
 
 def create_release_vcs(path):
     """Return a new release VCS that can release from this source path."""
-    from rez.plugin_managers import release_vcs_plugin_manager
+    from rez.plugin_managers import plugin_manager
     for vcs_name in get_release_vcs_types():
-        cls = release_vcs_plugin_manager().get_plugin_class(vcs_name)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         if cls.is_valid_root(path):
             return cls(path)
 

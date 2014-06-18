@@ -12,7 +12,6 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.vendor import yaml
-    import importlib
     import inspect
 
     yaml_file = os.path.abspath(opts.YAML)
@@ -21,12 +20,21 @@ def command(opts, parser):
     with open(yaml_file) as f:
         doc = yaml.load(f.read())
 
-    namespace = "rez.%s" % doc["module"]
     func_name = doc["func_name"]
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
+    plugin_instance = None
 
-    module = importlib.import_module(namespace)
+    if isinstance(doc["module"], basestring):
+        # refers to a rez module
+        from rez.backport.importlib import import_module
+        namespace = "rez.%s" % doc["module"]
+        module = import_module(namespace)
+    else:
+        # refers to a rez plugin module
+        from rez.plugin_managers import plugin_manager
+        plugin_type, plugin_name = doc["module"]
+        module = plugin_manager.get_plugin_module(plugin_type, plugin_name)
 
     target_func = getattr(module, func_name)
     func_args = inspect.getargspec(target_func).args

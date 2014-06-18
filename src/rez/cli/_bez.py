@@ -1,10 +1,9 @@
 import os
 import sys
-import imp
 import os.path
-import inspect
+import textwrap
+import subprocess
 from rez.vendor import yaml, argparse
-from rez.resolved_context import ResolvedContext
 
 
 
@@ -32,26 +31,24 @@ def run():
         print >> sys.stderr, "no rezbuild.py at %s. Stop." % source_path
         sys.exit(1)
 
-    # get build function object in rezbuild.py
-    stream = open(buildfile)
-    namespace = {}
-    exec stream in namespace
+    # run rezbuild.py:build() in python subprocess. Cannot import module here
+    # because we're in a python env configured for rez, not the build
+    code = \
+    """
+    stream=open("%(buildfile)s")
+    env={}
+    exec stream in env
+    env["build"]("%(srcpath)s","%(bldpath)s","%(instpath)s",%(targets)s)
+    """ % dict(buildfile=buildfile,
+               srcpath=source_path,
+               bldpath=doc["build_path"],
+               instpath=doc["install_path"],
+               targets=str(opts.TARGET or None))
 
-    buildfunc = namespace.get("build")
-    if not buildfunc:
-        print >> sys.stderr, "rezbuild.py has no 'build' function"
-        sys.exit(1)
-
-    if not inspect.isfunction(buildfunc):
-        print >> sys.stderr, "build (in rezbuild.py) is not a function"
-        sys.exit(1)
-
-    # create context to pass to build()
-    r = ResolvedContext.load("build.rxt")
+    cli_code = textwrap.dedent(code).strip().replace('\n',';')
 
     print "executing rezbuild.py..."
-    buildfunc(context=r,
-              source_path=source_path,
-              build_path=doc["build_path"],
-              install_path=doc["install_path"],
-              targets=opts.TARGET or None)
+    cmd = ["python", "-c", cli_code]
+    p = subprocess.Popen(cmd)
+    p.wait()
+    sys.exit(p.returncode)

@@ -1,6 +1,0 @@
-[Core]
-Name = git
-Module = git
-
-[Documentation]
-Description = Git VCS support.

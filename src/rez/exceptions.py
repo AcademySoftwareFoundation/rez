@@ -21,12 +21,17 @@ class ConfigurationError(RezError):
 
 
 class RezSystemError(RezError):
-    """Rez system error."""
+    """Rez system/internal error."""
     pass
 
 
 class RezBindError(RezError):
     """A bind-related error."""
+    pass
+
+
+class RezPluginError(RezError):
+    """An error related to plugin or plugin load."""
     pass
 
 

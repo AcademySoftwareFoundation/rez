@@ -2,6 +2,8 @@
 Rez installation-related operations.
 '''
 import sys
+import os.path
+
 
 def setup_parser(parser):
     from rez.shells import get_shell_types
@@ -30,7 +32,8 @@ def command(opts, parser):
                 "ahead anyway, use the --force option."
             sys.exit(1)
 
-        init_script = install_into(opts.install_path, opts.shell)
+        install_path = os.path.expanduser(opts.install_path)
+        init_script = install_into(install_path, opts.shell)
         print
         print ("Rez has been bootstrapped into %s. To bind Rez to the current " + \
         "environment, source the file %s.") % (opts.install_path, init_script)

@@ -3,7 +3,7 @@ Utility functions for building an external package, ie a rez-install 'formula'.
 """
 from __future__ import with_statement
 from source_retrieval import get_source, SourceRetrieverError
-from plugin_managers import source_retriever_plugin_manager
+from plugin_managers import plugin_manager
 from rez.cli import error, output
 from rez.util import render_template
 import traceback
@@ -183,8 +183,11 @@ def _apply_patch(metadata, patch_info, source_path):
         cache_path = _get_cache_path(metadata)
         dest_path = os.path.join(SOURCE_ROOT, '.hg', 'patches')
 
-        cloner = source_retriever_plugin_manager.create_instance(url,
-            type="hg", cache_path=cache_path, revision=rev)
+        cloner = plugin_manager.create_instance('source_retriever',
+                                                url,
+                                                type="hg",
+                                                cache_path=cache_path,
+                                                revision=rev)
         cloner.get_source(dest_path)
 
         print "applying patches"

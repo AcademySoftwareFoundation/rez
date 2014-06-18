@@ -208,6 +208,7 @@ class StandardBuildProcess(BuildProcess):
         # write release info (changelog etc) into release path
         release_info = dict(
             timestamp=int(time.time()),
+            vcs=self.vcs.name(),
             revision=curr_rev,
             changelog=changelog,
             release_message=self.release_message,
@@ -264,7 +265,8 @@ class StandardBuildProcess(BuildProcess):
         return p
 
     def _get_last_release(self, release_path):
-        for pkg in iter_packages(self.package.name, paths=[release_path]):
+        for pkg in iter_packages(self.package.name, paths=[release_path],
+                                 descending=True):
             if pkg.version == self.package.version:
                 raise ReleaseError(("cannot release - an equal package "
                                    "version already exists: %s") % pkg.metafile)
@@ -274,9 +276,12 @@ class StandardBuildProcess(BuildProcess):
                                        "version already exists: %s") % pkg.metafile)
             else:
                 release_yaml = os.path.join(pkg.base, "release.yaml")
-                with open(release_yaml) as f:
-                    release_info = yaml.load(f.read())
-                return pkg, release_info
+                try:
+                    with open(release_yaml) as f:
+                        release_info = yaml.load(f.read())
+                    return pkg, release_info
+                except:
+                    pass
 
         return (None,None)
 

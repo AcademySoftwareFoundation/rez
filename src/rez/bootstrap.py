@@ -88,6 +88,7 @@ def install_into(path, shell=None):
     from rez.shells import create_shell
     from rez.rex import RexExecutor
 
+    path = os.path.abspath(path)
     if os.path.exists(path):
         raise Exception("Path already exists: %s" % path)
     ppath = os.path.dirname(path)
