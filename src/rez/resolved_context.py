@@ -2,6 +2,7 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.settings import settings
+from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
     create_forwarding_script, is_subdirectory
@@ -138,11 +139,9 @@ class ResolvedContext(object):
             # convert solver.Variants to packages.Variants
             pkgs = []
             for variant in resolver.resolved_packages:
-                pkg = Variant(name=variant.name,
-                              version=variant.version,
-                              path=variant.metafile,
-                              index=variant.index)
-
+                resource_handle = variant.userdata
+                resource = resource_handle.get_resource()
+                pkg = Variant(resource)
                 pkgs.append(pkg)
             self.resolved_packages_ = pkgs
         elif self.status == "failed":
@@ -160,7 +159,8 @@ class ResolvedContext(object):
         return ((self.graph_ is not None) or self.graph_string)
 
     def get_resolved_package(self, name):
-        """Returns a Variant object or None if the package is not in the resolve.
+        """Returns a Variant object or None if the package is not in the
+        resolve.
         """
         pkgs = [x for x in self.resolved_packages_ if x.name == name]
         return pkgs[0] if pkgs else None
@@ -255,7 +255,7 @@ class ResolvedContext(object):
             tok = ''
             if not os.path.exists(pkg.root):
                 tok = 'NOT FOUND'
-            elif is_subdirectory(pkg.root, settings.local_packages_path):
+            elif pkg.is_local:
                 tok = '(local)'
             rows.append((pkg.qualified_package_name, pkg.root, tok))
         _pr('\n'.join(columnise(rows)))
@@ -614,8 +614,9 @@ class ResolvedContext(object):
         return binpath
 
     def to_dict(self):
-        resolved_packages = [x.to_dict() for x in self.resolved_packages_] \
-            if self.resolved_packages_ else None
+        resolved_packages = []
+        for pkg in (self.resolved_packages_ or []):
+            resolved_packages.append(pkg.resource_handle.to_dict())
 
         return dict(
             serialize_version=ResolvedContext.serialize_version,
@@ -649,8 +650,6 @@ class ResolvedContext(object):
         sz_ver = d["serialize_version"]  # for backwards compatibility
         r.load_path = None
 
-        resolved_packages = d["resolved_packages"]
-
         r.timestamp = d["timestamp"]
         r.building = d["building"]
         r.caching = d["caching"]
@@ -668,8 +667,6 @@ class ResolvedContext(object):
         r.created = d["created"]
 
         r.status = d["status"]
-        r.resolved_packages_ = [Variant.from_dict(x) for x in resolved_packages] \
-            if resolved_packages else None
         r.failure_description = d["failure_description"]
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]
@@ -677,6 +674,12 @@ class ResolvedContext(object):
         r.graph_string = d["graph"]
         r.graph_ = None
 
+        r.resolved_packages_ = []
+        for d_ in d["resolved_packages"]:
+            resource_handle = ResourceHandle.from_dict(d_)
+            resource = resource_handle.get_resource()
+            variant = Variant(resource)
+            r.resolved_packages_.append(variant)
         return r
 
     def _create_executor(self, interpreter, parent_environ):
@@ -736,13 +739,13 @@ class ResolvedContext(object):
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
-                        executor.execute_code(commands, pkg.metafile)
+                        executor.execute_code(commands, pkg.path)
                     elif inspect.isfunction(commands):
                         # rex code is a function in a package.py
                         executor.execute_function(commands)
                 except Exception as e:
                     msg = "Error in commands in file %s:\n%s" \
-                          % (pkg.metafile, str(e))
+                          % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
         # append system paths

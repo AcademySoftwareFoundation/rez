@@ -842,7 +842,8 @@ class ResourceWrapper(object):
         return f.format(s)
 
     def __eq__(self, other):
-        return (self._resource == other._resource)
+        return (self.__class__ == other.__class__
+                and self._resource == other._resource)
 
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self._resource)

@@ -217,12 +217,21 @@ class Variant(_PackageBase):
         return "%s[%s]" % (self.qualified_package_name, idxstr)
 
     @propertycache
+    def base(self):
+        return os.path.dirname(self.path)
+
+    @propertycache
+    def root(self):
+        return (os.path.join(self.base, self.subpath)
+                if self.subpath else self.base)
+
+    @propertycache
     def subpath(self):
         if self.index is None:
             return ''
         else:
             dirs = [x.safe_str() for x in self._internal.variant_requires]
-            return os.path.join(*dirs)
+            return os.path.join(*dirs) if dirs else ''
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
