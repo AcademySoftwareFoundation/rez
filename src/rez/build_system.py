@@ -1,5 +1,5 @@
 from rez.exceptions import BuildSystemError
-from rez.packages import Package
+from rez.packages import load_developer_package
 from rez.util import which
 
 
@@ -83,7 +83,7 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.package = Package(working_dir)
+        self.package = load_developer_package(working_dir)
         self.write_build_scripts = write_build_scripts
         self.build_args = build_args
         self.child_build_args = child_build_args

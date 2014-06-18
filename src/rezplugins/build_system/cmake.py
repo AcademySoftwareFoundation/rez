@@ -61,9 +61,8 @@ class CMakeBuildSystem(BuildSystem):
                                                build_args=build_args,
                                                child_build_args=child_build_args)
         self.build_target = opts.build_target
-
         self.cmake_build_system = opts.build_system \
-            or self.package.settings.cmake_build_system
+            or self.package.config.cmake_build_system
         if self.cmake_build_system == 'xcode' and platform.system() != 'Darwin':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -81,7 +80,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble cmake command
         cmd = [exe, "-d", self.working_dir]
-        cmd += (self.package.settings.cmake_args or [])
+        cmd += (self.package.config.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
@@ -142,7 +141,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_ENV = 1
         #executor.env.REZ_LOCAL_PACKAGES_PATH = package.settings.local_packages_path
         #executor.env.REZ_RELEASE_PACKAGES_PATH = package.settings.release_packages_path
-        executor.env.REZ_BUILD_PROJECT_FILE = package.metafile
+        executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \

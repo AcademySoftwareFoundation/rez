@@ -3,7 +3,7 @@ from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
     ResourceWrapper
 from rez.package_resources import package_schema
-from rez.settings import Settings
+from rez.settings import settings
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
@@ -144,9 +144,13 @@ class _PackageBase(ResourceWrapper):
         return str(o)
 
     @propertycache
+    def config(self):
+        return self.metadata.get("config") or settings
+
+    @propertycache
     def is_local(self):
         """Returns True if this package is in the local packages path."""
-        return (self.search_path == self.settings.local_packages_path)
+        return (self.search_path == self.config.local_packages_path)
 
     def __str__(self):
         return "%s@%s" % (self.qualified_name, self.search_path)
