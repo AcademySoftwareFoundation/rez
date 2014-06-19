@@ -101,13 +101,7 @@ class ConfigRoot(ArbitraryPath):
 
 
 class ConfigResource(FileResource):
-    """A Rez configuration file.
-
-    Config files are merged with other config files to create a `Config`
-    instance. The 'rezconfig' file in rez acts as the master - other config
-    files update the master configuration to create the final config. See the
-    comments at the top of 'rezconfig' for more details.
-    """
+    """A Rez configuration file resource."""
     key = "config.file"
     parent_resource = ConfigRoot
     schema = config_schema_optional

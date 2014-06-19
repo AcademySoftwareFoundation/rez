@@ -215,6 +215,12 @@ class System(object):
             return shell
 
     @propertycache
+    def user(self):
+        """Get the current user."""
+        import getpass
+        return getpass.getuser()
+
+    @propertycache
     def fqdn(self):
         """
         @returns Fully qualified domain name. Example:

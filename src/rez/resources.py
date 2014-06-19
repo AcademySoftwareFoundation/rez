@@ -836,7 +836,7 @@ class DataWrapper(object):
         else:
             return convert_to_user_dict(self._data, RO_AttrDictWrapper)
 
-    def format(self, s, pretty=False, default=None):
+    def format(self, s, pretty=False, expand=None):
         """Format a string.
 
         Args:
@@ -844,13 +844,15 @@ class DataWrapper(object):
             pretty: If True, references to non-string attributes such as lists
                 are converted to basic form, with characters such as brackets
                 and parenthesis removed.
-            default: What to expand references to nonexistent attributes to. If
-                None, an exception is raised.
+            expand: What to expand references to nonexistent attributes to:
+                - None: raise an exception;
+                - 'empty': expand to an empty string;
+                - 'unchanged': leave original string intact, ie '{key}'
 
         Returns:
             The formatting string.
         """
-        formatter = ObjectStringFormatter(self, pretty=pretty, default=default)
+        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
 
 

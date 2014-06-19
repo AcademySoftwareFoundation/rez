@@ -53,10 +53,13 @@ def command(opts, parser):
 
     if opts.NAME and not version_range:
         # support syntax ala 'rez-search foo-1.2+'
-        req = Requirement(opts.NAME)
-        if req.range:
-            name_pattern = req.name
-            version_range = req.range
+        try:
+            req = Requirement(opts.NAME)
+            if not req.range.is_any():
+                name_pattern = req.name
+                version_range = req.range
+        except:
+            pass
 
     type_ = opts.type
     if type_ == "auto" and version_range:
@@ -81,7 +84,7 @@ def command(opts, parser):
     def _print_resource(r):
         if opts.format:
             try:
-                print r.format(opts.format, pretty=True, default='')
+                print r.format(opts.format, pretty=True, expand='unchanged')
             except Exception as e:
                 print >> sys.stderr, str(e)
         else:

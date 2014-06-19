@@ -1097,20 +1097,22 @@ class ObjectStringFormatter(Formatter):
 
     This formatter will expand any reference to an object's attributes.
     """
-    def __init__(self, instance, pretty=False, default=None):
+    def __init__(self, instance, pretty=False, expand=None):
         """Create a formatter.
 
         Args:
             instance: The object to format with.
             pretty: If True, references to non-string attributes such as lists
                 are converted to basic form, with characters such as brackets
-                and parenthesis removed.
-            default: What to expand references to nonexistent attributes to. If
-                None, an exception is raised.
+                and parentheses removed.
+            expand: What to expand references to nonexistent attributes to:
+                - None: raise an exception;
+                - 'empty': expand to an empty string;
+                - 'unchanged': leave original string intact, ie '{key}'
         """
         self.instance = instance
         self.pretty = pretty
-        self.default = default
+        self.expand = expand
 
     def convert_field(self, value, conversion):
         if self.pretty:
@@ -1120,11 +1122,25 @@ class ObjectStringFormatter(Formatter):
                 return ' '.join(str(x) for x in value)
         return Formatter.convert_field(self, value, conversion)
 
+    def get_field(self, field_name, args, kwargs):
+        if self.expand is None:
+            return Formatter.get_field(self, field_name, args, kwargs)
+        try:
+            return Formatter.get_field(self, field_name, args, kwargs)
+        except AttributeError:
+            import re
+            reg = re.compile("[^\.\[]+")
+            try:
+                key = reg.match(field_name).group()
+            except:
+                key = field_name
+            if self.expand == 'empty':
+                return ('', key)
+            else:
+                return ("{%s}" % field_name, key)
+
     def get_value(self, key, args, kwds):
         if isinstance(key, basestring):
-            if self.default is None:
-                return getattr(self.instance, key)
-            else:
-                return getattr(self.instance, key, self.default)
+            return getattr(self.instance, key)
         else:
             return Formatter.get_value(self, key, args, kwds)

@@ -10,19 +10,12 @@
 #    present, where XXX is the uppercase version of the setting key. For example,
 #    'image_viewer' will be overriden by $REZ_IMAGE_VIEWER.
 # 5) This is a special case applied only during a package build or release. In
-#    this case, if the package definition file contains a 'rezconfig' section,
+#    this case, if the package definition file contains a 'config' section,
 #    settings in this section will override all others.
 #
-# If a setting type is a list, then an overriding env-var is expected to be
-# separated by the path seperator for the current os (eg ':' in Linux).
-#
-# There are a set of special variables that will expand at runtime. These can be
-# referred to by any string-based setting, using the format '{varname}'. The
-# available variables are:
-# {platform} - machine platform, eg 'linux';
-# {arch} - machine architecture, eg 'x86_64';
-# {os} - machine operating system, eg 'Ubuntu-12.04';
-# {user} - the current user.
+# Variable expansion can be used in configuration settings. The following
+# expansions are supported:
+# - Any property of the system object. Eg '{system.platform}'
 #
 
 
@@ -98,9 +91,9 @@ resource_caching_maxsize: 10000
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
 implicit_packages:
-- '~platform=={platform}'
-- '~arch=={arch}'
-- '~os=={os}'
+- '~platform=={system.platform}'
+- '~arch=={system.arch}'
+- '~os=={system.os}'
 
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
@@ -220,7 +213,7 @@ release_email_smtp_host:
 release_email_smtp_port: 25
 
 # The address that post-release emails appear to come from.
-release_email_from: '{user}@rez-release.com'
+release_email_from: '{system.user}@rez-release.com'
 
 # List of recipients of post-release emails.
 release_email_to: []
