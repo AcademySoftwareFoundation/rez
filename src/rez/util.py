@@ -17,6 +17,7 @@ import textwrap
 import tempfile
 import threading
 import subprocess as sp
+from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
 
@@ -688,9 +689,9 @@ class propertycache(object):
                 defaultRepr = '<<unable to get repr for default>>'
             return '%s(%s)' % (type(self).__name__, defaultRepr)
 
-    def __init__(self, func):
+    def __init__(self, func, name=None):
         self.func = func
-        self.name = func.__name__
+        self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):
         if instance is None:
@@ -1089,3 +1090,41 @@ class ScopeContext(object):
     def __str__(self):
         names = ('.'.join(y for y in x) for x in self.scopes.keys())
         return "%r" % (tuple(names),)
+
+
+class ObjectStringFormatter(Formatter):
+    """String formatter for objects.
+
+    This formatter will expand any reference to an object's attributes.
+    """
+    def __init__(self, instance, pretty=False, default=None):
+        """Create a formatter.
+
+        Args:
+            instance: The object to format with.
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parenthesis removed.
+            default: What to expand references to nonexistent attributes to. If
+                None, an exception is raised.
+        """
+        self.instance = instance
+        self.pretty = pretty
+        self.default = default
+
+    def convert_field(self, value, conversion):
+        if self.pretty:
+            if value is None:
+                return ''
+            elif isinstance(value, list):
+                return ' '.join(str(x) for x in value)
+        return Formatter.convert_field(self, value, conversion)
+
+    def get_value(self, key, args, kwds):
+        if isinstance(key, basestring):
+            if self.default is None:
+                return getattr(self.instance, key)
+            else:
+                return getattr(self.instance, key, self.default)
+        else:
+            return Formatter.get_value(self, key, args, kwds)

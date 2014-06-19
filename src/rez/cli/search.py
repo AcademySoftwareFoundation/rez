@@ -81,7 +81,7 @@ def command(opts, parser):
     def _print_resource(r):
         if opts.format:
             try:
-                print r.format(opts.format, pretty=True)
+                print r.format(opts.format, pretty=True, default='')
             except Exception as e:
                 print >> sys.stderr, str(e)
         else:

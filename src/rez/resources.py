@@ -23,11 +23,11 @@ import os
 import sys
 import inspect
 import re
-import string
+import fnmatch
 from collections import defaultdict
-from fnmatch import fnmatch
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
-    propertycache, convert_to_user_dict, RO_AttrDictWrapper, dicts_conflicting
+    propertycache, convert_to_user_dict, RO_AttrDictWrapper, \
+    dicts_conflicting, ObjectStringFormatter
 from rez.settings import settings
 from rez.exceptions import PackageMetadataError, ResourceError, \
     ResourceNotFoundError
@@ -215,6 +215,9 @@ def load_file(filepath, loader=None):
         loader = metadata_loaders[loader]
 
     with open(filepath, 'r') as f:
+        return loader(f)
+        # TODO finish this
+        """
         try:
             return loader(f)
         except Exception as e:
@@ -226,6 +229,7 @@ def load_file(filepath, loader=None):
                 frames = frames[1:]
             stack = ''.join(traceback.format_list(frames)).strip()
             raise PackageMetadataError(filepath, "%s\n%s" % (str(e), stack))
+        """
 
 
 # -----------------------------------------------------------------------------
@@ -727,14 +731,14 @@ class ArbitraryPath(SearchPath):
     @classmethod
     def _default_search_paths(cls, path=None):
         if path:
-            return [os.path.dirname(path)]
+            return [os.path.dirname(os.path.abspath(path))]
         else:
             raise ResourceError("This type of resources requires explicit "
                                 "search path(s)")
 
 
 # -----------------------------------------------------------------------------
-# Resource Wrapper
+# Resource Wrapping
 # -----------------------------------------------------------------------------
 
 class _WithDataAccessors(type):
@@ -743,7 +747,10 @@ class _WithDataAccessors(type):
 
     Property names are derived from the keys of the class's `schema` object.
     If a schema key is optional, then the class property will evaluate to None
-    if the key is not present in the resource.
+    if the key is not present in the metadata.
+
+    If the class instance also has a `_validate_key` method, this will be used
+    to lazily transform properties on first reference.
     """
     def __new__(cls, name, parents, members):
         schema = members.get('schema')
@@ -754,54 +761,57 @@ class _WithDataAccessors(type):
                 while isinstance(key, Schema):
                     key = key._schema
                 if key not in members and \
+                        isinstance(key, basestring) and \
                         not any(hasattr(x, key) for x in parents):
                     members[key] = cls._make_getter(key, optional)
+
         return super(_WithDataAccessors, cls).__new__(cls, name, parents,
                                                       members)
 
     @classmethod
     def _make_getter(cls, key, optional):
         def getter(self):
-            if optional:
-                return getattr(self.metadata, key, None)
-            else:
-                return getattr(self.metadata, key)
-        return property(getter)
+            if optional and key not in self.metadata:
+                return None
+            attr = getattr(self.metadata, key)
+            if hasattr(self, "_validate_key"):
+                attr = self._validate_key(key, attr)
+            return attr
+        return propertycache(getter, name=key)
 
 
-class ResourceWrapper(object):
-    """Base class for implementing a class that wraps a resource.
-    """
+class DataWrapper(object):
+    """Base class for implementing a class that contains validated data."""
     __metaclass__ = _WithDataAccessors
     schema = None
-
-    def __init__(self, resource):
-        self._resource = resource
-
-    @property
-    def path(self):
-        return self._resource.path
-
-    @property
-    def resource_handle(self):
-        return self._resource.handle
+    key_schemas = None
 
     def validate(self):
-        """Check that the resource's contents are valid."""
+        """Check that the object's contents are valid."""
         _ = self._data
 
+    def _load_data(self):
+        """Implement this method to return the object's data.
+
+        Returns:
+            Object data as a dict, or None if the object has no data.
+        """
+        raise NotImplementedError
+
+    # Why is this here? It isn't the original data unchanged - metadata()
+    # switches any nested dicts into AttrDictWrapper instances
     @propertycache
     def _data(self):
-        """Dictionary of data loaded from the package's resource.
+        """Loaded object data.
 
         This is private because it is preferred for users to go through the
         `metadata` property.  This is here to preserve the original dictionary
         loaded directly from the package's resource.
 
         Returns:
-            Resource data as a dict, or None if the resource has no data.
+            Object data as a dict, or None if the object has no data.
         """
-        data = self._resource.load()
+        data = self._load_data()
         if data and self.schema:
             data = self.schema.validate(data)
         return data
@@ -826,7 +836,7 @@ class ResourceWrapper(object):
         else:
             return convert_to_user_dict(self._data, RO_AttrDictWrapper)
 
-    def format(self, s, pretty=False):
+    def format(self, s, pretty=False, default=None):
         """Format a string.
 
         Args:
@@ -834,12 +844,32 @@ class ResourceWrapper(object):
             pretty: If True, references to non-string attributes such as lists
                 are converted to basic form, with characters such as brackets
                 and parenthesis removed.
+            default: What to expand references to nonexistent attributes to. If
+                None, an exception is raised.
 
         Returns:
             The formatting string.
         """
-        f = ResourceWrapperStringFormatter(self, pretty=pretty)
-        return f.format(s)
+        formatter = ObjectStringFormatter(self, pretty=pretty, default=default)
+        return formatter.format(s)
+
+
+class ResourceWrapper(DataWrapper):
+    """Base class for implementing a class that wraps a resource.
+    """
+    def __init__(self, resource):
+        self._resource = resource
+
+    @property
+    def path(self):
+        return self._resource.path
+
+    def _load_data(self):
+        return self._resource.load()
+
+    @property
+    def resource_handle(self):
+        return self._resource.handle
 
     def __eq__(self, other):
         return (self.__class__ == other.__class__
@@ -850,40 +880,6 @@ class ResourceWrapper(object):
 
     def __hash__(self):
         return hash((self.__class__, self._resource))
-
-
-class ResourceWrapperStringFormatter(string.Formatter):
-    """String formatter for resource wrappers.
-
-    This formatter will expand any reference to a resource wrapper's
-    attributes.
-    """
-    def __init__(self, resource_wrapper, pretty=False):
-        """Create a formatter.
-
-        Args:
-            resource_wrapper: The resource to format with.
-            pretty: If True, references to non-string attributes such as lists
-                are converted to basic form, with characters such as brackets
-                and parenthesis removed.
-        """
-        self.instance = resource_wrapper
-        self.pretty = pretty
-
-    def convert_field(self, value, conversion):
-        if self.pretty:
-            if value is None:
-                return ''
-            elif isinstance(value, list):
-                return ' '.join(str(x) for x in value)
-        return string.Formatter.convert_field(self, value, conversion)
-
-    def get_value(self, key, args, kwds):
-        if isinstance(key, basestring):
-            attr = getattr(self.instance, key, '')
-            return '' if callable(attr) else attr
-        else:
-            return string.Formatter.get_value(self, key, args, kwds)
 
 
 # -----------------------------------------------------------------------------
@@ -905,7 +901,7 @@ def list_resource_classes(config_version, keys=None):
         if isinstance(keys, basestring):
             keys = [keys]
         resource_classes = [r for r in resource_classes if
-                            any(fnmatch(r.key, k) for k in keys)]
+                            any(fnmatch.fnmatch(r.key, k) for k in keys)]
     return resource_classes
 
 

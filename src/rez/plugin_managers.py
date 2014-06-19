@@ -188,9 +188,8 @@ class RezPluginManager(object):
             def register_plugin():
                 return SConsBuildSystem
 
-    3.  Use the `rez settings` command to configure `plugin_path` to point
-        to the directory **above** your 'rezplugins' directory. Alternately, you
-        may set the `REZ_PLUGIN_PATH` environment variable.
+    3   Set or append the rez config setting `plugin_path` to point to the
+        directory **above** your 'rezplugins' directory.
 
         All 'rezplugin' packages found on the search path will all be merged
         into a single python package.

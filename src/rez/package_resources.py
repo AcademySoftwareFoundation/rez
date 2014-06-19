@@ -20,7 +20,7 @@ UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a
 
 
 # -----------------------------------------------------------------------------
-# Metadata Schema Implementations
+# Schema Implementations
 # -----------------------------------------------------------------------------
 
 # TODO: inspect arguments of the function to confirm proper number?
@@ -37,7 +37,7 @@ def is_uuid(s):
     return True
 
 
-class VersionLoader(object):
+class GetVersion(object):
     """
     This class exists to fix an unfortunate bug in Rez-1, where some packages
     have their version listed in their package.yaml as a number and not a
@@ -49,15 +49,12 @@ class VersionLoader(object):
     def __init__(self, resource):
         self.resource = resource
         self.version_str = resource.variables['version']
-        # schema module incorrectly assumes that the callable passed to Use is
-        # a class, this is a workaround
-        self.__name__ = "VersionLoaderInstance"
 
-    def __call__(self, v):
-        if isinstance(v, basestring):
-            if v != self.version_str:
+    def validate(self, data):
+        if isinstance(data, basestring):
+            if data != self.version_str:
                 raise SchemaError(None, "%r does not match %r"
-                                  % (v, self.version_str))
+                                  % (data, self.version_str))
         else:
             filepath = self.resource.path
             if settings.warn("nonstring_version"):
@@ -170,7 +167,7 @@ class ReleaseInfoResource(FileResource):
     key = 'release.info'
     path_pattern = 'info.txt'
     parent_resource = MetadataFolder
-    loader = load_yaml
+    loader = 'yaml'
     schema = Schema({
         Required('ACTUAL_BUILD_TIME'): int,
         Required('BUILD_TIME'): int,
@@ -371,11 +368,10 @@ class VersionedPackageResource(BasePackageResource):
     @propertycache
     def schema(self):
         schema = super(VersionedPackageResource, self).schema
-        ver_validator = VersionLoader(self)
         return _updated_schema(
             schema,
             [(Required('version'),
-              And(object, Use(ver_validator)))])
+              And(object, GetVersion(self)))])
 
 
 class VersionedVariantResource(BaseVariantResource):
