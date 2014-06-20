@@ -4,7 +4,7 @@
 # Settings are determined in the following way:
 # 1) The setting is first read from this file;
 # 2) The setting is then overridden if it is present in another settings file
-#    pointed at by the $REZ_SETTINGS_FILE environment variable;
+#    pointed at by the $REZ_CONFIG_FILE environment variable;
 # 3) The setting is further overriden if it is present in $HOME/.rezconfig;
 # 4) The setting is overridden again if the environment variable $REZ_XXX is
 #    present, where XXX is the uppercase version of the setting key. For example,
@@ -13,11 +13,13 @@
 #    this case, if the package definition file contains a 'config' section,
 #    settings in this section will override all others.
 #
+# Note that in the case of plugin settings (anything under the 'plugins'
+# section of the config), (4) does not apply.
+#
 # Variable expansion can be used in configuration settings. The following
 # expansions are supported:
 # - Any property of the system object. Eg '{system.platform}'
 #
-
 
 ###############################################################################
 # Paths

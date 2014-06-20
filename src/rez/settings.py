@@ -221,6 +221,8 @@ class Settings(object):
 
     @classmethod
     def _validate(cls, key, value):
+        if key not in cls.key_schemas:
+            return
         schema = cls.key_schemas[key]
         try:
             schema.validate(value)

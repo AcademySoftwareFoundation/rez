@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 
-if sys.version_info < (2,6):
+if sys.version_info < (2, 6):
     print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
 
@@ -22,12 +22,14 @@ if sys.version_info < (2,6):
 os.environ['__rez_is_installing'] = '1'
 
 
-def find_files(path, pattern):
+def find_files(pattern, path=None, root="rez"):
     paths = []
-    basepath = os.path.realpath(os.path.join("src", "rez"))
-    path = os.path.join(basepath, path)
+    basepath = os.path.realpath(os.path.join("src", root))
+    path_ = basepath
+    if path:
+        path_ = os.path.join(path_, path)
 
-    for root,_,files in os.walk(path):
+    for root, _, files in os.walk(path_):
         files = [x for x in files if fnmatch.fnmatch(x, pattern)]
         files = [os.path.join(root, x) for x in files]
         paths += [x[len(basepath):].lstrip(os.path.sep) for x in files]
@@ -107,23 +109,23 @@ setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     cmdclass={'install': install_},
-    scripts=[os.path.join('bin',x) for x in scripts],
-    #install_requires=requires,
+    scripts=[os.path.join('bin', x) for x in scripts],
     include_package_data=True,
     package_dir = {'': 'src'},
     packages=find_packages('src', exclude=["tests"]),
     package_data = {
-        'rez': \
-            ['rezconfig'] + \
-            ['README*'] + \
-            find_files('plugins', '*.yapsy-plugin') + \
-            find_files('_sys', '*.csh') + \
-            find_files('_sys', '*.sh') + \
-            #find_files('plugins/build_system/cmake_files', '*.cmake') + \
-            find_files('tests/data', '*.*'),
-        'rezplugins': [
-            'build_system/cmake_files/*.cmake',
-        ]
+        'rez':
+            ['rezconfig'] +
+            ['README*'] +
+            find_files('*.csh', '_sys') +
+            find_files('*.sh', '_sys') +
+            find_files('*.*', 'tests/data'),
+        'rezplugins':
+            find_files('rezconfig', root='rezplugins') +
+            find_files('*.cmake', 'build_system', root='rezplugins')
+        #'rezplugins': [
+        #    'build_system/cmake_files/*.cmake',
+        #]
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

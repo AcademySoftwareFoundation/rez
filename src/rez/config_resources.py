@@ -1,6 +1,8 @@
 from rez.resources import Required, ArbitraryPath, FileResource, \
     register_resource, load_yaml
-from rez.vendor.schema.schema import Schema, Or, Optional
+from rez.vendor.schema.schema import Schema, Or, And, Use, Optional
+from rez.util import AttrDictWrapper, ObjectStringFormatter
+from rez.system import system
 
 
 # -----------------------------------------------------------------------------
@@ -35,7 +37,7 @@ class Bool(Setting):
     schema = Schema(bool)
 
 
-_config_schema = {
+_config_dict = {
     "packages_path":                PathList,
     "plugin_path":                  PathList,
     "bind_module_path":             PathList,
@@ -72,23 +74,81 @@ _config_schema = {
     "quiet":                        Bool,
     "prefix_prompt":                Bool,
 
-    # plugin settings are validated lazily - they cannot be validated until
-    # the plugins are loaded, which also happens lazily
-    # "plugins":                      Or(None, dict)
+    # preferred namespace to place custom settings
+    Optional("custom"):             object,
 
-    # TODO remove once all settings are finalised
-    Optional(basestring): Setting
+    # plugin settings are validated lazily
+    Optional("plugins"):            dict,
+
+    # TODO remove once all settings are finalised, unless we want custom
+    # root keys. This may be configurable
+    Optional(basestring):           object
 }
 
 
-def _xkey(k, cls):
-    return cls(k) if isinstance(k, basestring) else k
+class Expand(object):
+    """Schema that applies variable expansion."""
+    namespace = dict(system=system)
+    formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
+                                      expand='unchanged')
 
-config_schema_required = Schema(dict((_xkey(k, Required), v.schema)
-                                for k, v in _config_schema.iteritems()))
+    def __init__(self):
+        pass
 
-config_schema_optional = Schema(dict((_xkey(k, Optional), v.schema)
-                                for k, v in _config_schema.iteritems()))
+    def validate(self, data):
+        def _expand(value):
+            if isinstance(value, basestring):
+                return self.formatter.format(value)
+            elif isinstance(value, list):
+                return [_expand(x) for x in value]
+            elif isinstance(value, dict):
+                return dict((k, _expand(v)) for k, v in value.iteritems())
+            else:
+                return value
+        return _expand(data)
+
+
+def _to_schema(config_dict, required, allow_custom_keys=True,
+               inject_expansion=True):
+    """Convert a dict of Schemas into a Schema.
+
+    Args:
+        required (bool): Whether to make schema keys optional or required.
+        allow_custom_keys (bool): If True, creates a schema that allows
+            custom items in dicts.
+        inject_expansion (bool): If True, updates schema values by adding
+            variable expansion. This is used to update plugins schemas, so
+            plugin authors don't have to explicitly support expansion.
+
+    Returns:
+        A `Schema` object.
+    """
+    def _to(value):
+        if isinstance(value, dict):
+            d = {}
+            for k, v in value.iteritems():
+                if isinstance(k, basestring):
+                    k_ = Required(k) if required else Optional(k)
+                else:
+                    k_ = k
+                d[k_] = _to(v)
+            if allow_custom_keys:
+                d[Optional(basestring)] = (Expand()
+                                           if inject_expansion else object)
+            schema = Schema(d)
+        else:
+            if type(value) is type and issubclass(value, Setting):
+                schema = value.schema
+            else:
+                schema = value
+            if inject_expansion:
+                schema = And(schema, Expand())
+        return schema
+
+    return _to(config_dict)
+
+
+config_schema_optional = _to_schema(_config_dict, False)
 
 
 # -----------------------------------------------------------------------------
@@ -102,7 +162,7 @@ class ConfigRoot(ArbitraryPath):
 
 class ConfigResource(FileResource):
     """A Rez configuration file resource."""
-    key = "config.file"
+    key = "config.main"
     parent_resource = ConfigRoot
     schema = config_schema_optional
     path_pattern = "{filename}"
@@ -111,10 +171,19 @@ class ConfigResource(FileResource):
     loader = 'yaml'
 
 
+class PluginConfigResource(FileResource):
+    """A configuration file resource found in rez plugins."""
+    key = "config.plugin"
+    parent_resource = ConfigRoot
+    schema = None
+    path_pattern = "rezconfig"
+    loader = 'yaml'
+
+
 # -----------------------------------------------------------------------------
 # Resource Registration
 # -----------------------------------------------------------------------------
 
 register_resource(0, ConfigRoot)
-
 register_resource(0, ConfigResource)
+register_resource(0, PluginConfigResource)

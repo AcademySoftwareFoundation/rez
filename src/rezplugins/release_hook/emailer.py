@@ -1,20 +1,27 @@
 from rez.release_hook import ReleaseHook
-from rez import plugin_factory
 from email.mime.text import MIMEText
 import smtplib
 import sys
 
 
 class EmailReleaseHook(ReleaseHook):
+
+    schema_dict = {
+        "smtp_host":        basestring,
+        "smtp_port":        int,
+        "sender":           basestring,
+        "recipients":       [basestring]}
+
     @classmethod
     def name(cls):
         return "emailer"
 
     def __init__(self, source_path):
-        super(EmailReleaseHook,self).__init__(source_path)
+        super(EmailReleaseHook, self).__init__(source_path)
 
     def post_release(self, user, install_path, release_message=None,
-                     changelog=None, previous_version=None, previous_revision=None):
+                     changelog=None, previous_version=None,
+                     previous_revision=None):
         # construct email body
         body = []
         body.append("USER: %s" % user)

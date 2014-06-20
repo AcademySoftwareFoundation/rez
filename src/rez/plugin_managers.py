@@ -2,7 +2,7 @@
 Manages loading of all types of Rez plugins.
 """
 from rez.settings import settings
-from rez.util import LazySingleton
+from rez.util import LazySingleton, propertycache, deep_update
 from rez.exceptions import RezPluginError
 import os.path
 import sys
@@ -29,8 +29,8 @@ def extend_path(path, name):
     modified; an extended copy is returned.  Items are only appended
     to the copy at the end.
 
-    It is assumed that 'plugin_path' is a sequence.  Items of 'plugin_path' that
-    are not (unicode or 8-bit) strings referring to existing
+    It is assumed that 'plugin_path' is a sequence.  Items of 'plugin_path'
+    that are not (unicode or 8-bit) strings referring to existing
     directories are ignored.  Unicode items of sys.path that cause
     errors when used as filenames may cause this function to raise an
     exception (in line with os.path.isdir() behavior).
@@ -61,6 +61,7 @@ def extend_path(path, name):
 
     return path
 
+
 class RezPluginType(object):
     """An abstract base class representing a single type of plugin.
 
@@ -76,6 +77,7 @@ class RezPluginType(object):
         self.pretty_type_name = self.type_name.replace('_', ' ')
         self.plugin_classes = {}
         self.plugin_modules = {}
+        self.config_resources = []
         self.load_plugins()
 
     def __repr__(self):
@@ -83,6 +85,8 @@ class RezPluginType(object):
 
     def register_plugin(self, plugin_name, plugin_class, plugin_module):
         # TODO: check plugin_class to ensure it is a sub-class of expected base-class?
+        # TODO: perhaps have a Plugin base class. This introduces multiple
+        # inheritance in Shell class though :/
         self.plugin_classes[plugin_name] = plugin_class
         self.plugin_modules[plugin_name] = plugin_module
 
@@ -100,16 +104,15 @@ class RezPluginType(object):
         paths = [package.__path__] if isinstance(package.__path__, basestring) \
             else package.__path__
         for path in paths:
-            for loader, modname, ispkg in pkgutil.walk_packages([path],
-                                                                package.__name__ + '.'):
+            for loader, modname, ispkg in pkgutil.walk_packages(
+                    [path], package.__name__ + '.'):
                 if loader is not None:
                     plugin_name = modname.split('.')[-1]
                     if plugin_name.startswith('_'):
                         continue
                     if settings.debug("plugins"):
-                        print "loading %s plugin at %s: %s..." % (self.type_name,
-                                                                  path, modname)
-
+                        print ("loading %s plugin at %s: %s..."
+                               % (self.type_name, path, modname))
                     try:
                         module = loader.find_module(modname).load_module(modname)
                         if hasattr(module, 'register_plugin') and \
@@ -123,6 +126,17 @@ class RezPluginType(object):
                         if settings.debug("plugins"):
                             import traceback
                             traceback.print_exc()
+            # load config
+            configfile = os.path.join(path, "rezconfig")
+            if os.path.exists(configfile):
+                import rez.config_resources  # force resource registration
+                from rez.resources import get_resource
+                resource = get_resource(
+                    0,
+                    filepath=configfile,
+                    resource_keys="config.plugin",
+                    root_resource_key="folder.config_root")
+                self.config_resources.append(resource)
 
     def get_plugin_class(self, plugin_name):
         """Returns the class registered under the given plugin name."""
@@ -140,6 +154,30 @@ class RezPluginType(object):
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))
 
+    @propertycache
+    def config_data(self):
+        """Returns the merged configuration data for this plugin type."""
+        d = {}
+        for resource in self.config_resources:
+            deep_update(d, resource.load())
+        return d
+
+    @propertycache
+    def config_schema(self):
+        """Returns the merged configuration data schema for this plugin
+        type."""
+        d = {}
+        for name, plugin_class in self.plugin_classes.iteritems():
+            if hasattr(plugin_class, "schema_dict") \
+                    and plugin_class.schema_dict:
+                d_ = {name: plugin_class.schema_dict}
+                deep_update(d, d_)
+        # we allow custom keys so that packages containing plugin settings
+        # don't break when a different version of a rez plugin is present,
+        # which may have missing or extra keys.
+        from rez.config_resources import _to_schema
+        return _to_schema(d, required=True)
+
     def create_instance(self, plugin, **instance_kwargs):
         """Create and return an instance of the given plugin."""
         return self.get_plugin_class(plugin)(**instance_kwargs)
@@ -151,8 +189,8 @@ class RezPluginManager(object):
 
     Custom plugins are organized under a python package named 'rezplugins'.
     The direct sub-packages of 'rezplugins' are the plugin types supported by
-    rez, and the modules below that are individual custom plugins extending that
-    type.
+    rez, and the modules below that are individual custom plugins extending
+    that type.
 
     For example, rez provides three plugins of type 'build_system': 'cmake',
     'make' and 'bez'::
@@ -166,8 +204,8 @@ class RezPluginManager(object):
             bez.py
           ...
 
-    Here is an example of how to provide your own plugin.  In the example, we'll
-    be adding a plugin for the SCons build system.
+    Here is an example of how to provide your own plugin.  In the example,
+    we'll be adding a plugin for the SCons build system.
 
     1.  Create the 'rezplugins/build_system' directory structure, add the empty
         '__init__.py' files, and then place your new 'scons.py' plugin module
@@ -179,8 +217,9 @@ class RezPluginManager(object):
                 __init__.py
                 scons.py
 
-    2.  Write your 'scons.py' plugin module, sub-classing your `SConsBuildSystem`
-        class from `rez.build_systems.BuildSystem` base class.
+    2.  Write your 'scons.py' plugin module, sub-classing your
+        `SConsBuildSystem` class from `rez.build_systems.BuildSystem` base
+        class.
 
         At the bottom of the module add a `register_plugin` function that
         returns your plugin class::
@@ -196,10 +235,10 @@ class RezPluginManager(object):
 
         ..note::
 
-            Even though 'rezplugins' is a python package, your sparse copy of it
-            should  not be on the `PYTHONPATH`, just the `REZ_PLUGIN_PATH`.
-            This is important  because it ensures that rez's copy of 'rezplugins'
-            is always found first.
+            Even though 'rezplugins' is a python package, your sparse copy of
+            it should  not be on the `PYTHONPATH`, just the `REZ_PLUGIN_PATH`.
+            This is important  because it ensures that rez's copy of
+            'rezplugins' is always found first.
     """
     def __init__(self):
         self._plugin_types = {}
@@ -210,7 +249,8 @@ class RezPluginManager(object):
         try:
             return self._plugin_types[plugin_type]()
         except KeyError:
-            raise RezPluginError("Unrecognised plugin type: '%s'" % (plugin_type))
+            raise RezPluginError("Unrecognised plugin type: '%s'"
+                                 % plugin_type)
 
     def register_plugin_type(self, type_class):
         if not issubclass(type_class, RezPluginType):
@@ -226,35 +266,40 @@ class RezPluginManager(object):
 
     # -- plugins
 
-    def get_plugin_class(self, plugin_type, plugin_name):
-        """Return the class registered under the given plugin name."""
-        try:
-            return self._get_plugin_type(plugin_type).get_plugin_class(plugin_name)
-        except KeyError:
-            raise RezPluginError("Unrecognised %s plugin: '%s'"
-                                 % (self.pretty_type_name, plugin_name))
-
-    def get_plugin_module(self, plugin_type, plugin_name):
-        """Return the module defining the class registered under the given plugin name."""
-        try:
-            return self._get_plugin_type(plugin_type).get_plugin_module(plugin_name)
-        except KeyError:
-            raise RezPluginError("Unrecognised %s plugin: '%s'"
-                                 % (self.pretty_type_name, plugin_name))
-
     def get_plugins(self, plugin_type):
         """Return a list of the registered names available for the given plugin
         type."""
         return self._get_plugin_type(plugin_type).plugin_classes.keys()
+
+    def get_plugin_class(self, plugin_type, plugin_name):
+        """Return the class registered under the given plugin name."""
+        plugin = self._get_plugin_type(plugin_type)
+        return plugin.get_plugin_class(plugin_name)
+
+    def get_plugin_module(self, plugin_type, plugin_name):
+        """Return the module defining the class registered under the given
+        plugin name."""
+        plugin = self._get_plugin_type(plugin_type)
+        return plugin.get_plugin_module(plugin_name)
+
+    def get_plugin_config_data(self, plugin_type):
+        """Return the merged configuration data for the plugin type."""
+        plugin = self._get_plugin_type(plugin_type)
+        return plugin.config_data
+
+    def get_plugin_config_schema(self, plugin_type):
+        plugin = self._get_plugin_type(plugin_type)
+        return plugin.config_schema
 
     def create_instance(self, plugin_type, plugin_name, **instance_kwargs):
         """Create and return an instance of the given plugin."""
         plugin_type = self._get_plugin_type(plugin_type)
         return plugin_type.create_instance(plugin_name, **instance_kwargs)
 
-#------------------------------------
+
+# ------------------------------------------------------------------------------
 # Plugin Types
-#------------------------------------
+# ------------------------------------------------------------------------------
 
 class SourceRetrieverPluginType(RezPluginType):
     """Source retrievers download data from sources such as archives or
@@ -288,7 +333,8 @@ class SourceRetrieverPluginType(RezPluginType):
             raise RuntimeError(("No source retriever is associated with the url: '%s'. "
                 "Supported extensions are: %s") % (url, ', '.join(self.extensions)))
 
-        return super(SourceRetrieverPluginType, self).create_instance(plugin,
+        return super(SourceRetrieverPluginType, self).create_instance(
+            plugin,
             url=url,
             cache_path=cache_path,
             cache_filename=cache_filename,

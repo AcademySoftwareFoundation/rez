@@ -511,39 +511,24 @@ class DeveloperVariantResource(BaseVariantResource):
 # -- deployed packages
 
 register_resource(0, PackagesRoot)
-
 register_resource(0, PackageFamilyFolder)
-
 register_resource(0, PackageVersionFolder)
-
 register_resource(0, VersionedPackageResource)
-
 register_resource(0, VersionedVariantResource)
-
 register_resource(0, VersionlessPackageResource)
-
 register_resource(0, VersionlessVariantResource)
-
 register_resource(0, ReleaseDataResource)
-
 register_resource(0, CombinedPackageFamilyResource)
-
 register_resource(0, CombinedPackageResource)
-
 # deprecated
 register_resource(0, MetadataFolder)
-
 register_resource(0, ReleaseTimestampResource)
-
 register_resource(0, ReleaseInfoResource)
-
 register_resource(0, ChangelogResource)
 
 
 # -- development packages
 
 register_resource(0, DeveloperPackagesRoot)
-
 register_resource(0, DeveloperPackageResource)
-
 register_resource(0, DeveloperVariantResource)

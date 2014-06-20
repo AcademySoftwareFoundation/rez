@@ -780,15 +780,23 @@ class RO_AttrDictWrapper(AttrDictWrapper):
                              % (self.__class__.__name__, attr))
 
 
-def convert_to_user_dict(d, dict_class=AttrDictWrapper):
-    """
-    recursively convert all dictionaries in `d`, including `d`, to the
-    `UserDict` specified by `dict_class`.
+def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
+    """Recursively convert dict and UserDict types.
+
+    Note that `d` itself is converted also, as well as any nested dict-like
+    objects.
+
+    Args:
+        to_class (type): Dict-like type to convert values to, usually UserDict
+            subclass, or dict.
+        from_class (type): Dict-like type to convert values from. If a tuple,
+            multiple types are converted.
     """
     for key, value in d.iteritems():
-        if isinstance(value, dict):
-            d[key] = convert_to_user_dict(value, dict_class=AttrDictWrapper)
-    return dict_class(d)
+        if isinstance(value, from_class):
+            d[key] = convert_dicts(value, to_class=to_class,
+                                   from_class=from_class)
+    return to_class(d)
 
 
 class Namespace(object):

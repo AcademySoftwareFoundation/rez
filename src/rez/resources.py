@@ -26,7 +26,7 @@ import re
 import fnmatch
 from collections import defaultdict
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
-    propertycache, convert_to_user_dict, RO_AttrDictWrapper, \
+    propertycache, convert_dicts, RO_AttrDictWrapper, \
     dicts_conflicting, ObjectStringFormatter
 from rez.settings import settings
 from rez.exceptions import PackageMetadataError, ResourceError, \
@@ -40,14 +40,11 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional
 # list of resource classes, keyed by config_version
 _configs = defaultdict(list)
 
+
 # make an alias which just so happens to be the same number of characters as
 # 'Optional'  so that our schema are easier to read
 Required = Schema
 
-
-# -----------------------------------------------------------------------------
-# Misc Functions
-# -----------------------------------------------------------------------------
 
 def _or_regex(strlist):
     return '|'.join('(%s)' % e for e in strlist)
@@ -148,23 +145,6 @@ def load_python(stream):
     return result
 
 
-def load_yaml(stream):
-    """load a yaml stream into a metadata dictionary.
-
-    Args:
-        stream (string, or open file object): stream of text which will be
-            passed to ``yaml.load``
-
-    Returns:
-        dict
-    """
-    if hasattr(stream, 'read'):
-        text = stream.read()
-    else:
-        text = stream
-    return yaml.load(text) or {}
-
-
 def load_text(stream):
     """Load a text file.
 
@@ -179,6 +159,20 @@ def load_text(stream):
     else:
         text = stream
     return text
+
+
+def load_yaml(stream):
+    """load a yaml stream into a metadata dictionary.
+
+    Args:
+        stream (string, or open file object): stream of text which will be
+            passed to ``yaml.load``
+
+    Returns:
+        dict
+    """
+    text = load_text(stream)
+    return yaml.load(text) or {}
 
 
 # TODO pluggize
@@ -216,7 +210,7 @@ def load_file(filepath, loader=None):
 
     with open(filepath, 'r') as f:
         return loader(f)
-        # TODO finish this
+        # TODO raise exceptions from loaders
         """
         try:
             return loader(f)
@@ -834,7 +828,7 @@ class DataWrapper(object):
         if self._data is None:
             return None
         else:
-            return convert_to_user_dict(self._data, RO_AttrDictWrapper)
+            return convert_dicts(self._data, RO_AttrDictWrapper)
 
     def format(self, s, pretty=False, expand=None):
         """Format a string.
