@@ -22,6 +22,7 @@ def convert_name(name):
 # This is just a temporary simplistic implementation for now
 def convert_version(version):
     """Convert a python distribution version into a rez-safe version string."""
+    """
     version = version.replace('-','.')
     version = version.lower()
     version = re.sub("[a-z]", "", version)
@@ -29,6 +30,9 @@ def convert_version(version):
     version = version.replace("..", '.')
     version = version.replace("..", '.')
     return version
+    """
+    return str(version)
+
 
 
 # TODO add native Requirement conversion support into new version submod
