@@ -7,12 +7,15 @@
 # a .svn dir) are excluded. If this macro does not provide enough fine-grain control for
 # your needs, then you should use cmake's install(DIRECTORY) macro instead (and you should
 # use the values REZ_FILE_INSTALL_PERMISSIONS and REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS
-# to specify the permissions you want).
+# to specify the permissions you want).If LOCAL_SYMLINK is preset it would create a symlink
+# from the build package back to the source code for development/testing purposes. That way 
+# a rez-build is not needed every time that the code changes.
 #
 # Usage: install_dirs_(
 #	<directories>
 #	DESTINATION <rel_install_dir>
 #	[EXECUTABLE]
+#	[LOCAL_SYMLINKS]
 # )
 #
 
@@ -31,7 +34,7 @@ macro (install_dirs_)
 	# parse args
 	#
 
-	parse_arguments(INSTD "DESTINATION" "EXECUTABLE" ${ARGN})
+	parse_arguments(INSTD "DESTINATION" "EXECUTABLE;LOCAL_SYMLINK" ${ARGN})
 
 	if(NOT INSTD_DEFAULT_ARGS)
 		message(FATAL_ERROR "no directories listed in call to install_dirs_")
@@ -47,13 +50,22 @@ macro (install_dirs_)
 	else(INSTD_EXECUTABLE)
 		set(perms ${REZ_FILE_INSTALL_PERMISSIONS})
 	endif(INSTD_EXECUTABLE)
+   
+    if(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
+        install(DIRECTORY
+            ${INSTD_DEFAULT_ARGS}
+            DESTINATION ${dest_dir}
+            FILE_PERMISSIONS ${perms}
+            PATTERN .svn EXCLUDE
+            )
+    else()
+        foreach(directory ${INSTD_DEFAULT_ARGS})
+            get_filename_component(DIR_NAME ${directory} NAME) 
+            message (STATUS  "Symlink : ${CMAKE_CURRENT_SOURCE_DIR}/${directory} -> ${CMAKE_INSTALL_PREFIX}${DIR_NAME}" )
+            install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/${directory} ${CMAKE_INSTALL_PREFIX}${DIR_NAME})" )
+        endforeach(directory ${INSTD_DEFAULT_ARGS})
+    endif(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
 
-	install(DIRECTORY
-		${INSTD_DEFAULT_ARGS}
-		DESTINATION ${dest_dir}
-		FILE_PERMISSIONS ${perms}
-		PATTERN .svn EXCLUDE
-	)
 
 endmacro (install_dirs_)
 
