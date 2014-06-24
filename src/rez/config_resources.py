@@ -80,8 +80,7 @@ _config_dict = {
     # plugin settings are validated lazily
     Optional("plugins"):            dict,
 
-    # TODO remove once all settings are finalised, unless we want custom
-    # root keys. This may be configurable
+    # TODO remove once all settings are finalised
     Optional(basestring):           object
 }
 

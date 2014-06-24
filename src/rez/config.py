@@ -29,11 +29,12 @@ class Setting(object):
         raise NotImplementedError
 
     def validate(self, data):
-        data = self._validate(data)
         try:
+            data = self._validate(data)
             data = self.schema.validate(data)
         except SchemaError as e:
-            raise ConfigurationError("Error in Rez configuration: %s" % str(e))
+            raise ConfigurationError("Misconfigured setting '%s': %s"
+                                     % (self.key, str(e)))
         return data
 
     def _validate(self, data):
@@ -61,7 +62,7 @@ class Str(Setting, config_resources.Str):
         return value
 
 
-class OptionalStr(Str):
+class OptionalStr(Setting, config_resources.OptionalStr):
     pass
 
 
@@ -142,15 +143,31 @@ class Config(DataWrapper):
         self.overrides = overrides or {}
         self.locked = locked
 
-    def warn(self, param):
+    def override(self, key, value):
+        """Set a setting to the given value.
+
+        Note that `key` can be in dotted form, eg
+        'plugins.release_hook.emailer.sender'.
+        """
+        keys = key.split('.')
+        if len(keys) > 1:
+            if keys[0] != "plugins":
+                raise AttributeError("no such setting: %r" % key)
+            self.plugins.override(keys[1:], value)
+        else:
+            self.overrides[key] = value
+            if key in self.__dict__:
+                del self.__dict__[key]  # uncache
+
+    def warn(self, key):
         """Returns True if the warning setting is enabled."""
         return (not self.quiet and
-                (self.warn_all or getattr(self, "warn_%s" % param)))
+                (self.warn_all or getattr(self, "warn_%s" % key)))
 
-    def debug(self, param):
+    def debug(self, key):
         """Returns True if the debug setting is enabled."""
         return (not self.quiet and
-                (self.debug_all or getattr(self, "debug_%s" % param)))
+                (self.debug_all or getattr(self, "debug_%s" % key)))
 
     @propertycache
     def plugins(self):
@@ -159,13 +176,18 @@ class Config(DataWrapper):
         plugin_data = self.metadata.get("plugins", {})
         return _PluginConfigs(plugin_data)
 
-    @propertycache
+    @property
     def data(self):
         """Returns the entire configuration as a dict.
 
         Note that this will force all plugins to be loaded.
         """
-        d = convert_dicts(self.metadata, dict, (dict, AttrDictWrapper))
+        d = {}
+        for key in self.metadata.iterkeys():
+            try:  # TODO remove try-catch once all settings are finalised
+                d[key] = getattr(self, key)
+            except AttributeError:
+                pass
         d["plugins"] = self.plugins.to_dict()
         return d
 
@@ -288,6 +310,30 @@ class _PluginConfigs(object):
         d_ = convert_dicts(d, RO_AttrDictWrapper)
         self.__dict__[attr] = d_
         return d_
+
+    def override(self, key, value):
+        def _nosuch():
+            raise AttributeError("no such setting: %r" % '.'.join(key))
+        if len(key) < 2:
+            _nosuch()
+        from rez.plugin_managers import plugin_manager
+        if key[0] not in plugin_manager.get_plugin_types():
+            _nosuch()
+
+        plugin_type = key[0]
+        key = key[1:]
+        data = {}
+        new_overrides = {plugin_type: data}
+        while len(key) > 1:
+            data_ = {}
+            data[key[0]] = data_
+            data = data_
+            key = key[1:]
+        data[key[0]] = value
+        deep_update(self.__dict__['data'], new_overrides)
+
+        if plugin_type in self.__dict__:
+            del self.__dict__[plugin_type]  # uncache
 
     def to_dict(self):
         # force plugin configs to load

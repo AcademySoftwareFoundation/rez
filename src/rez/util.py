@@ -704,10 +704,7 @@ class propertycache(object):
         except self.DoNotCacheSignal, e:
             return e.default
 
-        try:
-            setattr(instance, self.name, result)
-        except AttributeError:
-            instance.__dict__[self.name] = result
+        instance.__dict__[self.name] = result
         return result
 
 

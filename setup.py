@@ -47,6 +47,7 @@ version = "2.0.ALPHA.1"
 scripts = [
     "rezolve",
     "rez",
+    "rez-config",
     "rez-settings",
     "rez-build",
     "rez-release",
