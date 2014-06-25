@@ -15,7 +15,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.packages import iter_packages
 from rez.util import columnise
-from rez.settings import settings
+from rez.config import config
 import os.path
 import copy
 import time
@@ -494,7 +494,8 @@ class _PackageVariantSlice(_Common):
 
 class _PackageVariantCache(object):
     def __init__(self, package_paths=None, timestamp=0, building=False):
-        self.package_paths = settings.default(package_paths, "packages_path")
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
         self.timestamp = timestamp
         self.building = building
         self.variant_lists = {}  # {package-name: _PackageVariantList}
@@ -1218,7 +1219,7 @@ class Solver(_Common):
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs, defaults to
-                settings.packages_path.
+                config.packages_path.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1228,7 +1229,8 @@ class Solver(_Common):
                 truthy, the solve continues, otherwise the solve is stopped.
         """
         self.package_requests = package_requests
-        self.package_paths = package_paths or settings.packages_path
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
         self.pr = _Printer(verbose)
         self.optimised = optimised
         self.timestamp = timestamp

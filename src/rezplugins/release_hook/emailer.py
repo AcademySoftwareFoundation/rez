@@ -39,21 +39,22 @@ class EmailReleaseHook(ReleaseHook):
         self.send_email(subject, '\n'.join(body))
 
     def send_email(self, subject, body):
-        smtp_host = self.package.settings.release_email_smtp_host
-        from_ = self.package.settings.release_email_from
-        to_ = self.package.settings.release_email_to
-        if not (smtp_host and from_ and to_):
+        settings = self.package.config.plugins.release_hook.emailer
+        if not settings.recipients:
+            return  # nothing to do, sending email to nobody
+        if not settings.smtp_host:
+            print_warning_once("did not send release email: "
+                               "SMTP host is not specified")
             return
 
         print "Sending release email..."
-        smtp_port = self.package.settings.release_email_smtp_port
         msg = MIMEText(body)
         msg["Subject"] = subject
-        msg["From"] = from_
-        msg["To"] = str(',').join(to_)
+        msg["From"] = settings.sender
+        msg["To"] = str(',').join(settings.recipients)
 
         try:
-            s = smtplib.SMTP(smtp_host, smtp_port)
+            s = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
             s.sendmail(from_, to_, msg.as_string())
             print 'email(s) sent.'
         except Exception, e:

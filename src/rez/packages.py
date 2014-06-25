@@ -3,7 +3,7 @@ from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
     ResourceWrapper
 from rez.package_resources import package_schema
-from rez.settings import settings
+from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
@@ -18,7 +18,7 @@ def iter_package_families(paths=None):
 
     Args:
         paths (list of str): paths to search for package families, defaults to
-            `settings.packages_path`.
+            `config.packages_path`.
 
     Returns:
         `PackageFamily` iterator.
@@ -58,7 +58,7 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
         timestamp (int, optional): Any package newer than this time epoch is
             ignored.
         paths (list of str): paths to search for packages, defaults to
-            `settings.packages_path`.
+            `config.packages_path`.
 
     Returns:
         `Package` object iterator.
@@ -98,6 +98,26 @@ def load_developer_package(path):
         raise ResourceError("Multiple package definition files found under "
                             "%s: %s" % (path, ", ".join(files)))
     return Package(resources[0])
+
+
+def get_completions(prefix):
+    """Get autocompletion options given a prefix string.
+
+    Returns:
+        Sorted list of strings, may be empty.
+    """
+    fam = None
+    for ch in ('-', '@', '#'):
+        if ch in prefix:
+            fam = prefix.split(ch)[0]
+            break
+    if fam:
+        words = set(x.qualified_name for x in iter_packages(name=fam)
+                    if x.qualified_name.startswith(prefix))
+    else:
+        words = set(x.name for x in iter_package_families()
+                    if x.name.startswith(prefix))
+    return sorted(words)
 
 
 class PackageFamily(ResourceWrapper):
@@ -145,7 +165,7 @@ class _PackageBase(ResourceWrapper):
 
     @propertycache
     def config(self):
-        return self.metadata.get("config") or settings
+        return self.metadata.get("config") or config
 
     @propertycache
     def is_local(self):

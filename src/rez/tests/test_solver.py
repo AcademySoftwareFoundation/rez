@@ -11,7 +11,6 @@ class TestSolver(TestBase):
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
-
         cls.settings = dict(
             packages_path=[packages_path])
 

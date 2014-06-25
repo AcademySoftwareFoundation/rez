@@ -3,7 +3,7 @@ import select
 import os
 import os.path
 import subprocess
-from rez.settings import settings
+from rez.config import config
 from rez import module_root_path
 from rez.shells import UnixShell
 from rez.util import get_script_path
@@ -28,7 +28,7 @@ class SH(UnixShell):
                   % (cls.name(), cls.norc_arg, cls.command_arg)
             p = subprocess.Popen(cmd, stdout=subprocess.PIPE,
                                  stderr=subprocess.PIPE, shell=True)
-            out_,err_ = p.communicate()
+            out_, err_ = p.communicate()
             if p.returncode:
                 raise RuntimeError("Could not get executable paths: %s" % err_)
             else:
@@ -76,14 +76,14 @@ class SH(UnixShell):
         )
 
     def _bind_interactive_rez(self):
-        if settings.prompt:
+        if config.prompt:
             stored_prompt = os.getenv("$REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("$PS1", "\\h:\\w]$ ")
             if not stored_prompt:
                 self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
             new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
-            new_prompt = (new_prompt+" %s") if settings.prefix_prompt \
+            new_prompt = (new_prompt+" %s") if config.prefix_prompt \
                 else ("%s "+new_prompt)
             new_prompt = new_prompt % curr_prompt
             self._addline('export PS1="%s"' % new_prompt)

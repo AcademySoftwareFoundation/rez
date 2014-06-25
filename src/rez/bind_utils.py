@@ -3,14 +3,14 @@ Utility functions for bind modules.
 """
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
-from rez.settings import settings
+from rez.config import config
 from rez.util import which
 import subprocess
 import os.path
 
 
 def log(msg):
-    if settings.debug("bind_modules"):
+    if config.debug("bind_modules"):
         print msg
 
 

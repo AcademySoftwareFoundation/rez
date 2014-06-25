@@ -1,7 +1,7 @@
 from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
-from rez.settings import settings
+from rez.config import config
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
@@ -54,14 +54,14 @@ class ResolvedContext(object):
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, defaults to
-                settings.resolve_caching.
+                config.resolve_caching.
             package_paths: List of paths to search for pkgs, defaults to
-                settings.packages_path.
+                config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
-                by settings.implicit_packages is added to the request.
+                by config.implicit_packages is added to the request.
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
-                default specified in settings.add_bootstrap_path.
+                default specified in config.add_bootstrap_path.
         """
         self.load_path = None
 
@@ -69,7 +69,7 @@ class ResolvedContext(object):
         self.timestamp = timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
-        self.caching = settings.default(caching, "resolve_caching")
+        self.caching = config.caching if caching is None else caching
 
         self.package_requests = []
         for req in package_requests:
@@ -77,12 +77,15 @@ class ResolvedContext(object):
                 req = Requirement(req)
             self.package_requests.append(req)
 
-        self.package_paths = settings.default(package_paths, "packages_path")
-        if settings.default(add_bootstrap_path, "add_bootstrap_path"):
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
+        add_bootstrap = (config.add_bootstrap_path
+                         if add_bootstrap_path is None else add_bootstrap_path)
+        if add_bootstrap:
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         if add_implicit_packages:
-            pkg_strs = settings.implicit_packages
+            pkg_strs = config.implicit_packages
             self.implicit_packages = [Requirement(x) for x in pkg_strs]
             self.package_requests = self.implicit_packages + \
                 self.package_requests
@@ -443,7 +446,7 @@ class ResolvedContext(object):
                 return immediately. If None, will default to blocking if the
                 shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
-                the user append custom actions to the context, such as settings
+                the user append custom actions to the context, such as setting
                 extra environment variables.
             context_filepath: If provided, the context file will be written
                 here, rather than to the default location (which is in a
@@ -683,8 +686,8 @@ class ResolvedContext(object):
         return r
 
     def _create_executor(self, interpreter, parent_environ):
-        parent_vars = True if settings.all_parent_variables \
-            else settings.parent_variables
+        parent_vars = True if config.all_parent_variables \
+            else config.parent_variables
 
         return RexExecutor(interpreter=interpreter,
                            parent_environ=parent_environ,

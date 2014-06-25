@@ -1,7 +1,6 @@
 '''
 Print current rez settings.
 '''
-import sys
 
 
 def setup_parser(parser):
@@ -11,14 +10,22 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.config import config
+    from rez.util import AttrDictWrapper
+    from rez.config import _PluginConfigs
+    from rez.vendor import yaml
+
+    data = config.data
     if opts.FIELD:
-        from rez.util import ObjectStringFormatter
-        formatter = ObjectStringFormatter(config, expand=None)
-        try:
-            print formatter.format("{%s}" % opts.FIELD)
-        except AttributeError:
-            print >> sys.stderr, "no such setting: %r" % opts.FIELD
-            sys.exit(1)
+        keys = opts.FIELD.split('.')
+        while keys:
+            key = keys[0]
+            keys = keys[1:]
+            try:
+                data = data[key]
+            except KeyError:
+                raise ValueError("no such setting: %r" % opts.FIELD)
+
+    if isinstance(data, (dict, list)):
+        print yaml.dump(data, default_flow_style=False)
     else:
-        from rez.vendor import yaml
-        print yaml.dump(config.data, default_flow_style=False)
+        print data

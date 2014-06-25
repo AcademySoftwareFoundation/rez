@@ -4,14 +4,12 @@ from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.settings import settings
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
 import rez.bind.python
 import shutil
 import os.path
-
 
 
 class TestBuild(TestBase, TempdirMixin):

@@ -17,6 +17,7 @@ from rez.system import system
 from rez.exceptions import ConfigurationError
 from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 
+raise Exception("DEPRECATED")
 
 
 class PartialFormatter(string.Formatter):

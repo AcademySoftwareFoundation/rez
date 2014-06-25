@@ -8,7 +8,6 @@ import textwrap
 import os
 
 
-
 class TestRex(TestBase):
 
     def _create_executor(self, env, **kwargs):

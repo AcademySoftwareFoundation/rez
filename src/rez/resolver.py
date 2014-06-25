@@ -1,5 +1,5 @@
 from rez.solver import Solver
-from rez.settings import settings
+from rez.config import config
 
 
 class Resolver(object):
@@ -16,7 +16,7 @@ class Resolver(object):
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs, defaults to
-                settings.packages_path.
+                config.packages_path.
             caching: If True, utilise cache(s) in order to speed up the
                 resolve.
             callback: If not None, this callable will be called prior to each
@@ -26,7 +26,8 @@ class Resolver(object):
             building: True if we're resolving for a build.
         """
         self.package_requests = package_requests
-        self.package_paths = settings.default(package_paths, "packages_path")
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
         self.caching = caching
         self.timestamp = timestamp
         self.callback = callback

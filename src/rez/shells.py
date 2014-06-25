@@ -2,12 +2,11 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter
-from rez.settings import settings
+from rez.config import config
 from rez.util import which, shlex_join
 import subprocess
 import os.path
 import sys
-
 
 
 def get_shell_types():
@@ -27,7 +26,6 @@ def create_shell(shell=None, **kwargs):
     return plugin_manager.create_instance('shell', shell, **kwargs)
 
 
-
 class Shell(ActionInterpreter):
     """
     Class representing a shell, such as bash or tcsh.
@@ -41,7 +39,8 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+    def startup_capabilities(cls, rcfile=False, norc=False, command=False,
+                             stdin=False):
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.
@@ -149,13 +148,13 @@ class UnixShell(Shell):
 
     @classmethod
     def _unsupported_option(cls, option, val):
-        if val and settings.warn("shell_startup"):
+        if val and config.warn("shell_startup"):
             print >> sys.stderr, "WARNING: %s ignored, not supported by %s shell" \
                                  % (option, cls.name())
 
     @classmethod
     def _overruled_option(cls, option, overruling_option, val):
-        if val and settings.warn("shell_startup"):
+        if val and config.warn("shell_startup"):
             print >> sys.stderr, ("WARNING: %s ignored by %s shell - " + \
                 "overruled by %s option") % (option, cls.name(), overruling_option)
 
@@ -202,8 +201,8 @@ class UnixShell(Shell):
 
         executor = _create_ex()
 
-        if settings.prompt:
-            newprompt = '${REZ_ENV_PROMPT}%s' % settings.prompt
+        if config.prompt:
+            newprompt = '${REZ_ENV_PROMPT}%s' % config.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 
@@ -255,7 +254,7 @@ class UnixShell(Shell):
 
                     executor.setenv("HOME", tmpdir)
                 else:
-                    if settings.warn("shell_startup"):
+                    if config.warn("shell_startup"):
                         print >> sys.stderr, ("WARNING: Could not configure "
                         "environment from within the target shell (%s); this "
                         "has been done in the parent process instead.") % self.name()

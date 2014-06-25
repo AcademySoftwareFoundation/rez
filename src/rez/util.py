@@ -17,6 +17,7 @@ import textwrap
 import tempfile
 import threading
 import subprocess as sp
+from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
@@ -652,6 +653,21 @@ class propertycache(object):
     >>> c.aValue
     42
 
+    When any property on a class instance is cached, a new method
+    `_propertyuncache(str=None)` is created on the instance, so that cached
+    properties can be removed::
+
+    >>> c = MyClass()
+    >>> c.aValue
+    This is taking awhile
+    42
+    >>> c.aValue
+    42
+    >>> c._propertyuncache('aValue')
+    >>> c.aValue
+    This is taking awhile
+    42
+
     If you wish to signal that the return result of the decorated function
     should NOT be cached, raise a DoNotCacheSignal, with the value to return
     as the first argument (defaults to None):
@@ -696,41 +712,31 @@ class propertycache(object):
     def __get__(self, instance, owner=None):
         if instance is None:
             return None
-        if self.name in instance.__dict__:
-            return instance.__dict__[self.name]
+        d = instance.__dict__.get('_cachedproperties', {})
+        if self.name in d:
+            return d[self.name]
 
         try:
             result = self.func(instance)
         except self.DoNotCacheSignal, e:
             return e.default
 
-        instance.__dict__[self.name] = result
+        d = instance.__dict__
+        if '_cachedproperties' not in d:
+            d['_cachedproperties'] = {}
+            d['_propertyuncache'] = \
+                MethodType(propertycache._propertyuncache, instance)
+        d['_cachedproperties'][self.name] = result
         return result
 
-
-class YamlCache(object):
-    """Caches yaml files, no file update checking."""
-    def __init__(self):
-        self.docs = {}
-
-    def load(self, path):
-        """Returns dict, or None if the file does not exist."""
-        doc = self.docs.get(path)
-
-        if doc is False:
-            return None
-        elif doc is not None:
-            return doc.copy()
-
-        if os.path.exists(path):
-            with open(path) as f:
-                doc = yaml.load(f.read())
+    @staticmethod
+    def _propertyuncache(instance, name=None):
+        d = instance.__dict__.get('_cachedproperties', {})
+        if name:
+            if name in d:
+                del d[name]
         else:
-            self.docs[path] = False
-            return None
-
-        self.docs[path] = doc
-        return doc.copy()
+            d.clear()
 
 
 class AttrDictWrapper(UserDict.UserDict):
@@ -794,85 +800,6 @@ def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
             d[key] = convert_dicts(value, to_class=to_class,
                                    from_class=from_class)
     return to_class(d)
-
-
-class Namespace(object):
-    """
-    A context manager for creating nested dictionaries::
-
-        foo = 0
-        bar = 'original'
-
-        with Namespace('first'):
-            foo = 1
-            bar = 'string'
-            spangle = 0
-
-            with Namespace('nested'):
-                foo = 2
-                say = 'yay!'
-
-            say = 'boo!'
-
-        with Namespace('second'):
-            foo = 3
-
-    The dictionaries can then be retrieved::
-
-        >>> Namespace.get_namespace()
-        {
-            'first': {
-                'foo': 1,
-                'bar': 'string',
-                'spangle': 0,
-                'nested': {
-                    'foo': 2,
-                    'say': 'yay!'
-                },
-                'say': 'boo!'
-            }
-            'second': {
-                'foo': 3
-            }
-        }
-    """
-    namespace = {}
-
-    @classmethod
-    def get_namespace(cls):
-        """
-        Get the namesapce and reset it for another run
-        """
-        ns = cls.namespace
-        cls.namespace = {}
-        return ns
-
-    def __init__(self, key):
-        self.key = key
-        self.updates = {}
-
-    def __enter__(self):
-        f = sys._getframe(1)
-        self.locals = f.f_locals.copy()
-        self.parent_namespace = Namespace.namespace
-        Namespace.namespace = self.updates
-
-    def __exit__(self, *args):
-        f = sys._getframe(1)
-        # find what's new or changed
-        for key, value in f.f_locals.items():
-            if key not in self.locals or value != self.locals[key]:
-                self.updates[key] = value
-
-        if self.key in self.parent_namespace:
-            # merge
-            self.parent_namespace[self.key].update(self.updates)
-        else:
-            self.parent_namespace[self.key] = self.updates
-        # restore
-        Namespace.namespace = self.parent_namespace
-        f.f_locals.clear()
-        f.f_locals.update(self.locals)
 
 
 class RecursiveAttribute(UserDict.UserDict):
@@ -1149,3 +1076,22 @@ class ObjectStringFormatter(Formatter):
             return getattr(self.instance, key)
         else:
             return Formatter.get_value(self, key, args, kwds)
+
+
+# TODO this doesn't work because there's a circular dependency - config is a
+# resource, so resource.py can't use a config-based lru_cache.
+"""
+def configured_lru_cache(key, maxsize_key=None):
+    def decorated(f):
+        from rez.config import config
+        default_maxsize = 100
+        if getattr(config, key, False):
+            if maxsize_key:
+                maxsize = getattr(config, maxsize_key, default_maxsize)
+            else:
+                maxsize = default_maxsize
+            return lru_cache(maxsize)(f)
+        else:
+            return f
+    return decorated
+"""

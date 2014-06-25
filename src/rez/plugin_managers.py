@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.settings import settings
+from rez.config import config
 from rez.util import LazySingleton, propertycache, deep_update
 from rez.exceptions import RezPluginError
 import os.path
@@ -46,9 +46,9 @@ def extend_path(path, name):
     init_py = "__init__" + os.extsep + "py"
     path = path[:]
 
-    for dir in settings.get("plugin_path"):
+    for dir in config.plugin_path:
         if not os.path.isdir(dir):
-            if settings.debug("plugins"):
+            if config.debug("plugins"):
                 print "skipped nonexistant rez plugin path: %s" % dir
             continue
 
@@ -110,7 +110,7 @@ class RezPluginType(object):
                     plugin_name = modname.split('.')[-1]
                     if plugin_name.startswith('_'):
                         continue
-                    if settings.debug("plugins"):
+                    if config.debug("plugins"):
                         print ("loading %s plugin at %s: %s..."
                                % (self.type_name, path, modname))
                     try:
@@ -123,7 +123,7 @@ class RezPluginType(object):
                             # delete from sys.modules?
                             pass
                     except:
-                        if settings.debug("plugins"):
+                        if config.debug("plugins"):
                             import traceback
                             traceback.print_exc()
             # load config

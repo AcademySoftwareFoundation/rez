@@ -28,7 +28,6 @@ from collections import defaultdict
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, convert_dicts, RO_AttrDictWrapper, \
     dicts_conflicting, ObjectStringFormatter
-from rez.settings import settings
 from rez.exceptions import PackageMetadataError, ResourceError, \
     ResourceNotFoundError
 from rez.backport.lru_cache import lru_cache
@@ -74,7 +73,8 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # File Loading
 # -----------------------------------------------------------------------------
 
-@settings.lru_cache("resource_caching", "resource_caching_maxsize")
+#@configured_lru_cache("resource_caching", "resource_caching_maxsize")
+@lru_cache(10000)
 def _listdir(path, is_file=None):
     names = []
     for name in os.listdir(path):
@@ -618,7 +618,7 @@ class Resource(object):
             filepath=self.path, search_paths=[self.variables["search_path"]],
             parse_all=False)
         var_keys = ancestor_cls._variable_keys()
-        variables = dict((k,v) for k,v in self.variables.iteritems()
+        variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in var_keys)
         return ancestor_cls(path, variables)
 
@@ -626,7 +626,8 @@ class Resource(object):
         """Get an instance of a resource type higher in the hierarchy."""
         if not self.has_ancestor(ancestor_cls):
             raise ResourceError("%s is not a resource ancestor of %s"
-                        % (ancestor_cls.__name__, self.__class__.__name__))
+                                % (ancestor_cls.__name__,
+                                   self.__class__.__name__))
         return self._ancestor_instance(ancestor_cls)
 
     def parent_instance(self):
@@ -636,7 +637,8 @@ class Resource(object):
     # -- caching
 
     @staticmethod
-    @settings.lru_cache("resource_caching", "resource_caching_maxsize")
+    #@configured_lru_cache("resource_caching", "resource_caching_maxsize")
+    @lru_cache(10000)
     def _cached(fn, instance):
         return fn(instance)
 
@@ -792,8 +794,6 @@ class DataWrapper(object):
         """
         raise NotImplementedError
 
-    # Why is this here? It isn't the original data unchanged - metadata()
-    # switches any nested dicts into AttrDictWrapper instances
     @propertycache
     def _data(self):
         """Loaded object data.

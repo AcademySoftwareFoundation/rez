@@ -4,7 +4,6 @@ from rez.rex import NamespaceFormatter
 import sys
 
 
-
 class TestFormatter(TestBase):
     def setUp(self):
         TestBase.setUp(self)

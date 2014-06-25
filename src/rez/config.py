@@ -3,9 +3,10 @@ from rez.resources import load_resource, DataWrapper
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
     convert_dicts, AttrDictWrapper
 from rez.exceptions import ConfigurationError
-from rez.vendor.schema.schema import SchemaError
 from rez import config_resources
 from rez import module_root_path
+from rez.vendor.schema.schema import SchemaError
+from rez.backport.lru_cache import lru_cache
 import os
 import os.path
 import copy
@@ -156,8 +157,7 @@ class Config(DataWrapper):
             self.plugins.override(keys[1:], value)
         else:
             self.overrides[key] = value
-            if key in self.__dict__:
-                del self.__dict__[key]  # uncache
+            self._propertyuncache(key)
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
@@ -188,8 +188,17 @@ class Config(DataWrapper):
                 d[key] = getattr(self, key)
             except AttributeError:
                 pass
-        d["plugins"] = self.plugins.to_dict()
+        d["plugins"] = self.plugins.data()
         return d
+
+    def _swap(self, other):
+        """Swap this config with another.
+
+        This is used by the unit tests to swap the config to one that is
+        shielded from any user config updates. Do not use this method unless
+        you have good reason.
+        """
+        self.__dict__, other.__dict__ = other.__dict__, self.__dict__
 
     def _validate_key(self, key, value):
         v = _config_dict.get(key)
@@ -211,7 +220,7 @@ class Config(DataWrapper):
         return data
 
     @classmethod
-    def _get_main_config(cls):
+    def _create_main_config(cls, overrides=None):
         """See comment block at top of 'rezconfig' describing how the main
         config is assembled."""
         filepaths = []
@@ -219,10 +228,10 @@ class Config(DataWrapper):
         filepath = os.getenv("REZ_CONFIG_FILE")
         if filepath and os.path.isfile(filepath):
             filepaths.append(filepath)
-        user_filepath = os.path.expanduser("~/.rezconfig")
-        if os.path.isfile(user_filepath):
+        filepath = os.path.expanduser("~/.rezconfig")
+        if os.path.isfile(filepath):
             filepaths.append(filepath)
-        return Config(filepaths)
+        return Config(filepaths, overrides)
 
     # -- dynamic defaults
 
@@ -271,19 +280,17 @@ class Config(DataWrapper):
 class _PluginConfigs(object):
     """Lazy config loading for plugins."""
     def __init__(self, plugin_data):
-        self.__dict__['data'] = plugin_data
+        self.__dict__['_data'] = plugin_data
 
     def __setattr__(self, attr, value):
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
 
     def __getattr__(self, attr):
-        if attr == "data":
-            raise AttributeError("no such attribute 'data'")
         if attr in self.__dict__:
             return self.__dict__[attr]
 
-        data = self.__dict__['data']
+        data = self.__dict__['_data']
         from rez.plugin_managers import plugin_manager
         if attr in plugin_manager.get_plugin_types():
             config_data = plugin_manager.get_plugin_config_data(attr)
@@ -330,21 +337,30 @@ class _PluginConfigs(object):
             data = data_
             key = key[1:]
         data[key[0]] = value
-        deep_update(self.__dict__['data'], new_overrides)
+        deep_update(self.__dict__['_data'], new_overrides)
 
         if plugin_type in self.__dict__:
             del self.__dict__[plugin_type]  # uncache
 
-    def to_dict(self):
+    def data(self):
         # force plugin configs to load
         from rez.plugin_managers import plugin_manager
         for plugin_type in plugin_manager.get_plugin_types():
             _ = getattr(self, plugin_type)
 
         d = self.__dict__.copy()
-        del d["data"]
+        del d["_data"]
         d = convert_dicts(d, dict, (dict, AttrDictWrapper))
         return d
+
+
+def create_config(overrides=None):
+    """Create a configuration that reads config files from standard locations.
+    """
+    if not overrides:
+        return config
+    else:
+        return Config._create_main_config(overrides=overrides)
 
 
 def _create_locked_config(overrides=None):
@@ -362,21 +378,5 @@ def _create_locked_config(overrides=None):
     return Config([filepath], overrides=overrides, locked=True)
 
 
-def _swap_config(new_config):
-    """Replaces the config singleton with another config.
-
-    Only use this function if you have a very good reason! The unit tests use
-    this function to replace the main config with a locked config created via
-    `_create_locked_config`, to shield the tests from user settings.
-
-    Returns:
-        Previous main `Config` instance.
-    """
-    global config
-    old_config = config
-    config = new_config
-    return old_config
-
-
 # singleton
-config = Config._get_main_config()
+config = Config._create_main_config()

@@ -59,26 +59,20 @@ class System(object):
         """
         if plat.system() == 'Linux':
             try:
-                self._pr("detecting os: trying platform.linux_distribution...")
                 distname,version,_ = plat.linux_distribution()
             except AttributeError:
-                self._pr("detecting os: trying platform.dist...")
                 distname,version,_ = plat.dist()
                 try:
                     import subprocess as sp
                     proc = sp.Popen(['/usr/bin/env', 'lsb_release', '-i'],
                                     stdout=sp.PIPE, stderr=sp.PIPE)
                     out_, err_ = proc.communicate()
-                    if proc.returncode:
-                        self._pr(("lsb_release failed when detecting OS: "
-                                 "[errorcode %d] %s") % (proc.returncode, err_))
-                    else:
+                    if not proc.returncode:
                         m = re.search(r'^Distributor ID:\s*(\w+)\s*$',
                                       str(out_).strip())
                         if m is not None:
                             distname = m.group(1)
                 except Exception as e:
-                    self._pr("")
                     pass  # not an lsb compliant distro?
 
             final_release = distname
@@ -132,28 +126,24 @@ class System(object):
             # check parent process via ps
             try:
                 args = ['ps', '-o', 'args=', '-p', str(os.getppid())]
-                self._pr("detecting shell: running %s..." % ' '.join(args))
                 proc = sp.Popen(args, stdout=sp.PIPE)
                 output = proc.communicate()[0]
                 shell = os.path.basename(output.strip().split()[0]).replace('-', '')
             except Exception as e:
-                self._pr("ps failed: %s" % str(e))
+                pass
 
             # check $SHELL
             if shell not in shells:
-                self._pr("detecting shell: testing $SHELL...")
                 shell = os.path.basename(os.getenv("SHELL", ''))
 
             # traverse parent procs via /proc/(pid)/status
             if shell not in shells:
-                self._pr("detecting shell: traversing /proc/{pid}/status...")
                 pid = str(os.getppid())
                 found = False
 
                 while not found:
                     try:
                         file = os.path.join(os.sep, "proc", pid, "status")
-                        self._pr("reading %s..." % file)
                         with open(file) as f:
                             loc = f.read().split('\n')
 
@@ -162,17 +152,14 @@ class System(object):
                             toks = line.split()
                             if len(toks) == 2:
                                 if toks[0] == "Name:":
-                                    self._pr(line)
                                     name = toks[1]
                                     if name in shells:
                                         shell = name
                                         found = True
                                         break
                                 elif toks[0] == "PPid:":
-                                    self._pr(line)
                                     pid = toks[1]
                     except Exception as e:
-                        self._pr("traversal ended: %s" % str(e))
                         break
 
             if (shell not in shells) and ("sh" in shells):
@@ -181,13 +168,11 @@ class System(object):
                 shell = "bash"  # failed detection, fall back on 'bash'
             elif shell not in shells:
                 shell = iter(shells).next()  # give up - just choose a shell
-                self._pr("could not detect shell, chose '%s'") % shell
 
             # sh has to be handled as a special case
             if shell == "sh":
                 if os.path.islink("/bin/sh"):
                     path = os.readlink("/bin/sh")
-                    self._pr("detected: /bin/sh -> %s" % path)
                     shell2 = os.path.split(path)[-1]
 
                     if shell2 == "bash":
@@ -201,17 +186,10 @@ class System(object):
                             shell = "dash"
                         else:
                             # this isn't good!
-                            self._pr("dash is the current shell, but the "
-                                     "plugin is not available.")
-
                             if "bash" in shells:
                                 shell = "bash"  # fall back on bash
                             else:
                                 shell = iter(shells).next()  # give up - just choose a shell
-
-                            self._pr("fell back to %s" % shell)
-
-            self._pr("selected shell: %s" % shell)
             return shell
 
     @propertycache
@@ -255,10 +233,6 @@ class System(object):
                 s_ += '_'
         return s_
 
-    def _pr(self, s):
-        from rez.settings import settings
-        if settings.debug("system"):
-            print s
 
 # singleton
 system = System()

@@ -48,7 +48,6 @@ scripts = [
     "rezolve",
     "rez",
     "rez-config",
-    "rez-settings",
     "rez-build",
     "rez-release",
     "rez-env",

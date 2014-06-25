@@ -1,7 +1,7 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
     Required, metadata_loaders, load_resource, load_yaml
-from rez.settings import settings, Settings
+from rez.config import config, Config, create_config
 from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.util import propertycache, deep_update, print_warning_once
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
@@ -57,7 +57,7 @@ class GetVersion(object):
                                   % (data, self.version_str))
         else:
             filepath = self.resource.path
-            if settings.warn("nonstring_version"):
+            if config.warn("nonstring_version"):
                 print_warning_once(("Package at %s contains a non-string "
                                     "version.") % filepath)
         return Version(self.version_str)
@@ -77,7 +77,7 @@ package_schema = Schema({
     # TODO timestamp is going to become per-variant
     Optional('timestamp'):              int,
     # Required('timestamp'):              int,
-    Optional('config'):                 Settings,
+    Optional('config'):                 Config,
     Optional('help'):                   Or(basestring,
                                            [[basestring]]),
     Optional('tools'):                  [basestring],
@@ -112,12 +112,12 @@ package_schema = Schema({
 # -----------------------------------------------------------------------------
 
 class PackagesRoot(SearchPath):
-    """Represents a package searchpath, typically in Settings.packages_path."""
+    """Represents a package searchpath, typically in config.packages_path."""
     key = 'folder.packages_root'
 
     @classmethod
     def _default_search_paths(cls, path=None):
-        return settings.packages_path
+        return config.packages_path
 
 
 class PackageFamilyFolder(FolderResource):
@@ -210,7 +210,7 @@ class BasePackageResource(FileResource):
     """
     def convert_to_rex(self, commands):
         from rez.util import convert_old_commands
-        if settings.warn("old_commands"):
+        if config.warn("old_commands"):
             print_warning_once("%s is using old-style commands." % self.path)
         return convert_old_commands(commands)
 
@@ -225,7 +225,7 @@ class BasePackageResource(FileResource):
             Optional('authors'):                [basestring],
             Optional('config'):                 And(dict,
                                                     Use(lambda x:
-                                                        Settings(overrides=x))),
+                                                        create_config(overrides=x))),
             Optional('help'):                   Or(basestring,
                                                    [[basestring]]),
             Optional('tools'):                  [basestring],
@@ -289,7 +289,7 @@ class BasePackageResource(FileResource):
             timestamp = self._load_component("release.timestamp") or 0
         if not timestamp:
             # FIXME: should we deal with is_local here or in rez.packages?
-            if settings.warn("untimestamped"):
+            if config.warn("untimestamped"):
                 print_warning_once("Package is not timestamped: %s" %
                                    self.path)
         return timestamp

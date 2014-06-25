@@ -3,7 +3,7 @@ from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
-from rez.settings import settings
+from rez.config import config
 from rez.vendor.schema.schema import Or
 import functools
 import subprocess
@@ -68,8 +68,8 @@ class CMakeBuildSystem(BuildSystem):
             child_build_args=child_build_args)
 
         self.build_target = opts.build_target
-        self.cmake_build_system = (opts.build_system
-                                   or self.package.config.cmake_build_system)
+        self.cmake_build_system = opts.build_system \
+            or self.package.config.plugins.build_system.cmake.build_system
         if self.cmake_build_system == 'xcode' \
                 and platform.system() != 'Darwin':
             raise RezCMakeError("Generation of Xcode project only available "
@@ -80,7 +80,10 @@ class CMakeBuildSystem(BuildSystem):
             if self.verbose:
                 print s
 
+        settings = self.package.config.plugins.build_system.cmake
+
         # find cmake binary
+        # TODO add config setting for specifying exepath manually
         # TODO what if cmake is an alias?
         exe = context.which("cmake", fallback=True)
         if not exe:
@@ -88,7 +91,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble cmake command
         cmd = [exe, "-d", self.working_dir]
-        cmd += (self.package.config.cmake_args or [])
+        cmd += (settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
@@ -158,7 +161,7 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     package = load_developer_package(working_dir)
-    settings.set("prompt", "BUILD>")
+    config.override("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
