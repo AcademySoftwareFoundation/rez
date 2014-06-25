@@ -75,10 +75,10 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build("build_util", "1")
         self._create_context("build_util==1")
 
-    def _test_build_nover(self):
-        """Build, install, test the nover package."""
-        self._test_build("nover")
-        self._create_context("nover==1.2.0")
+    def _test_build_floob(self):
+        """Build, install, test the floob package."""
+        self._test_build("floob")
+        self._create_context("floob==1.2.0")
 
     def _test_build_foo(self):
         """Build, install, test the foo package."""
@@ -113,7 +113,7 @@ class TestBuild(TestBase, TempdirMixin):
     def test_builds(self):
         """Test an interdependent set of builds."""
         self._test_build_build_util()
-        self._test_build_nover()
+        self._test_build_floob()
         self._test_build_foo()
         self._test_build_loco()
         self._test_build_bah()

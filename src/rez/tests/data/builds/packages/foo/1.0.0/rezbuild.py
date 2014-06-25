@@ -4,10 +4,10 @@ import os.path
 
 def build(source_path, build_path, install_path, targets):
 
-    # build requirement 'nover' should be visible
-    check_visible("foo", "nover")
-    import nover
-    print nover.hello()
+    # build requirement 'floob' should be visible
+    check_visible("foo", "floob")
+    import floob
+    print floob.hello()
 
     # do the build
     if "install" not in (targets or []):
