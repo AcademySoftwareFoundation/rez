@@ -28,8 +28,8 @@ from collections import defaultdict
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, convert_dicts, RO_AttrDictWrapper, \
     dicts_conflicting, ObjectStringFormatter
-from rez.exceptions import PackageMetadataError, ResourceError, \
-    ResourceNotFoundError
+from rez.exceptions import ResourceError, ResourceNotFoundError, \
+    ResourceContentError
 from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
 # FIXME: handle this double-module business
@@ -105,7 +105,7 @@ def _process_python_objects(data):
     return data
 
 
-def load_python(stream):
+def load_python(stream, filepath=None):
     """load a python module into a metadata dictionary.
 
     - module-level attributes become root entries in the dictionary.
@@ -132,9 +132,19 @@ def load_python(stream):
     g = __builtins__.copy()
     scopes = ScopeContext()
     g['scope'] = scopes
-    excludes = set(['scope', '__builtins__'])
-    exec stream in g
+
+    try:
+        exec stream in g
+    except Exception as e:
+        import traceback
+        frames = traceback.extract_tb(sys.exc_traceback)
+        while filepath and frames and frames[0][0] != filepath:
+            frames = frames[1:]
+        stack = ''.join(traceback.format_list(frames)).strip()
+        raise ResourceError("%s:\n%s" % (str(e), stack))
+
     result = {}
+    excludes = set(['scope', '__builtins__'])
     for k, v in g.iteritems():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
@@ -145,7 +155,7 @@ def load_python(stream):
     return result
 
 
-def load_text(stream):
+def load_text(stream, filepath=None):
     """Load a text file.
 
     Args:
@@ -161,7 +171,7 @@ def load_text(stream):
     return text
 
 
-def load_yaml(stream):
+def load_yaml(stream, filepath=None):
     """load a yaml stream into a metadata dictionary.
 
     Args:
@@ -207,27 +217,12 @@ def load_file(filepath, loader=None):
         loader = get_file_loader(filepath)
     elif isinstance(loader, basestring):
         loader = metadata_loaders[loader]
-
     with open(filepath, 'r') as f:
-        return loader(f)
-        # TODO raise exceptions from loaders
-        """
-        try:
-            return loader(f)
-        except Exception as e:
-            # FIXME: this stack fix is probably specific to `load_python` and
-            # should be moved there.
-            import traceback
-            frames = traceback.extract_tb(sys.exc_traceback)
-            while frames and frames[0][0] != filepath:
-                frames = frames[1:]
-            stack = ''.join(traceback.format_list(frames)).strip()
-            raise PackageMetadataError(filepath, "%s\n%s" % (str(e), stack))
-        """
+        return loader(f, filepath)
 
 
 # -----------------------------------------------------------------------------
-# Resource Registration
+# Resource related functions
 # -----------------------------------------------------------------------------
 
 def register_resource(config_version, resource):
@@ -252,6 +247,15 @@ def register_resource(config_version, resource):
 
     if resource.parent_resource:
         Resource._children[resource.parent_resource].append(resource)
+
+
+def clear_caches():
+    """Clear all resource caches.
+
+    This is provided for debugging purposes, and is used by the unit tests.
+    """
+    _listdir.cache_clear()
+    Resource._cached.cache_clear()
 
 
 # -----------------------------------------------------------------------------
@@ -528,9 +532,26 @@ class Resource(object):
         """
         topmost_cls = cls.topmost()
         if cls == topmost_cls:
-            raise NotImplemented
+            raise NotImplementedError
         else:
             return topmost_cls._default_search_paths(path)
+
+    @classmethod
+    def _contents_exception_type(cls):
+        """Get the exception type to use for this resource type when there is
+        a problem with the resource contents.
+
+        Only topmost resource types (such as PackageRoot) need to implement
+        this method.
+
+        Returns:
+            `ResourceContentError` subclass instance.
+        """
+        topmost_cls = cls.topmost()
+        if cls == topmost_cls:
+            raise NotImplementedError
+        else:
+            return topmost_cls._contents_exception_type()
 
     @classmethod
     def _path_pattern(cls):
@@ -701,14 +722,16 @@ class FileResource(FileSystemResource):
         loaded from other reources.
         """
         if os.path.isfile(self.path):
-            data = load_file(self.path, self.loader)
-            if self.schema:
-                try:
+            try:
+                data = load_file(self.path, self.loader)
+                if self.schema:
                     return self.schema.validate(data)
-                except SchemaError, err:
-                    raise PackageMetadataError(self.path, str(err))
-            else:
-                return data
+            except Exception as e:
+                error_cls = self._contents_exception_type()
+                raise error_cls(value=str(e),
+                                path=self.path,
+                                resource_key=self.key)
+            return data
         else:
             msg = "not a file" if os.path.exists(self.path) \
                 else "file does not exist"
@@ -956,7 +979,7 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
 
 
 def _iter_resources(parent_resource, child_resource_classes=None,
-                    variables=None):
+                    variables=None, _depth=0):
     """Iterate over child resources of the given parent.
 
     If `child_resource_classes` is supplied, this prunes the search so that
@@ -980,18 +1003,25 @@ def _iter_resources(parent_resource, child_resource_classes=None,
                         for x in child_resource_classes):
             continue
         for child in child_class.iter_instances(parent_resource):
+            #print "%s%r" % ("  " * (_depth + 1), child)
             if not dicts_conflicting(variables or {}, child.variables):
                 yield child
                 for grand_child in _iter_resources(child,
                                                    child_resource_classes,
-                                                   variables):
+                                                   variables,
+                                                   _depth + 1):
                     yield grand_child
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
+    #keys = [x.key for x in resource_classes]
+    #print ("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
+    #       % (keys, variables))
+    #print parent_resource
     for child in _iter_resources(parent_resource, resource_classes, variables):
         if isinstance(child, tuple(resource_classes)) \
                 and is_dict_subset(variables or {}, child.variables):
+            #print "RESOURCE MATCH: %r" % child
             yield child
 
 
@@ -1151,7 +1181,7 @@ def get_resource(config_version, filepath=None, resource_keys=None,
                 is_dict_subset(variables or {}, resource.variables):
             return resource
 
-        # find all parents of sub-resource classes in the requested resource
+        # find all ancestors of sub-resource classes in the requested resource
         # keys. Note that even classes already tested are tested again, this
         # time without the variable check
         resource_classes_2 = [r for r in resource_classes if r.sub_resource]

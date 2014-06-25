@@ -86,10 +86,12 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
 _once_warnings = set()
 
+
 def print_warning_once(msg):
     if msg not in _once_warnings:
         print >> sys.stderr, "WARNING: %s" % msg
         _once_warnings.add(msg)
+
 
 def _mkdirs(*dirs):
     path = os.path.join(*dirs)
@@ -101,9 +103,10 @@ rm_tmdirs = True
 _tmpdirs = set()
 _tmpdir_lock = threading.Lock()
 
+
 def mkdtemp_():
-    from rez.settings import settings
-    path = tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
+    from rez.config import config
+    path = tempfile.mkdtemp(dir=config.tmpdir, prefix='rez_')
     try:
         _tmpdir_lock.acquire()
         _tmpdirs.add(path)
@@ -111,13 +114,16 @@ def mkdtemp_():
         _tmpdir_lock.release()
     return path
 
+
 def rmdtemp(path):
     if os.path.exists(path):
         shutil.rmtree(path)
 
+
 def set_rm_tmpdirs(enable):
     global rm_tmdirs
     rm_tmdirs = enable
+
 
 @atexit.register
 def _atexit():
@@ -126,14 +132,17 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+
 def relative_path(from_path, to_path):
     from_path = os.path.realpath(from_path)
     to_path = os.path.realpath(to_path)
     return os.path.relpath(from_path, to_path)
 
+
 def is_subdirectory(path, directory):
     relative = relative_path(path, directory)
     return not relative.startswith(os.pardir)
+
 
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
@@ -150,19 +159,24 @@ def _get_rez_dist_path(dirname):
 
     return path
 
+
 def get_bootstrap_path():
     return _get_rez_dist_path("packages")
 
+
 def get_script_path():
     return _get_rez_dist_path("bin")
+
 
 def get_rez_install_path():
     path = os.path.join(get_script_path(), "..")
     return os.path.realpath(path)
 
+
 def _add_bootstrap_pkg_path(paths):
     bootstrap_path = get_bootstrap_path()
     return paths[:] + [bootstrap_path]
+
 
 def shlex_join(value):
     import pipes
@@ -174,6 +188,7 @@ def shlex_join(value):
     else:
         return str(value)
 
+
 # returns path to first program in the list to be successfully found
 def which(*programs):
     from rez.backport.shutilwhich import which as which_
@@ -181,6 +196,7 @@ def which(*programs):
         path = which_(prog)
         if path:
             return path
+
 
 # case-insensitive fuzzy string match
 def get_close_matches(term, fields, fuzziness=0.4, key=None):
@@ -222,6 +238,7 @@ def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
 
     combined = [(k,v*0.5) for k,v in d.iteritems()]
     return sorted(combined, key=lambda x:-x[1])
+
 
 def columnise(rows, padding=2):
     strs = []
@@ -653,9 +670,7 @@ class propertycache(object):
     >>> c.aValue
     42
 
-    When any property on a class instance is cached, a new method
-    `_propertyuncache(str=None)` is created on the instance, so that cached
-    properties can be removed::
+    A cached property can be uncached::
 
     >>> c = MyClass()
     >>> c.aValue
@@ -663,7 +678,7 @@ class propertycache(object):
     42
     >>> c.aValue
     42
-    >>> c._propertyuncache('aValue')
+    >>> propertycache.uncache(c, 'aValue')
     >>> c.aValue
     This is taking awhile
     42
@@ -724,13 +739,11 @@ class propertycache(object):
         d = instance.__dict__
         if '_cachedproperties' not in d:
             d['_cachedproperties'] = {}
-            d['_propertyuncache'] = \
-                MethodType(propertycache._propertyuncache, instance)
         d['_cachedproperties'][self.name] = result
         return result
 
-    @staticmethod
-    def _propertyuncache(instance, name=None):
+    @classmethod
+    def uncache(cls, instance, name=None):
         d = instance.__dict__.get('_cachedproperties', {})
         if name:
             if name in d:

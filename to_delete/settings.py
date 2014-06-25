@@ -4,6 +4,7 @@ Example:
 from rez.settings import settings
 print settings.packages_path
 """
+raise Exception("DEPRECATED")
 import os
 import os.path
 import sys
@@ -16,8 +17,6 @@ from rez import module_root_path
 from rez.system import system
 from rez.exceptions import ConfigurationError
 from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
-
-raise Exception("DEPRECATED")
 
 
 class PartialFormatter(string.Formatter):

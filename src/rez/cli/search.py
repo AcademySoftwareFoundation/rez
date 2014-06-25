@@ -1,7 +1,7 @@
 """
 Search for packages.
 """
-from rez.settings import settings
+from rez.config import config
 from rez.packages import iter_package_families, iter_packages
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -43,7 +43,7 @@ def setup_parser(parser):
 
 def command(opts, parser):
     if opts.paths is None:
-        pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
+        pkg_paths = config.nonlocal_packages_path if opts.no_local else None
     else:
         pkg_paths = (opts.paths or "").split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]

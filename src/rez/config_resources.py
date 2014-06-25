@@ -2,6 +2,7 @@ from rez.resources import Required, ArbitraryPath, FileResource, \
     register_resource, load_yaml
 from rez.vendor.schema.schema import Schema, Or, And, Use, Optional
 from rez.util import AttrDictWrapper, ObjectStringFormatter
+from rez.exceptions import ConfigurationError
 from rez.system import system
 
 
@@ -158,6 +159,10 @@ config_schema_optional = _to_schema(_config_dict, False)
 class ConfigRoot(ArbitraryPath):
     """Represents a path containing a config file."""
     key = "folder.config_root"
+
+    @classmethod
+    def _contents_exception_type(cls):
+        return ConfigurationError
 
 
 class ConfigResource(FileResource):

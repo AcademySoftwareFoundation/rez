@@ -157,7 +157,7 @@ class Config(DataWrapper):
             self.plugins.override(keys[1:], value)
         else:
             self.overrides[key] = value
-            self._propertyuncache(key)
+            propertycache.uncache(self, key)
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
@@ -190,6 +190,14 @@ class Config(DataWrapper):
                 pass
         d["plugins"] = self.plugins.data()
         return d
+
+    @property
+    def nonlocal_packages_path(self):
+        """Returns package search paths with local path removed."""
+        paths = self.packages_path[:]
+        if self.local_packages_path in paths:
+            paths.remove(self.local_packages_path)
+        return paths
 
     def _swap(self, other):
         """Swap this config with another.
@@ -369,7 +377,7 @@ def _create_locked_config(overrides=None):
     The config created by this function only reads settings from the main
     rezconfig file, and from plugin rezconfig files. All other files normally
     used by the main config (~/.rezconfig etc) are ignored, as are environment
-    variables overrides.
+    variable overrides.
 
     Returns:
         `Config` object.

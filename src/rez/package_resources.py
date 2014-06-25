@@ -2,7 +2,8 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
     Required, metadata_loaders, load_resource, load_yaml
 from rez.config import config, Config, create_config
-from rez.exceptions import ResourceError, ResourceNotFoundError
+from rez.exceptions import ResourceError, ResourceNotFoundError, \
+    PackageMetadataError
 from rez.util import propertycache, deep_update, print_warning_once
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
@@ -15,8 +16,8 @@ import re
 
 PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
-VERSION_REGSTR = '%(comp)s(?:[.-]%(comp)s)*' % dict(comp=VERSION_COMPONENT_REGSTR)
-UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{12}\Z")
+VERSION_REGSTR = ('%(comp)s(?:[.-]%(comp)s)*'
+                  % dict(comp=VERSION_COMPONENT_REGSTR))
 
 
 # -----------------------------------------------------------------------------
@@ -27,14 +28,6 @@ UUID_REGEX = re.compile("^[a-f0-9]{8}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a-f0-9]{4}-?[a
 rex_command = Or(callable,  # python function
                  basestring  # new-style rex
                  )
-
-
-def is_uuid(s):
-    if not UUID_REGEX.match(s):
-        import uuid
-        u = uuid.uuid4()
-        raise ValueError("Not a valid identifier. Try: '%s'" % u.hex)
-    return True
 
 
 class GetVersion(object):
@@ -118,6 +111,10 @@ class PackagesRoot(SearchPath):
     @classmethod
     def _default_search_paths(cls, path=None):
         return config.packages_path
+
+    @classmethod
+    def _contents_exception_type(cls):
+        return PackageMetadataError
 
 
 class PackageFamilyFolder(FolderResource):
@@ -218,7 +215,7 @@ class BasePackageResource(FileResource):
     def schema(self):
         return Schema({
             Required('config_version'):         0,  # this will only match 0
-            Optional('uuid'):                   is_uuid,
+            Optional('uuid'):                   basestring,
             Optional('description'):            And(basestring,
                                                     Use(string.strip)),
             Required('name'):                   self.variables.get('name'),
@@ -465,7 +462,10 @@ class CombinedPackageResource(BasePackageResource):
 class DeveloperPackagesRoot(ArbitraryPath):
     """Represents a path containing a developer package resource."""
     key = "folder.dev_packages_root"
-    pass
+
+    @classmethod
+    def _contents_exception_type(cls):
+        return PackageMetadataError
 
 
 class DeveloperPackageResource(BasePackageResource):
@@ -492,7 +492,7 @@ class DeveloperPackageResource(BasePackageResource):
                                 (Required('description'),
                                     And(basestring, Use(string.strip))),
                                 (Required('authors'), [basestring]),
-                                (Required('uuid'), is_uuid)])
+                                (Required('uuid'), basestring)])
 
 
 class DeveloperVariantResource(BaseVariantResource):

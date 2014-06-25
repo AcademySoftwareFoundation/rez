@@ -251,6 +251,7 @@ class _PackageVariantList(_Common):
                            timestamp=timestamp,
                            paths=package_paths)
         for pkg in sorted(it, key=lambda x: x.version):
+            print pkg
             for var in pkg.iter_variants():
                 requires = var.get_requires(build_requires=building)
                 variant = PackageVariant(name=package_name,

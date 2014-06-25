@@ -4,6 +4,7 @@ from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
+from rez.resources import clear_caches
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -49,6 +50,9 @@ class TestBuild(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, *pkgs):
+        # cache clear is needed to clear Resource._listdir cache, which hides
+        # newly added packages
+        clear_caches()
         return ResolvedContext(pkgs)
 
     def _test_build(self, name, version=None):
@@ -74,7 +78,7 @@ class TestBuild(TestBase, TempdirMixin):
     def _test_build_nover(self):
         """Build, install, test the nover package."""
         self._test_build("nover")
-        self._create_context("nover==")
+        self._create_context("nover==1.2.0")
 
     def _test_build_foo(self):
         """Build, install, test the foo package."""

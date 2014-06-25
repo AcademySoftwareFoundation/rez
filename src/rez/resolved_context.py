@@ -69,7 +69,7 @@ class ResolvedContext(object):
         self.timestamp = timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
-        self.caching = config.caching if caching is None else caching
+        self.caching = config.resolve_caching if caching is None else caching
 
         self.package_requests = []
         for req in package_requests:

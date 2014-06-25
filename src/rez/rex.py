@@ -524,6 +524,12 @@ class Python(ActionInterpreter):
             if key == 'PYTHONPATH':
                 sys.path = value.split(os.pathsep)
 
+    def unsetenv(self, key):
+        pass
+
+    def resetenv(self, key, value, friends=None):
+        pass
+
     def prependenv(self, key, value):
         if self.update_session:
             if key == 'PYTHONPATH':
@@ -550,7 +556,8 @@ class Python(ActionInterpreter):
             import shlex
             args = shlex.split(args)
 
-        return subprocess.Popen(args, env=self.target_environ, **subproc_kwargs)
+        return subprocess.Popen(args, env=self.target_environ,
+                                **subproc_kwargs)
 
     def command(self, value):
         if self.passive:

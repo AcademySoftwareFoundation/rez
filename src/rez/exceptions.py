@@ -1,8 +1,5 @@
 """
 Exceptions.
-Note: Every exception class can be default-constructed (ie all args default to None) because of
-a serialisation issue with the exception class, see:
-http://irmen.home.xs4all.nl/pyro3/troubleshooting.html
 """
 
 
@@ -13,11 +10,6 @@ class RezError(Exception):
 
     def __str__(self):
         return str(self.value)
-
-
-class ConfigurationError(RezError):
-    """A misconfiguration error."""
-    pass
 
 
 class RezSystemError(RezError):
@@ -51,7 +43,7 @@ class PackageNotFoundError(RezError):
 
 
 class ResourceError(RezError):
-    """There is a problem with a rez resource configuration."""
+    """Resource-related exception base class."""
     pass
 
 
@@ -60,12 +52,29 @@ class ResourceNotFoundError(ResourceError):
     pass
 
 
-class PackageMetadataError(ResourceError):
-    """There is an error in a package's definition file"""
-    def __init__(self, filepath, value):
-        msg = "Error in package definition file: %s\n%s" % (filepath, value)
-        RezError.__init__(self, msg)
-        self.filepath = filepath
+class ResourceContentError(ResourceError):
+    """A resource contains incorrect data."""
+    type_name = "resource file"
+
+    def __init__(self, value=None, path=None, resource_key=None):
+        msg = []
+        if resource_key is not None:
+            msg.append("resource type: %r" % resource_key)
+        if path is not None:
+            msg.append("%s: %s" % (self.type_name, path))
+        if value is not None:
+            msg.append(value)
+        ResourceError.__init__(self, ": ".join(msg))
+
+
+class PackageMetadataError(ResourceContentError):
+    """There is an error in a package's definition file."""
+    type_name = "package definition file"
+
+
+class ConfigurationError(ResourceContentError):
+    """A misconfiguration error."""
+    type_name = "configuration file"
 
 
 class PackageCommandError(RezError):
@@ -104,6 +113,7 @@ class ReleaseVCSUnsupportedError(ReleaseVCSError):
     indicate that the mode is unsupported in the given context.
     """
     pass
+
 
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
