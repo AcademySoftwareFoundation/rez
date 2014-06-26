@@ -130,7 +130,7 @@ def install_into(path, shell=None):
         for script in os.listdir(bin_path):
             print "%s..." % script
             file = os.path.join(bin_path, script)
-            if script.startswith('_'):
+            if script in ("_rez_csh_complete",):
                 shutil.copy(file, dst_bin_path)
             else:
                 with open(file) as f:
