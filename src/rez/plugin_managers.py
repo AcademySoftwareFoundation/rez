@@ -125,7 +125,7 @@ class RezPluginType(object):
                     except Exception as e:
                         nameish = modname.split('.')[-1]
                         self.failed_plugins[nameish] = str(e)
-                        if settings.debug("plugins"):
+                        if config.debug("plugins"):
                             import traceback
                             traceback.print_exc()
 

@@ -32,8 +32,6 @@ def setup_parser(parser):
     parser.add_argument("-e", "--errors", action="store_true",
                         help="when searching packages, only print packages "
                         "that contain errors")
-    parser.add_argument("-v", "--verbose", action="count", default=0,
-                        help="verbose mode, repeat for more verbosity")
     parser.add_argument("NAME", type=str, nargs='?',
                         help="only match packages with the given family "
                         "name. Glob-style patterns are supported")

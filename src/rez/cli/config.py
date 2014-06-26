@@ -26,6 +26,7 @@ def command(opts, parser):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        print yaml.dump(data, default_flow_style=False)
+        txt = yaml.dump(data, default_flow_style=False)
+        print txt.strip()
     else:
         print data

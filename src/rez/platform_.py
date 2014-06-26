@@ -14,8 +14,8 @@ class Platform(object):
 
     @property
     def name(self):
-        """Returns the name of the platform."""
-        raise NotImplemented
+        """Returns the name of the platform, eg 'linux'."""
+        raise NotImplementedError
 
     @property
     def arch(self):
@@ -25,7 +25,25 @@ class Platform(object):
     @property
     def os(self):
         """Returns the name of the operating system."""
-        raise NotImplemented
+        raise NotImplementedError
+
+    @property
+    def image_viewer(self):
+        """Returns the system default image viewer.
+
+        If None, rez will use the web browser to display images.
+        """
+        raise NotImplementedError
+
+    @property
+    def editor(self):
+        """Returns the system default text editor."""
+        raise NotImplementedError
+
+    @property
+    def tmpdir(self):
+        """Return system default temporary directory path."""
+        raise NotImplementedError
 
     def symlink(self, source, link_name):
         """Create a symbolic link pointing to source named link_name."""
@@ -33,9 +51,20 @@ class Platform(object):
 
 
 # -----------------------------------------------------------------------------
+# Unix (Linux and OSX)
+# -----------------------------------------------------------------------------
+
+class _UnixPlatform(Platform):
+    @property
+    def tmpdir(self):
+        return "/tmp"
+
+
+# -----------------------------------------------------------------------------
 # Linux
 # -----------------------------------------------------------------------------
-class LinuxPlatform(Platform):
+
+class LinuxPlatform(_UnixPlatform):
     @property
     def name(self):
         return "linux"
@@ -121,11 +150,25 @@ class LinuxPlatform(Platform):
         # give up
         raise RezSystemError("cannot detect operating system")
 
+    @propertycache
+    def image_viewer(self):
+        from rez.util import which
+        return which("xdg-open", "eog", "kview")
+
+    @propertycache
+    def editor(self):
+        ed = os.getenv("EDITOR")
+        if ed is None:
+            from rez.util import which
+            ed = which("xdg-open", "vim", "vi")
+        return ed
+
 
 # -----------------------------------------------------------------------------
 # OSX
 # -----------------------------------------------------------------------------
-class OSXPlatform(Platform):
+
+class OSXPlatform(_UnixPlatform):
     @property
     def name(self):
         return "osx"
@@ -135,10 +178,18 @@ class OSXPlatform(Platform):
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
+    def image_viewer(self):
+        return "open"
+
+    @property
+    def editor(self):
+        return "open"
+
 
 # -----------------------------------------------------------------------------
 # Windows
 # -----------------------------------------------------------------------------
+
 class WindowsPlatform(Platform):
     @property
     def name(self):
@@ -163,6 +214,22 @@ class WindowsPlatform(Platform):
                 toks.append(item)
         final_version = str('.').join(toks)
         return "windows-%s" % final_version
+
+    @property
+    def tmpdir(self):
+        path = os.getenv("TEMP")
+        if path and os.path.isdir(path):
+            return path
+        return "/tmp"
+
+    def image_viewer(self):
+        # os.system("file.jpg") will open default viewer on windows
+        return ''
+
+    @property
+    def editor(self):
+        # os.system("file.txt") will open default editor on windows
+        return ''
 
 
 # singleton

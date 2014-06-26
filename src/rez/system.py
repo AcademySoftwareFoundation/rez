@@ -9,8 +9,6 @@ from rez.util import propertycache
 
 class System(object):
     """Access to underlying system data.
-
-
     """
     @propertycache
     def platform(self):

@@ -371,46 +371,17 @@ class Config(DataWrapper):
 
     # -- dynamic defaults
 
-    # TODO move into platform_
     def _get_tmpdir(self):
-        from rez.system import system
-        if system.platform == "windows":
-            path = os.getenv("TEMP")
-            if path and os.path.isdir(path):
-                return path
+        from rez.platform_ import platform_
+        return platform_.tmpdir
 
-        return "/tmp"
-
-    # TODO move into platform_
     def _get_image_viewer(self):
-        from rez.system import system
-        from rez.util import which
-        if system.platform == "linux":
-            viewer = which("xdg-open", "eog", "kview")
-        elif system.platform == "darwin":
-            viewer = "open"
-        else:
-            # os.system("file.jpg") will open in default viewer on windows
-            viewer = ''
+        from rez.platform_ import platform_
+        return platform_.image_viewer
 
-        # if None, rez will use webbrowser
-        return viewer
-
-    # TODO move into platform_
     def _get_editor(self):
-        from rez.system import system
-        from rez.util import which
-        if system.platform == "linux":
-            ed = os.getenv("EDITOR")
-            if ed is None:
-                ed = which("xdg-open", "vim", "vi")
-        elif system.platform == "darwin":
-            ed = "open"
-        else:
-            # os.system("file.txt") will open in default editor on windows
-            ed = ''
-
-        return ed
+        from rez.platform_ import platform_
+        return platform_.editor
 
 
 class _PluginConfigs(object):
