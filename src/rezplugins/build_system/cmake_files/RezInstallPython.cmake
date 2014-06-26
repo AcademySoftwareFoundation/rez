@@ -31,11 +31,7 @@ macro (rez_install_python)
 		message(FATAL_ERROR "a version of python must be listed as a requirement when using the 'rez_install_python' macro. Packages for this build are: ${REZ_BUILD_ALL_PKGS}")
 	endif(NOT pyfound)
 
-	# NOTE: 'rezpy' correlates with the python executable that the 'python' package in the
-	# current environment has exposed. 'rezpy' is just the name of this binary that Rez sets
-	# up in its bootstrap python package... if you don't like it then you can change it,
-	# but make sure you change it in your python package, as well as here.
-	install_python(${ARGV} BIN rezpy)
+	install_python(${ARGV} BIN python)
 
 endmacro (rez_install_python)
 

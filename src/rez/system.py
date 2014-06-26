@@ -52,6 +52,7 @@ class System(object):
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
 
+    # TODO move shell detection into shell plugins
     @propertycache
     def shell(self):
         """Get the current shell.
@@ -73,28 +74,24 @@ class System(object):
             # check parent process via ps
             try:
                 args = ['ps', '-o', 'args=', '-p', str(os.getppid())]
-                self._pr("detecting shell: running %s..." % ' '.join(args))
                 proc = sp.Popen(args, stdout=sp.PIPE)
                 output = proc.communicate()[0]
                 shell = os.path.basename(output.strip().split()[0]).replace('-', '')
             except Exception as e:
-                self._pr("ps failed: %s" % str(e))
+                pass
 
             # check $SHELL
             if shell not in shells:
-                self._pr("detecting shell: testing $SHELL...")
                 shell = os.path.basename(os.getenv("SHELL", ''))
 
             # traverse parent procs via /proc/(pid)/status
             if shell not in shells:
-                self._pr("detecting shell: traversing /proc/{pid}/status...")
                 pid = str(os.getppid())
                 found = False
 
                 while not found:
                     try:
                         file = os.path.join(os.sep, "proc", pid, "status")
-                        self._pr("reading %s..." % file)
                         with open(file) as f:
                             loc = f.read().split('\n')
 
@@ -103,17 +100,14 @@ class System(object):
                             toks = line.split()
                             if len(toks) == 2:
                                 if toks[0] == "Name:":
-                                    self._pr(line)
                                     name = toks[1]
                                     if name in shells:
                                         shell = name
                                         found = True
                                         break
                                 elif toks[0] == "PPid:":
-                                    self._pr(line)
                                     pid = toks[1]
                     except Exception as e:
-                        self._pr("traversal ended: %s" % str(e))
                         break
 
             if (shell not in shells) and ("sh" in shells):
@@ -122,13 +116,11 @@ class System(object):
                 shell = "bash"  # failed detection, fall back on 'bash'
             elif shell not in shells:
                 shell = iter(shells).next()  # give up - just choose a shell
-                self._pr("could not detect shell, chose '%s'") % shell
 
             # sh has to be handled as a special case
             if shell == "sh":
                 if os.path.islink("/bin/sh"):
                     path = os.readlink("/bin/sh")
-                    self._pr("detected: /bin/sh -> %s" % path)
                     shell2 = os.path.split(path)[-1]
 
                     if shell2 == "bash":
@@ -142,18 +134,17 @@ class System(object):
                             shell = "dash"
                         else:
                             # this isn't good!
-                            self._pr("dash is the current shell, but the "
-                                     "plugin is not available.")
-
                             if "bash" in shells:
                                 shell = "bash"  # fall back on bash
                             else:
                                 shell = iter(shells).next()  # give up - just choose a shell
-
-                            self._pr("fell back to %s" % shell)
-
-            self._pr("selected shell: %s" % shell)
             return shell
+
+    @propertycache
+    def user(self):
+        """Get the current user."""
+        import getpass
+        return getpass.getuser()
 
     @propertycache
     def fqdn(self):
@@ -214,10 +205,6 @@ class System(object):
 
         return ''.join(valid_toks)
 
-    def _pr(self, s):
-        from rez.settings import settings
-        if settings.debug("system"):
-            print s
 
 # singleton
 system = System()

@@ -4,7 +4,7 @@ from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
-from rez.settings import settings
+from rez.config import config
 import os.path
 import sys
 
@@ -93,7 +93,7 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     package = Package(working_dir)
-    settings.set("prompt", "BUILD>")
+    config.override("prompt", "BUILD>")
 
     retcode,_,_ = context.execute_shell(block=True,
                                        cwd=build_dir)

@@ -1,11 +1,10 @@
 import rez.vendor.unittest2 as unittest
-from rez.settings import settings
+from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
 import tempfile
 import shutil
 import os.path
 import os
-
 
 
 class TestBase(unittest.TestCase):
@@ -15,13 +14,14 @@ class TestBase(unittest.TestCase):
         cls.settings = {}
 
     def setUp(self):
-        """Shield unit tests from any settings overrides."""
-        settings.lock()
-        for k,v in self.settings.iteritems():
-            settings.set(k, v)
+        """Shield unit tests from any user config overrides."""
+        os.environ["REZ_QUIET"] = "true"
+        self.config = _create_locked_config(self.settings)
+        config._swap(self.config)
 
     def tearDown(self):
-        settings.lock(False)
+        config._swap(self.config)
+        self.config = None
 
 
 class TempdirMixin(object):
@@ -41,13 +41,13 @@ def shell_dependent(fn):
     def _fn(self, *args, **kwargs):
         for shell in get_shell_types():
             print "\ntesting in shell: %s..." % shell
-            settings.set("default_shell", shell)
+            config.override("default_shell", shell)
             fn(self, *args, **kwargs)
     return _fn
 
 
 def install_dependent(fn):
-    """Function decorator that skips tests if not run via 'rez-cli' tool."""
+    """Function decorator that skips tests if not run via 'rez-test' tool."""
     def _fn(self, *args, **kwargs):
         if os.getenv("__REZ_TEST_RUNNING"):
             fn(self, *args, **kwargs)

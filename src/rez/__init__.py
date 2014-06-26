@@ -1,5 +1,5 @@
 
-__version__ = "2.0.ALPHA.62"
+__version__ = "2.0.ALPHA.70"
 __author__ = "Allan Johns"
 __license__ = "LGPL"
 

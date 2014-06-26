@@ -1,6 +1,6 @@
 from rez.exceptions import ReleaseHookError
 from rez.util import print_warning_once
-from rez.packages import Package
+from rez.packages import load_developer_package
 
 
 def get_release_hook_types():
@@ -31,9 +31,9 @@ def create_release_hooks(names, source_path):
 class ReleaseHook(object):
     """An object that allows for custom behaviour during releases.
 
-    A release hook provides methods that you implement to inject custom behaviour
-    during parts of the release process. For example, the builtin 'email' hook
-    sends a post-release email to a configured address.
+    A release hook provides methods that you implement to inject custom
+    behaviour during parts of the release process. For example, the builtin
+    'email' hook sends a post-release email to a configured address.
     """
     @classmethod
     def name(cls):
@@ -47,10 +47,11 @@ class ReleaseHook(object):
             source_path: Path containing source that was released.
         """
         self.source_path = source_path
-        self.package = Package(source_path)
+        self.package = load_developer_package(source_path)
 
     def pre_release(self, user, install_path, release_message=None,
-                    changelog=None, previous_version=None, previous_revision=None):
+                    changelog=None, previous_version=None,
+                    previous_revision=None):
         """Pre-release hook.
 
         Args:
@@ -69,7 +70,8 @@ class ReleaseHook(object):
         return True
 
     def post_release(self, user, install_path, release_message=None,
-                     changelog=None, previous_version=None, previous_revision=None):
+                     changelog=None, previous_version=None,
+                     previous_revision=None):
         """Post-release hook.
 
         Args:

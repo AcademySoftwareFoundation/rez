@@ -1,0 +1,12 @@
+emailer:
+    # SMTP host.
+    smtp_host: ''
+
+    # SMTP port.
+    smtp_port: 25
+
+    # The address that post-release emails appear to come from.
+    sender: '{system.user}@rez-release.com'
+
+    # List of recipients of post-release emails.
+    recipients: []

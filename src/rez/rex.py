@@ -13,7 +13,6 @@ import time
 import getpass
 from rez import module_root_path
 from rez.system import system
-from rez.settings import settings
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path
@@ -522,25 +521,22 @@ class Python(ActionInterpreter):
 
     def setenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path = value.split(os.pathsep)
 
     def unsetenv(self, key):
-        self._env_var_changed(key)
+        pass
 
     def resetenv(self, key, value, friends=None):
-        self._env_var_changed(key)
+        pass
 
     def prependenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path.insert(0, value)
 
     def appendenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path.append(value)
 
@@ -560,7 +556,8 @@ class Python(ActionInterpreter):
             import shlex
             args = shlex.split(args)
 
-        return subprocess.Popen(args, env=self.target_environ, **subproc_kwargs)
+        return subprocess.Popen(args, env=self.target_environ,
+                                **subproc_kwargs)
 
     def command(self, value):
         if self.passive:
@@ -589,10 +586,6 @@ class Python(ActionInterpreter):
 
     def shebang(self):
         pass
-
-    def _env_var_changed(self, key):
-        if self.update_session:
-            settings.env_var_changed(key)
 
 
 #===============================================================================
@@ -665,6 +658,9 @@ class EnvironmentDict(UserDict.DictMixin):
 
     def __setitem__(self, key, value):
         self[key].set(value)
+
+    def __contains__(self, key):
+        return (key in self._var_cache)
 
 
 class EnvironmentVariable(object):

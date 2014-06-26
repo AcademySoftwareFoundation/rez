@@ -6,13 +6,11 @@ import itertools
 import os.path
 
 
-
 class TestSolver(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
-
         cls.settings = dict(
             packages_path=[packages_path])
 
@@ -32,12 +30,12 @@ class TestSolver(TestBase):
                        verbose=False)
             s_perms.append(s)
 
-        return (s1,s2,s_perms)
+        return (s1, s2, s_perms)
 
     def _solve(self, packages, expected_resolve):
         print
         reqs = [Requirement(x) for x in packages]
-        s1,s2,s_perms = self._create_solvers(reqs)
+        s1, s2, s_perms = self._create_solvers(reqs)
 
         s1.solve()
         self.assertEqual(s1.status, "solved")
@@ -65,7 +63,7 @@ class TestSolver(TestBase):
     def _fail(self, *packages):
         print
         reqs = [Requirement(x) for x in packages]
-        s1,s2,s_perms = self._create_solvers(reqs)
+        s1, s2, s_perms = self._create_solvers(reqs)
 
         s1.solve()
         print
@@ -91,13 +89,13 @@ class TestSolver(TestBase):
         self._solve([],
                     [])
         self._solve(["nada"],
-                    ["nada"])
+                    ["nada[]"])
         self._solve(["!nada"],
                     [])
         self._solve(["~nada"],
                     [])
         self._solve(["python"],
-                    ["python-2.7.0"])
+                    ["python-2.7.0[]"])
         self._solve(["~python-2+"],
                     [])
         self._solve(["~python"],
@@ -110,23 +108,23 @@ class TestSolver(TestBase):
     def test_2(self):
         """Basic solves involving a single package."""
         self._solve(["nada", "~nada"],
-                    ["nada"])
+                    ["nada[]"])
         self._solve(["nopy"],
-                    ["nopy-2.1"])
+                    ["nopy-2.1[]"])
         self._solve(["python-2.6"],
-                    ["python-2.6.8"])
+                    ["python-2.6.8[]"])
         self._solve(["python-2.6", "!python-2.6.8"],
-                    ["python-2.6.0"])
+                    ["python-2.6.0[]"])
         self._solve(["python-2.6", "python-2.6.5+"],
-                    ["python-2.6.8"])
+                    ["python-2.6.8[]"])
         self._solve(["python", "python-0+<2.6"],
-                    ["python-2.5.2"])
+                    ["python-2.5.2[]"])
         self._solve(["python", "python-0+<2.6.8"],
-                    ["python-2.6.0"])
+                    ["python-2.6.0[]"])
         self._solve(["python", "~python-2.7+"],
-                    ["python-2.7.0"])
+                    ["python-2.7.0[]"])
         self._solve(["!python-2.6+", "python"],
-                    ["python-2.5.2"])
+                    ["python-2.5.2[]"])
 
     def test_3(self):
         """Failures in the initial request."""
@@ -148,32 +146,32 @@ class TestSolver(TestBase):
     def test_6(self):
         """Basic solves involving multiple packages."""
         self._solve(["nada", "nopy"],
-                    ["nada", "nopy-2.1"])
+                    ["nada[]", "nopy-2.1[]"])
         self._solve(["pyfoo"],
-                    ["python-2.6.8", "pyfoo-3.1.0"])
+                    ["python-2.6.8[]", "pyfoo-3.1.0[]"])
         self._solve(["pybah"],
-                    ["python-2.5.2", "pybah-5"])
+                    ["python-2.5.2[]", "pybah-5[]"])
         self._solve(["nopy", "python"],
-                    ["nopy-2.1", "python-2.7.0"])
+                    ["nopy-2.1[]", "python-2.7.0[]"])
         self._solve(["pybah", "!python-2.5"],
-                    ["python-2.6.8", "pybah-4"])
+                    ["python-2.6.8[]", "pybah-4[]"])
         self._solve(["pybah", "!python-2.5", "python<2.6.8"],
-                    ["python-2.6.0", "pybah-4"])
+                    ["python-2.6.0[]", "pybah-4[]"])
         self._solve(["python", "pybah"],
-                    ["python-2.6.8", "pybah-4"])
+                    ["python-2.6.8[]", "pybah-4[]"])
 
     def test_7(self):
         """More complex solves."""
         self._solve(["python", "pyodd"],
-                    ["python-2.6.8", "pybah-4", "pyodd-2"])
+                    ["python-2.6.8[]", "pybah-4[]", "pyodd-2[]"])
         self._solve(["pybah", "pyodd"],
-                    ["python-2.5.2", "pybah-5", "pyodd-2"])
+                    ["python-2.5.2[]", "pybah-5[]", "pyodd-2[]"])
         self._solve(["pysplit", "python-2.5"],
-                    ["pysplit-5", "python-2.5.2"])
+                    ["pysplit-5[]", "python-2.5.2[]"])
         self._solve(["~python<2.6", "pysplit"],
-                    ["pysplit-5"])
+                    ["pysplit-5[]"])
         self._solve(["python", "bahish", "pybah"],
-                    ["python-2.5.2", "pybah-5", "bahish-2"])
+                    ["python-2.5.2[]", "pybah-5[]", "bahish-2[]"])
 
     def test_8(self):
         """Cyclic failures."""

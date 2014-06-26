@@ -17,14 +17,24 @@ import textwrap
 import tempfile
 import threading
 import subprocess as sp
+from types import MethodType
+from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
-
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
 
 
+try:
+    import collections
+    OrderedDict = collections.OrderedDict  # @UndefinedVariable
+except AttributeError:
+    import backport.ordereddict
+    OrderedDict = backport.ordereddict.OrderedDict
+
+
+# TODO deprecate
 class Common(object):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
@@ -76,10 +86,12 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
 _once_warnings = set()
 
+
 def print_warning_once(msg):
     if msg not in _once_warnings:
         print >> sys.stderr, "WARNING: %s" % msg
         _once_warnings.add(msg)
+
 
 def _mkdirs(*dirs):
     path = os.path.join(*dirs)
@@ -91,9 +103,10 @@ rm_tmdirs = True
 _tmpdirs = set()
 _tmpdir_lock = threading.Lock()
 
+
 def mkdtemp_():
-    from rez.settings import settings
-    path = tempfile.mkdtemp(dir=settings.tmpdir, prefix='rez_')
+    from rez.config import config
+    path = tempfile.mkdtemp(dir=config.tmpdir, prefix='rez_')
     try:
         _tmpdir_lock.acquire()
         _tmpdirs.add(path)
@@ -101,13 +114,16 @@ def mkdtemp_():
         _tmpdir_lock.release()
     return path
 
+
 def rmdtemp(path):
     if os.path.exists(path):
         shutil.rmtree(path)
 
+
 def set_rm_tmpdirs(enable):
     global rm_tmdirs
     rm_tmdirs = enable
+
 
 @atexit.register
 def _atexit():
@@ -116,11 +132,17 @@ def _atexit():
         for path in _tmpdirs:
             rmdtemp(path)
 
+
+def relative_path(from_path, to_path):
+    from_path = os.path.realpath(from_path)
+    to_path = os.path.realpath(to_path)
+    return os.path.relpath(from_path, to_path)
+
+
 def is_subdirectory(path, directory):
-    path = os.path.realpath(path)
-    directory = os.path.realpath(directory)
-    relative = os.path.relpath(path, directory)
+    relative = relative_path(path, directory)
     return not relative.startswith(os.pardir)
+
 
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
@@ -137,19 +159,24 @@ def _get_rez_dist_path(dirname):
 
     return path
 
+
 def get_bootstrap_path():
     return _get_rez_dist_path("packages")
 
+
 def get_script_path():
     return _get_rez_dist_path("bin")
+
 
 def get_rez_install_path():
     path = os.path.join(get_script_path(), "..")
     return os.path.realpath(path)
 
+
 def _add_bootstrap_pkg_path(paths):
     bootstrap_path = get_bootstrap_path()
     return paths[:] + [bootstrap_path]
+
 
 def shlex_join(value):
     import pipes
@@ -161,6 +188,7 @@ def shlex_join(value):
     else:
         return str(value)
 
+
 # returns path to first program in the list to be successfully found
 def which(*programs):
     from rez.backport.shutilwhich import which as which_
@@ -168,6 +196,7 @@ def which(*programs):
         path = which_(prog)
         if path:
             return path
+
 
 # case-insensitive fuzzy string match
 def get_close_matches(term, fields, fuzziness=0.4, key=None):
@@ -209,6 +238,7 @@ def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
 
     combined = [(k,v*0.5) for k,v in d.iteritems()]
     return sorted(combined, key=lambda x:-x[1])
+
 
 def columnise(rows, padding=2):
     strs = []
@@ -365,39 +395,6 @@ def to_ntpath(path):
 
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
-
-
-class AttrDictWrapper(UserDict.UserDict):
-    """
-    Wrap a custom dictionary with attribute-based lookup.
-    """
-    def __init__(self, data):
-        self.__dict__['data'] = data
-
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self.data
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-
-    def __setattr__(self, attr, value):
-        # For things like '__class__', for instance
-        if attr.startswith('__') and attr.endswith('__'):
-            super(AttrDictWrapper, self).__setattr__(attr, value)
-        self.data[attr] = value
-
-
-class RO_AttrDictWrapper(AttrDictWrapper):
-    """Read-only version of AttrDictWrapper."""
-    def __setattr__(self, attr, value):
-        o = self[attr]  # may raise 'no attribute' error
-        raise AttributeError("'%s' object attribute '%s' is read-only"
-                             % (self.__class__.__name__, attr))
 
 
 _templates = {}
@@ -577,8 +574,8 @@ def convert_old_commands(commands, annotate=True):
 
         # convert expansions from !OLD! style to {new}
         cmd = cmd.replace("!VERSION!",      "{version}")
-        cmd = cmd.replace("!MAJOR_VERSION!","{version.major}")
-        cmd = cmd.replace("!MINOR_VERSION!","{version.minor}")
+        cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
+        cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
         cmd = cmd.replace("!BASE!",         "{base}")
         cmd = cmd.replace("!ROOT!",         "{root}")
         cmd = cmd.replace("!USER!",         "{user}")
@@ -616,7 +613,8 @@ def convert_old_commands(commands, annotate=True):
             match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
             value = match.groupdict()['value'].strip()
-            if (value.startswith('"') and value.endswith('"')) or (value.startswith("'") and value.endswith("'")):
+            if (value.startswith('"') and value.endswith('"')) or \
+                    (value.startswith("'") and value.endswith("'")):
                 value = value[1:-1]
             loc.append("alias('%s', '%s')" % (key, _en(value)))
         else:
@@ -626,118 +624,37 @@ def convert_old_commands(commands, annotate=True):
     return '\n'.join(loc)
 
 
-try:
-    import collections
-    OrderedDict = collections.OrderedDict  # @UndefinedVariable
-except AttributeError:
-    from UserDict import DictMixin
+def is_dict_subset(dict1, dict2):
+    """Returns True if dict1 is a subset of dict2."""
+    for k, v in dict1.iteritems():
+        if k in dict2:
+            if dict2[k] != v:
+                return False
+        else:
+            return False
+    return True
 
-    class OrderedDict(dict, DictMixin):
 
-        def __init__(self, *args, **kwds):
-            if len(args) > 1:
-                raise TypeError('expected at most 1 arguments, got %d' % len(args))
-            try:
-                self.__end
-            except AttributeError:
-                self.clear()
-            self.update(*args, **kwds)
+def dicts_conflicting(dict1, dict2):
+    """Returns True if any key present in both dicts has differing values."""
+    for k, v in dict1.iteritems():
+        if k in dict2 and dict2[k] != v:
+            return True
+    return False
 
-        def clear(self):
-            self.__end = end = []
-            end += [None, end, end]         # sentinel node for doubly linked list
-            self.__map = {}                 # key --> [key, prev, next]
-            dict.clear(self)
 
-        def __setitem__(self, key, value):
-            if key not in self:
-                end = self.__end
-                curr = end[1]
-                curr[2] = end[1] = self.__map[key] = [key, curr, end]
-            dict.__setitem__(self, key, value)
+def deep_update(dict1, dict2):
+    """Perform a deep merge of dict2 into dict1."""
+    for k, v in dict2.iteritems():
+        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
+            deep_update(dict1[k], v)
+        else:
+            dict1[k] = v
 
-        def __delitem__(self, key):
-            dict.__delitem__(self, key)
-            key, prev, next = self.__map.pop(key)
-            prev[2] = next
-            next[1] = prev
-
-        def __iter__(self):
-            end = self.__end
-            curr = end[2]
-            while curr is not end:
-                yield curr[0]
-                curr = curr[2]
-
-        def __reversed__(self):
-            end = self.__end
-            curr = end[1]
-            while curr is not end:
-                yield curr[0]
-                curr = curr[1]
-
-        def popitem(self, last=True):
-            if not self:
-                raise KeyError('dictionary is empty')
-            if last:
-                key = reversed(self).next()
-            else:
-                key = iter(self).next()
-            value = self.pop(key)
-            return key, value
-
-        def __reduce__(self):
-            items = [[k, self[k]] for k in self]
-            tmp = self.__map, self.__end
-            del self.__map, self.__end
-            inst_dict = vars(self).copy()
-            self.__map, self.__end = tmp
-            if inst_dict:
-                return (self.__class__, (items,), inst_dict)
-            return self.__class__, (items,)
-
-        def keys(self):
-            return list(self)
-
-        setdefault = DictMixin.setdefault
-        update = DictMixin.update
-        pop = DictMixin.pop
-        values = DictMixin.values
-        items = DictMixin.items
-        iterkeys = DictMixin.iterkeys
-        itervalues = DictMixin.itervalues
-        iteritems = DictMixin.iteritems
-
-        def __repr__(self):
-            if not self:
-                return '%s()' % (self.__class__.__name__,)
-            return '%s(%r)' % (self.__class__.__name__, self.items())
-
-        def copy(self):
-            return self.__class__(self)
-
-        @classmethod
-        def fromkeys(cls, iterable, value=None):
-            d = cls()
-            for key in iterable:
-                d[key] = value
-            return d
-
-        def __eq__(self, other):
-            if isinstance(other, OrderedDict):
-                if len(self) != len(other):
-                    return False
-                for p, q in  zip(self.items(), other.items()):
-                    if p != q:
-                        return False
-                return True
-            return dict.__eq__(self, other)
-
-        def __ne__(self, other):
-            return not self == other
 
 class propertycache(object):
-    '''Class for creating properties where the value is initially calculated then stored.
+    '''Class for creating properties where the value is initially calculated
+    then stored.
 
     Intended for use as a descriptor, ie:
 
@@ -751,6 +668,19 @@ class propertycache(object):
     This is taking awhile
     42
     >>> c.aValue
+    42
+
+    A cached property can be uncached::
+
+    >>> c = MyClass()
+    >>> c.aValue
+    This is taking awhile
+    42
+    >>> c.aValue
+    42
+    >>> propertycache.uncache(c, 'aValue')
+    >>> c.aValue
+    This is taking awhile
     42
 
     If you wish to signal that the return result of the decorated function
@@ -777,7 +707,6 @@ class propertycache(object):
     'bar'
     >>> c.aValue
     'bar'
-
     '''
     class DoNotCacheSignal(Exception):
         def __init__(self, default=None):
@@ -791,41 +720,485 @@ class propertycache(object):
                 defaultRepr = '<<unable to get repr for default>>'
             return '%s(%s)' % (type(self).__name__, defaultRepr)
 
-    def __init__(self, func):
+    def __init__(self, func, name=None):
         self.func = func
-        self.name = func.__name__
+        self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):
         if instance is None:
             return None
+        d = instance.__dict__.get('_cachedproperties', {})
+        if self.name in d:
+            return d[self.name]
+
         try:
             result = self.func(instance)
         except self.DoNotCacheSignal, e:
             return e.default
-        setattr(instance, self.name, result)
+
+        d = instance.__dict__
+        if '_cachedproperties' not in d:
+            d['_cachedproperties'] = {}
+        d['_cachedproperties'][self.name] = result
         return result
 
-
-class YamlCache(object):
-    """Caches yaml files, no file update checking."""
-    def __init__(self):
-        self.docs = {}
-
-    def load(self, path):
-        """Returns dict, or None if the file does not exist."""
-        doc = self.docs.get(path)
-
-        if doc is False:
-            return None
-        elif doc is not None:
-            return doc.copy()
-
-        if os.path.exists(path):
-            with open(path) as f:
-                doc = yaml.load(f.read())
+    @classmethod
+    def uncache(cls, instance, name=None):
+        d = instance.__dict__.get('_cachedproperties', {})
+        if name:
+            if name in d:
+                del d[name]
         else:
-            self.docs[path] = False
-            return None
+            d.clear()
 
-        self.docs[path] = doc
-        return doc.copy()
+
+class AttrDictWrapper(UserDict.UserDict):
+    """Wrap a custom dictionary with attribute-based lookup::
+
+        >>> d = {'one': 1}
+        >>> dd = AttrDictWrapper(d)
+        >>> assert dd.one == 1
+        >>> ddd = dd.copy()
+        >>> ddd.one = 2
+        >>> assert ddd.one == 2
+        >>> assert dd.one == 1
+        >>> assert d['one'] == 1
+    """
+    def __init__(self, data):
+        self.__dict__['data'] = data
+
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            d = self.__dict__
+        else:
+            d = self.data
+        try:
+            return d[attr]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
+
+    def __setattr__(self, attr, value):
+        # For things like '__class__', for instance
+        if attr.startswith('__') and attr.endswith('__'):
+            super(AttrDictWrapper, self).__setattr__(attr, value)
+        self.data[attr] = value
+
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
+
+
+class RO_AttrDictWrapper(AttrDictWrapper):
+    """Read-only version of AttrDictWrapper."""
+    def __setattr__(self, attr, value):
+        o = self[attr]  # may raise 'no attribute' error
+        raise AttributeError("'%s' object attribute '%s' is read-only"
+                             % (self.__class__.__name__, attr))
+
+
+def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
+    """Recursively convert dict and UserDict types.
+
+    Note that `d` itself is converted also, as well as any nested dict-like
+    objects.
+
+    Args:
+        to_class (type): Dict-like type to convert values to, usually UserDict
+            subclass, or dict.
+        from_class (type): Dict-like type to convert values from. If a tuple,
+            multiple types are converted.
+    """
+    for key, value in d.iteritems():
+        if isinstance(value, from_class):
+            d[key] = convert_dicts(value, to_class=to_class,
+                                   from_class=from_class)
+    return to_class(d)
+
+
+class RecursiveAttribute(UserDict.UserDict):
+    """An object that can have new attributes added recursively::
+
+        >>> a = RecursiveAttribute()
+        >>> a.foo.bah = 5
+        >>> a.foo['eek'] = 'hey'
+        >>> a.fee = 1
+
+        >>> print a.to_dict()
+        {'foo': {'bah': 5, 'eek': 'hey'}, 'fee': 1}
+
+    A recursive attribute can also be created from a dict, and made read-only::
+
+        >>> d = {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
+        >>> a = RecursiveAttribute(d, read_only=True)
+        >>> print str(a)
+        {'fee': {'fi': {'fo': 'fum'}}, 'ho': 'hum'}
+        >>> print a.ho
+        hum
+        >>> a.new = True
+        AttributeError: 'RecursiveAttribute' object has no attribute 'new'
+    """
+    def __init__(self, data=None, read_only=False):
+        self.__dict__.update(dict(data={}, read_only=read_only))
+        self._update(data or {})
+
+    def __getattr__(self, attr):
+        def _noattrib():
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
+        d = self.__dict__
+        if attr.startswith('__') and attr.endswith('__'):
+            try:
+                return d[attr]
+            except KeyError:
+                _noattrib()
+        if attr in d["data"]:
+            return d["data"][attr]
+        if d["read_only"]:
+            _noattrib()
+
+        # the new attrib isn't actually added to this instance until it's set
+        # to something. This stops code like "print instance.notexist" from
+        # adding empty attributes
+        attr_ = self._create_child_attribute(attr)
+        assert(isinstance(attr_, RecursiveAttribute))
+        attr_.__dict__["pending"] = (attr, self)
+        return attr_
+
+    def __setattr__(self, attr, value):
+        d = self.__dict__
+        if d["read_only"]:
+            if attr in d["data"]:
+                raise AttributeError("'%s' object attribute '%s' is read-only"
+                                     % (self.__class__.__name__, attr))
+            else:
+                raise AttributeError("'%s' object has no attribute '%s'"
+                                     % (self.__class__.__name__, attr))
+        elif attr.startswith('__') and attr.endswith('__'):
+            d[attr] = value
+        else:
+            d["data"][attr] = value
+            self._reparent()
+
+    def __getitem__(self, attr):
+        return getattr(self, attr)
+
+    def __str__(self):
+        return str(self.to_dict())
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.to_dict())
+
+    def _create_child_attribute(self, attr):
+        """Override this method to create new child attributes.
+
+        Returns:
+            `RecursiveAttribute` instance.
+        """
+        return self.__class__()
+
+    def to_dict(self):
+        """Get an equivalent dict representation."""
+        d = {}
+        for k, v in self.__dict__["data"].iteritems():
+            if isinstance(v, RecursiveAttribute):
+                d[k] = v.to_dict()
+            else:
+                d[k] = v
+        return d
+
+    def copy(self):
+        return self.__class__(self.__dict__['data'].copy())
+
+    def update(self, data):
+        """Dict-like update operation."""
+        if self.__dict__["read_only"]:
+            raise AttributeError("read-only, cannot be updated")
+        self._update(data)
+
+    def _update(self, data):
+        for k, v in data.iteritems():
+            if isinstance(v, dict):
+                v = RecursiveAttribute(v)
+            self.__dict__["data"][k] = v
+
+    def _reparent(self):
+        d = self.__dict__
+        if "pending" in d:
+            attr_, parent = d["pending"]
+            parent._reparent()
+            parent.__dict__["data"][attr_] = self
+            del d["pending"]
+
+
+class _Scope(RecursiveAttribute):
+    def __init__(self, name=None, context=None):
+        RecursiveAttribute.__init__(self)
+        self.__dict__.update(dict(name=name,
+                                  context=context,
+                                  locals=None))
+
+    def __enter__(self):
+        locals_ = sys._getframe(1).f_locals
+        self.__dict__["locals"] = locals_.copy()
+        return self
+
+    def __exit__(self, *args):
+        # find what's changed
+        updates = {}
+        d = self.__dict__
+        locals_ = sys._getframe(1).f_locals
+        self_locals = d["locals"]
+        for k, v in locals_.iteritems():
+            if not (k.startswith("__") and k.endswith("__")) \
+                    and (k not in self_locals or v != self_locals[k]) \
+                    and not isinstance(v, _Scope):
+                updates[k] = v
+
+        # merge updated local vars with attributes
+        self.update(updates)
+
+        # restore upper scope
+        locals_.clear()
+        locals_.update(self_locals)
+
+        self_context = d["context"]
+        if self_context:
+            self_context._scope_exit(d["name"])
+
+    def _create_child_attribute(self, attr):
+        return RecursiveAttribute()
+
+
+class ScopeContext(object):
+    """A context manager for creating nested dictionaries::
+
+        >>> scope = ScopeContext()
+        >>>
+        >>> with scope("animal"):
+        >>>     count = 2
+        >>>     with scope("cat"):
+        >>>         friendly = False
+        >>>     with scope("dog") as d:
+        >>>         friendly = True
+        >>>         d.num_legs = 4
+        >>>         d.breed.sub_breed = 'yorkshire terrier'
+        >>> with scope("animal"):
+        >>>     count = 3
+        >>>     with scope("cat"):
+        >>>         num_legs = 4
+        >>>     with scope("ostrich"):
+        >>>         friendly = False
+        >>>         num_legs = 2
+
+    The dictionaries can then be retrieved::
+
+        >>> print pprint.pformat(scope.to_dict())
+        {'animal': {'count': 3,
+                    'cat': {'friendly': False,
+                            'num_legs': 4},
+                    'dog': {'breed': {'sub_breed': 'yorkshire terrier'},
+                            'friendly': True,
+                            'num_legs': 4},
+                    'ostrich': {'friendly': False,
+                                'num_legs': 2}}}
+
+    Note that scopes and recursive attributes can be referenced multiple times,
+    and the assigned properties will be merged. If the same property is set
+    multiple times, it will be overwritten.
+    """
+    def __init__(self):
+        self.scopes = {}
+        self.scope_stack = [_Scope()]
+
+    def __call__(self, name):
+        path = tuple([x.name for x in self.scope_stack[1:]] + [name])
+        if path in self.scopes:
+            scope = self.scopes[path]
+        else:
+            scope = _Scope(name, self)
+            self.scopes[path] = scope
+
+        self.scope_stack.append(scope)
+        return scope
+
+    def _scope_exit(self, name):
+        scope = self.scope_stack.pop()
+        assert(self.scope_stack)
+        assert(name == scope.name)
+        data = {scope.name: scope.to_dict()}
+        self.scope_stack[-1].update(data)
+
+    def to_dict(self):
+        """Get an equivalent dict representation."""
+        return self.scope_stack[-1].to_dict()
+
+    def __str__(self):
+        names = ('.'.join(y for y in x) for x in self.scopes.keys())
+        return "%r" % (tuple(names),)
+
+
+class ObjectStringFormatter(Formatter):
+    """String formatter for objects.
+
+    This formatter will expand any reference to an object's attributes.
+    """
+    def __init__(self, instance, pretty=False, expand=None):
+        """Create a formatter.
+
+        Args:
+            instance: The object to format with.
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parentheses removed.
+            expand: What to expand references to nonexistent attributes to:
+                - None: raise an exception;
+                - 'empty': expand to an empty string;
+                - 'unchanged': leave original string intact, ie '{key}'
+        """
+        self.instance = instance
+        self.pretty = pretty
+        self.expand = expand
+
+    def convert_field(self, value, conversion):
+        if self.pretty:
+            if value is None:
+                return ''
+            elif isinstance(value, list):
+                return ' '.join(str(x) for x in value)
+        return Formatter.convert_field(self, value, conversion)
+
+    def get_field(self, field_name, args, kwargs):
+        if self.expand is None:
+            return Formatter.get_field(self, field_name, args, kwargs)
+        try:
+            return Formatter.get_field(self, field_name, args, kwargs)
+        except AttributeError:
+            import re
+            reg = re.compile("[^\.\[]+")
+            try:
+                key = reg.match(field_name).group()
+            except:
+                key = field_name
+            if self.expand == 'empty':
+                return ('', key)
+            else:
+                return ("{%s}" % field_name, key)
+
+    def get_value(self, key, args, kwds):
+        if isinstance(key, basestring):
+            return getattr(self.instance, key)
+        else:
+            return Formatter.get_value(self, key, args, kwds)
+
+
+class _WithDataAccessors(type):
+    """Metaclass for adding properties to a class for accessing top-level keys
+    in its metadata dictionary.
+
+    Property names are derived from the keys of the class's `schema` object.
+    If a schema key is optional, then the class property will evaluate to None
+    if the key is not present in the metadata.
+
+    If the class instance also has a `_validate_key` method, this will be used
+    to lazily transform properties on first reference.
+    """
+    def __new__(cls, name, parents, members):
+        from rez.vendor.schema.schema import Schema, Optional
+        schema = members.get('schema')
+        if schema:
+            schema_dict = schema._schema
+            for key in schema_dict.keys():
+                optional = isinstance(key, Optional)
+                while isinstance(key, Schema):
+                    key = key._schema
+                if key not in members and \
+                        isinstance(key, basestring) and \
+                        not any(hasattr(x, key) for x in parents):
+                    members[key] = cls._make_getter(key, optional)
+
+        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
+                                                      members)
+
+    @classmethod
+    def _make_getter(cls, key, optional):
+        def getter(self):
+            if optional and key not in self.metadata:
+                return None
+            attr = getattr(self.metadata, key)
+            if hasattr(self, "_validate_key"):
+                attr = self._validate_key(key, attr)
+            return attr
+        return propertycache(getter, name=key)
+
+
+class DataWrapper(object):
+    """Base class for implementing a class that contains validated data."""
+    __metaclass__ = _WithDataAccessors
+    schema = None
+
+    def validate(self):
+        """Check that the object's contents are valid."""
+        _ = self._data
+
+    def _load_data(self):
+        """Implement this method to return the object's data.
+
+        Returns:
+            Object data as a dict, or None if the object has no data.
+        """
+        raise NotImplementedError
+
+    @propertycache
+    def _data(self):
+        """Loaded object data.
+
+        This is private because it is preferred for users to go through the
+        `metadata` property.  This is here to preserve the original dictionary
+        loaded directly from the package's resource.
+
+        Returns:
+            Object data as a dict, or None if the object has no data.
+        """
+        data = self._load_data()
+        if data and self.schema:
+            data = self.schema.validate(data)
+        return data
+
+    @propertycache
+    def metadata(self):
+        """Read-only dictionary of metadata for this package with nested,
+        attribute-based access for the keys in the dictionary.
+
+        All of the dictionaries in `_data` have are replaced with custom
+        `UserDicts` to provide the attribute-lookups.  If you need the raw
+        dictionary, use `_data`.
+
+        Note that the `UserDict` references the dictionaries in `_data`, so
+        the data is not copied, and thus the two will always be in sync.
+
+        Returns:
+            `RO_AttrDictWrapper` instance, or None if the resource has no data.
+        """
+        if self._data is None:
+            return None
+        else:
+            return convert_dicts(self._data, RO_AttrDictWrapper)
+
+    def format(self, s, pretty=False, expand=None):
+        """Format a string.
+
+        Args:
+            s (str): String to format, eg "hello {name}"
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parenthesis removed.
+            expand: What to expand references to nonexistent attributes to:
+                - None: raise an exception;
+                - 'empty': expand to an empty string;
+                - 'unchanged': leave original string intact, ie '{key}'
+
+        Returns:
+            The formatting string.
+        """
+        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
+        return formatter.format(s)

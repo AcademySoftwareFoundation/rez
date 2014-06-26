@@ -7,7 +7,6 @@ import os.path
 import os
 
 
-
 class TestContext(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
@@ -40,7 +39,7 @@ class TestContext(TestBase, TempdirMixin):
         """Test command execution in context."""
         r = ResolvedContext(["hello_world"])
         p = r.execute_command(["hello_world"], stdout=subprocess.PIPE)
-        stdout,_ = p.communicate()
+        stdout, _ = p.communicate()
         stdout = stdout.strip()
         self.assertEqual(stdout, "Hello Rez World!")
 
@@ -50,7 +49,6 @@ class TestContext(TestBase, TempdirMixin):
         file = os.path.join(self.root, "test.rxt")
         r = ResolvedContext(["hello_world"])
         r.save(file)
-
         # load
         r2 = ResolvedContext.load(file)
         self.assertEqual(r.resolved_packages, r2.resolved_packages)
@@ -66,14 +64,9 @@ class TestContext(TestBase, TempdirMixin):
         for cmd in ("hello_world", "whoah_hello_world", "hello_world_dude"):
             exe = os.path.join(suite_dir, "bin", cmd)
             self.assertTrue(os.path.exists(exe), "should exist: %s" % exe)
-
-
-            #p = r.execute_command([exe], stdout=subprocess.PIPE)
-
-            p = subprocess.Popen([exe], stdout=subprocess.PIPE)
-            stdout,_ = p.communicate()
-            stdout = stdout.strip()
-            self.assertEqual(stdout, "Hello Rez World!")
+            p = subprocess.Popen([exe])
+            p.wait()
+            self.assertEqual(p.returncode, 0)
 
 
 def get_test_suites():
@@ -85,6 +78,7 @@ def get_test_suites():
     suite.addTest(TestContext("test_suite"))
     suites.append(suite)
     return suites
+
 
 if __name__ == '__main__':
     unittest.main()

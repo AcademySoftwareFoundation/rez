@@ -4,28 +4,22 @@
 # Settings are determined in the following way:
 # 1) The setting is first read from this file;
 # 2) The setting is then overridden if it is present in another settings file
-#    pointed at by the $REZ_SETTINGS_FILE environment variable;
+#    pointed at by the $REZ_CONFIG_FILE environment variable;
 # 3) The setting is further overriden if it is present in $HOME/.rezconfig;
 # 4) The setting is overridden again if the environment variable $REZ_XXX is
 #    present, where XXX is the uppercase version of the setting key. For example,
 #    'image_viewer' will be overriden by $REZ_IMAGE_VIEWER.
 # 5) This is a special case applied only during a package build or release. In
-#    this case, if the package definition file contains a 'rezconfig' section,
+#    this case, if the package definition file contains a 'config' section,
 #    settings in this section will override all others.
 #
-# If a setting type is a list, then an overriding env-var is expected to be
-# separated by the path seperator for the current os (eg ':' in Linux), unless
-# overridden in the '_sep' section.
+# Note that in the case of plugin settings (anything under the 'plugins'
+# section of the config), (4) does not apply.
 #
-# There are a set of special variables that will expand at runtime. These can be
-# referred to by any string-based setting, using the format '{varname}'. The
-# available variables are:
-# {platform} - machine platform, eg 'linux';
-# {arch} - machine architecture, eg 'x86_64';
-# {os} - machine operating system, eg 'Ubuntu-12.04';
-# {user} - the current user.
+# Variable expansion can be used in configuration settings. The following
+# expansions are supported:
+# - Any property of the system object. Eg '{system.platform}'
 #
-
 
 ###############################################################################
 # Paths
@@ -63,7 +57,8 @@ package_repository_path: '~/.rez/package-repos'
 # The directory where rez caches package repository downloads
 package_repository_cache_path: '~/.rez/downloads/package-repos'
 
-# Where temporary files go
+# Where temporary files go. Defaults to appropriate path depending on your
+# system, for example linux distributions will probably set this to /tmp.
 tmpdir:
 
 
@@ -79,15 +74,28 @@ bind_module_path: []
 
 
 ###############################################################################
+# Resources
+###############################################################################
+
+# If True, enable resource caching. This caches things such as disk reads of
+# package.yaml files, and data validation. You would only turn this off for
+# debugging purposes.
+resource_caching: true
+
+# The size of the resource cache, measured in resources
+resource_caching_maxsize: 10000
+
+
+###############################################################################
 # Environment Resolution
 ###############################################################################
 
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
 implicit_packages:
-- '~platform=={platform}'
-- '~arch=={arch}'
-- '~os=={os}'
+- '~platform=={system.platform}'
+- '~arch=={system.arch}'
+- '~os=={system.os}'
 
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
@@ -132,11 +140,16 @@ default_shell: ''
 warn_shell_startup: false
 
 # If true, print a warning when an untimestamped package is found.
-warn_untimestamped: true
+warn_untimestamped: false
 
 # If true, print a warning whenever a package with an old-style commands
 # section is resolved into an environment
-warn_old_commands: true
+warn_old_commands: false
+
+# If true, print a warning whenever a package definition contains a version
+# that is not a string. This is not allowed in new packages created for Rez-2,
+# but older packages may still have this error.
+warn_nonstring_version: true
 
 # turn on all warnings
 warn_all: false
@@ -144,16 +157,15 @@ warn_all: false
 # Print debugging info when loading plugins
 debug_plugins: false
 
-# TODO kinda useful for debugging right now, but deprecate before 2.0 release
-# Print debugging info when detecting system values such as platform, shell
-debug_system: false
-
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
 
 # Print debugging info in binding modules. Binding modules should print using
 # the bind_utils.log() function - it is controlled with this setting
 debug_bind_modules: false
+
+# Print debugging info when searching and loading resources.
+debug_resources: false
 
 # turn on all debugging messages
 debug_all: false
@@ -203,7 +215,7 @@ release_email_smtp_host:
 release_email_smtp_port: 25
 
 # The address that post-release emails appear to come from.
-release_email_from: '{user}@rez-release.com'
+release_email_from: '{system.user}@rez-release.com'
 
 # List of recipients of post-release emails.
 release_email_to: []

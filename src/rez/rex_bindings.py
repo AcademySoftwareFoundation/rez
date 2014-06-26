@@ -7,6 +7,7 @@ The classes in this file are intended to have simple interfaces that hide
 unnecessary data from Rex, and provide APIs that will not change.
 """
 
+
 class Binding(object):
     """Abstract base class."""
     def __init__(self, data=None):
@@ -25,7 +26,7 @@ class Binding(object):
 class VersionBinding(Binding):
     """Binds a version.Version object."""
     def __init__(self, version):
-        super(VersionBinding,self).__init__()
+        super(VersionBinding, self).__init__()
         self.__version = version
 
     @property
@@ -64,10 +65,11 @@ class VariantBinding(Binding):
     """Binds a packages.Variant object."""
     def __init__(self, variant):
         doc = dict(
+            name=variant.name,
+            version=VersionBinding(variant.version),
             base=variant.base,
-            root=variant.root,
-            version=VersionBinding(variant.version))
-        super(VariantBinding,self).__init__(doc)
+            root=variant.root)
+        super(VariantBinding, self).__init__(doc)
         self.__variant = variant
 
     def __attr_error(self, attr):
@@ -82,7 +84,7 @@ class VariantsBinding(Binding):
     each variant."""
     def __init__(self, variants):
         self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
-        super(VariantsBinding,self).__init__(self.__variants)
+        super(VariantsBinding, self).__init__(self.__variants)
 
     def __attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
@@ -95,7 +97,7 @@ class RequirementsBinding(Binding):
     """Binds a list of version.Requirement objects."""
     def __init__(self, requirements):
         self.__requirements = dict((x.name, str(x)) for x in requirements)
-        super(RequirementsBinding,self).__init__(self.__requirements)
+        super(RequirementsBinding, self).__init__(self.__requirements)
 
     def __attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)

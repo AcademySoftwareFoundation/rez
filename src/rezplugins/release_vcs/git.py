@@ -1,5 +1,5 @@
 from rez.release_vcs import ReleaseVCS
-from rez.settings import settings
+from rez.config import config
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 import functools
 import os.path
@@ -120,7 +120,7 @@ class GitReleaseVCS(ReleaseVCS):
             try:
                 doc[key] = fn()
             except Exception as e:
-                if settings.debug("package_release"):
+                if config.debug("package_release"):
                     print >> sys.stderr, "WARNING: Error retrieving %s: %s" \
                         % (key, str(e))
 

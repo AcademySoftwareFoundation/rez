@@ -2,6 +2,7 @@
 Run unit tests
 '''
 
+
 def setup_parser(parser):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
@@ -17,8 +18,10 @@ def setup_parser(parser):
                         help="test the build system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
-    #parser.add_argument("-v", "--verbosity", type=int, default=2,
-    #                    help="set verbosity level")
+    parser.add_argument("--resources", action="store_true",
+                        help="test resource iteration and serialization")
+    parser.add_argument("--packages", action="store_true",
+                        help="test package iteration and serialization")
 
 
 def get_suites(opts):
@@ -30,7 +33,9 @@ def get_suites(opts):
         (not opts.commands) and \
         (not opts.rex) and \
         (not opts.build) and \
-        (not opts.context)
+        (not opts.context) and \
+        (not opts.resources) and \
+        (not opts.packages)
 
     if opts.shells or test_all:
         from rez.tests.test_shells import get_test_suites
@@ -58,6 +63,14 @@ def get_suites(opts):
 
     if opts.context or test_all:
         from rez.tests.test_context import get_test_suites
+        suites += get_test_suites()
+
+    if opts.resources or test_all:
+        from rez.tests.test_resources import get_test_suites
+        suites += get_test_suites()
+
+    if opts.packages or test_all:
+        from rez.tests.test_packages import get_test_suites
         suites += get_test_suites()
 
     return suites

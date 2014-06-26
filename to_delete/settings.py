@@ -4,18 +4,19 @@ Example:
 from rez.settings import settings
 print settings.packages_path
 """
+raise Exception("DEPRECATED")
 import os
 import os.path
 import sys
 import string
 import getpass
+from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
 from rez.util import which, YamlCache
 from rez import module_root_path
 from rez.system import system
 from rez.exceptions import ConfigurationError
-from rez.vendor.schema.schema import Schema, SchemaError, Or
-
+from rez.vendor.schema.schema import Schema, SchemaError, And, Or, Use
 
 
 class PartialFormatter(string.Formatter):
@@ -32,7 +33,8 @@ class Settings(object):
     opt_str_schema      = Schema(Or(str,None), error="Expected string or null")
     int_schema          = Schema(int, error="Expected integer")
     str_list_schema     = Schema([str], error="Expected list of strings")
-    path_list_schema    = Schema([str], error="Expected list of strings")
+    path_list_schema    = Schema([And(str, Use(os.path.abspath))],
+                                 error="Expected list of strings")
 
     key_schemas = {
         # bools
@@ -41,6 +43,7 @@ class Settings(object):
         "warn_shell_startup":               bool_schema,
         "warn_untimestamped":               bool_schema,
         "warn_old_commands":                bool_schema,
+        "warn_nonstring_version":           bool_schema,
         "warn_all":                         bool_schema,
         "debug_plugins":                    bool_schema,
         "debug_package_release":            bool_schema,
@@ -51,8 +54,10 @@ class Settings(object):
         "all_resetting_variables":          bool_schema,
         "quiet":                            bool_schema,
         "resolve_caching":                  bool_schema,
+        "resource_caching":                 bool_schema,
         # integers
         "release_email_smtp_port":          int_schema,
+        "resource_caching_maxsize":         int_schema,
         # strings
         "build_directory":                  str_schema,
         "local_packages_path":              str_schema,
@@ -178,6 +183,17 @@ class Settings(object):
             paths.remove(self.local_packages_path)
         return paths
 
+    # use as decorator
+    def lru_cache(self, param, maxsize_param=None):
+        def decorated(f):
+            if self.get(param):
+                maxsize = self.get(maxsize_param) \
+                    if maxsize_param else 100
+                return lru_cache(maxsize)(f)
+            else:
+                return f
+        return decorated
+
     def _load_config(self):
         if self.config is None:
             path = os.path.join(module_root_path, "rezconfig")
@@ -205,6 +221,8 @@ class Settings(object):
 
     @classmethod
     def _validate(cls, key, value):
+        if key not in cls.key_schemas:
+            return
         schema = cls.key_schemas[key]
         try:
             schema.validate(value)

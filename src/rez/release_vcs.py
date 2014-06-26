@@ -90,7 +90,7 @@ class ReleaseVCS(object):
         attrs = dict((k,str(v)) for k,v in self.package.metadata.iteritems() \
             if isinstance(v, (basestring, Version)))
 
-        tag_name = self.package.settings.vcs_tag_name.format(**attrs)
+        tag_name = self.package.config.vcs_tag_name.format(**attrs)
         if not tag_name:
             tag_name = "unversioned"
 
@@ -107,7 +107,7 @@ class ReleaseVCS(object):
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
-        if self.package.settings.debug("package_release"):
+        if self.package.config.debug("package_release"):
             print "Running command: %s" % cmd_str
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,

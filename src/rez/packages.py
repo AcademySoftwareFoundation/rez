@@ -1,213 +1,197 @@
 import os.path
-from rez.backport.lru_cache import lru_cache
-from rez.util import print_warning_once, Common, propertycache, is_subdirectory
-from rez.resources import iter_resources, load_metadata
+from rez.util import Common, propertycache
+from rez.resources import iter_resources, iter_child_resources, \
+    ResourceWrapper
+from rez.package_resources import package_schema
+from rez.config import config
+from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
-from rez.vendor import yaml
-from rez.exceptions import PackageNotFoundError
-from rez.settings import settings, Settings
 
 
-"""
-PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
-PACKAGE_NAME_REGEX = re.compile(PACKAGE_NAME_REGSTR + '$')
-PACKAGE_NAME_SEP_REGEX = re.compile(r'[-@#]')
-PACKAGE_REQ_SEP_REGEX = re.compile(r'[-@#=<>]')
-"""
+def iter_package_families(paths=None):
+    """Iterate over package families.
 
-
-# TODO replace with more general resource cacher
-# cached package.* file reads
-@lru_cache(maxsize=1024)
-def _load_metadata(path):
-    return load_metadata(path)
-
-
-def iter_package_families(name=None, paths=None):
-    """Iterate through top-level `PackageFamily` instances."""
-    paths = settings.default(paths, "packages_path")
-
-    pkg_iter = iter_resources(0,  # configuration version
-                              ['package_family.folder'],
-                              paths,
-                              name=name)
-
-    for path, variables, resource_info in pkg_iter:
-        if os.path.isdir(path):
-            yield PackageFamily(variables['name'], path)
-
-
-def iter_packages(name, range=None, timestamp=None, paths=None, descending=False):
-    """Iterate over `Package` instances, sorted by version.
-
-    Packages of the same name and version earlier in the search path take
-    precedence - equivalent packages later in the paths are ignored.
+    Note that multiple package families with the same name can be returned.
+    Unlike packages, families later in the searchpath are not hidden by earlier
+    families.
 
     Args:
-        name: Name of the package, eg 'maya'.
-        range: VersionRange limiting the versions to return, returns all
-            versions if None.
-        timestamp: Any package newer than this time epoch is ignored.
-        paths: List of paths to search for pkgs, defaults to
-            settings.packages_path.
-        descending: If True, return packages in descending order.
+        paths (list of str): paths to search for package families, defaults to
+            `config.packages_path`.
 
     Returns:
-        Package object iterator.
+        `PackageFamily` iterator.
     """
-    packages = []
+    for resource in iter_resources(
+            0,
+            resource_keys='package_family.*',
+            search_path=paths,
+            root_resource_key="folder.packages_root"):
+        yield PackageFamily(resource)
+
+
+def _iter_packages(name=None, paths=None):
+    variables = {}
+    if name is not None:
+        variables["name"] = name
+    for resource in iter_resources(
+            0,
+            resource_keys='package.*',
+            search_path=paths,
+            root_resource_key="folder.packages_root",
+            variables=variables):
+        yield Package(resource)
+
+
+def iter_packages(name=None, range=None, timestamp=None, paths=None):
+    """Iterate over `Package` instances.
+
+    Packages of the same name and version earlier in the search path take
+    precedence - equivalent packages later in the paths are ignored. Packages
+    are not returned in any specific order.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+        range (VersionRange, optional): If provided, limits the versions
+            returned.
+        timestamp (int, optional): Any package newer than this time epoch is
+            ignored.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
+
+    Returns:
+        `Package` object iterator.
+    """
     consumed = set()
-    for fam in iter_package_families(name, paths):
-        for pkg in fam.iter_version_packages():
-            pkgname = pkg.qualified_name
-            if pkgname not in consumed:
-                if (timestamp and pkg.timestamp > timestamp) \
+    for pkg in _iter_packages(name, paths):
+        if pkg not in consumed:
+            if (timestamp and pkg.timestamp > timestamp) \
                     or (range and pkg.version not in range):
-                    continue
-
-                consumed.add(pkgname)
-                packages.append(pkg)
-
-    packages = sorted(packages, key=lambda x: x.version, reverse=descending)
-    return iter(packages)
+                continue
+            consumed.add(pkg)
+            yield pkg
 
 
-class PackageFamily(Common):
-    """A package family has a single root directory, with a sub-directory for
-    each version.
+def load_developer_package(path):
+    """Load a developer package.
+
+    A developer package may for example be a package.yaml or package.py in a
+    user's source directory.
+
+    Args:
+        path: Directory containing the package definition file.
+
+    Returns:
+        `Package` object.
     """
-    def __init__(self, name, path):
-        self.name = name
-        self.path = path
+    it = iter_resources(
+        0,
+        resource_keys='package.*',
+        search_path=path,
+        root_resource_key="folder.dev_packages_root")
+    resources = list(it)
+    if not resources:
+        raise ResourceError("No package definition file found under %s" % path)
+    elif len(resources) > 1:
+        files = [os.path.basename(x.path) for x in resources]
+        raise ResourceError("Multiple package definition files found under "
+                            "%s: %s" % (path, ", ".join(files)))
+    return Package(resources[0])
+
+
+def get_completions(prefix):
+    """Get autocompletion options given a prefix string.
+
+    Returns:
+        Sorted list of strings, may be empty.
+    """
+    fam = None
+    for ch in ('-', '@', '#'):
+        if ch in prefix:
+            fam = prefix.split(ch)[0]
+            break
+    if fam:
+        words = set(x.qualified_name for x in iter_packages(name=fam)
+                    if x.qualified_name.startswith(prefix))
+    else:
+        words = set(x.name for x in iter_package_families()
+                    if x.name.startswith(prefix))
+    return sorted(words)
+
+
+class PackageFamily(ResourceWrapper):
+    """Class representing a package family.
+
+    You should not instantiate this class directly - instead, call
+    `iter_package_families`.
+    """
+    @propertycache
+    def name(self):
+        return self._resource.get("name")
+
+    @propertycache
+    def search_path(self):
+        return self._resource.get("search_path")
 
     def __str__(self):
-        return "%s@%s" % (self.name, os.path.dirname(self.path))
-
-    def iter_version_packages(self):
-        pkg_iter = iter_resources(0,  # configuration version
-                                  ['package.versionless', 'package.versioned'],
-                                  [os.path.dirname(self.path)],
-                                  name=self.name)
-
-        for metafile, variables, resource_info in pkg_iter:
-            version = Version(variables.get('version', ''))
-            yield Package(path=metafile,
-                          name=self.name,
-                          version=version)
+        return "%s@%s" % (self.name, self.search_path)
 
 
-class PackageBase(Common):
+class _PackageBase(ResourceWrapper):
     """Abstract base class for Package and Variant."""
-    def __init__(self, path, name=None, version=None):
-        self.name = name
-        self.version = version
-        self.metafile = None
-        self.base = None
+    @propertycache
+    def name(self):
+        value = self._resource.get("name")
+        if value is None:
+            value = self.metadata.get("name")
+        return value
 
-        # find metafile
-        if os.path.isfile(path):
-            self.metafile = path
-            self.base = os.path.dirname(path)
-        else:
-            for file in ("package.yaml", "package.py"):
-                fpath = os.path.join(path, file)
-                if os.path.isfile(fpath):
-                    self.metafile = fpath
-                    self.base = path
-                    break
+    @propertycache
+    def search_path(self):
+        return self._resource.get("search_path")
 
-        if self.metafile is None:
-            raise PackageNotFoundError( \
-                "No package definition file found in %s" % path)
+    @propertycache
+    def version(self):
+        ver_str = self._resource.get("version")
+        if ver_str is None:
+            return self.metadata.get("version")
+        return Version(ver_str)
 
-        if name is None or version is None:
-            self.name = self.metadata["name"]
-            try:
-                self.version = self.metadata["version"] or Version()
-            except KeyError:
-                self.version = Version()
-
-    @property
+    @propertycache
     def qualified_name(self):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
 
     @propertycache
-    def metadata(self):
-        return _load_metadata(self.metafile)
-
-    @propertycache
-    def settings(self):
-        """Packages can optionally override rez settings during build."""
-        overrides = self.metadata["rezconfig"] or None
-        return Settings(overrides=overrides)
+    def config(self):
+        return self.metadata.get("config") or config
 
     @propertycache
     def is_local(self):
         """Returns True if this package is in the local packages path."""
-        return is_subdirectory(self.metafile, self.settings.local_packages_path)
-
-    @propertycache
-    def timestamp(self):
-        timestamp = 0
-        path = os.path.dirname(self.metafile)
-        file = os.path.join(path, "release.yaml")
-
-        if os.path.exists(file):
-            with open(file) as f:
-                doc = yaml.load(f.read())
-            timestamp = doc.get("timestamp", 0)
-
-        # backwards compatibility with rez-1
-        if not timestamp:
-            file = os.path.join(path, ".metadata", "release_time.txt")
-            if os.path.exists(file):
-                with open(file) as f:
-                    content = f.read()
-                try:
-                    timestamp = int(content.strip())
-                except:
-                    pass
-
-        if (not timestamp) and (not self.is_local) and settings.warn("untimestamped"):
-            print_warning_once("Package is not timestamped: %s" % str(self))
-
-        return timestamp
-
-    def _base_path(self):
-        path = os.path.dirname(self.base)
-        if not self.version:
-            path = os.path.dirname(path)
-        return os.path.dirname(path)
+        return (self.search_path == self.config.local_packages_path)
 
     def __str__(self):
-        return "%s@%s" % (self.qualified_name, self._base_path())
+        return "%s@%s" % (self.qualified_name, self.search_path)
 
 
-class Package(PackageBase):
-    """Class representing a package definition, as read from a package.* file.
+class Package(_PackageBase):
+    """Class representing a package definition, as read from a package.* file
+    or similar.
+
+    You should not instantiate this class directly - instead, call
+    `iter_packages` or `load_developer_package`.
     """
-    def __init__(self, path, name=None, version=None):
-        """Create a package.
-
-        Args:
-            path: Either a filepath to a package definition file, or a path
-                to the directory containing the definition file.
-            name: Name of the package, eg 'maya'.
-            version: Version object - version of the package.
-        """
-        super(Package,self).__init__(path, name, version)
+    schema = package_schema
 
     @property
     def num_variants(self):
-        """Return the number of variants in this package. Returns zero if there
-        are no variants."""
-        variants = self.metadata["variants"] or []
-        return len(variants)
+        """Return the number of variants in this package."""
+        return len(self.variants or [])
 
     def get_variant(self, index=None):
-        """Return a variant from the definition.
+        """Return a variant from the package definition.
 
         Note that even a package that does not contain variants will return a
         Variant object with index=None.
@@ -219,123 +203,80 @@ class Package(PackageBase):
         elif index not in range(n):
             raise IndexError("variant index out of range")
 
-        return Variant(path=self.metafile,
-                       name=self.name,
-                       version=self.version,
-                       index=index)
+        it = iter_child_resources(parent_resource=self._resource,
+                                  resource_keys="variant.*",
+                                  variables=dict(index=index))
+        try:
+            resource = it.next()
+        except StopIteration:
+            raise ResourceNotFoundError("variant not found in package")
+        return Variant(resource)
 
     def iter_variants(self):
         """Returns an iterator over the variants in this package."""
-        n = self.num_variants
-        if n:
-            for i in range(n):
-                yield self.get_variant(i)
-        else:
-            yield self.get_variant()
-
-    def __eq__(self, other):
-        return (self.name == other.name) \
-            and (self.version == other.version) \
-            and (self.metafile == other.metafile)
+        for resource in iter_child_resources(parent_resource=self._resource,
+                                             resource_keys="variant.*"):
+            yield Variant(resource)
 
 
-class Variant(PackageBase):
+class Variant(_PackageBase):
     """Class representing a variant of a package.
 
     Note that Variant is also used in packages that don't have a variant - in
     this case, index is None. This helps give a consistent interface.
     """
-    def __init__(self, path, name=None, version=None, index=None):
-        """Create a package variant.
+    schema = package_schema
 
-        Args:
-            path: Either a filepath to a package definition file, or a path
-                to the directory containing the definition file.
-            name: Name of the package, eg 'maya'.
-            version: Version object - version of the package.
-            index: Zero-based variant index. If the package does not contain
-                variants, index should be set to None.
-        """
-        super(Variant,self).__init__(path, name, version)
-        self.index = index
-        self.root = self.base
+    @propertycache
+    def index(self):
+        return self._resource.get("index")
 
-        metadata = self.metadata
-        requires = metadata["requires"] or []
-
-        if self.index is not None:
-            try:
-                var_requires = metadata["variants"][self.index]
-            except IndexError:
-                raise IndexError("variant index out of range")
-
-            requires = requires + var_requires
-            dirs = [Requirement(x).safe_str() for x in var_requires]
-            self.root = os.path.join(self.base, os.path.join(*dirs))
-
-        self.requires_ = [Requirement(x) for x in requires]
-
-    @property
+    @propertycache
     def qualified_package_name(self):
-        return super(Variant,self).qualified_name
+        return super(Variant, self).qualified_name
 
-    @property
+    @propertycache
     def qualified_name(self):
-        s = super(Variant,self).qualified_name
-        if self.index is not None:
-            s += "[%d]" % self.index
-        return s
+        idxstr = '' if self.index is None else ("%d" % self.index)
+        return "%s[%s]" % (self.qualified_package_name, idxstr)
 
-    @property
+    @propertycache
+    def base(self):
+        return os.path.dirname(self.path)
+
+    @propertycache
+    def root(self):
+        return (os.path.join(self.base, self.subpath)
+                if self.subpath else self.base)
+
+    @propertycache
     def subpath(self):
         if self.index is None:
             return ''
         else:
-            path = os.path.relpath(self.root, self.base)
-            return os.path.normpath(path)
+            dirs = [x.safe_str() for x in self._internal.variant_requires]
+            return os.path.join(*dirs) if dirs else ''
 
-    def requires(self, build_requires=False, private_build_requires=False):
+    def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
 
         Args:
-            build_requires: If True, include build requirements.
-            private_build_requires: If True, include private build requirements.
+            build_requires (bool): If True, include build requirements.
+            private_build_requires (bool): If True, include private build
+                requirements.
 
         Returns:
-            List of Requirement objects.
+            List of `Requirement` objects.
         """
-        requires = self.requires_
+        requires = self.requires or []
         if build_requires:
-            reqs = self.metadata["build_requires"]
-            if reqs:
-                requires = requires + [Requirement(x) for x in reqs]
-
+            requires = requires + (self.build_requires or [])
         if private_build_requires:
-            reqs = self.metadata["private_build_requires"]
-            if reqs:
-                requires = requires + [Requirement(x) for x in reqs]
-
+            requires = requires + (self.private_build_requires or [])
         return requires
 
-    def to_dict(self):
-        return dict(
-            name=self.name,
-            version=str(self.version),
-            metafile=self.metafile,
-            index=self.index)
-
-    @classmethod
-    def from_dict(cls, d):
-        return Variant(path=d["metafile"],
-                       name=d["name"],
-                       version=Version(d["version"]),
-                       index=d["index"])
-
-    def __eq__(self, other):
-        return (self.name == other.name) \
-            and (self.version == other.version) \
-            and (self.metafile == other.metafile) \
-            and (self.index == other.index)
-
     def __str__(self):
-        return "%s@%s,%s" % (self.qualified_name, self._base_path(), self.subpath)
+        s = "%s@%s" % (self.qualified_name, self.search_path)
+        if self.subpath:
+            s += "(%s)" % self.subpath
+        return s
