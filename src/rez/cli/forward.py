@@ -10,6 +10,7 @@ def setup_parser(parser):
     parser.add_argument("YAML", type=str)
     parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 
+
 def command(opts, parser):
     from rez.vendor import yaml
     import inspect
