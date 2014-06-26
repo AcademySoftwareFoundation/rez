@@ -78,7 +78,7 @@ bind_module_path: []
 ###############################################################################
 
 # If True, enable resource caching. This caches things such as disk reads of
-# package.yaml files, post data validation. You would only turn this off for
+# package.yaml files, and data validation. You would only turn this off for
 # debugging purposes.
 resource_caching: true
 
@@ -157,15 +157,15 @@ warn_all: false
 # Print debugging info when loading plugins
 debug_plugins: false
 
-# Print debugging info when detecting system values such as platform, shell
-debug_system: false
-
 # Print debugging info such as VCS commands during package release
 debug_package_release: false
 
 # Print debugging info in binding modules. Binding modules should print using
 # the bind_utils.log() function - it is controlled with this setting
 debug_bind_modules: false
+
+# Print debugging info when searching and loading resources.
+debug_resources: false
 
 # turn on all debugging messages
 debug_all: false

@@ -27,6 +27,11 @@ class RezPluginError(RezError):
     pass
 
 
+class ConfigurationError(RezError):
+    """A misconfiguration error."""
+    pass
+
+
 class ResolveError(RezError):
     """A resolve-related error."""
     pass
@@ -70,11 +75,6 @@ class ResourceContentError(ResourceError):
 class PackageMetadataError(ResourceContentError):
     """There is an error in a package's definition file."""
     type_name = "package definition file"
-
-
-class ConfigurationError(ResourceContentError):
-    """A misconfiguration error."""
-    type_name = "configuration file"
 
 
 class PackageCommandError(RezError):

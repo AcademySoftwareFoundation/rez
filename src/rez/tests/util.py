@@ -15,6 +15,7 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         """Shield unit tests from any user config overrides."""
+        os.environ["REZ_QUIET"] = "true"
         self.config = _create_locked_config(self.settings)
         config._swap(self.config)
 

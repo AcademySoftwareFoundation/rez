@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config
+from rez.config import config, _to_schema
 from rez.util import LazySingleton, propertycache, deep_update
 from rez.exceptions import RezPluginError
 import os.path
@@ -35,7 +35,6 @@ def extend_path(path, name):
     errors when used as filenames may cause this function to raise an
     exception (in line with os.path.isdir() behavior).
     """
-
     if not isinstance(path, list):
         # This could happen e.g. when this is called from inside a
         # frozen package.  Return the path unchanged in that case.
@@ -77,7 +76,7 @@ class RezPluginType(object):
         self.pretty_type_name = self.type_name.replace('_', ' ')
         self.plugin_classes = {}
         self.plugin_modules = {}
-        self.config_resources = []
+        self.config_data = {}
         self.load_plugins()
 
     def __repr__(self):
@@ -129,14 +128,9 @@ class RezPluginType(object):
             # load config
             configfile = os.path.join(path, "rezconfig")
             if os.path.exists(configfile):
-                import rez.config_resources  # force resource registration
-                from rez.resources import get_resource
-                resource = get_resource(
-                    0,
-                    filepath=configfile,
-                    resource_keys="config.plugin",
-                    root_resource_key="folder.config_root")
-                self.config_resources.append(resource)
+                from rez.config import _load_config_yaml
+                data = _load_config_yaml(configfile)
+                deep_update(self.config_data, data)
 
     def get_plugin_class(self, plugin_name):
         """Returns the class registered under the given plugin name."""
@@ -155,14 +149,6 @@ class RezPluginType(object):
                                  % (self.pretty_type_name, plugin_name))
 
     @propertycache
-    def config_data(self):
-        """Returns the merged configuration data for this plugin type."""
-        d = {}
-        for resource in self.config_resources:
-            deep_update(d, resource.load())
-        return d
-
-    @propertycache
     def config_schema(self):
         """Returns the merged configuration data schema for this plugin
         type."""
@@ -175,7 +161,6 @@ class RezPluginType(object):
         # we allow custom keys so that packages containing plugin settings
         # don't break when a different version of a rez plugin is present,
         # which may have missing or extra keys.
-        from rez.config_resources import _to_schema
         return _to_schema(d, required=True)
 
     def create_instance(self, plugin, **instance_kwargs):

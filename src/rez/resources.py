@@ -25,9 +25,9 @@ import inspect
 import re
 import fnmatch
 from collections import defaultdict
+from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
-    propertycache, convert_dicts, RO_AttrDictWrapper, \
-    dicts_conflicting, ObjectStringFormatter
+    propertycache, dicts_conflicting, DataWrapper
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     ResourceContentError
 from rez.backport.lru_cache import lru_cache
@@ -73,8 +73,7 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # File Loading
 # -----------------------------------------------------------------------------
 
-#@configured_lru_cache("resource_caching", "resource_caching_maxsize")
-@lru_cache(10000)
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []
     for name in os.listdir(path):
@@ -218,7 +217,10 @@ def load_file(filepath, loader=None):
     elif isinstance(loader, basestring):
         loader = metadata_loaders[loader]
     with open(filepath, 'r') as f:
-        return loader(f, filepath)
+        doc = loader(f, filepath)
+    if config.debug("resources"):
+        print "loaded resource file: %s" % filepath
+    return doc
 
 
 # -----------------------------------------------------------------------------
@@ -250,10 +252,7 @@ def register_resource(config_version, resource):
 
 
 def clear_caches():
-    """Clear all resource caches.
-
-    This is provided for debugging purposes, and is used by the unit tests.
-    """
+    """Clear all resource caches."""
     _listdir.cache_clear()
     Resource._cached.cache_clear()
 
@@ -658,8 +657,7 @@ class Resource(object):
     # -- caching
 
     @staticmethod
-    #@configured_lru_cache("resource_caching", "resource_caching_maxsize")
-    @lru_cache(10000)
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def _cached(fn, instance):
         return fn(instance)
 
@@ -759,119 +757,6 @@ class ArbitraryPath(SearchPath):
 # -----------------------------------------------------------------------------
 # Resource Wrapping
 # -----------------------------------------------------------------------------
-
-class _WithDataAccessors(type):
-    """Metaclass for adding properties to a class for accessing top-level keys
-    in its metadata dictionary.
-
-    Property names are derived from the keys of the class's `schema` object.
-    If a schema key is optional, then the class property will evaluate to None
-    if the key is not present in the metadata.
-
-    If the class instance also has a `_validate_key` method, this will be used
-    to lazily transform properties on first reference.
-    """
-    def __new__(cls, name, parents, members):
-        schema = members.get('schema')
-        if schema:
-            schema_dict = schema._schema
-            for key in schema_dict.keys():
-                optional = isinstance(key, Optional)
-                while isinstance(key, Schema):
-                    key = key._schema
-                if key not in members and \
-                        isinstance(key, basestring) and \
-                        not any(hasattr(x, key) for x in parents):
-                    members[key] = cls._make_getter(key, optional)
-
-        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
-                                                      members)
-
-    @classmethod
-    def _make_getter(cls, key, optional):
-        def getter(self):
-            if optional and key not in self.metadata:
-                return None
-            attr = getattr(self.metadata, key)
-            if hasattr(self, "_validate_key"):
-                attr = self._validate_key(key, attr)
-            return attr
-        return propertycache(getter, name=key)
-
-
-class DataWrapper(object):
-    """Base class for implementing a class that contains validated data."""
-    __metaclass__ = _WithDataAccessors
-    schema = None
-    key_schemas = None
-
-    def validate(self):
-        """Check that the object's contents are valid."""
-        _ = self._data
-
-    def _load_data(self):
-        """Implement this method to return the object's data.
-
-        Returns:
-            Object data as a dict, or None if the object has no data.
-        """
-        raise NotImplementedError
-
-    @propertycache
-    def _data(self):
-        """Loaded object data.
-
-        This is private because it is preferred for users to go through the
-        `metadata` property.  This is here to preserve the original dictionary
-        loaded directly from the package's resource.
-
-        Returns:
-            Object data as a dict, or None if the object has no data.
-        """
-        data = self._load_data()
-        if data and self.schema:
-            data = self.schema.validate(data)
-        return data
-
-    @propertycache
-    def metadata(self):
-        """Read-only dictionary of metadata for this package with nested,
-        attribute-based access for the keys in the dictionary.
-
-        All of the dictionaries in `_data` have are replaced with custom
-        `UserDicts` to provide the attribute-lookups.  If you need the raw
-        dictionary, use `_data`.
-
-        Note that the `UserDict` references the dictionaries in `_data`, so
-        the data is not copied, and thus the two will always be in sync.
-
-        Returns:
-            `RO_AttrDictWrapper` instance, or None if the resource has no data.
-        """
-        if self._data is None:
-            return None
-        else:
-            return convert_dicts(self._data, RO_AttrDictWrapper)
-
-    def format(self, s, pretty=False, expand=None):
-        """Format a string.
-
-        Args:
-            s (str): String to format, eg "hello {name}"
-            pretty: If True, references to non-string attributes such as lists
-                are converted to basic form, with characters such as brackets
-                and parenthesis removed.
-            expand: What to expand references to nonexistent attributes to:
-                - None: raise an exception;
-                - 'empty': expand to an empty string;
-                - 'unchanged': leave original string intact, ie '{key}'
-
-        Returns:
-            The formatting string.
-        """
-        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
-        return formatter.format(s)
-
 
 class ResourceWrapper(DataWrapper):
     """Base class for implementing a class that wraps a resource.
@@ -1003,7 +888,8 @@ def _iter_resources(parent_resource, child_resource_classes=None,
                         for x in child_resource_classes):
             continue
         for child in child_class.iter_instances(parent_resource):
-            #print "%s%r" % ("  " * (_depth + 1), child)
+            if config.debug("resources"):
+                print "%s%r" % ("  " * (_depth + 1), child)
             if not dicts_conflicting(variables or {}, child.variables):
                 yield child
                 for grand_child in _iter_resources(child,
@@ -1014,14 +900,17 @@ def _iter_resources(parent_resource, child_resource_classes=None,
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
-    #keys = [x.key for x in resource_classes]
-    #print ("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
-    #       % (keys, variables))
-    #print parent_resource
+    debug = config.debug("resources")
+    if debug:
+        keys = [x.key for x in resource_classes]
+        print ("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
+               % (keys, variables))
+        print parent_resource
     for child in _iter_resources(parent_resource, resource_classes, variables):
         if isinstance(child, tuple(resource_classes)) \
                 and is_dict_subset(variables or {}, child.variables):
-            #print "RESOURCE MATCH: %r" % child
+            if debug:
+                print "RESOURCE MATCH: %r" % child
             yield child
 
 

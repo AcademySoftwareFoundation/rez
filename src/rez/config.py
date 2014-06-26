@@ -1,16 +1,19 @@
-from rez.config_resources import _config_dict, _to_schema
-from rez.resources import load_resource, DataWrapper
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper
+    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter
 from rez.exceptions import ConfigurationError
-from rez import config_resources
 from rez import module_root_path
-from rez.vendor.schema.schema import SchemaError
+from rez.system import system
+from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
+from rez.vendor import yaml
 from rez.backport.lru_cache import lru_cache
 import os
 import os.path
 import copy
 
+
+# -----------------------------------------------------------------------------
+# Schema Implementations
+# -----------------------------------------------------------------------------
 
 class Setting(object):
     """Setting subclasses implement lazy setting validators.
@@ -18,6 +21,8 @@ class Setting(object):
     Note that lazy setting validation only happens on master configuration
     settings - plugin settings are validated on load only.
     """
+    schema = Schema(object)
+
     def __init__(self, config, key):
         self.config = config
         self.key = key
@@ -58,16 +63,19 @@ class Setting(object):
         return None
 
 
-class Str(Setting, config_resources.Str):
+class Str(Setting):
+    schema = Schema(basestring)
+
     def _parse_env_var(self, value):
         return value
 
 
-class OptionalStr(Setting, config_resources.OptionalStr):
-    pass
+class OptionalStr(Setting):
+    schema = Or(None, basestring)
 
 
-class StrList(Setting, config_resources.StrList):
+class StrList(Setting):
+    schema = Schema([basestring])
     sep = ','
 
     def _parse_env_var(self, value):
@@ -79,16 +87,19 @@ class PathList(StrList):
     sep = os.pathsep
 
 
-class Int(Setting, config_resources.Int):
+class Int(Setting):
+    schema = Schema(int)
+
     def _parse_env_var(self, value):
         try:
             return int(value)
         except ValueError:
             raise ConfigurationError("expected %s to be an integer"
-                                     % self._env_var_name())
+                                     % self._env_var_name)
 
 
-class Bool(Setting, config_resources.Bool):
+class Bool(Setting):
+    schema = Schema(bool)
     true_words = frozenset(["1", "true", "yes", "y", "on"])
     false_words = frozenset(["0", "false", "no", "n", "off"])
 
@@ -102,20 +113,126 @@ class Bool(Setting, config_resources.Bool):
             words = self.true_words | self.false_words
             raise ConfigurationError(
                 "expected $%s to be one of: %s"
-                % (self._env_var_name(), ", ".join(words)))
+                % (self._env_var_name, ", ".join(words)))
 
 
-_setting_classes = {
-    config_resources.Str:           Str,
-    config_resources.OptionalStr:   OptionalStr,
-    config_resources.StrList:       StrList,
-    config_resources.PathList:      PathList,
-    config_resources.Int:           Int,
-    config_resources.Bool:          Bool}
+_config_dict = {
+    "packages_path":                PathList,
+    "plugin_path":                  PathList,
+    "bind_module_path":             PathList,
+    "implicit_packages":            StrList,
+    "parent_variables":             StrList,
+    "resetting_variables":          StrList,
+    "release_hooks":                StrList,
+    "local_packages_path":          Str,
+    "release_packages_path":        Str,
+    "vcs_tag_name":                 Str,
+    "dot_image_format":             Str,
+    "prompt":                       Str,
+    "build_directory":              Str,
+    "tmpdir":                       OptionalStr,
+    "default_shell":                OptionalStr,
+    "editor":                       OptionalStr,
+    "image_viewer":                 OptionalStr,
+    "browser":                      OptionalStr,
+    "resource_caching_maxsize":     Int,
+    "add_bootstrap_path":           Bool,  # TODO deprecate
+    "resource_caching":             Bool,
+    "resolve_caching":              Bool,
+    "all_parent_variables":         Bool,
+    "all_resetting_variables":      Bool,
+    "warn_shell_startup":           Bool,
+    "warn_untimestamped":           Bool,
+    "warn_old_commands":            Bool,
+    "warn_nonstring_version":       Bool,
+    "warn_all":                     Bool,
+    "debug_plugins":                Bool,
+    "debug_package_release":        Bool,
+    "debug_bind_modules":           Bool,
+    "debug_resources":              Bool,
+    "debug_all":                    Bool,
+    "quiet":                        Bool,
+    "prefix_prompt":                Bool,
+
+    # preferred namespace to place custom settings
+    Optional("custom"):             object,
+
+    # plugin settings are validated lazily
+    Optional("plugins"):            dict,
+
+    # TODO remove once all settings are finalised
+    Optional(basestring):           object
+}
+
+
+class Expand(object):
+    """Schema that applies variable expansion."""
+    namespace = dict(system=system)
+    formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
+                                      expand='unchanged')
+
+    def __init__(self):
+        pass
+
+    def validate(self, data):
+        def _expand(value):
+            if isinstance(value, basestring):
+                return self.formatter.format(value)
+            elif isinstance(value, list):
+                return [_expand(x) for x in value]
+            elif isinstance(value, dict):
+                return dict((k, _expand(v)) for k, v in value.iteritems())
+            else:
+                return value
+        return _expand(data)
+
+
+def _to_schema(config_dict, required, allow_custom_keys=True,
+               inject_expansion=True):
+    """Convert a dict of Schemas into a Schema.
+
+    Args:
+        required (bool): Whether to make schema keys optional or required.
+        allow_custom_keys (bool): If True, creates a schema that allows
+            custom items in dicts.
+        inject_expansion (bool): If True, updates schema values by adding
+            variable expansion. This is used to update plugins schemas, so
+            plugin authors don't have to explicitly support expansion.
+
+    Returns:
+        A `Schema` object.
+    """
+    def _to(value):
+        if isinstance(value, dict):
+            d = {}
+            for k, v in value.iteritems():
+                if isinstance(k, basestring):
+                    k_ = Schema(k) if required else Optional(k)
+                else:
+                    k_ = k
+                d[k_] = _to(v)
+            if allow_custom_keys:
+                d[Optional(basestring)] = (Expand()
+                                           if inject_expansion else object)
+            schema = Schema(d)
+        else:
+            if type(value) is type and issubclass(value, Setting):
+                schema = value.schema
+            else:
+                schema = value
+            if inject_expansion:
+                schema = And(schema, Expand())
+        return schema
+
+    return _to(config_dict)
 
 
 config_schema_required = _to_schema(_config_dict, required=True)
 
+
+# -----------------------------------------------------------------------------
+# Config
+# -----------------------------------------------------------------------------
 
 class Config(DataWrapper):
     """Rez configuration settings.
@@ -143,6 +260,10 @@ class Config(DataWrapper):
         self.filepaths = filepaths
         self.overrides = overrides or {}
         self.locked = locked
+
+    def get(self, key, default=None):
+        """Get a config setting."""
+        return self.metadata.get(key, default)
 
     def override(self, key, value):
         """Set a setting to the given value.
@@ -199,6 +320,17 @@ class Config(DataWrapper):
             paths.remove(self.local_packages_path)
         return paths
 
+    # use as decorator
+    def lru_cache(self, key, maxsize_key=None):
+        def decorated(f):
+            if self.get(key):
+                maxsize = self.get(maxsize_key) \
+                    if maxsize_key else 100
+                return lru_cache(maxsize)(f)
+            else:
+                return f
+        return decorated
+
     def _swap(self, other):
         """Swap this config with another.
 
@@ -210,18 +342,14 @@ class Config(DataWrapper):
 
     def _validate_key(self, key, value):
         v = _config_dict.get(key)
-        if type(v) is type and issubclass(v, config_resources.Setting):
-            cls_ = _setting_classes[v]
-            return cls_(self, key).validate(value)
+        if type(v) is type and issubclass(v, Setting):
+            return v(self, key).validate(value)
         return value
 
     def _load_data(self):
         data = {}
         for filepath in self.filepaths:
-            data_ = load_resource(0,
-                                  filepath=filepath,
-                                  resource_keys="config.main",
-                                  root_resource_key="folder.config_root")
+            data_ = _load_config_yaml(filepath)
             deep_update(data, data_)
 
         deep_update(data, self.overrides)
@@ -384,6 +512,17 @@ def _create_locked_config(overrides=None):
     """
     filepath = os.path.join(module_root_path, "rezconfig")
     return Config([filepath], overrides=overrides, locked=True)
+
+
+@lru_cache()
+def _load_config_yaml(filepath):
+    with open(filepath) as f:
+        content = f.read()
+    try:
+        return yaml.load(content) or {}
+    except Exception as e:
+        raise ConfigurationError("Error loading configuration from %s: %s"
+                                 % (filepath, str(e)))
 
 
 # singleton

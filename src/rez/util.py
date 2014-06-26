@@ -1091,20 +1091,114 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
-# TODO this doesn't work because there's a circular dependency - config is a
-# resource, so resource.py can't use a config-based lru_cache.
-"""
-def configured_lru_cache(key, maxsize_key=None):
-    def decorated(f):
-        from rez.config import config
-        default_maxsize = 100
-        if getattr(config, key, False):
-            if maxsize_key:
-                maxsize = getattr(config, maxsize_key, default_maxsize)
-            else:
-                maxsize = default_maxsize
-            return lru_cache(maxsize)(f)
+class _WithDataAccessors(type):
+    """Metaclass for adding properties to a class for accessing top-level keys
+    in its metadata dictionary.
+
+    Property names are derived from the keys of the class's `schema` object.
+    If a schema key is optional, then the class property will evaluate to None
+    if the key is not present in the metadata.
+
+    If the class instance also has a `_validate_key` method, this will be used
+    to lazily transform properties on first reference.
+    """
+    def __new__(cls, name, parents, members):
+        from rez.vendor.schema.schema import Schema, Optional
+        schema = members.get('schema')
+        if schema:
+            schema_dict = schema._schema
+            for key in schema_dict.keys():
+                optional = isinstance(key, Optional)
+                while isinstance(key, Schema):
+                    key = key._schema
+                if key not in members and \
+                        isinstance(key, basestring) and \
+                        not any(hasattr(x, key) for x in parents):
+                    members[key] = cls._make_getter(key, optional)
+
+        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
+                                                      members)
+
+    @classmethod
+    def _make_getter(cls, key, optional):
+        def getter(self):
+            if optional and key not in self.metadata:
+                return None
+            attr = getattr(self.metadata, key)
+            if hasattr(self, "_validate_key"):
+                attr = self._validate_key(key, attr)
+            return attr
+        return propertycache(getter, name=key)
+
+
+class DataWrapper(object):
+    """Base class for implementing a class that contains validated data."""
+    __metaclass__ = _WithDataAccessors
+    schema = None
+
+    def validate(self):
+        """Check that the object's contents are valid."""
+        _ = self._data
+
+    def _load_data(self):
+        """Implement this method to return the object's data.
+
+        Returns:
+            Object data as a dict, or None if the object has no data.
+        """
+        raise NotImplementedError
+
+    @propertycache
+    def _data(self):
+        """Loaded object data.
+
+        This is private because it is preferred for users to go through the
+        `metadata` property.  This is here to preserve the original dictionary
+        loaded directly from the package's resource.
+
+        Returns:
+            Object data as a dict, or None if the object has no data.
+        """
+        data = self._load_data()
+        if data and self.schema:
+            data = self.schema.validate(data)
+        return data
+
+    @propertycache
+    def metadata(self):
+        """Read-only dictionary of metadata for this package with nested,
+        attribute-based access for the keys in the dictionary.
+
+        All of the dictionaries in `_data` have are replaced with custom
+        `UserDicts` to provide the attribute-lookups.  If you need the raw
+        dictionary, use `_data`.
+
+        Note that the `UserDict` references the dictionaries in `_data`, so
+        the data is not copied, and thus the two will always be in sync.
+
+        Returns:
+            `RO_AttrDictWrapper` instance, or None if the resource has no data.
+        """
+        if self._data is None:
+            return None
         else:
-            return f
-    return decorated
-"""
+            return convert_dicts(self._data, RO_AttrDictWrapper)
+
+    def format(self, s, pretty=False, expand=None):
+        """Format a string.
+
+        Args:
+            s (str): String to format, eg "hello {name}"
+            pretty: If True, references to non-string attributes such as lists
+                are converted to basic form, with characters such as brackets
+                and parenthesis removed.
+            expand: What to expand references to nonexistent attributes to:
+                - None: raise an exception;
+                - 'empty': expand to an empty string;
+                - 'unchanged': leave original string intact, ie '{key}'
+
+        Returns:
+            The formatting string.
+        """
+        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
+        return formatter.format(s)

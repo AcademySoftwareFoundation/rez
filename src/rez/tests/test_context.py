@@ -64,10 +64,9 @@ class TestContext(TestBase, TempdirMixin):
         for cmd in ("hello_world", "whoah_hello_world", "hello_world_dude"):
             exe = os.path.join(suite_dir, "bin", cmd)
             self.assertTrue(os.path.exists(exe), "should exist: %s" % exe)
-            p = subprocess.Popen([exe], stdout=subprocess.PIPE)
-            stdout, _ = p.communicate()
-            stdout = stdout.strip()
-            self.assertEqual(stdout, "Hello Rez World!")
+            p = subprocess.Popen([exe])
+            p.wait()
+            self.assertEqual(p.returncode, 0)
 
 
 def get_test_suites():
