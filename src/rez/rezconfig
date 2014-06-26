@@ -174,6 +174,26 @@ debug_all: false
 # debug_xxx settings
 quiet: false
 
+# Rez-1 compatibility mode. The following behaviour occurs (TRUE and FALSE refer
+# to rez_1_compatibility being set to true or false):
+#---Rez-1 contained a bug that allowed version numbers in package.yaml files to
+#   be floating point numbers rather than strings. If TRUE, this produces a
+#   warning, and the actual package version is parsed from the parent directory
+#   name instead. If FALSE, this produces an error.
+#---If TRUE, REZ_PACKAGES_PATH is always set in a resolved environment. If FALSE,
+#   the value of this variable is unchanged.
+#---The following table shows some Rez-1 environment variables and their Rez-2
+#   equivalent, if any. If TRUE, the Rez-1 variables will still be set when an
+#   environment is configured:
+#   REZ-1               REZ-2
+#   -----               -----
+#   REZ_REQUEST         REZ_USED_REQUEST
+#   REZ_RESOLVE         REZ_USED_RESOLVE
+#   REZ_PATH            not set
+#   REZ_RESOLVE_MODE    not set
+#   REZ_RAW_REQUEST     not set
+rez_1_compatibility: true
+
 
 ###############################################################################
 # Build

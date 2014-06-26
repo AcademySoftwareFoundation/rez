@@ -8,10 +8,11 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
+from rez.config import config
+
 
 # returns (filepath, must_cleanup)
 def write_graph(graph_str, opts):
-    from rez.settings import settings
     from rez.cli._util import current_rxt_file
     dest_file = None
     tmp_dir = None
@@ -21,7 +22,7 @@ def write_graph(graph_str, opts):
         dest_file = opts.write_graph
         cleanup = False
     else:
-        fmt = settings.dot_image_format
+        fmt = config.dot_image_format
 
         if current_rxt_file:
             tmp_dir = os.path.dirname(current_rxt_file)
@@ -47,7 +48,6 @@ def write_graph(graph_str, opts):
 
 def view_graph(graph_str, opts):
     from rez.system import system
-    from rez.settings import settings
 
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
         print >> sys.stderr, "Unable to open display."
@@ -58,11 +58,11 @@ def view_graph(graph_str, opts):
     # view graph
     t1 = time.time()
     viewed = False
-    prog = settings.image_viewer or 'browser'
+    prog = config.image_viewer or 'browser'
     print "loading image viewer (%s)..." % prog
 
-    if settings.image_viewer:
-        proc = subprocess.Popen((settings.image_viewer, dest_file))
+    if config.image_viewer:
+        proc = subprocess.Popen((config.image_viewer, dest_file))
         proc.wait()
         viewed = not bool(proc.returncode)
 
@@ -73,7 +73,7 @@ def view_graph(graph_str, opts):
     if cleanup:
         # hacky - gotta delete tmp file, but hopefully not before app has loaded it
         t2 = time.time()
-        if (t2 - t1) < 1: # viewer is probably non-blocking
+        if (t2 - t1) < 1:  # viewer is probably non-blocking
             # give app a chance to load image
             time.sleep(10)
         os.remove(dest_file)

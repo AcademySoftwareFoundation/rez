@@ -65,11 +65,12 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
     """
     consumed = set()
     for pkg in _iter_packages(name, paths):
-        if pkg not in consumed:
+        handle = (pkg.name, pkg.version)
+        if handle not in consumed:
             if (timestamp and pkg.timestamp > timestamp) \
                     or (range and pkg.version not in range):
                 continue
-            consumed.add(pkg)
+            consumed.add(handle)
             yield pkg
 
 

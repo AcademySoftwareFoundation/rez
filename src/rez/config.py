@@ -136,6 +136,7 @@ _config_dict = {
     "image_viewer":                 OptionalStr,
     "browser":                      OptionalStr,
     "resource_caching_maxsize":     Int,
+    "rez_1_compatibility":          Bool,
     "add_bootstrap_path":           Bool,  # TODO deprecate
     "resource_caching":             Bool,
     "resolve_caching":              Bool,

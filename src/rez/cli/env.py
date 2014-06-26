@@ -53,10 +53,11 @@ def setup_parser(parser):
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
+
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext
     from rez.util import get_epoch_time_from_str
-    from rez.settings import settings
+    from rez.config import config
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
@@ -69,7 +70,8 @@ def command(opts, parser):
         t = get_epoch_time_from_str(opts.time) if opts.time else None
 
         if opts.paths is None:
-            pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
+            pkg_paths = (config.nonlocal_packages_path
+                         if opts.no_local else None)
         else:
             pkg_paths = (opts.paths or "").split(os.pathsep)
             pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
