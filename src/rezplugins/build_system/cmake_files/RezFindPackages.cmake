@@ -127,12 +127,12 @@ macro (rez_find_packages)
 
 		# pull in the module, this should define the pkg_XXX output vars
 		include(${pkg})
-		message("rez_find_packages: included ${pkg}.cmake")
+		message("${Green}rez_find_packages: included ${BoldGreen}${pkg}.cmake${ColourReset}")
 
 		if(${pkg}_INCLUDE_DIRS)
             if(${pkg}_USE_SYSTEM_INCLUDE_DIRS AND NOT DFP_INCLUDE_DIRS_NO_SYSTEM)
                 list(APPEND ${DFP_PREFIX}_SYSTEM_INCLUDE_DIRS   ${${pkg}_INCLUDE_DIRS})
-                message("    include dirs: ${${pkg}_INCLUDE_DIRS} (SYSTEM)")
+                message("    include dirs: ${${pkg}_INCLUDE_DIRS} ${Yellow}(SYSTEM)${ColourReset}")
             else(${pkg}_USE_SYSTEM_INCLUDE_DIRS)
                 list(APPEND ${DFP_PREFIX}_INCLUDE_DIRS  ${${pkg}_INCLUDE_DIRS})
                 message("    include dirs: ${${pkg}_INCLUDE_DIRS}")
