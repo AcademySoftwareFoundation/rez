@@ -169,7 +169,7 @@ class WindowsPlatform(Platform):
 name = platform.system().lower()
 if name == "linux":
     current_platform = LinuxPlatform
-elif name == "osx":
+elif name == "darwin":
     current_platform = OSXPlatform
 elif name == "windows":
     current_platform = WindowsPlatform
