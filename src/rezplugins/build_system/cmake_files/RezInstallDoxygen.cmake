@@ -113,6 +113,7 @@ macro (rez_install_doxygen)
 
 		add_custom_command(
 			OUTPUT ${dest_dir}/Doxyfile
+			DEPENDS ${doxyfile}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
 			COMMAND ${CMAKE_COMMAND} -E copy ${doxyfile} ${dest_dir}/Doxyfile
 			COMMAND echo PROJECT_NAME = \"${_proj_name}\" >> ${dest_dir}/Doxyfile
