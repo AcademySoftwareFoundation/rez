@@ -124,6 +124,7 @@ macro (rez_install_doxygen)
 			COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
 			COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
 			COMMAND echo IMAGE_PATH = ${CMAKE_SOURCE_DIR}/${INSTDOX_IMAGEPATH} >> ${dest_dir}/Doxyfile
+			COMMAND echo STRIP_FROM_PATH = ${CMAKE_SOURCE_DIR} >> ${dest_dir}/Doxyfile
 			COMMENT "Generating Doxyfile ${dest_dir}/Doxyfile..."
 			VERBATIM
 		)
