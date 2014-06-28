@@ -5,6 +5,7 @@ from rez.package_resources import PackagesRoot, PackageFamilyFolder, \
     VersionedPackageResource, CombinedPackageFamilyResource, \
     CombinedPackageResource, DeveloperPackagesRoot, DeveloperPackageResource
 from rez.exceptions import PackageMetadataError
+from rez.config import config
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import SchemaError
@@ -441,6 +442,7 @@ class TestResources(TestBase):
 
         with self.assertRaises(PackageMetadataError):
             # the resource has a custom key at the root
+            config.override("error_root_custom_key", True)
             load_resource(0, resource_keys=['package.*'],
                           root_resource_key="folder.packages_root",
                           search_path=search_path,

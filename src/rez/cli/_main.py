@@ -152,12 +152,7 @@ class SetupRezSubParser(object):
 
     def get_module(self):
         if self.module_name not in sys.modules:
-            try:
-                #mod = importer.find_module(modname).load_module(modname)
-                __import__(self.module_name, globals(), locals(), [], -1)
-            except Exception, e:
-                error("importing %s: %s" % (self.module_name, e))
-                return None
+            __import__(self.module_name, globals(), locals(), [], -1)
         return sys.modules[self.module_name]
 
 

@@ -707,15 +707,26 @@ class ResolvedContext(object):
 
     def _execute(self, executor):
         # bind various info to the execution context
-        executor.setenv("REZ_USED", self.rez_path)
-        executor.setenv("REZ_REQUEST_TIME", self.timestamp)
-
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self.package_requests)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
+        package_paths_str = os.pathsep.join(self.package_paths)
 
-        executor.setenv("REZ_REQUEST", request_str)
-        executor.setenv("REZ_RESOLVE", resolve_str)
+        executor.setenv("REZ_USED", self.rez_path)
+        executor.setenv("REZ_USED_TIMESTAMP", self.timestamp)
+        executor.setenv("REZ_USED_REQUEST", request_str)
+        executor.setenv("REZ_USED_RESOLVE", resolve_str)
+        executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
+
+        # rez-1 environment variables, set in backwards compatibility mode
+        if config.rez_1_environment_variables and \
+                not config.disable_rez_1_compatibility:
+            executor.setenv("REZ_PATH", self.rez_path)
+            executor.setenv("REZ_REQUEST", request_str)
+            executor.setenv("REZ_RESOLVE", resolve_str)
+            executor.setenv("REZ_RAW_REQUEST", request_str)
+            executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
+            executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self.package_requests))
@@ -727,7 +738,7 @@ class ResolvedContext(object):
             executor.comment("Commands from package %s" % pkg.qualified_name)
             executor.comment("")
 
-            prefix = "REZ_" + pkg.name.upper()
+            prefix = "REZ_" + pkg.name.upper().replace('.', '_')
             executor.setenv(prefix+"_VERSION", str(pkg.version))
             executor.setenv(prefix+"_BASE", pkg.base)
             executor.setenv(prefix+"_ROOT", pkg.root)

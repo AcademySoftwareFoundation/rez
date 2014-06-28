@@ -683,6 +683,10 @@ class FileSystemResource(Resource):
         if not os.path.exists(path):
             raise ResourceNotFoundError("File or directory does not exist: %s"
                                         % path)
+        if os.path.isfile(path) != cls.is_file:
+            ftype = "file" if cls.is_file else "directory"
+            raise ResourceError("Not a %s: %s" % (ftype, path))
+
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
@@ -724,7 +728,7 @@ class FileResource(FileSystemResource):
                 data = load_file(self.path, self.loader)
                 if self.schema:
                     return self.schema.validate(data)
-            except Exception as e:
+            except SchemaError as e:
                 error_cls = self._contents_exception_type()
                 raise error_cls(value=str(e),
                                 path=self.path,
@@ -888,9 +892,9 @@ def _iter_resources(parent_resource, child_resource_classes=None,
                         for x in child_resource_classes):
             continue
         for child in child_class.iter_instances(parent_resource):
-            if config.debug("resources"):
-                print "%s%r" % ("  " * (_depth + 1), child)
             if not dicts_conflicting(variables or {}, child.variables):
+                if config.debug("resources"):
+                    print "%s%r" % ("  " * (_depth + 1), child)
                 yield child
                 for grand_child in _iter_resources(child,
                                                    child_resource_classes,

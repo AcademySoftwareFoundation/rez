@@ -154,10 +154,13 @@ class _PackageBase(ResourceWrapper):
 
     @propertycache
     def version(self):
-        ver_str = self._resource.get("version")
-        if ver_str is None:
-            return self.metadata.get("version")
-        return Version(ver_str)
+        if self._resource.versioned is False:
+            return Version()
+        else:
+            ver_str = self._resource.get("version")
+            if ver_str is None:
+                return self.metadata.get("version")
+            return Version(ver_str)
 
     @propertycache
     def qualified_name(self):

@@ -18,6 +18,7 @@ class TestBase(unittest.TestCase):
         os.environ["REZ_QUIET"] = "true"
         self.config = _create_locked_config(self.settings)
         config._swap(self.config)
+        self.maxDiff = None
 
     def tearDown(self):
         config._swap(self.config)

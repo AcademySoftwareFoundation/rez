@@ -14,7 +14,8 @@ import string
 import re
 
 
-PACKAGE_NAME_REGSTR = '[a-zA-Z_][a-zA-Z0-9_]*'
+PACKAGE_NAME_REGSTR = '[a-zA-Z_](\.?[a-zA-Z0-9_]+)*'
+PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = ('%(comp)s(?:[.-]%(comp)s)*'
                   % dict(comp=VERSION_COMPONENT_REGSTR))
@@ -28,32 +29,6 @@ VERSION_REGSTR = ('%(comp)s(?:[.-]%(comp)s)*'
 rex_command = Or(callable,  # python function
                  basestring  # new-style rex
                  )
-
-
-class GetVersion(object):
-    """
-    This class exists to fix an unfortunate bug in Rez-1, where some packages
-    have their version listed in their package.yaml as a number and not a
-    string. It is not possible to simply convert to a string, because the float
-    '1.10' would convert incorrectly to '1.1'. When this validator encounters
-    these cases, it prints a warning, and uses the version decoded from the
-    resource path instead.
-    """
-    def __init__(self, resource):
-        self.resource = resource
-        self.version_str = resource.variables['version']
-
-    def validate(self, data):
-        if isinstance(data, basestring):
-            if data != self.version_str:
-                raise SchemaError(None, "%r does not match %r"
-                                  % (data, self.version_str))
-        else:
-            filepath = self.resource.path
-            if config.warn("nonstring_version"):
-                print_warning_once(("Package at %s contains a non-string "
-                                    "version.") % filepath)
-        return Version(self.version_str)
 
 
 # The master package schema.  All resources delivering metadata to the Package
@@ -79,9 +54,10 @@ package_schema = Schema({
     Optional('private_build_requires'): [Requirement],
     Optional('variants'):               [[Requirement]],
     Optional('commands'):               rex_command,
-    # swap-comment these 2 lines if we decide to allow arbitrary root metadata
+
+    # custom keys
     Optional('custom'):                 object,
-    # Optional(object):                   object
+    Optional(basestring):               object,
 
     # a dict for internal use
     Optional('_internal'):              dict,
@@ -205,11 +181,24 @@ class ReleaseDataResource(FileResource):
 class BasePackageResource(FileResource):
     """Abstract class providing the standard set of package metadata.
     """
+    versioned = None
+
     def convert_to_rex(self, commands):
         from rez.util import convert_old_commands
-        if config.warn("old_commands"):
-            print_warning_once("%s is using old-style commands." % self.path)
+        msg = "package is using old-style commands."
+        if config.disable_rez_1_compatibility or config.error_old_commands:
+            raise SchemaError(None, msg)
+        elif config.warn("old_commands"):
+            print_warning_once("%s: %s" % (self.path, msg))
         return convert_old_commands(commands)
+
+    def custom_key(self, value):
+        msg = "custom key in root of package definition."
+        if config.disable_rez_1_compatibility or config.error_root_custom_key:
+            raise SchemaError(None, msg)
+        elif config.warn("root_custom_key"):
+            print_warning_once("%s: %s" % (self.path, msg))
+        return True
 
     @propertycache
     def schema(self):
@@ -233,9 +222,9 @@ class BasePackageResource(FileResource):
             Optional('commands'):               Or(rex_command,
                                                    And([basestring],
                                                        Use(self.convert_to_rex))),
-            # swap-comment these 2 lines if we decide to allow arbitrary root metadata
+            # custom keys
             Optional('custom'):                 object,
-            # basestring: object
+            Optional(basestring):               self.custom_key,
 
             # a dict for internal use
             Optional('_internal'):              dict,
@@ -337,6 +326,7 @@ class VersionlessPackageResource(BasePackageResource):
     parent_resource = PackageFamilyFolder
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
+    versioned = False
 
     @Resource.cached
     def load(self):
@@ -352,6 +342,7 @@ class VersionlessVariantResource(BaseVariantResource):
     variable_keys = ["index"]
     sub_resource = True
     schema = None
+    versioned = False
 
 
 class VersionedPackageResource(BasePackageResource):
@@ -361,14 +352,29 @@ class VersionedPackageResource(BasePackageResource):
     parent_resource = PackageVersionFolder
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
+    versioned = True
+
+    def convert_version(self, value):
+        version_str = self.variables['version']
+        if isinstance(value, basestring):
+            if value != version_str:
+                raise PackageMetadataError("%r does not match %r"
+                                           % (value, version_str))
+        else:
+            msg = "version must be a string"
+            if config.disable_rez_1_compatibility \
+                    or config.error_nonstring_version:
+                raise SchemaError(None, msg)
+            elif config.warn("nonstring_version"):
+                print_warning_once("%s: %s" % (self.path, msg))
+        return Version(version_str)
 
     @propertycache
     def schema(self):
         schema = super(VersionedPackageResource, self).schema
-        return _updated_schema(
-            schema,
-            [(Required('version'),
-              And(object, GetVersion(self)))])
+        return _updated_schema(schema,
+                               [(Required('version'),
+                                 Use(self.convert_version))])
 
 
 class VersionedVariantResource(BaseVariantResource):
@@ -378,6 +384,7 @@ class VersionedVariantResource(BaseVariantResource):
     variable_keys = ["index"]
     sub_resource = True
     schema = None
+    versioned = True
 
 
 class CombinedPackageFamilyResource(BasePackageResource):
@@ -411,9 +418,8 @@ class CombinedPackageFamilyResource(BasePackageResource):
                     Optional('commands'):               Or(rex_command,
                                                            And([basestring],
                                                                Use(self.convert_to_rex))),
-                    # swap-comment these 2 lines if we decide to allow arbitrary root metadata
                     Optional('custom'):                 object,
-                    # basestring:                         object
+                    Optional(basestring):               self.custom_key
                 }
             })])
 
@@ -482,6 +488,7 @@ class DeveloperPackageResource(BasePackageResource):
     parent_resource = DeveloperPackagesRoot
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
+    versioned = True
 
     @propertycache
     def schema(self):
@@ -502,6 +509,7 @@ class DeveloperVariantResource(BaseVariantResource):
     variable_keys = ["index"]
     sub_resource = True
     schema = None
+    versioned = True
 
 
 # -----------------------------------------------------------------------------

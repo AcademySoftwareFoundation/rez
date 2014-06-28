@@ -300,30 +300,6 @@ class StandardBuildProcess(BuildProcess):
                 return pkg
         return None
 
-        """
-        for pkg in iter_packages(self.package.name, paths=[release_path],
-                                 descending=True):
-            if pkg.version == self.package.version:
-                raise ReleaseError(("cannot release - an equal package "
-                                    "version already exists: %s")
-                                   % pkg.metafile)
-            elif pkg.version > self.package.version:
-                if self.ensure_latest:
-                    raise ReleaseError(("cannot release - a newer package "
-                                       "version already exists: %s")
-                                       % pkg.metafile)
-            else:
-                release_yaml = os.path.join(pkg.base, "release.yaml")
-                try:
-                    with open(release_yaml) as f:
-                        release_info = yaml.load(f.read())
-                    return pkg, release_info
-                except:
-                    pass
-
-        return (None, None)
-        """
-
 
 class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current

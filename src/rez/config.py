@@ -136,7 +136,6 @@ _config_dict = {
     "image_viewer":                 OptionalStr,
     "browser":                      OptionalStr,
     "resource_caching_maxsize":     Int,
-    "rez_1_compatibility":          Bool,
     "add_bootstrap_path":           Bool,  # TODO deprecate
     "resource_caching":             Bool,
     "resolve_caching":              Bool,
@@ -144,8 +143,6 @@ _config_dict = {
     "all_resetting_variables":      Bool,
     "warn_shell_startup":           Bool,
     "warn_untimestamped":           Bool,
-    "warn_old_commands":            Bool,
-    "warn_nonstring_version":       Bool,
     "warn_all":                     Bool,
     "debug_plugins":                Bool,
     "debug_package_release":        Bool,
@@ -154,6 +151,14 @@ _config_dict = {
     "debug_all":                    Bool,
     "quiet":                        Bool,
     "prefix_prompt":                Bool,
+    "warn_old_commands":            Bool,
+    "error_old_commands":           Bool,
+    "warn_nonstring_version":       Bool,
+    "error_nonstring_version":      Bool,
+    "warn_root_custom_key":         Bool,
+    "error_root_custom_key":        Bool,
+    "rez_1_environment_variables":  Bool,
+    "disable_rez_1_compatibility":  Bool,
 
     # preferred namespace to place custom settings
     Optional("custom"):             object,

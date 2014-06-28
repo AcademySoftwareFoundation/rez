@@ -21,6 +21,7 @@
 # - Any property of the system object. Eg '{system.platform}'
 #
 
+
 ###############################################################################
 # Paths
 ###############################################################################
@@ -142,15 +143,6 @@ warn_shell_startup: false
 # If true, print a warning when an untimestamped package is found.
 warn_untimestamped: false
 
-# If true, print a warning whenever a package with an old-style commands
-# section is resolved into an environment
-warn_old_commands: false
-
-# If true, print a warning whenever a package definition contains a version
-# that is not a string. This is not allowed in new packages created for Rez-2,
-# but older packages may still have this error.
-warn_nonstring_version: true
-
 # turn on all warnings
 warn_all: false
 
@@ -173,26 +165,6 @@ debug_all: false
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
 quiet: false
-
-# Rez-1 compatibility mode. The following behaviour occurs (TRUE and FALSE refer
-# to rez_1_compatibility being set to true or false):
-#---Rez-1 contained a bug that allowed version numbers in package.yaml files to
-#   be floating point numbers rather than strings. If TRUE, this produces a
-#   warning, and the actual package version is parsed from the parent directory
-#   name instead. If FALSE, this produces an error.
-#---If TRUE, REZ_PACKAGES_PATH is always set in a resolved environment. If FALSE,
-#   the value of this variable is unchanged.
-#---The following table shows some Rez-1 environment variables and their Rez-2
-#   equivalent, if any. If TRUE, the Rez-1 variables will still be set when an
-#   environment is configured:
-#   REZ-1               REZ-2
-#   -----               -----
-#   REZ_REQUEST         REZ_USED_REQUEST
-#   REZ_RESOLVE         REZ_USED_RESOLVE
-#   REZ_PATH            not set
-#   REZ_RESOLVE_MODE    not set
-#   REZ_RAW_REQUEST     not set
-rez_1_compatibility: true
 
 
 ###############################################################################
@@ -228,18 +200,6 @@ vcs_tag_name: '{name}-{version}'
 release_hooks:
 - emailer
 
-# Email SMTP host. If null or empty, emailing is skipped.
-release_email_smtp_host:
-
-# Email SMTP port.
-release_email_smtp_port: 25
-
-# The address that post-release emails appear to come from.
-release_email_from: '{system.user}@rez-release.com'
-
-# List of recipients of post-release emails.
-release_email_to: []
-
 
 ###############################################################################
 # Appearance
@@ -266,3 +226,60 @@ prompt: '>'
 
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
+
+
+###############################################################################
+# Rez-1 Compatibility
+###############################################################################
+
+# Warn or disallow when a package is found to contain old rez-1-style commands.
+warn_old_commands: true
+error_old_commands: false
+
+# Warn or disallow when a package is found to contain a non-string version. This
+# was possible in Rez-1 but was an oversight - versions could be integer or
+# float, as well as string.
+warn_nonstring_version: true
+error_nonstring_version: false
+
+# Warn or disallow when a package is found to contain custom keys in the root of
+# its package definition file.
+warn_root_custom_key: true
+error_root_custom_key: false
+
+# If True, Rez will continue to generate the given environment variables in
+# resolved environments, even though their use has been deprecated in Rez-2.
+# The variables in question, and their Rez-2 equivalent (if any) are:
+#   REZ-1               REZ-2
+#   -----               -----
+#   REZ_REQUEST         REZ_USED_REQUEST
+#   REZ_RESOLVE         REZ_USED_RESOLVE
+#   REZ_PATH            not set
+#   REZ_RESOLVE_MODE    not set
+#   REZ_RAW_REQUEST     not set
+#   REZ_PACKAGES_PATH   REZ_PACKAGES_PATH (but optional)
+rez_1_environment_variables: true
+
+# If True, override all compatibility-related settings so that Rez-1 support is
+# deprecated. This means that:
+# * All warn/error settings in this section of the config will be set to
+#   warn=False, error=True;
+# * rez_1_environment_variables will be set to False.
+# You should aim to do this - it will mean your packages are more strictly
+# validated, and you can more easily use future versions of Rez.
+disable_rez_1_compatibility: false
+
+
+###############################################################################
+# Plugin Settings
+###############################################################################
+
+# This section is just here to illustrate how you would set plugin config
+# settings in your own rezconfig file. The settings here are commented out,
+# because the default values are loaded from the plugins' own rezconfig files.
+
+#plugins:
+#    release_hook:
+#        emailer:
+#            sender:
+#                santa.claus@northpole.com

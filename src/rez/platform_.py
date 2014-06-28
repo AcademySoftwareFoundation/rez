@@ -237,7 +237,7 @@ platform_ = None
 name = platform.system().lower()
 if name == "linux":
     platform_ = LinuxPlatform()
-elif name == "osx":
+elif name == "darwin":
     platform_ = OSXPlatform()
 elif name == "windows":
     platform_ = WindowsPlatform()
