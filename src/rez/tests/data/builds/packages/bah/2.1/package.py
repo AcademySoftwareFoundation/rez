@@ -1,4 +1,3 @@
-config_version = 0
 name = 'bah'
 version = '2.1'
 authors = ["joe.bloggs"]

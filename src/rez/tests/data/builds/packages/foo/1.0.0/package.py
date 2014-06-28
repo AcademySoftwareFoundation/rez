@@ -1,4 +1,3 @@
-config_version = 0
 name = 'foo'
 version = '1.0.0'
 authors = ["joe.bloggs"]

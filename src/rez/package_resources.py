@@ -36,7 +36,8 @@ rex_command = Or(callable,  # python function
 # intentionally does no casting of types: that should happen on the resource
 # schemas.
 package_schema = Schema({
-    Required('config_version'):         int,
+    Optional('config_version'):         int,  # deprecated
+
     Optional('uuid'):                   basestring,
     Optional('description'):            basestring,
     Required('name'):                   basestring,
@@ -203,7 +204,8 @@ class BasePackageResource(FileResource):
     @propertycache
     def schema(self):
         return Schema({
-            Required('config_version'):         0,  # this will only match 0
+            Optional('config_version'):         0,  # this will only match 0
+
             Optional('uuid'):                   basestring,
             Optional('description'):            And(basestring,
                                                     Use(string.strip)),
@@ -259,7 +261,6 @@ class BasePackageResource(FileResource):
                          if k in ("name", "version"))
         try:
             data = load_resource(
-                0,
                 resource_keys=resource_key,
                 search_path=self.variables['search_path'],
                 variables=variables)
@@ -518,25 +519,25 @@ class DeveloperVariantResource(BaseVariantResource):
 
 # -- deployed packages
 
-register_resource(0, PackagesRoot)
-register_resource(0, PackageFamilyFolder)
-register_resource(0, PackageVersionFolder)
-register_resource(0, VersionedPackageResource)
-register_resource(0, VersionedVariantResource)
-register_resource(0, VersionlessPackageResource)
-register_resource(0, VersionlessVariantResource)
-register_resource(0, ReleaseDataResource)
-register_resource(0, CombinedPackageFamilyResource)
-register_resource(0, CombinedPackageResource)
+register_resource(PackagesRoot)
+register_resource(PackageFamilyFolder)
+register_resource(PackageVersionFolder)
+register_resource(VersionedPackageResource)
+register_resource(VersionedVariantResource)
+register_resource(VersionlessPackageResource)
+register_resource(VersionlessVariantResource)
+register_resource(ReleaseDataResource)
+register_resource(CombinedPackageFamilyResource)
+register_resource(CombinedPackageResource)
 # deprecated
-register_resource(0, MetadataFolder)
-register_resource(0, ReleaseTimestampResource)
-register_resource(0, ReleaseInfoResource)
-register_resource(0, ChangelogResource)
+register_resource(MetadataFolder)
+register_resource(ReleaseTimestampResource)
+register_resource(ReleaseInfoResource)
+register_resource(ChangelogResource)
 
 
 # -- development packages
 
-register_resource(0, DeveloperPackagesRoot)
-register_resource(0, DeveloperPackageResource)
-register_resource(0, DeveloperVariantResource)
+register_resource(DeveloperPackagesRoot)
+register_resource(DeveloperPackageResource)
+register_resource(DeveloperVariantResource)

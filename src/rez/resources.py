@@ -36,8 +36,8 @@ from rez.vendor import yaml
 from rez.vendor.schema.schema import Schema, SchemaError, Optional
 
 
-# list of resource classes, keyed by config_version
-_configs = defaultdict(list)
+# dict of resource classes, keyed by resource key (eg 'package.versioned')
+_resource_classes = {}
 
 
 # make an alias which just so happens to be the same number of characters as
@@ -114,7 +114,6 @@ def load_python(stream, filepath=None):
     Example:
 
         >>> load_python('''
-        config_version = 0
         name = 'foo'
         def requires():
             return ['bar']''')
@@ -227,28 +226,23 @@ def load_file(filepath, loader=None):
 # Resource related functions
 # -----------------------------------------------------------------------------
 
-def register_resource(config_version, resource):
+def register_resource(resource_class):
     """Register a `Resource` class.
 
     This informs rez where to find a resource relative to the
     rez search path, and optionally how to validate its data.
 
     Args:
-        resource (Resource): the resource class.
+        resource_class (Resource): the resource class.
     """
-    version_configs = _configs[config_version]
-
-    assert resource.key is not None, \
-        "Resource must implement the 'key' attribute"
-    # version_configs is a list and not a dict so that it stays ordered
-    # TODO why is order important?
-    if resource.key in set(r.key for r in version_configs):
-        raise ResourceError("resource already exists: %r" % resource.key)
-
-    version_configs.append(resource)
-
-    if resource.parent_resource:
-        Resource._children[resource.parent_resource].append(resource)
+    assert resource_class.key is not None, \
+        "Resource class must implement the 'key' attribute"
+    if resource_class.key in _resource_classes:
+        raise ResourceError("resource class already registered: %r"
+                            % resource_class.key)
+    _resource_classes[resource_class.key] = resource_class
+    if resource_class.parent_resource:
+        Resource._children[resource_class.parent_resource].add(resource_class)
 
 
 def clear_caches():
@@ -358,7 +352,7 @@ class ResourceHandle(object):
 
     def get_resource(self):
         """Get a resource instance from the resource handle."""
-        clss = list_resource_classes(0, self.key)
+        clss = list_resource_classes(self.key)
         if not clss:
             raise ResourceError("Unknown resource type %s" % self.key)
         assert len(clss) == 1
@@ -446,7 +440,7 @@ class Resource(object):
     variable_keys = []
     variable_regex = {}
 
-    _children = defaultdict(list)  # gets filled by register_resource
+    _children = defaultdict(set)  # gets filled by register_resource
 
     def __init__(self, path, variables=None):
         """
@@ -794,7 +788,7 @@ class ResourceWrapper(DataWrapper):
 # Main Entry Points
 # -----------------------------------------------------------------------------
 
-def list_resource_classes(config_version, keys=None):
+def list_resource_classes(keys=None):
     """List resource classes matching the search criteria.
 
     Args:
@@ -804,16 +798,16 @@ def list_resource_classes(config_version, keys=None):
     Returns:
         List of `Resource` subclass types.
     """
-    resource_classes = _configs.get(config_version)
     if keys:
         if isinstance(keys, basestring):
             keys = [keys]
-        resource_classes = [r for r in resource_classes if
-                            any(fnmatch.fnmatch(r.key, k) for k in keys)]
-    return resource_classes
+        return [v for (k, v) in _resource_classes.iteritems() if
+                any(fnmatch.fnmatch(k, k_) for k_ in keys)]
+    else:
+        return _resource_classes.values()
 
 
-def list_common_resource_classes(config_version, root_key=None, keys=None):
+def list_common_resource_classes(root_key=None, keys=None):
     """List resource classes belonging to a common resource hierarchy.
 
     Must provide `root_key` or `keys`. If the keys are not common to a
@@ -834,7 +828,7 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
         raise ResourceError("Most provide root key or resource key(s)")
 
     if root_key:
-        clss = list_resource_classes(config_version, root_key)
+        clss = list_resource_classes(root_key)
         if len(clss) > 1:
             raise ResourceError("Specified multiple resource roots: %s"
                                 % root_key)
@@ -842,11 +836,11 @@ def list_common_resource_classes(config_version, root_key=None, keys=None):
             raise ResourceError("Unknown root resource type %s" % root_key)
         root_class = clss[0]
         # if keys is none, will return all resource classes
-        clss = list_resource_classes(config_version, keys)
+        clss = list_resource_classes(keys)
         return root_class, [c for c in clss if c.topmost() == root_class]
     else:
         resource_classes = set()
-        clss = list_resource_classes(config_version, keys)
+        clss = list_resource_classes(keys)
         if not clss:
             if isinstance(keys, basestring):
                 keys = [keys]
@@ -918,8 +912,8 @@ def _iter_filtered_resources(parent_resource, resource_classes, variables):
             yield child
 
 
-def iter_resources(config_version, resource_keys=None, search_path=None,
-                   variables=None, root_resource_key=None):
+def iter_resources(resource_keys=None, search_path=None, variables=None,
+                   root_resource_key=None):
     """Iterate over `Resource` instances.
 
     Must provide `resource_keys` or `root_resource_key`.
@@ -940,7 +934,7 @@ def iter_resources(config_version, resource_keys=None, search_path=None,
         A `Resource` iterator.
     """
     root_cls, resource_classes = list_common_resource_classes(
-        config_version, root_resource_key, resource_keys)
+        root_resource_key, resource_keys)
     if not resource_classes:
         return
 
@@ -972,7 +966,7 @@ def iter_descendant_resources(parent_resource, resource_keys=None,
         A `Resource` iterator.
     """
     root_resource_key = parent_resource.topmost().key
-    _, resource_classes = list_common_resource_classes(0, root_resource_key,
+    _, resource_classes = list_common_resource_classes(root_resource_key,
                                                        resource_keys)
     if not resource_classes:
         return
@@ -997,7 +991,7 @@ def iter_child_resources(parent_resource, resource_keys=None, variables=None):
         A `Resource` iterator.
     """
     root_resource_key = parent_resource.topmost().key
-    _, resource_classes = list_common_resource_classes(0, root_resource_key,
+    _, resource_classes = list_common_resource_classes(root_resource_key,
                                                        resource_keys)
     resource_classes = set(resource_classes) & set(parent_resource.children())
     if not resource_classes:
@@ -1008,8 +1002,8 @@ def iter_child_resources(parent_resource, resource_keys=None, variables=None):
         yield child
 
 
-def get_resource(config_version, filepath=None, resource_keys=None,
-                 search_path=None, variables=None, root_resource_key=None):
+def get_resource(filepath=None, resource_keys=None, search_path=None,
+                 variables=None, root_resource_key=None):
     """Find and instantiate a `Resource` instance.
 
     Returns the first match.
@@ -1063,7 +1057,7 @@ def get_resource(config_version, filepath=None, resource_keys=None,
 
         # first try to find a matching resource that is not a sub-resource
         _, resource_classes = list_common_resource_classes(
-            config_version, root_resource_key, resource_keys)
+            root_resource_key, resource_keys)
         if not resource_classes:
             _err()
 
@@ -1093,8 +1087,8 @@ def get_resource(config_version, filepath=None, resource_keys=None,
         it = _iter_filtered_resources(resource, resource_classes_2, variables)
     else:
         # a search with no filepath is just the first result of an iteration
-        it = iter_resources(config_version, resource_keys, search_path,
-                            variables, root_resource_key)
+        it = iter_resources(resource_keys, search_path, variables,
+                            root_resource_key)
 
     try:
         return it.next()
@@ -1102,8 +1096,8 @@ def get_resource(config_version, filepath=None, resource_keys=None,
         _err()
 
 
-def load_resource(config_version, filepath=None, resource_keys=None,
-                  search_path=None, variables=None, root_resource_key=None):
+def load_resource(filepath=None, resource_keys=None, search_path=None,
+                  variables=None, root_resource_key=None):
     """Find a resource and load its metadata.
 
     Returns the first match.
@@ -1131,8 +1125,8 @@ def load_resource(config_version, filepath=None, resource_keys=None,
     Returns:
         The resource metadata, as a dict.
     """
-    return get_resource(config_version, filepath, resource_keys, search_path,
-                        variables, root_resource_key).load()
+    return get_resource(filepath, resource_keys, search_path, variables,
+                        root_resource_key).load()
 
 
 

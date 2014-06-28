@@ -1,4 +1,3 @@
-config_version = 0
 name = 'rextest2'
 version = '2'
 

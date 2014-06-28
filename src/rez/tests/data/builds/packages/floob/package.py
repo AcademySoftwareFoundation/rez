@@ -1,4 +1,3 @@
-config_version = 0
 name = 'floob'
 version = '1.2.0'
 authors = ["joe.bloggs"]

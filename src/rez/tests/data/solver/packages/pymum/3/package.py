@@ -1,4 +1,3 @@
-config_version = 0
 name = "pymum"
 version = "3"
 

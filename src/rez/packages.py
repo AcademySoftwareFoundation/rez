@@ -24,7 +24,6 @@ def iter_package_families(paths=None):
         `PackageFamily` iterator.
     """
     for resource in iter_resources(
-            0,
             resource_keys='package_family.*',
             search_path=paths,
             root_resource_key="folder.packages_root"):
@@ -36,7 +35,6 @@ def _iter_packages(name=None, paths=None):
     if name is not None:
         variables["name"] = name
     for resource in iter_resources(
-            0,
             resource_keys='package.*',
             search_path=paths,
             root_resource_key="folder.packages_root",
@@ -87,7 +85,6 @@ def load_developer_package(path):
         `Package` object.
     """
     it = iter_resources(
-        0,
         resource_keys='package.*',
         search_path=path,
         root_resource_key="folder.dev_packages_root")
