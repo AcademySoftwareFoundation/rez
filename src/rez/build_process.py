@@ -213,7 +213,11 @@ class StandardBuildProcess(BuildProcess):
             changelog=changelog,
             release_message=self.release_message,
             previous_version=last_ver,
-            previous_revision=last_rev)
+            previous_revision=last_rev,
+            hostname=system.fqdn,
+            username=getpass.getuser(),
+            working_dir=self.working_dir,
+            base_build_path=base_build_path)
 
         if self.release_message:
             msg = [x.rstrip() for x in self.release_message.strip().split('\n')]
