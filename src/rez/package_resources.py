@@ -193,11 +193,34 @@ class BasePackageResource(FileResource):
             print_warning_once("%s: %s" % (self.path, msg))
         return convert_old_commands(commands)
 
+    def convert_name(self, value):
+        """Deals with case where package name in a package.yaml does not match
+        package name in directory structure. This error will be handled as a
+        warning if the relevant backwards compatibility setting is turned on.
+        """
+        name = self.variables.get("name")
+        if value != name:
+            msg = "name %r does not match %r" % (value, name)
+            if config.disable_rez_1_compatibility \
+                    or config.error_package_name_mismatch:
+                raise SchemaError(None, msg)
+            elif config.warn("package_name_mismatch"):
+                print_warning_once("%s: %s" % (self.path, msg))
+        return name
+
     def custom_key(self, value):
         msg = "custom key in root of package definition."
         if config.disable_rez_1_compatibility or config.error_root_custom_key:
             raise SchemaError(None, msg)
         elif config.warn("root_custom_key"):
+            print_warning_once("%s: %s" % (self.path, msg))
+        return True
+
+    def new_rex_command(self, value):
+        msg = "'commands2' section in package definition"
+        if config.disable_rez_1_compatibility or config.error_commands2:
+            raise SchemaError(None, msg)
+        elif config.warn("commands2"):
             print_warning_once("%s: %s" % (self.path, msg))
         return True
 
@@ -209,7 +232,8 @@ class BasePackageResource(FileResource):
             Optional('uuid'):                   basestring,
             Optional('description'):            And(basestring,
                                                     Use(string.strip)),
-            Required('name'):                   self.variables.get('name'),
+            Required('name'):                   And(basestring,
+                                                    Use(self.convert_name)),
             Optional('authors'):                [basestring],
             Optional('config'):                 And(dict,
                                                     Use(lambda x:
@@ -224,6 +248,9 @@ class BasePackageResource(FileResource):
             Optional('commands'):               Or(rex_command,
                                                    And([basestring],
                                                        Use(self.convert_to_rex))),
+            Optional('commands2'):              And(rex_command,
+                                                    self.new_rex_command),
+
             # custom keys
             Optional('custom'):                 object,
             Optional(basestring):               self.custom_key,
@@ -240,6 +267,12 @@ class BasePackageResource(FileResource):
     @Resource.cached
     def load(self):
         data = super(BasePackageResource, self).load().copy()
+
+        # commands2 support
+        if "commands2" in data:
+            data["commands"] = data.pop("commands2")
+
+        # graft release info onto resource
         release_data = self._load_component("release.data")
         if release_data:
             data.update(release_data)
@@ -247,7 +280,7 @@ class BasePackageResource(FileResource):
         if timestamp:
             data['timestamp'] = timestamp
 
-        # load old-style changelog if necessary
+        # graft on old-style changelog, if necessary
         if "changelog" not in data:
             changelog = self._load_component("release.changelog")
             if changelog:
@@ -356,11 +389,22 @@ class VersionedPackageResource(BasePackageResource):
     versioned = True
 
     def convert_version(self, value):
-        version_str = self.variables['version']
+        """Deals with two errors:
+        1) 'version' is a number (it should be a string);
+        2) 'version' does not match the version specified in the directory
+           structure.
+        These errors will be handled as warnings if the relevant backwards
+        compatibility settings are turned on.
+        """
+        version_str = self.variables.get('version')
         if isinstance(value, basestring):
             if value != version_str:
-                raise PackageMetadataError("%r does not match %r"
-                                           % (value, version_str))
+                msg = "version %r does not match %r" % (value, version_str)
+                if config.disable_rez_1_compatibility \
+                        or config.error_version_mismatch:
+                    raise PackageMetadataError(msg)
+                elif config.warn("version_mismatch"):
+                    print_warning_once("%s: %s" % (self.path, msg))
         else:
             msg = "version must be a string"
             if config.disable_rez_1_compatibility \

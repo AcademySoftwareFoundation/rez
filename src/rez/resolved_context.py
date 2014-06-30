@@ -721,6 +721,7 @@ class ResolvedContext(object):
         # rez-1 environment variables, set in backwards compatibility mode
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility:
+            executor.setenv("REZ_VERSION", self.rez_version)
             executor.setenv("REZ_PATH", self.rez_path)
             executor.setenv("REZ_REQUEST", request_str)
             executor.setenv("REZ_RESOLVE", resolve_str)

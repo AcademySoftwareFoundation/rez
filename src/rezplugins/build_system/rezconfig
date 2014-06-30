@@ -6,3 +6,7 @@ cmake:
     # A list of default arguments to be passed to the cmake binary.
     cmake_args:
     - '-DCMAKE_SKIP_RPATH=1'
+
+    # You can optionally point at a cmake executable to use for building. Note
+    # that 'cmake_package' still takes preference if specified.
+    cmake_binary:

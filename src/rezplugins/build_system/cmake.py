@@ -5,6 +5,7 @@ from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
 from rez.config import config
 from rez.vendor.schema.schema import Or
+from rez.vendor.version.requirement import Requirement
 import functools
 import subprocess
 import platform
@@ -33,7 +34,8 @@ class CMakeBuildSystem(BuildSystem):
 
     schema_dict = {
         "build_system":     Or(*build_systems.keys()),
-        "cmake_args":       [basestring]}
+        "cmake_args":       [basestring],
+        "cmake_binary":     Or(None, basestring)}
 
     @classmethod
     def name(cls):

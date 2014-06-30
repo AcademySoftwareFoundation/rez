@@ -232,20 +232,42 @@ prefix_prompt: true
 # Rez-1 Compatibility
 ###############################################################################
 
-# Warn or disallow when a package is found to contain old rez-1-style commands.
-warn_old_commands: true
-error_old_commands: false
+# Warn or disallow when a package contains a package name that does not match
+# the name specified in the directory structure. When this occurs, the
+# directory package name is used in preference.
+warn_package_name_mismatch: false
+error_package_name_mismatch: true
+
+# Warn or disallow when a package contains a version number that does not match
+# the version specified in the directory structure. When this occurs, the
+# directory version number is used in preference.
+warn_version_mismatch: false
+error_version_mismatch: true
 
 # Warn or disallow when a package is found to contain a non-string version. This
 # was possible in Rez-1 but was an oversight - versions could be integer or
-# float, as well as string.
+# float, as well as string. When this occurs, the directory version number is
+# used in preference.
 warn_nonstring_version: true
 error_nonstring_version: false
+
+# Warn or disallow when a package is found to contain old rez-1-style commands.
+warn_old_commands: true
+error_old_commands: false
 
 # Warn or disallow when a package is found to contain custom keys in the root of
 # its package definition file.
 warn_root_custom_key: true
 error_root_custom_key: false
+
+# Warn or disallow an extra commands entry called 'commands2'. This is provided
+# as a temporary measure for porting packages to rez-based commands without
+# breaking compatibility with Rez-1. If 'commands2' is present, it is used
+# instead of 'commands'. Unlike 'commands', 'commands2' only allows new rex-
+# style commands. Once you have fully deprecated Rez-1, you should stop using
+# 'commands2'.
+warn_commands2: false
+error_commands2: false
 
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
@@ -254,6 +276,7 @@ error_root_custom_key: false
 #   -----               -----
 #   REZ_REQUEST         REZ_USED_REQUEST
 #   REZ_RESOLVE         REZ_USED_RESOLVE
+#   REZ_VERSION         not set
 #   REZ_PATH            not set
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
