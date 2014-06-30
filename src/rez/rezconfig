@@ -233,3 +233,7 @@ prompt: '>'
 
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
+
+# The fully qualified name of the class to use when formatting a resolved 
+# context.  This is used by the 'rez env' command (among others).
+resolved_context_info_formatter: rez.resolved_context_formatter.ColorizedResolvedContextFormatter

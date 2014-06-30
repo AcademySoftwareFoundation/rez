@@ -66,6 +66,7 @@ class Settings(object):
         "build_system":                     str_schema,
         "vcs_tag_name":                     str_schema,
         "release_email_from":               str_schema,
+        "resolved_context_info_formatter":  str_schema,
         # optional strings
         "tmpdir":                           opt_str_schema,
         "editor":                           opt_str_schema,
