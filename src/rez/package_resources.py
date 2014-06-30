@@ -402,7 +402,7 @@ class VersionedPackageResource(BasePackageResource):
                 msg = "version %r does not match %r" % (value, version_str)
                 if config.disable_rez_1_compatibility \
                         or config.error_version_mismatch:
-                    raise PackageMetadataError(msg)
+                    raise SchemaError(None, msg)
                 elif config.warn("version_mismatch"):
                     print_warning_once("%s: %s" % (self.path, msg))
         else:

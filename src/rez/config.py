@@ -141,6 +141,8 @@ _config_dict = {
     "resolve_caching":                  Bool,
     "all_parent_variables":             Bool,
     "all_resetting_variables":          Bool,
+    "warn_erroneous_packages":          Bool,
+    "skip_erroneous_packages":          Bool,
     "warn_shell_startup":               Bool,
     "warn_untimestamped":               Bool,
     "warn_all":                         Bool,

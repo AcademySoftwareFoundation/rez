@@ -14,8 +14,9 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.packages import iter_packages
-from rez.util import columnise
+from rez.util import columnise, print_warning_once
 from rez.config import config
+from heapq import merge
 import os.path
 import copy
 import time
@@ -213,9 +214,9 @@ class PackageVariant(_Common):
         self.requires_list = RequirementList(requires)
 
         if self.requires_list.conflict:
-            raise ResolveError(("The package at %s has an internal "
+            raise ResolveError(("The package %s has an internal "
                                "requirements conflict: %s")
-                               % (path, str(self.requires_list)))
+                               % (str(self), str(self.requires_list)))
 
     @property
     def request_fams(self):
@@ -233,6 +234,11 @@ class PackageVariant(_Common):
                 and self.version == other.version
                 and self.index == other.index)
 
+    def __lt__(self, other):
+        return (self.name < other.name
+                and self.version < other.version
+                and self.index < other.index)
+
     def __str__(self):
         stmt = VersionedObject.construct(self.name, self.version)
         idxstr = '' if self.index is None else str(self.index)
@@ -240,31 +246,58 @@ class PackageVariant(_Common):
 
 
 class _PackageVariantList(_Common):
-    """A sorted list of package variants."""
+    """A sorted list of package variants, loaded lazily."""
     def __init__(self, package_name, package_paths=None, timestamp=0,
                  building=False):
         self.package_name = package_name
         self.package_paths = package_paths
+        self.timestamp = timestamp
+        self.building = building
         self.variants = []
 
-        it = iter_packages(package_name,
-                           timestamp=timestamp,
-                           paths=package_paths)
-        for pkg in sorted(it, key=lambda x: x.version):
-            for var in pkg.iter_variants():
-                requires = var.get_requires(build_requires=building)
-                variant = PackageVariant(name=package_name,
-                                         version=var.version,
-                                         requires=requires,
-                                         index=var.index,
-                                         userdata=var.resource_handle)
-                self.variants.append(variant)
-
-        if not self.variants:
+        it = iter_packages(self.package_name,
+                           paths=self.package_paths)
+        self.packages = sorted(it, key=lambda x: x.version)
+        if not self.packages:
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
     def get_intersection(self, range):
+        if self.packages:
+            loaded_variants = []
+            indexes = []
+            for i, pkg in enumerate(self.packages):
+                # checking version against range before timestamp is important
+                # - metadata needs to be loaded to determine package timestamp.
+                if pkg.version not in range:
+                    continue
+                if config.skip_erroneous_packages:
+                    try:
+                        pkg.validate()
+                    except Exception as e:
+                        if config.warn("erroneous_packages"):
+                            print_warning_once("skipped %s: %s"
+                                               % (pkg.path, str(e)))
+                            indexes.append(i)
+                            continue
+                if self.timestamp and pkg.timestamp > self.timestamp:
+                    continue
+
+                indexes.append(i)
+                for var in pkg.iter_variants():
+                    requires = var.get_requires(
+                        build_requires=self.building)
+                    variant = PackageVariant(name=self.package_name,
+                                             version=var.version,
+                                             requires=requires,
+                                             index=var.index,
+                                             userdata=var.resource_handle)
+                    loaded_variants.append(variant)
+            if loaded_variants:
+                self.variants = list(merge(self.variants, loaded_variants))
+                for i in reversed(indexes):
+                    del self.packages[i]
+
         variants = []
         for variant in self.variants:
             if variant.version in range:

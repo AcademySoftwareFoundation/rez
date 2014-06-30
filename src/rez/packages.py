@@ -65,8 +65,11 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
     for pkg in _iter_packages(name, paths):
         handle = (pkg.name, pkg.version)
         if handle not in consumed:
-            if (timestamp and pkg.timestamp > timestamp) \
-                    or (range and pkg.version not in range):
+            # checking version against range before timestamp is important
+            # - metadata needs to be loaded to determine package timestamp.
+            if range and pkg.version not in range:
+                continue
+            if timestamp and pkg.timestamp > timestamp:
                 continue
             consumed.add(handle)
             yield pkg

@@ -98,6 +98,11 @@ implicit_packages:
 - '~arch=={system.arch}'
 - '~os=={system.os}'
 
+# During dependency resolution, skip/warn when erroneous packages are found. If
+# skip is false, an error is raised regardless of the warn setting.
+warn_erroneous_packages: true
+skip_erroneous_packages: true
+
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
 
