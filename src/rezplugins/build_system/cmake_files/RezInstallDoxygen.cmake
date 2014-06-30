@@ -81,7 +81,7 @@ macro (rez_install_doxygen)
 
 		list(GET INSTDOX_DOXYFILE 0 doxyfile)
 		if(NOT doxyfile)
-			set(doxyfile $ENV{REZ_PATH}/template/Doxyfile)
+			set(doxyfile $ENV{REZ_TEMPATE_FILES_PATH}/Doxyfile)
 		endif(NOT doxyfile)
 
 		list(GET INSTDOX_DOXYDIR 0 doxydir)
@@ -105,10 +105,9 @@ macro (rez_install_doxygen)
 			endif(DOXYPY_SRC)
 		endif(INSTDOX_DOXYPY)
 
-		SET(_REZ_YAMLQ $ENV{REZ_PATH}/bin/_rez_query_yaml --filepath=${CMAKE_SOURCE_DIR}/package.yaml )
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-name OUTPUT_VARIABLE _proj_name OUTPUT_STRIP_TRAILING_WHITESPACE)
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-version OUTPUT_VARIABLE _proj_ver OUTPUT_STRIP_TRAILING_WHITESPACE)
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-desc OUTPUT_VARIABLE _proj_desc OUTPUT_STRIP_TRAILING_WHITESPACE)
+        set(_proj_name $ENV{REZ_BUILD_PROJECT_NAME})
+        set(_proj_ver $ENV{REZ_BUILD_PROJECT_VERSION})
+        set(_proj_desc $ENV{REZ_BUILD_PROJECT_DESCRIPTION})
 		string(REPLACE "\n" " " _proj_desc2 ${_proj_desc})
 
 		add_custom_command(
