@@ -2,9 +2,9 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.settings import settings
-from rez.util import columnise, convert_old_commands, shlex_join, \
+from rez.util import convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory
+    create_forwarding_script
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -210,60 +210,24 @@ class ResolvedContext(object):
         r.load_path = os.path.abspath(path)
         return r
 
-    def print_info(self, buf=sys.stdout, verbose=False):
+    def print_info(self, buf=sys.stdout, verbose=False, formatter=None):
         """Prints a message summarising the contents of the resolved context.
         """
+
         def _pr(s=''):
             print >> buf, s
 
-        def _rt(t):
-            if verbose:
-                s = time.strftime("%a %b %d %H:%M:%S %Z %Y", time.localtime(t))
-                return s + " (%d)" % int(t)
-            else:
-                return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
+        if not formatter:
+            formatter_setting = settings.resolved_context_info_formatter
+            module_name = ".".join(formatter_setting.split(".")[:-1])
+            class_name = formatter_setting.rsplit(".")[-1]
 
-        if self.status in ("failed", "aborted"):
-            _pr("The context failed to resolve:\n")
-            _pr(self.failure_description)
-            return
+            module = __import__(module_name, globals=globals(), locals=locals(), fromlist=[class_name])
+            cls = getattr(module, class_name)
 
-        t_str = _rt(self.created)
-        _pr("resolved by %s@%s, on %s, using Rez v%s" \
-            % (self.user, self.host, t_str, self.rez_version))
-        if self.timestamp:
-            t_str = _rt(self.timestamp)
-            _pr("packages released after %s were ignored" % t_str)
-        _pr()
+            formatter = cls(self)
 
-        if verbose:
-            _pr("search paths:")
-            for path in self.package_paths:
-                _pr(path)
-            _pr()
-
-        _pr("requested packages:")
-        for pkg in self.package_requests:
-            _pr(str(pkg))
-        _pr()
-
-        _pr("resolved packages:")
-        rows = []
-        for pkg in (self.resolved_packages or []):
-            tok = ''
-            if not os.path.exists(pkg.root):
-                tok = 'NOT FOUND'
-            elif is_subdirectory(pkg.root, settings.local_packages_path):
-                tok = '(local)'
-            rows.append((pkg.qualified_package_name, pkg.root, tok))
-        _pr('\n'.join(columnise(rows)))
-
-        if verbose:
-            _pr()
-            _pr("resolve details:")
-            _pr("load time: %.02f secs" % self.load_time)
-            # solve time includes load time
-            _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
+        _pr(formatter.format(verbose))
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -755,3 +719,4 @@ def _FWD__invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
 
     retcode,_,_ = context.execute_shell(command=cmd, block=True)
     sys.exit(retcode)
+
