@@ -4,9 +4,9 @@ from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
 from rez.settings import settings
 from rez.packages import Package
+from rez.platform_ import current_platform
 import functools
 import subprocess
-import platform
 import os.path
 import sys
 import os
@@ -64,7 +64,7 @@ class CMakeBuildSystem(BuildSystem):
 
         self.cmake_build_system = opts.build_system \
             or self.package.settings.cmake_build_system
-        if self.cmake_build_system == 'xcode' and platform.system() != 'Darwin':
+        if self.cmake_build_system == 'xcode' and current_platform.name() != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
