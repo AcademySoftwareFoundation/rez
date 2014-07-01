@@ -63,12 +63,15 @@ def setup_parser(parser):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
+    parser.add_argument("-v", "--variants", nargs='+', type=int,
+                        help="build for one or more variants (zero-indexed).")
+    
     add_extra_build_args(parser)
     add_build_system_args(parser)
 
 def command(opts, parser):
     from rez.build_process import LocalSequentialBuildProcess
-    from rez.build_system import create_build_system
+    from rez.build_system import create_build_system    
     working_dir = os.getcwd()
     build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 
@@ -89,5 +92,6 @@ def command(opts, parser):
 
     if not builder.build(install_path=opts.prefix,
                          clean=opts.clean,
-                         install=opts.install):
+                         install=opts.install,
+                         variants=opts.variants):
         sys.exit(1)

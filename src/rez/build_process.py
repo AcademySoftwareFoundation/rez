@@ -56,7 +56,7 @@ class BuildProcess(object):
         hook_names = self.package.settings.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
 
-    def build(self, install_path=None, clean=False, install=False):
+    def build(self, install_path=None, clean=False, install=False, variants=None):
         """Perform the build process.
 
         Iterates over the package's variants, resolves the environment for each,
@@ -102,7 +102,7 @@ class StandardBuildProcess(BuildProcess):
                                                   ensure_latest=ensure_latest,
                                                   verbose=verbose)
 
-    def _build(self, install_path, build_path, clean=False, install=False):
+    def _build(self, install_path, build_path, clean=False, install=False, variants=None):
         """Build all the variants of the package.
 
         Args:
@@ -120,7 +120,7 @@ class StandardBuildProcess(BuildProcess):
         """
         raise NotImplementedError
 
-    def build(self, install_path=None, clean=False, install=False):
+    def build(self, install_path=None, clean=False, install=False, variants=None):
         self._hdr("Building %s..." % self.package.qualified_name)
 
         base_build_path = os.path.join(self.working_dir,
@@ -131,7 +131,7 @@ class StandardBuildProcess(BuildProcess):
         return self._build(install_path=install_path,
                            build_path=base_build_path,
                            install=install,
-                           clean=clean)
+                           clean=clean, variants=variants)
 
     def release(self):
         assert(self.vcs)
@@ -291,14 +291,18 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current
     package, on the local host.
     """
-    def _build(self, install_path, build_path, clean=False, install=False):
+    def _build(self, install_path, build_path, clean=False, install=False, variants=None):
         base_install_path = self._get_base_install_path(install_path)
         nvariants = max(self.package.num_variants, 1)
         build_env_scripts = []
         timestamp = int(time.time())
 
         # iterate over variants
-        for i,variant in enumerate(self.package.iter_variants()):
+        for i, variant in enumerate(self.package.iter_variants()):
+            if variants and i not in variants:
+                self._hdr("Skipping %d/%d..." % (i+1, nvariants), 2)
+                continue
+
             self._hdr("Building %d/%d..." % (i+1, nvariants), 2)
             subdir = variant.subpath
 
