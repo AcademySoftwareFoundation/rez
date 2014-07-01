@@ -3,6 +3,7 @@ from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError
 from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
+from rez.platform_ import platform_
 from rez.config import config
 from rez.vendor.schema.schema import Or
 from rez.vendor.version.requirement import Requirement
@@ -72,8 +73,7 @@ class CMakeBuildSystem(BuildSystem):
         self.build_target = opts.build_target
         self.cmake_build_system = opts.build_system \
             or self.package.config.plugins.build_system.cmake.build_system
-        if self.cmake_build_system == 'xcode' \
-                and platform.system() != 'Darwin':
+        if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
