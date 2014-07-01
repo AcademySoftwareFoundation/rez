@@ -38,6 +38,9 @@ def setup_parser(parser):
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
+                        help="Exit when the number of failed configuration "
+                        "attempts exceeds N.")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "
@@ -81,7 +84,7 @@ def command(opts, parser):
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
                              add_bootstrap_path=(not opts.no_bootstrap),
-                             verbosity=opts.verbose)
+                             verbosity=opts.verbose, max_fails=opts.max_fails)
 
     success = (rc.status == "solved")
     if not success:

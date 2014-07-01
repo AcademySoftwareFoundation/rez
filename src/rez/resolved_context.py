@@ -39,11 +39,34 @@ class ResolvedContext(object):
     """
     serialize_version = 0
 
+    class Callback(object):
+        def __init__(self, verbose, max_fails, time_limit, callback):
+            self.verbose = verbose
+            self.max_fails = max_fails
+            self.time_limit = time_limit
+            self.callback = callback
+            self.start_time = time.time()
+
+        def __call__(self, state):
+            if self.verbose:
+                print state
+            if state.num_fails and state.num_fails >= self.max_fails:
+                return False, ("fail limit reached: aborted after %d failures"
+                               % state.num_fails)
+            if self.time_limit != -1:
+                secs = time.time() - self.start_time
+                if secs > self.time_limit:
+                    return False, "time limit exceeded"
+            if self.callback:
+                return self.callback(state)
+            return True, ''
+
     # TODO quiet is unused, remove
     def __init__(self, package_requests, quiet=False, verbosity=0,
                  timestamp=None, building=False, caching=None,
                  package_paths=None, add_implicit_packages=True,
-                 add_bootstrap_path=None):
+                 add_bootstrap_path=None, max_fails=-1, time_limit=-1,
+                 callback=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -63,6 +86,15 @@ class ResolvedContext(object):
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
                 default specified in config.add_bootstrap_path.
+            max_fails (int): Abort the resolve after this many failed
+                resolve steps. If -1, does not abort.
+            time_limit (int): Abort the resolve if it takes longer than this
+                many seconds. If -1, there is no time limit.
+            callback: If not None, this callable will be called after each
+                solve step. It is passed a `SolverState` object. It must return
+                a 2-tuple:
+                - bool: If True, continue the solve, otherwise abort;
+                - str: Reason for solve abort, ignored if solve not aborted.
         """
         self.load_path = None
 
@@ -101,7 +133,7 @@ class ResolvedContext(object):
         self.created = int(time.time())
 
         # resolve results
-        self.status = "pending"
+        self.status_ = "pending"
         self.resolved_packages_ = None
         self.failure_description = None
         self.graph_string = None
@@ -110,35 +142,34 @@ class ResolvedContext(object):
         self.load_time = 0.0
 
         # perform the solve
-        def _pr(s):
-            print s
-            return True
-
         verbose_ = False
-        callback = None
-        if verbosity >= 2:
+        print_state = False
+        if verbosity >= 1:
+            print_state = True
+        if verbosity == 2:
             verbose_ = True
-        elif verbosity == 1:
-            callback = _pr
+        callback_ = self.Callback(verbose=print_state,
+                                  max_fails=max_fails,
+                                  time_limit=time_limit,
+                                  callback=callback)
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
                             timestamp=self.timestamp,
                             building=self.building,
                             caching=caching,
-                            callback=callback,
+                            callback=callback_,
                             verbose=verbose_)
         resolver.solve()
 
         # convert the results
-        self.status = resolver.status
+        self.status_ = resolver.status
         self.solve_time = resolver.solve_time
         self.load_time = resolver.load_time
+        self.failure_description = resolver.failure_description
+        self.graph_ = resolver.graph
 
-        if resolver.graph is not None:
-            self.graph_ = resolver.graph
-
-        if self.status == "solved":
+        if self.status_ == "solved":
             # convert solver.Variants to packages.Variants
             pkgs = []
             for variant in resolver.resolved_packages:
@@ -147,8 +178,17 @@ class ResolvedContext(object):
                 pkg = Variant(resource)
                 pkgs.append(pkg)
             self.resolved_packages_ = pkgs
-        elif self.status == "failed":
-            self.failure_description = resolver.failure_description
+
+    @property
+    def status(self):
+        """Return the current status of the context.
+
+        Returns one of:
+        - solved - the context was created successfully.
+        - failed - the context is not possible.
+        - aborted - the context resolve was aborted by a callback.
+        """
+        return self.status_
 
     @property
     def resolved_packages(self):
@@ -228,7 +268,7 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        if self.status in ("failed", "aborted"):
+        if self.status_ in ("failed", "aborted"):
             _pr("The context failed to resolve:\n")
             _pr(self.failure_description)
             return
@@ -272,7 +312,7 @@ class ResolvedContext(object):
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
-            if self.status == "solved":
+            if self.status_ == "solved":
                 return fn(self, *nargs, **kwargs)
             else:
                 raise RezSystemError("Cannot perform operation in a failed "
@@ -551,7 +591,7 @@ class ResolvedContext(object):
             Path to a subdirectory within 'path' containing the wrapped tools,
             or None if no tools were wrapped.
         """
-        if self.status != "solved":
+        if self.status_ != "solved":
             raise RezSystemError("Cannot add a failed context to a suite")
 
         path = os.path.abspath(path)
@@ -653,7 +693,7 @@ class ResolvedContext(object):
             os=self.os,
             created=self.created,
 
-            status=self.status,
+            status=self.status_,
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=self.graph(as_dot=True),
@@ -682,7 +722,7 @@ class ResolvedContext(object):
         r.os = d["os"]
         r.created = d["created"]
 
-        r.status = d["status"]
+        r.status_ = d["status"]
         r.failure_description = d["failure_description"]
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]
