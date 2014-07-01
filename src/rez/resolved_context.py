@@ -722,12 +722,14 @@ class ResolvedContext(object):
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self.package_requests)
+        implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
 
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_TIMESTAMP", self.timestamp)
         executor.setenv("REZ_USED_REQUEST", request_str)
+        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
 

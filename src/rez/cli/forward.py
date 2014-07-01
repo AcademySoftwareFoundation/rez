@@ -12,8 +12,16 @@ def setup_parser(parser):
 
 
 def command(opts, parser):
+    from rez.config import config
     from rez.vendor import yaml
     import inspect
+    import os
+
+    # we don't usually want warnings printed in a wrapped tool. But in cases
+    # where we do (for debugging) we leave a backdoor - setting $REZ_QUIET=0
+    # will stop this warning suppression.
+    if "REZ_QUIET" not in os.environ:
+        config.override("quiet", True)
 
     yaml_file = os.path.abspath(opts.YAML)
     cli_args = opts.ARG

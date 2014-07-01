@@ -41,6 +41,7 @@ class TestCommands(TestBase):
         ignore_keys = set(["REZ_USED",
                            "REZ_USED_TIMESTAMP",
                            "REZ_USED_PACKAGES_PATH",
+                           "REZ_USED_IMPLICIT_PACKAGES",
                            "PATH"])
 
         for cmd in commands:
