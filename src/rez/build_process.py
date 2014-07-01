@@ -307,10 +307,9 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """
 
     def _use_existing_context_file(self, rxt_file):
-        if os.path.exists(rxt_file):
-            if os.path.getmtime(self.package.metafile) < os.path.getmtime(rxt_file):
-                return True
-        return False
+        return os.path.exists(rxt_file) \
+            and (os.path.getmtime(self.package.path)
+                 < os.path.getmtime(rxt_file))
 
     def _build(self, install_path, build_path, clean=False, install=False):
         base_install_path = self._get_base_install_path(install_path)
@@ -335,7 +334,6 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
             # resolve build environment and save to file
             rxt_path = os.path.join(build_subdir, "build.rxt")
-
             if self._use_existing_context_file(rxt_path):
                 self._pr("Loading existing environment context...")
                 r = ResolvedContext.load(rxt_path)
