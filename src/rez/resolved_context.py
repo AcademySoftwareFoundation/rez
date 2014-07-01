@@ -39,6 +39,7 @@ class ResolvedContext(object):
     """
     serialize_version = 0
 
+    # TODO quiet is unused, remove
     def __init__(self, package_requests, quiet=False, verbosity=0,
                  timestamp=None, building=False, caching=None,
                  package_paths=None, add_implicit_packages=True,
@@ -58,7 +59,7 @@ class ResolvedContext(object):
             package_paths: List of paths to search for pkgs, defaults to
                 config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
-                by config.implicit_packages is added to the request.
+                by config.implicit_packages is appended to the request.
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
                 default specified in config.add_bootstrap_path.
@@ -87,8 +88,7 @@ class ResolvedContext(object):
         if add_implicit_packages:
             pkg_strs = config.implicit_packages
             self.implicit_packages = [Requirement(x) for x in pkg_strs]
-            self.package_requests = self.implicit_packages + \
-                self.package_requests
+            self.package_requests.extend(self.implicit_packages)
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -331,6 +331,19 @@ class ResolvedContext(object):
                     values[pkg.name] = value
 
         return values
+
+    @_on_success
+    def get_tools(self, request_only=False):
+        """Returns the commandline tools available in the context.
+
+        Args:
+            request_only: If True, only return the key from resolved packages
+                that were also present in the request.
+
+        Returns:
+            Dict of {pkg-name: tool-name}.
+        """
+        return self.get_key("tools", request_only=request_only)
 
     @_on_success
     def get_shell_code(self, shell=None, parent_environ=None):

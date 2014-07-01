@@ -161,7 +161,11 @@ def _get_rez_dist_path(dirname):
 
 
 def get_bootstrap_path():
-    return _get_rez_dist_path("packages")
+    path = _get_rez_dist_path("packages/rez")
+    if path:
+        return os.path.dirname(path)
+    else:
+        return _get_rez_dist_path("packages")
 
 
 def get_script_path():

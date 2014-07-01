@@ -82,7 +82,7 @@ include(InstallDirs)
 include(RezInstallCMake)
 include(RezFindPackages)
 include(RezInstallPython)
-include(RezInstallDoxygen)
+#include(RezInstallDoxygen)
 
 
 #############################################################################

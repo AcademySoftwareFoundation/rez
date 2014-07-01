@@ -6,7 +6,6 @@ import subprocess
 from rez.config import config
 from rez import module_root_path
 from rez.shells import UnixShell
-from rez.util import get_script_path
 
 
 class SH(UnixShell):

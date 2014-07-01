@@ -2,7 +2,6 @@ import os.path
 import subprocess
 from rez.config import config
 from rez.shells import UnixShell
-from rez.util import get_script_path
 from rez import module_root_path
 
 

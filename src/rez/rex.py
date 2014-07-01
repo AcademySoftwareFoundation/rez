@@ -15,7 +15,7 @@ from rez import module_root_path
 from rez.system import system
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
-    get_script_path
+    get_script_path, which
 
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
@@ -784,12 +784,14 @@ class RexExecutor(object):
 
         if bind_rez:
             script_path = get_script_path()
-            # may not be available, this happens when unit tests are run from
-            # source, in this case just silently skip rez binding
+            if not script_path:
+                binary = which("rezolve")
+                if binary:
+                    script_path = os.path.dirname(binary)
             if script_path:
                 self.environ["PATH"] = script_path
 
-        for cmd,func in self.manager.get_public_methods():
+        for cmd, func in self.manager.get_public_methods():
             self.bind(cmd, func)
 
         if add_default_namespaces:
