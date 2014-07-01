@@ -305,6 +305,13 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current
     package, on the local host.
     """
+
+    def _use_existing_context_file(self, rxt_file):
+        if os.path.exists(rxt_file):
+            if os.path.getmtime(self.package.metafile) < os.path.getmtime(rxt_file):
+                return True
+        return False
+
     def _build(self, install_path, build_path, clean=False, install=False):
         base_install_path = self._get_base_install_path(install_path)
         nvariants = max(self.package.num_variants, 1)
@@ -328,7 +335,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
             # resolve build environment and save to file
             rxt_path = os.path.join(build_subdir, "build.rxt")
-            if os.path.exists(rxt_path):
+
+            if self._use_existing_context_file(rxt_path):
                 self._pr("Loading existing environment context...")
                 r = ResolvedContext.load(rxt_path)
             else:
