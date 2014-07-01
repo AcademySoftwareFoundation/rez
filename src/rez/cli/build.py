@@ -58,6 +58,9 @@ def setup_parser(parser):
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
                         help="install to a custom path")
+    parser.add_argument("-g", "--graph", action="store_true",
+                        help="if the build environment fails to resolve due to a "
+                        "conflict display the resolve graph as an image")
     parser.add_argument("-s", "--scripts", action="store_true",
                         help="create build scripts rather than performing the "
                         "full build. Running these scripts will place you into "
@@ -87,7 +90,20 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    if not builder.build(install_path=opts.prefix,
+    from rez.exceptions import RezError, ReleaseError, BuildSystemResolveError
+
+    try:
+        result = builder.build(install_path=opts.prefix,
                          clean=opts.clean,
-                         install=opts.install):
+                         install=opts.install)
+    
+    except BuildSystemResolveError, e:
+        if e.graph:
+            from rez.context import view_graph
+            view_graph(e.graph)
+        
+        print >> sys.stderr, str(e)
+        result = False
+    
+    if not result:
         sys.exit(1)

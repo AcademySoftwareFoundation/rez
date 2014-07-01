@@ -100,7 +100,11 @@ class ReleaseHookError(RezError):
     pass
 
 
-
+class BuildSystemResolveError(BuildSystemError):
+    """"""
+    def __init__(self, message, graph):
+        self.graph = graph
+        super(BuildSystemResolveError, self).__init__(message)
 
 
 

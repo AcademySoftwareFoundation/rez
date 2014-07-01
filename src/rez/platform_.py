@@ -86,7 +86,7 @@ class LinuxPlatform(Platform):
 
         # next, try getting the output of the lsb_release program
         import subprocess
-        p = subprocess.Popen(['/usr/bin/env', 'lsb_release', '-a'],
+        proc = subprocess.Popen(['/usr/bin/env', 'lsb_release', '-a'],
                              stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         txt = proc.communicate()[0]
         if not proc.returncode:
