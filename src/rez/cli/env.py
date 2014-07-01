@@ -39,8 +39,12 @@ def setup_parser(parser):
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
-                        help="Exit when the number of failed configuration "
-                        "attempts exceeds N.")
+                        metavar='N',
+                        help="Abort if the number of failed configuration "
+                        "attempts exceeds N")
+    parser.add_argument("--time-limit", type=int, default=-1,
+                        dest="time_limit", metavar='SECS',
+                        help="Abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "
@@ -50,9 +54,6 @@ def setup_parser(parser):
                         "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
-    # TODO: move verbose flag to top-level parser
-    #parser.add_argument("-v", "--verbose", action="count", default=0,
-    #                    help="verbose mode, repeat for more verbosity")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
@@ -84,7 +85,8 @@ def command(opts, parser):
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
                              add_bootstrap_path=(not opts.no_bootstrap),
-                             verbosity=opts.verbose, max_fails=opts.max_fails)
+                             verbosity=opts.verbose, max_fails=opts.max_fails,
+                             time_limit=opts.time_limit)
 
     success = (rc.status == "solved")
     if not success:

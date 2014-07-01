@@ -45,7 +45,7 @@ def run():
                instpath=doc["install_path"],
                targets=str(opts.TARGET or None))
 
-    cli_code = textwrap.dedent(code).strip().replace('\n',';')
+    cli_code = textwrap.dedent(code).strip().replace('\n', ';')
 
     print "executing rezbuild.py..."
     cmd = ["python", "-c", cli_code]

@@ -1,8 +1,8 @@
 '''
 Create a tool suite from one or more context files
 '''
-
 import os.path
+
 
 def setup_parser(parser):
     parser.add_argument("-p", "--prefix", type=str,
@@ -13,8 +13,7 @@ def setup_parser(parser):
                         help="Directory to write the suite into")
     parser.add_argument("RXT", type=str, nargs='*',
                         help="Context files to add to the suite")
-    #parser.add_argument("-v", "--verbose", action="store_true",
-    #                    help="verbose mode")
+
 
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext

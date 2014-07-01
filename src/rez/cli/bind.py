@@ -18,8 +18,6 @@ def setup_parser(parser):
                         help="install path, defaults to local package path")
     parser.add_argument("-s", "--search", action="store_true",
                         help="search for the binding but do not do the bind")
-    #parser.add_argument("-v", "--verbose", action="store_true",
-    #                    help="verbose mode")
     parser.add_argument("PKG", type=str,
                         help='package to bind')
     parser.add_argument("BIND_ARG", metavar="ARG", nargs=argparse.REMAINDER,

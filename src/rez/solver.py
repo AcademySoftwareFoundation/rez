@@ -510,7 +510,7 @@ class _PackageVariantSlice(_Common):
         foo[2..6(3:4)]* means, 3 versions, 4 variants in 2..6, and at least one
             family can still be extracted.
         foo[2..6(2)] means, 2 versions in 2..6.
-        foo[==2[1,2]] means, 1st and 2nd variants of exact version foo-2.
+        [foo==2[1,2]] means, 1st and 2nd variants of exact version foo-2.
         [foo==2]* means, exact version foo-2, families still to extract.
         [foo==2] means a resolved package (no variants in the package).
         [foo=2[0]] means a resolved package (zeroeth variant).
@@ -1270,9 +1270,10 @@ class Solver(_Common):
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
             callback: If not None, this callable will be called after each
-                solve step. It is passed a single argument - a string showing
-                the current solve state. If the return value of the callable is
-                truthy, the solve continues, otherwise the solve is stopped.
+                solve step. It is passed a `SolverState` object. It must return
+                a 2-tuple:
+                - bool: If True, continue the solve, otherwise abort;
+                - str: Reason for solve abort, ignored if solve not aborted.
         """
         self.package_requests = package_requests
         self.package_paths = (config.packages_path if package_paths is None
@@ -1285,6 +1286,7 @@ class Solver(_Common):
 
         self.phase_stack = None
         self.failed_phase_list = None
+        self.abort_reason = None
         self.solve_count = None
         self.depth_counts = None
         self.solve_time = None
@@ -1386,7 +1388,6 @@ class Solver(_Common):
         # iteratively solve phases
         while self.status == "unsolved":
             self.solve_step()
-
             if self.status == "unsolved" and not self._do_callback():
                 break
 
@@ -1566,10 +1567,10 @@ class Solver(_Common):
             phase = self._latest_unsolved_phase()
             if phase:
                 s = SolverState(self.num_solves, self.num_fails, phase)
-                keep_going = self.callback(s)
+                keep_going, abort_reason = self.callback(s)
                 if not keep_going:
-                    self.pr("solve stopped by user")
-
+                    self.pr("solve aborted: %s" % abort_reason)
+                    self.abort_reason = abort_reason
         return keep_going
 
     def _get_variant_slice(self, package_name, range):

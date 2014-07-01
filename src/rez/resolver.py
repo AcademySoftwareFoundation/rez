@@ -59,10 +59,10 @@ class Resolver(object):
         """Return the current status of the resolve.
 
         Returns one of:
-            pending - the resolve has not yet started.
-            solved - the resolve has completed successfully.
-            failed - the resolve is not possible.
-            aborted - the resolve was stopped by the user (via callback).
+        - pending - the resolve has not yet started.
+        - solved - the resolve has completed successfully.
+        - failed - the resolve is not possible.
+        - aborted - the resolve was stopped by the user (via callback).
         """
         return self.status_
 
@@ -90,7 +90,7 @@ class Resolver(object):
 
         if st == "unsolved":
             st = "aborted"
-            self.failure_description = "the resolve was aborted by the user"
+            self.failure_description = solver.abort_reason
         elif st == "failed":
             self.failure_description = solver.failure_reason().description()
         elif st == "solved":
