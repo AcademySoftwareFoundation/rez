@@ -64,10 +64,23 @@ class _Printer(object):
 
 
 
+class SolverState(object):
+    """Represent the current state of the solver instance for use with a 
+    callback.
+    """
+    def __init__(self, num_solves, num_fails, phase):
+        self.num_solves = num_solves
+        self.num_fails = num_fails
+        self.phase = phase
+
+    def __str__(self):
+        return "solve #%d (%d fails so far): %s" \
+                    % (self.num_solves, self.num_fails, str(self.phase))
+
+
 class _Common(object):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
-
 
 
 class Reduction(_Common):
@@ -1518,8 +1531,7 @@ class Solver(_Common):
         if self.callback:
             phase = self._latest_unsolved_phase()
             if phase:
-                s = "solve #%d (%d fails so far): %s" \
-                    % (self.num_solves, self.num_fails, str(phase))
+                s = SolverState(self.num_solves, self.num_fails, phase)
                 keep_going = self.callback(s)
                 if not keep_going:
                     self.pr("solve stopped by user")

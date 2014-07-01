@@ -16,6 +16,7 @@ from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import RezSystemError, PackageCommandError
 from rez.vendor import yaml
+import functools
 import getpass
 import inspect
 import time
@@ -41,7 +42,7 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, quiet=False, verbosity=0,
         timestamp=None, building=False, caching=None, package_paths=None,
-        add_implicit_packages=True, add_bootstrap_path=None):
+        add_implicit_packages=True, add_bootstrap_path=None, max_fails=-1):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -103,18 +104,23 @@ class ResolvedContext(object):
         self.graph_ = None
         self.solve_time = 0.0
         self.load_time = 0.0
+        self.max_fails = max_fails
 
         # perform the solve
-        def _pr(s):
-            print s
-            return True
+        def _callback(callback_verbose, max_fails, state):
+            if callback_verbose:
+                print state
+            return max_fails == -1 or max_fails < state.num_fails
 
         verbose_ = False
-        callback = None
-        if verbosity >= 2:
+
+        print_state = False
+        if verbosity >= 1:
+            print_state = True
+        if verbosity == 2:
             verbose_ = True
-        elif verbosity == 1:
-            callback = _pr
+
+        callback = functools.partial(_callback, print_state, self.max_fails)
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
