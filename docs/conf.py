@@ -38,7 +38,8 @@ extensions = [
     'sphinx.ext.coverage',
     'sphinx.ext.ifconfig',
     'sphinx.ext.viewcode',
-    'sphinx.ext.napoleon',
+#    'sphinx.ext.napoleon',   # this works with Sphinx 1.3+
+    'sphinxcontrib.napoleon', # this works with Sphinx <= 1.2.
 ]
 
 # Add any paths that contain templates here, relative to this directory.
