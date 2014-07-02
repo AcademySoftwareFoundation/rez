@@ -4,6 +4,7 @@ Build a package from source.
 import sys
 import os
 from rez.vendor import argparse
+from rez.exceptions import BuildProcessContextResolveError
 
 
 def parse_build_args(args, parser):
@@ -90,20 +91,19 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    from rez.exceptions import RezError, ReleaseError, BuildSystemResolveError
-
     try:
         result = builder.build(install_path=opts.prefix,
-                         clean=opts.clean,
-                         install=opts.install)
-    
-    except BuildSystemResolveError, e:
-        if e.graph:
+                               clean=opts.clean,
+                               install=opts.install)
+
+    except BuildProcessContextResolveError as e:
+        print >> sys.stderr, str(e)
+
+        if opts.graph and e.graph:
             from rez.context import view_graph
             view_graph(e.graph)
-        
-        print >> sys.stderr, str(e)
+
         result = False
-    
+
     if not result:
         sys.exit(1)
