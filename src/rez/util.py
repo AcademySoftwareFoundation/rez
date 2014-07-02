@@ -17,10 +17,14 @@ import textwrap
 import tempfile
 import threading
 import subprocess as sp
+import logging
 from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
+
+
+logger = logging.getLogger(__name__)
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
@@ -89,7 +93,7 @@ _once_warnings = set()
 
 def print_warning_once(msg):
     if msg not in _once_warnings:
-        print >> sys.stderr, "WARNING: %s" % msg
+        logger.warning(msg)
         _once_warnings.add(msg)
 
 

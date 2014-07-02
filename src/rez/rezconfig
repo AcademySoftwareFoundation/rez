@@ -266,3 +266,28 @@ prompt: '>'
 
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
+
+# The following settings provide styling information for output to the console,
+# and is based on the capabilities of the Colorama module (https://pypi.python.org/pypi/colorama).
+# 
+# *_fore and *_back colors are based on the colors supported by this module and 
+# the console.  One or more styles can be applied using the *_styles 
+# configuration.
+
+critical_fore: red
+critical_back: 
+critical_styles: 
+- 'bright'
+error_fore: red
+error_back: 
+error_styles: 
+warning_fore: yellow
+warning_back:
+warning_styles:  
+info_fore: 
+info_back:
+info_styles:  
+debug_fore: blue
+debug_back: 
+debug_styles: 
+
