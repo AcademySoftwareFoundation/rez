@@ -171,6 +171,9 @@ def color(str_, fore_color=None, back_color=None, styles=None):
         https://pypi.python.org/pypi/colorama
     """
 
+    if not config.get("color_enabled", False):
+        return str_
+
     colored = ""
     if not styles: styles = []
 

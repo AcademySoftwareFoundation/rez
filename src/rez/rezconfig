@@ -267,6 +267,12 @@ prompt: '>'
 # If true, prefixes the prompt, suffixes if false
 prefix_prompt: true
 
+# Control where colorized output is used when writing text to the console.  
+# Other settings in this file can be used to control the output style in more 
+# detail.
+
+color_enabled: true
+
 # The following settings provide styling information for output to the console,
 # and is based on the capabilities of the Colorama module (https://pypi.python.org/pypi/colorama).
 # 

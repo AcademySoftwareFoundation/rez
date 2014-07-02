@@ -182,6 +182,7 @@ _config_dict = {
     "debug_all":                    Bool,
     "quiet":                        Bool,
     "prefix_prompt":                Bool,
+    "color_enabled":                Bool,
 
     # preferred namespace to place custom settings
     Optional("custom"):             object,
