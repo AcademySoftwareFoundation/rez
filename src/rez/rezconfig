@@ -293,7 +293,12 @@ debug_styles:
 
 # The following settings provide styling information for output to the console,
 # and is based on the capabilities of the Colorama module (https://pypi.python.org/pypi/colorama).
-
+# 
+# *_fore and *_back colors are based on the colors supported by this module and 
+# the console.  One or more styles can be applied using the *_styles 
+# configuration.  These settings only affect output to the console during the 
+# normal execution of rez, and not the python logger.  They affect how different
+# types of data (for example a local or implicit) package might be rendered.
 heading_fore: 
 heading_back: 
 heading_styles: 
