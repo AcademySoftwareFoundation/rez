@@ -90,6 +90,50 @@ def notset(str_):
     return color(str_)
 
 
+def heading(str_):
+    """ Return the string wrapped with the appropriate styling of a heading 
+    message.  The styling will be determined based on the rez configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+
+    return color_level(str_, 'heading')
+
+
+def local(str_):
+    """ Return the string wrapped with the appropriate styling to display a 
+    local package.  The styling will be determined based on the rez 
+    configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+
+    return color_level(str_, 'local')
+
+
+def implicit(str_):
+    """ Return the string wrapped with the appropriate styling to display an 
+    implicit package.  The styling will be determined based on the rez 
+    configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+
+    return color_level(str_, 'implicit')
+
+
 def color_level(str_, level):
     """ Return the string wrapped with the appropriate styling for the message 
     level.  The styling will be determined based on the rez configuration.

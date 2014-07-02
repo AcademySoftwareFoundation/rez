@@ -2,6 +2,7 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.config import config
+from rez.colorize import critical, error, color, heading, warning, local, implicit
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
@@ -218,6 +219,7 @@ class ResolvedContext(object):
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
         """
+
         def _pr(s=''):
             print >> buf, s
 
@@ -228,44 +230,74 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
+        def _ip(p):
+            return p.name in [i.name for i in self.implicit_packages]
+
+        def _gt(p):
+            t = []
+
+            if not os.path.exists(pkg.root):
+                t.append('NOT FOUND')
+
+            if is_subdirectory(pkg.root, config.local_packages_path):
+                t.append('local')
+
+            if _ip(p):
+                t.append('implicit')
+
+            return '(%s)' % ', '.join(t) if t else ''
+
         if self.status in ("failed", "aborted"):
-            _pr("The context failed to resolve:\n")
-            _pr(self.failure_description)
+            _pr(critical("The context failed to resolve:\n"))
+            _pr(error(self.failure_description))
             return
 
         t_str = _rt(self.created)
         _pr("resolved by %s@%s, on %s, using Rez v%s"
-            % (self.user, self.host, t_str, self.rez_version))
+            % (heading(self.user), heading(self.host), heading(t_str), heading(self.rez_version)))
         if self.timestamp:
             t_str = _rt(self.timestamp)
-            _pr("packages released after %s were ignored" % t_str)
+            _pr(warning("packages released after %s were ignored" % t_str))
         _pr()
 
         if verbose:
-            _pr("search paths:")
+            _pr(heading("search paths:"))
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr("requested packages:")
+        _pr(heading("requested packages:"))
         for pkg in self.package_requests:
-            _pr(str(pkg))
+            if _ip(pkg):
+                _pr(implicit(str(pkg)))
+            else:
+                _pr(str(pkg))
         _pr()
 
-        _pr("resolved packages:")
+        _pr(heading("local packages:"))
+        for pkg in self.resolved_packages:
+            if pkg.is_local:
+                _pr(local(pkg.qualified_package_name))
+        _pr()
+
+        _pr(heading("resolved packages:"))
         rows = []
         for pkg in (self.resolved_packages or []):
-            tok = ''
-            if not os.path.exists(pkg.root):
-                tok = 'NOT FOUND'
-            elif pkg.is_local:
-                tok = '(local)'
-            rows.append((pkg.qualified_package_name, pkg.root, tok))
-        _pr('\n'.join(columnise(rows)))
+            rows.append((pkg.qualified_package_name, pkg.root, _gt(pkg)))
+
+        for row in columnise(rows):
+            if 'NOT FOUND' in row:
+                _pr(critical(row))
+            elif 'local' in row:
+                _pr(local(row))
+            elif 'implicit' in row:
+                _pr(implicit(row))
+            else:
+                _pr(row)
 
         if verbose:
             _pr()
-            _pr("resolve details:")
+            _pr(heading("resolve details:"))
             _pr("load time: %.02f secs" % self.load_time)
             # solve time includes load time
             _pr("total solve time: %.02f secs" % self.solve_time)

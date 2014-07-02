@@ -272,7 +272,7 @@ prefix_prompt: true
 # 
 # *_fore and *_back colors are based on the colors supported by this module and 
 # the console.  One or more styles can be applied using the *_styles 
-# configuration.
+# configuration.  These settings will also affect the logger used by rez.
 
 critical_fore: red
 critical_back: 
@@ -283,11 +283,24 @@ error_back:
 error_styles: 
 warning_fore: yellow
 warning_back:
-warning_styles:  
+warning_styles: 
 info_fore: 
 info_back:
-info_styles:  
+info_styles: 
 debug_fore: blue
 debug_back: 
 debug_styles: 
 
+# The following settings provide styling information for output to the console,
+# and is based on the capabilities of the Colorama module (https://pypi.python.org/pypi/colorama).
+
+heading_fore: 
+heading_back: 
+heading_styles: 
+- 'bright'
+local_fore: green
+local_back: 
+local_styles: 
+implicit_fore: cyan
+implicit_back:
+implicit_styles: 
