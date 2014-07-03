@@ -13,7 +13,8 @@ emailer:
 
 command:
     # List of commands to execute prior to release, in give order.
-    # Each list item is a 3-uple: (command full path, [list of string arguments], needs to run as sudo (True or False)).
+    # Each list item is a 3-uple:
+    #   (command full path, [list of string arguments], needs to run as sudo (True or False)).
     pre_commands: []
 
     # Same as above but to be executed after release.
