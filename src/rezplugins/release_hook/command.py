@@ -42,7 +42,8 @@ class CommandReleaseHook(ReleaseHook):
         if user not in (None, 'root'):
             cmd_env['USER'] = user
 
-        run_cmd = Command(cmd_full_path, env=cmd_env)
+       #run_cmd = Command(cmd_full_path, env=cmd_env)
+        run_cmd = Command(cmd_full_path)
 
         settings = self.package.config.plugins.release_hook.command
         if user == 'root':
