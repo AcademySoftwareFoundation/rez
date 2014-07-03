@@ -17,6 +17,7 @@ import textwrap
 import tempfile
 import threading
 import subprocess as sp
+from collections import MutableMapping, defaultdict
 from types import MethodType
 from string import Formatter
 from rez import module_root_path
@@ -123,14 +124,6 @@ def rmdtemp(path):
 def set_rm_tmpdirs(enable):
     global rm_tmdirs
     rm_tmdirs = enable
-
-
-@atexit.register
-def _atexit():
-    # remove temp dirs
-    if rm_tmdirs:
-        for path in _tmpdirs:
-            rmdtemp(path)
 
 
 def relative_path(from_path, to_path):
@@ -628,6 +621,69 @@ def convert_old_commands(commands, annotate=True):
     return '\n'.join(loc)
 
 
+class Timings(object):
+    """Class for timing operations, for debugging purposes."""
+    # TODO just fow now
+    enabled = bool(os.getenv("USER", "ajohns"))
+    # enabled = True  # set to True for debugging purposes
+
+    def __init__(self):
+        self.timings = defaultdict(float)
+        self.stack = []
+        self.start("OTHER")
+
+    def add(self, name, duration):
+        self.timings[name] += duration
+
+    def start(self, name):
+        if self.enabled:
+            t = (name, time.time())
+            self.stack.append(t)
+
+    def end(self, name):
+        if self.enabled:
+            external_time = 0.0
+            t = self.stack.pop()
+            if isinstance(t, float):
+                external_time = t
+                t = self.stack.pop()
+            assert isinstance(t, tuple)
+            name_, time_ = t
+            assert name_ == name
+            duration = time.time() - time_
+            self.timings[name] += duration - external_time
+            if self.stack:
+                concat_duration = duration
+                while self.stack and isinstance(self.stack[-1], float):
+                    concat_duration += self.stack.pop()
+                self.stack.append(concat_duration)
+
+    def dump(self):
+        self.end("OTHER")  # assumes dump() only called from atexit()
+        total = sum(self.timings.values())
+        total2 = total - self.timings["OTHER"]
+
+        if self.enabled:
+            rows = [["CATEGORY", "SECONDS", "%AGE (-other)"],
+                    ["--------", "-------", "-------------"]]
+            for (name, secs) in sorted(self.timings.items(),
+                                       key=lambda x: x[1],
+                                       reverse=True):
+                if name == "OTHER":
+                    pc = "-"
+                else:
+                    pc = "%.02f" % (secs * 100.0 / total2)
+                rows.append((name, "%.02f" % secs, pc))
+
+            rows.append(("TOTAL", "%.02f" % total, ""))
+            strs = columnise(rows)
+            print '\n'.join(strs)
+
+
+# singleton
+timings = Timings()
+
+
 def is_dict_subset(dict1, dict2):
     """Returns True if dict1 is a subset of dict2."""
     for k, v in dict1.iteritems():
@@ -756,7 +812,7 @@ class propertycache(object):
             d.clear()
 
 
-class AttrDictWrapper(UserDict.UserDict):
+class AttrDictWrapper(MutableMapping):
     """Wrap a custom dictionary with attribute-based lookup::
 
         >>> d = {'one': 1}
@@ -775,7 +831,7 @@ class AttrDictWrapper(UserDict.UserDict):
         if attr.startswith('__') and attr.endswith('__'):
             d = self.__dict__
         else:
-            d = self.data
+            d = self.__dict__['data']
         try:
             return d[attr]
         except KeyError:
@@ -786,7 +842,22 @@ class AttrDictWrapper(UserDict.UserDict):
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
-        self.data[attr] = value
+        self.__dict__['data'][attr] = value
+
+    def __getitem__(self, key):
+        return self.__dict__['data'][key]
+
+    def __setitem__(self, key, value):
+        self.__dict__['data'][key] = value
+
+    def __delitem__(self, key):
+        del self.__dict__['data'][key]
+
+    def __iter__(self):
+        return iter(self.__dict__['data'])
+
+    def __len__(self):
+        return len(self.__dict__['data'])
 
     def copy(self):
         return self.__class__(self.__dict__['data'].copy())
@@ -1076,7 +1147,7 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_field(self, field_name, args, kwargs)
         try:
             return Formatter.get_field(self, field_name, args, kwargs)
-        except AttributeError:
+        except (AttributeError, KeyError):
             import re
             reg = re.compile("[^\.\[]+")
             try:
@@ -1089,8 +1160,25 @@ class ObjectStringFormatter(Formatter):
                 return ("{%s}" % field_name, key)
 
     def get_value(self, key, args, kwds):
+        """
         if isinstance(key, basestring):
             return getattr(self.instance, key)
+        else:
+            return Formatter.get_value(self, key, args, kwds)
+        """
+        if isinstance(key, str):
+            if key:
+                try:
+                    # Check explicitly passed arguments first
+                    return kwds[key]
+                except KeyError:
+                    pass
+                if hasattr(self.instance, key):
+                    return getattr(self.instance, key)
+                else:
+                    return self.instance[key]
+            else:
+                raise ValueError("zero length field name in format")
         else:
             return Formatter.get_value(self, key, args, kwds)
 
@@ -1140,6 +1228,10 @@ class DataWrapper(object):
     __metaclass__ = _WithDataAccessors
     schema = None
 
+    def get(self, key, default=None):
+        """Get a key value by name."""
+        return getattr(self, key, default)
+
     def validate(self):
         """Check that the object's contents are valid."""
         _ = self._data
@@ -1163,9 +1255,17 @@ class DataWrapper(object):
         Returns:
             Object data as a dict, or None if the object has no data.
         """
+        k = "data.load.%s" % self.__class__.__name__
+        timings.start(k)
         data = self._load_data()
+        timings.end(k)
         if data and self.schema:
-            data = self.schema.validate(data)
+            k = "data.validate.%s" % self.__class__.__name__
+            timings.start(k)
+            try:
+                data = self.schema.validate(data)
+            finally:
+                timings.end(k)
         return data
 
     @propertycache
@@ -1206,3 +1306,15 @@ class DataWrapper(object):
         """
         formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
+
+
+@atexit.register
+def _atexit():
+    # remove temp dirs
+    if rm_tmdirs:
+        for path in _tmpdirs:
+            rmdtemp(path)
+
+    # print timings
+    print
+    timings.dump()

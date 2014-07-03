@@ -152,6 +152,7 @@ _config_dict = {
     "debug_resources":                  Bool,
     "debug_all":                        Bool,
     "quiet":                            Bool,
+    "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,
     "error_old_commands":               Bool,
@@ -269,10 +270,6 @@ class Config(DataWrapper):
         self.filepaths = filepaths
         self.overrides = overrides or {}
         self.locked = locked
-
-    def get(self, key, default=None):
-        """Get a config setting."""
-        return self.metadata.get(key, default)
 
     def override(self, key, value):
         """Set a setting to the given value.

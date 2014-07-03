@@ -101,7 +101,7 @@ implicit_packages:
 # During dependency resolution, skip/warn when erroneous packages are found. If
 # skip is false, an error is raised regardless of the warn setting.
 warn_erroneous_packages: true
-skip_erroneous_packages: true
+skip_erroneous_packages: false
 
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
@@ -164,12 +164,18 @@ debug_bind_modules: false
 # Print debugging info when searching and loading resources.
 debug_resources: false
 
-# turn on all debugging messages
+# Turn on all debugging messages
 debug_all: false
 
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
 quiet: false
+
+# When an error is encountered in rex code, rez catches the error and processes
+# it, removing internal info (such as the stacktrace inside rez itself) that is
+# generally not interesting to the package author. If set to False, rex errors
+# are left uncaught, which can be useful for debugging purposes.
+catch_rex_errors: true
 
 
 ###############################################################################
