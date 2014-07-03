@@ -18,7 +18,8 @@
 #
 # Variable expansion can be used in configuration settings. The following
 # expansions are supported:
-# - Any property of the system object. Eg '{system.platform}'
+# - Any property of the system object: Eg '{system.platform}' (see system.py)
+# - Any environment variable: Eg '${HOME}'
 #
 
 

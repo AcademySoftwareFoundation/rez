@@ -684,6 +684,50 @@ class Timings(object):
 timings = Timings()
 
 
+_varprog = None
+
+
+def expandvars(text, environ=None):
+    """Expand shell variables of form $var and ${var}.
+
+    Unknown variables are left unchanged.
+
+    Args:
+        text (str): String to expand.
+        environ (dict): Environ dict to use for expansions, defaults to
+            os.environ.
+
+    Returns:
+        The expanded string.
+    """
+    global _varprog
+    if '$' not in text:
+        return text
+    if not _varprog:
+        import re
+        _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
+
+    i = 0
+    if environ is None:
+        environ = os.environ
+    while True:
+        m = _varprog.search(text, i)
+        if not m:
+            break
+        i, j = m.span(0)
+        name = m.group(1)
+        if name.startswith('{') and name.endswith('}'):
+            name = name[1:-1]
+        if name in environ:
+            tail = text[j:]
+            text = text[:i] + environ[name]
+            i = len(text)
+            text += tail
+        else:
+            i = j
+    return text
+
+
 def is_dict_subset(dict1, dict2):
     """Returns True if dict1 is a subset of dict2."""
     for k, v in dict1.iteritems():

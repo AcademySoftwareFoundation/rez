@@ -16,43 +16,10 @@ from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
-    get_script_path, which
+    get_script_path, which, expandvars
 
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
-
-
-_varprog = None
-
-# Expand paths containing shell variable substitutions.
-# This expands the forms $variable and ${variable} only.
-# Non-existent variables are left unchanged.
-def expandvars(path, environ):
-    """Expand shell variables of form $var and ${var}.  Unknown variables
-    are left unchanged."""
-    global _varprog
-    if '$' not in path:
-        return path
-    if not _varprog:
-        import re
-        _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
-    i = 0
-    while True:
-        m = _varprog.search(path, i)
-        if not m:
-            break
-        i, j = m.span(0)
-        name = m.group(1)
-        if name.startswith('{') and name.endswith('}'):
-            name = name[1:-1]
-        if name in environ:
-            tail = path[j:]
-            path = path[:i] + environ[name]
-            i = len(path)
-            path += tail
-        else:
-            i = j
-    return path
 
 
 #===============================================================================

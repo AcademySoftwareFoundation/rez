@@ -1,5 +1,6 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter
+    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter, \
+    expandvars
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
@@ -187,6 +188,7 @@ class Expand(object):
     def validate(self, data):
         def _expand(value):
             if isinstance(value, basestring):
+                value = expandvars(value)
                 return self.formatter.format(value)
             elif isinstance(value, list):
                 return [_expand(x) for x in value]
