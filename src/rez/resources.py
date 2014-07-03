@@ -27,7 +27,7 @@ import fnmatch
 from collections import defaultdict
 from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
-    propertycache, dicts_conflicting, DataWrapper
+    propertycache, dicts_conflicting, DataWrapper, timings
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     ResourceContentError
 from rez.backport.lru_cache import lru_cache
@@ -215,8 +215,14 @@ def load_file(filepath, loader=None):
         loader = get_file_loader(filepath)
     elif isinstance(loader, basestring):
         loader = metadata_loaders[loader]
-    with open(filepath, 'r') as f:
-        doc = loader(f, filepath)
+
+    timings.start("resources.load_file")
+    try:
+        with open(filepath, 'r') as f:
+            doc = loader(f, filepath)
+    finally:
+        timings.end("resources.load_file")
+
     if config.debug("resources"):
         print "loaded resource file: %s" % filepath
     return doc
@@ -721,7 +727,13 @@ class FileResource(FileSystemResource):
             try:
                 data = load_file(self.path, self.loader)
                 if self.schema:
-                    return self.schema.validate(data)
+                    k = "resources.validate.%s" % self.__class__.__name__
+                    timings.start(k)
+                    try:
+                        data_ = self.schema.validate(data)
+                    finally:
+                        timings.end(k)
+                    return data_
             except SchemaError as e:
                 error_cls = self._contents_exception_type()
                 raise error_cls(value=str(e),
@@ -767,7 +779,11 @@ class ResourceWrapper(DataWrapper):
         return self._resource.path
 
     def _load_data(self):
-        return self._resource.load()
+        k = "resources.load.%s" % self.__class__.__name__
+        timings.start(k)
+        data = self._resource.load()
+        timings.end(k)
+        return data
 
     @property
     def resource_handle(self):

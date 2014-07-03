@@ -5,7 +5,7 @@ from rez.config import config
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory
+    create_forwarding_script, is_subdirectory, timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -50,7 +50,7 @@ class ResolvedContext(object):
         def __call__(self, state):
             if self.verbose:
                 print state
-            if state.num_fails and state.num_fails >= self.max_fails:
+            if self.max_fails != -1 and state.num_fails >= self.max_fails:
                 return False, ("fail limit reached: aborted after %d failures"
                                % state.num_fails)
             if self.time_limit != -1:
@@ -168,6 +168,9 @@ class ResolvedContext(object):
         self.load_time = resolver.load_time
         self.failure_description = resolver.failure_description
         self.graph_ = resolver.graph
+
+        actual_solve_time = self.solve_time - self.load_time
+        timings.add("resolve_time", actual_solve_time)
 
         if self.status_ == "solved":
             # convert solver.Variants to packages.Variants
@@ -307,8 +310,8 @@ class ResolvedContext(object):
             _pr()
             _pr("resolve details:")
             _pr("load time: %.02f secs" % self.load_time)
-            # solve time includes load time
-            _pr("total solve time: %.02f secs" % self.solve_time)
+            actual_solve_time = self.solve_time - self.load_time
+            _pr("solve time: %.02f secs" % actual_solve_time)
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -806,14 +809,15 @@ class ResolvedContext(object):
 
             commands = pkg.metadata.get("commands")
             if commands:
+                error_class = Exception if config.catch_rex_errors else None
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
-                        executor.execute_code(commands, pkg.path)
+                        executor.execute_code(commands)
                     elif inspect.isfunction(commands):
                         # rex code is a function in a package.py
                         executor.execute_function(commands)
-                except Exception as e:
+                except error_class as e:
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)

@@ -1,5 +1,6 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter
+    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter, \
+    expandvars
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
@@ -152,6 +153,7 @@ _config_dict = {
     "debug_resources":                  Bool,
     "debug_all":                        Bool,
     "quiet":                            Bool,
+    "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,
     "error_old_commands":               Bool,
@@ -186,6 +188,7 @@ class Expand(object):
     def validate(self, data):
         def _expand(value):
             if isinstance(value, basestring):
+                value = expandvars(value)
                 return self.formatter.format(value)
             elif isinstance(value, list):
                 return [_expand(x) for x in value]
@@ -269,10 +272,6 @@ class Config(DataWrapper):
         self.filepaths = filepaths
         self.overrides = overrides or {}
         self.locked = locked
-
-    def get(self, key, default=None):
-        """Get a config setting."""
-        return self.metadata.get(key, default)
 
     def override(self, key, value):
         """Set a setting to the given value.
