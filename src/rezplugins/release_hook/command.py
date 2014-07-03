@@ -9,8 +9,8 @@ class CommandReleaseHook(ReleaseHook):
     schema_dict = {
         "quiet":            bool,
         "on_error":         Or('stop', 'ignore', 'raise'),
-        "pre_commands":     [(basestring,[basestring],Or(None, basestring))],
-        "post_commands":    [(basestring,[basestring],Or(None, basestring))]}
+        "pre_commands":     [[basestring,[basestring],Or(None, basestring)]],
+        "post_commands":    [[basestring,[basestring],Or(None, basestring)]]}
 
     @classmethod
     def name(cls):
@@ -55,7 +55,8 @@ class CommandReleaseHook(ReleaseHook):
                     changelog=None, previous_version=None,
                     previous_revision=None):
         settings = self.package.config.plugins.release_hook.command
-        for (cmd_name, cmd_arguments, user) in settings.pre_commands:
+        for command_line in settings.pre_commands:
+            (cmd_name, cmd_arguments, user) = command_line
             if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
                 return
 
@@ -63,7 +64,8 @@ class CommandReleaseHook(ReleaseHook):
                      changelog=None, previous_version=None,
                      previous_revision=None):
         settings = self.package.config.plugins.release_hook.command
-        for (cmd_name, cmd_arguments, user) in settings.post_commands:
+        for command_line in settings.post_commands:
+            (cmd_name, cmd_arguments, user) = command_line
             if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
                 return
 
