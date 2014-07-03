@@ -175,7 +175,8 @@ class ReleaseDataResource(FileResource):
                                    Use(load_changelog)),
         Optional('release_message'): Or(None, basestring),
         Optional('previous_version'): Use(Version),
-        Optional('previous_revision'): object
+        Optional('previous_revision'): object,
+        Optional(basestring): object
     })
 
 
@@ -251,17 +252,17 @@ class BasePackageResource(FileResource):
             Optional('commands2'):              And(rex_command,
                                                     self.new_rex_command),
 
-            # custom keys
-            Optional('custom'):                 object,
-            Optional(basestring):               self.custom_key,
-
-            # a dict for internal use
-            Optional('_internal'):              dict,
-
             # backwards compatibility for rez-egg-install- generated packages
             Optional('unsafe_name'):            object,
             Optional('unsafe_version'):         object,
             Optional('EGG-INFO'):               object,
+
+            # custom keys
+            Optional('custom'):                 dict,
+            Optional(basestring):               self.custom_key,
+
+            # a dict for internal use
+            Optional('_internal'):              dict,
         })
 
     @Resource.cached
