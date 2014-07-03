@@ -1,9 +1,8 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez.vendor.version.version import Version
-from rez.packages import Package
+from rez.packages import load_developer_package
 from rez.util import which
 import subprocess
-
 
 
 def get_release_vcs_types():
@@ -24,14 +23,13 @@ def create_release_vcs(path):
                           "associated with the path %s" % path)
 
 
-
 class ReleaseVCS(object):
     """A version control system (VCS) used to release Rez packages.
     """
     def __init__(self, path):
         assert(self.is_valid_root(path))
         self.path = path
-        self.package = Package(path)
+        self.package = load_developer_package(path)
 
     @classmethod
     def name(cls):
@@ -112,7 +110,11 @@ class ReleaseVCS(object):
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, cwd=self.path)
-        out,err = p.communicate()
+        out, err = p.communicate()
         if p.returncode:
             raise ReleaseVCSError("command failed: %s\n%s" % (cmd_str, err))
-        return [x.rstrip() for x in out.strip().split('\n')]
+        out = out.strip()
+        if out:
+            return [x.rstrip() for x in out.split('\n')]
+        else:
+            return []

@@ -132,7 +132,8 @@ class GitReleaseVCS(ReleaseVCS):
 
     def _create_tag_impl(self, tag_name, message=None):
         # check if tag already exists
-        if self.git("tag", tag_name):
+        tags = self.git("tag")
+        if tag_name in tags:
             print "Skipped tag creation, tag '%s' already exists" % tag_name
             return
 

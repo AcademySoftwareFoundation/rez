@@ -2,7 +2,7 @@ from rez.exceptions import RezError, ReleaseError
 from rez.packages import load_developer_package, iter_packages
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-from rez.util import encode_filesystem_name
+from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
 from rez.vendor import yaml
@@ -162,8 +162,6 @@ class StandardBuildProcess(BuildProcess):
         print "Checking state of repository..."
         self.vcs.validate_repostate()
         release_path = self._get_base_install_path(install_path)
-        revision = self.vcs.get_current_revision()
-        changelog = self.vcs.get_changelog(last_rev)
 
         # get last release, this stops same/earlier version release
         last_pkg = self._get_last_release(install_path)
@@ -171,7 +169,12 @@ class StandardBuildProcess(BuildProcess):
         last_revision = None
         if last_pkg:
             last_version = last_pkg.version
-            last_revision = last_pkg.revision
+            last_revision = convert_dicts(last_pkg.revision,
+                                          to_class=dict,
+                                          from_class=AttrDictWrapper)
+
+        revision = self.vcs.get_current_revision()
+        changelog = self.vcs.get_changelog(last_revision)
 
         # run pre-release hooks
         for hook in self.hooks:
@@ -226,7 +229,6 @@ class StandardBuildProcess(BuildProcess):
         # write release info (changelog etc) into release path
         release_info = dict(
             timestamp=int(time.time()),
-            vcs=self.vcs.name(),
             revision=revision,
             changelog=changelog)
 
@@ -236,7 +238,7 @@ class StandardBuildProcess(BuildProcess):
             release_info["release_message"] = msg
 
         if last_pkg:
-            release_info["previous_version"] = last_version
+            release_info["previous_version"] = str(last_version)
             release_info["previous_revision"] = last_revision
 
         release_content = yaml.dump(release_info, default_flow_style=False)

@@ -1361,4 +1361,7 @@ def _atexit():
 
     # print timings
     print
-    timings.dump()
+    try:
+        timings.dump()
+    except:
+        pass
