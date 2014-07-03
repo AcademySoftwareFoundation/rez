@@ -51,13 +51,17 @@ class CommandReleaseHook(ReleaseHook):
         else:
             _execute_cmd_private(run_cmd, cmd_arguments, settings.on_error, settings.quiet)
 
-    def pre_release(self):
+    def pre_release(self, user, install_path, release_message=None,
+                    changelog=None, previous_version=None,
+                    previous_revision=None):
         settings = self.package.config.plugins.release_hook.command
         for (cmd_name, cmd_arguments, user) in settings.pre_commands:
             if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
                 return
 
-    def post_release(self):
+    def post_release(self, user, install_path, release_message=None,
+                     changelog=None, previous_version=None,
+                     previous_revision=None):
         settings = self.package.config.plugins.release_hook.command
         for (cmd_name, cmd_arguments, user) in settings.post_commands:
             if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
