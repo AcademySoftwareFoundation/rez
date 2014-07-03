@@ -1,4 +1,5 @@
 from rez.release_hook import ReleaseHook
+from rez.vendor.schema.schema import Or
 from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
 import sys, os
 
