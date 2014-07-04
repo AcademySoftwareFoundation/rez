@@ -4,17 +4,23 @@ Build a package from source and deploy it.
 import os
 import sys
 
+
 def setup_parser(parser):
     from rez.cli.build import add_extra_build_args, add_build_system_args
+    from rez.release_vcs import get_release_vcs_types
+    vcs_types = get_release_vcs_types()
 
     parser.add_argument("-m", "--message", type=str,
                         help="commit message")
+    parser.add_argument("--vcs", type=str, choices=vcs_types,
+                        help="force the vcs system to use")
     parser.add_argument("--no-latest", dest="no_latest",
                         action="store_true",
                         help="allows release of version earlier than the "
                         "latest release.")
     add_extra_build_args(parser)
     add_build_system_args(parser)
+
 
 def command(opts, parser):
     from rez.build_process import LocalSequentialBuildProcess
@@ -26,7 +32,7 @@ def command(opts, parser):
     build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 
     # create vcs
-    vcs = create_release_vcs(working_dir)
+    vcs = create_release_vcs(working_dir, opts.vcs)
 
     # create build system
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None

@@ -1,16 +1,30 @@
 from rez.release_hook import ReleaseHook
-from rez.vendor.schema.schema import Or
+from rez.exceptions import ReleaseError
+from rez.config import config
+from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
 from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
-import sys, os
+import getpass
+import sys
+import os
 
 
 class CommandReleaseHook(ReleaseHook):
 
+    commands_schema = Schema(
+        {"command":        basestring,
+         Optional("args"):  Or(And(basestring,
+                                   Use(lambda x: x.strip().split())),
+                               [basestring]),
+         Optional("user"):  basestring})
+
     schema_dict = {
-        "quiet":            bool,
-        "on_error":         Or('stop', 'ignore', 'raise'),
-        "pre_commands":     [[basestring,[basestring],Or(None, basestring)]],
-        "post_commands":    [[basestring,[basestring],Or(None, basestring)]]}
+        "print_commands":       bool,
+        "print_output":         bool,
+        "print_error":          bool,
+        "cancel_on_error":      bool,
+        "stop_on_error":        bool,
+        "pre_commands":         [commands_schema],
+        "post_commands":        [commands_schema]}
 
     @classmethod
     def name(cls):
@@ -18,57 +32,72 @@ class CommandReleaseHook(ReleaseHook):
 
     def __init__(self, source_path):
         super(CommandReleaseHook, self).__init__(source_path)
+        self.settings = self.package.config.plugins.release_hook.command
 
-    def execute_command(self, cmd_name, cmd_arguments=[], user=None):
-        def _execute_cmd_private(cmd_full_path, arguments, on_error='ignore', quiet=False):
-            error_class = None if on_error == 'raise' else ErrorReturnCode
+    def execute_command(self, cmd_name, cmd_arguments, user, errors):
+        def _err(msg):
+            errors.append(msg)
+            if self.settings.print_error:
+                print >> sys.stderr, msg
+
+        def _execute(cmd, arguments):
             try:
-                result = cmd_full_path(arguments)
-                if not quiet:
+                result = cmd(*(arguments or []))
+                if self.settings.print_output:
                     print result.stdout.strip()
-            except error_class as err:
-                if not quiet:
-                    print >> sys.stderr, err.stderr.strip()
-                if on_error == 'stop':
-                    return 'bail'
-            return 'proceed'
+            except ErrorReturnCode as e:
+                # `e` shows the command that was run
+                msg = "command failed:\n%s" % str(e)
+                _err(msg)
+                return False
+            return True
 
         if not os.path.isfile(cmd_name):
             cmd_full_path = which(cmd_name)
         else:
             cmd_full_path = cmd_name
+        if not cmd_full_path:
+            msg = "%s: command not found" % cmd_name
+            _err(msg)
+            return False
 
-        cmd_env = os.environ.copy()
-        if user not in (None, 'root'):
-            cmd_env['USER'] = user
-
-       #run_cmd = Command(cmd_full_path, env=cmd_env)
         run_cmd = Command(cmd_full_path)
-
-        settings = self.package.config.plugins.release_hook.command
         if user == 'root':
             with sudo:
-                _execute_cmd_private(run_cmd, cmd_arguments, settings.on_error, settings.quiet)
+                return _execute(run_cmd, cmd_arguments)
+        elif user and user != getpass.getuser():
+            raise NotImplementedError  # TODO
         else:
-            _execute_cmd_private(run_cmd, cmd_arguments, settings.on_error, settings.quiet)
+            return _execute(run_cmd, cmd_arguments)
+
+    def _release(self, commands, errors=None):
+        for conf in commands:
+            if self.settings.print_commands or config.debug("package_release"):
+                from subprocess import list2cmdline
+                toks = [conf["command"]] + conf.get("args", [])
+                print "running command: %s" % list2cmdline(toks)
+
+            if not self.execute_command(cmd_name=conf.get("command"),
+                                        cmd_arguments=conf.get("args"),
+                                        user=conf.get("user"),
+                                        errors=errors):
+                if self.settings.stop_on_error:
+                    return
 
     def pre_release(self, user, install_path, release_message=None,
                     changelog=None, previous_version=None,
                     previous_revision=None):
-        settings = self.package.config.plugins.release_hook.command
-        for command_line in settings.pre_commands:
-            (cmd_name, cmd_arguments, user) = command_line
-            if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
-                return
+        errors = []
+        self._release(self.settings.pre_commands, errors=errors)
+        if errors and self.settings.cancel_on_error:
+            raise ReleaseError("The release was cancelled due to the "
+                               "following failed pre-release commands:\n%s"
+                               % '\n\n'.join(errors))
 
     def post_release(self, user, install_path, release_message=None,
                      changelog=None, previous_version=None,
                      previous_revision=None):
-        settings = self.package.config.plugins.release_hook.command
-        for command_line in settings.post_commands:
-            (cmd_name, cmd_arguments, user) = command_line
-            if self.execute_command(cmd_name, cmd_arguments, user) == 'bail':
-                return
+        self._release(self.settings.post_commands)
 
 
 def register_plugin():

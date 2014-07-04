@@ -12,14 +12,36 @@ emailer:
     recipients: []
 
 command:
-    quiet: false
+    # If true, print the commands that are being run
+    print_commands: true
 
-    on_error: 'ignore'
+    # If true, print output of commands.
+    print_output: true
+
+    # If true, print failed commands to stderr
+    print_error: true
+
+    # If true, cancel the package release if a pre-release command fails.
+    cancel_on_error: true
+
+    # If true, skip all commands after a failed command. This does not cancel
+    # the package release.
+    stop_on_error: true
 
     # List of commands to execute prior to release, in given order.
-    # Each item is a 3-uple: (command, [arguments], user).
+    # Each item is a dict containing: (command, [arguments], user).
+    # - 'command' (str): Command to execute;
+    # - 'args' (str or list of str): Arguments to the command. If a string,
+    #   args are split by whitespace;
+    # - 'user' (str): User to execute the commands as, defaults to current user.
+    #
+    # Example:
+    # pre_commands
+    # - command: ls
+    #   args: '-a -l'
+    #   user: root
+    #
     pre_commands: []
 
-    # Same as above but to be executed after release.
+    # Same as pre_commands, but to be executed after release.
     post_commands: []
-

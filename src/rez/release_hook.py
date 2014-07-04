@@ -64,8 +64,9 @@ class ReleaseHook(object):
             previous_revision: Revision of previously-releaved package (type
                 depends on repo - see ReleaseVCS.get_current_revision().
 
-        Returns:
-            True if the release should continue, False to stop the release.
+        Note:
+            This method should raise a `ReleaseError` if the release process
+            should be cancelled.
         """
         return True
 

@@ -169,9 +169,11 @@ class StandardBuildProcess(BuildProcess):
         last_revision = None
         if last_pkg:
             last_version = last_pkg.version
-            last_revision = convert_dicts(last_pkg.revision,
-                                          to_class=dict,
-                                          from_class=AttrDictWrapper)
+            last_revision = last_pkg.revision
+            if isinstance(last_revision, AttrDictWrapper):
+                last_revision = convert_dicts(last_pkg.revision,
+                                              to_class=dict,
+                                              from_class=AttrDictWrapper)
 
         revision = self.vcs.get_current_revision()
         changelog = self.vcs.get_changelog(last_revision)
@@ -179,14 +181,16 @@ class StandardBuildProcess(BuildProcess):
         # run pre-release hooks
         for hook in self.hooks:
             self._prd("Running pre-release hook '%s'..." % hook.name())
-            if not hook.pre_release(user=getpass.getuser(),
-                                    install_path=release_path,
-                                    release_message=self.release_message,
-                                    changelog=changelog,
-                                    previous_version=last_version,
-                                    previous_revision=last_revision):
-                self._prd("Release cancelled by pre-release hook '%s'"
-                          % hook.name())
+            try:
+                hook.pre_release(user=getpass.getuser(),
+                                 install_path=release_path,
+                                 release_message=self.release_message,
+                                 changelog=changelog,
+                                 previous_version=last_version,
+                                 previous_revision=last_revision)
+            except ReleaseError as e:
+                self._prd("Release cancelled by pre-release hook '%s':\n%s"
+                          % (hook.name(), str(e)))
                 return False
 
         # do the initial build

@@ -219,10 +219,8 @@ def _to_schema(config_dict, required, allow_custom_keys=True,
             d = {}
             for k, v in value.iteritems():
                 if isinstance(k, basestring):
-                    k_ = Schema(k) if required else Optional(k)
-                else:
-                    k_ = k
-                d[k_] = _to(v)
+                    k = Schema(k) if required else Optional(k)
+                d[k] = _to(v)
             if allow_custom_keys:
                 d[Optional(basestring)] = (Expand()
                                            if inject_expansion else object)

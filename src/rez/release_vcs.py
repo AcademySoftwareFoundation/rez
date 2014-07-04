@@ -11,16 +11,33 @@ def get_release_vcs_types():
     return plugin_manager.get_plugins('release_vcs')
 
 
-def create_release_vcs(path):
+def create_release_vcs(path, vcs_name=None):
     """Return a new release VCS that can release from this source path."""
     from rez.plugin_managers import plugin_manager
-    for vcs_name in get_release_vcs_types():
+    vcs_types = get_release_vcs_types()
+    if vcs_name:
+        if vcs_name not in vcs_types:
+            raise ReleaseVCSError("Unknown version control system: %r"
+                                  % vcs_name)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
+        return cls(path)
+
+    clss = []
+    for vcs_name in vcs_types:
         cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         if cls.is_valid_root(path):
-            return cls(path)
-
-    raise ReleaseVCSError("No version control system for package releasing is "
-                          "associated with the path %s" % path)
+            clss.append(cls)
+    if len(clss) > 1:
+        clss_str = ", ".join(x.name() for x in clss)
+        raise ReleaseVCSError("Several version control systems are associated "
+                              "with the path %s: %s. Use rez-release --vcs to "
+                              "choose." % (path, clss_str))
+    elif not clss:
+        raise ReleaseVCSError("No version control system for package "
+                              "releasing is associated with the path %s"
+                              % path)
+    else:
+        return clss[0](path)
 
 
 class ReleaseVCS(object):

@@ -12,9 +12,11 @@ def setup_parser(parser):
 
 
 def command(opts, parser):
+    from rez.util import timings
     from rez.config import config
     from rez.packages import get_completions
 
+    timings.enabled = False
     config.override("quiet", True)
     words = get_completions(opts.PREFIX or '')
     print ' '.join(words)

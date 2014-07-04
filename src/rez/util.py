@@ -624,7 +624,7 @@ def convert_old_commands(commands, annotate=True):
 class Timings(object):
     """Class for timing operations, for debugging purposes."""
     # TODO just fow now
-    enabled = bool(os.getenv("USER", "ajohns"))
+    enabled = (os.getenv("USER") == "ajohns")
     # enabled = True  # set to True for debugging purposes
 
     def __init__(self):
@@ -675,7 +675,7 @@ class Timings(object):
                     pc = "%.02f" % (secs * 100.0 / total2)
                 rows.append((name, "%.02f" % secs, pc))
 
-            rows.append(("TOTAL", "%.02f" % total, ""))
+            rows.append(("TOTAL (-other)", "%.02f" % total, ""))
             strs = columnise(rows)
             print '\n'.join(strs)
 
@@ -902,6 +902,12 @@ class AttrDictWrapper(MutableMapping):
 
     def __len__(self):
         return len(self.__dict__['data'])
+
+    def __str__(self):
+        return str(self.__dict__['data'])
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.__dict__['data'])
 
     def copy(self):
         return self.__class__(self.__dict__['data'].copy())
