@@ -1,3 +1,6 @@
+"""
+Executes pre- and post-release shell commands
+"""
 from rez.release_hook import ReleaseHook
 from rez.exceptions import ReleaseError
 from rez.config import config

@@ -1,3 +1,6 @@
+"""
+Windows shell
+"""
 from rez.shells import Shell
 
 

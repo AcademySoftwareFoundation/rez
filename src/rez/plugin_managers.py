@@ -297,15 +297,17 @@ class RezPluginManager(object):
 
     def get_summary_string(self):
         """Get a formatted string summarising the plugins that were loaded."""
-        rows = [["PLUGIN TYPE", "NAME", "STATUS"],
-                ["-----------", "----", "------"]]
+        rows = [["PLUGIN TYPE", "NAME", "DESCRIPTION", "STATUS"],
+                ["-----------", "----", "-----------", "------"]]
         for plugin_type in sorted(self.get_plugin_types()):
             type_name = plugin_type.replace('_', ' ')
             for name in sorted(self.get_plugins(plugin_type)):
-                rows.append((type_name, name, "loaded"))
+                module = self.get_plugin_module(plugin_type, name)
+                desc = (getattr(module, "__doc__", None) or '').strip()
+                rows.append((type_name, name, desc, "loaded"))
             for (name,reason) in sorted(self.get_failed_plugins(plugin_type)):
                 msg = "FAILED: %s" % reason
-                rows.append((type_name, name, msg))
+                rows.append((type_name, name, '', msg))
         return '\n'.join(columnise(rows))
 
 

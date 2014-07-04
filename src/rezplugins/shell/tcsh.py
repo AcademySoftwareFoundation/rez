@@ -1,3 +1,6 @@
+"""
+TCSH shell
+"""
 from rez.shells import UnixShell
 from rezplugins.shell.csh import CSH
 

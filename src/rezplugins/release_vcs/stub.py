@@ -1,3 +1,6 @@
+"""
+Stub version control system, for testing purposes
+"""
 from rez.release_vcs import ReleaseVCS
 import os.path
 import time

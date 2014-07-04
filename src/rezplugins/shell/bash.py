@@ -1,3 +1,6 @@
+"""
+Bash shell
+"""
 import sys
 import select
 import os

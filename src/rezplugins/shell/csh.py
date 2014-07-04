@@ -1,3 +1,6 @@
+"""
+CSH shell
+"""
 import os.path
 import subprocess
 from rez.config import config

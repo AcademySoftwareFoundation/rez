@@ -1,3 +1,6 @@
+"""
+Git version control
+"""
 from rez.release_vcs import ReleaseVCS
 from rez.config import config
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError

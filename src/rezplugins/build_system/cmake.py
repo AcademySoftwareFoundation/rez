@@ -1,3 +1,6 @@
+"""
+CMake-based build system.
+"""
 from rez.build_system import BuildSystem
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError, RezError

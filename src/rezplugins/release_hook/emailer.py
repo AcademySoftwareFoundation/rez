@@ -1,3 +1,6 @@
+"""
+Sends a post-release email
+"""
 from rez.release_hook import ReleaseHook
 from email.mime.text import MIMEText
 import smtplib

@@ -1,3 +1,6 @@
+"""
+Svn version control
+"""
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 import subprocess

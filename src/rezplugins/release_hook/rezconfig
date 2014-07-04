@@ -18,7 +18,7 @@ command:
     # If true, print output of commands.
     print_output: true
 
-    # If true, print failed commands to stderr
+    # If true, print failed commands to stderr (this also prints the command)
     print_error: true
 
     # If true, cancel the package release if a pre-release command fails.
@@ -29,11 +29,12 @@ command:
     stop_on_error: true
 
     # List of commands to execute prior to release, in given order.
-    # Each item is a dict containing: (command, [arguments], user).
+    # Each item is a dict containing:
     # - 'command' (str): Command to execute;
-    # - 'args' (str or list of str): Arguments to the command. If a string,
-    #   args are split by whitespace;
-    # - 'user' (str): User to execute the commands as, defaults to current user.
+    # - 'args' (str or list of str) (optional): Arguments to the command. If a
+    #   string, args are split by whitespace;
+    # - 'user' (str) (optional): User to execute the commands as, defaults to
+    #   current user.
     #
     # Example:
     # pre_commands
