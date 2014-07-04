@@ -140,6 +140,13 @@ class CMakeBuildSystem(BuildSystem):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_ENV = 1
+        build_variant_number = 0
+        if package.num_variants > 0:
+            for index, variant in enumerate(package.iter_variants()):
+                if set(variant.requires()).issubset(set(context.package_requests)):
+                    build_variant_number = index
+                    break
+        executor.env.REZ_BUILD_VARIANT_NUMBER = build_variant_number
         #executor.env.REZ_LOCAL_PACKAGES_PATH = package.settings.local_packages_path
         #executor.env.REZ_RELEASE_PACKAGES_PATH = package.settings.release_packages_path
         executor.env.REZ_BUILD_PROJECT_FILE = package.metafile
