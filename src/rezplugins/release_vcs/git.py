@@ -1,6 +1,7 @@
 from rez.release_vcs import ReleaseVCS
 from rez.config import config
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.vendor.schema.schema import Or
 import functools
 import os.path
 import re
@@ -8,6 +9,9 @@ import sys
 
 
 class GitReleaseVCS(ReleaseVCS):
+    schema_dict = {
+        "releasable_branches": Or(None, [basestring])}
+
     @classmethod
     def name(cls):
         return 'git'
@@ -64,6 +68,21 @@ class GitReleaseVCS(ReleaseVCS):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
+
+        # check we are releasing from a valid branch
+        releasable_branches = self.package.config.plugins.release_vcs.git.releasable_branches
+        if releasable_branches:
+            releasable = False
+            current_branch_name = self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
+
+            for releasable_branch in releasable_branches:
+                if re.search(releasable_branch, current_branch_name):
+                    releasable = True
+
+            if not releasable:
+                msg = "Could not release: current branch is %s, must match one of: " % current_branch_name
+                msg += ', '.join(releasable_branches)
+                raise ReleaseVCSError(msg)
 
         # check for uncommitted changes
         try:
