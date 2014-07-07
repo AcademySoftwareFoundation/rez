@@ -1,0 +1,332 @@
+#!/bin/bash
+#
+# This script runs through four steps:
+#
+# (1) It installs rez locally. It will run configure.sh, then install.sh. You should set
+# the values in configure.sh appropriately, as you would when installing rez yourself.
+#
+# (2) It creates a copy of all the test packages, and does some string replacement so that
+# the relevant operating system and cpp compiler packages are used. The packages are copied
+# into ./build/projects.
+#
+# (3) It builds and installs all of the test packages. The packages are installed into
+# ./build/published_packages.
+#
+# (4) It then uses rez to run some commands in a few different environments that incorporate
+# the built packages, and verifies that things are behaving as expected.
+#
+# See further comments in the test section below, explaining what's going on.
+#
+
+
+##########################################################################################
+# setup
+##########################################################################################
+
+export _REZ_ISDEMO=1
+export REZ_OLD_TIMESTAMP_BEHAVIOUR=1
+
+# cd into same dir as this script
+absfpath=`[[ $0 == /* ]] && echo "$0" || echo "${PWD}/${0#./}"`
+cwd=`dirname $absfpath`
+cd $cwd
+
+rm -rf $cwd/build
+pkgs_dir=$cwd/build/published_packages
+local_pkgs_dir=$cwd/build/local_packages
+mkdir -p $pkgs_dir
+mkdir -p $local_pkgs_dir
+
+
+##########################################################################################
+# (1) install rez locally
+##########################################################################################
+
+echo
+echo "INSTALLING REZ LOCALLY..."
+echo
+
+cd ../../
+rm -f ./rez.configured
+export REZCONFIG_PACKAGES_PATH=$pkgs_dir
+export REZCONFIG_LOCAL_PACKAGES_PATH=$local_pkgs_dir
+./configure.sh
+if [ ! -e ./rez.configured ]; then
+	echo
+	echo "rez could not be installed. You probably need to set values in configure.sh and try again." 1>&2
+	exit 1
+fi
+
+# dupe rez into building bootstrap packages into local dir, rather than the dir specified
+# in configure.sh:packages_path
+cat ./rez.configured | grep -v '^_REZ_PACKAGES_PATH' > ./rez.configured2
+rm ./rez.configured
+mv ./rez.configured2 ./rez.configured
+echo "export _REZ_PACKAGES_PATH='"$pkgs_dir"'" >> ./rez.configured
+
+./install.sh $cwd/build/rez_local_install
+if [ $? -ne 0 ]; then
+	echo
+	echo "rez could not be installed. You probably need to set values in configure.sh and try again." 1>&2
+	exit 1
+fi
+
+. ./version.sh
+. ./rez.configured
+rm ./rez.configured
+. $cwd/build/rez_local_install/$rez_version/init.sh
+cd $cwd
+
+
+##########################################################################################
+# (2) copy and update test packages
+##########################################################################################
+
+echo
+echo "READYING TEST PACKAGES..."
+echo
+
+osname=`uname`
+
+cp -rf ./projects ./build/projects
+find ./build -type d -name '.svn' | xargs rm -rf
+for yaml in `find ./build/projects -name 'package.yaml'`
+do
+	tmpf=`python -c 'import tempfile, sys ; print tempfile.mktemp()'`
+	sed -e "s/!OS!/$osname/g" \
+		-e "s/!CXX!/$_REZ_CPP_COMPILER_NAME-$_REZ_CPP_COMPILER_VER/g" \
+		-e "s/!PYVER!/$_REZ_PYTHON_VER/g" < $yaml > $tmpf
+	mv $tmpf $yaml
+done
+
+
+##########################################################################################
+# (3) build and install test packages
+##########################################################################################
+
+echo
+echo "BUILDING TEST PACKAGES..."
+echo
+
+export REZ_PACKAGES_PATH=$pkgs_dir
+export REZ_LOCAL_PACKAGES_PATH=$pkgs_dir
+
+echo
+echo "BUILDING: hello_world_py-1.0.0"
+cd $cwd/build/projects/hello_world_py/1.0.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: hello_world_cpp-3.4.0"
+cd $cwd/build/projects/hello_world_cpp/3.4.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: buildTools_toupper-3.1"
+cd $cwd/build/projects/buildTools_toupper/3.1
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: toupper-1.0.0"
+cd $cwd/build/projects/toupper/1.0.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: translate_lib-2.0.0"
+cd $cwd/build/projects/translate_lib/2.0.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: translate_lib-2.0.1"
+cd $cwd/build/projects/translate_lib/2.0.1
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: translate_lib-2.1.0"
+cd $cwd/build/projects/translate_lib/2.1.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: translate_lib-2.2.0"
+cd $cwd/build/projects/translate_lib/2.2.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: translated_hello_world-5"
+cd $cwd/build/projects/translated_hello_world/5
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: sup_world-7.0.0"
+cd $cwd/build/projects/sup_world/7.0.0
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: lolcat-1.2.3"
+# note that we're building in VERBOSE here so you can see the custom define getting
+# passed to the gcc compiler.
+cd $cwd/build/projects/lolcat/1.2.3
+rez-build -- -- install VERBOSE=1
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: my_bundle-1"
+cd $cwd/build/projects/my_bundle/1
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "BUILDING: my_wrappers-3.2"
+cd $cwd/build/projects/my_wrappers/3.2
+rez-build -- -- install
+if [ $? -ne 0 ]; then exit 1; fi
+
+
+##########################################################################################
+# (4) test packages
+##########################################################################################
+
+cd $cwd
+rm -f ./succeed.jpg
+rm -f ./fail.jpg
+
+echo
+echo "TESTING PACKAGES..."
+echo
+
+# list all the packages
+rez-config-list --desc --path=$pkgs_dir
+
+# show info on one of the packages
+rez-info lolcat
+
+echo
+echo "(1)"
+rez-run hello_world_py -- test_hello_world_py
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(2)"
+rez-run hello_world_cpp -- test_hello_world_cpp
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(3)"
+rez-run sup_world=l -- test_ghetto
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(4)"
+echo "The next line should read: HELLO, THIS IS A TEST!"
+# note: rez sets REZ_XXX_ROOT and REZ_XXX_VERSION env-vars for all resolve packages...
+rez-run toupper-1.0 -- cat '$REZ_TOUPPER_ROOT/data.txt'
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(5)"
+# this first run will get the latest patch of translate_lib...
+rez-run translated_hello_world -- test_translated_hello_world
+if [ $? -ne 0 ]; then exit 1; fi
+# ...but here we deliberately use an earlier patch
+rez-run translated_hello_world translate_lib-2.0.0 -- test_translated_hello_world
+if [ $? -ne 0 ]; then exit 1; fi
+# and again, but in a different way...
+rez-run translated_hello_world !translate_lib-2.0.1 -- test_translated_hello_world
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(6)"
+# this will use latest translate_lib, 2.1...
+rez-run lolcat -- test_lolcat
+if [ $? -ne 0 ]; then exit 1; fi
+# ...but see how we can also use an earlier translate_lib...
+rez-run lolcat translate_lib-2.0 -- test_lolcat
+if [ $? -ne 0 ]; then exit 1; fi
+# ...and now we're being even more specific...
+rez-run lolcat translate_lib-2.0.0 -- test_lolcat
+if [ $? -ne 0 ]; then exit 1; fi
+# see how rez figures out the right package combo? If you want both lolcat and
+# translated_hello_world, you can only have translate_lib-2.0...
+rez-run lolcat translated_hello_world -- 'test_lolcat ; test_translated_hello_world'
+if [ $? -ne 0 ]; then exit 1; fi
+# here, let me show you...
+rez-run lolcat translated_hello_world -- rez-context-info
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(7)"
+# here's the two alias scripts that were generated, one for each wrapper
+rez-run my_wrappers -- 'which hey_old ; which hey_new'
+if [ $? -ne 0 ]; then exit 1; fi
+# let's run them
+rez-run my_wrappers -- 'hey_old ; hey_new'
+if [ $? -ne 0 ]; then exit 1; fi
+# see, they're both separate, pre-resolved shells!
+rez-run my_wrappers -- hey_old -- echo '$REZ_RESOLVE'
+if [ $? -ne 0 ]; then exit 1; fi
+rez-run my_wrappers -- hey_new -- echo '$REZ_RESOLVE'
+if [ $? -ne 0 ]; then exit 1; fi
+# look, you can mix wrapper packages and normal packages...
+rez-run my_wrappers lolcat -- 'hey_new ; test_lolcat'
+# ...and you can run wrappers inside wrappers!
+echo "using the newhey wrapper from within the oldhey wrapper..."
+rez-run my_wrappers -- hey_old -- hey_new
+
+echo
+echo "(8)"
+# generate a dotgraph for a resolved environment. Note that --no-assume-dt just removes a
+# feature in the resolution algorithm that produces more complex dotgraphs, this is only
+# done here for the sake of simplicity.
+echo "writing succeed.jpg..."
+rez-config --no-assume-dt --dot-file=./succeed.jpg lolcat-1 translated_hello_world hello_world_cpp
+if [ $? -ne 0 ]; then exit 1; fi
+
+echo
+echo "(9)"
+echo "the following is intended to fail!"
+# let's deliberately ask for something that won't work...
+rez-config my_bundle lolcat
+if [ $? -eq 0 ]; then
+	echo "'rez-config sup_world lolcat' succeeded but was not supposed to!" 1>&2
+	exit 1
+fi
+# let's do the same thing again but generate a dotgraph showing the problem.
+echo "writing fail.jpg..."
+rez-config --no-assume-dt --max-fail=0 --dot-file=./fail.jpg my_bundle lolcat
+echo "writing fail.dot..."
+rez-config --no-assume-dt --max-fail=0 --dot-file=./fail.dot my_bundle lolcat
+
+
+echo
+echo
+echo "ALL TESTS PASSED SUCCESSFULLY!"
+echo
+echo "Have a look at $cwd/succeed.jpg"
+echo "Have a look at $cwd/fail.jpg"
+echo "Run: rez-dot --conflict-only $cwd/fail.dot"
+echo
+exit 0
+
+
+
+
+
+
+
+
+
+
+
+
+
+

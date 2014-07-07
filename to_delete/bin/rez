@@ -1,0 +1,48 @@
+#!/bin/bash
+#
+# This is the 'master' rez tool. It accepts sub-commands that match existing tools. For eg,
+# "rez env [flags]" is the same as "rez-env [flags]". You should use this in preference to
+# the hyphenated tools, because I'd like to deprecate those separate tools in future.
+#
+
+cmds="build cmake config context-image context-info config-list daemon depends diff dot env help info install interpret query release run settings which"
+
+cmd=$1
+if [ "$cmd" == "" -o "$cmd" == "-h" -o "$cmd" == "--help" ]; then
+	echo "usage: rez <subcommand> <flags>"
+	echo
+	echo "available subcommands:"
+	for c in $cmds
+	do
+		echo "  "$c
+	done
+
+	echo
+	exit 0
+fi
+
+if [ "`echo $cmds | grep $cmd`" == "" ]; then
+	echo "unknown subcommand '"$cmd"'. Try rez -h."
+	exit 1
+fi
+
+shift
+rez-$cmd "$@"
+exit $?
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

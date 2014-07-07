@@ -1,0 +1,6 @@
+git:
+    # A list of branches that a user is allowed to rez release from.  This can 
+    # be used to block releases from development or feature branches, and 
+    # support a workflow such as 'gitflow'.  Each branch name should be a 
+    # regular expression that can be used with re.match, for example '^master$'.
+    releasable_branches: 

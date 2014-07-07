@@ -1,0 +1,9 @@
+#!/bin/tcsh
+
+set pkgs_path=`rezolve settings --packages-path`
+
+foreach path ( $pkgs_path )
+    if ( -d $path ) then
+        /usr/bin/find -L $path -maxdepth 2 -mindepth 2 -not -path "*/\.*" -type d | /bin/sed "s;$path/;;g" | /usr/bin/tr "/" "-"
+    endif
+end

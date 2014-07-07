@@ -1,0 +1,43 @@
+#!/bin/bash
+
+# first arg is the path to a pickled resolve
+
+filename=$1
+
+function get_script() {
+    script=$(printf "`env REZ_CONTEXT=$filename`\n\n" | nc localhost 51000)
+}
+
+if [ "$REZ_USE_REX_DAEMON" == "" ]; then
+    echo "python version" >&2
+    # TODO: make this a proper python script
+    python -c "import rez.rex;import pickle;rez.rex.RexResolveExecutor('bash', pickle.load(open('$1'))).execute_packages()"
+fi
+
+# redirect stderr because we expect a failure the first time before the daemon is started.
+# the expected error is "Ncat: Connection refused."
+get_script 2> /dev/null
+
+#status=$?
+#echo $script
+
+if [ $? -ne 0 ]; then
+    # failure. start the daemon and try again
+    echo "starting rez daemon" >&2
+    . _set-rez-env
+    rez-daemon start
+    get_script
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+elif [ "$script" == "STALE" ]; then
+    # imported modules on the server are out of date. restart the daemon and try again
+    . _set-rez-env
+    rez-daemon restart
+    get_script
+    if [ $? -ne 0 ]; then
+        exit 1
+    fi
+fi
+
+printf "$script"

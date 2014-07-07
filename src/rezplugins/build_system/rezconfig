@@ -1,0 +1,8 @@
+cmake:
+    # The name of the CMake build system to use, valid options are
+    # eclipse, make, xcode and codeblocks.
+    build_system: make
+
+    # A list of default arguments to be passed to the cmake binary.
+    cmake_args:
+    - '-DCMAKE_SKIP_RPATH=1'

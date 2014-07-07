@@ -1,0 +1,8 @@
+config_version: 0
+name: arnold
+requires: [python]
+tools: [kick]
+variants:
+- [platform-linux]
+- [platform-darwin]
+version: 4.0.16.0

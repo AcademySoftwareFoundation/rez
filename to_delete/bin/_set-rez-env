@@ -1,0 +1,55 @@
+#
+# this file is sourced by rez scripts to set an env to execute in
+#
+
+# If you need to, say, set LD_LIBRARY_PATH to get your Rez Python interpreter to work, then put
+# the setting in REZ_PYTHON_LIBRARY_PATH.
+if [ -n "$REZ_PYTHON_LIBRARY_PATH" ]; then
+	if [ "$(uname)" == "Darwin" ]; then
+		export DYLD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
+	else
+		export LD_LIBRARY_PATH=$REZ_PYTHON_LIBRARY_PATH
+	fi
+else
+	unset LD_LIBRARY_PATH
+	unset DYLD_LIBRARY_PATH
+fi
+
+PATH=$PATH:$REZ_PATH/bin
+export PATH=$PATH
+
+PYPATH=$REZ_PATH/python
+PYPATH=$PYPATH:$REZ_PATH/python/rez
+PYPATH=$PYPATH:!REZ_PYYAML_PATH!
+PYPATH=$PYPATH:!REZ_PYDOT_PATH!
+PYPATH=$PYPATH:!REZ_PYPARSING_PATH!
+PYPATH=$PYPATH:!REZ_PYMEMCACHED_PATH!
+PYPATH=$PYPATH:!REZ_PYSVN_PATH!
+PYPATH=$PYPATH:!REZ_GITPYTHON_PATH!
+PYPATH=$PYPATH:!REZ_YAPSY_PATH!
+PYPATH=$PYPATH:!REZ_PSUTIL_PATH!
+
+export REZ_ORIG_PYTHONPATH=$PYTHONPATH
+export PYTHONPATH=$PYPATH
+export CMAKE_MODULE_PATH=$REZ_PATH/cmake
+
+
+
+#    Copyright 2012 BlackGinger Pty Ltd (Cape Town, South Africa)
+#
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

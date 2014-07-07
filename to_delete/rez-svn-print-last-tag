@@ -1,0 +1,43 @@
+#!!REZ_PYTHON_BINARY!
+
+#
+# If run from the working copy of an svn checkout, this utility will
+# print the revision number and svn url of the last tagged release.
+# If there are no tags, it will exit with exit-code 1. If any other
+# error occurs, it will exit with exit-code 2 (for example, not in a
+# working svn dir).
+#
+
+import sys
+import versions
+from rez_release import SvnRezReleaseMode
+
+try:
+    result = SvnRezRelease('.').get_last_tagged_revision()
+except RezReleaseUnsupportedMode:
+    sys.exit(2)
+except (ImportError, RezReleaseError):
+    sys.exit(1)
+except versions.VersionError:
+    sys.exit(4)
+if result is None:
+    sys.exit(3)
+print str(result[0]) + ' ' + result[1]
+
+
+#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
+#
+#    This file is part of Rez.
+#
+#    Rez is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Lesser General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Rez is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU Lesser General Public License
+#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.
