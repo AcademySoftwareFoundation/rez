@@ -78,6 +78,11 @@ class BuildSystemError(RezError):
     pass
 
 
+class BuildProcessError(RezError):
+    """Base class for build process-related errors."""
+    pass
+
+
 class ReleaseError(RezError):
     """Any release-related error."""
     pass
@@ -100,7 +105,15 @@ class ReleaseHookError(RezError):
     pass
 
 
-
+class BuildProcessContextResolveError(BuildProcessError):
+    """Raised if unable to resolve the required context when creating the 
+    environment for a build process."""
+    def __init__(self, status, description, graph):
+        self.status = status
+        self.description = description
+        self.graph = graph
+        message = "The build environment could not be resolved:\n%s" % self.description
+        super(BuildProcessContextResolveError, self).__init__(message)
 
 
 

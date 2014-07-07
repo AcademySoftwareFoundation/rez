@@ -4,6 +4,7 @@ Build a package from source.
 import sys
 import os
 from rez.vendor import argparse
+from rez.exceptions import BuildProcessContextResolveError
 
 
 def parse_build_args(args, parser):
@@ -58,6 +59,9 @@ def setup_parser(parser):
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
                         help="install to a custom path")
+    parser.add_argument("--fail-graph", action="store_true",
+                        help="if the build environment fails to resolve due to a "
+                        "conflict display the resolve graph as an image")
     parser.add_argument("-s", "--scripts", action="store_true",
                         help="create build scripts rather than performing the "
                         "full build. Running these scripts will place you into "
@@ -87,7 +91,23 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    if not builder.build(install_path=opts.prefix,
-                         clean=opts.clean,
-                         install=opts.install):
+    try:
+        result = builder.build(install_path=opts.prefix,
+                               clean=opts.clean,
+                               install=opts.install)
+
+    except BuildProcessContextResolveError as e:
+        print >> sys.stderr, str(e)
+
+        if opts.fail_graph:
+            if e.graph:
+                from rez.util import view_graph
+                view_graph(e.graph)
+            else:
+                print >> sys.stderr, "Unable to show the graph, the failed resolve context did not generate a graph."
+
+        sys.exit(1)
+        result = False
+
+    if not result:
         sys.exit(1)
