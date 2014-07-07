@@ -31,8 +31,11 @@ class CMakeBuildSystem(BuildSystem):
                      'make':        "Unix Makefiles",
                      'xcode':       "Xcode"}
 
+    build_targets = ["Debug", "Release", "RelWithDebInfo"]
+
     schema_dict = {
         "build_system":     Or(*build_systems.keys()),
+        "build_target":     Or(*build_targets),
         "cmake_args":       [basestring]}
 
     @classmethod
@@ -49,9 +52,8 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def bind_cli(cls, parser):
-        build_targets = ["Debug", "Release"]
         parser.add_argument("-b", "--build-target", dest="build_target",
-                            type=str, choices=build_targets, default="Release",
+                            type=str, choices=cls.build_targets, default="Release",
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
@@ -67,7 +69,8 @@ class CMakeBuildSystem(BuildSystem):
             build_args=build_args,
             child_build_args=child_build_args)
 
-        self.build_target = opts.build_target
+        self.build_target = opts.build_target \
+            or self.package.config.plugins.build_system.cmake.build_target
         self.cmake_build_system = opts.build_system \
             or self.package.config.plugins.build_system.cmake.build_system
         if self.cmake_build_system == 'xcode' \
