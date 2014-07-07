@@ -18,13 +18,23 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext
-    from rez.cli._util import get_rxt_file
+    from rez.env import get_context_file
 
-    for path in opts.RXT:
+    paths = opts.RXT
+    if not paths:
+        current_context_file = get_context_file()
+        if current_context_file:
+            paths = [current_context_file]
+
+    if not paths:
+        print >> sys.stderr, ("running Rez v%s.\n" + \
+            "not in a resolved environment context.\n") % __version__
+        sys.exit(1)
+
+    for path in paths:
         if not os.path.exists(path):
             open(path)  # raise IOError
 
-    paths = opts.RXT or [get_rxt_file()]
     for path in paths:
         r = ResolvedContext.load(path)
         rxt_name = os.path.basename(path)
