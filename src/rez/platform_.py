@@ -178,6 +178,7 @@ class OSXPlatform(_UnixPlatform):
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
+    @property
     def image_viewer(self):
         return "open"
 

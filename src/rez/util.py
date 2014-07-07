@@ -1197,7 +1197,7 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_field(self, field_name, args, kwargs)
         try:
             return Formatter.get_field(self, field_name, args, kwargs)
-        except (AttributeError, KeyError):
+        except (AttributeError, KeyError, TypeError):
             import re
             reg = re.compile("[^\.\[]+")
             try:
@@ -1210,12 +1210,6 @@ class ObjectStringFormatter(Formatter):
                 return ("{%s}" % field_name, key)
 
     def get_value(self, key, args, kwds):
-        """
-        if isinstance(key, basestring):
-            return getattr(self.instance, key)
-        else:
-            return Formatter.get_value(self, key, args, kwds)
-        """
         if isinstance(key, str):
             if key:
                 try:
@@ -1282,7 +1276,7 @@ class DataWrapper(object):
         """Get a key value by name."""
         return getattr(self, key, default)
 
-    def validate(self):
+    def validate_data(self):
         """Check that the object's contents are valid."""
         _ = self._data
 

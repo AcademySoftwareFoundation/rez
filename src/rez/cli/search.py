@@ -55,6 +55,7 @@ def command(opts, parser):
 
     name_pattern = opts.NAME or '*'
     version_range = VersionRange(opts.VERSION) if opts.VERSION else None
+    error_class = None if opts.debug else Exception
 
     if opts.NAME and not version_range:
         # support syntax ala 'rez-search foo-1.2+'
@@ -97,14 +98,14 @@ def command(opts, parser):
     def _print_resource(r):
         if opts.validate:
             try:
-                r.validate()
-            except Exception as e:
+                r.validate_data()
+            except error_class as e:
                 _handle(e)
                 return
         if opts.format:
             try:
                 print r.format(opts.format, pretty=True, expand='unchanged')
-            except Exception as e:
+            except error_class as e:
                 _handle(e)
         else:
             print r.qualified_name
@@ -120,8 +121,8 @@ def command(opts, parser):
             for package in packages:
                 if opts.errors:
                     try:
-                        package.validate()
-                    except Exception as e:
+                        package.validate_data()
+                    except error_class as e:
                         _handle(e)
                         found = True
                 elif type_ == "package":
@@ -129,8 +130,8 @@ def command(opts, parser):
                     found = True
                 elif type_ == "variant":
                     try:
-                        package.validate()
-                    except Exception as e:
+                        package.validate_data()
+                    except error_class as e:
                         _handle(e)
                         continue
                     for variant in package.iter_variants():
