@@ -99,10 +99,14 @@ def command(opts, parser):
     except BuildProcessContextResolveError as e:
         print >> sys.stderr, str(e)
 
-        if opts.fail_graph and e.graph:
-            from rez.util import view_graph
-            view_graph(e.graph)
+        if opts.fail_graph:
+            if e.graph:
+                from rez.util import view_graph
+                view_graph(e.graph)
+            else:
+                print >> sys.stderr, "Unable to show the graph, the failed resolve context did not generate a graph."
 
+        sys.exit(1)
         result = False
 
     if not result:
