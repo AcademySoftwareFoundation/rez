@@ -11,11 +11,11 @@ from uuid import uuid4
 
 
 def write_graph(graph_str, opts):
-    from rez.context import write_graph
+    from rez.util import write_graph
     write_graph(graph_str, write_graph=opts.write_graph, prune_pkg=opts.prune_pkg)
 
 def view_graph(graph_str, opts):
-    from rez.context import view_graph
+    from rez.util import view_graph
     view_graph(graph_str, write_graph=opts.write_graph, prune_pkg=opts.prune_pkg)
 
 
@@ -74,11 +74,16 @@ def setup_parser(parser):
                         help="rex context file (current context if not supplied)")
 
 def command(opts, parser):
-    from rez.cli._util import get_rxt_file, current_rxt_file
+    from rez.env import get_context_file
     from rez.util import pretty_env_dict
     from rez.resolved_context import ResolvedContext
 
-    rxt_file = get_rxt_file(opts.FILE)
+    rxt_file = opts.FILE if opts.FILE else get_context_file()
+    if not rxt_file:
+        print >> sys.stderr, ("running Rez v%s.\n" + \
+            "not in a resolved environment context.\n") % __version__
+        sys.exit(1)
+
     rc = ResolvedContext.load(rxt_file)
 
     def _graph():
@@ -115,7 +120,7 @@ def command(opts, parser):
             write_graph(gstr, opts)
         else:
             rc.print_info(verbose=opts.verbose)
-            if opts.verbose and (rxt_file == current_rxt_file):
+            if opts.verbose and (rxt_file == get_context_file()):
                 print
                 print "rxt file:\n%s" % rxt_file
             print
