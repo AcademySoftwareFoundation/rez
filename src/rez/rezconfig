@@ -208,10 +208,9 @@ vcs_tag_name: '{name}-{version}'
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a
 # release hook plugin being loaded does not mean it will run - it needs to be
-# listed here as well.
-release_hooks:
-#- emailer
-- command
+# listed here as well. Several built-in release hooks are available, see
+# rezplugins/release_hook.
+release_hooks: []
 
 
 ###############################################################################

@@ -45,9 +45,11 @@ class Setting(object):
         return data
 
     def _validate(self, data):
-        # setting in overrides takes precedence
+        # overriden settings take precedence. Note that we return `data`,
+        # because it's already had overrides applied and has been validated,
+        # so it includes variable expansions etc.
         if self.key in self.config.overrides:
-            return self.config.overrides[self.key]
+            return data
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
