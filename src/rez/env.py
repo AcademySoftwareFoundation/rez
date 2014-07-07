@@ -6,8 +6,14 @@ import os
 import os.path
 
 
-
 _context = None
+
+
+def get_context_file():
+    """Returns the context file associated with the current environment, or
+    None if the environment is not Rez-configured.  
+    """
+    return os.getenv("REZ_RXT_FILE")
 
 
 def get_context():
@@ -16,7 +22,7 @@ def get_context():
     """
     global _context
     if _context is None:
-        file = os.getenv("REZ_RXT_FILE")
+        file = get_context_file()
         if file and os.path.exists(file):
             _context = ResolvedContext.load(file)
     return _context or None
