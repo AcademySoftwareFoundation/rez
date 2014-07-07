@@ -59,7 +59,7 @@ def setup_parser(parser):
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
                         help="install to a custom path")
-    parser.add_argument("-g", "--graph", action="store_true",
+    parser.add_argument("--fail-graph", action="store_true",
                         help="if the build environment fails to resolve due to a "
                         "conflict display the resolve graph as an image")
     parser.add_argument("-s", "--scripts", action="store_true",
@@ -99,7 +99,7 @@ def command(opts, parser):
     except BuildProcessContextResolveError as e:
         print >> sys.stderr, str(e)
 
-        if opts.graph and e.graph:
+        if opts.fail_graph and e.graph:
             from rez.context import view_graph
             view_graph(e.graph)
 
