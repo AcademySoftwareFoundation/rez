@@ -191,6 +191,7 @@ class Expand(object):
         def _expand(value):
             if isinstance(value, basestring):
                 value = expandvars(value)
+                value = os.path.expanduser(value)
                 return self.formatter.format(value)
             elif isinstance(value, list):
                 return [_expand(x) for x in value]

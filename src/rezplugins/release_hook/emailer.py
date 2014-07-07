@@ -58,7 +58,9 @@ class EmailReleaseHook(ReleaseHook):
 
         try:
             s = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
-            s.sendmail(from_, to_, msg.as_string())
+            s.sendmail(from_addr=settings.sender,
+                       to_addrs=settings.recipients,
+                       msg=msg.as_string())
             print 'email(s) sent.'
         except Exception, e:
             print >> sys.stderr, "release email delivery failed: %s" % str(e)
