@@ -1,6 +1,6 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez.vendor.version.version import Version
-from rez.packages import Package
+from rez.packages import load_developer_package
 from rez.util import which
 import subprocess
 
@@ -31,7 +31,7 @@ class ReleaseVCS(object):
     def __init__(self, path):
         assert(self.is_valid_root(path))
         self.path = path
-        self.package = Package(path)
+        self.package = load_developer_package(path)
 
     @classmethod
     def name(cls):
