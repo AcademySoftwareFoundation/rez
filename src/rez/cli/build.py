@@ -100,7 +100,7 @@ def command(opts, parser):
         print >> sys.stderr, str(e)
 
         if opts.fail_graph and e.graph:
-            from rez.context import view_graph
+            from rez.util import view_graph
             view_graph(e.graph)
 
         result = False
