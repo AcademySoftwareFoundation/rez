@@ -72,7 +72,7 @@ def command(opts, parser):
         type_ = "package"
 
     if opts.no_warnings:
-        config.override("quiet", True)
+        config.override("warn_none", True)
 
     # families
     found = False

@@ -807,7 +807,7 @@ class ResolvedContext(object):
             executor.bind('root',       pkg.root)
             executor.bind('base',       pkg.base)
 
-            commands = pkg.metadata.get("commands")
+            commands = pkg.commands
             if commands:
                 error_class = Exception if config.catch_rex_errors else None
                 try:

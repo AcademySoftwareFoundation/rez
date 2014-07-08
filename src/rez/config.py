@@ -45,11 +45,9 @@ class Setting(object):
         return data
 
     def _validate(self, data):
-        # overriden settings take precedence. Note that we return `data`,
-        # because it's already had overrides applied and has been validated,
-        # so it includes variable expansions etc.
+        # overriden settings take precedence.
         if self.key in self.config.overrides:
-            return data
+            return Expand().validate(self.config.overrides[self.key])
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
@@ -149,16 +147,19 @@ _config_dict = {
     "warn_shell_startup":               Bool,
     "warn_untimestamped":               Bool,
     "warn_all":                         Bool,
+    "warn_none":                        Bool,
     "debug_plugins":                    Bool,
     "debug_package_release":            Bool,
     "debug_bind_modules":               Bool,
     "debug_resources":                  Bool,
     "debug_all":                        Bool,
+    "debug_none":                       Bool,
     "quiet":                            Bool,
     "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,
     "error_old_commands":               Bool,
+    "debug_old_commands":               Bool,
     "warn_package_name_mismatch":       Bool,
     "error_package_name_mismatch":      Bool,
     "warn_version_mismatch":            Bool,
@@ -291,12 +292,12 @@ class Config(DataWrapper):
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
-        return (not self.quiet and
+        return (not self.quiet and not self.warn_none and
                 (self.warn_all or getattr(self, "warn_%s" % key)))
 
     def debug(self, key):
         """Returns True if the debug setting is enabled."""
-        return (not self.quiet and
+        return (not self.quiet and not self.debug_none and
                 (self.debug_all or getattr(self, "debug_%s" % key)))
 
     @propertycache

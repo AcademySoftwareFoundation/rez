@@ -149,8 +149,11 @@ warn_shell_startup: false
 # If true, print a warning when an untimestamped package is found.
 warn_untimestamped: false
 
-# turn on all warnings
+# Turn on all warnings
 warn_all: false
+
+# Turn off all warnings. This overrides warn_all.
+warn_none: false
 
 # Print debugging info when loading plugins
 debug_plugins: false
@@ -167,6 +170,9 @@ debug_resources: false
 
 # Turn on all debugging messages
 debug_all: false
+
+# Turn off all debugging messages. This overrides debug_all.
+debug_none: false
 
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
@@ -266,6 +272,10 @@ error_nonstring_version: false
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands: true
 error_old_commands: false
+
+# Print old commands and their converted rex equivalent. Note that this can
+# cause very verbose output.
+debug_old_commands: false
 
 # Warn or disallow when a package is found to contain custom keys in the root of
 # its package definition file.

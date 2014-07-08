@@ -607,7 +607,7 @@ def convert_old_commands(commands, annotate=True):
         elif toks[0].startswith('#'):
             loc.append("comment('%s')" % _en(' '.join(toks[1:])))
         elif toks[0] == "alias":
-            match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+            match = re.search("alias (?P<key>.*?)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
             value = match.groupdict()['value'].strip()
             if (value.startswith('"') and value.endswith('"')) or \
@@ -618,7 +618,16 @@ def convert_old_commands(commands, annotate=True):
             # assume we can execute this as a straight command
             loc.append("command('%s')" % _en(cmd))
 
-    return '\n'.join(loc)
+    rex_code = '\n'.join(loc)
+    from rez.config import config
+    if config.debug("old_commands"):
+        print '-' * 80
+        print "OLD COMMANDS:"
+        print '\n'.join(commands)
+        print "\nNEW COMMANDS:"
+        print rex_code
+        print '-' * 80
+    return rex_code
 
 
 class Timings(object):

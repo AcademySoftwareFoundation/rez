@@ -130,11 +130,13 @@ def setup_parser(parser):
     parser.add_argument("FILE", type=str, nargs='?',
                         help="rex context file (current context if not supplied)")
 
+
 def command(opts, parser):
     from rez.cli._util import get_rxt_file, current_rxt_file
-    from rez.util import pretty_env_dict
+    from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
 
+    timings.enabled = False
     rxt_file = get_rxt_file(opts.FILE)
     rc = ResolvedContext.load(rxt_file)
 
