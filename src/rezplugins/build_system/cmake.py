@@ -36,7 +36,10 @@ class CMakeBuildSystem(BuildSystem):
                      'make':        "Unix Makefiles",
                      'xcode':       "Xcode"}
 
+    build_targets = ["Debug", "Release", "RelWithDebInfo"]
+
     schema_dict = {
+        "build_target":     Or(*build_targets),
         "build_system":     Or(*build_systems.keys()),
         "cmake_args":       [basestring],
         "cmake_binary":     Or(None, basestring)}
@@ -55,9 +58,11 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def bind_cli(cls, parser):
-        build_targets = ["Debug", "Release"]
+        from rez.config import config
+        settings = config.plugins.build_system.cmake
         parser.add_argument("--bt", "--build-target", dest="build_target",
-                            type=str, choices=build_targets, default="Release",
+                            type=str, choices=cls.build_targets,
+                            default=settings.build_target,
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
@@ -73,9 +78,10 @@ class CMakeBuildSystem(BuildSystem):
             build_args=build_args,
             child_build_args=child_build_args)
 
-        self.build_target = opts.build_target
+        self.settings = self.package.config.plugins.build_system.cmake
+        self.build_target = opts.build_target or self.settings.build_target
         self.cmake_build_system = opts.build_system \
-            or self.package.config.plugins.build_system.cmake.build_system
+            or self.settings.build_system
         if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -84,8 +90,6 @@ class CMakeBuildSystem(BuildSystem):
         def _pr(s):
             if self.verbose:
                 print s
-
-        settings = self.package.config.plugins.build_system.cmake
 
         # find cmake binary
         # TODO add config setting for specifying exepath manually
@@ -96,7 +100,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble cmake command
         cmd = [exe, "-d", self.working_dir]
-        cmd += (settings.cmake_args or [])
+        cmd += (self.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
