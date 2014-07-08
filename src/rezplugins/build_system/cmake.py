@@ -56,7 +56,7 @@ class CMakeBuildSystem(BuildSystem):
     @classmethod
     def bind_cli(cls, parser):
         build_targets = ["Debug", "Release"]
-        parser.add_argument("-b", "--build-target", dest="build_target",
+        parser.add_argument("--bt", "--build-target", dest="build_target",
                             type=str, choices=build_targets, default="Release",
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
