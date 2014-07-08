@@ -305,7 +305,7 @@ class RezPluginManager(object):
                 module = self.get_plugin_module(plugin_type, name)
                 desc = (getattr(module, "__doc__", None) or '').strip()
                 rows.append((type_name, name, desc, "loaded"))
-            for (name,reason) in sorted(self.get_failed_plugins(plugin_type)):
+            for (name, reason) in sorted(self.get_failed_plugins(plugin_type)):
                 msg = "FAILED: %s" % reason
                 rows.append((type_name, name, '', msg))
         return '\n'.join(columnise(rows))

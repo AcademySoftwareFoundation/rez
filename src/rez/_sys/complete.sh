@@ -1,15 +1,23 @@
-_rez_complete()
+_rez_complete_package()
 {
     local cur
     cur="${COMP_WORDS[COMP_CWORD]}"
-    COMPREPLY=( $(_rez-complete ${cur}) )
+    COMPREPLY=( $(_rez-complete --type=package ${cur}) )
 }
 
-complete -F _rez_complete rez
-complete -F _rez_complete rezolve
-complete -F _rez_complete rez-env
-complete -F _rez_complete rez-search
+_rez_complete_config()
+{
+    local cur
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    COMPREPLY=( $(_rez-complete --type=config ${cur}) )
+}
 
+complete -F _rez_complete_package rez
+complete -F _rez_complete_package rezolve
+complete -F _rez_complete_package rez-env
+complete -F _rez_complete_package rez-search
+
+complete -F _rez_complete_config rez-config
 
 
 

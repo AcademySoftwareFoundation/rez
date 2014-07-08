@@ -340,6 +340,22 @@ class Config(DataWrapper):
                 return f
         return decorated
 
+    def get_completions(self, prefix):
+        toks = prefix.split('.')
+        if len(toks) > 1:
+            if toks[0] == "plugins":
+                prefix_ = '.'.join(toks[1:])
+                from rez.util import get_object_completions
+                words = get_object_completions(
+                    instance=self.plugins,
+                    prefix=prefix_,
+                    instance_types=(dict, AttrDictWrapper))
+                return ["plugins." + x for x in words]
+            return []
+        keys = ([x for x in _config_dict if isinstance(x, basestring)]
+                + ["plugins"])
+        return sorted(x for x in keys if x.startswith(prefix))
+
     def _swap(self, other):
         """Swap this config with another.
 
@@ -377,6 +393,13 @@ class Config(DataWrapper):
         if os.path.isfile(filepath):
             filepaths.append(filepath)
         return Config(filepaths, overrides)
+
+    def __str__(self):
+        keys = (x for x in _config_dict if isinstance(x, basestring))
+        return "%r" % sorted(list(keys) + ["plugins"])
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
     # -- dynamic defaults
 
@@ -434,6 +457,10 @@ class _PluginConfigs(object):
         self.__dict__[attr] = d_
         return d_
 
+    def __iter__(self):
+        from rez.plugin_managers import plugin_manager
+        return iter(plugin_manager.get_plugin_types())
+
     def override(self, key, value):
         def _nosuch():
             raise AttributeError("no such setting: %r" % '.'.join(key))
@@ -468,6 +495,13 @@ class _PluginConfigs(object):
         del d["_data"]
         d = convert_dicts(d, dict, (dict, AttrDictWrapper))
         return d
+
+    def __str__(self):
+        from rez.plugin_managers import plugin_manager
+        return "%r" % sorted(plugin_manager.get_plugin_types())
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 def create_config(overrides=None):

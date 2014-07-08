@@ -869,13 +869,17 @@ class AttrDictWrapper(MutableMapping):
         >>> assert d['one'] == 1
     """
     def __init__(self, data):
-        self.__dict__['data'] = data
+        self.__dict__['_data'] = data
+
+    @property
+    def _data(self):
+        return self.__dict__['_data']
 
     def __getattr__(self, attr):
         if attr.startswith('__') and attr.endswith('__'):
             d = self.__dict__
         else:
-            d = self.__dict__['data']
+            d = self._data
         try:
             return d[attr]
         except KeyError:
@@ -886,31 +890,31 @@ class AttrDictWrapper(MutableMapping):
         # For things like '__class__', for instance
         if attr.startswith('__') and attr.endswith('__'):
             super(AttrDictWrapper, self).__setattr__(attr, value)
-        self.__dict__['data'][attr] = value
+        self._data[attr] = value
 
     def __getitem__(self, key):
-        return self.__dict__['data'][key]
+        return self._data[key]
 
     def __setitem__(self, key, value):
-        self.__dict__['data'][key] = value
+        self._data[key] = value
 
     def __delitem__(self, key):
-        del self.__dict__['data'][key]
+        del self._data[key]
 
     def __iter__(self):
-        return iter(self.__dict__['data'])
+        return iter(self._data)
 
     def __len__(self):
-        return len(self.__dict__['data'])
+        return len(self._data)
 
     def __str__(self):
-        return str(self.__dict__['data'])
+        return str(self._data)
 
     def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.__dict__['data'])
+        return "%s(%r)" % (self.__class__.__name__, self._data)
 
     def copy(self):
-        return self.__class__(self.__dict__['data'].copy())
+        return self.__class__(self._data.copy())
 
 
 class RO_AttrDictWrapper(AttrDictWrapper):
@@ -1350,6 +1354,61 @@ class DataWrapper(object):
         """
         formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
+
+
+def get_object_completions(instance, prefix, types=None, instance_types=None):
+    """Get completion strings based on an object's attributes/keys.
+
+    Args:
+        prefix (str): Prefix to match, can be dot-separated to access nested
+            attributes.
+        types (tuple): Attribute types to match, any if None.
+        instance_types (tuple): Class types to recurse into when a dotted
+            prefix is given, any if None.
+
+    Returns:
+        Sorted list of strings.
+    """
+    words = set()
+    word_toks = []
+
+    def _addword(w):
+        word = '.'.join(word_toks + [w])
+        words.add(word)
+
+    toks = prefix.split('.')
+    while len(toks) > 1:
+        attr = toks[0]
+        toks = toks[1:]
+        word_toks.append(attr)
+        if hasattr(instance, attr):
+            instance = getattr(instance, attr)
+        else:
+            try:
+                instance = instance[attr]
+            except KeyError:
+                return []
+            if instance_types and not isinstance(instance, instance_types):
+                return []
+
+    prefix = toks[-1]
+    for attr in dir(instance):
+        if attr.startswith(prefix) and not attr.startswith('_') \
+                and not hasattr(instance.__class__, attr):
+            value = getattr(instance, attr)
+            if types and not isinstance(value, types):
+                continue
+            if not callable(value):
+                _addword(attr)
+
+    if hasattr(instance, "__iter__"):
+        try:
+            for key in instance:
+                if key.startswith(prefix):
+                    _addword(key)
+        except TypeError:
+            pass
+    return sorted(words)
 
 
 @atexit.register

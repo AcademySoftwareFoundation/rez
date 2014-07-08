@@ -7,6 +7,8 @@ __doc__ = argparse.SUPPRESS
 
 
 def setup_parser(parser):
+    parser.add_argument("--type", type=str, choices=("package", "config"),
+                        help="type of completion")
     parser.add_argument("PREFIX", type=str, nargs='?',
                         help="prefix for completion")
 
@@ -14,9 +16,15 @@ def setup_parser(parser):
 def command(opts, parser):
     from rez.util import timings
     from rez.config import config
-    from rez.packages import get_completions
 
+    words = []
     timings.enabled = False
     config.override("quiet", True)
-    words = get_completions(opts.PREFIX or '')
+
+    if opts.type == "packages":
+        from rez.packages import get_completions
+        words = get_completions(opts.PREFIX or '')
+    elif opts.type == "config":
+        words = config.get_completions(opts.PREFIX or '')
+
     print ' '.join(words)
