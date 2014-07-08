@@ -25,53 +25,17 @@ def setup_parser(parser):
 
 
 def get_suites(opts):
+
+    tests = ["shells", "solver", "formatter", "commands", "rex", "build", 
+                "context", "resources", "packages"]
     suites = []
-    test_all = \
-        (not opts.shells) and \
-        (not opts.solver) and \
-        (not opts.formatter) and \
-        (not opts.commands) and \
-        (not opts.rex) and \
-        (not opts.build) and \
-        (not opts.context) and \
-        (not opts.resources) and \
-        (not opts.packages)
+    test_all = all([not getattr(opts, test) for test in tests])
 
-    if opts.shells or test_all:
-        from rez.tests.test_shells import get_test_suites
-        suites += get_test_suites()
-
-    if opts.solver or test_all:
-        from rez.tests.test_solver import get_test_suites
-        suites += get_test_suites()
-
-    if opts.formatter or test_all:
-        from rez.tests.test_formatter import get_test_suites
-        suites += get_test_suites()
-
-    if opts.commands or test_all:
-        from rez.tests.test_commands import get_test_suites
-        suites += get_test_suites()
-
-    if opts.rex or test_all:
-        from rez.tests.test_rex import get_test_suites
-        suites += get_test_suites()
-
-    if opts.build or test_all:
-        from rez.tests.test_build import get_test_suites
-        suites += get_test_suites()
-
-    if opts.context or test_all:
-        from rez.tests.test_context import get_test_suites
-        suites += get_test_suites()
-
-    if opts.resources or test_all:
-        from rez.tests.test_resources import get_test_suites
-        suites += get_test_suites()
-
-    if opts.packages or test_all:
-        from rez.tests.test_packages import get_test_suites
-        suites += get_test_suites()
+    for test in tests:
+        if test_all or getattr(opts, test):
+            module = __import__('rez.tests.test_%s' % test, globals(), locals(), -1)
+            get_test_suites_func = getattr(module, 'get_test_suites')
+            suites += get_test_suites_func()
 
     return suites
 
