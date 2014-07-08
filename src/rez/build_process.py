@@ -2,6 +2,7 @@ from rez.exceptions import RezError, ReleaseError
 from rez.packages import load_developer_package, iter_packages
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
+from rez.resolver import ResolverStatus
 from rez.util import encode_filesystem_name
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
@@ -367,7 +368,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 r.save(rxt_path)
 
             # TODO detect fail with implicit pkgs, and skip gracefully
-            if r.status != "solved":
+            if r.status != ResolverStatus.solved:
                 print >> sys.stderr, \
                     "The build environment could not be resolved:\n%s" \
                     % r.failure_description
