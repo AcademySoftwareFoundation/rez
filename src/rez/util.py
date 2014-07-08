@@ -631,10 +631,12 @@ def convert_old_commands(commands, annotate=True):
 
 
 class Timings(object):
-    """Class for timing operations, for debugging purposes."""
-    # TODO just fow now
-    enabled = (os.getenv("USER") == "ajohns")
-    # enabled = True  # set to True for debugging purposes
+    """Class for timing operations, for debugging purposes.
+
+    Timing is a special case wrt configuration, you need to set
+    $REZ_ENABLE_TIMING to turn it on.
+    """
+    enabled = bool(os.getenv("REZ_ENABLE_TIMING"))
 
     def __init__(self):
         self.timings = defaultdict(float)
