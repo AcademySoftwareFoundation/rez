@@ -62,7 +62,7 @@ def command(opts, parser):
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
-        if rc.status != "solved":
+        if rc.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
 
