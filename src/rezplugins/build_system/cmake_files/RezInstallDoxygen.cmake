@@ -81,7 +81,7 @@ macro (rez_install_doxygen)
 
 		list(GET INSTDOX_DOXYFILE 0 doxyfile)
 		if(NOT doxyfile)
-			set(doxyfile $ENV{REZ_TEMPATE_FILES_PATH}/Doxyfile)
+			set(doxyfile $ENV{REZ_BUILD_DOXYFILE})
 		endif(NOT doxyfile)
 
 		list(GET INSTDOX_DOXYDIR 0 doxydir)
