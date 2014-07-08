@@ -4,6 +4,10 @@ from rez.vendor.enum import Enum
 
 
 class ResolverStatus(Enum):
+    """ Enum to represent the current state of a resolver instance.  The enum
+    also includes a human readable description of what the state represents.
+    """
+
     pending = ("The resolve has not yet started.", )
     solved = ("The resolve has completed successfully.", )
     failed = ("The resolve is not possible.", )
@@ -69,11 +73,8 @@ class Resolver(object):
     def status(self):
         """Return the current status of the resolve.
 
-        Returns one of:
-            pending - the resolve has not yet started.
-            solved - the resolve has completed successfully.
-            failed - the resolve is not possible.
-            aborted - the resolve was stopped by the user (via callback).
+        Returns:
+          ResolverStatus: Enum representation of the state of the resolver.
         """
         return self.status_
 

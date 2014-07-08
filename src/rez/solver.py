@@ -23,12 +23,19 @@ import time
 
 
 class SolverStatus(Enum):
-    pending = 1
-    solved = 2
-    exhausted = 3
-    failed = 4
-    cyclic = 5
-    unsolved = 6
+    """ Enum to represent the current state of a solver instance.  The enum
+    also includes a human readable description of what the state represents.
+    """
+
+    pending = ("The solve has not yet started.", )
+    solved = ("The solve has completed successfully.", )
+    exhausted = ("The current solve is exhausted and must be split to continue further.", )
+    failed = ("The solve is not possible.", )
+    cyclic = ("The solve contains a cycle.", )
+    unsolved = ("The solve has started, but is not yet solved.", )
+
+    def __init__(self, description):
+        self.description = description
 
 
 class _Printer(object):
@@ -1283,10 +1290,10 @@ class Solver(_Common):
 
     @property
     def status(self):
-        """Return the current status of the solve. One of:
-        solved - the resolve has completed successfully.
-        failed - the resolve is not possible.
-        unsolved - the resolve is unfinished.
+        """Return the current status of the solve.
+
+        Returns:
+          SolverStatus: Enum representation of the state of the solver.
         """
         if self.request_list.conflict:
             return SolverStatus.failed
@@ -1491,7 +1498,7 @@ class Solver(_Common):
         for i,phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print "status: %s" % self.status.name
+        print "status: %s (%s)" % (self.status.name, self.status.description)
         print "initial request: %s" % str(self.request_list)
         print
         print "solve stack:"
