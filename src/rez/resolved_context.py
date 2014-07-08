@@ -1,5 +1,5 @@
 from rez import __version__, module_root_path
-from rez.resolver import Resolver
+from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
 from rez.resources import ResourceHandle
@@ -101,7 +101,7 @@ class ResolvedContext(object):
         self.created = int(time.time())
 
         # resolve results
-        self.status = "pending"
+        self.status = ResolverStatus.pending
         self.resolved_packages_ = None
         self.failure_description = None
         self.graph_string = None
@@ -138,7 +138,7 @@ class ResolvedContext(object):
         if resolver.graph is not None:
             self.graph_ = resolver.graph
 
-        if self.status == "solved":
+        if self.status == ResolverStatus.solved:
             # convert solver.Variants to packages.Variants
             pkgs = []
             for variant in resolver.resolved_packages:
@@ -147,7 +147,7 @@ class ResolvedContext(object):
                 pkg = Variant(resource)
                 pkgs.append(pkg)
             self.resolved_packages_ = pkgs
-        elif self.status == "failed":
+        elif self.status == ResolverStatus.failed:
             self.failure_description = resolver.failure_description
 
     @property
@@ -228,7 +228,7 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        if self.status in ("failed", "aborted"):
+        if self.status in (ResolverStatus.failed, ResolverStatus.aborted):
             _pr("The context failed to resolve:\n")
             _pr(self.failure_description)
             return
@@ -272,7 +272,7 @@ class ResolvedContext(object):
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
-            if self.status == "solved":
+            if self.status == ResolverStatus.solved:
                 return fn(self, *nargs, **kwargs)
             else:
                 raise RezSystemError("Cannot perform operation in a failed "
@@ -538,7 +538,7 @@ class ResolvedContext(object):
             Path to a subdirectory within 'path' containing the wrapped tools,
             or None if no tools were wrapped.
         """
-        if self.status != "solved":
+        if self.status != ResolverStatus.solved:
             raise RezSystemError("Cannot add a failed context to a suite")
 
         path = os.path.abspath(path)
@@ -640,7 +640,7 @@ class ResolvedContext(object):
             os=self.os,
             created=self.created,
 
-            status=self.status,
+            status=self.status.name,
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=self.graph(as_dot=True),
@@ -669,7 +669,7 @@ class ResolvedContext(object):
         r.os = d["os"]
         r.created = d["created"]
 
-        r.status = d["status"]
+        r.status = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]

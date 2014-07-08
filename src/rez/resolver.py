@@ -1,5 +1,16 @@
-from rez.solver import Solver
+from rez.solver import Solver, SolverStatus
 from rez.config import config
+from rez.vendor.enum import Enum
+
+
+class ResolverStatus(Enum):
+    pending = ("The resolve has not yet started.", )
+    solved = ("The resolve has completed successfully.", )
+    failed = ("The resolve is not possible.", )
+    aborted = ("The resolve was stopped by the user (via callback).", )
+
+    def __init__(self, description):
+        self.description = description
 
 
 class Resolver(object):
@@ -34,7 +45,7 @@ class Resolver(object):
         self.building = building
         self.verbose = verbose
 
-        self.status_ = "pending"
+        self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
         self.failure_description = None
         self.graph_ = None
@@ -88,15 +99,16 @@ class Resolver(object):
         st = solver.status
         pkgs = None
 
-        if st == "unsolved":
-            st = "aborted"
+        if st == SolverStatus.unsolved:
+            self.status_ = ResolverStatus.aborted
             self.failure_description = "the resolve was aborted by the user"
-        elif st == "failed":
+        elif st == SolverStatus.failed:
+            self.status_ = ResolverStatus.failed
             self.failure_description = solver.failure_reason().description()
-        elif st == "solved":
+        elif st == SolverStatus.solved:
+            self.status_ = ResolverStatus.solved
             pkgs = solver.resolved_packages
 
-        self.status_ = st
         self.resolved_packages_ = pkgs
         self.graph_ = solver.get_graph()
         self.solve_time = solver.solve_time

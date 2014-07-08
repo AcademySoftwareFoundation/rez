@@ -56,6 +56,7 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext
+    from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
     from rez.config import config
 
@@ -83,7 +84,7 @@ def command(opts, parser):
                              add_bootstrap_path=(not opts.no_bootstrap),
                              verbosity=opts.verbose)
 
-    success = (rc.status == "solved")
+    success = (rc.status == ResolverStatus.solved)
     if not success:
         rc.print_info(buf=sys.stderr)
 

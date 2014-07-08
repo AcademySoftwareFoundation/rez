@@ -13,12 +13,22 @@ from rez.exceptions import PackageNotFoundError, ResolveError, \
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
+from rez.vendor.enum import Enum
 from rez.packages import iter_packages
 from rez.util import columnise
 from rez.config import config
 import os.path
 import copy
 import time
+
+
+class SolverStatus(Enum):
+    pending = 1
+    solved = 2
+    exhausted = 3
+    failed = 4
+    cyclic = 5
+    unsolved = 6
 
 
 class _Printer(object):
@@ -719,7 +729,7 @@ class _ResolvePhase(_Common):
         self.extractions = {}
         self.solver = solver
         self.pr = solver.pr
-        self.status = "pending"
+        self.status = SolverStatus.pending
 
         self.scopes = []
         for package_request in package_requests:
@@ -734,7 +744,7 @@ class _ResolvePhase(_Common):
 
     def solve(self):
         """Attempt to solve the phase."""
-        if self.status != "pending":
+        if self.status != SolverStatus.pending:
             return self
 
         scopes = self.scopes[:]
@@ -751,7 +761,7 @@ class _ResolvePhase(_Common):
             phase.pending_reducts = set()
 
             if status is None:
-                phase.status = "solved" if phase._is_solved() else "exhausted"
+                phase.status = SolverStatus.solved if phase._is_solved() else SolverStatus.exhausted
             else:
                 phase.status = status
             return phase
@@ -780,7 +790,7 @@ class _ResolvePhase(_Common):
                         req1, req2 = request_list.conflict
                         conflict = DependencyConflict(req1, req2)
                         failure_reason = DependencyConflicts([conflict])
-                        return _create_phase("failed")
+                        return _create_phase(SolverStatus.failed)
                     else:
                         self.pr("merged extractions: %s" % str(request_list))
                         if len(request_list.requirements) < len(common_requests):
@@ -802,7 +812,7 @@ class _ResolvePhase(_Common):
                                 conflict = DependencyConflict(
                                     req, scope.package_request)
                                 failure_reason = DependencyConflicts([conflict])
-                                return _create_phase("failed")
+                                return _create_phase(SolverStatus.failed)
                             elif scope_ is not scope:
                                 scopes[i] = scope_
                                 for j in range(len(scopes)):
@@ -855,7 +865,7 @@ class _ResolvePhase(_Common):
                         scopes[i].package_request)
                     if new_scope is None:
                         failure_reason = TotalReduction(reductions)
-                        return _create_phase("failed")
+                        return _create_phase(SolverStatus.failed)
                     elif new_scope is not scopes[j]:
                         scopes[j] = new_scope
                         for i in range(len(scopes)):
@@ -893,7 +903,7 @@ class _ResolvePhase(_Common):
             phase = copy.copy(self)
             phase.scopes = scopes.values()
             phase.failure_reason = Cycle(cycle)
-            phase.status = "cyclic"
+            phase.status = SolverStatus.cyclic
             return phase
 
         # reorder wrt dependencies, keeping original request order where possible
@@ -930,7 +940,7 @@ class _ResolvePhase(_Common):
             A 2-tuple of _ResolvePhase objects, where the first phase is the
             best contender for resolving.
         """
-        assert(self.status == "exhausted")
+        assert(self.status == SolverStatus.exhausted)
 
         scopes = []
         next_scopes = []
@@ -951,7 +961,7 @@ class _ResolvePhase(_Common):
 
         phase = copy.copy(self)
         phase.scopes = scopes
-        phase.status = "pending"
+        phase.status = SolverStatus.pending
 
         for i in range(len(phase.scopes)):
             if i != split:
@@ -1260,7 +1270,7 @@ class Solver(_Common):
             conflict = DependencyConflict(req1, req2)
             phase = _ResolvePhase(package_requests, solver=self)
             phase.failure_reason = DependencyConflicts([conflict])
-            phase.status = "failed"
+            phase.status = SolverStatus.failed
             self._push_phase(phase)
             return
         else:
@@ -1279,15 +1289,15 @@ class Solver(_Common):
         unsolved - the resolve is unfinished.
         """
         if self.request_list.conflict:
-            return "failed"
+            return SolverStatus.failed
 
         st = self.phase_stack[-1].status
-        if st == "cyclic":
-            return "failed"
+        if st == SolverStatus.cyclic:
+            return SolverStatus.failed
         elif len(self.phase_stack) > 1:
-            return "solved" if st == "solved" else "unsolved"
+            return SolverStatus.solved if st == SolverStatus.solved else SolverStatus.unsolved
         else:
-            return "unsolved" if st in ("pending","exhausted") else st
+            return SolverStatus.unsolved if st in (SolverStatus.pending, SolverStatus.exhausted) else st
 
     @property
     def num_solves(self):
@@ -1299,21 +1309,21 @@ class Solver(_Common):
         """Return the number of failed solve steps that have been executed.
         Note that num_solves is inclusive of failures."""
         n = len(self.failed_phase_list)
-        if self.phase_stack[-1].status in ("failed", "cyclic"):
+        if self.phase_stack[-1].status in (SolverStatus.failed, SolverStatus.cyclic):
             n += 1
         return n
 
     @property
     def cyclic_fail(self):
         """Return True if the solve failed due to a cycle, False otherwise."""
-        return (self.phase_stack[-1].status == "cyclic")
+        return (self.phase_stack[-1].status == SolverStatus.cyclic)
 
     @property
     def resolved_packages(self):
         """Return a list of PackageVariant objects, or None if the resolve did
         not complete or was unsuccessful.
         """
-        if (self.status != "solved"):
+        if (self.status != SolverStatus.solved):
             return None
 
         final_phase = self.phase_stack[-1]
@@ -1337,29 +1347,29 @@ class Solver(_Common):
         self.load_time = 0.0
 
         # iteratively solve phases
-        while self.status == "unsolved":
+        while self.status == SolverStatus.unsolved:
             self.solve_step()
 
-            if self.status == "unsolved" and not self._do_callback():
+            if self.status == SolverStatus.unsolved and not self._do_callback():
                 break
 
     def solve_step(self):
         """Perform a single solve step.
         """
         self.solve_begun = True
-        if self.status != "unsolved":
+        if self.status != SolverStatus.unsolved:
             return
 
         self.pr.header("SOLVE #%d..." % (self.solve_count+1))
         start_time = time.time()
         phase = self._pop_phase()
 
-        if phase.status == "failed":  # a previously failed phase
+        if phase.status == SolverStatus.failed:  # a previously failed phase
             self.pr("discarded failed phase, fetching previous unsolved phase...")
             self.failed_phase_list.append(phase)
             phase = self._pop_phase()
 
-        if phase.status == "exhausted":
+        if phase.status == SolverStatus.exhausted:
             self.pr.subheader("SPLITTING:")
             phase,next_phase = phase.split()
             self._push_phase(next_phase)
@@ -1369,24 +1379,24 @@ class Solver(_Common):
         self.solve_count += 1
         self.pr.subheader("RESULT:")
 
-        if new_phase.status == "failed":
+        if new_phase.status == SolverStatus.failed:
             self.pr("phase failed to resolve")
             self._push_phase(new_phase)
             if len(self.phase_stack) == 1:
                 self.pr("FAIL: there is no solution")
-        elif new_phase.status == "solved":
+        elif new_phase.status == SolverStatus.solved:
             # solved, but there may be cyclic dependencies
             final_phase = new_phase.finalise()
             self._push_phase(final_phase)
 
-            if final_phase.status == "cyclic":
+            if final_phase.status == SolverStatus.cyclic:
                 self.pr("FAIL: a cyclic dependency was detected")
             elif self.pr:
                 print "SUCCESS"
                 print "solve time: %.2f seconds" % self.solve_time
                 print "load time: %.2f seconds" % self.load_time
         else:
-            assert(new_phase.status == "exhausted")
+            assert(new_phase.status == SolverStatus.exhausted)
             self._push_phase(new_phase)
 
         end_time = time.time()
@@ -1453,7 +1463,7 @@ class Solver(_Common):
             A pygraph.digraph object.
         """
         st = self.status
-        if st in ("solved", "unsolved"):
+        if st in (SolverStatus.solved, SolverStatus.unsolved):
             phase = self._latest_unsolved_phase()
             return phase.get_graph()
         else:
@@ -1481,7 +1491,7 @@ class Solver(_Common):
         for i,phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
-        print "status: %s" % self.status
+        print "status: %s" % self.status.name
         print "initial request: %s" % str(self.request_list)
         print
         print "solve stack:"
@@ -1505,11 +1515,11 @@ class Solver(_Common):
         self.solve_begun = False
 
     def _latest_unsolved_phase(self):
-        if self.status == "failed":
+        if self.status == SolverStatus.failed:
             return None
 
         for phase in reversed(self.phase_stack):
-            if phase.status not in ("failed", "cyclic"):
+            if phase.status not in (SolverStatus.failed, SolverStatus.cyclic):
                 return phase
         assert(False)  # should never get here
 
@@ -1555,11 +1565,11 @@ class Solver(_Common):
     def _get_failed_phase(self, index):
         fails = self.failed_phase_list
         st = self.phase_stack[-1].status
-        if st in ("failed", "cyclic"):
+        if st in (SolverStatus.failed, SolverStatus.cyclic):
             fails = fails + self.phase_stack[-1:]
 
         if index is None:
-            index = -1 if st == "cyclic" else 0
+            index = -1 if st == SolverStatus.cyclic else 0
         try:
             return fails[index]
         except IndexError:
