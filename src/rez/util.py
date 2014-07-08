@@ -585,6 +585,8 @@ def convert_old_commands(commands, annotate=True):
             var, value = cmd.split(' ', 1)[1].split('=', 1)
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
+            elif value.startswith("'") and value.endswith("'"):
+                value = value[1:-1]
 
             if var == "CMAKE_MODULE_PATH":
                 value = value.replace("';'", os.pathsep).replace(';', os.pathsep)
