@@ -21,13 +21,14 @@ class CommandReleaseHook(ReleaseHook):
          Optional("user"):  basestring})
 
     schema_dict = {
-        "print_commands":       bool,
-        "print_output":         bool,
-        "print_error":          bool,
-        "cancel_on_error":      bool,
-        "stop_on_error":        bool,
-        "pre_commands":         [commands_schema],
-        "post_commands":        [commands_schema]}
+        "print_commands":           bool,
+        "print_output":             bool,
+        "print_error":              bool,
+        "cancel_on_error":          bool,
+        "stop_on_error":            bool,
+        "pre_build_commands":       [commands_schema],
+        "pre_release_commands":     [commands_schema],
+        "post_release_commands":    [commands_schema]}
 
     @classmethod
     def name(cls):
@@ -87,11 +88,21 @@ class CommandReleaseHook(ReleaseHook):
                 if self.settings.stop_on_error:
                     return
 
+    def pre_build(self, user, install_path, release_message=None,
+                  changelog=None, previous_version=None,
+                  previous_revision=None):
+        errors = []
+        self._release(self.settings.pre_build_commands, errors=errors)
+        if errors and self.settings.cancel_on_error:
+            raise ReleaseError("The release was cancelled due to the "
+                               "following failed pre-build commands:\n%s"
+                               % '\n\n'.join(errors))
+
     def pre_release(self, user, install_path, release_message=None,
                     changelog=None, previous_version=None,
                     previous_revision=None):
         errors = []
-        self._release(self.settings.pre_commands, errors=errors)
+        self._release(self.settings.pre_release_commands, errors=errors)
         if errors and self.settings.cancel_on_error:
             raise ReleaseError("The release was cancelled due to the "
                                "following failed pre-release commands:\n%s"
@@ -100,7 +111,7 @@ class CommandReleaseHook(ReleaseHook):
     def post_release(self, user, install_path, release_message=None,
                      changelog=None, previous_version=None,
                      previous_revision=None):
-        self._release(self.settings.post_commands)
+        self._release(self.settings.post_release_commands)
 
 
 def register_plugin():

@@ -178,22 +178,29 @@ class StandardBuildProcess(BuildProcess):
         revision = self.vcs.get_current_revision()
         changelog = self.vcs.get_changelog(last_revision)
 
-        # run pre-release hooks
-        for hook in self.hooks:
-            self._prd("Running pre-release hook '%s'..." % hook.name())
-            try:
-                hook.pre_release(user=getpass.getuser(),
-                                 install_path=release_path,
-                                 release_message=self.release_message,
-                                 changelog=changelog,
-                                 previous_version=last_version,
-                                 previous_revision=last_revision)
-            except ReleaseError as e:
-                self._prd("Release cancelled by pre-release hook '%s':\n%s"
-                          % (hook.name(), str(e)))
-                return False
+        def _run_hooks(name, func_name, can_cancel):
+            for hook in self.hooks:
+                self._prd("Running %s hook '%s'..." % (name, hook.name()))
+                error_class = ReleaseError if can_cancel else None
+                try:
+                    func = getattr(hook, func_name)
+                    func(user=getpass.getuser(),
+                         install_path=release_path,
+                         release_message=self.release_message,
+                         changelog=changelog,
+                         previous_version=last_version,
+                         previous_revision=last_revision)
+                except error_class as e:
+                    self._prd("Release cancelled by %s hook '%s':\n%s"
+                              % (name, hook.name(), str(e)))
+                    return False
+            return True
 
-        # do the initial build
+        # run pre-build hooks
+        if not _run_hooks("pre-build", "pre_build", True):
+            return False
+
+        # do an initial clean build
         self._hdr("Building...")
         if not self._build(install_path=install_path,
                            build_path=base_build_path,
@@ -201,7 +208,11 @@ class StandardBuildProcess(BuildProcess):
                            clean=True):
             return False
 
-        # do a second build, installing to the release path
+        # run pre-release hooks
+        if not _run_hooks("pre-release", "pre_release", True):
+            return False
+
+        # do a second non-clean build, installing to the release path
         self._hdr("Releasing...")
         if not self._build(install_path=install_path,
                            build_path=base_build_path,
@@ -253,14 +264,7 @@ class StandardBuildProcess(BuildProcess):
         self.vcs.create_release_tag(self.release_message)
 
         # run post-release hooks
-        for hook in self.hooks:
-            self._prd("Running post-release hook '%s'..." % hook.name())
-            hook.post_release(user=getpass.getuser(),
-                              install_path=release_path,
-                              release_message=self.release_message,
-                              changelog=changelog,
-                              previous_version=last_version,
-                              previous_revision=last_revision)
+        _run_hooks("post-release", "post_release", False)
 
         print "\nPackage %s was released successfully.\n" \
             % self.package.qualified_name

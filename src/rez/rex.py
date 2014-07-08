@@ -750,7 +750,7 @@ class RexExecutor(object):
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
-            whether to add default namespaces such as 'machine'.
+            whether to add default namespaces such as 'system'.
         """
         self.globals = globals_map or {}
         self.formatter = NamespaceFormatter(self.globals)
@@ -787,8 +787,7 @@ class RexExecutor(object):
             self.bind(cmd, func)
 
         if add_default_namespaces:
-            self.bind('machine', system)
-            self.bind('user', getpass.getuser())
+            self.bind('system', system)
 
     @property
     def interpreter(self):

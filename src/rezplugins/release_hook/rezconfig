@@ -18,17 +18,17 @@ command:
     # If true, print output of commands.
     print_output: true
 
-    # If true, print failed commands to stderr (this also prints the command)
+    # If true, print failed commands to stderr
     print_error: true
 
-    # If true, cancel the package release if a pre-release command fails.
+    # If true, cancel the package release if a pre-* command fails.
     cancel_on_error: true
 
     # If true, skip all commands after a failed command. This does not cancel
     # the package release.
     stop_on_error: true
 
-    # List of commands to execute prior to release, in given order.
+    # List of commands to execute prior to build, in given order.
     # Each item is a dict containing:
     # - 'command' (str): Command to execute;
     # - 'args' (str or list of str) (optional): Arguments to the command. If a
@@ -37,12 +37,15 @@ command:
     #   current user.
     #
     # Example:
-    # pre_commands
+    # pre_build_commands
     # - command: ls
     #   args: '-a -l'
     #   user: root
     #
-    pre_commands: []
+    pre_build_commands: []
 
-    # Same as pre_commands, but to be executed after release.
-    post_commands: []
+    # Same expected values as pre_build_commands
+    pre_release_commands: []
+
+    # Same expected values as pre_build_commands
+    post_release_commands: []

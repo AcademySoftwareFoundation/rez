@@ -573,9 +573,9 @@ def convert_old_commands(commands, annotate=True):
         cmd = cmd.replace("!VERSION!",      "{version}")
         cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
         cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
+        cmd = cmd.replace("!USER!",         "{system.user}")
         cmd = cmd.replace("!BASE!",         "{base}")
         cmd = cmd.replace("!ROOT!",         "{root}")
-        cmd = cmd.replace("!USER!",         "{user}")
 
         toks = cmd.strip().split()
         if toks[0] == "export":

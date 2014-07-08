@@ -25,15 +25,16 @@ def setup_parser(parser):
 
 
 def get_suites(opts):
+    from rez.backport.importlib import import_module
 
-    tests = ["shells", "solver", "formatter", "commands", "rex", "build", 
-                "context", "resources", "packages"]
+    tests = ["shells", "solver", "formatter", "commands", "rex", "build",
+             "context", "resources", "packages"]
     suites = []
     test_all = all([not getattr(opts, test) for test in tests])
 
     for test in tests:
         if test_all or getattr(opts, test):
-            module = __import__('rez.tests.test_%s' % test, globals(), locals(), -1)
+            module = import_module('rez.tests.test_%s' % test)
             get_test_suites_func = getattr(module, 'get_test_suites')
             suites += get_test_suites_func()
 
