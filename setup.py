@@ -115,12 +115,11 @@ setup(
         'rez': \
             ['rezconfig'] + \
             ['README*'] + \
-            find_files('plugins', '*.yapsy-plugin') + \
             find_files('_sys', '*.csh') + \
             find_files('_sys', '*.sh') + \
-            #find_files('plugins/build_system/cmake_files', '*.cmake') + \
             find_files('tests/data', '*.*'),
         'rezplugins': [
+            'build_system/template_files/Doxyfile',
             'build_system/cmake_files/*.cmake',
         ]
     },
