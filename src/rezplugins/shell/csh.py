@@ -11,6 +11,8 @@ from rez import module_root_path
 class CSH(UnixShell):
     executable = UnixShell.find_executable('csh')
     norc_arg = '-f'
+    histfile = "~/.history"
+    histvar = "histfile"
 
     @classmethod
     def name(cls):

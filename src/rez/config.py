@@ -140,7 +140,6 @@ _config_dict = {
     "implicit_styles":                  OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
-    "vcs_tag_name":                     Str,
     "dot_image_format":                 Str,
     "prompt":                           Str,
     "build_directory":                  Str,
@@ -202,17 +201,19 @@ _config_dict = {
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
 
-    # plugins are a special case and are loaded lazily
+    # plugins are a special case and are validated lazily
     Optional("plugins"):                dict,
 
     # TODO remove once all settings are finalised
-    Optional(basestring):               object
+    #Optional(basestring):               object
 }
 
 
+# settings common to each plugin type
 _plugin_config_dict = {
     "release_vcs": {
-        "releasable_branches": Or(None, [basestring])
+        "tag_name":                     basestring,
+        "releasable_branches":          Or(None, [basestring])
     }
 }
 

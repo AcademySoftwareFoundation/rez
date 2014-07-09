@@ -45,20 +45,6 @@ local_packages_path: '~/packages'
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path: '~/.rez/packages/int'
 
-# The path that rez-install will deploy external packages to. For production use,
-# you will probably want to change this to a site-wide location.
-external_packages_path: '~/.rez/packages/ext'
-
-# The formulae URLs that rez-install searches for packages
-package_repository_url_path:
-- 'https://github.com/LumaPictures/rez-build/archive/master.zip'
-
-# The directory where rez stores package repositories
-package_repository_path: '~/.rez/package-repos'
-
-# The directory where rez caches package repository downloads
-package_repository_cache_path: '~/.rez/downloads/package-repos'
-
 # Where temporary files go. Defaults to appropriate path depending on your
 # system, for example linux distributions will probably set this to /tmp.
 tmpdir:
@@ -193,23 +179,10 @@ catch_rex_errors: true
 # directory (this is typically where temporary build files are written).
 build_directory: build
 
-# The name of the CMake build system to use, valid options are eclipse, make,
-# xcode and codeblocks.
-cmake_build_system: make
-
-# A list of default arguments to be used with CMake.
-cmake_args:
-- '-DCMAKE_SKIP_RPATH=1'
-
 
 ###############################################################################
 # Release
 ###############################################################################
-
-# For format string used to determine the VCS tag name when releasing.  This
-# string will be formatted against the metadata for the package currently being
-# released.  Valid formatting keys are "name", "version".
-vcs_tag_name: '{name}-{version}'
 
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a
@@ -396,6 +369,11 @@ documentation_url: http://nerdvegas.github.io/rez/
 
 plugins:
     release_vcs:
+        # For format string used to determine the VCS tag name when releasing.
+        # This string will be formatted against the metadata for the package
+        # currently being released.  Valid formatting keys are "name", "version".
+        tag_name: '{name}-{version}'
+
         # A list of branches that a user is allowed to rez-release from. This
         # can be used to block releases from development or feature branches,
         # and support a workflow such as 'gitflow'.  Each branch name should be

@@ -107,7 +107,7 @@ class ReleaseVCS(object):
         attrs = dict((k, str(v)) for k, v in self.package.metadata.iteritems()
                      if isinstance(v, (basestring, Version)))
 
-        tag_name = self.package.config.vcs_tag_name.format(**attrs)
+        tag_name = self.type_settings.tag_name.format(**attrs)
         if not tag_name:
             tag_name = "unversioned"
 
