@@ -6,6 +6,7 @@ from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
 from rez.backport.lru_cache import lru_cache
+from UserDict import UserDict
 import os
 import os.path
 import copy
@@ -116,6 +117,14 @@ class Bool(Setting):
                 % (self._env_var_name, ", ".join(words)))
 
 
+class Dict(Setting):
+    schema = Schema(UserDict)
+
+    def _parse_env_var(self, value):
+        items = value.split(",")
+        return UserDict([item.split(":") for item in items])
+
+
 _config_dict = {
     "packages_path":                PathList,
     "plugin_path":                  PathList,
@@ -154,6 +163,7 @@ _config_dict = {
     "debug_all":                    Bool,
     "quiet":                        Bool,
     "prefix_prompt":                Bool,
+    "env_var_separators":           Dict,
 
     # preferred namespace to place custom settings
     Optional("custom"):             object,
