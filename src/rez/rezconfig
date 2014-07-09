@@ -390,12 +390,15 @@ documentation_url: http://nerdvegas.github.io/rez/
 # Plugin Settings
 ###############################################################################
 
-# This section is just here to illustrate how you would set plugin config
-# settings in your own rezconfig file. The settings here are commented out,
-# because the default values are loaded from the plugins' own rezconfig files.
+# Settings specific to certain plugin implementations can be found in the
+# 'rezconfig' file accompanying that plugin. The settings listed here are
+# common to all plugins of that type.
 
-#plugins:
-#    release_hook:
-#        emailer:
-#            sender:
-#                santa.claus@northpole.com
+plugins:
+    release_vcs:
+        # A list of branches that a user is allowed to rez-release from. This
+        # can be used to block releases from development or feature branches,
+        # and support a workflow such as 'gitflow'.  Each branch name should be
+        # a regular expression that can be used with re.match, for example
+        # '^master$'.
+        releasable_branches:

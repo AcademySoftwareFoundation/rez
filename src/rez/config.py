@@ -202,11 +202,18 @@ _config_dict = {
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
 
-    # plugin settings are validated lazily
+    # plugins are a special case and are loaded lazily
     Optional("plugins"):                dict,
 
     # TODO remove once all settings are finalised
     Optional(basestring):               object
+}
+
+
+_plugin_config_dict = {
+    "release_vcs": {
+        "releasable_branches": Or(None, [basestring])
+    }
 }
 
 
@@ -464,22 +471,23 @@ class _PluginConfigs(object):
         data = self.__dict__['_data']
         from rez.plugin_managers import plugin_manager
         if attr in plugin_manager.get_plugin_types():
-            config_data = plugin_manager.get_plugin_config_data(attr)
+            plugin_type = attr
+            config_data = plugin_manager.get_plugin_config_data(plugin_type)
             d = copy.deepcopy(config_data)
-            if attr in data:
+            if plugin_type in data:
                 # data may contain `AttrDictWrapper`s, which break schema
                 # validation, hence the dict conversion here
-                plugin_data = convert_dicts(data[attr], dict,
+                plugin_data = convert_dicts(data[plugin_type], dict,
                                             (dict, AttrDictWrapper))
                 deep_update(d, plugin_data)
             # validate
-            schema = plugin_manager.get_plugin_config_schema(attr)
+            schema = plugin_manager.get_plugin_config_schema(plugin_type)
             try:
                 d = schema.validate(d)
             except SchemaError as e:
                 raise ConfigurationError(
                     "Error in Rez configuration under plugins.%s: %s"
-                    % (attr, str(e)))
+                    % (plugin_type, str(e)))
         elif attr in data:
             d = data[attr]
         else:

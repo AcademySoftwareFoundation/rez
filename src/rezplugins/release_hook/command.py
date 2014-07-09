@@ -37,7 +37,6 @@ class CommandReleaseHook(ReleaseHook):
 
     def __init__(self, source_path):
         super(CommandReleaseHook, self).__init__(source_path)
-        self.settings = self.package.config.plugins.release_hook.command
 
     def execute_command(self, cmd_name, cmd_arguments, user, errors):
         def _err(msg):

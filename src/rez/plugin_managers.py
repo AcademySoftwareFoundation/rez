@@ -160,7 +160,9 @@ class RezPluginType(object):
     def config_schema(self):
         """Returns the merged configuration data schema for this plugin
         type."""
-        d = {}
+        from rez.config import _plugin_config_dict
+        d = _plugin_config_dict.get(self.type_name, {})
+
         for name, plugin_class in self.plugin_classes.iteritems():
             if hasattr(plugin_class, "schema_dict") \
                     and plugin_class.schema_dict:

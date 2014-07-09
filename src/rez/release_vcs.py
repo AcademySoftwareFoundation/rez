@@ -47,6 +47,8 @@ class ReleaseVCS(object):
         assert(self.is_valid_root(path))
         self.path = path
         self.package = load_developer_package(path)
+        self.type_settings = self.package.config.plugins.release_vcs
+        self.settings = self.type_settings.get(self.name())
 
     @classmethod
     def name(cls):
@@ -102,8 +104,8 @@ class ReleaseVCS(object):
         Args:
             message: Message string to associate with the release.
         """
-        attrs = dict((k,str(v)) for k,v in self.package.metadata.iteritems() \
-            if isinstance(v, (basestring, Version)))
+        attrs = dict((k, str(v)) for k, v in self.package.metadata.iteritems()
+                     if isinstance(v, (basestring, Version)))
 
         tag_name = self.package.config.vcs_tag_name.format(**attrs)
         if not tag_name:

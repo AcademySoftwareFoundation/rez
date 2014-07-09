@@ -2,9 +2,9 @@
 Git version control
 """
 from rez.release_vcs import ReleaseVCS
-from rez.config import config
 from rez.util import print_error
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.vendor.schema.schema import Or
 import functools
 import os.path
 import re
@@ -71,6 +71,23 @@ class GitReleaseVCS(ReleaseVCS):
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
 
+        # check we are releasing from a valid branch
+        releasable_branches = self.type_settings.releasable_branches
+        if releasable_branches:
+            releasable = False
+            current_branch_name = self._get_branch()
+
+            for releasable_branch in releasable_branches:
+                if re.search(releasable_branch, current_branch_name):
+                    releasable = True
+                    break
+
+            if not releasable:
+                raise ReleaseVCSError(
+                    "Could not release: current branch is %s, must match "
+                    "one of: %s"
+                    % (current_branch_name, ', '.join(releasable_branches)))
+
         # check for uncommitted changes
         try:
             self.git("diff-index", "--quiet", "HEAD")
@@ -105,9 +122,6 @@ class GitReleaseVCS(ReleaseVCS):
     def get_current_revision(self):
         doc = dict(commit=self.git("rev-parse", "HEAD")[0])
 
-        def _branch():
-            return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
-
         def _tracking_branch():
             return self.git("rev-parse", "--abbrev-ref",
                             "--symbolic-full-name", "@{u}")[0]
@@ -129,7 +143,7 @@ class GitReleaseVCS(ReleaseVCS):
             except Exception as e:
                 print_error("Error retrieving %s: %s" % (key, str(e)))
 
-        _get("branch", _branch)
+        _get("branch", self._get_branch)
         _get("tracking_branch", _tracking_branch)
         _get("fetch_url", functools.partial(_url, "fetch"))
         _get("push_url", functools.partial(_url, "push"))
@@ -157,6 +171,9 @@ class GitReleaseVCS(ReleaseVCS):
         remote_uri = '/'.join((remote, remote_branch))
         print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
         self.git("push", remote, tag_name)
+
+    def _get_branch(self):
+        return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
 
 
 def register_plugin():
