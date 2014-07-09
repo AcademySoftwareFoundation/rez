@@ -586,10 +586,9 @@ def convert_old_commands(commands, annotate=True):
             if value.startswith('"') and value.endswith('"'):
                 value = value[1:-1]
 
-            if var == "CMAKE_MODULE_PATH":
-                value = value.replace(';', os.pathsep)
+            separator = config.env_var_separators.get(var, os.pathsep)
 
-            parts = value.split(os.pathsep)
+            parts = value.split(separator)
             parts = [x for x in parts if x]
             if len(parts) > 1:
                 idx = None
