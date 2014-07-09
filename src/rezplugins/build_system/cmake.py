@@ -8,6 +8,7 @@ from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
 from rez.platform_ import platform_
 from rez.config import config
+from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
 from rez.vendor.version.requirement import Requirement
 import functools
@@ -92,14 +93,18 @@ class CMakeBuildSystem(BuildSystem):
                 print s
 
         # find cmake binary
-        # TODO add config setting for specifying exepath manually
-        # TODO what if cmake is an alias?
-        exe = context.which("cmake", fallback=True)
+        if self.settings.cmake_binary:
+            exe = self.settings.cmake_binary
+        else:
+            exe = context.which("cmake", fallback=True)
         if not exe:
             raise RezCMakeError("could not find cmake binary")
+        found_exe = which(exe)
+        if not found_exe:
+            raise RezCMakeError("cmake binary does not exist: %s" % exe)
 
         # assemble cmake command
-        cmd = [exe, "-d", self.working_dir]
+        cmd = [found_exe, "-d", self.working_dir]
         cmd += (self.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
