@@ -583,10 +583,19 @@ def convert_old_commands(commands, annotate=True):
         toks = cmd.strip().split()
         if toks[0] == "export":
             var, value = cmd.split(' ', 1)[1].split('=', 1)
-            if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1]
+            for bookend in ('"', "'"):
+                if value.startswith(bookend) and value.endswith(bookend):
+                    value = value[1:-1]
+                    break
 
             separator = config.env_var_separators.get(var, os.pathsep)
+
+            # This is a special special case.  We don't want to include "';'" in 
+            # our env var separators map as it's not really the correct 
+            # behaviour/something we want to promote.  It's included here for 
+            # backwards compatibility only, and to not propogate elsewhere.
+            if var == "CMAKE_MODULE_PATH":
+                value = value.replace("'%s'" % separator, separator)
 
             parts = value.split(separator)
             parts = [x for x in parts if x]
