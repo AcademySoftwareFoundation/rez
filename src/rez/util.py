@@ -564,6 +564,8 @@ def test_encode_decode():
 
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
+    from rez.config import config
+
     def _en(s):
         return s.encode("string-escape")
 
