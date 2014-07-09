@@ -144,6 +144,7 @@ _config_dict = {
     "dot_image_format":                 Str,
     "prompt":                           Str,
     "build_directory":                  Str,
+    "documentation_url":                Str,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
     "editor":                           OptionalStr,

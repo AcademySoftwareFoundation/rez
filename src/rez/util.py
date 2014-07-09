@@ -582,6 +582,17 @@ def test_encode_decode():
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
 
 
+def convert_old_command_expansions(command):
+    """Convert expansions from !OLD! style to {new}."""
+    command = command.replace("!VERSION!",       "{version}")
+    command = command.replace("!MAJOR_VERSION!", "{version.major}")
+    command = command.replace("!MINOR_VERSION!", "{version.minor}")
+    command = command.replace("!BASE!",          "{base}")
+    command = command.replace("!ROOT!",          "{root}")
+    command = command.replace("!USER!",          "{user}")
+    return command
+
+
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     def _en(s):
@@ -592,15 +603,9 @@ def convert_old_commands(commands, annotate=True):
         if annotate:
             loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
 
-        # convert expansions from !OLD! style to {new}
-        cmd = cmd.replace("!VERSION!",      "{version}")
-        cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
-        cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
-        cmd = cmd.replace("!USER!",         "{system.user}")
-        cmd = cmd.replace("!BASE!",         "{base}")
-        cmd = cmd.replace("!ROOT!",         "{root}")
-
+        cmd = convert_old_command_expansions(cmd)
         toks = cmd.strip().split()
+
         if toks[0] == "export":
             var, value = cmd.split(' ', 1)[1].split('=', 1)
             if value.startswith('"') and value.endswith('"'):
