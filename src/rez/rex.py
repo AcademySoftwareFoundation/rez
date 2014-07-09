@@ -16,9 +16,7 @@ from rez.system import system
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path
-
-
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
+from rez.config import config
 
 
 _varprog = None
@@ -210,9 +208,8 @@ class ActionManager(object):
         self.formatter = formatter or str
         self.actions = []
 
-        # TODO: get rid of this feature
         self._env_sep_map = env_sep_map if env_sep_map is not None \
-            else DEFAULT_ENV_SEP_MAP
+            else config.env_var_separators
 
     def get_action_methods(self):
         """
