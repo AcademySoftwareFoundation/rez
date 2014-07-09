@@ -1,5 +1,5 @@
 from rez.exceptions import ReleaseHookError
-from rez.util import print_warning_once
+from rez.util import print_warning
 from rez.packages import load_developer_package
 
 
@@ -24,7 +24,7 @@ def create_release_hooks(names, source_path):
             hook = create_release_hook(name, source_path)
             hooks.append(hook)
         except:
-            print_warning_once("Release hook '%s' is not available." % name)
+            print_warning("Release hook '%s' is not available." % name)
     return hooks
 
 

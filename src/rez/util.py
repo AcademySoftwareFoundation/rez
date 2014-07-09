@@ -648,12 +648,18 @@ def convert_old_commands(commands, annotate=True):
     rex_code = '\n'.join(loc)
     from rez.config import config
     if config.debug("old_commands"):
-        print '-' * 80
-        print "OLD COMMANDS:"
-        print '\n'.join(commands)
-        print "\nNEW COMMANDS:"
-        print rex_code
-        print '-' * 80
+        br = '-' * 80
+        msg = textwrap.dedent(
+            """
+            %s
+            OLD COMMANDS:
+            %s
+
+            NEW COMMANDS:
+            %s
+            %s
+            """) % (br, '\n'.join(commands), rex_code, br)
+        print_debug(msg)
     return rex_code
 
 
@@ -713,7 +719,8 @@ class Timings(object):
                     pc = "%.02f" % (secs * 100.0 / total2)
                 rows.append((name, "%.02f" % secs, pc))
 
-            rows.append(("TOTAL (-other)", "%.02f" % total, ""))
+            rows.append(("TOTAL (-other)", "%.02f" % total2, ""))
+            rows.append(("TOTAL", "%.02f" % total, ""))
             strs = columnise(rows)
             print '\n'.join(strs)
 

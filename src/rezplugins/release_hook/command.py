@@ -4,6 +4,7 @@ Executes pre- and post-release shell commands
 from rez.release_hook import ReleaseHook
 from rez.exceptions import ReleaseError
 from rez.config import config
+from rez.util import print_debug
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
 from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
 import getpass
@@ -79,7 +80,11 @@ class CommandReleaseHook(ReleaseHook):
             if self.settings.print_commands or config.debug("package_release"):
                 from subprocess import list2cmdline
                 toks = [conf["command"]] + conf.get("args", [])
-                print "running command: %s" % list2cmdline(toks)
+                msg = "running command: %s" % list2cmdline(toks)
+                if self.settings.print_commands:
+                    print msg
+                else:
+                    print_debug(msg)
 
             if not self.execute_command(cmd_name=conf.get("command"),
                                         cmd_arguments=conf.get("args"),

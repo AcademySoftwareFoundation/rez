@@ -2,7 +2,8 @@ from rez.exceptions import RezError, ReleaseError
 from rez.packages import load_developer_package, iter_packages
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper
+from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
+    print_debug
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
 from rez.vendor import yaml
@@ -276,7 +277,7 @@ class StandardBuildProcess(BuildProcess):
 
     def _prd(self, s):
         if self.package.config.debug("package_release"):
-            print s
+            print_debug(s)
 
     def _hdr(self, s, h=1):
         self._pr('')

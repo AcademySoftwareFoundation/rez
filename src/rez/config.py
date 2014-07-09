@@ -6,6 +6,7 @@ from rez import module_root_path
 from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
+from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
 import os
 import os.path
@@ -564,7 +565,7 @@ def _load_config_yaml(filepath):
         content = f.read()
     try:
         return yaml.load(content) or {}
-    except Exception as e:
+    except YAMLError as e:
         raise ConfigurationError("Error loading configuration from %s: %s"
                                  % (filepath, str(e)))
 

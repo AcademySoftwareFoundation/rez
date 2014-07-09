@@ -2,7 +2,8 @@
 Manages loading of all types of Rez plugins.
 """
 from rez.config import config, _to_schema
-from rez.util import LazySingleton, propertycache, deep_update, columnise
+from rez.util import LazySingleton, propertycache, deep_update, columnise, \
+    print_debug
 from rez.exceptions import RezPluginError
 import os.path
 import sys
@@ -48,7 +49,7 @@ def extend_path(path, name):
     for dir in config.plugin_path:
         if not os.path.isdir(dir):
             if config.debug("plugins"):
-                print "skipped nonexistant rez plugin path: %s" % dir
+                print_debug("skipped nonexistant rez plugin path: %s" % dir)
             continue
 
         subdir = os.path.join(dir, pname)
@@ -111,8 +112,8 @@ class RezPluginType(object):
                     if plugin_name.startswith('_'):
                         continue
                     if config.debug("plugins"):
-                        print ("loading %s plugin at %s: %s..."
-                               % (self.type_name, path, modname))
+                        print_debug("loading %s plugin at %s: %s..."
+                                    % (self.type_name, path, modname))
                     try:
                         module = loader.find_module(modname).load_module(modname)
                         if hasattr(module, 'register_plugin') and \
@@ -127,7 +128,10 @@ class RezPluginType(object):
                         self.failed_plugins[nameish] = str(e)
                         if config.debug("plugins"):
                             import traceback
-                            traceback.print_exc()
+                            from StringIO import StringIO
+                            out = StringIO()
+                            traceback.print_exc(file=out)
+                            print_debug(out.getvalue())
 
             # load config
             configfile = os.path.join(path, "rezconfig")

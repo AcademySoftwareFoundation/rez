@@ -8,7 +8,7 @@ import textwrap
 from rez.vendor import argparse
 from rez.cli._util import error
 from rez import __version__
-import rez.sigint
+#import rez.sigint
 
 
 class RezHelpFormatter(argparse.HelpFormatter):

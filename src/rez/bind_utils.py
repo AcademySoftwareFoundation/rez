@@ -4,14 +4,14 @@ Utility functions for bind modules.
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
-from rez.util import which
+from rez.util import which, print_debug
 import subprocess
 import os.path
 
 
 def log(msg):
     if config.debug("bind_modules"):
-        print msg
+        print_debug(msg)
 
 
 def check_version(version, range=None):

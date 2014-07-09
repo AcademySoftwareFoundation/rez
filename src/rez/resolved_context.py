@@ -2,11 +2,11 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, error, color, heading, warning, local, implicit
+from rez.colorize import critical, error, heading, warning, local, implicit
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory, timings
+    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, create_forwarding_script, \
+    timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -272,19 +272,6 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        def _ip(p):
-            return p.name in (i.name for i in self.implicit_packages)
-
-        def _gt(p):
-            t = []
-            if not os.path.exists(pkg.root):
-                t.append('NOT FOUND')
-            if pkg.is_local:
-                t.append('local')
-            if _ip(p):
-                t.append('implicit')
-            return '(%s)' % ', '.join(t) if t else ''
-
         if self.status in ("failed", "aborted"):
             _pr(critical("The context failed to resolve:\n"))
             _pr(error(self.failure_description))
@@ -305,28 +292,39 @@ class ResolvedContext(object):
             _pr()
 
         _pr(heading("requested packages:"))
-        for pkg in self.package_requests:
-            if _ip(pkg):
-                _pr(implicit(str(pkg)))
-            else:
-                _pr(str(pkg))
+        rows = []
+        colors = []
+        for request in self.package_requests:
+            col = str
+            t = ''
+            if request in self.implicit_packages:
+                t = "(implicit)"
+                col = implicit
+            rows.append((str(request), t))
+            colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
         _pr()
 
         _pr(heading("resolved packages:"))
         rows = []
+        colors = []
         for pkg in (self.resolved_packages or []):
-            rows.append((pkg.qualified_package_name, pkg.root, _gt(pkg)))
+            t = []
+            col = str
+            if not os.path.exists(pkg.root):
+                t.append('NOT FOUND')
+                col = critical
+            if pkg.is_local:
+                t.append('local')
+                col = local
+            t = '(%s)' % ', '.join(t) if t else ''
+            rows.append((pkg.qualified_package_name, pkg.root, t))
+            colors.append(col)
 
-        for line, row in zip(columnise(rows), rows):
-            qual = row[-1]
-            if 'NOT FOUND' in qual:
-                _pr(critical(line))
-            elif 'local' in qual:
-                _pr(local(line))
-            elif 'implicit' in qual:
-                _pr(implicit(line))
-            else:
-                _pr(line)
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
 
         if verbose:
             _pr()

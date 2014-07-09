@@ -15,8 +15,8 @@ from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
-    get_script_path, which, expandvars
+from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
+    expandvars
 
 
 DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}

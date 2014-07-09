@@ -1,7 +1,7 @@
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 from rez.vendor.version.version import Version
 from rez.packages import load_developer_package
-from rez.util import which
+from rez.util import which, print_debug
 import subprocess
 
 
@@ -123,7 +123,7 @@ class ReleaseVCS(object):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
         if self.package.config.debug("package_release"):
-            print "Running command: %s" % cmd_str
+            print_debug("Running command: %s" % cmd_str)
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, cwd=self.path)

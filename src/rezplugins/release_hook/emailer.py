@@ -3,6 +3,7 @@ Sends a post-release email
 """
 from rez.release_hook import ReleaseHook
 from email.mime.text import MIMEText
+from rez.util import print_warning
 import smtplib
 import sys
 
@@ -46,8 +47,8 @@ class EmailReleaseHook(ReleaseHook):
         if not settings.recipients:
             return  # nothing to do, sending email to nobody
         if not settings.smtp_host:
-            print_warning_once("did not send release email: "
-                               "SMTP host is not specified")
+            print_warning("did not send release email: "
+                          "SMTP host is not specified")
             return
 
         print "Sending release email..."

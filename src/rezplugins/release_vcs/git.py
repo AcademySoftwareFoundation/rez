@@ -3,6 +3,7 @@ Git version control
 """
 from rez.release_vcs import ReleaseVCS
 from rez.config import config
+from rez.util import print_error
 from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
 import functools
 import os.path
@@ -22,7 +23,8 @@ class GitReleaseVCS(ReleaseVCS):
         try:
             self.git("rev-parse")
         except ReleaseVCSError:
-            raise ReleaseVCSUnsupportedError("%s is not a git repository" % path)
+            raise ReleaseVCSUnsupportedError("%s is not a git repository"
+                                             % path)
 
     @classmethod
     def is_valid_root(cls, path):
@@ -41,7 +43,7 @@ class GitReleaseVCS(ReleaseVCS):
         if toks:
             try:
                 s2 = toks[-1]
-                adj,n = s2.split()
+                adj, n = s2.split()
                 assert(adj in ("ahead", "behind"))
                 n = int(n)
                 return -n if adj == "behind" else n
@@ -53,7 +55,8 @@ class GitReleaseVCS(ReleaseVCS):
             return 0
 
     def get_tracking_branch(self):
-        """Returns (remote, branch) tuple, or None,None if there is no remote."""
+        """Returns (remote, branch) tuple, or None,None if there is no remote.
+        """
         try:
             remote_uri = self.git("rev-parse", "--abbrev-ref",
                                   "--symbolic-full-name", "@{u}")[0]
@@ -61,7 +64,7 @@ class GitReleaseVCS(ReleaseVCS):
         except Exception as e:
             if "No upstream branch" not in str(e):
                 raise e
-        return (None,None)
+        return (None, None)
 
     def validate_repostate(self):
         b = self.git("rev-parse", "--is-bare-repository")
@@ -78,15 +81,16 @@ class GitReleaseVCS(ReleaseVCS):
             raise ReleaseVCSError(msg)
 
         # check if we are behind/ahead of remote
-        remote,remote_branch = self.get_tracking_branch()
+        remote, remote_branch = self.get_tracking_branch()
         if remote:
             self.git("remote", "update")
             n = self.get_relative_to_remote()
             if n:
-                s = "ahead of" if n>0 else "behind"
+                s = "ahead of" if n > 0 else "behind"
                 remote_uri = '/'.join((remote, remote_branch))
-                raise ReleaseVCSError(("Could not release: %d commits " + \
-                    "%s %s.") % (abs(n), s, remote_uri))
+                raise ReleaseVCSError(
+                    "Could not release: %d commits %s %s."
+                    % (abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
         prev_commit = (previous_revision or {}).get("commit")
@@ -123,9 +127,7 @@ class GitReleaseVCS(ReleaseVCS):
             try:
                 doc[key] = fn()
             except Exception as e:
-                if config.debug("package_release"):
-                    print >> sys.stderr, "WARNING: Error retrieving %s: %s" \
-                        % (key, str(e))
+                print_error("Error retrieving %s: %s" % (key, str(e)))
 
         _get("branch", _branch)
         _get("tracking_branch", _tracking_branch)
