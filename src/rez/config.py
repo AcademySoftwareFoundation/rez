@@ -84,6 +84,10 @@ class StrList(Setting):
         return [x for x in value if x]
 
 
+class OptionalStrList(Setting):
+    schema = Or(None, [basestring])
+
+
 class PathList(StrList):
     sep = os.pathsep
 
@@ -125,6 +129,14 @@ _config_dict = {
     "parent_variables":                 StrList,
     "resetting_variables":              StrList,
     "release_hooks":                    StrList,
+    "critical_styles":                  OptionalStrList,
+    "error_styles":                     OptionalStrList,
+    "warning_styles":                   OptionalStrList,
+    "info_styles":                      OptionalStrList,
+    "debug_styles":                     OptionalStrList,
+    "heading_styles":                   OptionalStrList,
+    "local_styles":                     OptionalStrList,
+    "implicit_styles":                  OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
     "vcs_tag_name":                     Str,
@@ -136,8 +148,25 @@ _config_dict = {
     "editor":                           OptionalStr,
     "image_viewer":                     OptionalStr,
     "browser":                          OptionalStr,
+    "critical_fore":                    OptionalStr,
+    "critical_back":                    OptionalStr,
+    "error_fore":                       OptionalStr,
+    "error_back":                       OptionalStr,
+    "warning_fore":                     OptionalStr,
+    "warning_back":                     OptionalStr,
+    "info_fore":                        OptionalStr,
+    "info_back":                        OptionalStr,
+    "debug_fore":                       OptionalStr,
+    "debug_back":                       OptionalStr,
+    "heading_fore":                     OptionalStr,
+    "heading_back":                     OptionalStr,
+    "local_fore":                       OptionalStr,
+    "local_back":                       OptionalStr,
+    "implicit_fore":                    OptionalStr,
+    "implicit_back":                    OptionalStr,
     "resource_caching_maxsize":         Int,
     "add_bootstrap_path":               Bool,  # TODO deprecate
+    "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
     "all_parent_variables":             Bool,

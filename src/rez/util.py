@@ -18,10 +18,14 @@ import tempfile
 import threading
 import subprocess as sp
 from collections import MutableMapping, defaultdict
+import logging
 from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
+
+
+logger = logging.getLogger(__name__)
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
@@ -85,13 +89,32 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
         | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
+# TODO deprecate
 _once_warnings = set()
-
-
 def print_warning_once(msg):
     if msg not in _once_warnings:
-        print >> sys.stderr, "WARNING: %s" % msg
+        logger.warning(msg)
         _once_warnings.add(msg)
+
+
+def print_debug(msg):
+    logger.debug(msg)
+
+
+def print_info(msg):
+    logger.info(msg)
+
+
+def print_warning(msg):
+    logger.warning(msg)
+
+
+def print_error(msg):
+    logger.error(msg)
+
+
+def print_critical(msg):
+    logger.critical(msg)
 
 
 def _mkdirs(*dirs):

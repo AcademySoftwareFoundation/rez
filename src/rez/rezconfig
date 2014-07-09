@@ -247,6 +247,69 @@ prefix_prompt: true
 
 
 ###############################################################################
+# Colorization
+###############################################################################
+
+# The following settings provide styling information for output to the console,
+# and is based on the capabilities of the Colorama module
+# (https://pypi.python.org/pypi/colorama).
+#
+# *_fore and *_back colors are based on the colors supported by this module and
+# the console. One or more styles can be applied using the *_styles
+# configuration. These settings will also affect the logger used by rez.
+#
+# At the time of writing, valid values are:
+# fore/back: black, red, green, yellow, blue, magenta, cyan, white
+# style: dim, normal, bright
+
+# Enables/disables colorization globally.
+color_enabled: true
+
+#------------------------------------------------------------------------------
+# Logging colors
+#------------------------------------------------------------------------------
+critical_fore: red
+critical_back:
+critical_styles:
+- 'bright'
+
+error_fore: red
+error_back:
+error_styles:
+
+warning_fore: yellow
+warning_back:
+warning_styles:
+
+info_fore:
+info_back:
+info_styles:
+
+debug_fore: blue
+debug_back:
+debug_styles:
+
+#------------------------------------------------------------------------------
+# Context-sensitive colors
+#------------------------------------------------------------------------------
+# Heading
+heading_fore:
+heading_back:
+heading_styles:
+- 'bright'
+
+# Local packages
+local_fore: green
+local_back:
+local_styles:
+
+# Implicit packages
+implicit_fore: cyan
+implicit_back:
+implicit_styles:
+
+
+###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
 

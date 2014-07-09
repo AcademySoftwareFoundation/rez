@@ -2,6 +2,7 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.config import config
+from rez.colorize import critical, error, color, heading, warning, local, implicit
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
@@ -271,9 +272,22 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        if self.status_ in ("failed", "aborted"):
-            _pr("The context failed to resolve:\n")
-            _pr(self.failure_description)
+        def _ip(p):
+            return p.name in (i.name for i in self.implicit_packages)
+
+        def _gt(p):
+            t = []
+            if not os.path.exists(pkg.root):
+                t.append('NOT FOUND')
+            if pkg.is_local:
+                t.append('local')
+            if _ip(p):
+                t.append('implicit')
+            return '(%s)' % ', '.join(t) if t else ''
+
+        if self.status in ("failed", "aborted"):
+            _pr(critical("The context failed to resolve:\n"))
+            _pr(error(self.failure_description))
             return
 
         t_str = _rt(self.created)
@@ -285,33 +299,43 @@ class ResolvedContext(object):
         _pr()
 
         if verbose:
-            _pr("search paths:")
+            _pr(heading("search paths:"))
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr("requested packages:")
+        _pr(heading("requested packages:"))
         for pkg in self.package_requests:
-            _pr(str(pkg))
+            if _ip(pkg):
+                _pr(implicit(str(pkg)))
+            else:
+                _pr(str(pkg))
         _pr()
 
-        _pr("resolved packages:")
+        _pr(heading("resolved packages:"))
         rows = []
         for pkg in (self.resolved_packages or []):
-            tok = ''
-            if not os.path.exists(pkg.root):
-                tok = 'NOT FOUND'
-            elif pkg.is_local:
-                tok = '(local)'
-            rows.append((pkg.qualified_package_name, pkg.root, tok))
-        _pr('\n'.join(columnise(rows)))
+            rows.append((pkg.qualified_package_name, pkg.root, _gt(pkg)))
+
+        for line, row in zip(columnise(rows), rows):
+            qual = row[-1]
+            if 'NOT FOUND' in qual:
+                _pr(critical(line))
+            elif 'local' in qual:
+                _pr(local(line))
+            elif 'implicit' in qual:
+                _pr(implicit(line))
+            else:
+                _pr(line)
 
         if verbose:
             _pr()
-            _pr("resolve details:")
+            _pr(heading("resolve details:"))
             _pr("load time: %.02f secs" % self.load_time)
             actual_solve_time = self.solve_time - self.load_time
             _pr("solve time: %.02f secs" % actual_solve_time)
+            if self.load_path:
+                _pr("rxt file: %s" % self.load_path)
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):

@@ -174,10 +174,6 @@ def command(opts, parser):
             write_graph(gstr, opts)
         else:
             rc.print_info(verbose=opts.verbose)
-            if opts.verbose and (rxt_file == current_rxt_file):
-                print
-                print "rxt file:\n%s" % rxt_file
-            print
         return
 
     if opts.format == 'dict':

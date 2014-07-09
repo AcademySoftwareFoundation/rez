@@ -115,7 +115,7 @@ setup(
     packages=find_packages('src', exclude=["tests"]),
     package_data = {
         'rez':
-            ['rezconfig'] +
+            ['rezconfig', 'logging.conf'] +
             ['README*'] +
             find_files('*.csh', '_sys') +
             find_files('*.sh', '_sys') +
