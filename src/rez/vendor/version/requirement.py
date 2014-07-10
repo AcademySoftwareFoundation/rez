@@ -1,5 +1,6 @@
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.util import _Common
+from rez.contrib.animallogic.util import safe_str
 import re
 
 
@@ -202,7 +203,7 @@ class Requirement(_Common):
         if platform.system() == "Windows":
             raise NotImplemented
         else:
-            return str(self)
+            return safe_str(str(self))
 
     def conflicts_with(self, other):
         """Returns True if this requirement conflicts with another."""
