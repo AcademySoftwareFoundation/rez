@@ -22,6 +22,8 @@ def setup_parser(parser):
                         help="test resource iteration and serialization")
     parser.add_argument("--packages", action="store_true",
                         help="test package iteration and serialization")
+    parser.add_argument("--animallogic", action="store_true",
+                        help="test animal logic customisations")
 
 
 def get_suites(opts):
@@ -35,7 +37,8 @@ def get_suites(opts):
         (not opts.build) and \
         (not opts.context) and \
         (not opts.resources) and \
-        (not opts.packages)
+        (not opts.packages) and \
+        (not opts.animallogic)
 
     if opts.shells or test_all:
         from rez.tests.test_shells import get_test_suites
@@ -71,6 +74,10 @@ def get_suites(opts):
 
     if opts.packages or test_all:
         from rez.tests.test_packages import get_test_suites
+        suites += get_test_suites()
+
+    if opts.animallogic or test_all:
+        from rez.tests.test_animallogic import get_test_suites
         suites += get_test_suites()
 
     return suites
