@@ -597,7 +597,7 @@ def convert_old_commands(commands, annotate=True):
             # behaviour/something we want to promote.  It's included here for 
             # backwards compatibility only, and to not propogate elsewhere.
             if var == "CMAKE_MODULE_PATH":
-                value = value.replace("'%s'" % separator, separator)
+                value = value.replace("'%s'" % separator, separator).replace(":", separator)
 
             parts = value.split(separator)
             parts = [x for x in parts if x]
