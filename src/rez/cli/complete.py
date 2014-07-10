@@ -7,8 +7,14 @@ __doc__ = argparse.SUPPRESS
 
 
 def setup_parser(parser):
-    parser.add_argument("--type", type=str, choices=("package", "config"),
+    parser.add_argument("-t", "--type", dest="type", type=str,
+                        choices=("package", "config"),
                         help="type of completion")
+    parser.add_argument("-c", "--command-line", dest="command_line",
+                        metavar="VARIABLE", type=str,
+                        help="assume the current command line is stored in "
+                        "the given environment variable, and base completion "
+                        "on this, rather than PREFIX")
     parser.add_argument("PREFIX", type=str, nargs='?',
                         help="prefix for completion")
 
@@ -21,10 +27,21 @@ def command(opts, parser):
     timings.enabled = False
     config.override("quiet", True)
 
-    if opts.type == "packages":
+    if opts.command_line:
+        import os
+        line = os.getenv(opts.command_line, '')
+        toks = line.strip().split()
+        if len(toks) > 1:
+            prefix = toks[-1]
+        else:
+            prefix = ''
+    else:
+        prefix = opts.PREFIX or ''
+
+    if opts.type == "package":
         from rez.packages import get_completions
-        words = get_completions(opts.PREFIX or '')
+        words = get_completions(prefix)
     elif opts.type == "config":
-        words = config.get_completions(opts.PREFIX or '')
+        words = config.get_completions(prefix)
 
     print ' '.join(words)

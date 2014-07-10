@@ -61,8 +61,7 @@ scripts = [
     "rez-help",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
-    "_rez-complete",
-    "_rez_csh_complete"  # TODO is this needed?
+    "_rez-complete"
 ]
 
 # post install hook. Don't believe google - this is how you do it.
