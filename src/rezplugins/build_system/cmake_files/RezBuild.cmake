@@ -75,6 +75,7 @@ endif(REZ_BUILD_PROJECT_VERSION)
 # include rez-build- related cmake modules
 #############################################################################
 
+include(Colorize)
 include(Utils)
 include(RezProject)
 include(InstallFiles)

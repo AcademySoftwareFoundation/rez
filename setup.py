@@ -100,8 +100,8 @@ setup(
     name="rez",
     version=version,
     description=("A cross-platform packaging system that can build and "
-                "install multiple version of packages, and dynamically "
-                "configure resolved environments at runtime."),
+                 "install multiple version of packages, and dynamically "
+                 "configure resolved environments at runtime."),
     keywords="package resolve version build install software management",
     long_description=None,
     url="https://github.com/nerdvegas/rez",
@@ -122,10 +122,8 @@ setup(
             find_files('*.*', 'tests/data'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
-            find_files('*.cmake', 'build_system', root='rezplugins')
-        #'rezplugins': [
-        #    'build_system/cmake_files/*.cmake',
-        #]
+            find_files('*.cmake', 'build_system', root='rezplugins') +
+            find_files('*.*', 'build_system/template_files', root='rezplugins')
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

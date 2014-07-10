@@ -81,7 +81,7 @@ macro (rez_install_doxygen)
 
 		list(GET INSTDOX_DOXYFILE 0 doxyfile)
 		if(NOT doxyfile)
-			set(doxyfile $ENV{REZ_PATH}/template/Doxyfile)
+			set(doxyfile $ENV{REZ_BUILD_DOXYFILE})
 		endif(NOT doxyfile)
 
 		list(GET INSTDOX_DOXYDIR 0 doxydir)
@@ -105,14 +105,14 @@ macro (rez_install_doxygen)
 			endif(DOXYPY_SRC)
 		endif(INSTDOX_DOXYPY)
 
-		SET(_REZ_YAMLQ $ENV{REZ_PATH}/bin/_rez_query_yaml --filepath=${CMAKE_SOURCE_DIR}/package.yaml )
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-name OUTPUT_VARIABLE _proj_name OUTPUT_STRIP_TRAILING_WHITESPACE)
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-version OUTPUT_VARIABLE _proj_ver OUTPUT_STRIP_TRAILING_WHITESPACE)
-		EXECUTE_PROCESS(COMMAND ${_REZ_YAMLQ} --print-desc OUTPUT_VARIABLE _proj_desc OUTPUT_STRIP_TRAILING_WHITESPACE)
+        set(_proj_name $ENV{REZ_BUILD_PROJECT_NAME})
+        set(_proj_ver $ENV{REZ_BUILD_PROJECT_VERSION})
+        set(_proj_desc $ENV{REZ_BUILD_PROJECT_DESCRIPTION})
 		string(REPLACE "\n" " " _proj_desc2 ${_proj_desc})
 
 		add_custom_command(
 			OUTPUT ${dest_dir}/Doxyfile
+			DEPENDS ${doxyfile}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
 			COMMAND ${CMAKE_COMMAND} -E copy ${doxyfile} ${dest_dir}/Doxyfile
 			COMMAND echo PROJECT_NAME = \"${_proj_name}\" >> ${dest_dir}/Doxyfile
@@ -124,6 +124,7 @@ macro (rez_install_doxygen)
 			COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
 			COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
 			COMMAND echo IMAGE_PATH = ${CMAKE_SOURCE_DIR}/${INSTDOX_IMAGEPATH} >> ${dest_dir}/Doxyfile
+			COMMAND echo STRIP_FROM_PATH = ${CMAKE_SOURCE_DIR} >> ${dest_dir}/Doxyfile
 			COMMENT "Generating Doxyfile ${dest_dir}/Doxyfile..."
 			VERBATIM
 		)

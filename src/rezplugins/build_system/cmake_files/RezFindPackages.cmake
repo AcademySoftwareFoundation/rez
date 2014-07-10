@@ -16,6 +16,9 @@
 # and definitions (extra cflags) are automatically set via cmake native functions
 # include_directories(), link_directories(), add_definitions().
 #
+# INCLUDE_DIRS_NO_SYSTEM can be set to disable the declaration of INCLUDE_DIRS
+# as SYSTEM.
+#
 # ------------------------------
 # Finding a Package
 # ------------------------------
@@ -59,6 +62,7 @@
 #
 # Each packages' output variables are combined into the following variables:
 # <PREFIX>_INCLUDE_DIRS
+# <PREFIX>_SYSTEM_INCLUDE_DIRS
 # <PREFIX>_LIBRARY_DIRS
 # <PREFIX>_LIBRARIES
 # <PREFIX>_DEFINITIONS
@@ -89,7 +93,7 @@ macro (rez_find_packages)
 	# parse args
 	#--------------------------------------------------------------------
 
-	parse_arguments(DFP "PREFIX" "REQUIRED;AUTO" ${ARGN})
+	parse_arguments(DFP "PREFIX" "REQUIRED;AUTO;INCLUDE_DIRS_NO_SYSTEM" ${ARGN})
 
 	list(GET DFP_PREFIX 0 DFP_PREFIX)
 	if(NOT DFP_PREFIX)
@@ -102,6 +106,7 @@ macro (rez_find_packages)
 	endif(NOT DFP_DEFAULT_ARGS)
 
 	set(${DFP_PREFIX}_INCLUDE_DIRS)
+    set(${DFP_PREFIX}_SYSTEM_INCLUDE_DIRS)
 	set(${DFP_PREFIX}_LIBRARY_DIRS)
 	set(${DFP_PREFIX}_LIBRARIES)
 	set(${DFP_PREFIX}_DEFINITIONS)
@@ -122,11 +127,16 @@ macro (rez_find_packages)
 
 		# pull in the module, this should define the pkg_XXX output vars
 		include(${pkg})
-		message("rez_find_packages: included ${pkg}.cmake")
+		message("${Green}rez_find_packages: included ${BoldGreen}${pkg}.cmake${ColourReset}")
 
 		if(${pkg}_INCLUDE_DIRS)
-			message("    include dirs: ${${pkg}_INCLUDE_DIRS}")
-			list(APPEND ${DFP_PREFIX}_INCLUDE_DIRS 	${${pkg}_INCLUDE_DIRS})
+            if(${pkg}_USE_SYSTEM_INCLUDE_DIRS AND NOT DFP_INCLUDE_DIRS_NO_SYSTEM)
+                list(APPEND ${DFP_PREFIX}_SYSTEM_INCLUDE_DIRS   ${${pkg}_INCLUDE_DIRS})
+                message("    include dirs: ${${pkg}_INCLUDE_DIRS} ${Yellow}(SYSTEM)${ColourReset}")
+            else(${pkg}_USE_SYSTEM_INCLUDE_DIRS)
+                list(APPEND ${DFP_PREFIX}_INCLUDE_DIRS  ${${pkg}_INCLUDE_DIRS})
+                message("    include dirs: ${${pkg}_INCLUDE_DIRS}")
+            endif(${pkg}_USE_SYSTEM_INCLUDE_DIRS)
 		endif(${pkg}_INCLUDE_DIRS)
 		if(${pkg}_LIBRARY_DIRS)
 			message("    library dirs: ${${pkg}_LIBRARY_DIRS}")
@@ -227,6 +237,7 @@ macro (rez_find_packages)
 	if(DFP_AUTO)
 
 		include_directories(${${DFP_PREFIX}_INCLUDE_DIRS})
+		include_directories(SYSTEM ${${DFP_PREFIX}_SYSTEM_INCLUDE_DIRS})
 		link_directories(${${DFP_PREFIX}_LIBRARY_DIRS})
 
 		# add cflags, escaping quotes along the way. add_definitions() will do this for you, however

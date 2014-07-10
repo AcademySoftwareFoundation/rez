@@ -162,11 +162,14 @@ class CMakeBuildSystem(BuildSystem):
     @staticmethod
     def _add_build_actions(executor, context, package):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
+        template_path = os.path.join(os.path.dirname(__file__), "template_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
+        executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
+        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = package.metadata.get('description', '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
 
