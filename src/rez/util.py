@@ -588,7 +588,7 @@ def convert_old_commands(commands, annotate=True):
             separator = ANIMAL_LOGIC_SEPARATORS.get(var, os.pathsep)
 
             if var == "CMAKE_MODULE_PATH":
-                value = value.replace("';'", separator)
+                value = value.replace("'%s'" % separator, separator).replace(":", separator)
 
             parts = value.split(separator)
             parts = [x for x in parts if x]
