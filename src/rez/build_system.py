@@ -55,7 +55,6 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
                                % working_dir)
 
 
-
 class BuildSystem(object):
     @classmethod
     def name(cls):

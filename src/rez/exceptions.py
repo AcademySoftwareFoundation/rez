@@ -92,7 +92,12 @@ class RexUndefinedVariableError(RexError):
     pass
 
 
-class BuildSystemError(RezError):
+class BuildError(RezError):
+    """Base class for any build-related error."""
+    pass
+
+
+class BuildSystemError(BuildError):
     """Base class for buildsys-related errors."""
     pass
 

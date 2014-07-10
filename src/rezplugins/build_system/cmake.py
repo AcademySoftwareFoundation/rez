@@ -118,15 +118,16 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        ret = {}
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package)
 
+        # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
                                               actions_callback=callback)
+        ret = {}
         if retcode:
             ret["success"] = False
             return ret

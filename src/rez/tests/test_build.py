@@ -1,6 +1,7 @@
 from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
+from rez.exceptions import BuildError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
@@ -63,12 +64,12 @@ class TestBuild(TestBase, TempdirMixin):
         builder = self._create_builder(working_dir)
 
         # build the package from a clean build dir, then build it again
-        self.assertTrue(builder.build(clean=True))
-        self.assertTrue(builder.build())
+        builder.build(clean=True)
+        builder.build()
 
         # build and install it from a clean dir, then build and install it again
-        self.assertTrue(builder.build(install_path=self.install_root, install=True, clean=True))
-        self.assertTrue(builder.build(install_path=self.install_root, install=True))
+        builder.build(install_path=self.install_root, install=True, clean=True)
+        builder.build(install_path=self.install_root, install=True)
 
     def _test_build_build_util(self):
         """Build, install, test the build_util package."""
@@ -89,10 +90,11 @@ class TestBuild(TestBase, TempdirMixin):
         self._create_context("foo==1.1.0")
 
     def _test_build_loco(self):
-        """Test that a package with conflicting requirements fails correctly."""
+        """Test that a package with conflicting requirements fails correctly.
+        """
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
-        self.assertFalse(builder.build(clean=True))
+        self.assertRaises(BuildError, builder.build, clean=True)
 
     def _test_build_bah(self):
         """Build, install, test the bah package."""
@@ -106,7 +108,7 @@ class TestBuild(TestBase, TempdirMixin):
         """Test that a broken build fails correctly."""
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
-        self.assertFalse(builder.build(clean=True))
+        self.assertRaises(BuildError, builder.build, clean=True)
 
     @shell_dependent
     @install_dependent

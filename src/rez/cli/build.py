@@ -32,6 +32,7 @@ def parse_build_args(args, parser):
     else:
         return ([], [])
 
+
 def add_build_system_args(parser):
     from rez.build_system import get_valid_build_systems
     clss = get_valid_build_systems(os.getcwd())
@@ -44,11 +45,13 @@ def add_build_system_args(parser):
                             type=str, choices=types,
                             help="the build system to use.")
 
+
 def add_extra_build_args(parser):
     parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
                         help="extra arguments to build system. To pass args to "
                         "a child build system also, list them after another "
                         "'--' arg.")
+
 
 def setup_parser(parser):
     parser.add_argument("-c", "--clean", action="store_true",
@@ -63,8 +66,12 @@ def setup_parser(parser):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
+    parser.add_argument("--variants", nargs='+', type=int,
+                        help="select variants to build (zero-indexed).")
+
     add_extra_build_args(parser)
     add_build_system_args(parser)
+
 
 def command(opts, parser):
     from rez.build_process import LocalSequentialBuildProcess
@@ -87,7 +94,7 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    if not builder.build(install_path=opts.prefix,
-                         clean=opts.clean,
-                         install=opts.install):
-        sys.exit(1)
+    builder.build(install_path=opts.prefix,
+                  clean=opts.clean,
+                  install=opts.install,
+                  variants=opts.variants)
