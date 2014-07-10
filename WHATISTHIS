@@ -5,3 +5,4 @@ This contains code that was deprecated in Rez2, but may be useful for future dev
 * code related to a 'rez-install' type tool. formulae_manager.py, source_retriever.py and source 
 retriever plugins. Also build_utils.py.
 * in to_delete, daemonize.py and associated code for implementing a forking daemon.
+
