@@ -321,47 +321,6 @@ class RezPluginManager(object):
 # Plugin Types
 # ------------------------------------------------------------------------------
 
-class SourceRetrieverPluginType(RezPluginType):
-    """Source retrievers download data from sources such as archives or
-    repositories.
-    """
-    type_name = "source_retriever"
-
-    def __init__(self):
-        super(SourceRetrieverPluginType, self).__init__()
-        self.ext_to_type = []
-        self.extensions = set()
-
-        for plugin_name, plugin_class in self.plugin_classes.iteritems():
-            exts = plugin_class.supported_url_types()
-            self.ext_to_type += [(x, plugin_name) for x in exts]
-            self.extensions = self.extensions | set(exts)
-
-        # ensures '.tar.gz' is seen before '.gz', for example
-        self.ext_to_type = sorted(self.ext_to_type, key=lambda x: -len(x[0]))
-
-    def create_instance(self, url, type=None, cache_path=None, cache_filename=None,
-                        dry_run=False, **retriever_kwargs):
-        plugin = type
-        if not plugin:
-            for ext, plug in self.ext_to_type:
-                if url.endswith(ext):
-                    plugin = plug
-                    break
-
-        if plugin is None:
-            raise RuntimeError(("No source retriever is associated with the url: '%s'. "
-                "Supported extensions are: %s") % (url, ', '.join(self.extensions)))
-
-        return super(SourceRetrieverPluginType, self).create_instance(
-            plugin,
-            url=url,
-            cache_path=cache_path,
-            cache_filename=cache_filename,
-            dry_run=dry_run,
-            **retriever_kwargs)
-
-
 class ShellPluginType(RezPluginType):
     """Support for different types of target shells, such as bash, tcsh.
     """
@@ -388,7 +347,6 @@ class BuildSystemPluginType(RezPluginType):
 
 plugin_manager = RezPluginManager()
 
-plugin_manager.register_plugin_type(SourceRetrieverPluginType)
 plugin_manager.register_plugin_type(ShellPluginType)
 plugin_manager.register_plugin_type(ReleaseVCSPluginType)
 plugin_manager.register_plugin_type(ReleaseHookPluginType)
