@@ -22,7 +22,7 @@ from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
-from rez.contrib.animallogic.utils import ANIMAL_LOGIC_SEPARATORS
+from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
