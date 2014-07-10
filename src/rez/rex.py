@@ -17,9 +17,10 @@ from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
     get_script_path, which, expandvars
+from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
+DEFAULT_ENV_SEP_MAP = ANIMAL_LOGIC_SEPARATORS
 
 
 #===============================================================================

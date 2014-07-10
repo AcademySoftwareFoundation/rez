@@ -22,6 +22,7 @@ from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
+from rez.contrib.animallogic.utils import ANIMAL_LOGIC_SEPARATORS
 
 
 WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
@@ -580,13 +581,16 @@ def convert_old_commands(commands, annotate=True):
         toks = cmd.strip().split()
         if toks[0] == "export":
             var, value = cmd.split(' ', 1)[1].split('=', 1)
-            if value.startswith('"') and value.endswith('"'):
-                value = value[1:-1]
+            for bookend in ['"', "'"]:
+                if value.startswith(bookend) and value.endswith(bookend):
+                    value = value[1:-1]
+
+            separator = ANIMAL_LOGIC_SEPARATORS.get(var, os.pathsep)
 
             if var == "CMAKE_MODULE_PATH":
-                value = value.replace(';', os.pathsep)
+                value = value.replace("';'", separator)
 
-            parts = value.split(os.pathsep)
+            parts = value.split(separator)
             parts = [x for x in parts if x]
             if len(parts) > 1:
                 idx = None
