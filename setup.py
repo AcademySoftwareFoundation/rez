@@ -119,7 +119,7 @@ setup(
             ['README*'] +
             find_files('*.csh', '_sys') +
             find_files('*.sh', '_sys') +
-            find_files('*.*', 'tests/data'),
+            find_files('*', 'tests/data'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
             find_files('*.cmake', 'build_system', root='rezplugins')
