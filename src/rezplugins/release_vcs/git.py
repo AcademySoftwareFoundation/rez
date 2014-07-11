@@ -3,7 +3,7 @@ Git version control
 """
 from rez.release_vcs import ReleaseVCS
 from rez.util import print_error
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 from rez.vendor.schema.schema import Or
 import functools
 import os.path
@@ -11,7 +11,15 @@ import re
 import sys
 
 
+class GitReleaseVCSError(ReleaseVCSError):
+    pass
+
+
 class GitReleaseVCS(ReleaseVCS):
+
+    schema_dict = {
+        "allow_no_upstream": bool}
+
     @classmethod
     def name(cls):
         return 'git'
@@ -23,8 +31,7 @@ class GitReleaseVCS(ReleaseVCS):
         try:
             self.git("rev-parse")
         except ReleaseVCSError:
-            raise ReleaseVCSUnsupportedError("%s is not a git repository"
-                                             % path)
+            raise GitReleaseVCSError("%s is not a git repository" % path)
 
     @classmethod
     def is_valid_root(cls, path):
@@ -54,6 +61,10 @@ class GitReleaseVCS(ReleaseVCS):
         else:
             return 0
 
+    def get_local_branch(self):
+        """Returns the label of the current local branch."""
+        return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
+
     def get_tracking_branch(self):
         """Returns (remote, branch) tuple, or None,None if there is no remote.
         """
@@ -70,6 +81,15 @@ class GitReleaseVCS(ReleaseVCS):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
+
+        remote, remote_branch = self.get_tracking_branch()
+
+        # check for upstream branch
+        if remote is None and not self.settings.allow_no_upstream:
+            raise ReleaseVCSError(
+                "Release cancelled: there is no upstream branch. To allow "
+                "the release, set the config entry "
+                "'plugins.release_vcs.git.allow_no_upstream' to true.")
 
         # check we are releasing from a valid branch
         releasable_branches = self.type_settings.releasable_branches
@@ -98,7 +118,6 @@ class GitReleaseVCS(ReleaseVCS):
             raise ReleaseVCSError(msg)
 
         # check if we are behind/ahead of remote
-        remote, remote_branch = self.get_tracking_branch()
         if remote:
             self.git("remote", "update")
             n = self.get_relative_to_remote()
@@ -122,10 +141,6 @@ class GitReleaseVCS(ReleaseVCS):
     def get_current_revision(self):
         doc = dict(commit=self.git("rev-parse", "HEAD")[0])
 
-        def _tracking_branch():
-            return self.git("rev-parse", "--abbrev-ref",
-                            "--symbolic-full-name", "@{u}")[0]
-
         def _url(op):
             origin = doc["tracking_branch"].split('/')[0]
             lines = self.git("remote", "-v")
@@ -140,13 +155,22 @@ class GitReleaseVCS(ReleaseVCS):
         def _get(key, fn):
             try:
                 doc[key] = fn()
+                return True
             except Exception as e:
                 print_error("Error retrieving %s: %s" % (key, str(e)))
+                return False
 
-        _get("branch", self._get_branch)
-        _get("tracking_branch", _tracking_branch)
-        _get("fetch_url", functools.partial(_url, "fetch"))
-        _get("push_url", functools.partial(_url, "push"))
+        def _tracking_branch():
+            remote, remote_branch = self.get_tracking_branch()
+            if remote is None:
+                return None
+            else:
+                return "%s/%s" % (remote, remote_branch)
+
+        _get("branch", self.get_local_branch)
+        if _get("tracking_branch", _tracking_branch):
+            _get("fetch_url", functools.partial(_url, "fetch"))
+            _get("push_url", functools.partial(_url, "push"))
         return doc
 
     def _create_tag_impl(self, tag_name, message=None):
@@ -171,9 +195,6 @@ class GitReleaseVCS(ReleaseVCS):
         remote_uri = '/'.join((remote, remote_branch))
         print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
         self.git("push", remote, tag_name)
-
-    def _get_branch(self):
-        return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
 
 
 def register_plugin():

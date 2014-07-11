@@ -112,14 +112,6 @@ class ReleaseVCSError(ReleaseError):
     pass
 
 
-class ReleaseVCSUnsupportedError(ReleaseVCSError):
-    """
-    Raise this error during initialization of a ReleaseVCS sub-class to
-    indicate that the mode is unsupported in the given context.
-    """
-    pass
-
-
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
     pass
