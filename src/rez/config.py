@@ -381,20 +381,27 @@ class Config(DataWrapper):
         return decorated
 
     def get_completions(self, prefix):
+        def _get_plugin_completions(prefix_):
+            from rez.util import get_object_completions
+            words = get_object_completions(
+                instance=self.plugins,
+                prefix=prefix_,
+                instance_types=(dict, AttrDictWrapper))
+            return ["plugins." + x for x in words]
+
         toks = prefix.split('.')
         if len(toks) > 1:
             if toks[0] == "plugins":
                 prefix_ = '.'.join(toks[1:])
-                from rez.util import get_object_completions
-                words = get_object_completions(
-                    instance=self.plugins,
-                    prefix=prefix_,
-                    instance_types=(dict, AttrDictWrapper))
-                return ["plugins." + x for x in words]
+                return _get_plugin_completions(prefix_)
             return []
-        keys = ([x for x in _config_dict if isinstance(x, basestring)]
-                + ["plugins"])
-        return sorted(x for x in keys if x.startswith(prefix))
+        else:
+            keys = ([x for x in _config_dict if isinstance(x, basestring)]
+                    + ["plugins"])
+            keys = [x for x in keys if x.startswith(prefix)]
+            if keys == ["plugins"]:
+                keys += _get_plugin_completions('')
+            return keys
 
     def _swap(self, other):
         """Swap this config with another.

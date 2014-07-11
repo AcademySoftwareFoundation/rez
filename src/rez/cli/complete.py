@@ -8,7 +8,7 @@ __doc__ = argparse.SUPPRESS
 
 def setup_parser(parser):
     parser.add_argument("-t", "--type", dest="type", type=str,
-                        choices=("package", "config"),
+                        default="package", choices=("package", "config"),
                         help="type of completion")
     parser.add_argument("-c", "--command-line", dest="command_line",
                         metavar="VARIABLE", type=str,

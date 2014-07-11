@@ -1409,6 +1409,9 @@ class DataWrapper(object):
 def get_object_completions(instance, prefix, types=None, instance_types=None):
     """Get completion strings based on an object's attributes/keys.
 
+    Completion also works on dynamic attributes (eg implemented via
+    __getattr__) if they are iterable.
+
     Args:
         prefix (str): Prefix to match, can be dot-separated to access nested
             attributes.
@@ -1417,48 +1420,53 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             prefix is given, any if None.
 
     Returns:
-        Sorted list of strings.
+        List of strings.
     """
-    words = set()
     word_toks = []
-
-    def _addword(w):
-        word = '.'.join(word_toks + [w])
-        words.add(word)
-
     toks = prefix.split('.')
     while len(toks) > 1:
         attr = toks[0]
         toks = toks[1:]
         word_toks.append(attr)
-        if hasattr(instance, attr):
+        try:
             instance = getattr(instance, attr)
-        else:
-            try:
-                instance = instance[attr]
-            except KeyError:
-                return []
-            if instance_types and not isinstance(instance, instance_types):
-                return []
+        except AttributeError:
+            return []
+        if instance_types and not isinstance(instance, instance_types):
+            return []
 
     prefix = toks[-1]
-    for attr in dir(instance):
+    value_ = None
+    words = []
+
+    attrs = dir(instance)
+    try:
+        for attr in instance:
+            if isinstance(attr, basestring):
+                attrs.append(attr)
+    except TypeError:
+        pass
+
+    for attr in attrs:
         if attr.startswith(prefix) and not attr.startswith('_') \
                 and not hasattr(instance.__class__, attr):
             value = getattr(instance, attr)
             if types and not isinstance(value, types):
                 continue
             if not callable(value):
-                _addword(attr)
+                words.append(attr)
+                value_ = value
 
-    if hasattr(instance, "__iter__"):
-        try:
-            for key in instance:
-                if key.startswith(prefix):
-                    _addword(key)
-        except TypeError:
-            pass
-    return sorted(words)
+    qual_words = ['.'.join(word_toks + [x]) for x in words]
+
+    if len(words) == 1 and value is not None and \
+            (instance_types is None or isinstance(value, instance_types)):
+        qual_word = qual_words[0]
+        words = get_object_completions(value, '', types)
+        for word in words:
+            qual_words.append("%s.%s" % (qual_word, word))
+
+    return qual_words
 
 
 @atexit.register

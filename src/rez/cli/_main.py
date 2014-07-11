@@ -221,10 +221,11 @@ def run(command=None):
                 parents.pop()
                 subparsers.pop()
 
-            subparsers[-1].add_parser(cmdname,
-                                      help='',  # required so that it can be setup later
-                                      formatter_class=RezHelpFormatter,
-                                      setup_subparser=SetupRezSubParser(module_name))
+            subparsers[-1].add_parser(
+                cmdname,
+                help='',  # required so that it can be setup later
+                formatter_class=RezHelpFormatter,
+                setup_subparser=SetupRezSubParser(module_name))
 
     args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
     opts = parser.parse_args(args)

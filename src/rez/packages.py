@@ -113,13 +113,17 @@ def get_completions(prefix):
         if ch in prefix:
             fam = prefix.split(ch)[0]
             break
-    if fam:
-        words = set(x.qualified_name for x in iter_packages(name=fam)
-                    if x.qualified_name.startswith(prefix))
-    else:
+
+    words = set()
+    if not fam:
         words = set(x.name for x in iter_package_families()
                     if x.name.startswith(prefix))
-    return sorted(words)
+        if len(words) == 1:
+            fam = iter(words).next()
+    if fam:
+        words |= set(x.qualified_name for x in iter_packages(name=fam)
+                     if x.qualified_name.startswith(prefix))
+    return words
 
 
 class PackageFamily(ResourceWrapper):
