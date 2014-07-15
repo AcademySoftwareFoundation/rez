@@ -1,5 +1,5 @@
-from rez.exceptions import RezError, BuildError, ReleaseError
 from rez.packages import load_developer_package, iter_packages
+from rez.exceptions import RezError, BuildError, BuildContextResolveError
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
@@ -374,9 +374,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 r.save(rxt_path)
 
             if r.status != "solved":
-                raise BuildError(
-                    "The build environment could not be resolved:\n%s"
-                    % r.failure_description)
+                raise BuildContextResolveError(r)
 
             # run build system
             self._pr("\nInvoking %s build system..." % self.buildsys.name())

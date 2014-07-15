@@ -4,11 +4,13 @@ Build a package from source.
 import sys
 import os
 from rez.vendor import argparse
+from rez.exceptions import BuildContextResolveError
 
 
 def parse_build_args(args, parser):
     def _args_err(args):
-        parser.error("unrecognized arguments: %s" % ' '.join(str(x) for x in args))
+        parser.error("unrecognized arguments: %s"
+                     % ' '.join(str(x) for x in args))
 
     if args:
         sep = "--"
@@ -61,6 +63,9 @@ def setup_parser(parser):
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
                         help="install to a custom path")
+    parser.add_argument("--fail-graph", action="store_true",
+                        help="if the build environment fails to resolve due "
+                        "to a conflict display the resolve graph as an image.")
     parser.add_argument("-s", "--scripts", action="store_true",
                         help="create build scripts rather than performing the "
                         "full build. Running these scripts will place you into "
@@ -94,7 +99,19 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    builder.build(install_path=opts.prefix,
-                  clean=opts.clean,
-                  install=opts.install,
-                  variants=opts.variants)
+    try:
+        builder.build(install_path=opts.prefix,
+                      clean=opts.clean,
+                      install=opts.install,
+                      variants=opts.variants)
+    except BuildContextResolveError as e:
+        print >> sys.stderr, str(e)
+
+        if opts.fail_graph:
+            if e.context.graph:
+                from rez.util import view_graph
+                view_graph(e.context.graph)
+            else:
+                print >> sys.stderr, \
+                    "the failed resolve context did not generate a graph."
+        sys.exit(1)

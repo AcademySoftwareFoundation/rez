@@ -1,7 +1,7 @@
 from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
-from rez.exceptions import BuildError
+from rez.exceptions import BuildError, BuildContextResolveError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
@@ -94,7 +94,7 @@ class TestBuild(TestBase, TempdirMixin):
         """
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
-        self.assertRaises(BuildError, builder.build, clean=True)
+        self.assertRaises(BuildContextResolveError, builder.build, clean=True)
 
     def _test_build_bah(self):
         """Build, install, test the bah package."""

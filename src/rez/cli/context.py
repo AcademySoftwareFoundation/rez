@@ -11,72 +11,16 @@ from uuid import uuid4
 from rez.config import config
 
 
-# returns (filepath, must_cleanup)
 def write_graph(graph_str, opts):
-    from rez.cli._util import current_rxt_file
-    dest_file = None
-    tmp_dir = None
-    cleanup = True
-
-    if opts.write_graph:
-        dest_file = opts.write_graph
-        cleanup = False
-    else:
-        fmt = config.dot_image_format
-
-        if current_rxt_file:
-            tmp_dir = os.path.dirname(current_rxt_file)
-            if not os.path.exists(tmp_dir):
-                tmp_dir = None
-
-        if tmp_dir:
-            # hijack current env's tmpdir, so we don't have to clean up
-            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
-            dest_file = os.path.join(tmp_dir, name)
-            cleanup = False
-        else:
-            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
-            os.close(tmpf[0])
-            dest_file = tmpf[1]
-
-    from rez.dot import save_graph
-    print "rendering image to " + dest_file + "..."
-    save_graph(graph_str, dest_file, prune_to_package=opts.prune_pkg,
-               prune_to_conflict=False)
-    return dest_file, cleanup
+    from rez.util import write_graph
+    write_graph(graph_str, write_graph=opts.write_graph,
+                prune_pkg=opts.prune_pkg)
 
 
 def view_graph(graph_str, opts):
-    from rez.system import system
-
-    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
-        print >> sys.stderr, "Unable to open display."
-        sys.exit(1)
-
-    dest_file, cleanup = write_graph(graph_str, opts)
-
-    # view graph
-    t1 = time.time()
-    viewed = False
-    prog = config.image_viewer or 'browser'
-    print "loading image viewer (%s)..." % prog
-
-    if config.image_viewer:
-        proc = subprocess.Popen((config.image_viewer, dest_file))
-        proc.wait()
-        viewed = not bool(proc.returncode)
-
-    if not viewed:
-        import webbrowser
-        webbrowser.open_new("file://" + dest_file)
-
-    if cleanup:
-        # hacky - gotta delete tmp file, but hopefully not before app has loaded it
-        t2 = time.time()
-        if (t2 - t1) < 1:  # viewer is probably non-blocking
-            # give app a chance to load image
-            time.sleep(10)
-        os.remove(dest_file)
+    from rez.util import view_graph
+    view_graph(graph_str, write_graph=opts.write_graph,
+               prune_pkg=opts.prune_pkg)
 
 
 def print_tools(rc):
@@ -93,6 +37,7 @@ def print_tools(rc):
     strs = columnise(rows)
     print '\n'.join(strs)
     print
+
 
 def setup_parser(parser):
     from rez.system import system
@@ -132,12 +77,17 @@ def setup_parser(parser):
 
 
 def command(opts, parser):
-    from rez.cli._util import get_rxt_file, current_rxt_file
+    from rez.env import get_context_file
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
 
     timings.enabled = False
-    rxt_file = get_rxt_file(opts.FILE)
+    rxt_file = opts.FILE if opts.FILE else get_context_file()
+    if not rxt_file:
+        print >> sys.stderr, "running Rez v%s.\n" \
+            "not in a resolved environment context.\n" % __version__
+        sys.exit(1)
+
     rc = ResolvedContext.load(rxt_file)
 
     def _graph():

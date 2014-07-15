@@ -13,9 +13,11 @@ import ntpath
 import UserDict
 import re
 import shutil
+import subprocess
 import textwrap
 import tempfile
 import threading
+import time
 import subprocess as sp
 from collections import MutableMapping, defaultdict
 import logging
@@ -28,12 +30,9 @@ from rez.vendor import yaml
 logger = logging.getLogger(__name__)
 
 
-WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
-
-
 try:
     import collections
-    OrderedDict = collections.OrderedDict  # @UndefinedVariable
+    OrderedDict = collections.OrderedDict
 except AttributeError:
     import backport.ordereddict
     OrderedDict = backport.ordereddict.OrderedDict
@@ -68,8 +67,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 
     A forwarding script is one that executes some arbitrary Rez function. This
-    is used internally by Rez to dynamically create a script that uses Rez, even
-    though the parent environ may not be configured to do so.
+    is used internally by Rez to dynamically create a script that uses Rez,
+    even though the parent environment may not be configured to do so.
     """
     doc = dict(
         module=module,
@@ -85,16 +84,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
-        | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-
-# TODO deprecate
-_once_warnings = set()
-def print_warning_once(msg):
-    if msg not in _once_warnings:
-        logger.warning(msg)
-        _once_warnings.add(msg)
+    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def print_debug(msg):
@@ -200,6 +191,7 @@ def _add_bootstrap_pkg_path(paths):
 
 def shlex_join(value):
     import pipes
+
     def quote(s):
         return pipes.quote(s) if '$' not in s else s
 
@@ -311,6 +303,7 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
         s = '-' + s
     return s
 
+
 def get_epoch_time_from_str(s):
     try:
         return int(s)
@@ -331,10 +324,6 @@ def get_epoch_time_from_str(s):
 
     raise Exception("'%s' is an unrecognised time format." % s)
 
-def remove_write_perms(path):
-    st = os.stat(path)
-    mode = st.st_mode & ~WRITE_PERMS
-    os.chmod(path, mode)
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     '''
@@ -1467,6 +1456,80 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             qual_words.append("%s.%s" % (qual_word, word))
 
     return qual_words
+
+
+# TODO move to RezEnvironment once that's done
+# returns (filepath, must_cleanup)
+def write_graph(graph_str, write_graph=None, prune_pkg=None):
+    from rez.settings import settings
+    from rez.env import get_context_file
+
+    dest_file = None
+    tmp_dir = None
+    cleanup = True
+
+    if write_graph:
+        dest_file = write_graph
+        cleanup = False
+    else:
+        fmt = settings.dot_image_format
+
+        current_rxt_file = get_context_file()
+        if current_rxt_file:
+            tmp_dir = os.path.dirname(current_rxt_file)
+            if not os.path.exists(tmp_dir):
+                tmp_dir = None
+
+        if tmp_dir:
+            # hijack current env's tmpdir, so we don't have to clean up
+            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
+            dest_file = os.path.join(tmp_dir, name)
+            cleanup = False
+        else:
+            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
+            os.close(tmpf[0])
+            dest_file = tmpf[1]
+
+    from rez.dot import save_graph
+    print "rendering image to " + dest_file + "..."
+    save_graph(graph_str, dest_file, prune_to_package=prune_pkg,
+               prune_to_conflict=False)
+    return dest_file, cleanup
+
+
+def view_graph(graph_str, write_graph_=None, prune_pkg=None):
+    from rez.system import system
+    from rez.settings import settings
+
+    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
+        print >> sys.stderr, "Unable to open display."
+        sys.exit(1)
+
+    dest_file, cleanup = write_graph(graph_str,  write_graph=write_graph_,
+                                     prune_pkg=prune_pkg)
+
+    # view graph
+    t1 = time.time()
+    viewed = False
+    prog = settings.image_viewer or 'browser'
+    print "loading image viewer (%s)..." % prog
+
+    if settings.image_viewer:
+        proc = subprocess.Popen((settings.image_viewer, dest_file))
+        proc.wait()
+        viewed = not bool(proc.returncode)
+
+    if not viewed:
+        import webbrowser
+        webbrowser.open_new("file://" + dest_file)
+
+    if cleanup:
+        # hacky - gotta delete tmp file, but hopefully not before app has loaded it
+        t2 = time.time()
+        if (t2 - t1) < 1: # viewer is probably non-blocking
+            # give app a chance to load image
+            time.sleep(10)
+        os.remove(dest_file)
 
 
 @atexit.register

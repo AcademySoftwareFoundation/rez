@@ -102,6 +102,22 @@ class BuildSystemError(BuildError):
     pass
 
 
+class BuildContextResolveError(BuildError):
+    """Raised if unable to resolve the required context when creating the
+    environment for a build process."""
+    def __init__(self, context):
+        self.context = context
+        assert context.status != "solved"
+        msg = ("The build environment could not be resolved:\n%s"
+               % context.failure_description)
+        super(BuildContextResolveError, self).__init__(msg)
+
+
+class BuildProcessError(RezError):
+    """Base class for build process-related errors."""
+    pass
+
+
 class ReleaseError(RezError):
     """Any release-related error."""
     pass
@@ -115,10 +131,6 @@ class ReleaseVCSError(ReleaseError):
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
     pass
-
-
-
-
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
