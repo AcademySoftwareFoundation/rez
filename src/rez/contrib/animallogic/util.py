@@ -9,6 +9,7 @@ ANIMAL_LOGIC_SEPARATORS = {
                            "AL_PYLIBS_LIST":",", 
                            "AL_XSI_AUTO_LOADVERSIONEDTOOL":",", 
                            "ARENA_MODULE_PATH":",",
+                           "DOXYGEN_TAGFILES":" ",
 }
 
 
