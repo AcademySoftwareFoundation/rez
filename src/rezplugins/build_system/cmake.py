@@ -173,6 +173,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_DESCRIPTION = package.metadata.get('description', '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
+        executor.env.REZ_RELEASE_PACKAGES_PATH = package.config.release_packages_path
 
 
 def _FWD__spawn_build_shell(working_dir, build_dir):
