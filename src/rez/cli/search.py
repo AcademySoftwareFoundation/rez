@@ -3,6 +3,7 @@ Search for packages.
 """
 from rez.config import config
 from rez.exceptions import RezError
+from rez.util import print_error
 from rez.packages import iter_package_families, iter_packages
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -92,7 +93,7 @@ def command(opts, parser):
                 found = True
 
     def _handle(e):
-        print >> sys.stderr, "ERROR: %s" % str(e)
+        print_error(str(e))
         if opts.stop_on_error:
             sys.exit(0)
 

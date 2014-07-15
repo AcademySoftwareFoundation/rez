@@ -617,7 +617,10 @@ class ResolvedContext(object):
             or None if no tools were wrapped.
         """
         if self.status_ != "solved":
-            raise RezSystemError("Cannot add a failed context to a suite")
+            msg = "Cannot add a failed context to a suite"
+            if self.load_path:
+                msg += ": %s" % self.load_path
+            raise RezSystemError(msg)
 
         path = os.path.abspath(path)
         ppath = os.path.dirname(path)
