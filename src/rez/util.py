@@ -1458,21 +1458,17 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
     return qual_words
 
 
-# TODO move to RezEnvironment once that's done
 # returns (filepath, must_cleanup)
-def write_graph(graph_str, write_graph=None, prune_pkg=None):
-    from rez.settings import settings
-    from rez.env import get_context_file
-
-    dest_file = None
+def write_graph(graph_str, dest_file=None, prune_pkg=None):
     tmp_dir = None
     cleanup = True
 
-    if write_graph:
-        dest_file = write_graph
+    if dest_file:
         cleanup = False
     else:
-        fmt = settings.dot_image_format
+        from rez.env import get_context_file
+        from rez.config import config
+        fmt = config.dot_image_format
 
         current_rxt_file = get_context_file()
         if current_rxt_file:
@@ -1497,25 +1493,25 @@ def write_graph(graph_str, write_graph=None, prune_pkg=None):
     return dest_file, cleanup
 
 
-def view_graph(graph_str, write_graph_=None, prune_pkg=None):
+def view_graph(graph_str, dest_file=None, prune_pkg=None):
     from rez.system import system
-    from rez.settings import settings
+    from rez.config import config
 
     if (system.platform == "linux") and (not os.getenv("DISPLAY")):
         print >> sys.stderr, "Unable to open display."
         sys.exit(1)
 
-    dest_file, cleanup = write_graph(graph_str,  write_graph=write_graph_,
+    dest_file, cleanup = write_graph(graph_str, dest_file=dest_file,
                                      prune_pkg=prune_pkg)
 
     # view graph
     t1 = time.time()
     viewed = False
-    prog = settings.image_viewer or 'browser'
+    prog = config.image_viewer or 'browser'
     print "loading image viewer (%s)..." % prog
 
-    if settings.image_viewer:
-        proc = subprocess.Popen((settings.image_viewer, dest_file))
+    if config.image_viewer:
+        proc = subprocess.Popen((config.image_viewer, dest_file))
         proc.wait()
         viewed = not bool(proc.returncode)
 
@@ -1523,13 +1519,15 @@ def view_graph(graph_str, write_graph_=None, prune_pkg=None):
         import webbrowser
         webbrowser.open_new("file://" + dest_file)
 
+    """
     if cleanup:
         # hacky - gotta delete tmp file, but hopefully not before app has loaded it
         t2 = time.time()
-        if (t2 - t1) < 1: # viewer is probably non-blocking
+        if (t2 - t1) < 1:  # viewer is probably non-blocking
             # give app a chance to load image
             time.sleep(10)
         os.remove(dest_file)
+    """
 
 
 @atexit.register

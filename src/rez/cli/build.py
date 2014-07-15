@@ -110,7 +110,8 @@ def command(opts, parser):
         if opts.fail_graph:
             if e.context.graph:
                 from rez.util import view_graph
-                view_graph(e.context.graph)
+                g = e.context.graph(as_dot=True)
+                view_graph(g)
             else:
                 print >> sys.stderr, \
                     "the failed resolve context did not generate a graph."

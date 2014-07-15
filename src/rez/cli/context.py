@@ -13,13 +13,13 @@ from rez.config import config
 
 def write_graph(graph_str, opts):
     from rez.util import write_graph
-    write_graph(graph_str, write_graph=opts.write_graph,
+    write_graph(graph_str, dest_file=opts.write_graph,
                 prune_pkg=opts.prune_pkg)
 
 
 def view_graph(graph_str, opts):
     from rez.util import view_graph
-    view_graph(graph_str, write_graph=opts.write_graph,
+    view_graph(graph_str, dest_file=opts.write_graph,
                prune_pkg=opts.prune_pkg)
 
 
