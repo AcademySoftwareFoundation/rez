@@ -1,5 +1,5 @@
 from rez.exceptions import ReleaseHookError
-from rez.util import print_warning_once
+from rez.util import print_warning
 from rez.packages import load_developer_package
 
 
@@ -24,7 +24,7 @@ def create_release_hooks(names, source_path):
             hook = create_release_hook(name, source_path)
             hooks.append(hook)
         except:
-            print_warning_once("Release hook '%s' is not available." % name)
+            print_warning("Release hook '%s' is not available." % name)
     return hooks
 
 
@@ -48,6 +48,29 @@ class ReleaseHook(object):
         """
         self.source_path = source_path
         self.package = load_developer_package(source_path)
+        self.type_settings = self.package.config.plugins.release_hook
+        self.settings = self.type_settings.get(self.name())
+
+    def pre_build(self, user, install_path, release_message=None,
+                  changelog=None, previous_version=None,
+                  previous_revision=None):
+        """Pre-build hook.
+
+        Args:
+            user: Name of person who did the release.
+            install_path: Directory the package was installed into.
+            release_message: User-supplied release message.
+            changelog: List of strings describing changes since last release.
+            previous_version: Version object - previously-release package, or
+                None if no previous release.
+            previous_revision: Revision of previously-releaved package (type
+                depends on repo - see ReleaseVCS.get_current_revision().
+
+        Note:
+            This method should raise a `ReleaseError` if the release process
+            should be cancelled.
+        """
+        pass
 
     def pre_release(self, user, install_path, release_message=None,
                     changelog=None, previous_version=None,
@@ -68,7 +91,7 @@ class ReleaseHook(object):
             This method should raise a `ReleaseError` if the release process
             should be cancelled.
         """
-        return True
+        pass
 
     def post_release(self, user, install_path, release_message=None,
                      changelog=None, previous_version=None,

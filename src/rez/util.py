@@ -13,11 +13,14 @@ import ntpath
 import UserDict
 import re
 import shutil
+import subprocess
 import textwrap
 import tempfile
 import threading
+import time
 import subprocess as sp
 from collections import MutableMapping, defaultdict
+import logging
 from types import MethodType
 from string import Formatter
 from rez import module_root_path
@@ -25,12 +28,12 @@ from rez.vendor import yaml
 from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 
-WRITE_PERMS = stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+logger = logging.getLogger(__name__)
 
 
 try:
     import collections
-    OrderedDict = collections.OrderedDict  # @UndefinedVariable
+    OrderedDict = collections.OrderedDict
 except AttributeError:
     import backport.ordereddict
     OrderedDict = backport.ordereddict.OrderedDict
@@ -65,8 +68,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 
     A forwarding script is one that executes some arbitrary Rez function. This
-    is used internally by Rez to dynamically create a script that uses Rez, even
-    though the parent environ may not be configured to do so.
+    is used internally by Rez to dynamically create a script that uses Rez,
+    even though the parent environment may not be configured to do so.
     """
     doc = dict(
         module=module,
@@ -82,17 +85,28 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH \
-        | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-_once_warnings = set()
+def print_debug(msg):
+    logger.debug(msg)
 
 
-def print_warning_once(msg):
-    if msg not in _once_warnings:
-        print >> sys.stderr, "WARNING: %s" % msg
-        _once_warnings.add(msg)
+def print_info(msg):
+    logger.info(msg)
+
+
+def print_warning(msg):
+    logger.warning(msg)
+
+
+def print_error(msg):
+    logger.error(msg)
+
+
+def print_critical(msg):
+    logger.critical(msg)
 
 
 def _mkdirs(*dirs):
@@ -178,6 +192,7 @@ def _add_bootstrap_pkg_path(paths):
 
 def shlex_join(value):
     import pipes
+
     def quote(s):
         return pipes.quote(s) if '$' not in s else s
 
@@ -289,6 +304,7 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
         s = '-' + s
     return s
 
+
 def get_epoch_time_from_str(s):
     try:
         return int(s)
@@ -309,10 +325,6 @@ def get_epoch_time_from_str(s):
 
     raise Exception("'%s' is an unrecognised time format." % s)
 
-def remove_write_perms(path):
-    st = os.stat(path)
-    mode = st.st_mode & ~WRITE_PERMS
-    os.chmod(path, mode)
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     '''
@@ -560,6 +572,17 @@ def test_encode_decode():
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
 
 
+def convert_old_command_expansions(command):
+    """Convert expansions from !OLD! style to {new}."""
+    command = command.replace("!VERSION!",       "{version}")
+    command = command.replace("!MAJOR_VERSION!", "{version.major}")
+    command = command.replace("!MINOR_VERSION!", "{version.minor}")
+    command = command.replace("!BASE!",          "{base}")
+    command = command.replace("!ROOT!",          "{root}")
+    command = command.replace("!USER!",          "{user}")
+    return command
+
+
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     def _en(s):
@@ -570,15 +593,9 @@ def convert_old_commands(commands, annotate=True):
         if annotate:
             loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
 
-        # convert expansions from !OLD! style to {new}
-        cmd = cmd.replace("!VERSION!",      "{version}")
-        cmd = cmd.replace("!MAJOR_VERSION!", "{version.major}")
-        cmd = cmd.replace("!MINOR_VERSION!", "{version.minor}")
-        cmd = cmd.replace("!BASE!",         "{base}")
-        cmd = cmd.replace("!ROOT!",         "{root}")
-        cmd = cmd.replace("!USER!",         "{user}")
-
+        cmd = convert_old_command_expansions(cmd)
         toks = cmd.strip().split()
+
         if toks[0] == "export":
             var, value = cmd.split(' ', 1)[1].split('=', 1)
             for bookend in ['"', "'"]:
@@ -611,7 +628,7 @@ def convert_old_commands(commands, annotate=True):
         elif toks[0].startswith('#'):
             loc.append("comment('%s')" % _en(' '.join(toks[1:])))
         elif toks[0] == "alias":
-            match = re.search("alias (?P<key>.*)=(?P<value>.*)", cmd)
+            match = re.search("alias (?P<key>.*?)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
             value = match.groupdict()['value'].strip()
             if (value.startswith('"') and value.endswith('"')) or \
@@ -622,14 +639,31 @@ def convert_old_commands(commands, annotate=True):
             # assume we can execute this as a straight command
             loc.append("command('%s')" % _en(cmd))
 
-    return '\n'.join(loc)
+    rex_code = '\n'.join(loc)
+    from rez.config import config
+    if config.debug("old_commands"):
+        br = '-' * 80
+        msg = textwrap.dedent(
+            """
+            %s
+            OLD COMMANDS:
+            %s
+
+            NEW COMMANDS:
+            %s
+            %s
+            """) % (br, '\n'.join(commands), rex_code, br)
+        print_debug(msg)
+    return rex_code
 
 
 class Timings(object):
-    """Class for timing operations, for debugging purposes."""
-    # TODO just fow now
-    enabled = (os.getenv("USER") == "ajohns")
-    # enabled = True  # set to True for debugging purposes
+    """Class for timing operations, for debugging purposes.
+
+    Timing is a special case wrt configuration, you need to set
+    $REZ_ENABLE_TIMING to turn it on.
+    """
+    enabled = bool(os.getenv("REZ_ENABLE_TIMING"))
 
     def __init__(self):
         self.timings = defaultdict(float)
@@ -679,7 +713,8 @@ class Timings(object):
                     pc = "%.02f" % (secs * 100.0 / total2)
                 rows.append((name, "%.02f" % secs, pc))
 
-            rows.append(("TOTAL (-other)", "%.02f" % total, ""))
+            rows.append(("TOTAL (-other)", "%.02f" % total2, ""))
+            rows.append(("TOTAL", "%.02f" % total, ""))
             strs = columnise(rows)
             print '\n'.join(strs)
 
@@ -1363,6 +1398,9 @@ class DataWrapper(object):
 def get_object_completions(instance, prefix, types=None, instance_types=None):
     """Get completion strings based on an object's attributes/keys.
 
+    Completion also works on dynamic attributes (eg implemented via
+    __getattr__) if they are iterable.
+
     Args:
         prefix (str): Prefix to match, can be dot-separated to access nested
             attributes.
@@ -1371,48 +1409,125 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             prefix is given, any if None.
 
     Returns:
-        Sorted list of strings.
+        List of strings.
     """
-    words = set()
     word_toks = []
-
-    def _addword(w):
-        word = '.'.join(word_toks + [w])
-        words.add(word)
-
     toks = prefix.split('.')
     while len(toks) > 1:
         attr = toks[0]
         toks = toks[1:]
         word_toks.append(attr)
-        if hasattr(instance, attr):
+        try:
             instance = getattr(instance, attr)
-        else:
-            try:
-                instance = instance[attr]
-            except KeyError:
-                return []
-            if instance_types and not isinstance(instance, instance_types):
-                return []
+        except AttributeError:
+            return []
+        if instance_types and not isinstance(instance, instance_types):
+            return []
 
     prefix = toks[-1]
-    for attr in dir(instance):
+    value_ = None
+    words = []
+
+    attrs = dir(instance)
+    try:
+        for attr in instance:
+            if isinstance(attr, basestring):
+                attrs.append(attr)
+    except TypeError:
+        pass
+
+    for attr in attrs:
         if attr.startswith(prefix) and not attr.startswith('_') \
                 and not hasattr(instance.__class__, attr):
             value = getattr(instance, attr)
             if types and not isinstance(value, types):
                 continue
             if not callable(value):
-                _addword(attr)
+                words.append(attr)
+                value_ = value
 
-    if hasattr(instance, "__iter__"):
-        try:
-            for key in instance:
-                if key.startswith(prefix):
-                    _addword(key)
-        except TypeError:
-            pass
-    return sorted(words)
+    qual_words = ['.'.join(word_toks + [x]) for x in words]
+
+    if len(words) == 1 and value is not None and \
+            (instance_types is None or isinstance(value, instance_types)):
+        qual_word = qual_words[0]
+        words = get_object_completions(value, '', types)
+        for word in words:
+            qual_words.append("%s.%s" % (qual_word, word))
+
+    return qual_words
+
+
+# returns (filepath, must_cleanup)
+def write_graph(graph_str, dest_file=None, prune_pkg=None):
+    tmp_dir = None
+    cleanup = True
+
+    if dest_file:
+        cleanup = False
+    else:
+        from rez.env import get_context_file
+        from rez.config import config
+        fmt = config.dot_image_format
+
+        current_rxt_file = get_context_file()
+        if current_rxt_file:
+            tmp_dir = os.path.dirname(current_rxt_file)
+            if not os.path.exists(tmp_dir):
+                tmp_dir = None
+
+        if tmp_dir:
+            # hijack current env's tmpdir, so we don't have to clean up
+            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
+            dest_file = os.path.join(tmp_dir, name)
+            cleanup = False
+        else:
+            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
+            os.close(tmpf[0])
+            dest_file = tmpf[1]
+
+    from rez.dot import save_graph
+    print "rendering image to " + dest_file + "..."
+    save_graph(graph_str, dest_file, prune_to_package=prune_pkg,
+               prune_to_conflict=False)
+    return dest_file, cleanup
+
+
+def view_graph(graph_str, dest_file=None, prune_pkg=None):
+    from rez.system import system
+    from rez.config import config
+
+    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
+        print >> sys.stderr, "Unable to open display."
+        sys.exit(1)
+
+    dest_file, cleanup = write_graph(graph_str, dest_file=dest_file,
+                                     prune_pkg=prune_pkg)
+
+    # view graph
+    t1 = time.time()
+    viewed = False
+    prog = config.image_viewer or 'browser'
+    print "loading image viewer (%s)..." % prog
+
+    if config.image_viewer:
+        proc = subprocess.Popen((config.image_viewer, dest_file))
+        proc.wait()
+        viewed = not bool(proc.returncode)
+
+    if not viewed:
+        import webbrowser
+        webbrowser.open_new("file://" + dest_file)
+
+    """
+    if cleanup:
+        # hacky - gotta delete tmp file, but hopefully not before app has loaded it
+        t2 = time.time()
+        if (t2 - t1) < 1:  # viewer is probably non-blocking
+            # give app a chance to load image
+            time.sleep(10)
+        os.remove(dest_file)
+    """
 
 
 @atexit.register

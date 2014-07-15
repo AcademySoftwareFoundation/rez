@@ -2,8 +2,12 @@
 Mercurial version control
 """
 from rez.release_vcs import ReleaseVCS
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 import os.path
+
+
+class HgReleaseVCSError(ReleaseVCSError):
+    pass
 
 
 class HgReleaseVCS(ReleaseVCS):
@@ -17,15 +21,15 @@ class HgReleaseVCS(ReleaseVCS):
 
         hgdir = os.path.join(self.path, '.hg')
         if not os.path.isdir(hgdir):
-            raise ReleaseVCSUnsupportedError( \
+            raise HgReleaseVCSError( \
                 "'%s' is not a mercurial working copy" % self.path)
         try:
             assert self.hg('root')[0] == self.path
         except AssertionError:
-            raise ReleaseVCSUnsupportedError( \
+            raise HgReleaseVCSError( \
                 "'%s' is not the root of a mercurial working copy" % self.path)
         except Exception, err:
-            raise ReleaseVCSUnsupportedError("failed to call hg binary: " + str(err))
+            raise HgReleaseVCSError("failed to call hg binary: " + str(err))
 
         self.patch_path = os.path.join(hgdir, 'patches')
         if not os.path.isdir(self.patch_path):

@@ -14,7 +14,7 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.packages import iter_packages
-from rez.util import columnise, print_warning_once
+from rez.util import columnise, print_warning
 from rez.config import config
 from heapq import merge
 import os.path
@@ -290,8 +290,8 @@ class _PackageVariantList(_Common):
                         pkg.validate()
                     except Exception as e:
                         if config.warn("erroneous_packages"):
-                            print_warning_once("skipped %s: %s"
-                                               % (pkg.path, str(e)))
+                            print_warning("skipped %s: %s"
+                                          % (pkg.path, str(e)))
                             indexes.append(i)
                             continue
                 if self.timestamp and pkg.timestamp > self.timestamp:

@@ -58,11 +58,11 @@ scripts = [
     "rez-bind",
     "rez-search",
     "rez-bootstrap",
+    "rez-help",
     "rez-unleash",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
-    "_rez-complete",
-    "_rez_csh_complete"  # TODO is this needed?
+    "_rez-complete"
 ]
 
 # post install hook. Don't believe google - this is how you do it.
@@ -101,8 +101,8 @@ setup(
     name="rez",
     version=version,
     description=("A cross-platform packaging system that can build and "
-                "install multiple version of packages, and dynamically "
-                "configure resolved environments at runtime."),
+                 "install multiple version of packages, and dynamically "
+                 "configure resolved environments at runtime."),
     keywords="package resolve version build install software management",
     long_description=None,
     url="https://github.com/nerdvegas/rez",
@@ -116,17 +116,15 @@ setup(
     packages=find_packages('src', exclude=["tests"]),
     package_data = {
         'rez':
-            ['rezconfig'] +
+            ['rezconfig', 'logging.conf'] +
             ['README*'] +
             find_files('*.csh', '_sys') +
             find_files('*.sh', '_sys') +
             find_files('*', 'tests/data'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
-            find_files('*.cmake', 'build_system', root='rezplugins')
-        #'rezplugins': [
-        #    'build_system/cmake_files/*.cmake',
-        #]
+            find_files('*.cmake', 'build_system', root='rezplugins') +
+            find_files('*.*', 'build_system/template_files', root='rezplugins')
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

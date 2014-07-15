@@ -1,4 +1,0 @@
-#!/bin/bash
-
-. _set-rez-env
-rez_.py settings "$@"

@@ -1,7 +1,7 @@
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 from rez.vendor.version.version import Version
 from rez.packages import load_developer_package
-from rez.util import which
+from rez.util import which, print_debug
 import subprocess
 
 
@@ -47,6 +47,8 @@ class ReleaseVCS(object):
         assert(self.is_valid_root(path))
         self.path = path
         self.package = load_developer_package(path)
+        self.type_settings = self.package.config.plugins.release_vcs
+        self.settings = self.type_settings.get(self.name())
 
     @classmethod
     def name(cls):
@@ -102,10 +104,10 @@ class ReleaseVCS(object):
         Args:
             message: Message string to associate with the release.
         """
-        attrs = dict((k,str(v)) for k,v in self.package.metadata.iteritems() \
-            if isinstance(v, (basestring, Version)))
+        attrs = dict((k, str(v)) for k, v in self.package.metadata.iteritems()
+                     if isinstance(v, (basestring, Version)))
 
-        tag_name = self.package.config.vcs_tag_name.format(**attrs)
+        tag_name = self.type_settings.tag_name.format(**attrs)
         if not tag_name:
             tag_name = "unversioned"
 
@@ -123,7 +125,7 @@ class ReleaseVCS(object):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
         if self.package.config.debug("package_release"):
-            print "Running command: %s" % cmd_str
+            print_debug("Running command: %s" % cmd_str)
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, cwd=self.path)

@@ -15,8 +15,8 @@ from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
-    get_script_path, which, expandvars
+from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
+    expandvars
 from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 
@@ -751,7 +751,7 @@ class RexExecutor(object):
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
-            whether to add default namespaces such as 'machine'.
+            whether to add default namespaces such as 'system'.
         """
         self.globals = globals_map or {}
         self.formatter = NamespaceFormatter(self.globals)
@@ -788,8 +788,7 @@ class RexExecutor(object):
             self.bind(cmd, func)
 
         if add_default_namespaces:
-            self.bind('machine', system)
-            self.bind('user', getpass.getuser())
+            self.bind('system', system)
 
     @property
     def interpreter(self):
@@ -819,20 +818,59 @@ class RexExecutor(object):
         paths_str = os.pathsep.join(paths)
         self.env.PATH.append(paths_str)
 
-    def execute_code(self, code, filename=None):
-        """Execute code within the execution context."""
+    @classmethod
+    def compile_code(cls, code, filename=None, exec_namespace=None):
+        """Compile and possibly execute rex code.
+
+        Args:
+            code (str): The python code to compile.
+            filename (str): File to associate with the code, will default to
+                '<string>'.
+            namespace (dict): Namespace to execute the code in. If None, the
+                code is not executed.
+
+        Returns:
+            Compiled code object.
+        """
         filename = filename or "<string>"
         error_class = Exception if config.catch_rex_errors else None
+
+        # compile
         try:
             pyc = compile(code, filename, 'exec')
-            exec pyc in self.globals
         except error_class as e:
             # trim trace down to only what's interesting
-            import traceback
-            frames = traceback.extract_tb(sys.exc_traceback)
-            frames = [x for x in frames if x[0] == filename]
-            self._patch_frames(frames, code)
-            self._raise_rex_error(frames, e)
+            msg = str(e)
+            r = re.compile(" line ([1-9][0-9]*)")
+            match = r.search(str(e))
+            if match:
+                try:
+                    lineno = int(match.groups()[0])
+                    loc = code.split('\n')
+                    line = loc[lineno - 1]
+                    msg += "\n    %s" % line
+                except:
+                    pass
+            raise RexError(msg)
+
+        # execute
+        if exec_namespace is not None:
+            try:
+                exec pyc in exec_namespace
+            except error_class as e:
+                # trim trace down to only what's interesting
+                import traceback
+                frames = traceback.extract_tb(sys.exc_traceback)
+                frames = [x for x in frames if x[0] == filename]
+                cls._patch_frames(frames, code)
+                cls._raise_rex_error(frames, e)
+        return pyc
+
+    def execute_code(self, code, filename=None):
+        """Execute code within the execution context."""
+        self.compile_code(code=code,
+                          filename=filename,
+                          exec_namespace=self.globals)
 
     def execute_function(self, func, *nargs, **kwargs):
         """
@@ -868,10 +906,12 @@ class RexExecutor(object):
     def expand(self, value):
         return self.formatter.format(str(value))
 
-    def _patch_frames(self, frames, code, codefile="<string>"):
+    @classmethod
+    def _patch_frames(cls, frames, code, codefile=None):
         """Patch traceback's frame objects to add lines of code from `code`
         where appropriate.
         """
+        codefile = codefile or "<string>"
         loc = code.split('\n')
         for i, frame in enumerate(frames):
             filename, lineno, name, line = frame
@@ -882,7 +922,8 @@ class RexExecutor(object):
                 except:
                     pass
 
-    def _raise_rex_error(self, frames, e):
+    @classmethod
+    def _raise_rex_error(cls, frames, e):
         import traceback
         stack = ''.join(traceback.format_list(frames)).strip()
         if isinstance(e, RexError):

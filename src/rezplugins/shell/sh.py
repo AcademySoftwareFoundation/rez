@@ -14,6 +14,8 @@ from rez.shells import UnixShell
 class SH(UnixShell):
     executable = UnixShell.find_executable('sh')
     norc_arg = '--noprofile'
+    histfile = "~/.bash_history"
+    histvar = "HISTFILE"
 
     @classmethod
     def name(cls):
@@ -104,7 +106,7 @@ class SH(UnixShell):
         self._addline("unset %s" % key)
 
     def alias(self, key, value):
-        self._addline("{key}() {{ {value}; }};export -f {key};".format( \
+        self._addline("{key}() {{ {value}; }};export -f {key};".format(
             key=key, value=value))
 
     def _saferefenv(self, key):

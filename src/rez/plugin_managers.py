@@ -2,7 +2,8 @@
 Manages loading of all types of Rez plugins.
 """
 from rez.config import config, _to_schema
-from rez.util import LazySingleton, propertycache, deep_update, columnise
+from rez.util import LazySingleton, propertycache, deep_update, columnise, \
+    print_debug
 from rez.exceptions import RezPluginError
 import os.path
 import sys
@@ -48,7 +49,7 @@ def extend_path(path, name):
     for dir in config.plugin_path:
         if not os.path.isdir(dir):
             if config.debug("plugins"):
-                print "skipped nonexistant rez plugin path: %s" % dir
+                print_debug("skipped nonexistant rez plugin path: %s" % dir)
             continue
 
         subdir = os.path.join(dir, pname)
@@ -111,8 +112,8 @@ class RezPluginType(object):
                     if plugin_name.startswith('_'):
                         continue
                     if config.debug("plugins"):
-                        print ("loading %s plugin at %s: %s..."
-                               % (self.type_name, path, modname))
+                        print_debug("loading %s plugin at %s: %s..."
+                                    % (self.type_name, path, modname))
                     try:
                         module = loader.find_module(modname).load_module(modname)
                         if hasattr(module, 'register_plugin') and \
@@ -127,7 +128,10 @@ class RezPluginType(object):
                         self.failed_plugins[nameish] = str(e)
                         if config.debug("plugins"):
                             import traceback
-                            traceback.print_exc()
+                            from StringIO import StringIO
+                            out = StringIO()
+                            traceback.print_exc(file=out)
+                            print_debug(out.getvalue())
 
             # load config
             configfile = os.path.join(path, "rezconfig")
@@ -156,7 +160,9 @@ class RezPluginType(object):
     def config_schema(self):
         """Returns the merged configuration data schema for this plugin
         type."""
-        d = {}
+        from rez.config import _plugin_config_dict
+        d = _plugin_config_dict.get(self.type_name, {})
+
         for name, plugin_class in self.plugin_classes.iteritems():
             if hasattr(plugin_class, "schema_dict") \
                     and plugin_class.schema_dict:
@@ -315,47 +321,6 @@ class RezPluginManager(object):
 # Plugin Types
 # ------------------------------------------------------------------------------
 
-class SourceRetrieverPluginType(RezPluginType):
-    """Source retrievers download data from sources such as archives or
-    repositories.
-    """
-    type_name = "source_retriever"
-
-    def __init__(self):
-        super(SourceRetrieverPluginType, self).__init__()
-        self.ext_to_type = []
-        self.extensions = set()
-
-        for plugin_name, plugin_class in self.plugin_classes.iteritems():
-            exts = plugin_class.supported_url_types()
-            self.ext_to_type += [(x, plugin_name) for x in exts]
-            self.extensions = self.extensions | set(exts)
-
-        # ensures '.tar.gz' is seen before '.gz', for example
-        self.ext_to_type = sorted(self.ext_to_type, key=lambda x: -len(x[0]))
-
-    def create_instance(self, url, type=None, cache_path=None, cache_filename=None,
-                        dry_run=False, **retriever_kwargs):
-        plugin = type
-        if not plugin:
-            for ext, plug in self.ext_to_type:
-                if url.endswith(ext):
-                    plugin = plug
-                    break
-
-        if plugin is None:
-            raise RuntimeError(("No source retriever is associated with the url: '%s'. "
-                "Supported extensions are: %s") % (url, ', '.join(self.extensions)))
-
-        return super(SourceRetrieverPluginType, self).create_instance(
-            plugin,
-            url=url,
-            cache_path=cache_path,
-            cache_filename=cache_filename,
-            dry_run=dry_run,
-            **retriever_kwargs)
-
-
 class ShellPluginType(RezPluginType):
     """Support for different types of target shells, such as bash, tcsh.
     """
@@ -382,7 +347,6 @@ class BuildSystemPluginType(RezPluginType):
 
 plugin_manager = RezPluginManager()
 
-plugin_manager.register_plugin_type(SourceRetrieverPluginType)
 plugin_manager.register_plugin_type(ShellPluginType)
 plugin_manager.register_plugin_type(ReleaseVCSPluginType)
 plugin_manager.register_plugin_type(ReleaseHookPluginType)

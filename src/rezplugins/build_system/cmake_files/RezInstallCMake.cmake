@@ -27,7 +27,10 @@
 # DEFINITIONS: 	extra cflags.
 #
 # CUSTOM_STRING: Any additional data to be written to the cmake file.
-
+#
+# USE_SYSTEM_INCLUDE_DIRS: When used with rez_find_packages, this flag will 
+#               cause the INCLUDE_DIRS of this package to be declared as SYSTEM 
+#               directories, removing warnings etc at compile time.
 
 if(NOT REZ_BUILD_ENV)
 	message(FATAL_ERROR "Include RezBuild, not this cmake module directly.")
@@ -96,7 +99,7 @@ macro(rez_install_cmake)
 
 	parse_arguments(INSTCM
 		"DESTINATION;INCLUDE_DIRS;LIBRARY_DIRS;LIBRARIES;DEFINITIONS;CUSTOM_STRING"
-		""
+		"USE_SYSTEM_INCLUDE_DIRS"
 		${ARGN})
 
 	#
@@ -132,7 +135,7 @@ macro(_rez_install_auto_cmake)
 
 	parse_arguments(INSTCM
 		"DESTINATION;INCLUDE_DIRS;LIBRARY_DIRS;LIBRARIES;DEFINITIONS;PROJECT_NAME;CUSTOM_STRING"
-		""
+		"USE_SYSTEM_INCLUDE_DIRS"
 		${ARGN})
 
 	list(GET INSTCM_DEFAULT_ARGS 0 do_auto)
@@ -220,7 +223,6 @@ macro(_rez_install_auto_cmake)
 		set(library_names "${INSTCM_LIBRARIES}")
 	endif()
 
-
 	#
 	# generate the cmake file
 	#
@@ -233,6 +235,7 @@ macro(_rez_install_auto_cmake)
 	file(APPEND ${cmake_path} "set(${projname}_LIBRARY_DIRS \"${lib_dirs}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_LIBRARIES \"${library_names}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_DEFINITIONS \"${INSTCM_DEFINITIONS}\")\n\n")
+	file(APPEND ${cmake_path} "set(${projname}_USE_SYSTEM_INCLUDE_DIRS \"${INSTCM_USE_SYSTEM_INCLUDE_DIRS}\")\n\n")
 
 	if(rez_static_libraries AND rez_dynamic_libraries)
 		file(APPEND ${cmake_path} "${rez_static_libraries}\n")
