@@ -22,7 +22,6 @@ from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 DEFAULT_ENV_SEP_MAP = ANIMAL_LOGIC_SEPARATORS
 
-
 #===============================================================================
 # Actions
 #===============================================================================

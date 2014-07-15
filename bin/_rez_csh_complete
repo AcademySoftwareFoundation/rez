@@ -1,6 +1,6 @@
 #!/bin/tcsh
 
-set pkgs_path=`rezolve settings --packages-path`
+set pkgs_path=`rezolve config packages_path`
 
 foreach path ( $pkgs_path )
     if ( -d $path ) then

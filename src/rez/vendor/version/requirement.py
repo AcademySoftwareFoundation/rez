@@ -4,7 +4,6 @@ from rez.contrib.animallogic.util import safe_str
 import re
 
 
-
 class VersionedObject(_Common):
     """Definition of a versioned object, eg "foo-1.0".
 

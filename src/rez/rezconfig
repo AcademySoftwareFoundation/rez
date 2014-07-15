@@ -170,7 +170,7 @@ debug_all: false
 
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
-quiet: false
+quiet: true
 
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
