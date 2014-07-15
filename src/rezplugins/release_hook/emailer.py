@@ -3,6 +3,7 @@ Sends a post-release email
 """
 from rez.release_hook import ReleaseHook
 from email.mime.text import MIMEText
+from rez.util import print_warning
 import smtplib
 import sys
 
@@ -42,24 +43,23 @@ class EmailReleaseHook(ReleaseHook):
         self.send_email(subject, '\n'.join(body))
 
     def send_email(self, subject, body):
-        settings = self.package.config.plugins.release_hook.emailer
-        if not settings.recipients:
+        if not self.settings.recipients:
             return  # nothing to do, sending email to nobody
-        if not settings.smtp_host:
-            print_warning_once("did not send release email: "
-                               "SMTP host is not specified")
+        if not self.settings.smtp_host:
+            print_warning("did not send release email: "
+                          "SMTP host is not specified")
             return
 
         print "Sending release email..."
         msg = MIMEText(body)
         msg["Subject"] = subject
-        msg["From"] = settings.sender
-        msg["To"] = str(',').join(settings.recipients)
+        msg["From"] = self.settings.sender
+        msg["To"] = str(',').join(self.settings.recipients)
 
         try:
-            s = smtplib.SMTP(settings.smtp_host, settings.smtp_port)
-            s.sendmail(from_addr=settings.sender,
-                       to_addrs=settings.recipients,
+            s = smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port)
+            s.sendmail(from_addr=self.settings.sender,
+                       to_addrs=self.settings.recipients,
                        msg=msg.as_string())
             print 'email(s) sent.'
         except Exception, e:

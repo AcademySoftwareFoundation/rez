@@ -4,7 +4,7 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     PackageMetadataError
-from rez.util import propertycache, deep_update, print_warning_once
+from rez.util import propertycache, deep_update, print_warning
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
@@ -191,7 +191,7 @@ class BasePackageResource(FileResource):
         if config.disable_rez_1_compatibility or config.error_old_commands:
             raise SchemaError(None, msg)
         elif config.warn("old_commands"):
-            print_warning_once("%s: %s" % (self.path, msg))
+            print_warning("%s: %s" % (self.path, msg))
         return convert_old_commands(commands)
 
     def convert_name(self, value):
@@ -206,7 +206,7 @@ class BasePackageResource(FileResource):
                     or config.error_package_name_mismatch:
                 raise SchemaError(None, msg)
             elif config.warn("package_name_mismatch"):
-                print_warning_once("%s: %s" % (self.path, msg))
+                print_warning("%s: %s" % (self.path, msg))
         return name
 
     def custom_key(self, value):
@@ -214,7 +214,7 @@ class BasePackageResource(FileResource):
         if config.disable_rez_1_compatibility or config.error_root_custom_key:
             raise SchemaError(None, msg)
         elif config.warn("root_custom_key"):
-            print_warning_once("%s: %s" % (self.path, msg))
+            print_warning("%s: %s" % (self.path, msg))
         return True
 
     def new_rex_command(self, value):
@@ -222,7 +222,7 @@ class BasePackageResource(FileResource):
         if config.disable_rez_1_compatibility or config.error_commands2:
             raise SchemaError(None, msg)
         elif config.warn("commands2"):
-            print_warning_once("%s: %s" % (self.path, msg))
+            print_warning("%s: %s" % (self.path, msg))
         return True
 
     @propertycache
@@ -311,8 +311,7 @@ class BasePackageResource(FileResource):
         if not timestamp:
             # FIXME: should we deal with is_local here or in rez.packages?
             if config.warn("untimestamped"):
-                print_warning_once("Package is not timestamped: %s" %
-                                   self.path)
+                print_warning("Package is not timestamped: %s" % self.path)
         return timestamp
 
 
@@ -405,14 +404,14 @@ class VersionedPackageResource(BasePackageResource):
                         or config.error_version_mismatch:
                     raise SchemaError(None, msg)
                 elif config.warn("version_mismatch"):
-                    print_warning_once("%s: %s" % (self.path, msg))
+                    print_warning("%s: %s" % (self.path, msg))
         else:
             msg = "version must be a string"
             if config.disable_rez_1_compatibility \
                     or config.error_nonstring_version:
                 raise SchemaError(None, msg)
             elif config.warn("nonstring_version"):
-                print_warning_once("%s: %s" % (self.path, msg))
+                print_warning("%s: %s" % (self.path, msg))
         return Version(version_str)
 
     @propertycache

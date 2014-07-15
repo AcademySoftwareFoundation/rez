@@ -2,12 +2,17 @@
 Svn version control
 """
 from rez.release_vcs import ReleaseVCS
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 import subprocess
 import os.path
 import pysvn
 
 # TODO this needs a rewrite
+
+
+class SvnReleaseVCSError(ReleaseVCSError):
+    pass
+
 
 def svn_get_client():
     # check we're in an svn working copy
@@ -60,8 +65,8 @@ class SvnReleaseVCS(ReleaseVCS):
         self.svnc = svn_get_client()
         svn_entry = self.svnc.info(self.path)
         if not svn_entry:
-            raise ReleaseVCSUnsupportedError("%s is not an svn working copy"
-                                             % self.path)
+            raise SvnReleaseVCSError("%s is not an svn working copy"
+                                     % self.path)
         self.this_url = str(svn_entry["url"])
 
     @classmethod

@@ -2,6 +2,8 @@
 Search for packages.
 """
 from rez.config import config
+from rez.exceptions import RezError
+from rez.util import print_error
 from rez.packages import iter_package_families, iter_packages
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -55,7 +57,7 @@ def command(opts, parser):
 
     name_pattern = opts.NAME or '*'
     version_range = VersionRange(opts.VERSION) if opts.VERSION else None
-    error_class = None if opts.debug else Exception
+    error_class = None if opts.debug else RezError
 
     if opts.NAME and not version_range:
         # support syntax ala 'rez-search foo-1.2+'
@@ -72,7 +74,7 @@ def command(opts, parser):
         type_ = "package"
 
     if opts.no_warnings:
-        config.override("quiet", True)
+        config.override("warn_none", True)
 
     # families
     found = False
@@ -91,7 +93,7 @@ def command(opts, parser):
                 found = True
 
     def _handle(e):
-        print >> sys.stderr, "ERROR: %s" % str(e)
+        print_error(str(e))
         if opts.stop_on_error:
             sys.exit(0)
 

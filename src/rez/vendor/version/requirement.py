@@ -57,7 +57,8 @@ class VersionedObject(_Common):
         return self.version_
 
     def __eq__(self, other):
-        return (self.name_ == other.name_) and (self.version_ == other.version_)
+        return ((self.name_ == other.name_)
+                and (self.version_ == other.version_))
 
     def __hash__(self):
         return hash((self.name_, self.version_))
@@ -69,7 +70,6 @@ class VersionedObject(_Common):
             sep_str = self.sep_
             ver_str = str(self.version_)
         return self.name_ + sep_str + ver_str
-
 
 
 class Requirement(_Common):
@@ -120,7 +120,7 @@ class Requirement(_Common):
             i = m.start()
             self.name_ = s[:i]
             req_str = s[i:]
-            if req_str[0] in ('-','@','#'):
+            if req_str[0] in ('-', '@', '#'):
                 self.sep_ = req_str[0]
                 req_str = req_str[1:]
 
@@ -207,7 +207,7 @@ class Requirement(_Common):
     def conflicts_with(self, other):
         """Returns True if this requirement conflicts with another."""
         if (self.name_ != other.name_) or (self.range is None) \
-            or (other.range is None):
+                or (other.range is None):
             return False
         elif self.conflict:
             return False if other.conflict \
@@ -295,11 +295,10 @@ class Requirement(_Common):
 
         if not range.is_any():
             range_str = str(range)
-            if range_str[0] not in ('=','<','>'):
+            if range_str[0] not in ('=', '<', '>'):
                 sep_str = self.sep_
 
         return pre_str + self.name_ + sep_str + range_str
-
 
 
 class RequirementList(_Common):
@@ -363,7 +362,8 @@ class RequirementList(_Common):
 
     @property
     def names(self):
-        """Set of names of requirements, not including conflict requirements."""
+        """Set of names of requirements, not including conflict requirements.
+        """
         return self.names_
 
     @property
@@ -384,6 +384,6 @@ class RequirementList(_Common):
         if self.conflict_:
             s1 = str(self.conflict_[0])
             s2 = str(self.conflict_[1])
-            return "%s <--!--> %s" % (s1,s2)
+            return "%s <--!--> %s" % (s1, s2)
         else:
             return ' '.join(str(x) for x in self.requirements_)

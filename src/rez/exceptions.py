@@ -92,8 +92,29 @@ class RexUndefinedVariableError(RexError):
     pass
 
 
-class BuildSystemError(RezError):
+class BuildError(RezError):
+    """Base class for any build-related error."""
+    pass
+
+
+class BuildSystemError(BuildError):
     """Base class for buildsys-related errors."""
+    pass
+
+
+class BuildContextResolveError(BuildError):
+    """Raised if unable to resolve the required context when creating the
+    environment for a build process."""
+    def __init__(self, context):
+        self.context = context
+        assert context.status != "solved"
+        msg = ("The build environment could not be resolved:\n%s"
+               % context.failure_description)
+        super(BuildContextResolveError, self).__init__(msg)
+
+
+class BuildProcessError(RezError):
+    """Base class for build process-related errors."""
     pass
 
 
@@ -107,21 +128,9 @@ class ReleaseVCSError(ReleaseError):
     pass
 
 
-class ReleaseVCSUnsupportedError(ReleaseVCSError):
-    """
-    Raise this error during initialization of a ReleaseVCS sub-class to
-    indicate that the mode is unsupported in the given context.
-    """
-    pass
-
-
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
     pass
-
-
-
-
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

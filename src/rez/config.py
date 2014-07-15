@@ -6,6 +6,7 @@ from rez import module_root_path
 from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
+from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
 import os
 import os.path
@@ -45,11 +46,9 @@ class Setting(object):
         return data
 
     def _validate(self, data):
-        # overriden settings take precedence. Note that we return `data`,
-        # because it's already had overrides applied and has been validated,
-        # so it includes variable expansions etc.
+        # overriden settings take precedence.
         if self.key in self.config.overrides:
-            return data
+            return Expand().validate(self.config.overrides[self.key])
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
@@ -84,6 +83,10 @@ class StrList(Setting):
     def _parse_env_var(self, value):
         value = value.replace(self.sep, ' ').split()
         return [x for x in value if x]
+
+
+class OptionalStrList(Setting):
+    schema = Or(None, [basestring])
 
 
 class PathList(StrList):
@@ -127,19 +130,44 @@ _config_dict = {
     "parent_variables":                 StrList,
     "resetting_variables":              StrList,
     "release_hooks":                    StrList,
+    "critical_styles":                  OptionalStrList,
+    "error_styles":                     OptionalStrList,
+    "warning_styles":                   OptionalStrList,
+    "info_styles":                      OptionalStrList,
+    "debug_styles":                     OptionalStrList,
+    "heading_styles":                   OptionalStrList,
+    "local_styles":                     OptionalStrList,
+    "implicit_styles":                  OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
-    "vcs_tag_name":                     Str,
     "dot_image_format":                 Str,
     "prompt":                           Str,
     "build_directory":                  Str,
+    "documentation_url":                Str,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
     "editor":                           OptionalStr,
     "image_viewer":                     OptionalStr,
     "browser":                          OptionalStr,
+    "critical_fore":                    OptionalStr,
+    "critical_back":                    OptionalStr,
+    "error_fore":                       OptionalStr,
+    "error_back":                       OptionalStr,
+    "warning_fore":                     OptionalStr,
+    "warning_back":                     OptionalStr,
+    "info_fore":                        OptionalStr,
+    "info_back":                        OptionalStr,
+    "debug_fore":                       OptionalStr,
+    "debug_back":                       OptionalStr,
+    "heading_fore":                     OptionalStr,
+    "heading_back":                     OptionalStr,
+    "local_fore":                       OptionalStr,
+    "local_back":                       OptionalStr,
+    "implicit_fore":                    OptionalStr,
+    "implicit_back":                    OptionalStr,
     "resource_caching_maxsize":         Int,
     "add_bootstrap_path":               Bool,  # TODO deprecate
+    "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
     "all_parent_variables":             Bool,
@@ -149,16 +177,19 @@ _config_dict = {
     "warn_shell_startup":               Bool,
     "warn_untimestamped":               Bool,
     "warn_all":                         Bool,
+    "warn_none":                        Bool,
     "debug_plugins":                    Bool,
     "debug_package_release":            Bool,
     "debug_bind_modules":               Bool,
     "debug_resources":                  Bool,
     "debug_all":                        Bool,
+    "debug_none":                       Bool,
     "quiet":                            Bool,
     "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,
     "error_old_commands":               Bool,
+    "debug_old_commands":               Bool,
     "warn_package_name_mismatch":       Bool,
     "error_package_name_mismatch":      Bool,
     "warn_version_mismatch":            Bool,
@@ -170,11 +201,20 @@ _config_dict = {
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
 
-    # plugin settings are validated lazily
+    # plugins are a special case and are validated lazily
     Optional("plugins"):                dict,
 
     # TODO remove once all settings are finalised
-    Optional(basestring):               object
+    #Optional(basestring):               object
+}
+
+
+# settings common to each plugin type
+_plugin_config_dict = {
+    "release_vcs": {
+        "tag_name":                     basestring,
+        "releasable_branches":          Or(None, [basestring])
+    }
 }
 
 
@@ -291,12 +331,12 @@ class Config(DataWrapper):
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
-        return (not self.quiet and
+        return (not self.quiet and not self.warn_none and
                 (self.warn_all or getattr(self, "warn_%s" % key)))
 
     def debug(self, key):
         """Returns True if the debug setting is enabled."""
-        return (not self.quiet and
+        return (not self.quiet and not self.debug_none and
                 (self.debug_all or getattr(self, "debug_%s" % key)))
 
     @propertycache
@@ -341,20 +381,27 @@ class Config(DataWrapper):
         return decorated
 
     def get_completions(self, prefix):
+        def _get_plugin_completions(prefix_):
+            from rez.util import get_object_completions
+            words = get_object_completions(
+                instance=self.plugins,
+                prefix=prefix_,
+                instance_types=(dict, AttrDictWrapper))
+            return ["plugins." + x for x in words]
+
         toks = prefix.split('.')
         if len(toks) > 1:
             if toks[0] == "plugins":
                 prefix_ = '.'.join(toks[1:])
-                from rez.util import get_object_completions
-                words = get_object_completions(
-                    instance=self.plugins,
-                    prefix=prefix_,
-                    instance_types=(dict, AttrDictWrapper))
-                return ["plugins." + x for x in words]
+                return _get_plugin_completions(prefix_)
             return []
-        keys = ([x for x in _config_dict if isinstance(x, basestring)]
-                + ["plugins"])
-        return sorted(x for x in keys if x.startswith(prefix))
+        else:
+            keys = ([x for x in _config_dict if isinstance(x, basestring)]
+                    + ["plugins"])
+            keys = [x for x in keys if x.startswith(prefix)]
+            if keys == ["plugins"]:
+                keys += _get_plugin_completions('')
+            return keys
 
     def _swap(self, other):
         """Swap this config with another.
@@ -432,22 +479,23 @@ class _PluginConfigs(object):
         data = self.__dict__['_data']
         from rez.plugin_managers import plugin_manager
         if attr in plugin_manager.get_plugin_types():
-            config_data = plugin_manager.get_plugin_config_data(attr)
+            plugin_type = attr
+            config_data = plugin_manager.get_plugin_config_data(plugin_type)
             d = copy.deepcopy(config_data)
-            if attr in data:
+            if plugin_type in data:
                 # data may contain `AttrDictWrapper`s, which break schema
                 # validation, hence the dict conversion here
-                plugin_data = convert_dicts(data[attr], dict,
+                plugin_data = convert_dicts(data[plugin_type], dict,
                                             (dict, AttrDictWrapper))
                 deep_update(d, plugin_data)
             # validate
-            schema = plugin_manager.get_plugin_config_schema(attr)
+            schema = plugin_manager.get_plugin_config_schema(plugin_type)
             try:
                 d = schema.validate(d)
             except SchemaError as e:
                 raise ConfigurationError(
                     "Error in Rez configuration under plugins.%s: %s"
-                    % (attr, str(e)))
+                    % (plugin_type, str(e)))
         elif attr in data:
             d = data[attr]
         else:
@@ -534,7 +582,7 @@ def _load_config_yaml(filepath):
         content = f.read()
     try:
         return yaml.load(content) or {}
-    except Exception as e:
+    except YAMLError as e:
         raise ConfigurationError("Error loading configuration from %s: %s"
                                  % (filepath, str(e)))
 

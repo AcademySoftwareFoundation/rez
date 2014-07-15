@@ -11,7 +11,7 @@ class _Common(object):
         return not (self == other)
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+        return "%s(%r)" % (self.__class__.__name__, str(self))
 
 
 def total_ordering(cls):
@@ -79,7 +79,7 @@ def total_ordering(cls):
         raise ValueError(
             'must define at least one ordering operation: < > <= >='
         )
-    root = max(roots) # prefer __lt__ to __le__ to __gt__ to __ge__
+    root = max(roots)  # prefer __lt__ to __le__ to __gt__ to __ge__
     for opname, opfunc in convert[root]:
         if opname not in roots:
             opfunc.__name__ = opname

@@ -2,15 +2,24 @@
 Git version control
 """
 from rez.release_vcs import ReleaseVCS
-from rez.config import config
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.util import print_error
+from rez.exceptions import ReleaseVCSError
+from rez.vendor.schema.schema import Or
 import functools
 import os.path
 import re
 import sys
 
 
+class GitReleaseVCSError(ReleaseVCSError):
+    pass
+
+
 class GitReleaseVCS(ReleaseVCS):
+
+    schema_dict = {
+        "allow_no_upstream": bool}
+
     @classmethod
     def name(cls):
         return 'git'
@@ -22,7 +31,7 @@ class GitReleaseVCS(ReleaseVCS):
         try:
             self.git("rev-parse")
         except ReleaseVCSError:
-            raise ReleaseVCSUnsupportedError("%s is not a git repository" % path)
+            raise GitReleaseVCSError("%s is not a git repository" % path)
 
     @classmethod
     def is_valid_root(cls, path):
@@ -41,7 +50,7 @@ class GitReleaseVCS(ReleaseVCS):
         if toks:
             try:
                 s2 = toks[-1]
-                adj,n = s2.split()
+                adj, n = s2.split()
                 assert(adj in ("ahead", "behind"))
                 n = int(n)
                 return -n if adj == "behind" else n
@@ -52,8 +61,13 @@ class GitReleaseVCS(ReleaseVCS):
         else:
             return 0
 
+    def get_local_branch(self):
+        """Returns the label of the current local branch."""
+        return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
+
     def get_tracking_branch(self):
-        """Returns (remote, branch) tuple, or None,None if there is no remote."""
+        """Returns (remote, branch) tuple, or None,None if there is no remote.
+        """
         try:
             remote_uri = self.git("rev-parse", "--abbrev-ref",
                                   "--symbolic-full-name", "@{u}")[0]
@@ -61,12 +75,38 @@ class GitReleaseVCS(ReleaseVCS):
         except Exception as e:
             if "No upstream branch" not in str(e):
                 raise e
-        return (None,None)
+        return (None, None)
 
     def validate_repostate(self):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
+
+        remote, remote_branch = self.get_tracking_branch()
+
+        # check for upstream branch
+        if remote is None and not self.settings.allow_no_upstream:
+            raise ReleaseVCSError(
+                "Release cancelled: there is no upstream branch. To allow "
+                "the release, set the config entry "
+                "'plugins.release_vcs.git.allow_no_upstream' to true.")
+
+        # check we are releasing from a valid branch
+        releasable_branches = self.type_settings.releasable_branches
+        if releasable_branches:
+            releasable = False
+            current_branch_name = self._get_branch()
+
+            for releasable_branch in releasable_branches:
+                if re.search(releasable_branch, current_branch_name):
+                    releasable = True
+                    break
+
+            if not releasable:
+                raise ReleaseVCSError(
+                    "Could not release: current branch is %s, must match "
+                    "one of: %s"
+                    % (current_branch_name, ', '.join(releasable_branches)))
 
         # check for uncommitted changes
         try:
@@ -78,15 +118,15 @@ class GitReleaseVCS(ReleaseVCS):
             raise ReleaseVCSError(msg)
 
         # check if we are behind/ahead of remote
-        remote,remote_branch = self.get_tracking_branch()
         if remote:
             self.git("remote", "update")
             n = self.get_relative_to_remote()
             if n:
-                s = "ahead of" if n>0 else "behind"
+                s = "ahead of" if n > 0 else "behind"
                 remote_uri = '/'.join((remote, remote_branch))
-                raise ReleaseVCSError(("Could not release: %d commits " + \
-                    "%s %s.") % (abs(n), s, remote_uri))
+                raise ReleaseVCSError(
+                    "Could not release: %d commits %s %s."
+                    % (abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
         prev_commit = (previous_revision or {}).get("commit")
@@ -100,13 +140,6 @@ class GitReleaseVCS(ReleaseVCS):
 
     def get_current_revision(self):
         doc = dict(commit=self.git("rev-parse", "HEAD")[0])
-
-        def _branch():
-            return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
-
-        def _tracking_branch():
-            return self.git("rev-parse", "--abbrev-ref",
-                            "--symbolic-full-name", "@{u}")[0]
 
         def _url(op):
             origin = doc["tracking_branch"].split('/')[0]
@@ -122,15 +155,22 @@ class GitReleaseVCS(ReleaseVCS):
         def _get(key, fn):
             try:
                 doc[key] = fn()
+                return True
             except Exception as e:
-                if config.debug("package_release"):
-                    print >> sys.stderr, "WARNING: Error retrieving %s: %s" \
-                        % (key, str(e))
+                print_error("Error retrieving %s: %s" % (key, str(e)))
+                return False
 
-        _get("branch", _branch)
-        _get("tracking_branch", _tracking_branch)
-        _get("fetch_url", functools.partial(_url, "fetch"))
-        _get("push_url", functools.partial(_url, "push"))
+        def _tracking_branch():
+            remote, remote_branch = self.get_tracking_branch()
+            if remote is None:
+                return None
+            else:
+                return "%s/%s" % (remote, remote_branch)
+
+        _get("branch", self.get_local_branch)
+        if _get("tracking_branch", _tracking_branch):
+            _get("fetch_url", functools.partial(_url, "fetch"))
+            _get("push_url", functools.partial(_url, "push"))
         return doc
 
     def _create_tag_impl(self, tag_name, message=None):

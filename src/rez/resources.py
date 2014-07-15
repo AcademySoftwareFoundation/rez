@@ -27,7 +27,7 @@ import fnmatch
 from collections import defaultdict
 from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
-    propertycache, dicts_conflicting, DataWrapper, timings
+    propertycache, dicts_conflicting, DataWrapper, timings, print_debug
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     ResourceContentError
 from rez.backport.lru_cache import lru_cache
@@ -224,7 +224,7 @@ def load_file(filepath, loader=None):
         timings.end("resources.load_file")
 
     if config.debug("resources"):
-        print "loaded resource file: %s" % filepath
+        print_debug("loaded resource file: %s" % filepath)
     return doc
 
 
@@ -904,7 +904,7 @@ def _iter_resources(parent_resource, child_resource_classes=None,
         for child in child_class.iter_instances(parent_resource):
             if not dicts_conflicting(variables or {}, child.variables):
                 if config.debug("resources"):
-                    print "%s%r" % ("  " * (_depth + 1), child)
+                    print_debug("%s%r" % ("  " * (_depth + 1), child))
                 yield child
                 for grand_child in _iter_resources(child,
                                                    child_resource_classes,
@@ -917,14 +917,14 @@ def _iter_filtered_resources(parent_resource, resource_classes, variables):
     debug = config.debug("resources")
     if debug:
         keys = [x.key for x in resource_classes]
-        print ("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
-               % (keys, variables))
+        print_debug("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
+                    % (keys, variables))
         print parent_resource
     for child in _iter_resources(parent_resource, resource_classes, variables):
         if isinstance(child, tuple(resource_classes)) \
                 and is_dict_subset(variables or {}, child.variables):
             if debug:
-                print "RESOURCE MATCH: %r" % child
+                print_debug("RESOURCE MATCH: %r" % child)
             yield child
 
 

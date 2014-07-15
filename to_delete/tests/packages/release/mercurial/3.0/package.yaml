@@ -1,7 +1,0 @@
-config_version: 0
-name: mercurial
-variants:
-- [platform-linux, python-2.7]
-- [platform-linux, python-2.6]
-- [platform-darwin, python-2.7]
-version: '3.0'

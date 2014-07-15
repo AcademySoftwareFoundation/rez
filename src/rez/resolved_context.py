@@ -2,10 +2,11 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver
 from rez.system import system
 from rez.config import config
+from rez.colorize import critical, error, heading, warning, local, implicit
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory, timings
+    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, create_forwarding_script, \
+    timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -271,9 +272,9 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        if self.status_ in ("failed", "aborted"):
-            _pr("The context failed to resolve:\n")
-            _pr(self.failure_description)
+        if self.status in ("failed", "aborted"):
+            _pr(critical("The context failed to resolve:\n"))
+            _pr(error(self.failure_description))
             return
 
         t_str = _rt(self.created)
@@ -285,33 +286,54 @@ class ResolvedContext(object):
         _pr()
 
         if verbose:
-            _pr("search paths:")
+            _pr(heading("search paths:"))
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr("requested packages:")
-        for pkg in self.package_requests:
-            _pr(str(pkg))
+        _pr(heading("requested packages:"))
+        rows = []
+        colors = []
+        for request in self.package_requests:
+            col = str
+            t = ''
+            if request in self.implicit_packages:
+                t = "(implicit)"
+                col = implicit
+            rows.append((str(request), t))
+            colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
         _pr()
 
-        _pr("resolved packages:")
+        _pr(heading("resolved packages:"))
         rows = []
+        colors = []
         for pkg in (self.resolved_packages or []):
-            tok = ''
+            t = []
+            col = str
             if not os.path.exists(pkg.root):
-                tok = 'NOT FOUND'
-            elif pkg.is_local:
-                tok = '(local)'
-            rows.append((pkg.qualified_package_name, pkg.root, tok))
-        _pr('\n'.join(columnise(rows)))
+                t.append('NOT FOUND')
+                col = critical
+            if pkg.is_local:
+                t.append('local')
+                col = local
+            t = '(%s)' % ', '.join(t) if t else ''
+            rows.append((pkg.qualified_package_name, pkg.root, t))
+            colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
 
         if verbose:
             _pr()
-            _pr("resolve details:")
+            _pr(heading("resolve details:"))
             _pr("load time: %.02f secs" % self.load_time)
             actual_solve_time = self.solve_time - self.load_time
             _pr("solve time: %.02f secs" % actual_solve_time)
+            if self.load_path:
+                _pr("rxt file: %s" % self.load_path)
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -595,7 +617,10 @@ class ResolvedContext(object):
             or None if no tools were wrapped.
         """
         if self.status_ != "solved":
-            raise RezSystemError("Cannot add a failed context to a suite")
+            msg = "Cannot add a failed context to a suite"
+            if self.load_path:
+                msg += ": %s" % self.load_path
+            raise RezSystemError(msg)
 
         path = os.path.abspath(path)
         ppath = os.path.dirname(path)
@@ -807,7 +832,7 @@ class ResolvedContext(object):
             executor.bind('root',       pkg.root)
             executor.bind('base',       pkg.base)
 
-            commands = pkg.metadata.get("commands")
+            commands = pkg.commands
             if commands:
                 error_class = Exception if config.catch_rex_errors else None
                 try:

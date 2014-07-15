@@ -48,20 +48,6 @@ release_packages_path: '/film/tools/packages'
 # the release packages path.
 unleash_packages_path: '~/packages/.unleash'
 
-# The path that rez-install will deploy external packages to. For production use,
-# you will probably want to change this to a site-wide location.
-external_packages_path: '/film/tools/packages'
-
-# The formulae URLs that rez-install searches for packages
-package_repository_url_path:
-- 'http://git.al.com.au/rezExternalPackages'
-
-# The directory where rez stores package repositories
-package_repository_path: '~/packages/.repos'
-
-# The directory where rez caches package repository downloads
-package_repository_cache_path: '~/packages/.downloads'
-
 # Where temporary files go. Defaults to appropriate path depending on your
 # system, for example linux distributions will probably set this to /tmp.
 tmpdir: '/tmp'
@@ -152,8 +138,11 @@ warn_shell_startup: false
 # If true, print a warning when an untimestamped package is found.
 warn_untimestamped: false
 
-# turn on all warnings
+# Turn on all warnings
 warn_all: false
+
+# Turn off all warnings. This overrides warn_all.
+warn_none: false
 
 # Print debugging info when loading plugins
 debug_plugins: false
@@ -170,6 +159,9 @@ debug_resources: false
 
 # Turn on all debugging messages
 debug_all: false
+
+# Turn off all debugging messages. This overrides debug_all.
+debug_none: false
 
 # Suppress all warnings and debugging messages. Overrides all warn_xxx and
 # debug_xxx settings
@@ -194,11 +186,6 @@ build_directory: build
 ###############################################################################
 # Release
 ###############################################################################
-
-# For format string used to determine the VCS tag name when releasing.  This
-# string will be formatted against the metadata for the package currently being
-# released.  Valid formatting keys are "name", "version".
-vcs_tag_name: '{name}-{version}'
 
 # The release hooks to run when a release occurs. Release hooks are plugins - if
 # a plugin listed here is not present, a warning message is printed. Note that a
@@ -236,6 +223,69 @@ prefix_prompt: true
 
 
 ###############################################################################
+# Colorization
+###############################################################################
+
+# The following settings provide styling information for output to the console,
+# and is based on the capabilities of the Colorama module
+# (https://pypi.python.org/pypi/colorama).
+#
+# *_fore and *_back colors are based on the colors supported by this module and
+# the console. One or more styles can be applied using the *_styles
+# configuration. These settings will also affect the logger used by rez.
+#
+# At the time of writing, valid values are:
+# fore/back: black, red, green, yellow, blue, magenta, cyan, white
+# style: dim, normal, bright
+
+# Enables/disables colorization globally.
+color_enabled: true
+
+#------------------------------------------------------------------------------
+# Logging colors
+#------------------------------------------------------------------------------
+critical_fore: red
+critical_back:
+critical_styles:
+- 'bright'
+
+error_fore: red
+error_back:
+error_styles:
+
+warning_fore: yellow
+warning_back:
+warning_styles:
+
+info_fore:
+info_back:
+info_styles:
+
+debug_fore: blue
+debug_back:
+debug_styles:
+
+#------------------------------------------------------------------------------
+# Context-sensitive colors
+#------------------------------------------------------------------------------
+# Heading
+heading_fore:
+heading_back:
+heading_styles:
+- 'bright'
+
+# Local packages
+local_fore: green
+local_back:
+local_styles:
+
+# Implicit packages
+implicit_fore: cyan
+implicit_back:
+implicit_styles:
+
+
+###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
 
@@ -261,6 +311,10 @@ error_nonstring_version: false
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands: true
 error_old_commands: false
+
+# Print old commands and their converted rex equivalent. Note that this can
+# cause very verbose output.
+debug_old_commands: false
 
 # Warn or disallow when a package is found to contain custom keys in the root of
 # its package definition file.
@@ -301,15 +355,31 @@ disable_rez_1_compatibility: false
 
 
 ###############################################################################
+# Help
+###############################################################################
+
+# Where Rez's own documentation is hosted
+documentation_url: http://nerdvegas.github.io/rez/
+
+
+###############################################################################
 # Plugin Settings
 ###############################################################################
 
-# This section is just here to illustrate how you would set plugin config
-# settings in your own rezconfig file. The settings here are commented out,
-# because the default values are loaded from the plugins' own rezconfig files.
+# Settings specific to certain plugin implementations can be found in the
+# 'rezconfig' file accompanying that plugin. The settings listed here are
+# common to all plugins of that type.
 
-#plugins:
-#    release_hook:
-#        emailer:
-#            sender:
-#                santa.claus@northpole.com
+plugins:
+    release_vcs:
+        # For format string used to determine the VCS tag name when releasing.
+        # This string will be formatted against the metadata for the package
+        # currently being released.  Valid formatting keys are "name", "version".
+        tag_name: '{name}-{version}'
+
+        # A list of branches that a user is allowed to rez-release from. This
+        # can be used to block releases from development or feature branches,
+        # and support a workflow such as 'gitflow'.  Each branch name should be
+        # a regular expression that can be used with re.match, for example
+        # '^master$'.
+        releasable_branches:

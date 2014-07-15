@@ -8,6 +8,7 @@ from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
 from rez.platform_ import platform_
 from rez.config import config
+from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
 from rez.vendor.version.requirement import Requirement
 import functools
@@ -36,7 +37,10 @@ class CMakeBuildSystem(BuildSystem):
                      'make':        "Unix Makefiles",
                      'xcode':       "Xcode"}
 
+    build_targets = ["Debug", "Release", "RelWithDebInfo"]
+
     schema_dict = {
+        "build_target":     Or(*build_targets),
         "build_system":     Or(*build_systems.keys()),
         "cmake_args":       [basestring],
         "cmake_binary":     Or(None, basestring)}
@@ -55,9 +59,11 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def bind_cli(cls, parser):
-        build_targets = ["Debug", "Release"]
-        parser.add_argument("-b", "--build-target", dest="build_target",
-                            type=str, choices=build_targets, default="Release",
+        from rez.config import config
+        settings = config.plugins.build_system.cmake
+        parser.add_argument("--bt", "--build-target", dest="build_target",
+                            type=str, choices=cls.build_targets,
+                            default=settings.build_target,
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
@@ -73,9 +79,10 @@ class CMakeBuildSystem(BuildSystem):
             build_args=build_args,
             child_build_args=child_build_args)
 
-        self.build_target = opts.build_target
+        self.settings = self.package.config.plugins.build_system.cmake
+        self.build_target = opts.build_target or self.settings.build_target
         self.cmake_build_system = opts.build_system \
-            or self.package.config.plugins.build_system.cmake.build_system
+            or self.settings.build_system
         if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -85,18 +92,20 @@ class CMakeBuildSystem(BuildSystem):
             if self.verbose:
                 print s
 
-        settings = self.package.config.plugins.build_system.cmake
-
         # find cmake binary
-        # TODO add config setting for specifying exepath manually
-        # TODO what if cmake is an alias?
-        exe = context.which("cmake", fallback=True)
+        if self.settings.cmake_binary:
+            exe = self.settings.cmake_binary
+        else:
+            exe = context.which("cmake", fallback=True)
         if not exe:
             raise RezCMakeError("could not find cmake binary")
+        found_exe = which(exe)
+        if not found_exe:
+            raise RezCMakeError("cmake binary does not exist: %s" % exe)
 
         # assemble cmake command
-        cmd = [exe, "-d", self.working_dir]
-        cmd += (settings.cmake_args or [])
+        cmd = [found_exe, "-d", self.working_dir]
+        cmd += (self.settings.cmake_args or [])
         cmd += self.build_args
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
@@ -109,15 +118,16 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
-        ret = {}
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package)
 
+        # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
                                               actions_callback=callback)
+        ret = {}
         if retcode:
             ret["success"] = False
             return ret
@@ -153,13 +163,17 @@ class CMakeBuildSystem(BuildSystem):
     @staticmethod
     def _add_build_actions(executor, context, package):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
+        template_path = os.path.join(os.path.dirname(__file__), "template_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
+        executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
+        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = package.metadata.get('description', '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
+        executor.env.REZ_RELEASE_PACKAGES_PATH = package.config.release_packages_path
 
 
 def _FWD__spawn_build_shell(working_dir, build_dir):

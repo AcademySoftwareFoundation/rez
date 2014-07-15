@@ -2,6 +2,7 @@ import os.path
 from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
     ResourceWrapper
+from rez.exceptions import PackageMetadataError
 from rez.package_resources import package_schema
 from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional
@@ -112,13 +113,17 @@ def get_completions(prefix):
         if ch in prefix:
             fam = prefix.split(ch)[0]
             break
-    if fam:
-        words = set(x.qualified_name for x in iter_packages(name=fam)
-                    if x.qualified_name.startswith(prefix))
-    else:
+
+    words = set()
+    if not fam:
         words = set(x.name for x in iter_package_families()
                     if x.name.startswith(prefix))
-    return sorted(words)
+        if len(words) == 1:
+            fam = iter(words).next()
+    if fam:
+        words |= set(x.qualified_name for x in iter_packages(name=fam)
+                     if x.qualified_name.startswith(prefix))
+    return words
 
 
 class PackageFamily(ResourceWrapper):
@@ -175,6 +180,17 @@ class _PackageBase(ResourceWrapper):
     def is_local(self):
         """Returns True if this package is in the local packages path."""
         return (self.search_path == self.config.local_packages_path)
+
+    def validate_data(self):
+        super(_PackageBase, self).validate_data()
+        if self.commands and isinstance(self.commands, basestring):
+            from rez.rex import RexExecutor
+            try:
+                RexExecutor.compile_code(self.commands)
+            except Exception as e:
+                raise PackageMetadataError(value=str(e),
+                                           path=self.path,
+                                           resource_key=self._resource.key)
 
     def __str__(self):
         return "%s@%s" % (self.qualified_name, self.search_path)
