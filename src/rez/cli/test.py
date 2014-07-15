@@ -22,13 +22,15 @@ def setup_parser(parser):
                         help="test resource iteration and serialization")
     parser.add_argument("--packages", action="store_true",
                         help="test package iteration and serialization")
+    parser.add_argument("--config", action="store_true",
+                        help="test configuration settings")
 
 
 def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "context", "resources", "packages"]
+             "context", "resources", "packages", "config"]
     suites = []
     test_all = all([not getattr(opts, test) for test in tests])
 

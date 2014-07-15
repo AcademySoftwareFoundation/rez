@@ -674,9 +674,6 @@ class EnvironmentVariable(object):
         self._name = name
         self._environ_map = environ_map
 
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self._name)
-
     @property
     def name(self):
         return self._name
@@ -711,6 +708,10 @@ class EnvironmentVariable(object):
 
     def __str__(self):
         return self.value()
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self._name,
+                               self.value())
 
     def __nonzero__(self):
         return bool(self.value())

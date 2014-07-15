@@ -915,8 +915,8 @@ class AttrDictWrapper(MutableMapping):
         >>> assert dd.one == 1
         >>> assert d['one'] == 1
     """
-    def __init__(self, data):
-        self.__dict__['_data'] = data
+    def __init__(self, data=None):
+        self.__dict__['_data'] = {} if data is None else data
 
     @property
     def _data(self):
@@ -975,20 +975,25 @@ class RO_AttrDictWrapper(AttrDictWrapper):
 def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
     """Recursively convert dict and UserDict types.
 
-    Note that `d` itself is converted also, as well as any nested dict-like
-    objects.
+    Note that `d` is unchanged.
 
     Args:
         to_class (type): Dict-like type to convert values to, usually UserDict
             subclass, or dict.
         from_class (type): Dict-like type to convert values from. If a tuple,
             multiple types are converted.
+
+    Returns:
+        Converted data as `to_class` instance.
     """
+    d_ = to_class()
     for key, value in d.iteritems():
         if isinstance(value, from_class):
-            d[key] = convert_dicts(value, to_class=to_class,
-                                   from_class=from_class)
-    return to_class(d)
+            d_[key] = convert_dicts(value, to_class=to_class,
+                                    from_class=from_class)
+        else:
+            d_[key] = value
+    return d_
 
 
 class RecursiveAttribute(UserDict.UserDict):

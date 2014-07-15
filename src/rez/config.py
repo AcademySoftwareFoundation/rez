@@ -355,7 +355,7 @@ class Config(DataWrapper):
     def plugins(self):
         """Plugin settings are loaded lazily, to avoid loading the plugins
         until necessary."""
-        plugin_data = self.metadata.get("plugins", {})
+        plugin_data = self._data.get("plugins", {})
         return _PluginConfigs(plugin_data)
 
     @property
@@ -491,15 +491,12 @@ class _PluginConfigs(object):
         data = self.__dict__['_data']
         from rez.plugin_managers import plugin_manager
         if attr in plugin_manager.get_plugin_types():
+            # get plugin config data, and apply overrides
             plugin_type = attr
             config_data = plugin_manager.get_plugin_config_data(plugin_type)
             d = copy.deepcopy(config_data)
-            if plugin_type in data:
-                # data may contain `AttrDictWrapper`s, which break schema
-                # validation, hence the dict conversion here
-                plugin_data = convert_dicts(data[plugin_type], dict,
-                                            (dict, AttrDictWrapper))
-                deep_update(d, plugin_data)
+            deep_update(d, data.get(plugin_type, {}))
+
             # validate
             schema = plugin_manager.get_plugin_config_schema(plugin_type)
             try:
@@ -553,7 +550,6 @@ class _PluginConfigs(object):
 
         d = self.__dict__.copy()
         del d["_data"]
-        d = convert_dicts(d, dict, (dict, AttrDictWrapper))
         return d
 
     def __str__(self):
