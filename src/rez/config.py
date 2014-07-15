@@ -8,6 +8,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
+from UserDict import UserDict
 import os
 import os.path
 import copy
@@ -122,6 +123,19 @@ class Bool(Setting):
                 % (self._env_var_name, ", ".join(words)))
 
 
+class Dict(Setting):
+    schema = Schema(UserDict)
+
+    def _parse_env_var(self, value):
+        items = value.split(",")
+        try:
+            return UserDict([item.split(":") for item in items])
+        except ValueError as e:
+            raise ConfigurationError(
+                "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
+                % value)
+
+
 _config_dict = {
     "packages_path":                    PathList,
     "plugin_path":                      PathList,
@@ -200,12 +214,10 @@ _config_dict = {
     "error_root_custom_key":            Bool,
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
+    "env_var_separators":               Dict,
 
     # plugins are a special case and are validated lazily
     Optional("plugins"):                dict,
-
-    # TODO remove once all settings are finalised
-    #Optional(basestring):               object
 }
 
 

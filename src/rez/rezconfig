@@ -121,6 +121,13 @@ all_resetting_variables: false
 # current shell is used (for eg, 'bash').
 default_shell: ''
 
+# This setting can be used to override the separator used for environment
+# variables that represent a list of items. By default, the value of os.pathsep
+# will be used, unless the environment variable is list here, in which case the
+# configured separator will be used.
+env_var_separators:
+    CMAKE_MODULE_PATH: ';'
+
 
 ###############################################################################
 # Debugging

@@ -19,9 +19,6 @@ from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
     expandvars
 
 
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';'}
-
-
 #===============================================================================
 # Actions
 #===============================================================================
@@ -51,6 +48,7 @@ class Action(object):
     def get_command_types(cls):
         return tuple(cls._registry)
 
+
 class EnvAction(Action):
     @property
     def key(self):
@@ -61,9 +59,11 @@ class EnvAction(Action):
         if len(self.args) == 2:
             return self.args[1]
 
+
 class Unsetenv(EnvAction):
     name = 'unsetenv'
 Unsetenv.register()
+
 
 class Setenv(EnvAction):
     name = 'setenv'
@@ -78,6 +78,7 @@ class Setenv(EnvAction):
         interpreter._environ.add(self.key)
         return result
 Setenv.register()
+
 
 class Resetenv(EnvAction):
     name = 'resetenv'
@@ -98,37 +99,46 @@ class Resetenv(EnvAction):
         return result
 Resetenv.register()
 
+
 class Prependenv(Setenv):
     name = 'prependenv'
 Prependenv.register()
+
 
 class Appendenv(Setenv):
     name = 'appendenv'
 Appendenv.register()
 
+
 class Alias(Action):
     name = 'alias'
 Alias.register()
+
 
 class Info(Action):
     name = 'info'
 Info.register()
 
+
 class Error(Action):
     name = 'error'
 Error.register()
+
 
 class Command(Action):
     name = 'command'
 Command.register()
 
+
 class Comment(Action):
     name = 'comment'
 Comment.register()
 
+
 class Source(Action):
     name = 'source'
 Source.register()
+
 
 class Shebang(Action):
     name = 'shebang'
@@ -178,9 +188,8 @@ class ActionManager(object):
         self.formatter = formatter or str
         self.actions = []
 
-        # TODO: get rid of this feature
         self._env_sep_map = env_sep_map if env_sep_map is not None \
-            else DEFAULT_ENV_SEP_MAP
+            else config.env_var_separators
 
     def get_action_methods(self):
         """
