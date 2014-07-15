@@ -162,7 +162,7 @@ class GitReleaseVCS(ReleaseVCS):
         prev_commit = (previous_revision or {}).get("commit")
 
         if prev_commit:
-            hashes = self.git("log", "%s.." % prev_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
+            hashes = self.git("log", "-n", "100", "%s.." % prev_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
 
             for hash_ in hashes:
                 log = self.git("log", hash_, "--no-merges", "-1", "--pretty=format:%an: %s")
