@@ -26,12 +26,10 @@ import re
 re_token = re.compile(r"[a-zA-Z0-9_]+")
 
 
-
 @total_ordering
 class _Comparable(_Common):
     def __lt__(self, other):
         raise NotImplementedError
-
 
 
 class VersionToken(_Comparable):
@@ -82,7 +80,6 @@ class VersionToken(_Comparable):
         return (not self < other) and (not other < self)
 
 
-
 class NumericToken(VersionToken):
     """Numeric version token.
 
@@ -98,7 +95,8 @@ class NumericToken(VersionToken):
     def create_random_token_string(cls):
         import random
         chars = str(pp.srange("[0-9]"))
-        return ''.join([chars[random.randint(0, len(chars)-1)] for i in range(8)])
+        return ''.join([chars[random.randint(0, len(chars)-1)]
+                       for i in range(8)])
 
     def __str__(self):
         return str(self.n)
@@ -112,7 +110,6 @@ class NumericToken(VersionToken):
         return other
 
 
-
 class _SubToken(_Comparable):
     """Used internally by AlphanumericVersionToken."""
     def __init__(self, s):
@@ -124,14 +121,13 @@ class _SubToken(_Comparable):
             return (self.s < other.s) if other.n is None else True
         else:
             return False if other.n is None \
-                else ((self.n,self.s) < (other.n,other.s))
+                else ((self.n, self.s) < (other.n, other.s))
 
     def __eq__(self, other):
         return (self.s == other.s) and (self.n == other.n)
 
     def __str__(self):
         return self.s
-
 
 
 class AlphanumericVersionToken(VersionToken):
@@ -171,7 +167,8 @@ class AlphanumericVersionToken(VersionToken):
     def create_random_token_string(cls):
         import random
         chars = str(pp.srange("[0-9a-zA-Z_]"))
-        return ''.join([chars[random.randint(0, len(chars)-1)] for i in range(8)])
+        return ''.join([chars[random.randint(0, len(chars)-1)]
+                       for i in range(8)])
 
     def __str__(self):
         return ''.join(str(x) for x in self.subtokens)
@@ -209,7 +206,6 @@ class AlphanumericVersionToken(VersionToken):
             b = not b
 
         return subtokens
-
 
 
 class Version(_Comparable):
@@ -297,12 +293,11 @@ class Version(_Comparable):
 
     def __str__(self):
         return "[INF]" if self.tokens is None \
-            else ''.join(str(x)+y for x,y in zip(self.tokens, self.seps+['']))
+            else ''.join(str(x)+y for x, y in zip(self.tokens, self.seps+['']))
 
 # internal use only
 Version.inf = Version()
 Version.inf.tokens = None
-
 
 
 class _LowerBound(_Comparable):
@@ -325,8 +320,8 @@ class _LowerBound(_Comparable):
 
     def __lt__(self, other):
         return (self.version < other.version) \
-            or ((self.version == other.version) \
-            and (self.inclusive and not other.inclusive))
+            or ((self.version == other.version)
+                and (self.inclusive and not other.inclusive))
 
     def __hash__(self):
         return hash((self.version, self.inclusive))
@@ -336,7 +331,6 @@ class _LowerBound(_Comparable):
             or (self.inclusive and (version == self.version))
 
 _LowerBound.min = _LowerBound(Version(), True)
-
 
 
 class _UpperBound(_Comparable):
@@ -358,8 +352,8 @@ class _UpperBound(_Comparable):
 
     def __lt__(self, other):
         return (self.version < other.version) \
-            or ((self.version == other.version) \
-            and (not self.inclusive and other.inclusive))
+            or ((self.version == other.version)
+                and (not self.inclusive and other.inclusive))
 
     def __hash__(self):
         return hash((self.version, self.inclusive))
@@ -371,7 +365,6 @@ class _UpperBound(_Comparable):
 _UpperBound.inf = _UpperBound(Version.inf, True)
 
 
-
 class _Bound(_Comparable):
     any = None
 
@@ -379,8 +372,8 @@ class _Bound(_Comparable):
         self.lower = lower or _LowerBound.min
         self.upper = upper or _UpperBound.inf
         if (self.lower.version > self.upper.version) \
-            or ((self.lower.version == self.upper.version) \
-            and not (self.lower.inclusive and self.upper.inclusive)):
+            or ((self.lower.version == self.upper.version)
+                and not (self.lower.inclusive and self.upper.inclusive)):
             raise VersionError("Invalid bound")
 
     def __str__(self):
@@ -394,7 +387,7 @@ class _Bound(_Comparable):
             else:
                 return "<=%s" % self.upper.version
         elif (self.lower.inclusive and not self.upper.inclusive) \
-            and (self.lower.version.next() == self.upper.version):
+                and (self.lower.version.next() == self.upper.version):
             return str(self.lower.version)
         else:
             return "%s%s" % (self.lower, self.upper)
@@ -426,14 +419,13 @@ class _Bound(_Comparable):
         upper = min(self.upper, other.upper)
 
         if (lower.version < upper.version) or \
-            ((lower.version == upper.version) and \
-            (lower.inclusive and upper.inclusive)):
+            ((lower.version == upper.version) and
+             (lower.inclusive and upper.inclusive)):
             return _Bound(lower, upper)
         else:
             return None
 
 _Bound.any = _Bound()
-
 
 
 class _VersionRangeParser(object):
@@ -456,7 +448,7 @@ class _VersionRangeParser(object):
 
         # grammar
         token = pp.Word(pp.srange("[0-9a-zA-Z_]"))
-        version_sep = pp.oneOf(['.','-'])
+        version_sep = pp.oneOf(['.', '-'])
         version = pp.Optional(token + pp.ZeroOrMore(version_sep + token)).setParseAction(self._act_version)
         exact_version = ("==" + version).setParseAction(self._act_exact_version)
         inclusive_bound = (version + ".." + version).setParseAction(self._act_inclusive_bound)
@@ -471,7 +463,7 @@ class _VersionRangeParser(object):
         def fn_(self, s, i, tokens):
             fn(self, s, i, tokens)
             if self.debug:
-                label = fn.__name__.replace("_act_","")
+                label = fn.__name__.replace("_act_", "")
                 print "%-16s%s" % (label+':', s)
                 print "%s%s" % ((16+i)*' ', '^'*len(''.join(tokens)))
                 print "%s%s" % (16*' ', self.stack)
@@ -539,7 +531,6 @@ class _VersionRangeParser(object):
         self.debug = debug
         self.ranges.parseString(s, parseAll=True)
         return self.bounds
-
 
 
 class VersionRange(_Comparable):
@@ -777,13 +768,13 @@ class VersionRange(_Comparable):
         if op in (None, "eq", "=="):
             lower = _LowerBound(version, True)
             upper = _UpperBound(version, True)
-        elif op in ("gt",">"):
+        elif op in ("gt", ">"):
             lower = _LowerBound(version, False)
         elif op in ("gte", ">="):
             lower = _LowerBound(version, True)
-        elif op in ("lt","<"):
+        elif op in ("lt", "<"):
             upper = _UpperBound(version, False)
-        elif op in ("lte","<="):
+        elif op in ("lte", "<="):
             upper = _UpperBound(version, True)
         else:
             raise VersionError("Unknown bound operation '%s'" % op)
@@ -819,7 +810,7 @@ class VersionRange(_Comparable):
         versions = []
         for bound in self.bounds:
             if bound.lower.inclusive and bound.upper.inclusive \
-                and (bound.lower.version == bound.upper.version):
+                    and (bound.lower.version == bound.upper.version):
                 versions.append(bound.lower.version)
 
         return versions or None
@@ -903,11 +894,11 @@ class VersionRange(_Comparable):
         upper = None
         start = 0
 
-        for i,bound in enumerate(bounds_):
-            if i and ((bound.lower.version > upper.version) \
-                or ((bound.lower.version == upper.version) \
-                and (not bound.lower.inclusive) \
-                and (not prev_bound.upper.inclusive))):
+        for i, bound in enumerate(bounds_):
+            if i and ((bound.lower.version > upper.version)
+                      or ((bound.lower.version == upper.version)
+                          and (not bound.lower.inclusive)
+                          and (not prev_bound.upper.inclusive))):
                 new_bound = _Bound(bounds_[start].lower, upper)
                 new_bounds.append(new_bound)
                 start = i
@@ -950,7 +941,7 @@ class VersionRange(_Comparable):
         ubounds.append(None)
         new_bounds = []
 
-        for lower,upper in zip(lbounds, ubounds):
+        for lower, upper in zip(lbounds, ubounds):
             if not (lower is None and upper is None):
                 new_bounds.append(_Bound(lower, upper))
 

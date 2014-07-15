@@ -7,7 +7,6 @@ import textwrap
 import unittest
 
 
-
 class TestVersionSchema(unittest.TestCase):
     make_token = AlphanumericVersionToken
 
@@ -25,7 +24,7 @@ class TestVersionSchema(unittest.TestCase):
         gt      = (a > b)
         gte     = (a >= b)
 
-        print '\n' + textwrap.dedent( \
+        print '\n' + textwrap.dedent(
             """
             '%s' <op> '%s'
             ==:  %s
@@ -34,7 +33,7 @@ class TestVersionSchema(unittest.TestCase):
             <=:  %s
             >:   %s
             >=:  %s
-            """).strip() % (a,b,e,ne,lt,lte,gt,gte)
+            """).strip() % (a, b, e, ne, lt, lte, gt, gte)
 
         self.assertTrue(e != ne)
         if e:
@@ -50,25 +49,25 @@ class TestVersionSchema(unittest.TestCase):
 
     def _test_ordered(self, items):
         def _test(fn, items_, op_str):
-            for i,a in enumerate(items_):
+            for i, a in enumerate(items_):
                 for b in items_[i+1:]:
                     print "'%s' %s '%s'" % (a, op_str, b)
-                    self.assertTrue(fn(a,b))
+                    self.assertTrue(fn(a, b))
 
-        _test(lambda a,b:a<b, items, '<')
-        _test(lambda a,b:a<=b, items, '<=')
-        _test(lambda a,b:a!=b, items, '!=')
-        _test(lambda a,b:a>b, list(reversed(items)), '>')
-        _test(lambda a,b:a>=b, list(reversed(items)), '>=')
-        _test(lambda a,b:a!=b, list(reversed(items)), '!=')
+        _test(lambda a, b: a < b, items, '<')
+        _test(lambda a, b: a <= b, items, '<=')
+        _test(lambda a, b: a != b, items, '!=')
+        _test(lambda a, b: a > b, list(reversed(items)), '>')
+        _test(lambda a, b: a >= b, list(reversed(items)), '>=')
+        _test(lambda a, b: a != b, list(reversed(items)), '!=')
 
     def _create_random_token(self):
         s = self.make_token.create_random_token_string()
         return self.make_token(s)
 
     def _create_random_version(self):
-        ver_str = '.'.join(self.make_token.create_random_token_string() \
-            for i in range(random.randint(0,6)))
+        ver_str = '.'.join(self.make_token.create_random_token_string()
+                           for i in range(random.randint(0, 6)))
         return Version(ver_str, make_token=self.make_token)
 
     def test_token_strict_weak_ordering(self):
@@ -143,10 +142,10 @@ class TestVersionSchema(unittest.TestCase):
 
         _eq2(set([a]) - set([a]), set())
         _eq2(set([a]) - set([b]), set())
-        _eq2(set([a,a]) - set([a]), set())
-        _eq2(set([b,c,d]) - set([a]), set([c,d]))
-        _eq2(set([b,c]) | set([c,d]), set([b,c,d]))
-        _eq2(set([b,c]) & set([c,d]), set([c]))
+        _eq2(set([a, a]) - set([a]), set())
+        _eq2(set([b, c, d]) - set([a]), set([c, d]))
+        _eq2(set([b, c]) | set([c, d]), set([b, c, d]))
+        _eq2(set([b, c]) & set([c, d]), set([c]))
 
     def test_version_range(self):
         def _eq(a, b):
@@ -171,8 +170,8 @@ class TestVersionSchema(unittest.TestCase):
             self.assertTrue(ranges_ == a_range)
 
             self.assertTrue(a_range | b_range == a_range)
-            self.assertTrue(a_range - b_range == None)
-            self.assertTrue(b_range - a_range == None)
+            self.assertTrue(a_range - b_range is None)
+            self.assertTrue(b_range - a_range is None)
             self.assertTrue(VersionRange() & a_range == a_range)
             self.assertTrue(b_range.span() & a_range == a_range)
 
@@ -326,7 +325,7 @@ class TestVersionSchema(unittest.TestCase):
 
         v2 = Version("6.0")
         v3 = Version("4")
-        self.assertTrue(VersionRange.from_versions([v,v2,v3])
+        self.assertTrue(VersionRange.from_versions([v, v2, v3])
                         == VersionRange("==3|==4|==6.0"))
 
         # test behaviour in sets
@@ -342,10 +341,10 @@ class TestVersionSchema(unittest.TestCase):
 
         _eq2(set([a]) - set([a]), set())
         _eq2(set([a]) - set([b]), set())
-        _eq2(set([a,a]) - set([a]), set())
-        _eq2(set([b,c,d,e]) - set([a]), set([c,d,e]))
-        _eq2(set([b,c,e]) | set([c,d]), set([b,c,d,e]))
-        _eq2(set([b,c]) & set([c,d]), set([c]))
+        _eq2(set([a, a]) - set([a]), set())
+        _eq2(set([b, c, d, e]) - set([a]), set([c, d, e]))
+        _eq2(set([b, c, e]) | set([c, d]), set([b, c, d, e]))
+        _eq2(set([b, c]) & set([c, d]), set([c]))
 
         # test containment
         self.assertTrue(Version("3") in VersionRange("3+"))
