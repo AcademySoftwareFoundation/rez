@@ -12,6 +12,7 @@ cmake:
     - '-Wno-dev'
     - '-DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE'
     - '-D_ECLIPSE_VERSION=4.3'
+    - '--no-warn-unused-cli'
 
     # You can optionally point at a cmake executable to use for building. Note
     # that 'cmake_package' still takes preference if specified.
