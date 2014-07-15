@@ -58,6 +58,7 @@ scripts = [
     "rez-bind",
     "rez-search",
     "rez-bootstrap",
+    "rez-unleash",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
