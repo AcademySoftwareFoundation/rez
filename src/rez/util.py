@@ -1478,7 +1478,7 @@ def write_graph(graph_str, dest_file=None, prune_pkg=None):
 
         if tmp_dir:
             # hijack current env's tmpdir, so we don't have to clean up
-            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
+            name = "resolve-dot-%s.%s" % (uuid4().hex, fmt)
             dest_file = os.path.join(tmp_dir, name)
             cleanup = False
         else:
