@@ -30,38 +30,41 @@
 # The package search path.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
-- '~/.rez/packages/int'  # internally developed pkgs, deployed
-- '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
+- '/film/tools/packages' # internally developed pkgs, deployed
 
 # The 'bootstrap' path is where Rez puts some automatically created packages at
 # install time. If this value is true, then the bootstrap path is always
 # implicitly appended to the packages path.
-add_bootstrap_path: true
+add_bootstrap_path: false
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-release_packages_path: '~/.rez/packages/int'
+release_packages_path: '/film/tools/packages'
+
+# The path that Rez unleash will use as a local staging area before deploying to
+# the release packages path.
+unleash_packages_path: '~/packages/.unleash'
 
 # The path that rez-install will deploy external packages to. For production use,
 # you will probably want to change this to a site-wide location.
-external_packages_path: '~/.rez/packages/ext'
+external_packages_path: '/film/tools/packages'
 
 # The formulae URLs that rez-install searches for packages
 package_repository_url_path:
-- 'https://github.com/LumaPictures/rez-build/archive/master.zip'
+- 'http://git.al.com.au/rezExternalPackages'
 
 # The directory where rez stores package repositories
-package_repository_path: '~/.rez/package-repos'
+package_repository_path: '~/packages/.repos'
 
 # The directory where rez caches package repository downloads
-package_repository_cache_path: '~/.rez/downloads/package-repos'
+package_repository_cache_path: '~/packages/.downloads'
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system, for example linux distributions will probably set this to /tmp.
-tmpdir:
+tmpdir: '/tmp'
 
 
 ###############################################################################
@@ -186,14 +189,6 @@ catch_rex_errors: true
 # The default working directory for a package build, relative to the package root
 # directory (this is typically where temporary build files are written).
 build_directory: build
-
-# The name of the CMake build system to use, valid options are eclipse, make,
-# xcode and codeblocks.
-cmake_build_system: make
-
-# A list of default arguments to be used with CMake.
-cmake_args:
-- '-DCMAKE_SKIP_RPATH=1'
 
 
 ###############################################################################
