@@ -1,66 +1,54 @@
-from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
-    Comment, Alias, Command, Source, Error, Shebang, Unsetenv
-from rez.exceptions import RexError, RexUndefinedVariableError, BuildSystemError
-import rez.vendor.unittest2 as unittest
-from rez.tests.util import TestBase
-import inspect
-import textwrap
-import os
-
-
-import rez.util
-import rez.rex
+from rez.build_system import create_build_system
+from rez.config import config
+from rez.exceptions import BuildSystemError
+from rez.rex import RexExecutor, Python
+from rez.tests.util import TestBase, TempdirMixin
 from rez.util import convert_old_commands
 from rez.vendor.version.requirement import Requirement
-from rez.tests.util import TestBase, TempdirMixin
+import rez.vendor.unittest2 as unittest
+import os
 import shutil
-from rez.build_system import create_build_system
-
-
-
 
 
 class TestConvertingOldStyleCommands(TestBase):
 
     def test_old_style_cmake_module_path_commands_with_separator(self):
 
-        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake';'$CMAKE_MODULE_PATH"
         expected = "prependenv('CMAKE_MODULE_PATH', '{root}/cmake')"
 
+        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake';'$CMAKE_MODULE_PATH"
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = "export CMAKE_MODULE_PATH=!ROOT!/cmake:$CMAKE_MODULE_PATH"
-        expected = "prependenv('CMAKE_MODULE_PATH', '{root}/cmake')"
+        self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
+        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake;$CMAKE_MODULE_PATH"
+        self.assertEqual(expected, convert_old_commands([command], annotate=False))
+
+        command = 'export CMAKE_MODULE_PATH=!ROOT!/cmake";"$CMAKE_MODULE_PATH'
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
     def test_old_style_commands_enclosed_in_quotes(self):
 
-        command = "export FOO='BAR SPAM'"
         expected = "setenv('FOO', 'BAR SPAM')"
 
+        command = "export FOO='BAR SPAM'"
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = 'export FOO="BAR SPAM"'
-        expected = "setenv('FOO', 'BAR SPAM')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
     def test_old_style_non_pathsep_commands(self):
 
         test_separators = {"FOO":" ", "BAR":","}
-
-        rez.util.ANIMAL_LOGIC_SEPARATORS = test_separators
-        rez.contrib.animallogic.util.ANIMAL_LOGIC_SEPARATORS = test_separators
+        config.override("env_var_separators", test_separators)
 
         command = "export FOO=!ROOT!/cmake $FOO"
         expected = "prependenv('FOO', '{root}/cmake')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = "export BAR=!ROOT!/cmake,$BAR"
         expected = "prependenv('BAR', '{root}/cmake')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
 
@@ -68,7 +56,8 @@ class TestRex(TestBase):
 
     def test_non_pathsep_commands(self):
 
-        rez.rex.DEFAULT_ENV_SEP_MAP = {"FOO":" ", "BAR":","}
+        test_separators = {"FOO":" ", "BAR":","}
+        config.override("env_var_separators", test_separators)
 
         def _rex():
             prependenv("FOO", "spam")
