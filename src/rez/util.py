@@ -25,7 +25,6 @@ from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
-from rez.contrib.animallogic.util import ANIMAL_LOGIC_SEPARATORS
 
 
 logger = logging.getLogger(__name__)
@@ -585,6 +584,8 @@ def convert_old_command_expansions(command):
 
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
+    from rez.config import config
+
     def _en(s):
         return s.encode("string-escape")
 
@@ -598,14 +599,21 @@ def convert_old_commands(commands, annotate=True):
 
         if toks[0] == "export":
             var, value = cmd.split(' ', 1)[1].split('=', 1)
-            for bookend in ['"', "'"]:
+            for bookend in ('"', "'"):
                 if value.startswith(bookend) and value.endswith(bookend):
                     value = value[1:-1]
+                    break
 
-            separator = ANIMAL_LOGIC_SEPARATORS.get(var, os.pathsep)
+            separator = config.env_var_separators.get(var, os.pathsep)
 
+            # This is a special special case.  We don't want to include "';'" in
+            # our env var separators map as it's not really the correct
+            # behaviour/something we want to promote.  It's included here for
+            # backwards compatibility only, and to not propogate elsewhere.
             if var == "CMAKE_MODULE_PATH":
-                value = value.replace("'%s'" % separator, separator).replace(":", separator)
+                value = value.replace("'%s'" % separator, separator)
+                value = value.replace('"%s"' % separator, separator)
+                value = value.replace(":", separator)
 
             parts = value.split(separator)
             parts = [x for x in parts if x]
@@ -1478,7 +1486,8 @@ def write_graph(graph_str, dest_file=None, prune_pkg=None):
 
         if tmp_dir:
             # hijack current env's tmpdir, so we don't have to clean up
-            name = "resolve-dot-%s.%s" % (str(uuid4()).replace('-', ''), fmt)
+            from uuid import uuid4
+            name = "resolve-dot-%s.%s" % (uuid4().hex, fmt)
             dest_file = os.path.join(tmp_dir, name)
             cleanup = False
         else:

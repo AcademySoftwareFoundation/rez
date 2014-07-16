@@ -1,5 +1,5 @@
 from rez.vendor.version.requirement import Requirement
-from rez.solver import Solver, Cycle
+from rez.solver import Solver, Cycle, SolverStatus
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import itertools
@@ -38,7 +38,7 @@ class TestSolver(TestBase):
         s1, s2, s_perms = self._create_solvers(reqs)
 
         s1.solve()
-        self.assertEqual(s1.status, "solved")
+        self.assertEqual(s1.status, SolverStatus.solved)
         resolve = [str(x) for x in s1.resolved_packages]
 
         print
@@ -49,14 +49,14 @@ class TestSolver(TestBase):
 
         print "checking that unoptimised solve matches optimised..."
         s2.solve()
-        self.assertEqual(s2.status, "solved")
+        self.assertEqual(s2.status, SolverStatus.solved)
         resolve2 = [str(x) for x in s2.resolved_packages]
         self.assertEqual(resolve2, resolve)
 
         print "checking that permutations also succeed..."
         for s in s_perms:
             s.solve()
-            self.assertEqual(s.status, "solved")
+            self.assertEqual(s.status, SolverStatus.solved)
 
         return s1
 
@@ -69,18 +69,18 @@ class TestSolver(TestBase):
         print
         print "request: %s" % ' '.join(packages)
         print "expecting failure"
-        self.assertEqual(s1.status, "failed")
+        self.assertEqual(s1.status, SolverStatus.failed)
         print "result: %s" % str(s1.failure_reason())
 
         print "checking that unoptimised solve fail matches optimised..."
         s2.solve()
-        self.assertEqual(s2.status, "failed")
+        self.assertEqual(s2.status, SolverStatus.failed)
         self.assertEqual(s1.failure_reason(), s2.failure_reason())
 
         print "checking that permutations also fail..."
         for s in s_perms:
             s.solve()
-            self.assertEqual(s.status, "failed")
+            self.assertEqual(s.status, SolverStatus.failed)
 
         return s1
 

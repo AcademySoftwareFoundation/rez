@@ -124,6 +124,21 @@ all_resetting_variables: false
 # current shell is used (for eg, 'bash').
 default_shell: ''
 
+# This setting can be used to override the separator used for environment
+# variables that represent a list of items. By default, the value of os.pathsep
+# will be used, unless the environment variable is list here, in which case the
+# configured separator will be used.
+env_var_separators:
+    CMAKE_MODULE_PATH: ';'
+    AL_MAYA_AUTO_PYEVAL: ' '
+    AL_MAYA_AUTO_LOADVERSIONEDTOOL: ' '
+    AL_PYAPPS_LIST: ','
+    AL_PYLIBS_LIST: ','
+    AL_PYTHON_LIBS_JOBS_LIST: ','
+    AL_XSI_AUTO_LOADVERSIONEDTOOL: ','
+    ARENA_MODULE_PATH: ','
+    ARTISTTOOLPALETTE_TOOLS: ','
+    DOXYGEN_TAGFILES: ' '
 
 ###############################################################################
 # Debugging

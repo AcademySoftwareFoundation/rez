@@ -65,6 +65,7 @@ def setup_parser(parser):
 
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext
+    from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
     from rez.config import config
 
@@ -99,7 +100,7 @@ def command(opts, parser):
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
-        if rc.status != "solved":
+        if rc.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
 
@@ -122,7 +123,7 @@ def command(opts, parser):
                              verbosity=opts.verbose, max_fails=opts.max_fails,
                              time_limit=opts.time_limit)
 
-    success = (rc.status == "solved")
+    success = (rc.status == ResolverStatus.solved)
     if not success:
         rc.print_info(buf=sys.stderr)
 

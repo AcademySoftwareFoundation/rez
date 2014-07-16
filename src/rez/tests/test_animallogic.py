@@ -1,66 +1,58 @@
-from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
-    Comment, Alias, Command, Source, Error, Shebang, Unsetenv
-from rez.exceptions import RexError, RexUndefinedVariableError, BuildSystemError
-import rez.vendor.unittest2 as unittest
-from rez.tests.util import TestBase
-import inspect
-import textwrap
-import os
-
-
-import rez.util
-import rez.rex
+from rez.build_system import create_build_system
+from rez.build_process import LocalSequentialBuildProcess
+from rez.config import config
+from rez.exceptions import BuildSystemError
+from rez.packages import load_developer_package
+from rez.rex import RexExecutor, Python
+from rez.resolved_context import ResolvedContext
+from rez.tests.util import TestBase, TempdirMixin
 from rez.util import convert_old_commands
 from rez.vendor.version.requirement import Requirement
-from rez.tests.util import TestBase, TempdirMixin
+from rezplugins.build_system.cmake import get_current_variant_index
+import rez.vendor.unittest2 as unittest
+import os
 import shutil
-from rez.build_system import create_build_system
-
-
-
 
 
 class TestConvertingOldStyleCommands(TestBase):
 
     def test_old_style_cmake_module_path_commands_with_separator(self):
 
-        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake';'$CMAKE_MODULE_PATH"
         expected = "prependenv('CMAKE_MODULE_PATH', '{root}/cmake')"
 
+        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake';'$CMAKE_MODULE_PATH"
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = "export CMAKE_MODULE_PATH=!ROOT!/cmake:$CMAKE_MODULE_PATH"
-        expected = "prependenv('CMAKE_MODULE_PATH', '{root}/cmake')"
+        self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
+        command = "export CMAKE_MODULE_PATH=!ROOT!/cmake;$CMAKE_MODULE_PATH"
+        self.assertEqual(expected, convert_old_commands([command], annotate=False))
+
+        command = 'export CMAKE_MODULE_PATH=!ROOT!/cmake";"$CMAKE_MODULE_PATH'
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
     def test_old_style_commands_enclosed_in_quotes(self):
 
-        command = "export FOO='BAR SPAM'"
         expected = "setenv('FOO', 'BAR SPAM')"
 
+        command = "export FOO='BAR SPAM'"
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = 'export FOO="BAR SPAM"'
-        expected = "setenv('FOO', 'BAR SPAM')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
     def test_old_style_non_pathsep_commands(self):
 
         test_separators = {"FOO":" ", "BAR":","}
-
-        rez.util.ANIMAL_LOGIC_SEPARATORS = test_separators
-        rez.contrib.animallogic.util.ANIMAL_LOGIC_SEPARATORS = test_separators
+        config.override("env_var_separators", test_separators)
 
         command = "export FOO=!ROOT!/cmake $FOO"
         expected = "prependenv('FOO', '{root}/cmake')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
         command = "export BAR=!ROOT!/cmake,$BAR"
         expected = "prependenv('BAR', '{root}/cmake')"
-
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
 
 
@@ -68,7 +60,8 @@ class TestRex(TestBase):
 
     def test_non_pathsep_commands(self):
 
-        rez.rex.DEFAULT_ENV_SEP_MAP = {"FOO":" ", "BAR":","}
+        test_separators = {"FOO":" ", "BAR":","}
+        config.override("env_var_separators", test_separators)
 
         def _rex():
             prependenv("FOO", "spam")
@@ -96,7 +89,18 @@ class TestRex(TestBase):
                            **kwargs)
 
 
-class TestBuild(TestBase, TempdirMixin):
+class TestVariantPathMunging(TestBase):
+
+    def test_safe_string(self):
+
+        self.assertEqual(Requirement("!foo").safe_str(), "_not_foo")
+        self.assertEqual(Requirement("foo-5+<6").safe_str(), "foo-5_thru_6")
+        self.assertEqual(Requirement("foo-5+").safe_str(), "foo-5_ge_")
+        self.assertEqual(Requirement("foo-<5").safe_str(), "foo_lt_5")
+        self.assertEqual(Requirement("~foo").safe_str(), "_weak_foo")
+
+
+class TestCMakeBuildSystem(TestBase, TempdirMixin):
 
     class FakeArgParseOpts(object):
 
@@ -108,7 +112,7 @@ class TestBuild(TestBase, TempdirMixin):
         TempdirMixin.setUpClass()
 
         path = os.path.dirname(__file__)
-        packages_path = os.path.join(path, "data", "builds", "packages")
+        packages_path = os.path.join(path, "data", "builds", "packages", "animallogic")
 
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
@@ -122,37 +126,61 @@ class TestBuild(TestBase, TempdirMixin):
             warn_untimestamped=False,
             implicit_packages=[])
 
+        working_dir = os.path.join(cls.src_root, "foo", "1.0.0")
+        builder = cls._create_builder(working_dir)
+        builder.build(install_path=cls.install_root, install=True, clean=True)
+
+        working_dir = os.path.join(cls.src_root, "foo", "1.1.0")
+        builder = cls._create_builder(working_dir)
+        builder.build(install_path=cls.install_root, install=True, clean=True)
+
     @classmethod
-    def tearDownClass(cls):
-        TempdirMixin.tearDownClass()
+    def _create_builder(cls, working_dir):
+        buildsys = create_build_system(working_dir)
+        return LocalSequentialBuildProcess(working_dir,
+                                           buildsys,
+                                           vcs=None)
 
     def test_multiple_build_systems_with_cmake(self):
 
-        working_dir = os.path.join(self.src_root, "animallogic", "multiple_build_systems_with_cmake")
-        buildsys = create_build_system(working_dir, opts=TestBuild.FakeArgParseOpts())
+        working_dir = os.path.join(self.src_root, "multiple_build_systems_with_cmake")
+        buildsys = create_build_system(working_dir, opts=TestCMakeBuildSystem.FakeArgParseOpts())
         self.assertEqual(buildsys.name(), "cmake")
 
     def test_multiple_build_systems_without_cmake(self):
 
-        working_dir = os.path.join(self.src_root, "animallogic", "multiple_build_systems_without_cmake")
-        self.assertRaises(BuildSystemError, create_build_system, working_dir, opts=TestBuild.FakeArgParseOpts())
+        working_dir = os.path.join(self.src_root, "multiple_build_systems_without_cmake")
+        self.assertRaises(BuildSystemError, create_build_system, working_dir, opts=TestCMakeBuildSystem.FakeArgParseOpts())
 
+    def test_current_variant_index_with_variants(self):
 
-class TestVariantPathMunging(TestBase):
+        working_dir = os.path.join(self.src_root, "current_variant_index_with_variants")
+        package = load_developer_package(working_dir)
 
-    def test_safe_string(self):
+        variants = list(package.iter_variants())
+        self.assertEqual(len(variants), 2)
 
-        self.assertEqual(Requirement("!foo").safe_str(), "_not_foo")
-        self.assertEqual(Requirement("foo-5+<6").safe_str(), "foo-5_thru_6")
-        self.assertEqual(Requirement("foo-5+").safe_str(), "foo-5_ge_")
-        self.assertEqual(Requirement("foo-<5").safe_str(), "foo_lt_5")
-        self.assertEqual(Requirement("~foo").safe_str(), "_weak_foo")
+        for i, variant in enumerate(variants):
+            request = variant.get_requires(build_requires=True, private_build_requires=True)
+            context = ResolvedContext(request, building=True)
+            self.assertEqual(get_current_variant_index(context, package), i)
+
+    def test_current_variant_index_without_variants(self):
+
+        working_dir = os.path.join(self.src_root, "current_variant_index_without_variants")
+        package = load_developer_package(working_dir)
+
+        for i, variant in enumerate(package.iter_variants()):
+            self.assertEqual(i, 0)
+            request = variant.get_requires(build_requires=True, private_build_requires=True)
+            context = ResolvedContext(request, building=True)
+            self.assertEqual(get_current_variant_index(context, package), 0)
 
 
 def get_test_suites():
 
     suites = []
-    tests = [TestConvertingOldStyleCommands, TestRex, TestBuild, TestVariantPathMunging]
+    tests = [TestConvertingOldStyleCommands, TestRex, TestVariantPathMunging, TestCMakeBuildSystem]
 
     for test in tests:
         suites.append(unittest.TestLoader().loadTestsFromTestCase(test))
