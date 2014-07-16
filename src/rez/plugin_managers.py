@@ -168,9 +168,6 @@ class RezPluginType(object):
                     and plugin_class.schema_dict:
                 d_ = {name: plugin_class.schema_dict}
                 deep_update(d, d_)
-        # we allow custom keys so that packages containing plugin settings
-        # don't break when a different version of a rez plugin is present,
-        # which may have missing or extra keys.
         return _to_schema(d, required=True)
 
     def create_instance(self, plugin, **instance_kwargs):

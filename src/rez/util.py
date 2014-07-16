@@ -1291,41 +1291,66 @@ class _WithDataAccessors(type):
     If a schema key is optional, then the class property will evaluate to None
     if the key is not present in the metadata.
 
-    If the class instance also has a `_validate_key` method, this will be used
-    to lazily transform properties on first reference.
+    If the class's `lazy_validate` attribute is True, then the attribute
+    getters created by this metaclass will perform lazy data validation, OR,
+    if the class has a `_validate_key` method, will call this method, passing
+    the key, key value and key schema.
+
+    This metaclass creates the following attributes:
+        - for each key in cls.schema, creates an attribute of the same name,
+          unless that attribute already exists;
+        - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
         from rez.vendor.schema.schema import Schema, Optional
         schema = members.get('schema')
+        keys = set()
+
         if schema:
             schema_dict = schema._schema
-            for key in schema_dict.keys():
+            for key, key_schema in schema_dict.iteritems():
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema
+                keys.add(key)
                 if key not in members and \
                         isinstance(key, basestring) and \
                         not any(hasattr(x, key) for x in parents):
-                    members[key] = cls._make_getter(key, optional)
+                    members[key] = cls._make_getter(key, optional, key_schema)
 
+        members["_schema_keys"] = frozenset(keys)
         return super(_WithDataAccessors, cls).__new__(cls, name, parents,
                                                       members)
 
     @classmethod
-    def _make_getter(cls, key, optional):
+    def _make_getter(cls, key, optional, key_schema):
         def getter(self):
             if optional and key not in self.metadata:
                 return None
             attr = getattr(self.metadata, key)
-            if hasattr(self, "_validate_key"):
-                attr = self._validate_key(key, attr)
+            if self.lazy_validate:
+                if hasattr(self, "_validate_key"):
+                    attr = self._validate_key(key, attr, key_schema)
+                else:
+                    schema = (key_schema if isinstance(key_schema, Schema)
+                              else Schema(key_schema))
+                    attr = schema.validate(attr)
             return attr
         return propertycache(getter, name=key)
 
 
 class DataWrapper(object):
-    """Base class for implementing a class that contains validated data."""
+    """Base class for implementing a class that contains validated data.
+
+    Attributes:
+        schema (Schema): Schema used to validate the data. They keys of the
+            schema become attributes on the object (the metaclass does this).
+        lazy_validate (bool): If True, the schema is not used to validate the
+            data on load. Instead, attributes are validated the first time they
+            are referenced.
+    """
     __metaclass__ = _WithDataAccessors
+    lazy_validate = False
     schema = None
 
     def get(self, key, default=None):
@@ -1334,7 +1359,9 @@ class DataWrapper(object):
 
     def validate_data(self):
         """Check that the object's contents are valid."""
-        _ = self._data
+        if self.schema and self.lazy_validate:
+            for key in self._schema_keys:
+                getattr(self, key)  # forces validation of key
 
     def _load_data(self):
         """Implement this method to return the object's data.
@@ -1359,8 +1386,8 @@ class DataWrapper(object):
         timings.start(k)
         data = self._load_data()
         timings.end(k)
-        if data and self.schema:
-            k = "data.validate.%s" % self.__class__.__name__
+        if data and self.schema and not self.lazy_validate:
+            k = "data.validate_on_load.%s" % self.__class__.__name__
             timings.start(k)
             try:
                 data = self.schema.validate(data)
@@ -1373,12 +1400,9 @@ class DataWrapper(object):
         """Read-only dictionary of metadata for this package with nested,
         attribute-based access for the keys in the dictionary.
 
-        All of the dictionaries in `_data` have are replaced with custom
+        All of the dictionaries in `_data` are replaced with custom
         `UserDicts` to provide the attribute-lookups.  If you need the raw
         dictionary, use `_data`.
-
-        Note that the `UserDict` references the dictionaries in `_data`, so
-        the data is not copied, and thus the two will always be in sync.
 
         Returns:
             `RO_AttrDictWrapper` instance, or None if the resource has no data.

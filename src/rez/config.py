@@ -137,7 +137,7 @@ class Dict(Setting):
                 % value)
 
 
-_config_dict = {
+config_schema = Schema({
     "packages_path":                    PathList,
     "plugin_path":                      PathList,
     "bind_module_path":                 PathList,
@@ -213,13 +213,15 @@ _config_dict = {
     "error_nonstring_version":          Bool,
     "warn_root_custom_key":             Bool,
     "error_root_custom_key":            Bool,
+    "warn_commands2":                   Bool,
+    "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
     "env_var_separators":               Dict,
 
     # plugins are a special case and are validated lazily
-    Optional("plugins"):                dict,
-}
+    #Optional("plugins"):                dict,
+})
 
 
 # settings common to each plugin type
@@ -231,6 +233,7 @@ _plugin_config_dict = {
 }
 
 
+# TODO move into config?
 class Expand(object):
     """Schema that applies variable expansion."""
     namespace = dict(system=system)
@@ -293,9 +296,6 @@ def _to_schema(config_dict, required, allow_custom_keys=True,
     return _to(config_dict)
 
 
-config_schema_required = _to_schema(_config_dict, required=True)
-
-
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
@@ -311,7 +311,8 @@ class Config(DataWrapper):
     files update the master configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
-    schema = config_schema_required
+    schema = config_schema
+    lazy_validate = True
 
     def __init__(self, filepaths, overrides=None, locked=False):
         """Create a config.
@@ -366,16 +367,11 @@ class Config(DataWrapper):
         Note that this will force all plugins to be loaded.
         """
         d = {}
-        for key in self.metadata.iterkeys():
-            d[key] = getattr(self, key)
-
-        """
-            try:  # TODO remove try-catch once all settings are finalised
+        for key in self._data:
+            if key == "plugins":
+                d[key] = self.plugins.data()
+            else:
                 d[key] = getattr(self, key)
-            except AttributeError:
-                pass
-        d["plugins"] = self.plugins.data()
-        """
         return d
 
     @property
@@ -429,11 +425,12 @@ class Config(DataWrapper):
         """
         self.__dict__, other.__dict__ = other.__dict__, self.__dict__
 
-    def _validate_key(self, key, value):
-        v = _config_dict.get(key)
-        if type(v) is type and issubclass(v, Setting):
-            return v(self, key).validate(value)
-        return value
+    def _validate_key(self, key, value, key_schema):
+        if type(key_schema) is type and issubclass(key_schema, Setting):
+            key_schema = key_schema(self, key)
+        elif not isinstance(key_schema, Schema):
+            key_schema = Schema(key_schema)
+        return key_schema.validate(value)
 
     def _load_data(self):
         data = {}
@@ -459,7 +456,7 @@ class Config(DataWrapper):
         return Config(filepaths, overrides)
 
     def __str__(self):
-        keys = (x for x in _config_dict if isinstance(x, basestring))
+        keys = (x for x in self.schema._schema if isinstance(x, basestring))
         return "%r" % sorted(list(keys) + ["plugins"])
 
     def __repr__(self):
@@ -555,6 +552,7 @@ class _PluginConfigs(object):
 
         d = self.__dict__.copy()
         del d["_data"]
+        d = convert_dicts(d, dict, (dict, AttrDictWrapper))
         return d
 
     def __str__(self):

@@ -22,3 +22,5 @@ config:
             emailer:
                 sender:
                     '{system.user}@somewhere.com'
+                # nonexistant keys should not cause a problem
+                nonexistant: hello

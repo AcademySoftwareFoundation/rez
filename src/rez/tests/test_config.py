@@ -1,5 +1,6 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
+from rez.exceptions import ConfigurationError
 from rez.config import Config
 from rez.system import system
 from rez import module_root_path
@@ -40,6 +41,10 @@ class TestConfig(TestBase):
         self.assertEqual(c.build_directory, "floober")
         self.assertEqual(c.plugins.release_vcs.tag_name, "bah")
         self.assertEqual(c.plugins.release_hook.emailer.sender, "joe.bloggs")
+
+        # second override
+        c.override("build_directory", "flabber")
+        self.assertEqual(c.build_directory, "flabber")
 
         self._test_basic(c)
 
@@ -123,6 +128,26 @@ class TestConfig(TestBase):
         expected_value = ["FOO", "BAH_dude", "EEK"]
         self.assertEqual(c.parent_variables, expected_value)
 
+        self._test_overrides(c)
+
+    def test_5(self):
+        """Test misconfigurations."""
+        overrides = {
+            "build_directory": [],
+            "plugins": {
+                "release_hook": {
+                    "emailer": {
+                        "recipients": 42
+                    }
+                }
+            }
+        }
+        c = Config([self.root_config_file], overrides=overrides, locked=False)
+        with self.assertRaises(ConfigurationError):
+            _ = c.build_directory
+        with self.assertRaises(ConfigurationError):
+            _ = c.plugins.release_hook.emailer.recipients
+
 
 def get_test_suites():
     suites = []
@@ -131,6 +156,7 @@ def get_test_suites():
     suite.addTest(TestConfig("test_2"))
     suite.addTest(TestConfig("test_3"))
     suite.addTest(TestConfig("test_4"))
+    suite.addTest(TestConfig("test_5"))
     suites.append(suite)
     return suites
 
