@@ -20,7 +20,7 @@ def setup_parser(parser):
                         "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
-    parser.add_argument("-c", "--command", type=str,
+    parser.add_argument("-c", "--command", type=str, nargs='+',
                         help="read commands from string")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
@@ -107,11 +107,11 @@ def command(opts, parser):
 
     quiet = opts.quiet or bool(opts.command)
 
-    returncode,_,_ = rc.execute_shell(shell=opts.shell,
-                                      rcfile=opts.rcfile,
-                                      norc=opts.norc,
-                                      command=opts.command,
-                                      stdin=opts.stdin,
-                                      quiet=quiet,
-                                      block=True)
+    returncode, _, _ = rc.execute_shell(shell=opts.shell,
+                                        rcfile=opts.rcfile,
+                                        norc=opts.norc,
+                                        command=opts.command,
+                                        stdin=opts.stdin,
+                                        quiet=quiet,
+                                        block=True)
     sys.exit(returncode)
