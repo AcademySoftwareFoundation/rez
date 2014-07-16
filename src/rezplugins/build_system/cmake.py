@@ -165,6 +165,8 @@ class CMakeBuildSystem(BuildSystem):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
+        executor.env.REZ_BUILD_DOXYGEN_INCLUDE_PATH = template_path
+        executor.env.REZ_BUILD_DOXYGEN_INCLUDE_FILE = 'Doxyfile'
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_VARIANT_NUMBER = get_current_variant_index(context, package)
