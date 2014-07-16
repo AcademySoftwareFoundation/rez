@@ -50,6 +50,12 @@ class TestConfig(TestBase):
 
     def test_1(self):
         """Test just the root config file."""
+
+        # do a full validation of a config
+        c = Config([self.root_config_file], locked=True)
+        c.validate_data()
+
+        # check a few expected settings
         c = Config([self.root_config_file], locked=True)
         self._test_basic(c)
         self.assertEqual(c.warn_all, False)
@@ -132,6 +138,8 @@ class TestConfig(TestBase):
 
     def test_5(self):
         """Test misconfigurations."""
+
+        # overrides set to bad types
         overrides = {
             "build_directory": [],
             "plugins": {
@@ -147,6 +155,13 @@ class TestConfig(TestBase):
             _ = c.build_directory
         with self.assertRaises(ConfigurationError):
             _ = c.plugins.release_hook.emailer.recipients
+
+        # missing keys
+        conf = os.path.join(self.config_path, "test1.yaml")
+        c = Config([conf], locked=True)
+
+        with self.assertRaises(ConfigurationError):
+            _ = c.debug_all
 
 
 def get_test_suites():

@@ -125,7 +125,7 @@ class Bool(Setting):
 
 
 class Dict(Setting):
-    schema = Schema(UserDict)
+    schema = Schema(dict)
 
     def _parse_env_var(self, value):
         items = value.split(",")
@@ -312,6 +312,7 @@ class Config(DataWrapper):
     comments at the top of 'rezconfig' for more details.
     """
     schema = config_schema
+    schema_error = ConfigurationError
     lazy_validate = True
 
     def __init__(self, filepaths, overrides=None, locked=False):

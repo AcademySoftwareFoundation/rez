@@ -1285,7 +1285,7 @@ class ObjectStringFormatter(Formatter):
 
 class _WithDataAccessors(type):
     """Metaclass for adding properties to a class for accessing top-level keys
-    in its metadata dictionary.
+    in its `_data` dictionary.
 
     Property names are derived from the keys of the class's `schema` object.
     If a schema key is optional, then the class property will evaluate to None
@@ -1299,6 +1299,8 @@ class _WithDataAccessors(type):
     This metaclass creates the following attributes:
         - for each key in cls.schema, creates an attribute of the same name,
           unless that attribute already exists;
+        - for each key in cls.schema, if the attribute already exists on cls,
+          then creates an attribute with the same name but prefixed with '_';
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
@@ -1306,17 +1308,25 @@ class _WithDataAccessors(type):
         schema = members.get('schema')
         keys = set()
 
+        def _defined(x):
+            return x in members or any(hasattr(p, x) for p in parents)
+
         if schema:
             schema_dict = schema._schema
             for key, key_schema in schema_dict.iteritems():
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema
-                keys.add(key)
-                if key not in members and \
-                        isinstance(key, basestring) and \
-                        not any(hasattr(x, key) for x in parents):
-                    members[key] = cls._make_getter(key, optional, key_schema)
+                if isinstance(key, basestring):
+                    keys.add(key)
+                    if _defined(key):
+                        attr = "_%s" % key
+                        if _defined(attr):
+                            raise Exception("Couldn't make fallback attribute "
+                                            "%r, already defined" % attr)
+                    else:
+                        attr = key
+                    members[attr] = cls._make_getter(key, optional, key_schema)
 
         members["_schema_keys"] = frozenset(keys)
         return super(_WithDataAccessors, cls).__new__(cls, name, parents,
@@ -1325,16 +1335,22 @@ class _WithDataAccessors(type):
     @classmethod
     def _make_getter(cls, key, optional, key_schema):
         def getter(self):
-            if optional and key not in self.metadata:
-                return None
-            attr = getattr(self.metadata, key)
+            if key not in self._data:
+                if optional:
+                    return None
+                raise self.schema_error("Required key is missing: %r" % key)
+            attr = self._data[key]
             if self.lazy_validate:
                 if hasattr(self, "_validate_key"):
                     attr = self._validate_key(key, attr, key_schema)
                 else:
                     schema = (key_schema if isinstance(key_schema, Schema)
                               else Schema(key_schema))
-                    attr = schema.validate(attr)
+                    try:
+                        attr = schema.validate(attr)
+                    except Exception as e:
+                        raise self.schema_error("Validation of key %r failed: "
+                                                "%s" % (key, str(e)))
             return attr
         return propertycache(getter, name=key)
 
@@ -1345,6 +1361,8 @@ class DataWrapper(object):
     Attributes:
         schema (Schema): Schema used to validate the data. They keys of the
             schema become attributes on the object (the metaclass does this).
+        schema_error (Exception): The class type to raise if an error occurs
+            during data load.
         lazy_validate (bool): If True, the schema is not used to validate the
             data on load. Instead, attributes are validated the first time they
             are referenced.
@@ -1352,6 +1370,7 @@ class DataWrapper(object):
     __metaclass__ = _WithDataAccessors
     lazy_validate = False
     schema = None
+    schema_error = Exception
 
     def get(self, key, default=None):
         """Get a key value by name."""

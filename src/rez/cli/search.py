@@ -120,6 +120,7 @@ def command(opts, parser):
                 packages = sorted(packages, key=lambda x: x.version)
                 if opts.latest and packages:
                     packages = [packages[-1]]
+
             for package in packages:
                 if opts.errors:
                     try:
