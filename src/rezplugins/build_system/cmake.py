@@ -167,6 +167,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
+        executor.env.REZ_BUILD_VARIANT_NUMBER = get_current_variant_index(context, package)
         executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
@@ -174,6 +175,20 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
         executor.env.REZ_RELEASE_PACKAGES_PATH = package.config.release_packages_path
+
+
+def get_current_variant_index(context, package):
+    current_variant_index = 0
+    current_request_without_implicit_packages = set(context.package_requests).difference(set(context.implicit_packages))
+
+    for index, variant in enumerate(package.iter_variants()):
+        request = variant.get_requires(build_requires=True, private_build_requires=True)
+
+        if current_request_without_implicit_packages == set(request):
+            current_variant_index = index
+            break
+
+    return current_variant_index
 
 
 def _FWD__spawn_build_shell(working_dir, build_dir):
