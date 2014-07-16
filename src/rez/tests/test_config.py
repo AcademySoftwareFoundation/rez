@@ -4,6 +4,7 @@ from rez.config import Config
 from rez.system import system
 from rez import module_root_path
 from rez.util import RO_AttrDictWrapper
+from rez.packages import load_developer_package
 import os
 import os.path
 
@@ -60,8 +61,8 @@ class TestConfig(TestBase):
         self.assertEqual(c.plugins.release_hook.emailer.smtp_port, 25)
 
         # check system attribute expansion
-        sender = "%s@rez-release.com" % system.user
-        self.assertEqual(c.plugins.release_hook.emailer.sender, sender)
+        expected_value = "%s@rez-release.com" % system.user
+        self.assertEqual(c.plugins.release_hook.emailer.sender, expected_value)
 
         # check that an env-var override doesn't affect locked config
         os.environ["REZ_WARN_NONE"] = "true"
@@ -83,12 +84,53 @@ class TestConfig(TestBase):
 
         self._test_overrides(c)
 
+    def test_3(self):
+        """Test environment variable config overrides."""
+        c = Config([self.root_config_file], locked=False)
+
+        # test basic env-var override
+        os.environ["REZ_WARN_ALL"] = "1"
+        self.assertEqual(c.warn_all, True)
+        self._test_basic(c)
+
+        # test env-var override that contains a system expansion
+        os.environ["REZ_TMPDIR"] = "/tmp/{system.user}"
+        expected_value = "/tmp/%s" % system.user
+        self.assertEqual(c.tmpdir, expected_value)
+
+        # _test_overrides overrides this value, so here we're making sure
+        # that an API override takes precedence over an env-var override
+        os.environ["BUILD_DIRECTORY"] = "flaabs"
+        self._test_overrides(c)
+
+    def test_4(self):
+        """Test package config overrides."""
+        pkg = load_developer_package(self.config_path)
+        c = pkg.config
+        self._test_basic(c)
+
+        # check overrides from package.yaml are working
+        os.environ["REZ_BUILD_DIRECTORY"] = "foo"  # should have no effect
+        self.assertEqual(c.build_directory, "weeble")
+        self.assertEqual(c.plugins.release_vcs.tag_name, "tag")
+
+        # check system expansion in package overridden setting works
+        expected_value = "%s@somewhere.com" % system.user
+        self.assertEqual(c.plugins.release_hook.emailer.sender, expected_value)
+
+        # check env-var expansion in package overridden setting works
+        os.environ["FUNK"] = "dude"
+        expected_value = ["FOO", "BAH_dude", "EEK"]
+        self.assertEqual(c.parent_variables, expected_value)
+
 
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestConfig("test_1"))
     suite.addTest(TestConfig("test_2"))
+    suite.addTest(TestConfig("test_3"))
+    suite.addTest(TestConfig("test_4"))
     suites.append(suite)
     return suites
 

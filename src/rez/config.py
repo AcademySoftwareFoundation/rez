@@ -41,6 +41,7 @@ class Setting(object):
         try:
             data = self._validate(data)
             data = self.schema.validate(data)
+            data = Expand().validate(data)
         except SchemaError as e:
             raise ConfigurationError("Misconfigured setting '%s': %s"
                                      % (self.key, str(e)))
@@ -49,7 +50,7 @@ class Setting(object):
     def _validate(self, data):
         # overriden settings take precedence.
         if self.key in self.config.overrides:
-            return Expand().validate(self.config.overrides[self.key])
+            return self.config.overrides[self.key]
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
@@ -73,7 +74,7 @@ class Str(Setting):
         return value
 
 
-class OptionalStr(Setting):
+class OptionalStr(Str):
     schema = Or(None, basestring)
 
 
@@ -86,7 +87,7 @@ class StrList(Setting):
         return [x for x in value if x]
 
 
-class OptionalStrList(Setting):
+class OptionalStrList(StrList):
     schema = Or(None, [basestring])
 
 
@@ -366,11 +367,15 @@ class Config(DataWrapper):
         """
         d = {}
         for key in self.metadata.iterkeys():
+            d[key] = getattr(self, key)
+
+        """
             try:  # TODO remove try-catch once all settings are finalised
                 d[key] = getattr(self, key)
             except AttributeError:
                 pass
         d["plugins"] = self.plugins.data()
+        """
         return d
 
     @property
