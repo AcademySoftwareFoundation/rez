@@ -2,6 +2,7 @@
 Open a rez-configured shell, possibly interactive.
 '''
 import select
+import subprocess
 import sys
 import os
 import os.path
@@ -54,6 +55,10 @@ def setup_parser(parser):
                         "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
+    parser.add_argument("-d", "--dora", action="store_true",
+                        help="Open graph in dora")
+    parser.add_argument("--fd", "--flash_dora_context", action="store_true",
+                        help="reuse a saved dora context")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
@@ -62,6 +67,35 @@ def command(opts, parser):
     from rez.resolved_context import ResolvedContext
     from rez.util import get_epoch_time_from_str
     from rez.config import config
+
+    if opts.dora:
+        print >> sys.stdout, "Getting dora environment ..."
+        from rez.util import timings
+        timings.start("rez.cli.env.resolving.dora.context")
+        if os.path.exists('/tmp/rezDoraContext.rxt') and not opts.fd:
+            rc = ResolvedContext.load('/tmp/rezDoraContext.rxt')    #TODO bring this name from rez.config?
+        else:
+            rc = ResolvedContext(['dora'])
+            rc.save('/tmp/rezDoraContext.rxt')                      #TODO bring this name from rez.config?
+        timings.end("rez.cli.env.resolving.dora.context")
+        doraEnvironment = rc.get_environ()
+        env = dict(os.environ)
+        inputOption = "-i %s " % opts.input if opts.input else ""
+        outputOption = "-o %s " % opts.ouput if opts.output else ""
+        timeOption = "-t %s " % opts.time if opts.time else ""
+        maxFailsOption = "--max-fails %s " % opts.max_fails if opts.max_fails else ""
+        doraCommand = '%s %s %s %s %s %s' % (doraEnvironment.get('DORA_EXE'), " ".join(opts.PKG), inputOption,
+                                              outputOption, timeOption, maxFailsOption)
+        env.update(doraEnvironment)
+        print >> sys.stdout, "Starting dora ..."
+        proc = subprocess.Popen(doraCommand.split() , env=env,
+                                stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+
+        proc.wait()
+        returncode = not bool(proc.returncode)
+        timings.dump()
+        sys.exit(returncode)
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
