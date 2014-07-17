@@ -236,6 +236,7 @@ macro(_rez_install_auto_cmake)
 	file(APPEND ${cmake_path} "set(${projname}_LIBRARIES \"${library_names}\")\n")
 	file(APPEND ${cmake_path} "set(${projname}_DEFINITIONS \"${INSTCM_DEFINITIONS}\")\n\n")
 	file(APPEND ${cmake_path} "set(${projname}_USE_SYSTEM_INCLUDE_DIRS \"${INSTCM_USE_SYSTEM_INCLUDE_DIRS}\")\n\n")
+	file(APPEND ${cmake_path} "list(APPEND CMAKE_PREFIX_PATH ${root_dir})\n\n" )
 
 	if(rez_static_libraries AND rez_dynamic_libraries)
 		file(APPEND ${cmake_path} "${rez_static_libraries}\n")
