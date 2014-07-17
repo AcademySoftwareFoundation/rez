@@ -16,6 +16,11 @@ def setup_parser(parser):
 
     parser.add_argument("--variants", nargs='+', type=int,
                         help="select variants to build (zero-indexed).")
+    parser.add_argument("--build-project", action="store_true")
+    parser.add_argument("--build-cproject", action="store_true")
+    parser.add_argument("--build-cproject-settings", action="store_true")
+    parser.add_argument("--build-pydevproject", action="store_true")
+
 
     add_build_system_args(parser)
     add_extra_build_args(parser)
@@ -41,10 +46,18 @@ def command(opts, parser):
 
     if not builder.build(clean=True, variants=opts.variants):
         sys.exit(1)
-    
+
+    files = ["build_project", "build_cproject", "build_cproject_settings", "build_pydevproject"]
+    build_all = all([not getattr(opts, file_) for file_ in files])
+
     eclipse_project_builder = EclipseProjectBuilder(working_dir)
-    eclipse_project_builder.build_project()
-    eclipse_project_builder.build_cproject()
-    eclipse_project_builder.build_cproject_settings()
-    eclipse_project_builder.build_pydevproject()
+
+    if build_all:
+        eclipse_project_builder.build_all()
+
+    else:
+        for file_ in files:
+            if getattr(opts, file_):
+                build_func = getattr(eclipse_project_builder, file_)
+                build_func()
 
