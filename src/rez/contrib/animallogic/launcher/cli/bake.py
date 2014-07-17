@@ -10,8 +10,8 @@ from rez.config import config
 
 def setup_parser(parser):
 
-    parser.add_argument('--source', required=True, help='the preset to bake')
-    parser.add_argument('--destination', required=True, help='the where to store the result')
+    parser.add_argument('--source', required=True, help='the preset/toolset to bake')
+    parser.add_argument('--destination', required=True, help='the preset in which to store the result')
 
 
 def command(opts, parser):
@@ -24,3 +24,4 @@ def command(opts, parser):
 
     baker = Baker(launcher_service, rez_service)
     baker.bake(opts.source, opts.destination)
+
