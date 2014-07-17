@@ -4,6 +4,11 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.exceptions import BakerError
 import datetime
 import getpass
+import logging
+
+
+logger = logging.getLogger(__name__)
+
 
 class Baker(object):
 
@@ -17,16 +22,32 @@ class Baker(object):
         self.mode = Mode.shell
         self.operating_system = OperatingSystem.get_current_operating_system()
 
+    def display_settings(self, settings):
+
+        for setting in settings:
+            logger.info("\t%s" % (setting.get_setting_as_package_request()))
+
     def bake(self, source, destination):
+
+        logger.info("Retrieving settings from Launcher %s." % source)
 
         package_settings = self.get_package_settings_from_launcher(source)
 
         if not package_settings:
             raise BakerError("Unable to find package settings in %s." % source)
 
+        logger.info("Found settings:")
+        self.display_settings(package_settings)
+
         package_requests = self.get_package_requests_from_settings(package_settings)
 
+        logger.info("Resolving environment for %s." % package_requests)
+
         resolved_package_settings = self.get_resolved_settings_from_package_requests(package_requests)
+
+        self.display_settings(resolved_package_settings)
+
+        logger.info("Creating new preset %s from settings." % destination)
 
         self.create_new_preset_from_package_settings(destination, resolved_package_settings, '')
 
