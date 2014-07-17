@@ -133,7 +133,7 @@ class StandardBuildProcess(BuildProcess):
         install_path = (install_path or
                         self.package.config.local_packages_path)
 
-        self._build(install_path=install_path,
+        return self._build(install_path=install_path,
                     build_path=base_build_path,
                     install=install,
                     clean=clean, variants=variants)
@@ -413,3 +413,5 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
+
+        return True
