@@ -1,14 +1,26 @@
+from rez.contrib.animallogic.launcher.exceptions import LauncherError
+
 class StubPresetProxy(object):
 
-    def __init__(self, settings, preset):
+    PRESETS_PREFIX = '/presets'
+
+    def __init__(self, settings={}, preset_path="", preset=None):
 
         self.settings = settings
+        self.preset_path = self._strip_prefix_from_path(preset_path)
         self.preset = preset
+
+    def _strip_prefix_from_path(self, path):
+
+        return path.replace(self.PRESETS_PREFIX, '')
 
     def resolveSettingsForPath(self, username, path, tag, operating_system, mode, date):
 
         if not all([username, path, operating_system, mode, date]):
             raise TypeError("")
+
+        if self.preset_path != path:
+            raise Exception({'message':"The provided preset is invalid."})
 
         return  self.settings
 
@@ -36,14 +48,18 @@ class StubPresetProxy(object):
 
 class StubToolsetProxy(object):
 
-    def __init__(self, settings):
+    def __init__(self, settings={}, toolset_path=""):
 
         self.settings = settings
+        self.toolset_path = toolset_path
 
     def resolveSettingsForPath(self, username, path, mode, operating_system, date):
 
         if not all([username, path, mode, operating_system, date]):
             raise TypeError("")
+
+        if self.toolset_path != path:
+            raise Exception({'message':"The provided toolset is invalid."})
 
         return self.settings
 
@@ -56,4 +72,8 @@ class StubRezService(object):
 
     def get_resolved_settings_from_requirements(self, requirements):
 
+        if 'conflict' in requirements:
+            raise Exception("The provided requirements are invalid.")
+
         return self.settings
+

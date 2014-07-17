@@ -1,6 +1,9 @@
 from rez.resolved_context import ResolvedContext
+from rez.resolver import ResolverStatus
 from rez.contrib.animallogic.launcher.setting import Setting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.launcher.exceptions import RezResolverError
+
 
 class RezServiceInterface(object):
 
@@ -30,7 +33,8 @@ class RezService(RezServiceInterface):
 
         resolved_context = ResolvedContext(requirements)
 
-        if resolved_context.status == 'solved':
+        if resolved_context.status == ResolverStatus.solved:
             return self._get_package_settings_from_resolved_context(resolved_context)
 
-        raise Exception
+        raise RezResolverError("Unable to resolve the environment for %s." % requirements)
+

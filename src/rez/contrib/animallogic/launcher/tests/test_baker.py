@@ -4,8 +4,10 @@ from rez.contrib.animallogic.launcher.mode import Mode
 from rez.contrib.animallogic.launcher.setting import Setting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
+from rez.contrib.animallogic.launcher.exceptions import BakerError, RezResolverError
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService
 import rez.vendor.unittest2 as unittest
+
 
 class TestBaker(unittest.TestCase):
 
@@ -26,7 +28,7 @@ class TestBaker(unittest.TestCase):
         self.package_requests = ['package_1-1.2.3', 'package_2']
         self.resolved_package_settings = [Setting('package_1', '1.2.3', SettingType.package), Setting('package_2', '2.0.1', SettingType.package)]
 
-        launcher_service = LauncherHessianService(StubPresetProxy(self.preset_settings + self.package_preset_settings, self.new_preset), StubToolsetProxy({}))
+        launcher_service = LauncherHessianService(StubPresetProxy(settings=self.package_preset_settings + self.preset_settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
         rez_service = StubRezService(self.resolved_package_settings)
         self.baker = Baker(launcher_service, rez_service)
 
@@ -64,3 +66,15 @@ class TestBaker(unittest.TestCase):
     def test_create_new_preset_from_package_settings(self):
 
         self.baker.create_new_preset_from_package_settings(self.new_preset_path, self.resolved_package_settings, 'test')
+
+    def test_package_settings_not_found_in_source_preset(self):
+
+        launcher_service = LauncherHessianService(StubPresetProxy(settings=self.preset_settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
+        rez_service = StubRezService(self.resolved_package_settings)
+        self.baker = Baker(launcher_service, rez_service)
+        self.assertRaises(BakerError, self.baker.bake, self.preset_path, self.new_preset_path)
+
+    def test_package_settings_do_not_resolve(self):
+
+        self.assertRaises(BakerError, self.baker.get_resolved_settings_from_package_requests, ['conflict', 'foo-1'])
+

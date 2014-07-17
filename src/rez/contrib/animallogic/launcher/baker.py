@@ -1,6 +1,7 @@
 from rez.contrib.animallogic.launcher.mode import Mode
 from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.launcher.exceptions import BakerError
 import datetime
 import getpass
 
@@ -19,6 +20,9 @@ class Baker(object):
     def bake(self, source, destination):
 
         package_settings = self.get_package_settings_from_launcher(source)
+
+        if not package_settings:
+            raise BakerError("Unable to find package settings in %s." % source)
 
         package_requests = self.get_package_requests_from_settings(package_settings)
 
@@ -46,7 +50,10 @@ class Baker(object):
 
     def get_resolved_settings_from_package_requests(self, package_requests):
 
-        return self.rez_service.get_resolved_settings_from_requirements(package_requests)
+        try:
+            return self.rez_service.get_resolved_settings_from_requirements(package_requests)
+        except Exception, e:
+            raise BakerError(e)
 
     def create_new_preset_from_package_settings(self, destination, package_settings, description=None):
 

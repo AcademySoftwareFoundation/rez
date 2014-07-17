@@ -2,6 +2,8 @@ from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.setting import Setting
 from rez.contrib.animallogic.launcher.preset import Preset
+from rez.contrib.animallogic.launcher.exceptions import LauncherError
+
 
 class LauncherServiceInterface(object):
 
@@ -71,13 +73,21 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def get_settings_from_path(self, path, mode, username=None, operating_system=None, date=None):
 
+        operating_system_dict = self._operating_system_to_dict(operating_system)
+
         if self._is_preset_path(path):
             tag = None
-
-            settings = self._preset_proxy.resolveSettingsForPath(username, self._strip_prefix_from_path(path), tag, self._operating_system_to_dict(operating_system), mode.name, date)
+            method = self._preset_proxy.resolveSettingsForPath
+            args = (username, self._strip_prefix_from_path(path), tag, operating_system_dict, mode.name, date)
 
         else:
-            settings = self._toolset_proxy.resolveSettingsForPath(username, path, mode.name, self._operating_system_to_dict(operating_system), date)
+            method = self._toolset_proxy.resolveSettingsForPath
+            args = (username, path, mode.name, operating_system_dict, date)
+
+        try:
+            settings = method(*args)
+        except Exception, e:
+            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e.message['message']))
 
         return [self._create_setting_from_dict(setting) for setting in settings]
 
@@ -95,9 +105,11 @@ class LauncherHessianService(LauncherServiceInterface):
 
         parent_path, name = preset_path.rsplit('/', 1)
 
-        parent_id = self._get_parent_id_for_preset_path(parent_path)
-
-        result = self._preset_proxy.createPreset(username, parent_id, name, description)
+        try:
+            parent_id = self._get_parent_id_for_preset_path(parent_path)
+            result = self._preset_proxy.createPreset(username, parent_id, name, description)
+        except Exception, e:
+            raise LauncherError("Unable to create preset '%s' - %s." % (preset_path, e.message['message']))
 
         return self._create_preset_from_dict(result)
 
