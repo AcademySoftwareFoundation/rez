@@ -84,6 +84,7 @@ resource_caching_maxsize: 10000
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
 implicit_packages:
+- '{system.os}'
 - '~platform=={system.platform}'
 - '~arch=={system.arch}'
 - '~os=={system.os}'
