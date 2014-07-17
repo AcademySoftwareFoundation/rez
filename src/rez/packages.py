@@ -43,8 +43,8 @@ def _iter_packages(name=None, paths=None):
         yield Package(resource)
 
 
-def iter_packages(name=None, range=None, timestamp=None, paths=None):
-    """Iterate over `Package` instances.
+def iter_packages(name=None, range=None, paths=None):
+    """Iterate over `Package` instances, in no particular order.
 
     Packages of the same name and version earlier in the search path take
     precedence - equivalent packages later in the paths are ignored. Packages
@@ -54,8 +54,6 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
         name (str): Name of the package, eg 'maya'.
         range (VersionRange, optional): If provided, limits the versions
             returned.
-        timestamp (int, optional): Any package newer than this time epoch is
-            ignored.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
 
@@ -66,11 +64,7 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
     for pkg in _iter_packages(name, paths):
         handle = (pkg.name, pkg.version)
         if handle not in consumed:
-            # checking version against range before timestamp is important
-            # - data needs to be loaded to determine package timestamp.
             if range and pkg.version not in range:
-                continue
-            if timestamp and pkg.timestamp > timestamp:
                 continue
             consumed.add(handle)
             yield pkg

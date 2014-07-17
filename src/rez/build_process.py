@@ -1,5 +1,6 @@
 from rez.packages import load_developer_package, iter_packages
-from rez.exceptions import RezError, BuildError, BuildContextResolveError
+from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
+    ReleaseError
 from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
@@ -167,10 +168,11 @@ class StandardBuildProcess(BuildProcess):
         print "Checking state of repository..."
         self.vcs.validate_repostate()
         release_path = self._get_base_install_path(install_path)
+        release_settings = self.package.config.plugins.release_vcs
 
         # format tag
         try:
-            tag_name = self.package.format(self.type_settings.tag_name)
+            tag_name = self.package.format(release_settings.tag_name)
             if not tag_name:
                 tag_name = "unversioned"
         except Exception as e:
@@ -273,9 +275,9 @@ class StandardBuildProcess(BuildProcess):
     def _hdr(self, s, h=1):
         self._pr('')
         if h <= 1:
-            self._pr('-'*80)
+            self._pr('-' * 80)
             self._pr(s)
-            self._pr('-'*80)
+            self._pr('-' * 80)
         else:
             self._pr(s)
             self._pr('-' * len(s))

@@ -37,7 +37,8 @@ class StubReleaseVCS(ReleaseVCS):
         else:
             return ["This is the first commit"]
 
-    def create_release_tag(self, message=None):
+    def create_release_tag(self, tag_name, message=None):
+        print "Creating tag '%s'..." % tag_name
         pass
 
 
