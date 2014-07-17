@@ -5,6 +5,7 @@ Bake a launcher preset based on the resolution of a rez environment.
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.baker import Baker
+from rez.config import config
 from hessian import client
 
 def setup_parser(parser):
@@ -15,8 +16,8 @@ def setup_parser(parser):
 
 def command(opts, parser):
 
-    preset_proxy = client.HessianProxy('http://launcher.al.com.au:6060/launcher/service/preset')
-    toolset_proxy = client.HessianProxy('http://launcher.al.com.au:6060/launcher/service/toolset')
+    preset_proxy = client.HessianProxy(config.launcher_service_url + '/preset')
+    toolset_proxy = client.HessianProxy(config.launcher_service_url + '/toolset')
 
     launcher_service = LauncherHessianService(preset_proxy, toolset_proxy)
     rez_service = RezService()

@@ -399,3 +399,30 @@ plugins:
         # a regular expression that can be used with re.match, for example
         # '^master$'.
         releasable_branches:
+
+
+###############################################################################
+# Launcher
+###############################################################################
+
+# The base url for the Launcher service server used by the Launcher cli.
+launcher_service_url: http://launcher.al.com.au:6060/launcher/service
+
+
+###############################################################################
+# Unleash
+###############################################################################
+
+# The base url for the Ark server.
+ark_url: http://ark.al.com.au
+
+# The name of the Launcher preset used to ensure we have access to the Unleash
+# infrastructure for unleashing.
+unleash_launcher_preset: /toolsets/Department/RnD/Unleash
+
+# The default Unleash flavour to use with rez-unleash.
+unleash_flavour: package
+
+# The default Unleash target to use with rez-unleash.
+unleash_target: film_tools_packages
+

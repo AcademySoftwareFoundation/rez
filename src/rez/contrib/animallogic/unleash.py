@@ -7,11 +7,11 @@ from rez.contrib.animallogic.exceptions import RezUnleashError
 import os
 import urllib2
 
-ARK_URL = os.environ.get("ARK_URL", "http://ark.al.com.au")
-LAUNCHER_PRESET = "/toolsets/Department/RnD/Unleash"
+ARK_URL = config.ark_url
+LAUNCHER_PRESET = config.unleash_launcher_preset
 LAUNCHER_COMMAND = "/film/tools/launcher2CL/current/generic/launch-linux.sh"
-UNLEASH_FLAVOUR = "package"
-UNLEASH_TARGET = "film_tools_packages"
+UNLEASH_FLAVOUR = config.unleash_flavour
+UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
 UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "bin", "_unleasher")
 USERNAME = os.getenv("USER")
