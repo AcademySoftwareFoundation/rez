@@ -6,11 +6,11 @@ from rez.cli.build import add_extra_build_args
 from rez.cli.build import add_build_system_args
 from rez.cli.build import parse_build_args
 from rez.release_vcs import get_release_vcs_types
-from rez.contrib.animallogic.unleash import LAUNCHER_PRESET
-from rez.contrib.animallogic.unleash import UNLEASH_FLAVOUR
-from rez.contrib.animallogic.unleash import UNLEASH_TARGET
-from rez.contrib.animallogic.unleash import USERNAME
-from rez.contrib.animallogic.unleash import unleash
+from rez.contrib.animallogic.unleash.unleash import LAUNCHER_PRESET
+from rez.contrib.animallogic.unleash.unleash import UNLEASH_FLAVOUR
+from rez.contrib.animallogic.unleash.unleash import UNLEASH_TARGET
+from rez.contrib.animallogic.unleash.unleash import USERNAME
+from rez.contrib.animallogic.unleash.unleash import unleash
 import os
 
 
