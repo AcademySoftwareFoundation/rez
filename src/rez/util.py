@@ -1283,18 +1283,17 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
-class _WithDataAccessors(type):
+class _LazyAttributeValidator(type):
     """Metaclass for adding properties to a class for accessing top-level keys
-    in its `_data` dictionary.
+    in its `_data` dictionary, and validating them on first reference.
 
     Property names are derived from the keys of the class's `schema` object.
     If a schema key is optional, then the class property will evaluate to None
-    if the key is not present in the metadata.
+    if the key is not present in `_data`.
 
-    If the class's `lazy_validate` attribute is True, then the attribute
-    getters created by this metaclass will perform lazy data validation, OR,
-    if the class has a `_validate_key` method, will call this method, passing
-    the key, key value and key schema.
+    The attribute getters created by this metaclass will perform lazy data
+    validation, OR, if the class has a `_validate_key` method, will call this
+    method, passing the key, key value and key schema.
 
     This metaclass creates the following attributes:
         - for each key in cls.schema, creates an attribute of the same name,
@@ -1329,107 +1328,81 @@ class _WithDataAccessors(type):
                     members[attr] = cls._make_getter(key, optional, key_schema)
 
         members["_schema_keys"] = frozenset(keys)
-        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
-                                                      members)
+        return super(_LazyAttributeValidator, cls).__new__(cls, name, parents,
+                                                           members)
 
     @classmethod
     def _make_getter(cls, key, optional, key_schema):
         def getter(self):
+            from rez.vendor.schema.schema import Schema
             if key not in self._data:
                 if optional:
                     return None
                 raise self.schema_error("Required key is missing: %r" % key)
+
             attr = self._data[key]
-            if self.lazy_validate:
-                if hasattr(self, "_validate_key"):
-                    attr = self._validate_key(key, attr, key_schema)
-                else:
-                    schema = (key_schema if isinstance(key_schema, Schema)
-                              else Schema(key_schema))
-                    try:
-                        attr = schema.validate(attr)
-                    except Exception as e:
-                        raise self.schema_error("Validation of key %r failed: "
-                                                "%s" % (key, str(e)))
+            if hasattr(self, "_validate_key"):
+                attr = self._validate_key(key, attr, key_schema)
+            else:
+                schema = (key_schema if isinstance(key_schema, Schema)
+                          else Schema(key_schema))
+                try:
+                    attr = schema.validate(attr)
+                except Exception as e:
+                    raise self.schema_error("Validation of key %r failed: "
+                                            "%s" % (key, str(e)))
             return attr
+
         return propertycache(getter, name=key)
 
 
 class DataWrapper(object):
     """Base class for implementing a class that contains validated data.
 
+    DataWrapper subclasses are expected to implement the `_data` property,
+    which should return a dict matching the schema specified by the class's
+    `schema` attribute. Keys in the schema become attributes in this class,
+    and are lazily validated on first reference.
+
     Attributes:
         schema (Schema): Schema used to validate the data. They keys of the
             schema become attributes on the object (the metaclass does this).
         schema_error (Exception): The class type to raise if an error occurs
             during data load.
-        lazy_validate (bool): If True, the schema is not used to validate the
-            data on load. Instead, attributes are validated the first time they
-            are referenced.
     """
-    __metaclass__ = _WithDataAccessors
-    lazy_validate = False
-    schema = None
+    __metaclass__ = _LazyAttributeValidator
     schema_error = Exception
+    schema = None
 
+    # TODO deprecate
     def get(self, key, default=None):
         """Get a key value by name."""
         return getattr(self, key, default)
 
     def validate_data(self):
-        """Check that the object's contents are valid."""
-        if self.schema and self.lazy_validate:
+        """Force validation on all of the object's data.
+
+        Note: This method is deliberately not named 'validate'. This causes
+            problems because a DataWrapper instance can in some cases be
+            incorrectly picked up by the Schema library as a schema validator.
+        """
+        if self.schema:
             for key in self._schema_keys:
                 getattr(self, key)  # forces validation of key
 
-    def _load_data(self):
-        """Implement this method to return the object's data.
+    @property
+    def _data(self):
+        """Load object data.
+
+        The data returned by this method should conform to the schema defined
+        by the `schema` class attribute. You almost certainly want to decorate
+        this property with a @propertycache, to avoid loading the data
+        multiple times.
 
         Returns:
-            Object data as a dict, or None if the object has no data.
+            dict.
         """
         raise NotImplementedError
-
-    @propertycache
-    def _data(self):
-        """Loaded object data.
-
-        This is private because it is preferred for users to go through the
-        `metadata` property.  This is here to preserve the original dictionary
-        loaded directly from the package's resource.
-
-        Returns:
-            Object data as a dict, or None if the object has no data.
-        """
-        k = "data.load.%s" % self.__class__.__name__
-        timings.start(k)
-        data = self._load_data()
-        timings.end(k)
-        if data and self.schema and not self.lazy_validate:
-            k = "data.validate_on_load.%s" % self.__class__.__name__
-            timings.start(k)
-            try:
-                data = self.schema.validate(data)
-            finally:
-                timings.end(k)
-        return data
-
-    @propertycache
-    def metadata(self):
-        """Read-only dictionary of metadata for this package with nested,
-        attribute-based access for the keys in the dictionary.
-
-        All of the dictionaries in `_data` are replaced with custom
-        `UserDicts` to provide the attribute-lookups.  If you need the raw
-        dictionary, use `_data`.
-
-        Returns:
-            `RO_AttrDictWrapper` instance, or None if the resource has no data.
-        """
-        if self._data is None:
-            return None
-        else:
-            return convert_dicts(self._data, RO_AttrDictWrapper)
 
     def format(self, s, pretty=False, expand=None):
         """Format a string.

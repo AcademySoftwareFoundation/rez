@@ -66,7 +66,7 @@ class TestConfig(TestBase):
                          os.path.expanduser("~/packages"))
 
         # check access to plugins settings common to a plugin type
-        self.assertEqual(c.plugins.release_vcs.tag_name, '{name}-{version}')
+        self.assertEqual(c.plugins.release_vcs.tag_name, '{qualified_name}')
 
         # check access to plugins settings
         self.assertEqual(c.plugins.release_hook.emailer.smtp_port, 25)

@@ -376,10 +376,10 @@ documentation_url: http://nerdvegas.github.io/rez/
 
 plugins:
     release_vcs:
-        # For format string used to determine the VCS tag name when releasing.
-        # This string will be formatted against the metadata for the package
-        # currently being released.  Valid formatting keys are "name", "version".
-        tag_name: '{name}-{version}'
+        # Format string used to determine the VCS tag name when releasing. This
+        # will be formatted using the package being released - any package
+        # attribute can be referenced in this string, eg '{name}'.
+        tag_name: '{qualified_name}'
 
         # A list of branches that a user is allowed to rez-release from. This
         # can be used to block releases from development or feature branches,

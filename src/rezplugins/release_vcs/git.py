@@ -173,7 +173,7 @@ class GitReleaseVCS(ReleaseVCS):
             _get("push_url", functools.partial(_url, "push"))
         return doc
 
-    def _create_tag_impl(self, tag_name, message=None):
+    def create_release_tag(self, tag_name, message=None):
         # check if tag already exists
         tags = self.git("tag")
         if tag_name in tags:

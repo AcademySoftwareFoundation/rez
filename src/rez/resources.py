@@ -778,7 +778,8 @@ class ResourceWrapper(DataWrapper):
     def path(self):
         return self._resource.path
 
-    def _load_data(self):
+    @propertycache
+    def _data(self):
         k = "resources.load.%s" % self.__class__.__name__
         timings.start(k)
         data = self._resource.load()

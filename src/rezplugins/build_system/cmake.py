@@ -67,6 +67,7 @@ class CMakeBuildSystem(BuildSystem):
                             help="set the build target.")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
+                            default=settings.build_system,
                             help="set the cmake build system.")
 
     def __init__(self, working_dir, opts=None, write_build_scripts=False,
@@ -170,7 +171,8 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
-        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = package.metadata.get('description', '').strip()
+        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \
+            (package.description or '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
 

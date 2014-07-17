@@ -132,6 +132,8 @@ class PackageFamily(ResourceWrapper):
     You should not instantiate this class directly - instead, call
     `iter_package_families`.
     """
+    schema_error = PackageMetadataError
+
     @propertycache
     def name(self):
         return self._resource.get("name")
@@ -146,6 +148,8 @@ class PackageFamily(ResourceWrapper):
 
 class _PackageBase(ResourceWrapper):
     """Abstract base class for Package and Variant."""
+    schema_error = PackageMetadataError
+
     @propertycache
     def name(self):
         value = self._resource.get("name")

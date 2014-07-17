@@ -313,7 +313,6 @@ class Config(DataWrapper):
     """
     schema = config_schema
     schema_error = ConfigurationError
-    lazy_validate = True
 
     def __init__(self, filepaths, overrides=None, locked=False):
         """Create a config.
@@ -433,7 +432,8 @@ class Config(DataWrapper):
             key_schema = Schema(key_schema)
         return key_schema.validate(value)
 
-    def _load_data(self):
+    @propertycache
+    def _data(self):
         data = {}
         for filepath in self.filepaths:
             data_ = _load_config_yaml(filepath)

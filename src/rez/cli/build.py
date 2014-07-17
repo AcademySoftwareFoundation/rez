@@ -62,7 +62,7 @@ def setup_parser(parser):
                         help="install the build to the local packages path. "
                         "Use --prefix to choose a custom install path.")
     parser.add_argument("-p", "--prefix", type=str, metavar='PATH',
-                        help="install to a custom path")
+                        help="install to a custom path.")
     parser.add_argument("--fail-graph", action="store_true",
                         help="if the build environment fails to resolve due "
                         "to a conflict display the resolve graph as an image.")
@@ -71,7 +71,7 @@ def setup_parser(parser):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
-    parser.add_argument("--variants", nargs='+', type=int,
+    parser.add_argument("--variants", nargs='+', type=int, metavar="INDEX",
                         help="select variants to build (zero-indexed).")
 
     add_extra_build_args(parser)
