@@ -55,10 +55,8 @@ def setup_parser(parser):
                         "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
-    parser.add_argument("-d", "--dora", action="store_true",
+    parser.add_argument("--dora", action="store_true",
                         help="Open graph in dora")
-    parser.add_argument("--fd", "--flash_dora_context", action="store_true",
-                        help="reuse a saved dora context")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
@@ -73,11 +71,7 @@ def command(opts, parser):
         print >> sys.stdout, "Getting dora environment ..."
         from rez.util import timings
         timings.start("rez.cli.env.resolving.dora.context")
-        if os.path.exists('/tmp/rezDoraContext.rxt') and not opts.fd:
-            rc = ResolvedContext.load('/tmp/rezDoraContext.rxt')    #TODO bring this name from rez.config?
-        else:
-            rc = ResolvedContext(['dora'])
-            rc.save('/tmp/rezDoraContext.rxt')                      #TODO bring this name from rez.config?
+        rc = ResolvedContext(['dora'])
         timings.end("rez.cli.env.resolving.dora.context")
         doraEnvironment = rc.get_environ()
         env = dict(os.environ)
