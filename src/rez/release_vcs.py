@@ -91,7 +91,7 @@ class ReleaseVCS(object):
             None, give the entire changelog.
 
         Returns:
-            Changelog, as a list of strings.
+            Changelog, as a string.
         """
         raise NotImplementedError
 

@@ -5,9 +5,10 @@ from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
-    print_debug
+    print_debug, yaml_literal
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
+from rez import __version__
 from rez.vendor import yaml
 import getpass
 import shutil
@@ -239,12 +240,14 @@ class StandardBuildProcess(BuildProcess):
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=changelog)
+            changelog=yaml_literal(changelog))
 
         if self.release_message:
-            msg = [x.rstrip() for x in
-                   self.release_message.strip().split('\n')]
-            release_info["release_message"] = msg
+            release_message = self.release_message.strip()
+        else:
+            release_message = "Rez-%s released %s" \
+                % (__version__, self.package.qualified_name)
+        release_info["release_message"] = yaml_literal(release_message)
 
         if last_pkg:
             release_info["previous_version"] = str(last_version)
@@ -255,8 +258,7 @@ class StandardBuildProcess(BuildProcess):
             f.write(release_content)
 
         # write a tag for the new release into the vcs
-        self.vcs.create_release_tag(tag_name=tag_name,
-                                    message=self.release_message)
+        self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
 
         # run post-release hooks
         _run_hooks("post-release", "post_release", False)

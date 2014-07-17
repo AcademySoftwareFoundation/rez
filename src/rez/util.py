@@ -38,6 +38,17 @@ except AttributeError:
     OrderedDict = backport.ordereddict.OrderedDict
 
 
+# use `yaml_literal` to wrap multi-line strings written to yaml files, to
+# get the nice pipe-style block formatting
+class yaml_literal(str):
+    pass
+
+
+def yaml_literal_presenter(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+yaml.add_representer(yaml_literal, yaml_literal_presenter)
+
+
 # TODO deprecate
 class Common(object):
     def __repr__(self):
