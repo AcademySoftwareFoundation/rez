@@ -22,13 +22,14 @@ class EclipseProjectBuilder(object):
         self.package = load_developer_package(self.working_directory)
 
         self.name = self.package.name
-        self.dependencies = self.package.requires
+        self.dependencies = self.package.requires if self.package.requires else []
         self.variants = list(self.package.iter_variants())
         self.local_dependencies = self._get_local_dependencies()
 
     def _get_local_dependencies(self):
 
         local_dependencies = []
+
         package_dependencies = [dependency.name for dependency in self.dependencies]
 
         for sibling in os.listdir('..'):
@@ -175,6 +176,13 @@ class EclipseProjectBuilder(object):
 
             txt = etree.tostring(element)
             fd.write(txt)
+
+    def build_all(self):
+
+        self.build_project()
+        self.build_cproject()
+        self.build_cproject_settings()
+        self.build_pydevproject()
 
     def build_project(self):
 
@@ -400,13 +408,27 @@ class EclipseProjectBuilder(object):
         self.pretty_print(cproject, '.cproject', prefix='<?fileVersion 4.0.0?>\n')
         logger.info('Build .cproject file for %r and %d variants.' % (self.name, len(self.variants)))
 
-    def build_pydevproject(self):
+    def build_pydevproject(self, variant_index=None):
+
+        if not variant_index:
+            variant_index = len(self.variants) - 1
+
+        variant = self.variants[variant_index]
+        python_version = None
+
+        for package in variant.get_requires(build_requires=True, private_build_requires=True):
+            if package.name == "python":
+                python_version = str(package.range)
+            
+        if not python_version:
+            logger.error('Unable to determine python version for .pydevproject.')
+            return
 
         pydev_project = etree.Element("pydev_project")
           
         pydev_property = etree.SubElement(pydev_project, "pydev_property")
         pydev_property.set('name', 'org.python.pydev.PYTHON_PROJECT_VERSION')
-        pydev_property.text = 'python 2.7'
+        pydev_property.text = 'python %s' % python_version
   
         pydev_property = etree.SubElement(pydev_project, "pydev_property")
         pydev_property.set('name', 'org.python.pydev.PYTHON_PROJECT_INTERPRETER')
@@ -419,11 +441,11 @@ class EclipseProjectBuilder(object):
           
         pydev_pathproperty = etree.SubElement(pydev_project, "pydev_pathproperty")
         pydev_pathproperty.set('name', 'org.python.pydev.PROJECT_EXTERNAL_SOURCE_PATH')
-        for path in self.find_ext_python_paths(self.variants[0]):
+        for path in self.find_ext_python_paths(variant):
             etree.SubElement(pydev_pathproperty, "path").text = path
           
         self.pretty_print(pydev_project, '.pydevproject', prefix='<?eclipse-pydev version="1.0"?>\n')
-        logger.info('Build .pydevproject file for %r and variant 0 (%s).' % (self.name, self.variants[0].subpath))
+        logger.info('Build .pydevproject file for %r and variant %d (%s).' % (self.name, variant_index, variant.subpath))
 
     def build_cproject_settings(self):
 
@@ -456,10 +478,4 @@ environment/project/cdt.managedbuild.toolchain.gnu.base.%(i)s/appendContributed=
             fd.write(settings)
 
         logger.info('Build .settings/org.eclipse.cdt.core.prefs file for %r and %d variants.' % (self.name, len(self.variants)))
-
-
-
-
-
-
 
