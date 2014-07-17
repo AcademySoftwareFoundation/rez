@@ -12,16 +12,20 @@ def setup_parser(parser):
     from rez.shells import get_shell_types
     shells = get_shell_types()
 
-    parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
-                        help="target shell type, defaults to the current shell "
-                        "(%s)" % system.shell)
+    parser.add_argument("--sh", "--shell", dest="shell", type=str,
+                        choices=shells, default=system.shell,
+                        help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
                         "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
     parser.add_argument("-c", "--command", type=str, nargs='+',
+                        metavar=("COMMAND", "ARG"),
                         help="read commands from string")
+    parser.add_argument("--sc", "--shell-command", dest="shell_command",
+                        type=str, metavar="COMMAND",
+                        help="like -c, but reads entire command from one string")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -64,6 +68,9 @@ def command(opts, parser):
     from rez.util import get_epoch_time_from_str
     from rez.config import config
 
+    if opts.command and opts.shell_command:
+        parser.error("use --command or --shell-command, not both")
+
     if opts.input:
         rc = ResolvedContext.load(opts.input)
         if rc.status != ResolverStatus.solved:
@@ -102,15 +109,16 @@ def command(opts, parser):
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
-    if opts.stdin and not select.select([sys.stdin,] , [], [], 0.0)[0]:
+    if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
         opts.stdin = False
 
-    quiet = opts.quiet or bool(opts.command)
+    command = opts.command or opts.shell_command
+    quiet = opts.quiet or bool(command)
 
     returncode, _, _ = rc.execute_shell(shell=opts.shell,
                                         rcfile=opts.rcfile,
                                         norc=opts.norc,
-                                        command=opts.command,
+                                        command=command,
                                         stdin=opts.stdin,
                                         quiet=quiet,
                                         block=True)
