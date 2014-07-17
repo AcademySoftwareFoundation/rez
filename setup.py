@@ -60,6 +60,7 @@ scripts = [
     "rez-bootstrap",
     "rez-help",
     "rez-unleash",
+    "rez-ide",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete"
