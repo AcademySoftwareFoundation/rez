@@ -155,6 +155,7 @@ config_schema = Schema({
     "implicit_styles":                  OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
+    "unleash_packages_path":            Str,
     "dot_image_format":                 Str,
     "prompt":                           Str,
     "build_directory":                  Str,

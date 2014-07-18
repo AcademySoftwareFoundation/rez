@@ -399,7 +399,9 @@ plugins:
         # a regular expression that can be used with re.match, for example
         # '^master$'.
         releasable_branches:
-
+            - '^master$'
+            - '^AL_master$'
+            - '^hotfix'
 
 ###############################################################################
 # Launcher
