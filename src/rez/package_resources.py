@@ -284,11 +284,11 @@ class BasePackageResource(FileResource):
             if timestamp:
                 data["timestamp"] = timestamp
 
-        # graft on old-style changelog, if necessary
-        if "changelog" not in data:
-            changelog = self._load_component("release.changelog")
-            if changelog:
-                data["changelog"] = changelog
+#        # graft on old-style changelog, if necessary
+#        if "changelog" not in data:
+#            changelog = self._load_component("release.changelog")
+#            if changelog:
+#                data["changelog"] = changelog
         return data
 
     # TODO just load the handle rather than the resource data, and add lazy
