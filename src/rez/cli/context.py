@@ -8,6 +8,7 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
+from rez import __version__
 from rez.config import config
 
 
@@ -85,7 +86,7 @@ def command(opts, parser):
     rxt_file = opts.FILE if opts.FILE else get_context_file()
     if not rxt_file:
         print >> sys.stderr, "running Rez v%s.\n" \
-            "not in a resolved environment context.\n" % __version__
+            "not in a resolved environment context." % __version__
         sys.exit(1)
 
     rc = ResolvedContext.load(rxt_file)
