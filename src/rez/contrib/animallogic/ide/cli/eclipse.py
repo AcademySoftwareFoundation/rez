@@ -44,8 +44,7 @@ def command(opts, parser):
                                           buildsys,
                                           vcs=None)
 
-    if not builder.build(clean=True, variants=opts.variants):
-        sys.exit(1)
+    builder.build(clean=True, variants=opts.variants)
 
     files = ["build_project", "build_cproject", "build_cproject_settings", "build_pydevproject"]
     build_all = all([not getattr(opts, file_) for file_ in files])
