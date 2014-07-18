@@ -2,7 +2,7 @@
 Command line interface for interacting with Launcher using Rez.
 """
 
-from rez.cli._main import RezHelpFormatter, SetupRezSubParser
+from rez.cli._main import SetupRezSubParser
 import sys
 
 
@@ -10,8 +10,8 @@ def setup_parser(parser):
 
     launcher_subparsers = parser.add_subparsers(dest='launcher_subcommand')
 
-    run_parser = launcher_subparsers.add_parser('run', formatter_class=RezHelpFormatter, setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.run"))
-    bake_parser = launcher_subparsers.add_parser('bake', formatter_class=RezHelpFormatter, setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.bake"))
+    run_parser = launcher_subparsers.add_parser('run', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.run"))
+    bake_parser = launcher_subparsers.add_parser('bake', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.bake"))
 
 
 def get_command_function_from_module(module_name):
