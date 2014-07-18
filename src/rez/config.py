@@ -41,6 +41,7 @@ class Setting(object):
         try:
             data = self._validate(data)
             data = self.schema.validate(data)
+            data = Expand().validate(data)
         except SchemaError as e:
             raise ConfigurationError("Misconfigured setting '%s': %s"
                                      % (self.key, str(e)))
@@ -49,7 +50,7 @@ class Setting(object):
     def _validate(self, data):
         # overriden settings take precedence.
         if self.key in self.config.overrides:
-            return Expand().validate(self.config.overrides[self.key])
+            return self.config.overrides[self.key]
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
@@ -73,7 +74,7 @@ class Str(Setting):
         return value
 
 
-class OptionalStr(Setting):
+class OptionalStr(Str):
     schema = Or(None, basestring)
 
 
@@ -86,7 +87,7 @@ class StrList(Setting):
         return [x for x in value if x]
 
 
-class OptionalStrList(Setting):
+class OptionalStrList(StrList):
     schema = Or(None, [basestring])
 
 
@@ -124,7 +125,7 @@ class Bool(Setting):
 
 
 class Dict(Setting):
-    schema = Schema(UserDict)
+    schema = Schema(dict)
 
     def _parse_env_var(self, value):
         items = value.split(",")
@@ -136,7 +137,7 @@ class Dict(Setting):
                 % value)
 
 
-_config_dict = {
+config_schema = Schema({
     "packages_path":                    PathList,
     "plugin_path":                      PathList,
     "bind_module_path":                 PathList,
@@ -217,13 +218,15 @@ _config_dict = {
     "error_nonstring_version":          Bool,
     "warn_root_custom_key":             Bool,
     "error_root_custom_key":            Bool,
+    "warn_commands2":                   Bool,
+    "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
     "env_var_separators":               Dict,
 
     # plugins are a special case and are validated lazily
-    Optional("plugins"):                dict,
-}
+    #Optional("plugins"):                dict,
+})
 
 
 # settings common to each plugin type
@@ -235,6 +238,7 @@ _plugin_config_dict = {
 }
 
 
+# TODO move into config?
 class Expand(object):
     """Schema that applies variable expansion."""
     namespace = dict(system=system)
@@ -297,9 +301,6 @@ def _to_schema(config_dict, required, allow_custom_keys=True,
     return _to(config_dict)
 
 
-config_schema_required = _to_schema(_config_dict, required=True)
-
-
 # -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
@@ -315,7 +316,8 @@ class Config(DataWrapper):
     files update the master configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
-    schema = config_schema_required
+    schema = config_schema
+    schema_error = ConfigurationError
 
     def __init__(self, filepaths, overrides=None, locked=False):
         """Create a config.
@@ -360,7 +362,7 @@ class Config(DataWrapper):
     def plugins(self):
         """Plugin settings are loaded lazily, to avoid loading the plugins
         until necessary."""
-        plugin_data = self.metadata.get("plugins", {})
+        plugin_data = self._data.get("plugins", {})
         return _PluginConfigs(plugin_data)
 
     @property
@@ -370,12 +372,11 @@ class Config(DataWrapper):
         Note that this will force all plugins to be loaded.
         """
         d = {}
-        for key in self.metadata.iterkeys():
-            try:  # TODO remove try-catch once all settings are finalised
+        for key in self._data:
+            if key == "plugins":
+                d[key] = self.plugins.data()
+            else:
                 d[key] = getattr(self, key)
-            except AttributeError:
-                pass
-        d["plugins"] = self.plugins.data()
         return d
 
     @property
@@ -429,13 +430,15 @@ class Config(DataWrapper):
         """
         self.__dict__, other.__dict__ = other.__dict__, self.__dict__
 
-    def _validate_key(self, key, value):
-        v = _config_dict.get(key)
-        if type(v) is type and issubclass(v, Setting):
-            return v(self, key).validate(value)
-        return value
+    def _validate_key(self, key, value, key_schema):
+        if type(key_schema) is type and issubclass(key_schema, Setting):
+            key_schema = key_schema(self, key)
+        elif not isinstance(key_schema, Schema):
+            key_schema = Schema(key_schema)
+        return key_schema.validate(value)
 
-    def _load_data(self):
+    @propertycache
+    def _data(self):
         data = {}
         for filepath in self.filepaths:
             data_ = _load_config_yaml(filepath)
@@ -459,7 +462,7 @@ class Config(DataWrapper):
         return Config(filepaths, overrides)
 
     def __str__(self):
-        keys = (x for x in _config_dict if isinstance(x, basestring))
+        keys = (x for x in self.schema._schema if isinstance(x, basestring))
         return "%r" % sorted(list(keys) + ["plugins"])
 
     def __repr__(self):
@@ -496,15 +499,12 @@ class _PluginConfigs(object):
         data = self.__dict__['_data']
         from rez.plugin_managers import plugin_manager
         if attr in plugin_manager.get_plugin_types():
+            # get plugin config data, and apply overrides
             plugin_type = attr
             config_data = plugin_manager.get_plugin_config_data(plugin_type)
             d = copy.deepcopy(config_data)
-            if plugin_type in data:
-                # data may contain `AttrDictWrapper`s, which break schema
-                # validation, hence the dict conversion here
-                plugin_data = convert_dicts(data[plugin_type], dict,
-                                            (dict, AttrDictWrapper))
-                deep_update(d, plugin_data)
+            deep_update(d, data.get(plugin_type, {}))
+
             # validate
             schema = plugin_manager.get_plugin_config_schema(plugin_type)
             try:

@@ -373,12 +373,12 @@ class ResolvedContext(object):
 
     @_on_success
     def get_key(self, key, request_only=False):
-        """Get a metadata key value for each resolved package.
+        """Get a data key value for each resolved package.
 
         Args:
-            key: String key of property, eg 'tools'.
-            request_only: If True, only return the key from resolved packages
-                that were also present in the request.
+            key (str): String key of property, eg 'tools'.
+            request_only (bool): If True, only return the key from resolved
+                packages that were also present in the request.
 
         Returns:
             Dict of {pkg-name: value}.
@@ -389,7 +389,7 @@ class ResolvedContext(object):
 
         for pkg in self.resolved_packages:
             if (not request_only) or (pkg.name in requested_names):
-                value = pkg.metadata.get(key)
+                value = getattr(pkg, key)
                 if value is not None:
                     values[pkg.name] = value
 

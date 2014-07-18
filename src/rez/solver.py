@@ -286,8 +286,7 @@ class _PackageVariantList(_Common):
         self.building = building
         self.variants = []
 
-        it = iter_packages(self.package_name,
-                           paths=self.package_paths)
+        it = iter_packages(self.package_name, paths=self.package_paths)
         self.packages = sorted(it, key=lambda x: x.version)
         if not self.packages:
             raise PackageFamilyNotFoundError("package family not found: %s"
@@ -324,6 +323,7 @@ class _PackageVariantList(_Common):
                                              index=var.index,
                                              userdata=var.resource_handle)
                     loaded_variants.append(variant)
+
             if loaded_variants:
                 self.variants = list(merge(self.variants, loaded_variants))
                 for i in reversed(indexes):

@@ -64,10 +64,11 @@ class CMakeBuildSystem(BuildSystem):
         parser.add_argument("--bt", "--build-target", dest="build_target",
                             type=str, choices=cls.build_targets,
                             default=settings.build_target,
-                            help="set the build target.")
+                            help="set the build target (default: %(default)s).")
         parser.add_argument("--bs", "--build-system", dest="build_system",
                             type=str, choices=cls.build_systems.keys(),
-                            help="set the cmake build system.")
+                            default=settings.build_system,
+                            help="set the cmake build system (default: %(default)s).")
 
     def __init__(self, working_dir, opts=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
@@ -106,7 +107,7 @@ class CMakeBuildSystem(BuildSystem):
         # assemble cmake command
         cmd = [found_exe, "-d", self.working_dir]
         cmd += (self.settings.cmake_args or [])
-        cmd += self.build_args
+        cmd += (self.build_args or [])
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
@@ -147,7 +148,7 @@ class CMakeBuildSystem(BuildSystem):
 
         # assemble make command
         cmd = ["make"]
-        cmd += self.child_build_args
+        cmd += (self.child_build_args or [])
         if install and "install" not in cmd:
             cmd.append("install")
 
@@ -173,7 +174,8 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_FILE = package.path
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
-        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = package.metadata.get('description', '').strip()
+        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \
+            (package.description or '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.package_requests)
 

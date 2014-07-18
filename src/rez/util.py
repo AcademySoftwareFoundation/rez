@@ -38,6 +38,17 @@ except AttributeError:
     OrderedDict = backport.ordereddict.OrderedDict
 
 
+# use `yaml_literal` to wrap multi-line strings written to yaml files, to
+# get the nice pipe-style block formatting
+class yaml_literal(str):
+    pass
+
+
+def yaml_literal_presenter(dumper, data):
+    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
+yaml.add_representer(yaml_literal, yaml_literal_presenter)
+
+
 # TODO deprecate
 class Common(object):
     def __repr__(self):
@@ -913,8 +924,8 @@ class AttrDictWrapper(MutableMapping):
         >>> assert dd.one == 1
         >>> assert d['one'] == 1
     """
-    def __init__(self, data):
-        self.__dict__['_data'] = data
+    def __init__(self, data=None):
+        self.__dict__['_data'] = {} if data is None else data
 
     @property
     def _data(self):
@@ -973,20 +984,25 @@ class RO_AttrDictWrapper(AttrDictWrapper):
 def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
     """Recursively convert dict and UserDict types.
 
-    Note that `d` itself is converted also, as well as any nested dict-like
-    objects.
+    Note that `d` is unchanged.
 
     Args:
         to_class (type): Dict-like type to convert values to, usually UserDict
             subclass, or dict.
         from_class (type): Dict-like type to convert values from. If a tuple,
             multiple types are converted.
+
+    Returns:
+        Converted data as `to_class` instance.
     """
+    d_ = to_class()
     for key, value in d.iteritems():
         if isinstance(value, from_class):
-            d[key] = convert_dicts(value, to_class=to_class,
-                                   from_class=from_class)
-    return to_class(d)
+            d_[key] = convert_dicts(value, to_class=to_class,
+                                    from_class=from_class)
+        else:
+            d_[key] = value
+    return d_
 
 
 class RecursiveAttribute(UserDict.UserDict):
@@ -1275,110 +1291,126 @@ class ObjectStringFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
-class _WithDataAccessors(type):
+class _LazyAttributeValidator(type):
     """Metaclass for adding properties to a class for accessing top-level keys
-    in its metadata dictionary.
+    in its `_data` dictionary, and validating them on first reference.
 
     Property names are derived from the keys of the class's `schema` object.
     If a schema key is optional, then the class property will evaluate to None
-    if the key is not present in the metadata.
+    if the key is not present in `_data`.
 
-    If the class instance also has a `_validate_key` method, this will be used
-    to lazily transform properties on first reference.
+    The attribute getters created by this metaclass will perform lazy data
+    validation, OR, if the class has a `_validate_key` method, will call this
+    method, passing the key, key value and key schema.
+
+    This metaclass creates the following attributes:
+        - for each key in cls.schema, creates an attribute of the same name,
+          unless that attribute already exists;
+        - for each key in cls.schema, if the attribute already exists on cls,
+          then creates an attribute with the same name but prefixed with '_';
+        - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
         from rez.vendor.schema.schema import Schema, Optional
         schema = members.get('schema')
+        keys = set()
+
+        def _defined(x):
+            return x in members or any(hasattr(p, x) for p in parents)
+
         if schema:
             schema_dict = schema._schema
-            for key in schema_dict.keys():
+            for key, key_schema in schema_dict.iteritems():
                 optional = isinstance(key, Optional)
                 while isinstance(key, Schema):
                     key = key._schema
-                if key not in members and \
-                        isinstance(key, basestring) and \
-                        not any(hasattr(x, key) for x in parents):
-                    members[key] = cls._make_getter(key, optional)
+                if isinstance(key, basestring):
+                    keys.add(key)
+                    if _defined(key):
+                        attr = "_%s" % key
+                        if _defined(attr):
+                            raise Exception("Couldn't make fallback attribute "
+                                            "%r, already defined" % attr)
+                    else:
+                        attr = key
+                    members[attr] = cls._make_getter(key, optional, key_schema)
 
-        return super(_WithDataAccessors, cls).__new__(cls, name, parents,
-                                                      members)
+        members["_schema_keys"] = frozenset(keys)
+        return super(_LazyAttributeValidator, cls).__new__(cls, name, parents,
+                                                           members)
 
     @classmethod
-    def _make_getter(cls, key, optional):
+    def _make_getter(cls, key, optional, key_schema):
         def getter(self):
-            if optional and key not in self.metadata:
-                return None
-            attr = getattr(self.metadata, key)
+            from rez.vendor.schema.schema import Schema
+            if key not in self._data:
+                if optional:
+                    return None
+                raise self.schema_error("Required key is missing: %r" % key)
+
+            attr = self._data[key]
             if hasattr(self, "_validate_key"):
-                attr = self._validate_key(key, attr)
+                attr = self._validate_key(key, attr, key_schema)
+            else:
+                schema = (key_schema if isinstance(key_schema, Schema)
+                          else Schema(key_schema))
+                try:
+                    attr = schema.validate(attr)
+                except Exception as e:
+                    raise self.schema_error("Validation of key %r failed: "
+                                            "%s" % (key, str(e)))
             return attr
+
         return propertycache(getter, name=key)
 
 
 class DataWrapper(object):
-    """Base class for implementing a class that contains validated data."""
-    __metaclass__ = _WithDataAccessors
+    """Base class for implementing a class that contains validated data.
+
+    DataWrapper subclasses are expected to implement the `_data` property,
+    which should return a dict matching the schema specified by the class's
+    `schema` attribute. Keys in the schema become attributes in this class,
+    and are lazily validated on first reference.
+
+    Attributes:
+        schema (Schema): Schema used to validate the data. They keys of the
+            schema become attributes on the object (the metaclass does this).
+        schema_error (Exception): The class type to raise if an error occurs
+            during data load.
+    """
+    __metaclass__ = _LazyAttributeValidator
+    schema_error = Exception
     schema = None
 
+    # TODO deprecate
     def get(self, key, default=None):
         """Get a key value by name."""
         return getattr(self, key, default)
 
     def validate_data(self):
-        """Check that the object's contents are valid."""
-        _ = self._data
+        """Force validation on all of the object's data.
 
-    def _load_data(self):
-        """Implement this method to return the object's data.
+        Note: This method is deliberately not named 'validate'. This causes
+            problems because a DataWrapper instance can in some cases be
+            incorrectly picked up by the Schema library as a schema validator.
+        """
+        if self.schema:
+            for key in self._schema_keys:
+                getattr(self, key)  # forces validation of key
+
+    @property
+    def _data(self):
+        """Load object data.
+
+        The data returned by this method should conform to the schema defined
+        by the `schema` class attribute. You almost certainly want to decorate
+        this property with a @propertycache, to avoid loading the data
+        multiple times.
 
         Returns:
-            Object data as a dict, or None if the object has no data.
+            dict.
         """
         raise NotImplementedError
-
-    @propertycache
-    def _data(self):
-        """Loaded object data.
-
-        This is private because it is preferred for users to go through the
-        `metadata` property.  This is here to preserve the original dictionary
-        loaded directly from the package's resource.
-
-        Returns:
-            Object data as a dict, or None if the object has no data.
-        """
-        k = "data.load.%s" % self.__class__.__name__
-        timings.start(k)
-        data = self._load_data()
-        timings.end(k)
-        if data and self.schema:
-            k = "data.validate.%s" % self.__class__.__name__
-            timings.start(k)
-            try:
-                data = self.schema.validate(data)
-            finally:
-                timings.end(k)
-        return data
-
-    @propertycache
-    def metadata(self):
-        """Read-only dictionary of metadata for this package with nested,
-        attribute-based access for the keys in the dictionary.
-
-        All of the dictionaries in `_data` have are replaced with custom
-        `UserDicts` to provide the attribute-lookups.  If you need the raw
-        dictionary, use `_data`.
-
-        Note that the `UserDict` references the dictionaries in `_data`, so
-        the data is not copied, and thus the two will always be in sync.
-
-        Returns:
-            `RO_AttrDictWrapper` instance, or None if the resource has no data.
-        """
-        if self._data is None:
-            return None
-        else:
-            return convert_dicts(self._data, RO_AttrDictWrapper)
 
     def format(self, s, pretty=False, expand=None):
         """Format a string.

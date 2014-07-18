@@ -1,12 +1,14 @@
 from rez.packages import load_developer_package, iter_packages
-from rez.exceptions import RezError, BuildError, BuildContextResolveError
+from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
+    ReleaseError
 from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
 from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
-    print_debug
+    print_debug, yaml_literal
 from rez.release_hook import create_release_hooks
 from rez.vendor.version.version import Version
+from rez import __version__
 from rez.vendor import yaml
 import getpass
 import shutil
@@ -156,7 +158,7 @@ class StandardBuildProcess(BuildProcess):
 
         # check for package name conflict
         if fam_info is not None and "uuid" in fam_info:
-            this_uuid = self.package.metadata.get("uuid")
+            this_uuid = self.package.uuid
             if this_uuid != fam_info["uuid"]:
                 raise ReleaseError(
                     ("cannot release - '%s' is already "
@@ -167,6 +169,16 @@ class StandardBuildProcess(BuildProcess):
         print "Checking state of repository..."
         self.vcs.validate_repostate()
         release_path = self._get_base_install_path(install_path)
+        release_settings = self.package.config.plugins.release_vcs
+
+        # format tag
+        try:
+            tag_name = self.package.format(release_settings.tag_name)
+            if not tag_name:
+                tag_name = "unversioned"
+        except Exception as e:
+            raise ReleaseError("Error formatting tag name for release: %s"
+                               % str(e))
 
         # get last release, this stops same/earlier version release
         last_pkg = self._get_last_release(install_path)
@@ -224,37 +236,18 @@ class StandardBuildProcess(BuildProcess):
         self._hdr("Releasing...")
         _do_build(install=True, clean=False)
 
-        # write family config file if not present
-        """
-        if fam_info is None:
-            fam_info = dict(
-                uuid=self.package.metadata.get("uuid"))
-
-            fam_content = yaml.dump(fam_info, default_flow_style=False)
-            with open(fam_yaml, 'w') as f:
-                f.write(fam_content)
-        """
-        """
-        release_info = dict(
-            timestamp=int(time.time()),
-            vcs=self.vcs.name(),
-            revision=curr_rev,
-            changelog=changelog,
-            release_message=self.release_message,
-            previous_version=last_ver,
-            previous_revision=last_rev)
-        """
-
         # write release info (changelog etc) into release path
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=changelog)
+            changelog=yaml_literal(changelog))
 
         if self.release_message:
-            msg = [x.rstrip() for x in
-                   self.release_message.strip().split('\n')]
-            release_info["release_message"] = msg
+            release_message = self.release_message.strip()
+        else:
+            release_message = "Rez-%s released %s" \
+                % (__version__, self.package.qualified_name)
+        release_info["release_message"] = yaml_literal(release_message)
 
         if last_pkg:
             release_info["previous_version"] = str(last_version)
@@ -265,7 +258,7 @@ class StandardBuildProcess(BuildProcess):
             f.write(release_content)
 
         # write a tag for the new release into the vcs
-        self.vcs.create_release_tag(self.release_message)
+        self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
 
         # run post-release hooks
         _run_hooks("post-release", "post_release", False)
@@ -284,9 +277,9 @@ class StandardBuildProcess(BuildProcess):
     def _hdr(self, s, h=1):
         self._pr('')
         if h <= 1:
-            self._pr('-'*80)
+            self._pr('-' * 80)
             self._pr(s)
-            self._pr('-'*80)
+            self._pr('-' * 80)
         else:
             self._pr(s)
             self._pr('-' * len(s))

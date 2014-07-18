@@ -2,7 +2,7 @@
 Git version control
 """
 from rez.release_vcs import ReleaseVCS
-from rez.util import print_error
+from rez.util import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
 from rez.vendor.schema.schema import Or
 import functools
@@ -129,14 +129,23 @@ class GitReleaseVCS(ReleaseVCS):
                     % (abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
-        prev_commit = (previous_revision or {}).get("commit")
+        if previous_revision is not None:
+            try:
+                prev_commit = previous_revision["commit"]
+            except:
+                prev_commit = None
+                if self.package.config.debug("package_release"):
+                    print_debug("couldn't determine previous commit from: %r"
+                                % previous_revision)
+
         if prev_commit:
             # git returns logs to last common ancestor, so even if previous
             # release was from a different branch, this is ok
             commit_range = "%s..HEAD" % prev_commit
-            return self.git("log", commit_range)
+            stdout = self.git("log", commit_range)
         else:
-            return self.git("log")
+            stdout = self.git("log")
+        return '\n'.join(stdout)
 
     def get_current_revision(self):
         doc = dict(commit=self.git("rev-parse", "HEAD")[0])
@@ -173,11 +182,11 @@ class GitReleaseVCS(ReleaseVCS):
             _get("push_url", functools.partial(_url, "push"))
         return doc
 
-    def _create_tag_impl(self, tag_name, message=None):
+    def create_release_tag(self, tag_name, message=None):
         # check if tag already exists
         tags = self.git("tag")
         if tag_name in tags:
-            print "Skipped tag creation, tag '%s' already exists" % tag_name
+            print_warning("Skipped tag creation, tag '%s' already exists" % tag_name)
             return
 
         # create tag
