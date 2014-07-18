@@ -277,9 +277,12 @@ class BasePackageResource(FileResource):
         release_data = self._load_component("release.data")
         if release_data:
             data.update(release_data)
-        timestamp = self._load_timestamp()
-        if timestamp:
-            data['timestamp'] = timestamp
+
+        # graft on old-style timestamp, if necessary
+        if "timestamp" not in data:
+            timestamp = self._load_timestamp()
+            if timestamp:
+                data["timestamp"] = timestamp
 
         # graft on old-style changelog, if necessary
         if "changelog" not in data:
@@ -304,10 +307,7 @@ class BasePackageResource(FileResource):
 
     # TODO move into variant
     def _load_timestamp(self):
-        release_data = self._load_component("release.data")
-        timestamp = (release_data or {}).get("timestamp", 0)
-        if not timestamp:
-            timestamp = self._load_component("release.timestamp") or 0
+        timestamp = self._load_component("release.timestamp") or 0
         if not timestamp:
             # FIXME: should we deal with is_local here or in rez.packages?
             if config.warn("untimestamped"):
