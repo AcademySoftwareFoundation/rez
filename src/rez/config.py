@@ -409,7 +409,7 @@ class Config(DataWrapper):
                 return _get_plugin_completions(prefix_)
             return []
         else:
-            keys = ([x for x in _config_dict if isinstance(x, basestring)]
+            keys = ([x for x in self._schema_keys if isinstance(x, basestring)]
                     + ["plugins"])
             keys = [x for x in keys if x.startswith(prefix)]
             if keys == ["plugins"]:

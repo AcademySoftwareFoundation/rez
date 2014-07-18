@@ -166,6 +166,9 @@ class StandardBuildProcess(BuildProcess):
                     % self.package.qualified_name)
         """
 
+        if not os.path.exists(install_path):
+            raise ReleaseError("Release path does not exist: %r" % install_path)
+
         print "Checking state of repository..."
         self.vcs.validate_repostate()
         release_path = self._get_base_install_path(install_path)
@@ -233,7 +236,7 @@ class StandardBuildProcess(BuildProcess):
         _run_hooks("pre-release", "pre_release", True)
 
         # do a second non-clean build, installing to the release path
-        self._hdr("Releasing...")
+        self._hdr("Releasing %s..." % self.package.qualified_name)
         _do_build(install=True, clean=False)
 
         # write release info (changelog etc) into release path

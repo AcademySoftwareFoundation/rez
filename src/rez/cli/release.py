@@ -46,5 +46,4 @@ def command(opts, parser):
                                           vcs=vcs,
                                           ensure_latest=(not opts.no_latest),
                                           release_message=opts.message)
-    if not builder.release():
-        sys.exit(1)
+    builder.release()

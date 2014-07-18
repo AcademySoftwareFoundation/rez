@@ -16,6 +16,8 @@ def setup_parser(parser):
                         help="test the rex command generator API")
     parser.add_argument("--build", action="store_true",
                         help="test the build system")
+    parser.add_argument("--release", action="store_true",
+                        help="test the release system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
     parser.add_argument("--resources", action="store_true",
@@ -30,7 +32,7 @@ def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "context", "resources", "packages", "config"]
+             "release", "context", "resources", "packages", "config"]
     suites = []
     test_all = all([not getattr(opts, test) for test in tests])
 

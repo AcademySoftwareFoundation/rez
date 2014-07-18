@@ -26,6 +26,7 @@ class TestBuild(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         shutil.copytree(packages_path, cls.src_root)
+        # TODO do we need these here?
         rez.bind.platform.bind(cls.install_root)
         rez.bind.arch.bind(cls.install_root)
         rez.bind.os.bind(cls.install_root)
