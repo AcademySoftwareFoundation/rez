@@ -35,7 +35,15 @@ class GitReleaseVCS(ReleaseVCS):
 
     @classmethod
     def is_valid_root(cls, path):
-        return os.path.isdir(os.path.join(path, '.git'))
+        if os.path.join(path, '.git'):
+            return True
+
+        while path != os.sep:
+            path = os.path.dirname(path)
+            if os.path.isdir(os.path.join(path, '.git')):
+                return True
+
+        return False
 
     def git(self, *nargs):
         return self._cmd(self.executable, *nargs)
