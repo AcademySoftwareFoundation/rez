@@ -648,7 +648,6 @@ def convert_old_commands(commands, annotate=True):
             loc.append("command('%s')" % _en(cmd))
 
     rex_code = '\n'.join(loc)
-    from rez.config import config
     if config.debug("old_commands"):
         br = '-' * 80
         msg = textwrap.dedent(
@@ -751,7 +750,6 @@ def expandvars(text, environ=None):
     if '$' not in text:
         return text
     if not _varprog:
-        import re
         _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
 
     i = 0
@@ -1249,7 +1247,6 @@ class ObjectStringFormatter(Formatter):
         try:
             return Formatter.get_field(self, field_name, args, kwargs)
         except (AttributeError, KeyError, TypeError):
-            import re
             reg = re.compile("[^\.\[]+")
             try:
                 key = reg.match(field_name).group()
