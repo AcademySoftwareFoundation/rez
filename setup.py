@@ -60,6 +60,7 @@ scripts = [
     "rez-bootstrap",
     "rez-help",
     "rez-unleash",
+    "rez-ide",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete"
@@ -120,7 +121,8 @@ setup(
             ['README*'] +
             find_files('*.csh', '_sys') +
             find_files('*.sh', '_sys') +
-            find_files('*', 'tests/data'),
+            find_files('*', 'tests/data') +
+            find_files('_unleasher', 'contrib/animallogic/unleash'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
             find_files('*.cmake', 'build_system', root='rezplugins') +

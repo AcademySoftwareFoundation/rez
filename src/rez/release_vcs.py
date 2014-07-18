@@ -91,34 +91,20 @@ class ReleaseVCS(object):
             None, give the entire changelog.
 
         Returns:
-            Changelog, as a list of strings.
+            Changelog, as a string.
         """
         raise NotImplementedError
 
-    def create_release_tag(self, message=None):
+    def create_release_tag(self, tag_name, message=None):
         """Create a tag in the repo.
 
         Create a tag in the repository representing the release of the
         given version.
 
         Args:
-            message: Message string to associate with the release.
+            tag_name (str): Tag name to write to the repo.
+            message (str): Message string to associate with the release.
         """
-        attrs = dict((k, str(v)) for k, v in self.package.metadata.iteritems()
-                     if isinstance(v, (basestring, Version)))
-
-        tag_name = self.type_settings.tag_name.format(**attrs)
-        if not tag_name:
-            tag_name = "unversioned"
-
-        if message is None:
-            message = "Rez created release tag: %s" % tag_name
-
-        self._create_tag_impl(tag_name, message)
-
-    def _create_tag_impl(self, tag_name, message=None):
-        """Only implement this if you are using the default implementation of
-        create_release_tag()."""
         raise NotImplementedError
 
     def _cmd(self, *nargs):

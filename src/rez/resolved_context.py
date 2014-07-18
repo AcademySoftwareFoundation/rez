@@ -184,6 +184,16 @@ class ResolvedContext(object):
             self.resolved_packages_ = pkgs
 
     @property
+    def success(self):
+        """Return the current status of the context as a boolean value.  
+        Required for backwards compatibility (with Launcher).
+
+        Returns:
+            bool
+        """
+        return self.status == ResolverStatus.solved
+
+    @property
     def status(self):
         """Return the current status of the context.
 
@@ -373,12 +383,12 @@ class ResolvedContext(object):
 
     @_on_success
     def get_key(self, key, request_only=False):
-        """Get a metadata key value for each resolved package.
+        """Get a data key value for each resolved package.
 
         Args:
-            key: String key of property, eg 'tools'.
-            request_only: If True, only return the key from resolved packages
-                that were also present in the request.
+            key (str): String key of property, eg 'tools'.
+            request_only (bool): If True, only return the key from resolved
+                packages that were also present in the request.
 
         Returns:
             Dict of {pkg-name: value}.
@@ -389,7 +399,7 @@ class ResolvedContext(object):
 
         for pkg in self.resolved_packages:
             if (not request_only) or (pkg.name in requested_names):
-                value = pkg.metadata.get(key)
+                value = getattr(pkg, key)
                 if value is not None:
                     values[pkg.name] = value
 
@@ -452,6 +462,7 @@ class ResolvedContext(object):
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
         self._execute(executor)
+        executor.get_output()
 
     @_on_success
     def which(self, cmd, parent_environ=None, fallback=False):

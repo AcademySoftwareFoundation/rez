@@ -2,15 +2,13 @@
 Build a package from source and deploy it using the Unleash subsystem.
 '''
 
-from rez.cli.build import add_extra_build_args
-from rez.cli.build import add_build_system_args
-from rez.cli.build import parse_build_args
+from rez.cli.build import setup_parser_common
 from rez.release_vcs import get_release_vcs_types
-from rez.contrib.animallogic.unleash import LAUNCHER_PRESET
-from rez.contrib.animallogic.unleash import UNLEASH_FLAVOUR
-from rez.contrib.animallogic.unleash import UNLEASH_TARGET
-from rez.contrib.animallogic.unleash import USERNAME
-from rez.contrib.animallogic.unleash import unleash
+from rez.contrib.animallogic.unleash.unleash import LAUNCHER_PRESET
+from rez.contrib.animallogic.unleash.unleash import UNLEASH_FLAVOUR
+from rez.contrib.animallogic.unleash.unleash import UNLEASH_TARGET
+from rez.contrib.animallogic.unleash.unleash import USERNAME
+from rez.contrib.animallogic.unleash.unleash import unleash
 import os
 
 
@@ -41,8 +39,7 @@ def setup_parser(parser):
     parser.add_argument("-c", "--no-clean", dest="clean", default=True, action="store_false",
                         help="Deprecated: Do not perform a clean build by exporting from SCM.")
 
-    add_extra_build_args(parser)
-    add_build_system_args(parser)
+    setup_parser_common(parser)
 
 
 def command(opts, parser):
@@ -59,14 +56,13 @@ def command(opts, parser):
     if not opts.username:
         raise RezUnleashError("Unable to determine the current user using the USER environment variable.")
 
-    build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
     working_dir = os.getcwd()
 
     unleash(working_dir, opts.message, username=opts.username, unleash_flavour=opts.unleash_flavour,
             unleash_target=opts.unleash_target, test=opts.test,
-            launcher_preset=opts.launcher_preset, build_args=build_args,
-            child_build_args=child_build_args, buildsys_type=buildsys_type,
+            launcher_preset=opts.launcher_preset, build_args=opts.build_args,
+            child_build_args=opts.child_build_args, buildsys_type=buildsys_type,
             allow_not_latest=opts.allow_not_latest, 
             ignore_auto_messages=opts.ignore_auto_messages, opts=opts)
 

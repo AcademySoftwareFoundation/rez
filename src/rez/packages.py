@@ -43,8 +43,8 @@ def _iter_packages(name=None, paths=None):
         yield Package(resource)
 
 
-def iter_packages(name=None, range=None, timestamp=None, paths=None):
-    """Iterate over `Package` instances.
+def iter_packages(name=None, range=None, paths=None):
+    """Iterate over `Package` instances, in no particular order.
 
     Packages of the same name and version earlier in the search path take
     precedence - equivalent packages later in the paths are ignored. Packages
@@ -54,8 +54,6 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
         name (str): Name of the package, eg 'maya'.
         range (VersionRange, optional): If provided, limits the versions
             returned.
-        timestamp (int, optional): Any package newer than this time epoch is
-            ignored.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
 
@@ -66,11 +64,7 @@ def iter_packages(name=None, range=None, timestamp=None, paths=None):
     for pkg in _iter_packages(name, paths):
         handle = (pkg.name, pkg.version)
         if handle not in consumed:
-            # checking version against range before timestamp is important
-            # - metadata needs to be loaded to determine package timestamp.
             if range and pkg.version not in range:
-                continue
-            if timestamp and pkg.timestamp > timestamp:
                 continue
             consumed.add(handle)
             yield pkg
@@ -132,6 +126,8 @@ class PackageFamily(ResourceWrapper):
     You should not instantiate this class directly - instead, call
     `iter_package_families`.
     """
+    schema_error = PackageMetadataError
+
     @propertycache
     def name(self):
         return self._resource.get("name")
@@ -146,11 +142,13 @@ class PackageFamily(ResourceWrapper):
 
 class _PackageBase(ResourceWrapper):
     """Abstract base class for Package and Variant."""
+    schema_error = PackageMetadataError
+
     @propertycache
     def name(self):
         value = self._resource.get("name")
         if value is None:
-            value = self.metadata.get("name")
+            value = self._name  # loads data
         return value
 
     @propertycache
@@ -164,7 +162,7 @@ class _PackageBase(ResourceWrapper):
         else:
             ver_str = self._resource.get("version")
             if ver_str is None:
-                return self.metadata.get("version")
+                return self._version  # loads data
             return Version(ver_str)
 
     @propertycache
@@ -174,7 +172,7 @@ class _PackageBase(ResourceWrapper):
 
     @propertycache
     def config(self):
-        return self.metadata.get("config") or config
+        return self._config or config
 
     @propertycache
     def is_local(self):
@@ -274,7 +272,8 @@ class Variant(_PackageBase):
         if self.index is None:
             return ''
         else:
-            dirs = [x.safe_str() for x in self._internal.variant_requires]
+            dirs = [x.safe_str()
+                    for x in self._internal.get("variant_requires")]
             return os.path.join(*dirs) if dirs else ''
 
     def get_requires(self, build_requires=False, private_build_requires=False):

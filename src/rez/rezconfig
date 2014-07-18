@@ -84,6 +84,7 @@ resource_caching_maxsize: 10000
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
 implicit_packages:
+- '{system.os}'
 - '~platform=={system.platform}'
 - '~arch=={system.arch}'
 - '~os=={system.os}'
@@ -387,10 +388,10 @@ documentation_url: http://nerdvegas.github.io/rez/
 
 plugins:
     release_vcs:
-        # For format string used to determine the VCS tag name when releasing.
-        # This string will be formatted against the metadata for the package
-        # currently being released.  Valid formatting keys are "name", "version".
-        tag_name: '{name}-{version}'
+        # Format string used to determine the VCS tag name when releasing. This
+        # will be formatted using the package being released - any package
+        # attribute can be referenced in this string, eg '{name}'.
+        tag_name: '{qualified_name}'
 
         # A list of branches that a user is allowed to rez-release from. This
         # can be used to block releases from development or feature branches,
@@ -398,3 +399,33 @@ plugins:
         # a regular expression that can be used with re.match, for example
         # '^master$'.
         releasable_branches:
+            - '^master$'
+            - '^AL_master$'
+            - '^hotfix'
+
+
+###############################################################################
+# Launcher
+###############################################################################
+
+# The base url for the Launcher service server used by the Launcher cli.
+launcher_service_url: http://launcher.al.com.au:6060/launcher/service
+
+
+###############################################################################
+# Unleash
+###############################################################################
+
+# The base url for the Ark server.
+ark_url: http://ark.al.com.au
+
+# The name of the Launcher preset used to ensure we have access to the Unleash
+# infrastructure for unleashing.
+unleash_launcher_preset: /toolsets/Department/RnD/Unleash
+
+# The default Unleash flavour to use with rez-unleash.
+unleash_flavour: package
+
+# The default Unleash target to use with rez-unleash.
+unleash_target: film_tools_packages
+
