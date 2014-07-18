@@ -4,7 +4,7 @@ authors = ["joe.bloggs"]
 uuid = "156730d7122441e3a5745cc81361f49a"
 description = "floobtasticator"
 
-private_build_requires = ["build_util", "python"]
+private_build_requires = ["build_util"]
 
 def commands():
     env.PYTHONPATH.append('{root}/python')

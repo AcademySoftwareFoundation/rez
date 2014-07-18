@@ -147,25 +147,6 @@ class StandardBuildProcess(BuildProcess):
                                        self.package.config.build_directory,
                                        "release")
 
-        # TODO change this to just check previous package version's uuid
-        """
-        # load installed family config if present
-        fam_info = None
-        fam_yaml = os.path.join(install_path, self.package.name, "family.yaml")
-        if os.path.isfile(fam_yaml):
-            with open(fam_yaml) as f:
-                fam_info = yaml.load(f.read())
-
-        # check for package name conflict
-        if fam_info is not None and "uuid" in fam_info:
-            this_uuid = self.package.uuid
-            if this_uuid != fam_info["uuid"]:
-                raise ReleaseError(
-                    ("cannot release - '%s' is already "
-                     "installed but appears to be a different package.")
-                    % self.package.qualified_name)
-        """
-
         if not os.path.exists(install_path):
             raise ReleaseError("Release path does not exist: %r" % install_path)
 
@@ -188,6 +169,14 @@ class StandardBuildProcess(BuildProcess):
         last_version = None
         last_revision = None
         if last_pkg:
+            # check uuid against previous package
+            if last_pkg.uuid and self.package.uuid \
+                    and last_pkg.uuid != self.package.uuid:
+                raise ReleaseError("cannot release - previous release %s appears "
+                                   "to be a different package (UUID mismatch)"
+                                   % str(last_pkg))
+
+            # get previous version/revision, needed by hooks and vcs.get_changelog
             last_version = last_pkg.version
             last_revision = last_pkg.revision
             if isinstance(last_revision, AttrDictWrapper):

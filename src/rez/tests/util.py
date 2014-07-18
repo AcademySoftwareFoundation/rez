@@ -14,11 +14,11 @@ class TestBase(unittest.TestCase):
         cls.settings = {}
 
     def setUp(self):
-        """Shield unit tests from any user config overrides."""
+        self.maxDiff = None
+        # shield unit tests from any user config overrides
         os.environ["REZ_QUIET"] = "true"
         self.config = _create_locked_config(self.settings)
         config._swap(self.config)
-        self.maxDiff = None
 
     def tearDown(self):
         config._swap(self.config)
@@ -34,8 +34,7 @@ class TempdirMixin(object):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(cls.root):
-            #shutil.rmtree(cls.root)
-            pass
+            shutil.rmtree(cls.root)
 
 
 def shell_dependent(fn):
