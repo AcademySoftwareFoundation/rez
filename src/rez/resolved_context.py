@@ -184,6 +184,16 @@ class ResolvedContext(object):
             self.resolved_packages_ = pkgs
 
     @property
+    def success(self):
+        """Return the current status of the context as a boolean value.  
+        Required for backwards compatibility (with Launcher).
+
+        Returns:
+            bool
+        """
+        return self.status == ResolverStatus.solved
+
+    @property
     def status(self):
         """Return the current status of the context.
 
