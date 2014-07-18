@@ -508,7 +508,7 @@ class Python(ActionInterpreter):
         self.manager = None
         if (target_environ is None) or (target_environ is os.environ):
             self.target_environ = os.environ
-            self.update_session = True
+            self.update_session = False
         else:
             self.target_environ = target_environ
             self.update_session = False
