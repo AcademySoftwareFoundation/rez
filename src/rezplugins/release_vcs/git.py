@@ -95,7 +95,7 @@ class GitReleaseVCS(ReleaseVCS):
         releasable_branches = self.type_settings.releasable_branches
         if releasable_branches:
             releasable = False
-            current_branch_name = self._get_branch()
+            current_branch_name = self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
 
             for releasable_branch in releasable_branches:
                 if re.search(releasable_branch, current_branch_name):

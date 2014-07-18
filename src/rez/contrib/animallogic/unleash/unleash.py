@@ -3,18 +3,22 @@ from rez.packages import load_developer_package
 from rez.release_vcs import create_release_vcs
 from rez.build_system import create_build_system
 from rez.build_process import LocalSequentialBuildProcess
-from rez.contrib.animallogic.exceptions import RezUnleashError
+from rez.contrib.animallogic.unleash.exceptions import UnleashError
+from rez.util import print_warning
 import os
+import sys
 import urllib2
+
 
 ARK_URL = config.ark_url
 LAUNCHER_PRESET = config.unleash_launcher_preset
 LAUNCHER_COMMAND = "/film/tools/launcher2CL/current/generic/launch-linux.sh"
 UNLEASH_FLAVOUR = config.unleash_flavour
 UNLEASH_TARGET = config.unleash_target
-ROOT_PATH = os.path.dirname(os.path.dirname(__file__))
-UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "bin", "_unleasher")
+ROOT_PATH = os.path.dirname(__file__)
+UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "_unleasher")
 USERNAME = os.getenv("USER")
+
 
 
 def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour=UNLEASH_FLAVOUR,
@@ -58,9 +62,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
 
     config.override('release_packages_path', package.config.unleash_packages_path)
 
-    if not builder.release():
-        print "Error: the release did not complete successfully."
-        sys.exit(1)
+    builder.release()
 
     install_path = package.config.unleash_packages_path
     base = builder._get_base_install_path(install_path)
@@ -79,7 +81,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
     print "--------------------------------------------------------------------------------\n"
 
     print "Executing: ", launch_command
-    
+
     process = subprocess.Popen(launch_command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     return_code = process.wait()
 
@@ -175,6 +177,11 @@ def get_release_message_from_log(vcs, builder):
     install_path = builder.package.config.release_packages_path
 
     last_package = builder._get_last_release(install_path)
+
+    if not last_package:
+        print_warning("Unable to find last package for release comments.")
+        return ""
+
     last_revision = last_package.revision
     return "\n".join(vcs.get_release_log(previous_revision=last_revision))
 
