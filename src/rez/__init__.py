@@ -1,7 +1,8 @@
 import logging.config
 import os
 
-__version__ = "2.0.ALPHA.107"
+
+__version__ = "2.0.ALPHA.108"
 __author__ = "Allan Johns"
 __license__ = "LGPL"
 

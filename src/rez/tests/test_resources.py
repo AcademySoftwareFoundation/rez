@@ -435,15 +435,6 @@ class TestResources(TestBase):
                           search_path=search_path,
                           variables=dict(name='versionclash'))
 
-        with self.assertRaises(PackageMetadataError):
-            # the resource has a custom key at the root
-            config.override("error_root_custom_key", True)
-            load_resource(resource_keys=['package.*'],
-                          root_resource_key="folder.packages_root",
-                          search_path=search_path,
-                          variables=dict(name='customkey',
-                                         version='1'))
-
         with self.assertRaises(ResourceError):
             # this resource type requires a searchpath or filepath
             resource = get_resource(resource_keys="package.dev")

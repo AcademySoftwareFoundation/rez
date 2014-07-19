@@ -209,14 +209,6 @@ class BasePackageResource(FileResource):
                 print_warning("%s: %s" % (self.path, msg))
         return name
 
-    def custom_key(self, value):
-        msg = "custom key in root of package definition."
-        if config.disable_rez_1_compatibility or config.error_root_custom_key:
-            raise SchemaError(None, msg)
-        elif config.warn("root_custom_key"):
-            print_warning("%s: %s" % (self.path, msg))
-        return True
-
     def new_rex_command(self, value):
         msg = "'commands2' section in package definition"
         if config.disable_rez_1_compatibility or config.error_commands2:
@@ -259,7 +251,7 @@ class BasePackageResource(FileResource):
 
             # custom keys
             Optional('custom'):                 dict,
-            Optional(basestring):               self.custom_key,
+            Optional(basestring):               object,
 
             # a dict for internal use
             Optional('_internal'):              dict,
@@ -464,7 +456,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
                                                            And([basestring],
                                                                Use(self.convert_to_rex))),
                     Optional('custom'):                 object,
-                    Optional(basestring):               self.custom_key
+                    Optional(basestring):               object
                 }
             })])
 

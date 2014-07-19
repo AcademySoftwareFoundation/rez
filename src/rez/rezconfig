@@ -320,11 +320,6 @@ error_old_commands: false
 # cause very verbose output.
 debug_old_commands: false
 
-# Warn or disallow when a package is found to contain custom keys in the root of
-# its package definition file.
-warn_root_custom_key: true
-error_root_custom_key: false
-
 # Warn or disallow an extra commands entry called 'commands2'. This is provided
 # as a temporary measure for porting packages to rez-based commands without
 # breaking compatibility with Rez-1. If 'commands2' is present, it is used

@@ -211,8 +211,6 @@ config_schema = Schema({
     "error_version_mismatch":           Bool,
     "warn_nonstring_version":           Bool,
     "error_nonstring_version":          Bool,
-    "warn_root_custom_key":             Bool,
-    "error_root_custom_key":            Bool,
     "warn_commands2":                   Bool,
     "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
