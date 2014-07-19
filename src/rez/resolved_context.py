@@ -172,7 +172,7 @@ class ResolvedContext(object):
         self.graph_ = resolver.graph
 
         actual_solve_time = self.solve_time - self.load_time
-        timings.add("resolve_time", actual_solve_time)
+        timings.add("resolve", actual_solve_time)
 
         if self.status_ == ResolverStatus.solved:
             # convert solver.Variants to packages.Variants
