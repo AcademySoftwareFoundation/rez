@@ -29,9 +29,9 @@ include(InstallFiles)
 
 macro (install_python)
 
-	#
+	# --------------------------------------------------------------------------
 	# parse args
-	#
+	# --------------------------------------------------------------------------
 
 	parse_arguments(INSTPY "FILES;DESTINATION;RELATIVE;BIN" "" ${ARGN})
 
@@ -56,61 +56,55 @@ macro (install_python)
 
 	list(GET INSTPY_BIN 0 py_bin)
 
-	#
-	# install .py's
-	#
+
+	# --------------------------------------------------------------------------
+	# install .py's and .pyc's
+	# --------------------------------------------------------------------------
+
 	if(py_bin)
 		foreach(f ${INSTPY_FILES})
-
 			set(fabs ${f})
 			if(NOT IS_ABSOLUTE ${f})
 				set(fabs ${CMAKE_CURRENT_SOURCE_DIR}/${f})
 			endif(NOT IS_ABSOLUTE ${f})
 
 			get_target_filepath(${fabs} ${rel_dir} ${dest_dir} target_fpath)
+			get_filename_component(target_path ${target_fpath} PATH)
 			set(local_f ${label}/${target_fpath})
-
-			# can't work out how to implement a preinstall hook in cmake, so just copying
-			# the py files as a custom install and doing the compile as part of that.
+			set(local_fc "${local_f}c")
 			get_filename_component(pycopy_path ${local_f} PATH)
 
+
+			# ------------------------------------------------------------------
+			# py file
+			# ------------------------------------------------------------------
+
+			install(FILES ${fabs} DESTINATION ${target_path})
+
+
+			# ------------------------------------------------------------------
+			# pyc file
+			# ------------------------------------------------------------------
+
 			add_custom_command(
-				OUTPUT ${local_f}
+				OUTPUT ${local_fc}
 				COMMAND ${CMAKE_COMMAND} -E make_directory ${pycopy_path}
-				COMMAND ${CMAKE_COMMAND} -E copy ${fabs} ${pycopy_path}
-				COMMAND ${py_bin} -c 'import py_compile \; py_compile.compile(\"${local_f}\", None, None, True)'
+				COMMAND ${py_bin} -c 'import py_compile \; py_compile.compile(\"${local_f}\", \"${local_fc}\", None, True)'
+				DEPENDS ${fabs}
 			)
 
-			get_filename_component(target_path ${target_fpath} PATH)
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_f} DESTINATION ${target_path})
-
-			STRING(  REGEX REPLACE "[.]py" ".pyc" local_fc ${local_f} )
 			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc} DESTINATION ${target_path})
+			list(APPEND pycfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_fc})
 
-			list(APPEND pyfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_f})
 		endforeach(f ${INSTPY_FILES})
 
-		add_custom_target ( ${label} ALL DEPENDS ${pyfiles} )
+		add_custom_target ( ${label} ALL DEPENDS ${pyfiles} ${pycfiles} )
 
 	else(py_bin)
 		install_files_(${INSTPY_FILES} RELATIVE ${rel_dir} DESTINATION ${dest_dir})
 	endif(py_bin)
 
 endmacro (install_python)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
