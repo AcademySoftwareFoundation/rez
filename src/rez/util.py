@@ -7,6 +7,7 @@ import atexit
 import os
 import os.path
 import shutil
+import copy
 import time
 import posixpath
 import ntpath
@@ -806,12 +807,15 @@ def dicts_conflicting(dict1, dict2):
 
 
 def deep_update(dict1, dict2):
-    """Perform a deep merge of dict2 into dict1."""
+    """Perform a deep merge of `dict2` into `dict1`.
+
+    Note that `dict2` and any nested dicts are unchanged.
+    """
     for k, v in dict2.iteritems():
         if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
             deep_update(dict1[k], v)
         else:
-            dict1[k] = v
+            dict1[k] = copy.deepcopy(v)
 
 
 class propertycache(object):

@@ -17,12 +17,12 @@ class TestBase(unittest.TestCase):
         self.maxDiff = None
         # shield unit tests from any user config overrides
         os.environ["REZ_QUIET"] = "true"
-        self.config = _create_locked_config(self.settings)
-        config._swap(self.config)
+        self._config = _create_locked_config(self.settings)
+        config._swap(self._config)
 
     def tearDown(self):
-        config._swap(self.config)
-        self.config = None
+        config._swap(self._config)
+        self._config = None
 
 
 class TempdirMixin(object):

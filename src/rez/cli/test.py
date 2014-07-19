@@ -26,15 +26,18 @@ def setup_parser(parser):
                         help="test package iteration and serialization")
     parser.add_argument("--config", action="store_true",
                         help="test configuration settings")
+    parser.add_argument("--completion", action="store_true",
+                        help="test completions")
 
 
 def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "release", "context", "resources", "packages", "config"]
+             "release", "context", "resources", "packages", "config",
+             "completion"]
     suites = []
-    test_all = all([not getattr(opts, test) for test in tests])
+    test_all = all(not getattr(opts, test) for test in tests)
 
     for test in tests:
         if test_all or getattr(opts, test):
