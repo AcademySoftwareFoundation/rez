@@ -45,7 +45,7 @@ local_packages_path: '~/packages'
 release_packages_path: '/film/tools/packages'
 
 # The path that Rez unleash will use as a local staging area before deploying to
-# the release packages path.
+# the release packages path using Unleash.
 unleash_packages_path: '~/packages/.unleash'
 
 # Where temporary files go. Defaults to appropriate path depending on your
