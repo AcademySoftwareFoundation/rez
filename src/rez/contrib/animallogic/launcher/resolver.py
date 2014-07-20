@@ -1,3 +1,4 @@
+from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.resolver import ResolverStatus
 from rez.contrib.animallogic.launcher.setting import Setting
@@ -7,7 +8,7 @@ from rez.contrib.animallogic.launcher.exceptions import RezResolverError
 
 class RezServiceInterface(object):
 
-    def get_resolved_settings_from_requirements(self, requirements):
+    def get_resolved_settings_from_requirements(self, requirements, max_fails=-1):
 
         raise NotImplementedError
 
@@ -29,9 +30,11 @@ class RezService(RezServiceInterface):
 
         return settings
 
-    def get_resolved_settings_from_requirements(self, requirements):
+    def get_resolved_settings_from_requirements(self, requirements, max_fails=-1):
 
-        resolved_context = ResolvedContext(requirements)
+        package_paths = [config.release_packages_path]
+
+        resolved_context = ResolvedContext(requirements, package_paths, max_fails=max_fails)
 
         if resolved_context.status == ResolverStatus.solved:
             return self._get_package_settings_from_resolved_context(resolved_context)
