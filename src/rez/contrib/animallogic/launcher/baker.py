@@ -21,6 +21,11 @@ class Baker(object):
         self.username = getpass.getuser()
         self.mode = Mode.shell
         self.operating_system = OperatingSystem.get_current_operating_system()
+        self.max_fails = -1
+
+    def set_max_fails(self, max_fails):
+
+        self.max_fails = max_fails
 
     def display_settings(self, settings):
 
@@ -72,7 +77,7 @@ class Baker(object):
     def get_resolved_settings_from_package_requests(self, package_requests):
 
         try:
-            return self.rez_service.get_resolved_settings_from_requirements(package_requests)
+            return self.rez_service.get_resolved_settings_from_requirements(package_requests, max_fails=self.max_fails)
         except Exception, e:
             raise BakerError(e)
 

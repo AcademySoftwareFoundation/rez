@@ -35,7 +35,15 @@ class GitReleaseVCS(ReleaseVCS):
 
     @classmethod
     def is_valid_root(cls, path):
-        return os.path.isdir(os.path.join(path, '.git'))
+        if os.path.join(path, '.git'):
+            return True
+
+        while path != os.sep:
+            path = os.path.dirname(path)
+            if os.path.isdir(os.path.join(path, '.git')):
+                return True
+
+        return False
 
     def git(self, *nargs):
         return self._cmd(self.executable, *nargs)
@@ -129,11 +137,11 @@ class GitReleaseVCS(ReleaseVCS):
                     % (abs(n), s, remote_uri))
 
     def get_changelog(self, previous_revision=None):
+        prev_commit = None
         if previous_revision is not None:
             try:
                 prev_commit = previous_revision["commit"]
             except:
-                prev_commit = None
                 if self.package.config.debug("package_release"):
                     print_debug("couldn't determine previous commit from: %r"
                                 % previous_revision)

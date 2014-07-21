@@ -6,6 +6,7 @@ from rez.build_process import LocalSequentialBuildProcess
 from rez.contrib.animallogic.unleash.exceptions import UnleashError
 from rez.util import print_warning
 import os
+import subprocess
 import sys
 import urllib2
 
@@ -18,7 +19,6 @@ UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(__file__)
 UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "_unleasher")
 USERNAME = os.getenv("USER")
-
 
 
 def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour=UNLEASH_FLAVOUR,
