@@ -6,7 +6,6 @@ from rez.tests.util import TestBase
 import os
 
 
-
 class TestCommands(TestBase):
 
     @classmethod
@@ -21,7 +20,8 @@ class TestCommands(TestBase):
             add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
-            implicit_packages=[])
+            implicit_packages=[],
+            rez_1_environment_variables=False)
 
     def __init__(self, fn):
         TestBase.__init__(self, fn)
@@ -39,7 +39,9 @@ class TestCommands(TestBase):
 
         # ignore some commands that don't matter or change depending on system
         ignore_keys = set(["REZ_USED",
-                           "REZ_REQUEST_TIME",
+                           "REZ_USED_TIMESTAMP",
+                           "REZ_USED_PACKAGES_PATH",
+                           "REZ_USED_IMPLICIT_PACKAGES",
                            "PATH"])
 
         for cmd in commands:
@@ -49,7 +51,6 @@ class TestCommands(TestBase):
                 continue
             else:
                 commands_.append(cmd)
-
         self.assertEqual(commands_, expected_commands)
 
     def _get_rextest_commands(self, pkg):
@@ -68,13 +69,13 @@ class TestCommands(TestBase):
     def _test_rextest_package(self, version):
         pkg = VersionedObject("rextest-%s" % version)
 
-        cmds = [Setenv('REZ_REQUEST', str(pkg)),
-                Setenv('REZ_RESOLVE', str(pkg))]
+        cmds = [Setenv('REZ_USED_REQUEST', str(pkg)),
+                Setenv('REZ_USED_RESOLVE', str(pkg))]
         cmds += self._get_rextest_commands(pkg)
 
         self._test_package(pkg, {}, cmds)
         # first prepend should still override
-        self._test_package(pkg, {"REXTEST_DIRS":"TEST"}, cmds)
+        self._test_package(pkg, {"REXTEST_DIRS": "TEST"}, cmds)
 
     def test_old_yaml(self):
         """Resolve a yaml-based package with old-style bash commands."""
@@ -94,8 +95,8 @@ class TestCommands(TestBase):
         pkg = VersionedObject("rextest2-2")
         base = os.path.join(self.packages_path, "rextest2", "2")
 
-        cmds = [Setenv('REZ_REQUEST', "rextest2-2"),
-                Setenv('REZ_RESOLVE', "rextest-1.3 rextest2-2")]
+        cmds = [Setenv('REZ_USED_REQUEST', "rextest2-2"),
+                Setenv('REZ_USED_RESOLVE', "rextest-1.3 rextest2-2")]
         cmds += self._get_rextest_commands(VersionedObject("rextest-1.3"))
         cmds += [Setenv('REZ_REXTEST2_VERSION', '2'),
                  Setenv('REZ_REXTEST2_BASE', base),
@@ -107,7 +108,7 @@ class TestCommands(TestBase):
 
         self._test_package(pkg, {}, cmds)
         # first prepend should still override
-        self._test_package(pkg, {"REXTEST_DIRS":"TEST"}, cmds)
+        self._test_package(pkg, {"REXTEST_DIRS": "TEST"}, cmds)
 
 
 def get_test_suites():

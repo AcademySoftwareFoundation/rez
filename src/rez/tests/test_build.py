@@ -1,17 +1,17 @@
 from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
+from rez.exceptions import BuildError, BuildContextResolveError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.settings import settings
+from rez.resources import clear_caches
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
 import rez.bind.python
 import shutil
 import os.path
-
 
 
 class TestBuild(TestBase, TempdirMixin):
@@ -51,6 +51,9 @@ class TestBuild(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, *pkgs):
+        # cache clear is needed to clear Resource._listdir cache, which hides
+        # newly added packages
+        clear_caches()
         return ResolvedContext(pkgs)
 
     def _test_build(self, name, version=None):
@@ -61,22 +64,22 @@ class TestBuild(TestBase, TempdirMixin):
         builder = self._create_builder(working_dir)
 
         # build the package from a clean build dir, then build it again
-        self.assertTrue(builder.build(clean=True))
-        self.assertTrue(builder.build())
+        builder.build(clean=True)
+        builder.build()
 
         # build and install it from a clean dir, then build and install it again
-        self.assertTrue(builder.build(install_path=self.install_root, install=True, clean=True))
-        self.assertTrue(builder.build(install_path=self.install_root, install=True))
+        builder.build(install_path=self.install_root, install=True, clean=True)
+        builder.build(install_path=self.install_root, install=True)
 
     def _test_build_build_util(self):
         """Build, install, test the build_util package."""
         self._test_build("build_util", "1")
         self._create_context("build_util==1")
 
-    def _test_build_nover(self):
-        """Build, install, test the nover package."""
-        self._test_build("nover")
-        self._create_context("nover==")
+    def _test_build_floob(self):
+        """Build, install, test the floob package."""
+        self._test_build("floob")
+        self._create_context("floob==1.2.0")
 
     def _test_build_foo(self):
         """Build, install, test the foo package."""
@@ -87,10 +90,11 @@ class TestBuild(TestBase, TempdirMixin):
         self._create_context("foo==1.1.0")
 
     def _test_build_loco(self):
-        """Test that a package with conflicting requirements fails correctly."""
+        """Test that a package with conflicting requirements fails correctly.
+        """
         working_dir = os.path.join(self.src_root, "loco", "3")
         builder = self._create_builder(working_dir)
-        self.assertFalse(builder.build(clean=True))
+        self.assertRaises(BuildContextResolveError, builder.build, clean=True)
 
     def _test_build_bah(self):
         """Build, install, test the bah package."""
@@ -104,14 +108,14 @@ class TestBuild(TestBase, TempdirMixin):
         """Test that a broken build fails correctly."""
         working_dir = os.path.join(self.src_root, "whack")
         builder = self._create_builder(working_dir)
-        self.assertFalse(builder.build(clean=True))
+        self.assertRaises(BuildError, builder.build, clean=True)
 
     @shell_dependent
     @install_dependent
     def test_builds(self):
         """Test an interdependent set of builds."""
         self._test_build_build_util()
-        self._test_build_nover()
+        self._test_build_floob()
         self._test_build_foo()
         self._test_build_loco()
         self._test_build_bah()

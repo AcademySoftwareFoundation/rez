@@ -1,12 +1,12 @@
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv
 from rez.exceptions import RexError, RexUndefinedVariableError
+from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import inspect
 import textwrap
 import os
-
 
 
 class TestRex(TestBase):
@@ -280,6 +280,33 @@ class TestRex(TestBase):
                    env={},
                    expected_exception=RexError)
 
+    def test_8(self):
+        """Custom environment variable separators"""
+
+        config.override("env_var_separators", {"FOO":",", "BAH":" "})
+
+        def _rex():
+            appendenv("FOO", "test1")
+            env.FOO.append("test2")
+            env.FOO.append("test3")
+
+            env.BAH.prepend("A")
+            prependenv("BAH", "B")
+            env.BAH.append("C")
+
+        self._test(func=_rex,
+                   env={},
+                   expected_actions = [
+                       Setenv('FOO', 'test1'),
+                       Appendenv('FOO', 'test2'),
+                       Appendenv('FOO', 'test3'),
+                       Setenv('BAH', 'A'),
+                       Prependenv('BAH', 'B'),
+                       Appendenv('BAH', 'C')],
+                   expected_output = {
+                       'FOO': ",".join(["test1","test2","test3"]),
+                       'BAH': " ".join(["B","A","C"])})
+
 
 def get_test_suites():
     suites = []
@@ -291,6 +318,7 @@ def get_test_suites():
     suite.addTest(TestRex("test_5"))
     suite.addTest(TestRex("test_6"))
     suite.addTest(TestRex("test_7"))
+    suite.addTest(TestRex("test_8"))
     suites.append(suite)
     return suites
 

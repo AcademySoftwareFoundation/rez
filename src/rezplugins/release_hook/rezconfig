@@ -1,0 +1,51 @@
+emailer:
+    # SMTP host.
+    smtp_host: ''
+
+    # SMTP port.
+    smtp_port: 25
+
+    # The address that post-release emails appear to come from.
+    sender: '{system.user}@rez-release.com'
+
+    # List of recipients of post-release emails.
+    recipients: []
+
+command:
+    # If true, print the commands that are being run
+    print_commands: true
+
+    # If true, print output of commands.
+    print_output: true
+
+    # If true, print failed commands to stderr
+    print_error: true
+
+    # If true, cancel the package release if a pre-* command fails.
+    cancel_on_error: true
+
+    # If true, skip all commands after a failed command. This does not cancel
+    # the package release.
+    stop_on_error: true
+
+    # List of commands to execute prior to build, in given order.
+    # Each item is a dict containing:
+    # - 'command' (str): Command to execute;
+    # - 'args' (str or list of str) (optional): Arguments to the command. If a
+    #   string, args are split by whitespace;
+    # - 'user' (str) (optional): User to execute the commands as, defaults to
+    #   current user.
+    #
+    # Example:
+    # pre_build_commands
+    # - command: ls
+    #   args: '-a -l'
+    #   user: root
+    #
+    pre_build_commands: []
+
+    # Same expected values as pre_build_commands
+    pre_release_commands: []
+
+    # Same expected values as pre_build_commands
+    post_release_commands: []

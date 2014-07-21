@@ -1,5 +1,5 @@
 from rez.exceptions import BuildSystemError
-from rez.packages import Package
+from rez.packages import load_developer_package
 from rez.util import which
 
 
@@ -37,14 +37,22 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
         # deal with leftover tempfiles from child buildsys in working dir
         child_clss = set(x.child_build_system() for x in clss)
         clss = set(clss) - child_clss
+        cls = None
 
         if len(clss) > 1:
+            for x in clss:
+                if x.name() == "cmake":
+                    cls = x
+
+        else:
+            cls = iter(clss).next()
+
+        if not cls:
             s = ', '.join(x.name() for x in clss)
             raise BuildSystemError(("Source could be built with one of: %s; "
                                    "Please specify a build system") % s)
-        else:
-            cls = iter(clss).next()
-            return cls(working_dir,
+
+        return cls(working_dir,
                        opts=opts,
                        write_build_scripts=write_build_scripts,
                        verbose=verbose,
@@ -53,7 +61,6 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
     else:
         raise BuildSystemError("No build system is associated with the path %s"
                                % working_dir)
-
 
 
 class BuildSystem(object):
@@ -83,7 +90,7 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.package = Package(working_dir)
+        self.package = load_developer_package(working_dir)
         self.write_build_scripts = write_build_scripts
         self.build_args = build_args
         self.child_build_args = child_build_args

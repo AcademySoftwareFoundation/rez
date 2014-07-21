@@ -1,3 +1,6 @@
+"""
+Bash shell
+"""
 import sys
 import select
 import os
@@ -16,11 +19,8 @@ class Bash(SH):
         return 'bash'
 
     @classmethod
-    def supports_rcfile(cls):
-        return True
-
-    @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
+                             command=False):
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
@@ -32,7 +32,7 @@ class Bash(SH):
         if stdin:
             cls._overruled_option('rcfile', 'stdin', rcfile)
             rcFile = False
-        return (norc, rcfile, command, stdin)
+        return (rcfile, norc, stdin, command)
 
     @classmethod
     def get_startup_sequence(cls, rcfile, norc, stdin, command):

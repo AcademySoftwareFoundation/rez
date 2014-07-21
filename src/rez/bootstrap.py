@@ -113,10 +113,16 @@ def install_into(path, shell=None):
 
         for pkg in pkgs:
             print "Creating bootstrap package: %s..." % pkg
-            ignore = ("packages", "bin") if pkg == 'rez' else None
+            if pkg == "rez":
+                ignore = ("packages", "bin")
+                py_req = "2.6+<3"
+            else:
+                py_req = "major_minor"
+                ignore = None
             dst_path = convert_dist(pkg, bootstrap_path,
                                     make_variant=False,
-                                    ignore_dirs=ignore)
+                                    ignore_dirs=ignore,
+                                    python_requirement=py_req)
             pypaths.append(dst_path)
 
         rel_pypaths = [os.path.relpath(x, bootstrap_path) for x in pypaths]
@@ -130,7 +136,7 @@ def install_into(path, shell=None):
         for script in os.listdir(bin_path):
             print "%s..." % script
             file = os.path.join(bin_path, script)
-            if script.startswith('_'):
+            if script in ("_rez_csh_complete",):
                 shutil.copy(file, dst_bin_path)
             else:
                 with open(file) as f:

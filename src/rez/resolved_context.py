@@ -1,10 +1,12 @@
 from rez import __version__, module_root_path
-from rez.resolver import Resolver
+from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
-from rez.settings import settings
+from rez.config import config
+from rez.colorize import critical, error, heading, warning, local, implicit
+from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, print_warning_once, _add_bootstrap_pkg_path, \
-    create_forwarding_script, is_subdirectory
+    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, create_forwarding_script, \
+    timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -16,7 +18,6 @@ from rez.packages import Variant
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import RezSystemError, PackageCommandError
 from rez.vendor import yaml
-import functools
 import getpass
 import inspect
 import time
@@ -24,7 +25,6 @@ import uuid
 import sys
 import os
 import os.path
-
 
 
 class ResolvedContext(object):
@@ -40,9 +40,34 @@ class ResolvedContext(object):
     """
     serialize_version = 0
 
+    class Callback(object):
+        def __init__(self, verbose, max_fails, time_limit, callback):
+            self.verbose = verbose
+            self.max_fails = max_fails
+            self.time_limit = time_limit
+            self.callback = callback
+            self.start_time = time.time()
+
+        def __call__(self, state):
+            if self.verbose:
+                print state
+            if self.max_fails != -1 and state.num_fails >= self.max_fails:
+                return False, ("fail limit reached: aborted after %d failures"
+                               % state.num_fails)
+            if self.time_limit != -1:
+                secs = time.time() - self.start_time
+                if secs > self.time_limit:
+                    return False, "time limit exceeded"
+            if self.callback:
+                return self.callback(state)
+            return True, ''
+
+    # TODO quiet is unused, remove
     def __init__(self, package_requests, quiet=False, verbosity=0,
-        timestamp=None, building=False, caching=None, package_paths=None,
-        add_implicit_packages=True, add_bootstrap_path=None, max_fails=-1):
+                 timestamp=None, building=False, caching=None,
+                 package_paths=None, add_implicit_packages=True,
+                 add_bootstrap_path=None, max_fails=-1, time_limit=-1,
+                 callback=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -54,14 +79,23 @@ class ResolvedContext(object):
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, defaults to
-                settings.resolve_caching.
+                config.resolve_caching.
             package_paths: List of paths to search for pkgs, defaults to
-                settings.packages_path.
+                config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
-                by settings.implicit_packages is added to the request.
+                by config.implicit_packages is appended to the request.
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
-                default specified in settings.add_bootstrap_path.
+                default specified in config.add_bootstrap_path.
+            max_fails (int): Abort the resolve after this many failed
+                resolve steps. If -1, does not abort.
+            time_limit (int): Abort the resolve if it takes longer than this
+                many seconds. If -1, there is no time limit.
+            callback: If not None, this callable will be called after each
+                solve step. It is passed a `SolverState` object. It must return
+                a 2-tuple:
+                - bool: If True, continue the solve, otherwise abort;
+                - str: Reason for solve abort, ignored if solve not aborted.
         """
         self.load_path = None
 
@@ -69,7 +103,7 @@ class ResolvedContext(object):
         self.timestamp = timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
-        self.caching = settings.default(caching, "resolve_caching")
+        self.caching = config.resolve_caching if caching is None else caching
 
         self.package_requests = []
         for req in package_requests:
@@ -77,14 +111,17 @@ class ResolvedContext(object):
                 req = Requirement(req)
             self.package_requests.append(req)
 
-        self.package_paths = settings.default(package_paths, "packages_path")
-        if settings.default(add_bootstrap_path, "add_bootstrap_path"):
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
+        add_bootstrap = (config.add_bootstrap_path
+                         if add_bootstrap_path is None else add_bootstrap_path)
+        if add_bootstrap:
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         if add_implicit_packages:
-            pkg_strs = settings.implicit_packages
+            pkg_strs = config.implicit_packages
             self.implicit_packages = [Requirement(x) for x in pkg_strs]
-            self.package_requests = self.implicit_packages + self.package_requests
+            self.package_requests.extend(self.implicit_packages)
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -95,10 +132,9 @@ class ResolvedContext(object):
         self.arch = system.arch
         self.os = system.os
         self.created = int(time.time())
-        self.max_fails = max_fails
 
         # resolve results
-        self.status = "pending"
+        self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
         self.failure_description = None
         self.graph_string = None
@@ -107,51 +143,64 @@ class ResolvedContext(object):
         self.load_time = 0.0
 
         # perform the solve
-        def _pr(print_state, max_fails, state):
-            if print_state:
-                print state
-            return  max_fails == -1 or max_fails < state.num_fails
-
         verbose_ = False
-
         print_state = False
         if verbosity >= 1:
             print_state = True
         if verbosity == 2:
             verbose_ = True
-
-        callback = functools.partial(_pr, print_state, self.max_fails)
+        callback_ = self.Callback(verbose=print_state,
+                                  max_fails=max_fails,
+                                  time_limit=time_limit,
+                                  callback=callback)
 
         resolver = Resolver(package_requests=self.package_requests,
                             package_paths=self.package_paths,
                             timestamp=self.timestamp,
                             building=self.building,
                             caching=caching,
-                            callback=callback,
+                            callback=callback_,
                             verbose=verbose_)
         resolver.solve()
 
         # convert the results
-        self.status = resolver.status
+        self.status_ = resolver.status
         self.solve_time = resolver.solve_time
         self.load_time = resolver.load_time
+        self.failure_description = resolver.failure_description
+        self.graph_ = resolver.graph
 
-        if resolver.graph is not None:
-            self.graph_ = resolver.graph
+        actual_solve_time = self.solve_time - self.load_time
+        timings.add("resolve_time", actual_solve_time)
 
-        if self.status == "solved":
+        if self.status_ == ResolverStatus.solved:
             # convert solver.Variants to packages.Variants
             pkgs = []
             for variant in resolver.resolved_packages:
-                pkg = Variant(name=variant.name,
-                              version=variant.version,
-                              path=variant.metafile,
-                              index=variant.index)
-
+                resource_handle = variant.userdata
+                resource = resource_handle.get_resource()
+                pkg = Variant(resource)
                 pkgs.append(pkg)
             self.resolved_packages_ = pkgs
-        elif self.status == "failed":
-            self.failure_description = resolver.failure_description
+
+    @property
+    def success(self):
+        """Return the current status of the context as a boolean value.  
+        Required for backwards compatibility (with Launcher).
+
+        Returns:
+            bool
+        """
+        return self.status == ResolverStatus.solved
+
+    @property
+    def status(self):
+        """Return the current status of the context.
+
+        Returns:
+            ResolverStatus.
+        """
+        return self.status_
 
     @property
     def resolved_packages(self):
@@ -165,7 +214,8 @@ class ResolvedContext(object):
         return ((self.graph_ is not None) or self.graph_string)
 
     def get_resolved_package(self, name):
-        """Returns a Variant object or None if the package is not in the resolve.
+        """Returns a Variant object or None if the package is not in the
+        resolve.
         """
         pkgs = [x for x in self.resolved_packages_ if x.name == name]
         return pkgs[0] if pkgs else None
@@ -208,9 +258,10 @@ class ResolvedContext(object):
         load_ver = doc["serialize_version"]
         curr_ver = ResolvedContext.serialize_version
         if load_ver > curr_ver:
-            raise RezSystemError(("The context stored in %s cannot be " + \
-                "loaded, because it was written by a newer version of Rez " + \
-                "(serialize version %d > %d)") % (path, load_ver, curr_ver))
+            raise RezSystemError(
+                ("The context stored in %s cannot be "
+                 "loaded, because it was written by a newer version of Rez "
+                 "(serialize version %d > %d)") % (path, load_ver, curr_ver))
 
         r = cls.from_dict(doc)
         r.load_path = os.path.abspath(path)
@@ -219,41 +270,6 @@ class ResolvedContext(object):
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
         """
-
-        from rez.vendor.colorama import init
-        from rez.vendor.colorama import Fore
-        from rez.vendor.colorama import Style          
-
-        init()
-        indent = 2
-
-        def _bright(s):
-            return Style.BRIGHT + s + Style.RESET_ALL
-
-        def _dim(s):
-            return Style.DIM + s + Style.RESET_ALL
-
-        def _red(s):
-            return Fore.RED + s + Fore.RESET
-
-        def _cyan(s):
-            return Fore.CYAN + s + Fore.RESET
-
-        def _green(s):
-            return Fore.GREEN + s + Fore.RESET
-
-        def _maxwidths(rows, fields):
-            maxwidths = {}
-
-            for row in rows:
-                for field in fields:
-                    nse = len(str(getattr(row, field)))
-                    w = maxwidths.get(field, -1)
-                    if nse > w:
-                        maxwidths[field] = nse
-
-            return maxwidths
-
         def _pr(s=''):
             print >> buf, s
 
@@ -264,122 +280,91 @@ class ResolvedContext(object):
             else:
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
-        class _Row(object):
-
-            padding = 2
-
-            def __init__(self, pkg):
-                self._pkg = pkg
-
-            @property
-            def name(self):
-                return self._pkg.qualified_package_name
-
-            @property
-            def root(self):
-                return self._pkg.root
-
-            @property
-            def tokens(self):
-                tokens = []
-                if not os.path.exists(self._pkg.root):
-                    tokens.append('NOT FOUND')
-                elif self._pkg.is_local:
-                   tokens.append('local')
-                if self._pkg.is_implicit:
-                    tokens.append('implicit')
-                stokens = ", ".join(tokens)
-                return "(" + stokens + ")" if stokens else ""
-
-            def format(self, widths, fields):
-                s = ''
-                for field in fields:
-                    value = str(getattr(self, field))
-                    spacing = widths[field] - len(value) + self.padding
-                    s += value + ' ' * spacing
-                if self._pkg.is_local:
-                    s = _green(s)
-                if self._pkg.is_implicit:
-                    s = _cyan(s)
-                return s
-
-        if self.status in ("failed", "aborted"):
-            _pr(_red(_bright("The context failed to resolve:\n")))
-            _pr(_red(str(self.failure_description)))
+        if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
+            _pr(critical("The context failed to resolve:\n%s"
+                         % self.failure_description))
             return
 
         t_str = _rt(self.created)
-        _pr("resolved by %s@%s, on %s, using Rez v%s" \
-            % (_bright(self.user), _bright(self.host), _bright(t_str), _bright(self.rez_version)))
+        _pr("resolved by %s@%s, on %s, using Rez v%s"
+            % (self.user, self.host, t_str, self.rez_version))
         if self.timestamp:
             t_str = _rt(self.timestamp)
-            _pr(_red("packages released after ") + _red(_bright(t_str)) + _red(" were ignored"))
+            _pr("packages released after %s were ignored" % t_str)
         _pr()
 
         if verbose:
-            _pr(_bright("search paths:"))
+            _pr(heading("search paths:"))
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr(_bright("requested packages:"))
-        for pkg in self.package_requests:
-            pkgs = str(pkg)
-            if pkg in self.implicit_packages:
-                pkgs = _cyan(pkgs)
-            _pr(' ' * indent + pkgs)
+        _pr(heading("requested packages:"))
+        rows = []
+        colors = []
+        for request in self.package_requests:
+            col = str
+            t = ''
+            if request in self.implicit_packages:
+                t = "(implicit)"
+                col = implicit
+            rows.append((str(request), t))
+            colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
         _pr()
 
-        _lpkgs = []
-        ipkgs = [i.name for i in self.implicit_packages]
-        for pkg in self.resolved_packages:
-            pkg.is_implicit = False
-            if pkg.name in ipkgs:
-               pkg.is_implicit = True
-            if pkg.is_local:
-                _lpkgs.append(' ' * indent + pkg.qualified_package_name)
-        if _lpkgs:
-            _pr(_bright("local packages:"))
-            for _lpkg in _lpkgs:
-                _pr(_green(_lpkg))
-            _pr()
-
-        _pr(_bright("resolved packages:"))
-        fields = ["name", "root", "tokens"]
+        _pr(heading("resolved packages:"))
         rows = []
+        colors = []
         for pkg in (self.resolved_packages or []):
-            rows.append(_Row(pkg))
-        widths = _maxwidths(rows, fields)
-        for row in rows:
-            _pr(' ' * indent + row.format(widths, fields))
+            t = []
+            col = str
+            if not os.path.exists(pkg.root):
+                t.append('NOT FOUND')
+                col = critical
+            if pkg.is_local:
+                t.append('local')
+                col = local
+            t = '(%s)' % ', '.join(t) if t else ''
+            rows.append((pkg.qualified_package_name, pkg.root, t))
+            colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(col(line))
 
         if verbose:
             _pr()
-            _pr(_bright("resolve details:"))
+            _pr(heading("resolve details:"))
             _pr("load time: %.02f secs" % self.load_time)
-            # solve time includes load time
-            _pr("solve time: %.02f secs" % (self.solve_time - self.load_time))
+            actual_solve_time = self.solve_time - self.load_time
+            _pr("solve time: %.02f secs" % actual_solve_time)
+            if self.load_path:
+                _pr("rxt file: %s" % self.load_path)
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
-            if self.status == "solved":
+            if self.status_ == ResolverStatus.solved:
                 return fn(self, *nargs, **kwargs)
             else:
-                raise RezSystemError("Cannot perform operation in a failed context")
+                raise RezSystemError(
+                    "Cannot perform operation in a failed context")
         return _check
 
     @_on_success
     def validate(self):
         """Check compatibility with the current system.
 
-        For instance, a loaded context may have been created on a different host,
-        with different package search paths, and so may refer to packages not
-        available on the current host.
+        For instance, a loaded context may have been created on a different
+        host, with different package search paths, and so may refer to packages
+        not available on the current host.
         """
         # check package paths
         for pkg in self.resolved_packages:
             if not os.path.exists(pkg.root):
-                raise RezSystemError("Package %s path does not exist: %s" \
+                raise RezSystemError(
+                    "Package %s path does not exist: %s"
                     % (pkg.qualified_package_name, pkg.root))
 
     @_on_success
@@ -398,26 +383,40 @@ class ResolvedContext(object):
 
     @_on_success
     def get_key(self, key, request_only=False):
-        """Get a metadata key value for each resolved package.
+        """Get a data key value for each resolved package.
 
         Args:
-            key: String key of property, eg 'tools'.
-            request_only: If True, only return the key from resolved packages
-                that were also present in the request.
+            key (str): String key of property, eg 'tools'.
+            request_only (bool): If True, only return the key from resolved
+                packages that were also present in the request.
 
         Returns:
             Dict of {pkg-name: value}.
         """
         values = {}
-        requested_names = [x.name for x in self.package_requests if not x.conflict]
+        requested_names = [x.name for x in self.package_requests
+                           if not x.conflict]
 
         for pkg in self.resolved_packages:
             if (not request_only) or (pkg.name in requested_names):
-                value = pkg.metadata.get(key)
+                value = getattr(pkg, key)
                 if value is not None:
                     values[pkg.name] = value
 
         return values
+
+    @_on_success
+    def get_tools(self, request_only=False):
+        """Returns the commandline tools available in the context.
+
+        Args:
+            request_only: If True, only return the key from resolved packages
+                that were also present in the request.
+
+        Returns:
+            Dict of {pkg-name: tool-name}.
+        """
+        return self.get_key("tools", request_only=request_only)
 
     @_on_success
     def get_shell_code(self, shell=None, parent_environ=None):
@@ -489,10 +488,10 @@ class ResolvedContext(object):
     def execute_command(self, args, parent_environ=None, **subprocess_kwargs):
         """Run a command within a resolved context.
 
-        This applies the context to a python environ dict, then runs a subprocess
-        in that namespace. This is not a fully configured subshell - shell-
-        specific commands such as aliases will not be applied. To execute a
-        command within a subshell instead, use execute_shell().
+        This applies the context to a python environ dict, then runs a
+        subprocess in that namespace. This is not a fully configured subshell -
+        shell-specific commands such as aliases will not be applied. To execute
+        a command within a subshell instead, use execute_shell().
 
         Args:
             args: Command arguments, can be a string.
@@ -525,7 +524,8 @@ class ResolvedContext(object):
                 then the current environment is used.
             rcfile: Specify a file to source instead of shell startup files.
             norc: If True, skip shell startup files, if possible.
-            stdin: If True, read commands from stdin, in a non-interactive shell.
+            stdin: If True, read commands from stdin, in a non-interactive
+                shell.
             command: If not None, execute this command in a non-interactive
                 shell. Can be a list of args.
             quiet: If True, skip the welcome message in interactive shells.
@@ -533,11 +533,12 @@ class ResolvedContext(object):
                 return immediately. If None, will default to blocking if the
                 shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
-                the user append custom actions to the context, such as settings
+                the user append custom actions to the context, such as setting
                 extra environment variables.
-            context_filepath: If provided, the context file will be written here,
-                rather than to the default location (which is in a tempdir). If
-                you use this arg, you are responsible for cleaning up the file.
+            context_filepath: If provided, the context file will be written
+                here, rather than to the default location (which is in a
+                tempdir). If you use this arg, you are responsible for cleaning
+                up the file.
             popen_args: args to pass to the shell process object constructor.
 
         Returns:
@@ -565,7 +566,7 @@ class ResolvedContext(object):
             self.save(rxt_file)
 
         context_file = context_filepath or \
-                       os.path.join(tmpdir, "context.%s" % sh.file_extension())
+            os.path.join(tmpdir, "context.%s" % sh.file_extension())
 
         # interpret this context and write out the native context file
         executor = self._create_executor(sh, parent_environ)
@@ -590,8 +591,8 @@ class ResolvedContext(object):
                            quiet=quiet,
                            **Popen_args)
         if block:
-            stdout,stderr = p.communicate()
-            return p.returncode,stdout,stderr
+            stdout, stderr = p.communicate()
+            return p.returncode, stdout, stderr
         else:
             return p
 
@@ -605,14 +606,15 @@ class ResolvedContext(object):
         using this context, and run the tool in that shell.
 
         Args:
-            path: Suite directory. Either this directory or its parent must exist.
-            rxt_name: Name of the rxt file to write. If None, a uuid-type string
-                is generated for you. If non-None, but that file already exists
-                in the path, then the name will be suffixed with '_2', '_3' etc
-                until it no longer conflicts with an existing file.
+            path: Suite directory. Either this directory or its parent must
+                exist.
+            rxt_name: Name of the rxt file to write. If None, a uuid-type
+                string is generated for you. If non-None, but that file already
+                exists in the path, then the name will be suffixed with '_2',
+                '_3' etc until it no longer conflicts with an existing file.
             prefix: If not None, this string is prefixed to wrapped tools. For
-                example, if the context contains a tool 'maya', then prefix='fx_'
-                would create a user-facing tool called 'fx_maya'.
+                example, if the context contains a tool 'maya', then
+                prefix='fx_' would create a user-facing tool called 'fx_maya'.
             suffix: Wrapped tool suffix, or None.
             request_only: If True, only tools from packages in the request list
                 are wrapped.
@@ -623,8 +625,11 @@ class ResolvedContext(object):
             Path to a subdirectory within 'path' containing the wrapped tools,
             or None if no tools were wrapped.
         """
-        if self.status != "solved":
-            raise RezSystemError("Cannot add a failed context to a suite")
+        if self.status_ != ResolverStatus.solved:
+            msg = "Cannot add a failed context to a suite"
+            if self.load_path:
+                msg += ": %s" % self.load_path
+            raise RezSystemError(msg)
 
         path = os.path.abspath(path)
         ppath = os.path.dirname(path)
@@ -645,7 +650,7 @@ class ResolvedContext(object):
                 i += 1
             rxt_name = os.path.basename(file)
         else:
-            rxt_name = str(uuid.uuid4()).replace('-','') + ".rxt"
+            rxt_name = str(uuid.uuid4()).replace('-', '') + ".rxt"
 
         rxt_file = os.path.join(path, rxt_name)
         if verbose:
@@ -671,14 +676,15 @@ class ResolvedContext(object):
         if not os.path.exists(binpath):
             os.mkdir(binpath)
 
-        for pkg,tools in keys.iteritems():
+        for pkg, tools in keys.iteritems():
             doc = dict(tools=[])
 
             for tool in tools:
                 toolname = "%s%s%s" % ((prefix or ''), tool, (suffix or ''))
                 doc["tools"].append([pkg, toolname])
                 if verbose:
-                    print "writing tool '%s' for package '%s'..." % (toolname, pkg)
+                    print ("writing tool '%s' for package '%s'..."
+                           % (toolname, pkg))
 
                 file = os.path.join(binpath, toolname)
                 if os.path.exists(file) and not overwrite:
@@ -701,8 +707,9 @@ class ResolvedContext(object):
         return binpath
 
     def to_dict(self):
-        resolved_packages = [x.to_dict() for x in self.resolved_packages_] \
-            if self.resolved_packages_ else None
+        resolved_packages = []
+        for pkg in (self.resolved_packages_ or []):
+            resolved_packages.append(pkg.resource_handle.to_dict())
 
         return dict(
             serialize_version=ResolvedContext.serialize_version,
@@ -723,7 +730,7 @@ class ResolvedContext(object):
             os=self.os,
             created=self.created,
 
-            status=self.status,
+            status=self.status_.name,
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=self.graph(as_dot=True),
@@ -735,8 +742,6 @@ class ResolvedContext(object):
         r = ResolvedContext.__new__(ResolvedContext)
         sz_ver = d["serialize_version"]  # for backwards compatibility
         r.load_path = None
-
-        resolved_packages = d["resolved_packages"]
 
         r.timestamp = d["timestamp"]
         r.building = d["building"]
@@ -754,9 +759,7 @@ class ResolvedContext(object):
         r.os = d["os"]
         r.created = d["created"]
 
-        r.status = d["status"]
-        r.resolved_packages_ = [Variant.from_dict(x) for x in resolved_packages] \
-            if resolved_packages else None
+        r.status_ = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]
@@ -764,11 +767,17 @@ class ResolvedContext(object):
         r.graph_string = d["graph"]
         r.graph_ = None
 
+        r.resolved_packages_ = []
+        for d_ in d["resolved_packages"]:
+            resource_handle = ResourceHandle.from_dict(d_)
+            resource = resource_handle.get_resource()
+            variant = Variant(resource)
+            r.resolved_packages_.append(variant)
         return r
 
     def _create_executor(self, interpreter, parent_environ):
-        parent_vars = True if settings.all_parent_variables \
-            else settings.parent_variables
+        parent_vars = True if config.all_parent_variables \
+            else config.parent_variables
 
         return RexExecutor(interpreter=interpreter,
                            parent_environ=parent_environ,
@@ -784,19 +793,33 @@ class ResolvedContext(object):
         self._execute(executor)
         context_code = executor.get_output()
 
-        return sh,context_code
+        return sh, context_code
 
     def _execute(self, executor):
         # bind various info to the execution context
-        executor.setenv("REZ_USED", self.rez_path)
-        executor.setenv("REZ_REQUEST_TIME", self.timestamp)
-
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self.package_requests)
+        implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
+        package_paths_str = os.pathsep.join(self.package_paths)
 
-        executor.setenv("REZ_REQUEST", request_str)
-        executor.setenv("REZ_RESOLVE", resolve_str)
+        executor.setenv("REZ_USED", self.rez_path)
+        executor.setenv("REZ_USED_TIMESTAMP", self.timestamp)
+        executor.setenv("REZ_USED_REQUEST", request_str)
+        executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
+        executor.setenv("REZ_USED_RESOLVE", resolve_str)
+        executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
+
+        # rez-1 environment variables, set in backwards compatibility mode
+        if config.rez_1_environment_variables and \
+                not config.disable_rez_1_compatibility:
+            executor.setenv("REZ_VERSION", self.rez_version)
+            executor.setenv("REZ_PATH", self.rez_path)
+            executor.setenv("REZ_REQUEST", request_str)
+            executor.setenv("REZ_RESOLVE", resolve_str)
+            executor.setenv("REZ_RAW_REQUEST", request_str)
+            executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
+            executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self.package_requests))
@@ -808,7 +831,7 @@ class ResolvedContext(object):
             executor.comment("Commands from package %s" % pkg.qualified_name)
             executor.comment("")
 
-            prefix = "REZ_" + pkg.name.upper()
+            prefix = "REZ_" + pkg.name.upper().replace('.', '_')
             executor.setenv(prefix+"_VERSION", str(pkg.version))
             executor.setenv(prefix+"_BASE", pkg.base)
             executor.setenv(prefix+"_ROOT", pkg.root)
@@ -818,26 +841,19 @@ class ResolvedContext(object):
             executor.bind('root',       pkg.root)
             executor.bind('base',       pkg.base)
 
-            commands = pkg.metadata.get("commands")
+            commands = pkg.commands
             if commands:
-                # old-style, we convert it to a rex code string (ie python)
-                if isinstance(commands, list):
-                    if settings.warn("old_commands"):
-                        print_warning_once("%s is using old-style commands."
-                                           % pkg.qualified_name)
-
-                    commands = convert_old_commands(commands)
-
+                error_class = Exception if config.catch_rex_errors else None
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
-                        executor.execute_code(commands, pkg.metafile)
+                        executor.execute_code(commands)
                     elif inspect.isfunction(commands):
                         # rex code is a function in a package.py
                         executor.execute_function(commands)
-                except Exception as e:
+                except error_class as e:
                     msg = "Error in commands in file %s:\n%s" \
-                          % (pkg.metafile, str(e))
+                          % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
         # append system paths
@@ -849,5 +865,5 @@ def _FWD__invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
     context = ResolvedContext.load(path)
     cmd = [tool] + _cli_args
 
-    retcode,_,_ = context.execute_shell(command=cmd, block=True)
+    retcode, _, _ = context.execute_shell(command=cmd, block=True)
     sys.exit(retcode)

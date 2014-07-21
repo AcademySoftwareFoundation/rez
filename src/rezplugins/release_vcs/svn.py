@@ -1,8 +1,17 @@
+"""
+Svn version control
+"""
 from rez.release_vcs import ReleaseVCS
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 import subprocess
 import os.path
 import pysvn
+
+# TODO this needs a rewrite
+
+
+class SvnReleaseVCSError(ReleaseVCSError):
+    pass
 
 
 def svn_get_client():
@@ -13,6 +22,7 @@ def svn_get_client():
     client.set_store_passwords(False)
     client.callback_get_login = get_svn_login
     return client
+
 
 def get_last_changed_revision(client, url):
     """
@@ -27,6 +37,7 @@ def get_last_changed_revision(client, url):
         return svn_entries[0][1].last_changed_rev
     except pysvn.ClientError, ce:
         raise ReleaseVCSError("svn.info2() raised ClientError: %s" % ce)
+
 
 def get_svn_login(realm, username, may_save):
     """
@@ -49,13 +60,13 @@ class SvnReleaseVCS(ReleaseVCS):
         return 'svn'
 
     def __init__(self, path):
-        super(GitReleaseVCS, self).__init__(path)
+        super(SvnReleaseVCS, self).__init__(path)
 
         self.svnc = svn_get_client()
         svn_entry = self.svnc.info(self.path)
         if not svn_entry:
-            raise ReleaseVCSUnsupportedError("%s is not an svn working copy"
-                                             % self.path)
+            raise SvnReleaseVCSError("%s is not an svn working copy"
+                                     % self.path)
         self.this_url = str(svn_entry["url"])
 
     @classmethod

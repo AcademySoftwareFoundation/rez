@@ -5,23 +5,29 @@ import select
 import sys
 import os
 import os.path
+import tempfile
 
 
 def setup_parser(parser):
     from rez.system import system
     from rez.shells import get_shell_types
+
     shells = get_shell_types()
 
-    parser.add_argument("--sh", "--shell", dest="shell", type=str, choices=shells,
-                        help="target shell type, defaults to the current shell "
-                        "(%s)" % system.shell)
+    parser.add_argument("--sh", "--shell", dest="shell", type=str,
+                        choices=shells, default=system.shell,
+                        help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
-                        "standard startup scripts, if possible")
+                             "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
-    parser.add_argument("-c", "--command", type=str,
+    parser.add_argument("-c", "--command", type=str, nargs='+',
+                        metavar=("COMMAND", "ARG"),
                         help="read commands from string")
+    parser.add_argument("--sc", "--shell-command", dest="shell_command",
+                        type=str, metavar="COMMAND",
+                        help="like -c, but reads entire command from one string")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -36,34 +42,43 @@ def setup_parser(parser):
                         help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
-                        "Supported formats are: epoch time (eg 1393014494), "
-                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
+                             "Supported formats are: epoch time (eg 1393014494), "
+                             "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
-                        help="Exit when the number of failed configuration "
-                        "attempts exceeds N.")
+                        metavar='N',
+                        help="Abort if the number of failed configuration "
+                             "attempts exceeds N")
+    parser.add_argument("--time-limit", type=int, default=-1,
+                        dest="time_limit", metavar='SECS',
+                        help="Abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
-                        "starting an interactive shell. Note that this will "
-                        "also store a failed resolve")
+                             "starting an interactive shell. Note that this will "
+                             "also store a failed resolve")
     parser.add_argument("-i", "--input", type=str, metavar="FILE",
                         help="use a previously saved context. Resolve settings, "
-                        "such as PKG, --ni etc are ignored in this case")
+                             "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
-    # TODO: move verbose flag to top-level parser
-    parser.add_argument("-v", "--verbose", action="count", default=0,
-                        help="verbose mode, repeat for more verbosity")
+    parser.add_argument("--dora", action="store_true",
+                        help="Open graph in dora")
     parser.add_argument("PKG", type=str, nargs='*',
                         help='packages to use in the target environment')
 
+
 def command(opts, parser):
     from rez.resolved_context import ResolvedContext
+    from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
-    from rez.settings import settings
+    from rez.config import config
+    from rez.contrib.animallogic.dora import launch_dora_from_context_file
+
+    if opts.command and opts.shell_command:
+        parser.error("use --command or --shell-command, not both")
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
-        if rc.status != "solved":
+        if rc.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
 
@@ -72,7 +87,8 @@ def command(opts, parser):
         t = get_epoch_time_from_str(opts.time) if opts.time else None
 
         if opts.paths is None:
-            pkg_paths = settings.nonlocal_packages_path if opts.no_local else None
+            pkg_paths = (config.nonlocal_packages_path
+                         if opts.no_local else None)
         else:
             pkg_paths = (opts.paths or "").split(os.pathsep)
             pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
@@ -82,11 +98,21 @@ def command(opts, parser):
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),
                              add_bootstrap_path=(not opts.no_bootstrap),
-                             verbosity=opts.verbose, max_fails=opts.max_fails)
+                             verbosity=opts.verbose, max_fails=opts.max_fails,
+                             time_limit=opts.time_limit)
 
-    success = (rc.status == "solved")
+    success = (rc.status == ResolverStatus.solved)
     if not success:
         rc.print_info(buf=sys.stderr)
+
+    if opts.dora:
+        if opts.output:
+            context_file_name = opts.output
+        else:
+            _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
+
+        rc.save(context_file_name)
+        launch_dora_from_context_file(context_file_name)
 
     if opts.output:
         rc.save(opts.output)
@@ -97,16 +123,17 @@ def command(opts, parser):
 
     # generally shells will behave as though the '-s' flag was not present when
     # no stdin is available. So here we replicate this behaviour.
-    if opts.stdin and not select.select([sys.stdin,] , [], [], 0.0)[0]:
+    if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
         opts.stdin = False
 
-    quiet = opts.quiet or bool(opts.command)
+    command = opts.command or opts.shell_command
+    quiet = opts.quiet or bool(command)
 
-    returncode,_,_ = rc.execute_shell(shell=opts.shell,
-                                      rcfile=opts.rcfile,
-                                      norc=opts.norc,
-                                      command=opts.command,
-                                      stdin=opts.stdin,
-                                      quiet=quiet,
-                                      block=True)
+    returncode, _, _ = rc.execute_shell(shell=opts.shell,
+                                        rcfile=opts.rcfile,
+                                        norc=opts.norc,
+                                        command=command,
+                                        stdin=opts.stdin,
+                                        quiet=quiet,
+                                        block=True)
     sys.exit(returncode)

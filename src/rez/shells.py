@@ -2,12 +2,11 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter
-from rez.settings import settings
-from rez.util import which, shlex_join
+from rez.config import config
+from rez.util import which, shlex_join, print_warning
 import subprocess
 import os.path
 import sys
-
 
 
 def get_shell_types():
@@ -27,7 +26,6 @@ def create_shell(shell=None, **kwargs):
     return plugin_manager.create_instance('shell', shell, **kwargs)
 
 
-
 class Shell(ActionInterpreter):
     """
     Class representing a shell, such as bash or tcsh.
@@ -41,7 +39,8 @@ class Shell(ActionInterpreter):
         raise NotImplementedError
 
     @classmethod
-    def startup_capabilities(cls, rcfile=False, norc=False, command=False, stdin=False):
+    def startup_capabilities(cls, rcfile=False, norc=False, stdin=False,
+                             command=False):
         """
         Given a set of options related to shell startup, return the actual
         options that will be applied.
@@ -83,7 +82,7 @@ class Shell(ActionInterpreter):
         @param norc Don't run startup scripts. Overrides rcfile.
         @param stdin If True, read commands from stdin in a non-interactive shell.
             If a different non-False value, such as subprocess.PIPE, the same
-            occurs, but stid is also passed to the resulting subprocess.Popen object.
+            occurs, but stdin is also passed to the resulting subprocess.Popen object.
         @param command If not None, execute this command in a non-interactive shell.
         @param env Environ dict to execute the shell within; uses the current
             environment if None.
@@ -102,6 +101,8 @@ class UnixShell(Shell):
     executable = None
     rcfile_arg = None
     norc_arg = None
+    histfile = None
+    histvar = None
     command_arg = '-c'
     stdin_arg = '-s'
     syspaths = None
@@ -149,15 +150,15 @@ class UnixShell(Shell):
 
     @classmethod
     def _unsupported_option(cls, option, val):
-        if val and settings.warn("shell_startup"):
-            print >> sys.stderr, "WARNING: %s ignored, not supported by %s shell" \
-                                 % (option, cls.name())
+        if val and config.warn("shell_startup"):
+            print_warning("%s ignored, not supported by %s shell"
+                          % (option, cls.name()))
 
     @classmethod
     def _overruled_option(cls, option, overruling_option, val):
-        if val and settings.warn("shell_startup"):
-            print >> sys.stderr, ("WARNING: %s ignored by %s shell - " + \
-                "overruled by %s option") % (option, cls.name(), overruling_option)
+        if val and config.warn("shell_startup"):
+            print_warning("%s ignored by %s shell - overruled by %s option"
+                          % (option, cls.name(), overruling_option))
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
@@ -174,9 +175,9 @@ class UnixShell(Shell):
             # TODO make context sourcing position configurable?
             if bind_rez:
                 ex.source(context_file)
-            for file in files:
-                if os.path.exists(os.path.expanduser(file)):
-                    ex.source(file)
+            for file_ in files:
+                if os.path.exists(os.path.expanduser(file_)):
+                    ex.source(file_)
             if envvar:
                 ex.unsetenv(envvar)
             if bind_rez:
@@ -202,8 +203,8 @@ class UnixShell(Shell):
 
         executor = _create_ex()
 
-        if settings.prompt:
-            newprompt = '${REZ_ENV_PROMPT}%s' % settings.prompt
+        if config.prompt:
+            newprompt = '${REZ_ENV_PROMPT}%s' % config.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 
@@ -248,17 +249,24 @@ class UnixShell(Shell):
                             files_ = [file]
 
                         ex = _create_ex()
-                        ex.setenv('HOME', os.environ.get('HOME',''))
+                        ex.setenv('HOME', os.environ.get('HOME', ''))
                         _record_shell(ex, files=files_, bind_rez=bind_rez,
                                       print_msg=bind_rez)
                         _write_shell(ex, os.path.basename(file))
 
                     executor.setenv("HOME", tmpdir)
+
+                    # keep history
+                    if self.histfile and self.histvar:
+                        histfile = os.path.expanduser(self.histfile)
+                        if os.path.exists(histfile):
+                            executor.setenv(self.histvar, histfile)
                 else:
-                    if settings.warn("shell_startup"):
-                        print >> sys.stderr, ("WARNING: Could not configure "
-                        "environment from within the target shell (%s); this "
-                        "has been done in the parent process instead.") % self.name()
+                    if config.warn("shell_startup"):
+                        print_warning(
+                            "WARNING: Could not configure environment from "
+                            "within the target shell (%s); this has been done "
+                            "in the parent process instead." % self.name())
                     executor.source(context_file)
 
         executor.command(shell_command)
@@ -266,7 +274,8 @@ class UnixShell(Shell):
         executor.command("exit $?")
 
         code = executor.get_output()
-        target_file = os.path.join(tmpdir, "rez-shell.%s" % self.file_extension())
+        target_file = os.path.join(tmpdir, "rez-shell.%s"
+                                   % self.file_extension())
         with open(target_file, 'w') as f:
             f.write(code)
 

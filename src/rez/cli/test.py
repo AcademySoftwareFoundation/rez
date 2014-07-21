@@ -17,49 +17,31 @@ def setup_parser(parser):
                         help="test the build system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
-    # TODO: add this to top-level parser
-    parser.add_argument("-v", "--verbosity", type=int, default=2,
-                        help="set verbosity level")
+    parser.add_argument("--resources", action="store_true",
+                        help="test resource iteration and serialization")
+    parser.add_argument("--packages", action="store_true",
+                        help="test package iteration and serialization")
+    parser.add_argument("--config", action="store_true",
+                        help="test configuration settings")
+    parser.add_argument("--animallogic", action="store_true",
+                        help="test animal logic customisations")
+    parser.add_argument("--launcher", action="store_true",
+                        help="test launcher")
 
 
 def get_suites(opts):
+    from rez.backport.importlib import import_module
+
+    tests = ["shells", "solver", "formatter", "commands", "rex", "build",
+             "context", "resources", "packages", "config", "animallogic", "launcher"]
     suites = []
-    test_all = \
-        (not opts.shells) and \
-        (not opts.solver) and \
-        (not opts.formatter) and \
-        (not opts.commands) and \
-        (not opts.rex) and \
-        (not opts.build) and \
-        (not opts.context)
+    test_all = all([not getattr(opts, test) for test in tests])
 
-    if opts.shells or test_all:
-        from rez.tests.test_shells import get_test_suites
-        suites += get_test_suites()
-
-    if opts.solver or test_all:
-        from rez.tests.test_solver import get_test_suites
-        suites += get_test_suites()
-
-    if opts.formatter or test_all:
-        from rez.tests.test_formatter import get_test_suites
-        suites += get_test_suites()
-
-    if opts.commands or test_all:
-        from rez.tests.test_commands import get_test_suites
-        suites += get_test_suites()
-
-    if opts.rex or test_all:
-        from rez.tests.test_rex import get_test_suites
-        suites += get_test_suites()
-
-    if opts.build or test_all:
-        from rez.tests.test_build import get_test_suites
-        suites += get_test_suites()
-
-    if opts.context or test_all:
-        from rez.tests.test_context import get_test_suites
-        suites += get_test_suites()
+    for test in tests:
+        if test_all or getattr(opts, test):
+            module = import_module('rez.tests.test_%s' % test)
+            get_test_suites_func = getattr(module, 'get_test_suites')
+            suites += get_test_suites_func()
 
     return suites
 
@@ -73,6 +55,6 @@ def command(opts, parser):
 
     suites = get_suites(opts)
     test_suite = unittest.TestSuite(suites)
-    result = unittest.TextTestRunner(verbosity=opts.verbosity).run(test_suite)
+    result = unittest.TextTestRunner(verbosity=opts.verbose).run(test_suite)
     if not result.wasSuccessful():
         sys.exit(1)

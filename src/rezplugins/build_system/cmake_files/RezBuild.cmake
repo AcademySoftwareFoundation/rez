@@ -28,10 +28,6 @@ set(REZ_BUILD_ENV $ENV{REZ_BUILD_ENV})
 # setup rez-build system variables
 #############################################################################
 
-if(NOT DEFINED ENV{REZ_RELEASE_PACKAGES_PATH})
-	message(FATAL_ERROR "REZ_RELEASE_PACKAGES_PATH was not defined in the environment.")
-endif(NOT DEFINED ENV{REZ_RELEASE_PACKAGES_PATH})
-
 if(NOT DEFINED ENV{REZ_BUILD_PROJECT_VERSION})
 	message(FATAL_ERROR "REZ_BUILD_PROJECT_VERSION was not defined in the environment.")
 endif(NOT DEFINED ENV{REZ_BUILD_PROJECT_VERSION})
@@ -40,7 +36,6 @@ if(NOT DEFINED ENV{REZ_BUILD_PROJECT_NAME})
 	message(FATAL_ERROR "REZ_BUILD_PROJECT_NAME was not defined in the environment.")
 endif(NOT DEFINED ENV{REZ_BUILD_PROJECT_NAME})
 
-set(REZ_RELEASE_PACKAGES_PATH $ENV{REZ_RELEASE_PACKAGES_PATH})
 set(REZ_BUILD_PROJECT_VERSION $ENV{REZ_BUILD_PROJECT_VERSION})
 set(REZ_BUILD_PROJECT_NAME $ENV{REZ_BUILD_PROJECT_NAME})
 
@@ -75,7 +70,7 @@ endif(REZ_BUILD_PROJECT_VERSION)
 # include rez-build- related cmake modules
 #############################################################################
 
-include(Colorama)
+include(Colorize)
 include(Utils)
 include(RezProject)
 include(InstallFiles)
@@ -83,7 +78,7 @@ include(InstallDirs)
 include(RezInstallCMake)
 include(RezFindPackages)
 include(RezInstallPython)
-include(RezInstallDoxygen)
+#include(RezInstallDoxygen)
 
 
 #############################################################################

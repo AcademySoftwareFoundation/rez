@@ -48,7 +48,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_no_output(self):
         sh = create_shell()
-        _,_,command,_ = sh.startup_capabilities(command=True)
+        _,_,_,command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world -q",
@@ -62,7 +62,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_command(self):
         sh = create_shell()
-        _,_,command,_ = sh.startup_capabilities(command=True)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
@@ -73,7 +73,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_command_returncode(self):
         sh = create_shell()
-        _,_,command,_ = sh.startup_capabilities(command=True)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
@@ -85,7 +85,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_norc(self):
         sh = create_shell()
-        _,norc,command,_ = sh.startup_capabilities(norc=True, command=True)
+        _,norc,_,command = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
             r = self._create_context(["hello_world"])
@@ -97,7 +97,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_stdin(self):
         sh = create_shell()
-        _,_,_,stdin = sh.startup_capabilities(stdin=True)
+        _,_,stdin,_ = sh.startup_capabilities(stdin=True)
 
         if stdin:
             r = self._create_context(["hello_world"])
@@ -110,7 +110,7 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     def test_rcfile(self):
         sh = create_shell()
-        rcfile,_,command,_ = sh.startup_capabilities(rcfile=True, command=True)
+        rcfile,_,_,command = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
             f,path = tempfile.mkstemp()
@@ -128,7 +128,7 @@ class TestShells(TestBase, TempdirMixin):
     @install_dependent
     def test_rez_command(self):
         sh = create_shell()
-        _,_,command,_ = sh.startup_capabilities(command=True)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context([])

@@ -1,9 +1,8 @@
-from rez.exceptions import ReleaseVCSUnsupportedError, ReleaseVCSError
+from rez.exceptions import ReleaseVCSError
 from rez.vendor.version.version import Version
-from rez.packages import Package
-from rez.util import which
+from rez.packages import load_developer_package
+from rez.util import which, print_debug
 import subprocess
-
 
 
 def get_release_vcs_types():
@@ -12,17 +11,33 @@ def get_release_vcs_types():
     return plugin_manager.get_plugins('release_vcs')
 
 
-def create_release_vcs(path):
+def create_release_vcs(path, vcs_name=None):
     """Return a new release VCS that can release from this source path."""
     from rez.plugin_managers import plugin_manager
-    for vcs_name in get_release_vcs_types():
+    vcs_types = get_release_vcs_types()
+    if vcs_name:
+        if vcs_name not in vcs_types:
+            raise ReleaseVCSError("Unknown version control system: %r"
+                                  % vcs_name)
+        cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
+        return cls(path)
+
+    clss = []
+    for vcs_name in vcs_types:
         cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         if cls.is_valid_root(path):
-            return cls(path)
-
-    raise ReleaseVCSError("No version control system for package releasing is "
-                          "associated with the path %s" % path)
-
+            clss.append(cls)
+    if len(clss) > 1:
+        clss_str = ", ".join(x.name() for x in clss)
+        raise ReleaseVCSError("Several version control systems are associated "
+                              "with the path %s: %s. Use rez-release --vcs to "
+                              "choose." % (path, clss_str))
+    elif not clss:
+        raise ReleaseVCSError("No version control system for package "
+                              "releasing is associated with the path %s"
+                              % path)
+    else:
+        return clss[0](path)
 
 
 class ReleaseVCS(object):
@@ -31,7 +46,9 @@ class ReleaseVCS(object):
     def __init__(self, path):
         assert(self.is_valid_root(path))
         self.path = path
-        self.package = Package(path)
+        self.package = load_developer_package(path)
+        self.type_settings = self.package.config.plugins.release_vcs
+        self.settings = self.type_settings.get(self.name())
 
     @classmethod
     def name(cls):
@@ -74,45 +91,35 @@ class ReleaseVCS(object):
             None, give the entire changelog.
 
         Returns:
-            Changelog, as a list of strings.
+            Changelog, as a string.
         """
         raise NotImplementedError
 
-    def create_release_tag(self, message=None):
+    def create_release_tag(self, tag_name, message=None):
         """Create a tag in the repo.
 
         Create a tag in the repository representing the release of the
         given version.
 
         Args:
-            message: Message string to associate with the release.
+            tag_name (str): Tag name to write to the repo.
+            message (str): Message string to associate with the release.
         """
-        attrs = dict((k,str(v)) for k,v in self.package.metadata.iteritems() \
-            if isinstance(v, (basestring, Version)))
-
-        tag_name = self.package.settings.vcs_tag_name.format(**attrs)
-        if not tag_name:
-            tag_name = "unversioned"
-
-        if message is None:
-            message = "Rez created release tag: %s" % tag_name
-
-        self._create_tag_impl(tag_name, message)
-
-    def _create_tag_impl(self, tag_name, message=None):
-        """Only implement this if you are using the default implementation of
-        create_release_tag()."""
         raise NotImplementedError
 
     def _cmd(self, *nargs):
         """Convenience function for executing a program such as 'git' etc."""
         cmd_str = ' '.join(nargs)
-        if self.package.settings.debug("package_release"):
-            print "Running command: %s" % cmd_str
+        if self.package.config.debug("package_release"):
+            print_debug("Running command: %s" % cmd_str)
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
                              stderr=subprocess.PIPE, cwd=self.path)
-        out,err = p.communicate()
+        out, err = p.communicate()
         if p.returncode:
             raise ReleaseVCSError("command failed: %s\n%s" % (cmd_str, err))
-        return [x.rstrip() for x in out.strip().split('\n')]
+        out = out.strip()
+        if out:
+            return [x.rstrip() for x in out.split('\n')]
+        else:
+            return []

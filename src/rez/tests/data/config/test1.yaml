@@ -1,0 +1,8 @@
+warn_all: true
+plugins:
+    release_vcs:
+        tag_name: "foo"
+    release_hook:
+        emailer:
+            sender:
+                "santa.claus"

@@ -1,4 +1,3 @@
-config_version = 0
 name = "pybah"
 version = "4"
 

@@ -22,6 +22,7 @@ def convert_name(name):
 # This is just a temporary simplistic implementation for now
 def convert_version(version):
     """Convert a python distribution version into a rez-safe version string."""
+    """
     version = version.replace('-','.')
     version = version.lower()
     version = re.sub("[a-z]", "", version)
@@ -29,6 +30,9 @@ def convert_version(version):
     version = version.replace("..", '.')
     version = version.replace("..", '.')
     return version
+    """
+    return str(version)
+
 
 
 # TODO add native Requirement conversion support into new version submod
@@ -109,21 +113,36 @@ def get_dist_dependencies(name, recurse=True):
 
 
 # TODO doesn't deal with executable scripts yet
-def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None):
-    """
-    Convert an already installed python distribution into a rez package.
-    @param dest_path Where to put the rez package. The package will be created
-        under dest_path/<NAME>/<VERSION>/.
-    @param make_variant If True, makes a single variant in the rez package
-        based on the MAJOR.MINOR version of python.
-    @param ignore_dirs List of directory names to not copy from the dist.
-    @returns Install path of the new Rez package.
+def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
+                 python_requirement="major_minor"):
+    """Convert an already installed python distribution into a rez package.
+
+    Args:
+        dest_path (str): Where to put the rez package. The package will be
+            created under dest_path/<NAME>/<VERSION>/.
+        make_variant (bool): If True, makes a single variant in the rez package
+            based on the MAJOR.MINOR version of python.
+        ignore_dirs (bool): List of directory names to not copy from the dist.
+        python_requirement (str): How the package should depend on python.
+            One of:
+            - "major": depend on python-X
+            - "major_minor": depend on python-X.X
+            - any other value: this string is used as the literal version
+              range string.
+
+    Returns:
+        Install path of the new Rez package.
     """
     dist = pkg_resources.get_distribution(name)
     pkg_name = convert_name(dist.project_name)
     pkg_version = convert_version(dist.version)
 
-    pyver = '.'.join(str(x) for x in sys.version_info[:2])
+    if python_requirement == "major":
+        pyver = str(sys.version_info[0])
+    elif python_requirement == "major_minor":
+        pyver = '.'.join(str(x) for x in sys.version_info[:2])
+    else:
+        pyver = python_requirement
     pypkg = "python-%s" % pyver
 
     pkg_requires = []

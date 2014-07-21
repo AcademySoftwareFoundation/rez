@@ -1,8 +1,5 @@
 """
 Exceptions.
-Note: Every exception class can be default-constructed (ie all args default to None) because of
-a serialisation issue with the exception class, see:
-http://irmen.home.xs4all.nl/pyro3/troubleshooting.html
 """
 
 
@@ -13,11 +10,6 @@ class RezError(Exception):
 
     def __str__(self):
         return str(self.value)
-
-
-class ConfigurationError(RezError):
-    """A misconfiguration error."""
-    pass
 
 
 class RezSystemError(RezError):
@@ -32,6 +24,11 @@ class RezBindError(RezError):
 
 class RezPluginError(RezError):
     """An error related to plugin or plugin load."""
+    pass
+
+
+class ConfigurationError(RezError):
+    """A misconfiguration error."""
     pass
 
 
@@ -50,12 +47,34 @@ class PackageNotFoundError(RezError):
     pass
 
 
-class PackageMetadataError(RezError):
-    """There is an error in a package's definition file"""
-    def __init__(self, filepath, value):
-        msg = "Error in package definition file: %s\n%s" % (filepath, value)
-        RezError.__init__(self, msg)
-        self.filepath = filepath
+class ResourceError(RezError):
+    """Resource-related exception base class."""
+    pass
+
+
+class ResourceNotFoundError(ResourceError):
+    """A resource could not be found."""
+    pass
+
+
+class ResourceContentError(ResourceError):
+    """A resource contains incorrect data."""
+    type_name = "resource file"
+
+    def __init__(self, value=None, path=None, resource_key=None):
+        msg = []
+        if resource_key is not None:
+            msg.append("resource type: %r" % resource_key)
+        if path is not None:
+            msg.append("%s: %s" % (self.type_name, path))
+        if value is not None:
+            msg.append(value)
+        ResourceError.__init__(self, ": ".join(msg))
+
+
+class PackageMetadataError(ResourceContentError):
+    """There is an error in a package's definition file."""
+    type_name = "package definition file"
 
 
 class PackageCommandError(RezError):
@@ -73,8 +92,29 @@ class RexUndefinedVariableError(RexError):
     pass
 
 
-class BuildSystemError(RezError):
+class BuildError(RezError):
+    """Base class for any build-related error."""
+    pass
+
+
+class BuildSystemError(BuildError):
     """Base class for buildsys-related errors."""
+    pass
+
+
+class BuildContextResolveError(BuildError):
+    """Raised if unable to resolve the required context when creating the
+    environment for a build process."""
+    def __init__(self, context):
+        self.context = context
+        assert context.status != "solved"
+        msg = ("The build environment could not be resolved:\n%s"
+               % context.failure_description)
+        super(BuildContextResolveError, self).__init__(msg)
+
+
+class BuildProcessError(RezError):
+    """Base class for build process-related errors."""
     pass
 
 
@@ -88,20 +128,9 @@ class ReleaseVCSError(ReleaseError):
     pass
 
 
-class ReleaseVCSUnsupportedError(ReleaseVCSError):
-    """
-    Raise this error during initialization of a ReleaseVCS sub-class to
-    indicate that the mode is unsupported in the given context.
-    """
-    pass
-
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
     pass
-
-
-
-
 
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)

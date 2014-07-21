@@ -1,4 +1,3 @@
-config_version = 0
 name = "nopy"
 version = "2.1"
 

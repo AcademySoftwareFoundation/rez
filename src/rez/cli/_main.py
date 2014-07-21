@@ -8,39 +8,7 @@ import textwrap
 from rez.vendor import argparse
 from rez.cli._util import error
 from rez import __version__
-import rez.sigint
 
-
-class RezHelpFormatter(argparse.HelpFormatter):
-    remainder_descs = {
-        "BUILD_ARG": "[ARG [ARG ...] [-- ARG [ARG ...]]]",
-        "BIND_ARG": "[ARG [ARG ...]]"
-    }
-
-    def _fill_text(self, text, width, indent):
-        text = text.strip()
-        return '\n\n'.join([textwrap.fill(x, width,
-                                          initial_indent=indent,
-                                          subsequent_indent=indent) for x in text.split('\n\n')])
-
-    # allow for more meaningful remainder desc than '...'
-    def _format_args(self, action, default_metavar):
-        if action.nargs == argparse.REMAINDER:
-            desc = self.remainder_descs.get(default_metavar)
-            return desc or "..."
-        else:
-            return super(RezHelpFormatter, self)._format_args(action, default_metavar)
-
-    # show default value for options with choices
-    def _get_help_string(self, action):
-        help_ = action.help
-        if action.choices and ('%(default)' not in action.help) \
-            and (action.default is not None) and \
-                (action.default is not argparse.SUPPRESS):
-                defaulting_nargs = [argparse.OPTIONAL, argparse.ZERO_OR_MORE]
-                if action.option_strings or action.nargs in defaulting_nargs:
-                    help_ += ' (default: %(default)s)'
-        return help_
 
 def subpackages(packagemod):
     """
@@ -54,6 +22,7 @@ def subpackages(packagemod):
             yield modname, ispkg
     else:
         yield packagemod.__name__, False
+
 
 class LazySubParsersAction(argparse._SubParsersAction):
     """
@@ -81,7 +50,7 @@ class LazySubParsersAction(argparse._SubParsersAction):
             help_ = parser.setup_subparser(parser_name, parser)
             if help_ is not None:
                 if help_ == argparse.SUPPRESS:
-                    self._choices_actions = [act for act in self._choices_actions \
+                    self._choices_actions = [act for act in self._choices_actions
                                              if act.dest != parser_name]
                 else:
                     help_action = self._find_choice_action(parser_name)
@@ -92,6 +61,7 @@ class LazySubParsersAction(argparse._SubParsersAction):
         for help_action in self._choices_actions:
             if help_action.dest == parser_name:
                 return help_action
+
 
 class LazyArgumentParser(argparse.ArgumentParser):
     """
@@ -116,6 +86,7 @@ class LazyArgumentParser(argparse.ArgumentParser):
                     for parser_name, parser in action._name_parser_map.iteritems():
                         action._setup_subparser(parser_name, parser)
         return super(LazyArgumentParser, self).format_help()
+
 
 class SetupRezSubParser(object):
     """
@@ -152,25 +123,38 @@ class SetupRezSubParser(object):
 
     def get_module(self):
         if self.module_name not in sys.modules:
-            try:
-                #mod = importer.find_module(modname).load_module(modname)
-                __import__(self.module_name, globals(), locals(), [], -1)
-            except Exception, e:
-                error("importing %s: %s" % (self.module_name, e))
-                return None
+            __import__(self.module_name, globals(), locals(), [], -1)
         return sys.modules[self.module_name]
+
 
 def module_to_command_name(module_name):
     return module_name.split('.')[-1].rstrip('_').replace('_', '-')
 
+
 def _add_common_args(parser):
+    parser.add_argument("-v", "--verbose", action="count", default=0,
+                        help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
                         help=argparse.SUPPRESS)
+
+
+class InfoAction(argparse._StoreTrueAction):
+    def __call__(self, parser, args, values, option_string=None):
+        print
+        print "Rez %s" % __version__
+        print
+        from rez.plugin_managers import plugin_manager
+        print plugin_manager.get_summary_string()
+        print
+        sys.exit(0)
+
 
 def run(command=None):
     import rez.cli
     parser = LazyArgumentParser("rez")
 
+    parser.add_argument("-i", "--info", action=InfoAction,
+                        help="print information about rez and exit")
     parser.add_argument("-V", "--version", action="version",
                         version="Rez %s" % __version__)
 
@@ -193,8 +177,7 @@ def run(command=None):
         cmdname = module_to_command_name(module_name)
         if ispkg:
             # a package with sub-modules
-            subparser = parser.add_subparsers(dest='cmd',
-                                              metavar='COMMAND')
+            subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
             # recurse down a level
             subparsers.append(subparser)
             parents.append(module_name)
@@ -208,15 +191,15 @@ def run(command=None):
                 parents.pop()
                 subparsers.pop()
 
-            subparsers[-1].add_parser(cmdname,
-                                      help='',  # required so that it can be setup later
-                                      formatter_class=RezHelpFormatter,
-                                      setup_subparser=SetupRezSubParser(module_name))
+            subparsers[-1].add_parser(
+                cmdname,
+                help='',  # required so that it can be setup later
+                setup_subparser=SetupRezSubParser(module_name))
 
     args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
     opts = parser.parse_args(args)
 
-    if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1","true","on","yes"):
+    if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1", "true", "on", "yes"):
         from rez.util import set_rm_tmpdirs
         exc_type = None
         set_rm_tmpdirs(False)
@@ -229,11 +212,11 @@ def run(command=None):
         import traceback
         raise Exception(traceback.format_exc())
     except exc_type as e:
-        print >> sys.stderr, "rez: %s: %s" \
-                             % (e.__class__.__name__, str(e))
+        print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
         sys.exit(1)
 
     sys.exit(returncode or 0)
+
 
 if __name__ == '__main__':
     run()

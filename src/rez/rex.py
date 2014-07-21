@@ -13,46 +13,10 @@ import time
 import getpass
 from rez import module_root_path
 from rez.system import system
-from rez.settings import settings
+from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import print_warning_once, AttrDictWrapper, shlex_join, \
-    get_script_path
-
-
-DEFAULT_ENV_SEP_MAP = {'CMAKE_MODULE_PATH': ';', 'AL_MAYA_AUTO_LOADVERSIONEDTOOL':' ', 'AL_MAYA_AUTO_PYEVAL':' ', 'ARTISTTOOLPALETTE_TOOLS':','}
-
-
-_varprog = None
-
-# Expand paths containing shell variable substitutions.
-# This expands the forms $variable and ${variable} only.
-# Non-existent variables are left unchanged.
-def expandvars(path, environ):
-    """Expand shell variables of form $var and ${var}.  Unknown variables
-    are left unchanged."""
-    global _varprog
-    if '$' not in path:
-        return path
-    if not _varprog:
-        import re
-        _varprog = re.compile(r'\$(\w+|\{[^}]*\})')
-    i = 0
-    while True:
-        m = _varprog.search(path, i)
-        if not m:
-            break
-        i, j = m.span(0)
-        name = m.group(1)
-        if name.startswith('{') and name.endswith('}'):
-            name = name[1:-1]
-        if name in environ:
-            tail = path[j:]
-            path = path[:i] + environ[name]
-            i = len(path)
-            path += tail
-        else:
-            i = j
-    return path
+from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
+    expandvars
 
 
 #===============================================================================
@@ -84,6 +48,7 @@ class Action(object):
     def get_command_types(cls):
         return tuple(cls._registry)
 
+
 class EnvAction(Action):
     @property
     def key(self):
@@ -94,9 +59,11 @@ class EnvAction(Action):
         if len(self.args) == 2:
             return self.args[1]
 
+
 class Unsetenv(EnvAction):
     name = 'unsetenv'
 Unsetenv.register()
+
 
 class Setenv(EnvAction):
     name = 'setenv'
@@ -111,6 +78,7 @@ class Setenv(EnvAction):
         interpreter._environ.add(self.key)
         return result
 Setenv.register()
+
 
 class Resetenv(EnvAction):
     name = 'resetenv'
@@ -131,37 +99,46 @@ class Resetenv(EnvAction):
         return result
 Resetenv.register()
 
+
 class Prependenv(Setenv):
     name = 'prependenv'
 Prependenv.register()
+
 
 class Appendenv(Setenv):
     name = 'appendenv'
 Appendenv.register()
 
+
 class Alias(Action):
     name = 'alias'
 Alias.register()
+
 
 class Info(Action):
     name = 'info'
 Info.register()
 
+
 class Error(Action):
     name = 'error'
 Error.register()
+
 
 class Command(Action):
     name = 'command'
 Command.register()
 
+
 class Comment(Action):
     name = 'comment'
 Comment.register()
 
+
 class Source(Action):
     name = 'source'
 Source.register()
+
 
 class Shebang(Action):
     name = 'shebang'
@@ -211,9 +188,8 @@ class ActionManager(object):
         self.formatter = formatter or str
         self.actions = []
 
-        # TODO: get rid of this feature
         self._env_sep_map = env_sep_map if env_sep_map is not None \
-            else DEFAULT_ENV_SEP_MAP
+            else config.env_var_separators
 
     def get_action_methods(self):
         """
@@ -260,53 +236,66 @@ class ActionManager(object):
     # -- Commands
 
     def undefined(self, key):
-        return (key not in self.environ) and (key not in self.parent_environ)
+        unexpanded_key = self._format(key)
+        expanded_key = self._expand(unexpanded_key)
+        return (expanded_key not in self.environ
+                and expanded_key not in self.parent_environ)
 
     def defined(self, key):
         return not self.undefined(key)
 
     def getenv(self, key):
+        unexpanded_key = self._format(key)
+        expanded_key = self._expand(unexpanded_key)
         try:
-            return self.environ[key] if key in self.environ \
-                else self.parent_environ[key]
+            return self.environ[expanded_key] if expanded_key in self.environ \
+                else self.parent_environ[expanded_key]
         except KeyError:
-            raise RexUndefinedVariableError("Referenced undefined environment variable: %s" % key)
+            raise RexUndefinedVariableError(
+                "Referenced undefined environment variable: %s" % expanded_key)
 
     def setenv(self, key, value):
-        # environment variables may be left unexpanded in values passed to interpreter functions
+        unexpanded_key = self._format(key)
         unexpanded_value = self._format(value)
-        # environment variables are expanded when storing in the environ dict
+        expanded_key = self._expand(unexpanded_key)
         expanded_value = self._expand(unexpanded_value)
 
         # TODO: check if value has already been set by another package
-        self.actions.append(Setenv(key, unexpanded_value))
-        self.environ[key] = expanded_value
+        self.actions.append(Setenv(unexpanded_key, unexpanded_value))
+        self.environ[expanded_key] = expanded_value
 
         if self.interpreter.expand_env_vars:
-            value = expanded_value
+            key, value = expanded_key, expanded_value
         else:
-            value = unexpanded_value
+            key, value = unexpanded_key, unexpanded_value
         self.interpreter.setenv(key, value)
 
     def unsetenv(self, key):
-        self.actions.append(Unsetenv(key))
-        if key in self.environ:
-            del self.environ[key]
+        unexpanded_key = self._format(key)
+        expanded_key = self._expand(unexpanded_key)
+        self.actions.append(Unsetenv(unexpanded_key))
+        if expanded_key in self.environ:
+            del self.environ[expanded_key]
+        if self.interpreter.expand_env_vars:
+            key = expanded_key
+        else:
+            key = unexpanded_key
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
-        # environment variables may be left unexpanded in values passed to interpreter functions
+        unexpanded_key = self._format(key)
         unexpanded_value = self._format(value)
-        # environment variables are expanded when storing in the environ dict
+        expanded_key = self._expand(unexpanded_key)
         expanded_value = self._expand(unexpanded_value)
 
-        self.actions.append(Resetenv(key, unexpanded_value, friends))
-        self.environ[key] = expanded_value
+        self.actions.append(Resetenv(unexpanded_key, unexpanded_value,
+                                     friends))
+        self.environ[expanded_key] = expanded_value
 
         if self.interpreter.expand_env_vars:
-            value = expanded_value
+            key, value = expanded_key, expanded_value
         else:
-            value = unexpanded_value
+            key, value = unexpanded_key, unexpanded_value
         self.interpreter.resetenv(key, value)
 
     # we assume that ${THIS} is a valid variable ref in all shells
@@ -315,36 +304,42 @@ class ActionManager(object):
         return "${%s}" % key
 
     def _pendenv(self, key, value, action, interpfunc, addfunc):
-        # environment variables may be left unexpanded in values passed to interpreter functions
+        unexpanded_key = self._format(key)
         unexpanded_value = self._format(value)
-        # environment variables are expanded when storing in the environ dict
+        expanded_key = self._expand(unexpanded_key)
         expanded_value = self._expand(unexpanded_value)
 
         # expose env-vars from parent env if explicitly told to do so
-        if (key not in self.environ) and \
-            ((self.parent_variables is True) or (key in self.parent_variables)):
-            self.environ[key] = self.parent_environ.get(key, '')
-            self.interpreter._saferefenv(key)
+        if (expanded_key not in self.environ) and \
+            ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
+            self.environ[expanded_key] = self.parent_environ.get(expanded_key, '')
+            if self.interpreter.expand_env_vars:
+                key_ = expanded_key
+            else:
+                key_ = unexpanded_key
+            self.interpreter._saferefenv(key_)
 
         # *pend or setenv depending on whether this is first reference to the var
-        if key in self.environ:
-            self.actions.append(action(key, unexpanded_value))
-            parts = self.environ[key].split(self._env_sep(key))
-            unexpanded_values = self._env_sep(key).join( \
-                addfunc(unexpanded_value, [self._keytoken(key)]))
-            expanded_values = self._env_sep(key).join(addfunc(expanded_value, parts))
-            self.environ[key] = expanded_values
+        if expanded_key in self.environ:
+            self.actions.append(action(unexpanded_key, unexpanded_value))
+            parts = self.environ[expanded_key].split(self._env_sep(expanded_key))
+            unexpanded_values = self._env_sep(expanded_key).join( \
+                addfunc(unexpanded_value, [self._keytoken(expanded_key)]))
+            expanded_values = self._env_sep(expanded_key).join(addfunc(expanded_value, parts))
+            self.environ[expanded_key] = expanded_values
         else:
-            self.actions.append(Setenv(key, unexpanded_value))
-            self.environ[key] = expanded_value
+            self.actions.append(Setenv(unexpanded_key, unexpanded_value))
+            self.environ[expanded_key] = expanded_value
             expanded_values = expanded_value
             unexpanded_values = unexpanded_value
             interpfunc = None
 
         applied = False
         if interpfunc:
-            value = expanded_value if self.interpreter.expand_env_vars \
-                else unexpanded_value
+            if self.interpreter.expand_env_vars:
+                key, value = expanded_key, expanded_value
+            else:
+                key, value = unexpanded_key, unexpanded_value
             try:
                 interpfunc(key, value)
                 applied = True
@@ -352,8 +347,10 @@ class ActionManager(object):
                 pass
 
         if not applied:
-            value = expanded_values if self.interpreter.expand_env_vars \
-                else unexpanded_values
+            if self.interpreter.expand_env_vars:
+                key, value = expanded_key, expanded_values
+            else:
+                key, value = unexpanded_key, unexpanded_values
             self.interpreter.setenv(key, value)
 
     def prependenv(self, key, value):
@@ -365,6 +362,7 @@ class ActionManager(object):
                       lambda x, y: y + [x])
 
     def alias(self, key, value):
+        key = self._format(key)
         value = self._format(value)
         self.actions.append(Alias(key, value))
         self.interpreter.alias(key, value)
@@ -385,10 +383,12 @@ class ActionManager(object):
         self.interpreter.command(value)
 
     def comment(self, value):
+        value = self._format(value)
         self.actions.append(Comment(value))
         self.interpreter.comment(value)
 
     def source(self, value):
+        value = self._format(value)
         self.actions.append(Source(value))
         self.interpreter.source(value)
 
@@ -508,7 +508,7 @@ class Python(ActionInterpreter):
         self.manager = None
         if (target_environ is None) or (target_environ is os.environ):
             self.target_environ = os.environ
-            self.update_session = True
+            self.update_session = False
         else:
             self.target_environ = target_environ
             self.update_session = False
@@ -522,25 +522,22 @@ class Python(ActionInterpreter):
 
     def setenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path = value.split(os.pathsep)
 
     def unsetenv(self, key):
-        self._env_var_changed(key)
+        pass
 
     def resetenv(self, key, value, friends=None):
-        self._env_var_changed(key)
+        pass
 
     def prependenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path.insert(0, value)
 
     def appendenv(self, key, value):
         if self.update_session:
-            settings.env_var_changed(key)
             if key == 'PYTHONPATH':
                 sys.path.append(value)
 
@@ -560,7 +557,8 @@ class Python(ActionInterpreter):
             import shlex
             args = shlex.split(args)
 
-        return subprocess.Popen(args, env=self.target_environ, **subproc_kwargs)
+        return subprocess.Popen(args, env=self.target_environ,
+                                **subproc_kwargs)
 
     def command(self, value):
         if self.passive:
@@ -590,16 +588,12 @@ class Python(ActionInterpreter):
     def shebang(self):
         pass
 
-    def _env_var_changed(self, key):
-        if self.update_session:
-            settings.env_var_changed(key)
-
 
 #===============================================================================
 # Rex Execution Namespace
 #===============================================================================
 class NamespaceFormatter(Formatter):
-    ENV_VAR_REGEX = re.compile("\${(?P<var>[\w{}]+?)}")
+    ENV_VAR_REGEX = re.compile("\${(?P<var>.+?)}")
 
     def __init__(self, namespace):
         Formatter.__init__(self)
@@ -613,12 +607,6 @@ class NamespaceFormatter(Formatter):
         return Formatter.format(self, escaped_format_string, *args, **kwargs)
 
     def get_value(self, key, args, kwds):
-        """
-        'get_value' is used to retrieve a given field value. The 'key' argument
-        will be either an integer or a string. If it is an integer, it represents
-        the index of the positional argument in 'args'; If it is a string, then
-        it represents a named argument in 'kwargs'.
-        """
         if isinstance(key, str):
             if key:
                 try:
@@ -646,14 +634,20 @@ class EnvironmentDict(UserDict.DictMixin):
     instance: it will not raise a KeyError.
     """
     def __init__(self, manager):
-        """
-        override_existing_lists : bool
-            If True, the first call to append or prepend will override the
-            value in `environ` and effectively act as a setenv operation.
-            If False, pre-existing values will be appended/prepended to as usual.
+        """Creates an `EnvironmentDict`.
+
+        Args:
+            override_existing_lists (bool): If True, the first call to append
+                or prepend will override the value in `environ` and effectively
+                act as a setenv operation. If False, pre-existing values will
+                be appended/prepended to as usual.
         """
         self.manager = manager
-        self._var_cache = {}
+        self._var_cache = dict((k, EnvironmentVariable(k, self))
+                               for k in manager.parent_environ.iterkeys())
+
+    def keys(self):
+        return self._var_cache.keys()
 
     def __repr__(self):
         return '%s(%s)' % (self.__class__.__name__, str(self._var_cache))
@@ -666,6 +660,9 @@ class EnvironmentDict(UserDict.DictMixin):
     def __setitem__(self, key, value):
         self[key].set(value)
 
+    def __contains__(self, key):
+        return (key in self._var_cache)
+
 
 class EnvironmentVariable(object):
     '''
@@ -676,9 +673,6 @@ class EnvironmentVariable(object):
     def __init__(self, name, environ_map):
         self._name = name
         self._environ_map = environ_map
-
-    def __repr__(self):
-        return '%s(%r)' % (self.__class__.__name__, self._name)
 
     @property
     def name(self):
@@ -714,6 +708,10 @@ class EnvironmentVariable(object):
 
     def __str__(self):
         return self.value()
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (self.__class__.__name__, self._name,
+                               self.value())
 
     def __nonzero__(self):
         return bool(self.value())
@@ -762,7 +760,7 @@ class RexExecutor(object):
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
-            whether to add default namespaces such as 'machine'.
+            whether to add default namespaces such as 'system'.
         """
         self.globals = globals_map or {}
         self.formatter = NamespaceFormatter(self.globals)
@@ -788,17 +786,18 @@ class RexExecutor(object):
 
         if bind_rez:
             script_path = get_script_path()
-            # may not be available, this happens when unit tests are run from
-            # source, in this case just silently skip rez binding
+            if not script_path:
+                binary = which("rezolve")
+                if binary:
+                    script_path = os.path.dirname(binary)
             if script_path:
                 self.environ["PATH"] = script_path
 
-        for cmd,func in self.manager.get_public_methods():
+        for cmd, func in self.manager.get_public_methods():
             self.bind(cmd, func)
 
         if add_default_namespaces:
-            self.bind('machine', system)
-            self.bind('user', getpass.getuser())
+            self.bind('system', system)
 
     @property
     def interpreter(self):
@@ -812,7 +811,7 @@ class RexExecutor(object):
     def __getattr__(self, attr):
         """Allows for access such as: self.setenv('FOO','bah')."""
         return self.globals[attr] if attr in self.globals \
-            else getattr(super(RexExecutor,self), attr)
+            else getattr(super(RexExecutor, self), attr)
 
     def bind(self, name, obj):
         """Binds an object to the execution context."""
@@ -828,21 +827,59 @@ class RexExecutor(object):
         paths_str = os.pathsep.join(paths)
         self.env.PATH.append(paths_str)
 
-    def execute_code(self, code, filename=None):
-        """Execute code within the execution context."""
-        filename = filename or 'REX'
+    @classmethod
+    def compile_code(cls, code, filename=None, exec_namespace=None):
+        """Compile and possibly execute rex code.
+
+        Args:
+            code (str): The python code to compile.
+            filename (str): File to associate with the code, will default to
+                '<string>'.
+            namespace (dict): Namespace to execute the code in. If None, the
+                code is not executed.
+
+        Returns:
+            Compiled code object.
+        """
+        filename = filename or "<string>"
+        error_class = Exception if config.catch_rex_errors else None
+
+        # compile
         try:
             pyc = compile(code, filename, 'exec')
-            exec pyc in self.globals
-        except Exception as e:
+        except error_class as e:
             # trim trace down to only what's interesting
-            import traceback
-            frames = traceback.extract_tb(sys.exc_traceback)
-            while frames and frames[0][0] != filename:
-                frames = frames[1:]
-            while frames and __file__.startswith(frames[-1][0]):
-                frames = frames[:-1]
-            self._raise_rex_error(frames, e)
+            msg = str(e)
+            r = re.compile(" line ([1-9][0-9]*)")
+            match = r.search(str(e))
+            if match:
+                try:
+                    lineno = int(match.groups()[0])
+                    loc = code.split('\n')
+                    line = loc[lineno - 1]
+                    msg += "\n    %s" % line
+                except:
+                    pass
+            raise RexError(msg)
+
+        # execute
+        if exec_namespace is not None:
+            try:
+                exec pyc in exec_namespace
+            except error_class as e:
+                # trim trace down to only what's interesting
+                import traceback
+                frames = traceback.extract_tb(sys.exc_traceback)
+                frames = [x for x in frames if x[0] == filename]
+                cls._patch_frames(frames, code)
+                cls._raise_rex_error(frames, e)
+        return pyc
+
+    def execute_code(self, code, filename=None):
+        """Execute code within the execution context."""
+        self.compile_code(code=code,
+                          filename=filename,
+                          exec_namespace=self.globals)
 
     def execute_function(self, func, *nargs, **kwargs):
         """
@@ -857,10 +894,11 @@ class RexExecutor(object):
                                 argdefs=func.func_defaults,
                                 closure=func.func_closure)
         fn.func_globals.update(self.globals)
+        error_class = Exception if config.catch_rex_errors else None
 
         try:
             return fn(*nargs, **kwargs)
-        except Exception as e:
+        except error_class as e:
             # trim trace down to only what's interesting
             import traceback
             frames = traceback.extract_tb(sys.exc_traceback)
@@ -877,7 +915,24 @@ class RexExecutor(object):
     def expand(self, value):
         return self.formatter.format(str(value))
 
-    def _raise_rex_error(self, frames, e):
+    @classmethod
+    def _patch_frames(cls, frames, code, codefile=None):
+        """Patch traceback's frame objects to add lines of code from `code`
+        where appropriate.
+        """
+        codefile = codefile or "<string>"
+        loc = code.split('\n')
+        for i, frame in enumerate(frames):
+            filename, lineno, name, line = frame
+            if filename == codefile and line is None:
+                try:
+                    line = loc[lineno-1].strip()
+                    frames[i] = (filename, lineno, "<rex commands>", line)
+                except:
+                    pass
+
+    @classmethod
+    def _raise_rex_error(cls, frames, e):
         import traceback
         stack = ''.join(traceback.format_list(frames)).strip()
         if isinstance(e, RexError):

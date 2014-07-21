@@ -14,7 +14,7 @@ except ImportError:
     sys.exit(1)
 
 
-if sys.version_info < (2,6):
+if sys.version_info < (2, 6):
     print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
 
@@ -22,12 +22,14 @@ if sys.version_info < (2,6):
 os.environ['__rez_is_installing'] = '1'
 
 
-def find_files(path, pattern):
+def find_files(pattern, path=None, root="rez"):
     paths = []
-    basepath = os.path.realpath(os.path.join("src", "rez"))
-    path = os.path.join(basepath, path)
+    basepath = os.path.realpath(os.path.join("src", root))
+    path_ = basepath
+    if path:
+        path_ = os.path.join(path_, path)
 
-    for root,_,files in os.walk(path):
+    for root, _, files in os.walk(path_):
         files = [x for x in files if fnmatch.fnmatch(x, pattern)]
         files = [os.path.join(root, x) for x in files]
         paths += [x[len(basepath):].lstrip(os.path.sep) for x in files]
@@ -39,13 +41,12 @@ with open("src/rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
-#version = ver_loc.split()[-1].replace('"','')
-version = "2.0.ALPHA.1"
+version = ver_loc.split()[-1].replace('"','')
 
 scripts = [
     "rezolve",
     "rez",
-    "rez-settings",
+    "rez-config",
     "rez-build",
     "rez-release",
     "rez-env",
@@ -55,11 +56,14 @@ scripts = [
     "rez-interpret",
     "rez-test",
     "rez-bind",
+    "rez-search",
     "rez-bootstrap",
+    "rez-help",
+    "rez-unleash",
+    "rez-ide",
     "bez",
-    "_rez_fwd",
-    "_rez_csh_complete",
-    "rez-unleash"
+    "_rez_fwd",  # TODO rename this _rez-forward for consistency
+    "_rez-complete"
 ]
 
 # post install hook. Don't believe google - this is how you do it.
@@ -98,8 +102,8 @@ setup(
     name="rez",
     version=version,
     description=("A cross-platform packaging system that can build and "
-                "install multiple version of packages, and dynamically "
-                "configure resolved environments at runtime."),
+                 "install multiple version of packages, and dynamically "
+                 "configure resolved environments at runtime."),
     keywords="package resolve version build install software management",
     long_description=None,
     url="https://github.com/nerdvegas/rez",
@@ -107,24 +111,22 @@ setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     cmdclass={'install': install_},
-    scripts=[os.path.join('bin',x) for x in scripts],
-    #install_requires=requires,
+    scripts=[os.path.join('bin', x) for x in scripts],
     include_package_data=True,
     package_dir = {'': 'src'},
     packages=find_packages('src', exclude=["tests"]),
     package_data = {
-        'rez': \
-            ['rezconfig'] + \
-            ['README*'] + \
-            find_files('plugins', '*.yapsy-plugin') + \
-            find_files('_sys', '*.csh') + \
-            find_files('_sys', '*.sh') + \
-            #find_files('plugins/build_system/cmake_files', '*.cmake') + \
-            find_files('tests/data', '*.*') + \
-            find_files('contrib/animallogic/bin', '_unleasher'),
-        'rezplugins': [
-            'build_system/cmake_files/*.cmake',
-        ]
+        'rez':
+            ['rezconfig', 'logging.conf'] +
+            ['README*'] +
+            find_files('*.csh', '_sys') +
+            find_files('*.sh', '_sys') +
+            find_files('*', 'tests/data') +
+            find_files('_unleasher', 'contrib/animallogic/unleash'),
+        'rezplugins':
+            find_files('rezconfig', root='rezplugins') +
+            find_files('*.cmake', 'build_system', root='rezplugins') +
+            find_files('*.*', 'build_system/template_files', root='rezplugins')
     },
     classifiers = [
         "Development Status :: 3 - Alpha",
