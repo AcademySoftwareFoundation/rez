@@ -15,7 +15,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import columnise, print_error
+from rez.util import columnise
 from rez.config import config
 from heapq import merge
 import os.path
@@ -301,15 +301,6 @@ class _PackageVariantList(_Common):
                 # - metadata needs to be loaded to determine package timestamp.
                 if pkg.version not in range:
                     continue
-                if config.skip_erroneous_packages:
-                    try:
-                        pkg.validate_data()
-                    except Exception as e:
-                        if config.warn("erroneous_packages"):
-                            print_error("Skipping package %s: %s"
-                                        % (str(pkg), str(e)))
-                            indexes.append(i)
-                            continue
                 if self.timestamp and pkg.timestamp > self.timestamp:
                     continue
 

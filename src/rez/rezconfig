@@ -85,11 +85,6 @@ implicit_packages:
 - '~arch=={system.arch}'
 - '~os=={system.os}'
 
-# During dependency resolution, skip/warn when erroneous packages are found. If
-# skip is false, an error is raised regardless of the warn setting.
-warn_erroneous_packages: true
-skip_erroneous_packages: true
-
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
 
@@ -296,21 +291,21 @@ implicit_styles:
 # Warn or disallow when a package contains a package name that does not match
 # the name specified in the directory structure. When this occurs, the
 # directory package name is used in preference.
-warn_package_name_mismatch: false
-error_package_name_mismatch: true
+warn_package_name_mismatch: true
+error_package_name_mismatch: false
 
 # Warn or disallow when a package contains a version number that does not match
 # the version specified in the directory structure. When this occurs, the
 # directory version number is used in preference.
-warn_version_mismatch: false
-error_version_mismatch: true
+warn_version_mismatch: true
+error_version_mismatch: false
 
 # Warn or disallow when a package is found to contain a non-string version. This
 # was possible in Rez-1 but was an oversight - versions could be integer or
 # float, as well as string. When this occurs, the directory version number is
 # used in preference.
-warn_nonstring_version: false
-error_nonstring_version: true
+warn_nonstring_version: true
+error_nonstring_version: false
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands: true

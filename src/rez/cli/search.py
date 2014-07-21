@@ -72,6 +72,10 @@ def command(opts, parser):
     type_ = opts.type
     if opts.errors or (type_ == "auto" and version_range):
         type_ = "package"
+        # turn some of the nastier rez-1 warnings into errors
+        config.override("error_package_name_mismatch", True)
+        config.override("error_version_mismatch", True)
+        config.override("error_nonstring_version", True)
 
     if opts.no_warnings:
         config.override("warn_none", True)
