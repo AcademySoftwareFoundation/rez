@@ -1,0 +1,16 @@
+#
+# System initialization script for rez. Source this file in order to use rez. 
+# You probably want to do that in ~/.bashrc or equivalent startup script.
+#
+
+# rez version
+export REZ_VERSION=@REZ_VERSION@
+
+# where rez is installed
+export REZ_PATH=@rez_path@
+
+# add rez to our environment
+export PATH=${REZ_PATH}/bin:${PATH}
+
+export PYTHONPATH=${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
+

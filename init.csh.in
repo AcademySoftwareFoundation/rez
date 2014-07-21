@@ -1,0 +1,20 @@
+#
+# System initialization script for rez. Source this file in order to use rez. 
+# You probably want to do that in ~/.cshrc or equivalent startup script.
+#
+
+# rez version
+setenv REZ_VERSION @REZ_VERSION@
+
+# where rez is installed
+setenv REZ_PATH @rez_path@
+
+# add rez to our environment
+setenv PATH ${REZ_PATH}/bin:${PATH}
+
+if (! $?PYTHONPATH ) then
+    setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages
+else
+    setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
+endif
+
