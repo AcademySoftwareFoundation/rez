@@ -2,7 +2,6 @@
 Open a rez-configured shell, possibly interactive.
 '''
 import select
-import subprocess
 import sys
 import os
 import os.path
@@ -12,6 +11,7 @@ import tempfile
 def setup_parser(parser):
     from rez.system import system
     from rez.shells import get_shell_types
+
     shells = get_shell_types()
 
     parser.add_argument("--sh", "--shell", dest="shell", type=str,
@@ -19,7 +19,7 @@ def setup_parser(parser):
                         help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
-                        "standard startup scripts, if possible")
+                             "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
     parser.add_argument("-c", "--command", type=str, nargs='+',
@@ -42,22 +42,22 @@ def setup_parser(parser):
                         help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
-                        "Supported formats are: epoch time (eg 1393014494), "
-                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
+                             "Supported formats are: epoch time (eg 1393014494), "
+                             "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar='N',
                         help="Abort if the number of failed configuration "
-                        "attempts exceeds N")
+                             "attempts exceeds N")
     parser.add_argument("--time-limit", type=int, default=-1,
                         dest="time_limit", metavar='SECS',
                         help="Abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
-                        "starting an interactive shell. Note that this will "
-                        "also store a failed resolve")
+                             "starting an interactive shell. Note that this will "
+                             "also store a failed resolve")
     parser.add_argument("-i", "--input", type=str, metavar="FILE",
                         help="use a previously saved context. Resolve settings, "
-                        "such as PKG, --ni etc are ignored in this case")
+                             "such as PKG, --ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
     parser.add_argument("--dora", action="store_true",
@@ -71,6 +71,7 @@ def command(opts, parser):
     from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
     from rez.config import config
+    from rez.contrib.animallogic.dora import launch_dora_from_context_file
 
     if opts.command and opts.shell_command:
         parser.error("use --command or --shell-command, not both")
@@ -104,6 +105,15 @@ def command(opts, parser):
     if not success:
         rc.print_info(buf=sys.stderr)
 
+    if opts.dora:
+        if opts.output:
+            context_file_name = opts.output
+        else:
+            _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
+
+        rc.save(context_file_name)
+        launch_dora_from_context_file(context_file_name)
+
     if opts.output:
         rc.save(opts.output)
         sys.exit(0 if success else 1)
@@ -115,30 +125,6 @@ def command(opts, parser):
     # no stdin is available. So here we replicate this behaviour.
     if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
         opts.stdin = False
-
-    if opts.dora:
-        _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
-        rc.save(context_file_name )
-        print >> sys.stdout, "Getting dora environment ..."
-        rc = ResolvedContext(['dora'])
-        doraEnvironment = rc.get_environ()
-        env = dict(os.environ)
-        doraCommand = '%s -i %s ' % (doraEnvironment.get('DORA_EXE'), context_file_name)
-        print >> sys.stdout, "Dora command: %s" % doraCommand
-        env.update(doraEnvironment)
-        proc = subprocess.Popen(doraCommand.split() , env=env,
-                                stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-
-        out, err = proc.communicate()
-        if out.strip():
-            print >> sys.stdout, "Dora output: (%s)" % out
-        if err.strip():
-            print >> sys.stderr, "Dora stderr: ", err
-        proc.wait()
-        returncode = not bool(proc.returncode)
-        sys.exit(returncode)
-
 
     command = opts.command or opts.shell_command
     quiet = opts.quiet or bool(command)
