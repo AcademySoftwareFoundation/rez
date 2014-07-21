@@ -88,7 +88,7 @@ implicit_packages:
 # During dependency resolution, skip/warn when erroneous packages are found. If
 # skip is false, an error is raised regardless of the warn setting.
 warn_erroneous_packages: true
-skip_erroneous_packages: false
+skip_erroneous_packages: true
 
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
@@ -309,8 +309,8 @@ error_version_mismatch: true
 # was possible in Rez-1 but was an oversight - versions could be integer or
 # float, as well as string. When this occurs, the directory version number is
 # used in preference.
-warn_nonstring_version: true
-error_nonstring_version: false
+warn_nonstring_version: false
+error_nonstring_version: true
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
 warn_old_commands: true
