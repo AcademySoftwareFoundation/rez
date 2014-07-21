@@ -6,6 +6,7 @@ import subprocess
 import sys
 import os
 import os.path
+import tempfile
 
 
 def setup_parser(parser):
@@ -71,31 +72,6 @@ def command(opts, parser):
     from rez.util import get_epoch_time_from_str
     from rez.config import config
 
-    if opts.dora:
-        print >> sys.stdout, "Getting dora environment ..."
-        from rez.util import timings
-        timings.start("rez.cli.env.resolving.dora.context")
-        rc = ResolvedContext(['dora'])
-        timings.end("rez.cli.env.resolving.dora.context")
-        doraEnvironment = rc.get_environ()
-        env = dict(os.environ)
-        inputOption = "-i %s " % opts.input if opts.input else ""
-        outputOption = "-o %s " % opts.ouput if opts.output else ""
-        timeOption = "-t %s " % opts.time if opts.time else ""
-        maxFailsOption = "--max-fails %s " % opts.max_fails if opts.max_fails else ""
-        doraCommand = '%s %s %s %s %s %s' % (doraEnvironment.get('DORA_EXE'), " ".join(opts.PKG), inputOption,
-                                              outputOption, timeOption, maxFailsOption)
-        env.update(doraEnvironment)
-        print >> sys.stdout, "Starting dora ..."
-        proc = subprocess.Popen(doraCommand.split() , env=env,
-                                stderr=subprocess.PIPE,
-                                stdout=subprocess.PIPE)
-
-        proc.wait()
-        returncode = not bool(proc.returncode)
-        timings.dump()
-        sys.exit(returncode)
-
     if opts.command and opts.shell_command:
         parser.error("use --command or --shell-command, not both")
 
@@ -139,6 +115,29 @@ def command(opts, parser):
     # no stdin is available. So here we replicate this behaviour.
     if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
         opts.stdin = False
+
+    if opts.dora:
+        _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
+        rc.save(context_file_name )
+        print >> sys.stdout, "Getting dora environment ..."
+        rc = ResolvedContext(['dora'])
+        doraEnvironment = rc.get_environ()
+        env = dict(os.environ)
+        doraCommand = '%s -i %s ' % (doraEnvironment.get('DORA_EXE'), context_file_name)
+        print >> sys.stdout, "Dora command: %s" % doraCommand
+        env.update(doraEnvironment)
+        proc = subprocess.Popen(doraCommand.split() , env=env,
+                                stderr=subprocess.PIPE,
+                                stdout=subprocess.PIPE)
+
+        out, err = proc.communicate()
+        if out.strip():
+            print >> sys.stdout, "Dora output: (%s)" % out
+        if err.strip():
+            print >> sys.stderr, "Dora stderr: ", err
+        proc.wait()
+        returncode = not bool(proc.returncode)
+        sys.exit(returncode)
 
 
     command = opts.command or opts.shell_command
