@@ -25,7 +25,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
-    from rez.release_vcs import get_build_args
+    from rez.cli.build import get_build_args
 
     working_dir = os.getcwd()
 
