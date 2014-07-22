@@ -2,6 +2,14 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 
 class Setting(object):
 
+    SYSTEM_SETTING_NAMES = ("opSystem", 
+                            "username", 
+                            "AL_LAUNCHER_PRESET", 
+                            "AL_LAUNCHER_MODE", 
+                            "AL_LAUNCHER_TIMESTAMP", 
+                            "AL_DFS", 
+                            "al-dfs")
+
     def __init__(self, name, value, setting_type):
 
         self.name = name
@@ -25,3 +33,11 @@ class Setting(object):
                 return self.name
 
         return None
+
+    def is_system_setting(self):
+        """
+        Is this setting a 'system' setting and so protected by Launcher.
+        """
+
+        return self.name in self.SYSTEM_SETTING_NAMES
+
