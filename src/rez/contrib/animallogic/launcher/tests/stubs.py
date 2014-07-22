@@ -70,7 +70,7 @@ class StubRezService(object):
 
         self.settings = settings
 
-    def get_resolved_settings_from_requirements(self, requirements):
+    def get_resolved_settings_from_requirements(self, requirements, max_fails=-1):
 
         if 'conflict' in requirements:
             raise Exception("The provided requirements are invalid.")
