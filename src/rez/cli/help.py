@@ -31,7 +31,7 @@ def setup_parser(parser):
                         help="Help section to view (1..N)")
 
 
-def command(opts, parser=None):
+def command(opts, parser=None, extra_arg_groups=None):
     if opts.manual or not opts.pkg:
         open_rez_manual()
         sys.exit(0)

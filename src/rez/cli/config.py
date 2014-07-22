@@ -8,7 +8,7 @@ def setup_parser(parser):
                         help="print the value of a specific setting")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.util import AttrDictWrapper
     from rez.config import _PluginConfigs

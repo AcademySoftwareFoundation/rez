@@ -54,7 +54,7 @@ def setup_parser(parser):
                         "supported")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     error_class = None if opts.debug else RezError
 
     before_time = 0

@@ -6,7 +6,6 @@ import subprocess
 from rez.vendor import yaml, argparse
 
 
-
 def run():
     parser = argparse.ArgumentParser( \
         description="Simple builtin Rez build system")

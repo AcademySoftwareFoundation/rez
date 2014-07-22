@@ -67,7 +67,7 @@ def setup_parser(parser):
                         help="rex context file (current context if not supplied)")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.env import get_context_file
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext

@@ -5,8 +5,9 @@ import os
 import sys
 import pkgutil
 import textwrap
-from rez.vendor import argparse
-from rez.cli._util import error
+from itertools import groupby
+from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
+from rez.cli._util import LazyArgumentParser
 from rez import __version__
 
 
@@ -24,92 +25,27 @@ def subpackages(packagemod):
         yield packagemod.__name__, False
 
 
-class LazySubParsersAction(argparse._SubParsersAction):
-    """
-    argparse Action which calls the `setup_subparser` function provided to
-    `LazyArgumentParser`.
-    """
-    def __call__(self, parser, namespace, values, option_string=None):
-        parser_name = values[0]
-
-        # this bit is taken directly from argparse:
-        try:
-            parser = self._name_parser_map[parser_name]
-        except KeyError:
-            tup = parser_name, ', '.join(self._name_parser_map)
-            msg = _('unknown parser %r (choices: %s)' % tup)
-            raise argparse.ArgumentError(self, msg)
-
-        self._setup_subparser(parser_name, parser)
-
-        caller = super(LazySubParsersAction, self).__call__
-        return caller(parser, namespace, values, option_string)
-
-    def _setup_subparser(self, parser_name, parser):
-        if hasattr(parser, 'setup_subparser'):
-            help_ = parser.setup_subparser(parser_name, parser)
-            if help_ is not None:
-                if help_ == argparse.SUPPRESS:
-                    self._choices_actions = [act for act in self._choices_actions
-                                             if act.dest != parser_name]
-                else:
-                    help_action = self._find_choice_action(parser_name)
-                    if help_action is not None:
-                        help_action.help = help_
-
-    def _find_choice_action(self, parser_name):
-        for help_action in self._choices_actions:
-            if help_action.dest == parser_name:
-                return help_action
-
-
-class LazyArgumentParser(argparse.ArgumentParser):
-    """
-    ArgumentParser sub-class which accepts an additional `setup_subparser`
-    argument for lazy setup of sub-parsers.
-
-    `setup_subparser` is passed 'parser_name', 'parser', and can return a help
-    string.
-    """
-    def __init__(self, *args, **kwargs):
-        self.setup_subparser = kwargs.pop('setup_subparser', None)
-        super(LazyArgumentParser, self).__init__(*args, **kwargs)
-        self.register('action', 'parsers', LazySubParsersAction)
-
-    def format_help(self):
-        """
-        sets up all sub-parsers when help is requested
-        """
-        if self._subparsers:
-            for action in self._subparsers._actions:
-                if isinstance(action, LazySubParsersAction):
-                    for parser_name, parser in action._name_parser_map.iteritems():
-                        action._setup_subparser(parser_name, parser)
-        return super(LazyArgumentParser, self).format_help()
-
-
 class SetupRezSubParser(object):
-    """
-    callback class for lazily setting up rez sub-parsers
-    """
+    """Callback class for lazily setting up rez sub-parsers."""
     def __init__(self, module_name):
         self.module_name = module_name
 
     def __call__(self, parser_name, parser):
         mod = self.get_module()
 
+        error_msg = None
         if not mod.__doc__:
-            error("command module %s must have a module-level "
-                  "docstring (used as the command help)" % self.module_name)
-            return argparse.SUPPRESS
+            error_msg = "command module %s must have a module-level " \
+                "docstring (used as the command help)" % self.module_name
         if not hasattr(mod, 'command'):
-            error("command module %s must provide a command() "
-                  "function" % self.module_name)
-            return argparse.SUPPRESS
+            error_msg = "command module %s must provide a command() " \
+                "function" % self.module_name
         if not hasattr(mod, 'setup_parser'):
-            error("command module %s  must provide a setup_parser() "
-                  "function" % self.module_name)
-            return argparse.SUPPRESS
+            error_msg = "command module %s  must provide a setup_parser() " \
+                "function" % self.module_name
+        if error_msg:
+            print >> sys.stderr, error_msg
+            return SUPPRESS
 
         mod.setup_parser(parser)
         parser.description = mod.__doc__
@@ -135,10 +71,10 @@ def _add_common_args(parser):
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
-                        help=argparse.SUPPRESS)
+                        help=SUPPRESS)
 
 
-class InfoAction(argparse._StoreTrueAction):
+class InfoAction(_StoreTrueAction):
     def __call__(self, parser, args, values, option_string=None):
         print
         print "Rez %s" % __version__
@@ -164,7 +100,6 @@ def run(command=None):
     #     "rez build --debug"
     #  2) this allows the flags to be used when using either "rez" or
     #     "rez-build" - ie, this will work: "rez-build --debug"
-
     _add_common_args(parser)
     subparsers = []
     parents = []
@@ -196,8 +131,10 @@ def run(command=None):
                 help='',  # required so that it can be setup later
                 setup_subparser=SetupRezSubParser(module_name))
 
-    args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
-    opts = parser.parse_args(args)
+    # parse args, but split extras into groups separated by "--"
+    all_args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
+    arg_groups = [list(g) for k, g in groupby(all_args, lambda x: x == '--') if not k]
+    opts = parser.parse_args(arg_groups[0])
 
     if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1", "true", "on", "yes"):
         from rez.util import set_rm_tmpdirs
@@ -207,7 +144,7 @@ def run(command=None):
         exc_type = Exception
 
     try:
-        returncode = opts.func(opts, opts.parser)
+        returncode = opts.func(opts, opts.parser, arg_groups[1:])
     except NotImplementedError as e:
         import traceback
         raise Exception(traceback.format_exc())

@@ -48,7 +48,7 @@ def get_suites(opts):
     return suites
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     import unittest
     import sys
     import os

@@ -2,37 +2,68 @@ import os
 import os.path
 import sys
 import signal
+from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS
 
 
-def error(msg):
-    '''
-    An error, formatted and printed to stderr
-    '''
-    sys.__stderr__.write("Error: %s\n" % msg)
+class LazySubParsersAction(_SubParsersAction):
+    """Argparse Action which calls the `setup_subparser` function provided to
+    `LazyArgumentParser`.
+    """
+    def __call__(self, parser, namespace, values, option_string=None):
+        parser_name = values[0]
 
-
-def output(msg=''):
-    '''
-    A result, printed to stdout
-    '''
-    sys.__stdout__.write("%s\n" % msg)
-
-
-def redirect_to_stderr(func):
-    '''
-    decorator to redirect output to stderr.
-    This is useful
-    '''
-    def wrapper(*args, **kwargs):
+        # this bit is taken directly from argparse:
         try:
-            # redirect all print statements to stderr
-            sys.stdout = sys.stderr
-            return func(*args, **kwargs)
-        finally:
-            sys.stdout = sys.__stdout__
-    wrapper.__name__ = func.__name__
-    wrapper.__doc__ = func.__doc__
-    return wrapper
+            parser = self._name_parser_map[parser_name]
+        except KeyError:
+            tup = parser_name, ', '.join(self._name_parser_map)
+            msg = _('unknown parser %r (choices: %s)' % tup)
+            raise ArgumentError(self, msg)
+
+        self._setup_subparser(parser_name, parser)
+        caller = super(LazySubParsersAction, self).__call__
+        return caller(parser, namespace, values, option_string)
+
+    def _setup_subparser(self, parser_name, parser):
+        if hasattr(parser, 'setup_subparser'):
+            help_ = parser.setup_subparser(parser_name, parser)
+            if help_ is not None:
+                if help_ == SUPPRESS:
+                    self._choices_actions = [act for act in self._choices_actions
+                                             if act.dest != parser_name]
+                else:
+                    help_action = self._find_choice_action(parser_name)
+                    if help_action is not None:
+                        help_action.help = help_
+            delattr(parser, 'setup_subparser')
+
+    def _find_choice_action(self, parser_name):
+        for help_action in self._choices_actions:
+            if help_action.dest == parser_name:
+                return help_action
+
+
+class LazyArgumentParser(ArgumentParser):
+    """
+    ArgumentParser sub-class which accepts an additional `setup_subparser`
+    argument for lazy setup of sub-parsers.
+
+    `setup_subparser` is passed 'parser_name', 'parser', and can return a help
+    string.
+    """
+    def __init__(self, *args, **kwargs):
+        self.setup_subparser = kwargs.pop('setup_subparser', None)
+        super(LazyArgumentParser, self).__init__(*args, **kwargs)
+        self.register('action', 'parsers', LazySubParsersAction)
+
+    def format_help(self):
+        """Sets up all sub-parsers when help is requested."""
+        if self._subparsers:
+            for action in self._subparsers._actions:
+                if isinstance(action, LazySubParsersAction):
+                    for parser_name, parser in action._name_parser_map.iteritems():
+                        action._setup_subparser(parser_name, parser)
+        return super(LazyArgumentParser, self).format_help()
 
 
 _handled_int = False

@@ -2,12 +2,13 @@
 Display a list of available tools and the packages or contexts that provide them.
 '''
 
+
 def setup_parser(parser):
     pass
 
 
 # TODO port this once class Suite exists
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.env import get_tools
     from rez.util import columnise
     import sys

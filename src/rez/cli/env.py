@@ -12,7 +12,7 @@ def setup_parser(parser):
     from rez.shells import get_shell_types
     shells = get_shell_types()
 
-    parser.add_argument("--sh", "--shell", dest="shell", type=str,
+    parser.add_argument("--shell", dest="shell", type=str,
                         choices=shells, default=system.shell,
                         help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
@@ -20,12 +20,9 @@ def setup_parser(parser):
                         "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
-    parser.add_argument("-c", "--command", type=str, nargs='+',
-                        metavar=("COMMAND", "ARG"),
-                        help="read commands from string")
-    parser.add_argument("--sc", "--shell-command", dest="shell_command",
-                        type=str, metavar="COMMAND",
-                        help="like -c, but reads entire command from one string")
+    parser.add_argument("-c", "--command", type=str,
+                        help="read commands from string. Alternatively, list "
+                        "command arguments after a '--'")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -62,14 +59,17 @@ def setup_parser(parser):
                         help='packages to use in the target environment')
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
     from rez.config import config
 
-    if opts.command and opts.shell_command:
-        parser.error("use --command or --shell-command, not both")
+    command = opts.command
+    if extra_arg_groups:
+        if opts.command:
+            parser.error("argument --command: not allowed with arguments after '--'")
+        command = extra_arg_groups[0] or None
 
     if opts.input:
         rc = ResolvedContext.load(opts.input)
@@ -112,9 +112,7 @@ def command(opts, parser):
     if opts.stdin and not select.select([sys.stdin], [], [], 0.0)[0]:
         opts.stdin = False
 
-    command = opts.command or opts.shell_command
     quiet = opts.quiet or bool(command)
-
     returncode, _, _ = rc.execute_shell(shell=opts.shell,
                                         rcfile=opts.rcfile,
                                         norc=opts.norc,
