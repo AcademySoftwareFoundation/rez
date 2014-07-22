@@ -10,18 +10,8 @@ import subprocess
 from uuid import uuid4
 from rez import __version__
 from rez.config import config
-
-
-def write_graph(graph_str, opts):
-    from rez.util import write_graph
-    write_graph(graph_str, dest_file=opts.write_graph,
-                prune_pkg=opts.prune_pkg)
-
-
-def view_graph(graph_str, opts):
-    from rez.util import view_graph
-    view_graph(graph_str, dest_file=opts.write_graph,
-               prune_pkg=opts.prune_pkg)
+from rez.dot import write_graph, view_graph, prune_graph
+from rez.vendor.version.requirement import Requirement
 
 
 def print_tools(rc):
@@ -117,12 +107,13 @@ def command(opts, parser):
         elif opts.print_graph:
             gstr = _graph()
             print gstr
-        elif opts.graph:
+        elif opts.graph or opts.write_graph:
             gstr = _graph()
-            view_graph(gstr, opts)
-        elif opts.write_graph:
-            gstr = _graph()
-            write_graph(gstr, opts)
+            if opts.prune_pkg:
+                req = Requirement(opts.prune_pkg)
+                gstr = prune_graph(gstr, req.name)
+            func = view_graph if opts.graph else write_graph
+            func(gstr, dest_file=opts.write_graph)
         else:
             rc.print_info(verbose=opts.verbose)
         return

@@ -93,7 +93,10 @@ def load_developer_package(path):
         files = [os.path.basename(x.path) for x in resources]
         raise ResourceError("Multiple package definition files found under "
                             "%s: %s" % (path, ", ".join(files)))
-    return Package(resources[0])
+
+    package = Package(resources[0])
+    package.validate_data()
+    return package
 
 
 def get_completions(prefix):
