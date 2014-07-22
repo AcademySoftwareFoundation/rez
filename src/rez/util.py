@@ -247,21 +247,22 @@ def get_close_matches(term, fields, fuzziness=0.4, key=None):
             if r >= (1.0 - fuzziness):
                 matches.append((field, min(r, 0.99)))
 
-    return sorted(matches, key=lambda x:-x[1])
+    return sorted(matches, key=lambda x: -x[1])
 
 
 # fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
 def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
     matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
-    fam_matches = get_close_matches(pkg.split('-')[0], pkgs, \
-        fuzziness=fuzziness, key=lambda x:x.split('-')[0])
+    fam_matches = get_close_matches(pkg.split('-')[0], pkgs,
+                                    fuzziness=fuzziness,
+                                    key=lambda x: x.split('-')[0])
 
     d = {}
-    for pkg_,r in (matches + fam_matches):
+    for pkg_, r in (matches + fam_matches):
         d[pkg_] = d.get(pkg_, 0.0) + r
 
-    combined = [(k,v*0.5) for k,v in d.iteritems()]
-    return sorted(combined, key=lambda x:-x[1])
+    combined = [(k, v * 0.5) for k, v in d.iteritems()]
+    return sorted(combined, key=lambda x: -x[1])
 
 
 def columnise(rows, padding=2):
@@ -269,30 +270,35 @@ def columnise(rows, padding=2):
     maxwidths = {}
 
     for row in rows:
-        for i,e in enumerate(row):
+        for i, e in enumerate(row):
             se = str(e)
             nse = len(se)
-            w = maxwidths.get(i,-1)
+            w = maxwidths.get(i, -1)
             if nse > w:
                 maxwidths[i] = nse
 
     for row in rows:
         s = ''
-        for i,e in enumerate(row):
+        for i, e in enumerate(row):
             se = str(e)
-            if i < len(row)-1:
+            if i < len(row) - 1:
                 n = maxwidths[i] + padding - len(se)
-                se += ' '*n
+                se += ' ' * n
             s += se
         strs.append(s)
     return strs
+
 
 def pretty_env_dict(d):
     rows = [x for x in sorted(d.iteritems())]
     return '\n'.join(columnise(rows))
 
+
 def readable_time_duration(secs, approx=True, approx_thresh=0.001):
-    divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
+    divs = ((24 * 60 * 60, "days"),
+            (60 * 60, "hours"),
+            (60, "minutes"),
+            (1, "seconds"))
 
     if secs == 0:
         return "0 seconds"
@@ -324,7 +330,10 @@ def get_epoch_time_from_str(s):
 
     try:
         if s.startswith('-'):
-            chars = {'d':24*60*60, 'h':60*60, 'm':60, 's':1}
+            chars = {'d': 24 * 60 * 60,
+                     'h': 60 * 60,
+                     'm': 60,
+                     's': 1}
             m = chars.get(s[-1])
             if m:
                 n = float(s[1:-1])
@@ -334,7 +343,7 @@ def get_epoch_time_from_str(s):
     except:
         pass
 
-    raise Exception("'%s' is an unrecognised time format." % s)
+    raise ValueError("'%s' is an unrecognised time format." % s)
 
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):

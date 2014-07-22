@@ -3,7 +3,7 @@ Search for packages.
 """
 from rez.config import config
 from rez.exceptions import RezError
-from rez.util import print_error
+from rez.util import print_error, get_epoch_time_from_str
 from rez.packages import iter_package_families, iter_packages
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
@@ -41,30 +41,44 @@ def setup_parser(parser):
     parser.add_argument("--nw", "--no-warnings", dest="no_warnings",
                         action="store_true",
                         help="suppress warnings")
-    parser.add_argument("NAME", type=str, nargs='?',
-                        help="only match packages with the given family "
-                        "name. Glob-style patterns are supported")
-    parser.add_argument("VERSION", type=str, nargs='?',
-                        help="range of package versions to match")
+    parser.add_argument("--before", type=str,
+                        help="only show packages released before the given time. "
+                        "Supported formats are: epoch time (eg 1393014494), "
+                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("--after", type=str,
+                        help="only show packages released after the given time. "
+                        "Supported formats are: epoch time (eg 1393014494), "
+                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument("PKG", type=str, nargs='?',
+                        help="packages to search, glob-style patterns are "
+                        "supported")
 
 
 def command(opts, parser):
+    error_class = None if opts.debug else RezError
+
+    before_time = 0
+    after_time = 0
+    if opts.before:
+        before_time = get_epoch_time_from_str(opts.before)
+    if opts.after:
+        after_time = get_epoch_time_from_str(opts.after)
+    if after_time and before_time and (after_time >= before_time):
+        parser.error("non-overlapping --before and --after")
+
     if opts.paths is None:
         pkg_paths = config.nonlocal_packages_path if opts.no_local else None
     else:
         pkg_paths = (opts.paths or "").split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    name_pattern = opts.NAME or '*'
-    version_range = VersionRange(opts.VERSION) if opts.VERSION else None
-    error_class = None if opts.debug else RezError
-
-    if opts.NAME and not version_range:
-        # support syntax ala 'rez-search foo-1.2+'
+    name_pattern = opts.PKG or '*'
+    version_range = None
+    if opts.PKG:
         try:
-            req = Requirement(opts.NAME)
+            req = Requirement(opts.PKG)
+            name_pattern = req.name
             if not req.range.is_any():
-                name_pattern = req.name
                 version_range = req.range
         except:
             pass
@@ -126,6 +140,11 @@ def command(opts, parser):
                     packages = [packages[-1]]
 
             for package in packages:
+                if (before_time or after_time) and package.timestamp:
+                    if (before_time and package.timestamp >= before_time) \
+                            or (after_time and package.timestamp <= after_time):
+                        continue
+
                 if opts.errors:
                     try:
                         package.validate_data()

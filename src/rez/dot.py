@@ -34,6 +34,10 @@ def prune_graph(graph_str, package_name):
             if match and match.group() == package_name:
                 nodes.add(node)
 
+    if not nodes:
+        raise ValueError("The package %r does not appear in the graph."
+                         % package_name)
+
     # find nodes upstream from these nodes
     g_rev = g.reverse()
     accessible_nodes = set()
