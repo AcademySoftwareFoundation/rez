@@ -4,10 +4,6 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.exceptions import BakerError
 import datetime
 import getpass
-import logging
-
-
-logger = logging.getLogger(__name__)
 
 
 class Baker(object):
@@ -21,70 +17,72 @@ class Baker(object):
         self.username = getpass.getuser()
         self.mode = Mode.shell
         self.operating_system = OperatingSystem.get_current_operating_system()
-        self.max_fails = -1
+        self.settings = []
 
-    def set_max_fails(self, max_fails):
+    def set_settings_from_launcher(self, source, preserve_system_settings=False):
 
-        self.max_fails = max_fails
+        self.settings = self.launcher_service.get_settings_from_path(source, self.mode,  username=self.username, operating_system=self.operating_system, date=self.now)
 
-    def display_settings(self, settings):
+        if not preserve_system_settings:
+            self._strip_system_settings()
 
-        for setting in settings:
-            logger.info("\t%s" % (setting.get_setting_as_package_request()))
+    def _strip_system_settings(self):
 
-    def bake(self, source, destination):
+        self.settings = [setting for setting in self.settings if not setting.is_system_setting()]
 
-        logger.info("Retrieving settings from Launcher %s." % source)
+    def apply_overrides(self, overrides):
 
-        package_settings = self.get_package_settings_from_launcher(source)
+        for override in overrides:
+            override_found = False
 
-        if not package_settings:
-            raise BakerError("Unable to find package settings in %s." % source)
+            for setting in self.settings:
+                if setting.name == override.name:
+                    setting.value = override.value
+                    setting.setting_type = override.setting_type
 
-        logger.info("Found settings:")
-        self.display_settings(package_settings)
+                    override_found = True
 
-        package_requests = self.get_package_requests_from_settings(package_settings)
+            if not override_found:
+                self.settings.append(override)
 
-        logger.info("Resolving environment for %s." % package_requests)
+    def resolve_package_settings(self, max_fails=-1):
 
-        resolved_package_settings = self.get_resolved_settings_from_package_requests(package_requests)
+        resolved_settings = []
+        resolved_package_settings = self._get_resolved_package_settings(max_fails=max_fails)
 
-        self.display_settings(resolved_package_settings)
+        for setting in self.settings:
+            if setting.setting_type not in (SettingType.package, SettingType.version):
+                resolved_settings.append(setting)
 
-        logger.info("Creating new preset %s from settings." % destination)
+        self.settings = resolved_settings + resolved_package_settings
 
-        self.create_new_preset_from_package_settings(destination, resolved_package_settings, '')
+    def _get_resolved_package_settings(self, max_fails=-1):
 
-    def get_package_settings_from_launcher(self, source):
-
-        settings = self.launcher_service.get_settings_from_path(source, self.mode,  username=self.username, operating_system=self.operating_system, date=self.now)
-
-        return [setting for setting in settings if setting.setting_type == SettingType.package]
-
-    def get_package_requests_from_settings(self, settings):
-
-        package_requests = []
-
-        for setting in settings:
-            request = setting.get_setting_as_package_request()
-
-            if request:
-                package_requests.append(request)
-
-        return package_requests
-
-    def get_resolved_settings_from_package_requests(self, package_requests):
+        package_requests = self.get_package_requests_from_settings()
 
         try:
-            return self.rez_service.get_resolved_settings_from_requirements(package_requests, max_fails=self.max_fails)
+            return self.rez_service.get_resolved_settings_from_requirements(package_requests, max_fails=max_fails)
         except Exception, e:
             raise BakerError(e)
 
-    def create_new_preset_from_package_settings(self, destination, package_settings, description=None):
+    def get_package_requests_from_settings(self):
+
+        package_requests = []
+
+        for setting in self.settings:
+            if setting.setting_type == SettingType.package:
+                request = setting.get_setting_as_package_request()
+
+                if request:
+                    package_requests.append(request)
+
+        return package_requests
+
+    def create_new_preset_from_settings(self, destination, description=None):
 
         preset = self.launcher_service.create_preset(destination, description, username=self.username)
 
-        self.launcher_service.add_settings_to_preset(package_settings, destination, username=self.username)
+        self.launcher_service.add_settings_to_preset(self.settings, destination, username=self.username)
 
         return preset
+
