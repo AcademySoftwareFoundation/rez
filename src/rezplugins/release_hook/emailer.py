@@ -35,7 +35,7 @@ class EmailReleaseHook(ReleaseHook):
             body.append("PREVIOUS VERSION: %s" % previous_version)
         if release_message:
             body.append("\nMESSAGE:\n%s" % release_message)
-        body.append("\nCHANGELOG:\n%s" % '\n'.join(changelog))
+        body.append("\nCHANGELOG:\n%s" % changelog)
 
         # send email
         subject = "[rez] [release] %s released %s" \
