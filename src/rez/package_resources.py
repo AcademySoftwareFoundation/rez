@@ -198,7 +198,13 @@ class BasePackageResource(FileResource):
         """Deals with case where package name in a package.yaml does not match
         package name in directory structure. This error will be handled as a
         warning if the relevant backwards compatibility setting is turned on.
+
+        Also ensures that package name matches allowed regex.
         """
+        if not PACKAGE_NAME_REGEX.match(value):
+            msg = "name %r is not a valid package name" % value
+            raise SchemaError(None, msg)
+
         name = self.variables.get("name")
         if value != name:
             msg = "name %r does not match %r" % (value, name)
@@ -207,6 +213,7 @@ class BasePackageResource(FileResource):
                 raise SchemaError(None, msg)
             elif config.warn("package_name_mismatch"):
                 print_error("%s: %s" % (self.path, msg))
+
         return name
 
     def new_rex_command(self, value):
@@ -531,8 +538,7 @@ class DeveloperPackageResource(BasePackageResource):
     def schema(self):
         schema = super(DeveloperPackageResource, self).schema
         return _updated_schema(schema,
-                               [(Required('name'), basestring),
-                                (Required('version'), Use(Version)),
+                               [(Required('version'), Use(Version)),
                                 (Required('description'),
                                     And(basestring, Use(string.strip))),
                                 (Required('authors'), [basestring]),

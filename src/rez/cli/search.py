@@ -99,7 +99,7 @@ def command(opts, parser):
     def _handle(e):
         print_error(str(e))
         if opts.stop_on_error:
-            sys.exit(0)
+            sys.exit(1)
 
     def _print_resource(r):
         if opts.validate:
