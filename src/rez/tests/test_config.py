@@ -105,9 +105,14 @@ class TestConfig(TestBase):
         self._test_basic(c)
 
         # test env-var override that contains a system expansion
+        REZ_TMPDIR_ = os.environ.get("REZ_TMPDIR")
         os.environ["REZ_TMPDIR"] = "/tmp/{system.user}"
         expected_value = "/tmp/%s" % system.user
         self.assertEqual(c.tmpdir, expected_value)
+        if REZ_TMPDIR_:
+            os.environ["REZ_TMPDIR"] = REZ_TMPDIR_
+        else:
+            del os.environ["REZ_TMPDIR"]
 
         # _test_overrides overrides this value, so here we're making sure
         # that an API override takes precedence over an env-var override
