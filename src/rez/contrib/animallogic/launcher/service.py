@@ -47,7 +47,7 @@ class LauncherHessianService(LauncherServiceInterface):
 
         setting_type = SettingType.create_from_launcher_type(dict_['type']['name'])
 
-        setting = Setting(str(dict_['name']), str(dict_['value']), setting_type)
+        setting = Setting(str(dict_['name']), dict_['value'], setting_type)
         setting.id = dict_['id']
         setting.source_preset_id = dict_['sourcePresetId']['key'] if dict_['sourcePresetId'] else None
         setting.operating_system = OperatingSystem[dict_['opSystem']['name']] if dict_['opSystem'] else OperatingSystem['none']
