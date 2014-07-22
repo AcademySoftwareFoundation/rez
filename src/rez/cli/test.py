@@ -27,13 +27,16 @@ def setup_parser(parser):
                         help="test animal logic customisations")
     parser.add_argument("--launcher", action="store_true",
                         help="test launcher")
+    parser.add_argument("--unleash", action="store_true",
+                        help="test unleash")
 
 
 def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "context", "resources", "packages", "config", "animallogic", "launcher"]
+             "context", "resources", "packages", "config", "animallogic", 
+             "launcher", "unleash"]
     suites = []
     test_all = all([not getattr(opts, test) for test in tests])
 
