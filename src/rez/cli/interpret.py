@@ -26,7 +26,7 @@ def setup_parser(parser):
                         help='file containing rex code to execute')
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.shells import create_shell
     from rez.util import pretty_env_dict
     from rez.rex import RexExecutor, Python

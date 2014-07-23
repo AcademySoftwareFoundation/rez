@@ -89,11 +89,6 @@ implicit_packages:
 - '~arch=={system.arch}'
 - '~os=={system.os}'
 
-# During dependency resolution, skip/warn when erroneous packages are found. If
-# skip is false, an error is raised regardless of the warn setting.
-warn_erroneous_packages: true
-skip_erroneous_packages: false
-
 # Use available caching mechanisms to speed up resolves.
 resolve_caching: true
 
@@ -308,14 +303,14 @@ implicit_styles:
 # Warn or disallow when a package contains a package name that does not match
 # the name specified in the directory structure. When this occurs, the
 # directory package name is used in preference.
-warn_package_name_mismatch: false
-error_package_name_mismatch: true
+warn_package_name_mismatch: true
+error_package_name_mismatch: false
 
 # Warn or disallow when a package contains a version number that does not match
 # the version specified in the directory structure. When this occurs, the
 # directory version number is used in preference.
-warn_version_mismatch: false
-error_version_mismatch: true
+warn_version_mismatch: true
+error_version_mismatch: false
 
 # Warn or disallow when a package is found to contain a non-string version. This
 # was possible in Rez-1 but was an oversight - versions could be integer or
@@ -331,11 +326,6 @@ error_old_commands: false
 # Print old commands and their converted rex equivalent. Note that this can
 # cause very verbose output.
 debug_old_commands: false
-
-# Warn or disallow when a package is found to contain custom keys in the root of
-# its package definition file.
-warn_root_custom_key: true
-error_root_custom_key: false
 
 # Warn or disallow an extra commands entry called 'commands2'. This is provided
 # as a temporary measure for porting packages to rez-based commands without

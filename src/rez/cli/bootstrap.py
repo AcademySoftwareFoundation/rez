@@ -19,7 +19,7 @@ def setup_parser(parser):
                         help="create a bootstrapped Rez install, even if "
                         "advised not to")
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.bootstrap import print_info, install_into, is_bootstrapped, \
         is_in_virtualenv
 

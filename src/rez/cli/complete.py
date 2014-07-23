@@ -19,7 +19,7 @@ def setup_parser(parser):
                         help="prefix for completion")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.util import timings
     from rez.config import config
 

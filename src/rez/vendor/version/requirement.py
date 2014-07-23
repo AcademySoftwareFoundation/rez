@@ -149,36 +149,6 @@ class Requirement(_Common):
         other.range_ = VersionRange() if range is None else range
         return other
 
-    @classmethod
-    def from_pkg_resource(cls, resource_requirement):
-        """Create a Requirement object from a pkg_resources.Requirement object.
-
-        Args:
-            resource_requirement: pkg_resources.Requirement object
-
-        Returns:
-            A Requirement object equivalent to the pkg_resource requirement.
-        """
-        pass
-        # TODO need to see exactly how specs work
-        """
-        ranges = []
-        for op,ver_str in resource_requirement.specs:
-            invert = False
-            if op == "!=":
-                op = "=="
-                invert = True
-
-            version = Version(ver_str)
-            range = cls.from_version(version, op)
-            ranges.append(~range if invert else range)
-
-        range = cls()
-        if ranges:
-            range = range.intersection(ranges)
-        return range
-        """
-
     @property
     def name(self):
         """Name of the required object."""

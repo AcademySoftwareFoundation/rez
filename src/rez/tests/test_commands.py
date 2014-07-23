@@ -39,7 +39,9 @@ class TestCommands(TestBase):
 
         # ignore some commands that don't matter or change depending on system
         ignore_keys = set(["REZ_USED",
+                           "REZ_USED_VERSION",
                            "REZ_USED_TIMESTAMP",
+                           "REZ_USED_REQUESTED_TIMESTAMP",
                            "REZ_USED_PACKAGES_PATH",
                            "REZ_USED_IMPLICIT_PACKAGES",
                            "PATH"])

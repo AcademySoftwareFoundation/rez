@@ -38,7 +38,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = 0
+    serialize_version = 1
 
     class Callback(object):
         def __init__(self, verbose, max_fails, time_limit, callback):
@@ -75,7 +75,7 @@ class ResolvedContext(object):
                 representing the request.
             quiet: If True then hides unnecessary output
             verbosity: Verbosity level. One of [0,1,2].
-            timestamp: Ignore packages newer than this epoch time.
+            timestamp: Ignore packages greater or equal to this epoch time.
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, defaults to
@@ -100,7 +100,8 @@ class ResolvedContext(object):
         self.load_path = None
 
         # resolving settings
-        self.timestamp = timestamp or int(time.time())
+        self.requested_timestamp = timestamp
+        self.timestamp = self.requested_timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
@@ -171,7 +172,7 @@ class ResolvedContext(object):
         self.graph_ = resolver.graph
 
         actual_solve_time = self.solve_time - self.load_time
-        timings.add("resolve_time", actual_solve_time)
+        timings.add("resolve", actual_solve_time)
 
         if self.status_ == ResolverStatus.solved:
             # convert solver.Variants to packages.Variants
@@ -288,8 +289,8 @@ class ResolvedContext(object):
         t_str = _rt(self.created)
         _pr("resolved by %s@%s, on %s, using Rez v%s"
             % (self.user, self.host, t_str, self.rez_version))
-        if self.timestamp:
-            t_str = _rt(self.timestamp)
+        if self.requested_timestamp:
+            t_str = _rt(self.requested_timestamp)
             _pr("packages released after %s were ignored" % t_str)
         _pr()
 
@@ -715,6 +716,7 @@ class ResolvedContext(object):
             serialize_version=ResolvedContext.serialize_version,
 
             timestamp=self.timestamp,
+            requested_timestamp=self.requested_timestamp,
             building=self.building,
             caching=self.caching,
             implicit_packages=[str(x) for x in self.implicit_packages],
@@ -773,6 +775,11 @@ class ResolvedContext(object):
             resource = resource_handle.get_resource()
             variant = Variant(resource)
             r.resolved_packages_.append(variant)
+
+        # SINCE SERIALIZE VERSION 1 --
+
+        r.requested_timestamp = d.get("requested_timestamp", 0)
+
         return r
 
     def _create_executor(self, interpreter, parent_environ):
@@ -804,7 +811,10 @@ class ResolvedContext(object):
         package_paths_str = os.pathsep.join(self.package_paths)
 
         executor.setenv("REZ_USED", self.rez_path)
-        executor.setenv("REZ_USED_TIMESTAMP", self.timestamp)
+        executor.setenv("REZ_USED_VERSION", self.rez_version)
+        executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
+        executor.setenv("REZ_USED_REQUESTED_TIMESTAMP",
+                        str(self.requested_timestamp or 0))
         executor.setenv("REZ_USED_REQUEST", request_str)
         executor.setenv("REZ_USED_IMPLICIT_PACKAGES", implicit_str)
         executor.setenv("REZ_USED_RESOLVE", resolve_str)

@@ -130,7 +130,10 @@ class TestResources(TestBase):
 
         cls.settings = dict(
             packages_path=[cls.packages_path, cls.pypackages_path],
-            warn_untimestamped=False)
+            warn_untimestamped=False,
+            error_package_name_mismatch=True,
+            error_version_mismatch=True,
+            error_nonstring_version=True)
 
     def test_1(self):
         """class methods"""
@@ -436,13 +439,11 @@ class TestResources(TestBase):
                           variables=dict(name='versionclash'))
 
         with self.assertRaises(PackageMetadataError):
-            # the resource has a custom key at the root
-            config.override("error_root_custom_key", True)
+            # the resource version is a float, not a string
             load_resource(resource_keys=['package.*'],
                           root_resource_key="folder.packages_root",
                           search_path=search_path,
-                          variables=dict(name='customkey',
-                                         version='1'))
+                          variables=dict(name='versionnonstring'))
 
         with self.assertRaises(ResourceError):
             # this resource type requires a searchpath or filepath

@@ -21,10 +21,11 @@ def setup_parser(parser):
     setup_parser_common(parser)
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
+    from rez.cli.build import get_build_args
 
     working_dir = os.getcwd()
 
@@ -32,13 +33,14 @@ def command(opts, parser):
     vcs = create_release_vcs(working_dir, opts.vcs)
 
     # create build system
+    build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
     buildsys = create_build_system(working_dir,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    verbose=True,
-                                   build_args=opts.build_args,
-                                   child_build_args=opts.child_build_args)
+                                   build_args=build_args,
+                                   child_build_args=child_build_args)
 
     # create and execute release process
     builder = LocalSequentialBuildProcess(working_dir,
@@ -46,5 +48,4 @@ def command(opts, parser):
                                           vcs=vcs,
                                           ensure_latest=(not opts.no_latest),
                                           release_message=opts.message)
-    if not builder.release():
-        sys.exit(1)
+    builder.release()

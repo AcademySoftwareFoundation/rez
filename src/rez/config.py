@@ -193,8 +193,6 @@ config_schema = Schema({
     "resolve_caching":                  Bool,
     "all_parent_variables":             Bool,
     "all_resetting_variables":          Bool,
-    "warn_erroneous_packages":          Bool,
-    "skip_erroneous_packages":          Bool,
     "warn_shell_startup":               Bool,
     "warn_untimestamped":               Bool,
     "warn_all":                         Bool,
@@ -217,16 +215,11 @@ config_schema = Schema({
     "error_version_mismatch":           Bool,
     "warn_nonstring_version":           Bool,
     "error_nonstring_version":          Bool,
-    "warn_root_custom_key":             Bool,
-    "error_root_custom_key":            Bool,
     "warn_commands2":                   Bool,
     "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
-    "env_var_separators":               Dict,
-
-    # plugins are a special case and are validated lazily
-    #Optional("plugins"):                dict,
+    "env_var_separators":               Dict
 })
 
 
@@ -415,7 +408,7 @@ class Config(DataWrapper):
                 return _get_plugin_completions(prefix_)
             return []
         else:
-            keys = ([x for x in _config_dict if isinstance(x, basestring)]
+            keys = ([x for x in self._schema_keys if isinstance(x, basestring)]
                     + ["plugins"])
             keys = [x for x in keys if x.startswith(prefix)]
             if keys == ["plugins"]:

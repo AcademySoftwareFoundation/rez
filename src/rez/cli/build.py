@@ -23,11 +23,14 @@ def setup_parser_common(parser):
 
     parser.add_argument("--variants", nargs='+', type=int, metavar="INDEX",
                         help="select variants to build (zero-indexed).")
-    parser.add_argument("--build-args", dest="build_args", nargs='*', metavar="ARG",
-                        help="arguments to pass to the build system.")
-    parser.add_argument("--child-build-args", dest="child_build_args",
-                        nargs='*', metavar="ARG",
-                        help="arguments to pass to the child build system, if any.")
+    parser.add_argument("--ba", "--build-args", dest="build_args", type=str,
+                        metavar="ARGS",
+                        help="arguments to pass to the build system. Alternatively, "
+                        "list these after a '--'")
+    parser.add_argument("--cba", "--child-build-args", dest="child_build_args",
+                        type=str, metavar="ARGS",
+                        help="arguments to pass to the child build system, if "
+                        "any. Alternatively, list these after a second '--'.")
 
 
 def setup_parser(parser):
@@ -49,21 +52,40 @@ def setup_parser(parser):
     setup_parser_common(parser)
 
 
-def command(opts, parser):
+def get_build_args(opts, parser, extra_arg_groups):
+    attrs = ["build_args", "child_build_args"]
+    groups = (extra_arg_groups or [[]]) + [[]]
+    result_groups = []
+
+    for attr, group in zip(attrs, groups):
+        cli_attr = "--%s" % attr.replace("_", "-")
+        option = getattr(opts, attr, None)
+        if option:
+            if group:
+                parser.error("argument %s: not allowed with arguments after '--'"
+                             % cli_attr)
+            group = option.strip().split()
+
+        result_groups.append(group)
+    return result_groups[0], result_groups[1]
+
+
+def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     working_dir = os.getcwd()
 
     # create build system
+    build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
     buildsys = create_build_system(working_dir,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    write_build_scripts=opts.scripts,
                                    verbose=True,
-                                   build_args=opts.build_args,
-                                   child_build_args=opts.child_build_args)
+                                   build_args=build_args,
+                                   child_build_args=child_build_args)
 
     # create and execute build process
     builder = LocalSequentialBuildProcess(working_dir,
