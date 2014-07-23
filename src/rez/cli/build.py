@@ -6,55 +6,6 @@ import os
 from rez.vendor import argparse
 
 
-def parse_build_args(args, parser):
-    def _args_err(args):
-        parser.error("unrecognized arguments: %s"
-                    % ' '.join(str(x) for x in args))
-
-    if args:
-        sep = "--"
-        if sep in args:
-            i = args.index(sep)
-            if i:
-                _args_err(args[:i])
-            else:
-                args = args[1:]
-        else:
-            _args_err(args)
-
-        if sep in args:
-            i = args.index(sep)
-            build_args = args[:i]
-            child_build_args = args[i+1:]
-            return (build_args, child_build_args)
-        else:
-            build_args = args
-            return (build_args, [])
-    else:
-        return ([], [])
-
-
-def add_build_system_args(parser):
-    # add build system args if one build system is associated with cwd
-    from rez.build_system import get_valid_build_systems
-    clss = get_valid_build_systems(os.getcwd())
-    if len(clss) == 1:
-        cls = clss[0]
-        cls.bind_cli(parser)
-    elif clss:
-        types = [x.name() for x in clss]
-        parser.add_argument("-b", "--build-system", dest="buildsys",
-                            type=str, choices=types,
-                            help="the build system to use.")
-
-
-def add_extra_build_args(parser):
-    parser.add_argument("BUILD_ARG", metavar="ARG", nargs=argparse.REMAINDER,
-                        help="extra arguments to build system. To pass args to "
-                        "a child build system also, list them after another "
-                        "'--' arg.")
-
-
 def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
 
@@ -98,12 +49,8 @@ def setup_parser(parser):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
-    parser.add_argument("--variants", nargs='+', type=int, metavar="INDEX",
-                        help="select variants to build (zero-indexed).")
 
-    add_extra_build_args(parser)
-    add_build_system_args(parser)
-#    setup_parser_common(parser)
+    setup_parser_common(parser)
 
 
 def get_build_args(opts, parser, extra_arg_groups):
@@ -129,8 +76,6 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     working_dir = os.getcwd()
-
-    build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)

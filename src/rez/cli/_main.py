@@ -133,7 +133,14 @@ def run(command=None):
 
     # parse args, but split extras into groups separated by "--"
     all_args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
-    arg_groups = [list(g) for k, g in groupby(all_args, lambda x: x == '--') if not k]
+
+    arg_groups = [[]]
+    for arg in all_args:
+        if arg == '--':
+            arg_groups.append([])
+            continue
+        arg_groups[-1].append(arg)
+
     opts = parser.parse_args(arg_groups[0])
 
     if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1", "true", "on", "yes"):
