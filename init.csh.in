@@ -3,18 +3,34 @@
 # You probably want to do that in ~/.cshrc or equivalent startup script.
 #
 
-# rez version
+# Rez version.
 setenv REZ_VERSION @REZ_VERSION@
 
-# where rez is installed
+# Where Rez is installed.
 setenv REZ_PATH @rez_path@
 
-# add rez to our environment
+# Add Rez to our environment.
 setenv PATH ${REZ_PATH}/bin:${PATH}
-
 if (! $?PYTHONPATH ) then
     setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages
 else
     setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
 endif
+
+# Tell Rez where our downloads live.
+setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
+
+# Add some alias for Rez to use.
+alias b 'rez build --build-target RelWithDebInfo --install --  -- -j 16'
+alias b0 'rez build --build-target RelWithDebInfo --variants 0 --install -- -- -j 16'
+alias b1 'rez build --build-target RelWithDebInfo --variants 1 --install -- -- -j 16'
+alias b2 'rez build --build-target RelWithDebInfo --variants 2 --install -- -- -j 16'
+alias b3 'rez build --build-target RelWithDebInfo --variants 3 --install -- -- -j 16'
+alias b4 'rez build --build-target RelWithDebInfo --variants 4 --install -- -- -j 16'
+alias bc b
+alias bc0 b0
+alias bc1 b1
+alias bc2 b2
+alias bc3 b3
+alias bc4 b4
 
