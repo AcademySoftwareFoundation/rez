@@ -5,8 +5,36 @@ from rez.contrib.animallogic.launcher.setting import Setting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
 from rez.contrib.animallogic.launcher.exceptions import BakerError, RezResolverError
+from rez.contrib.animallogic.launcher.cli.bake import argparse_setting
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService
+from rez.vendor import argparse
 import rez.vendor.unittest2 as unittest
+
+
+class TestBakerCLI(unittest.TestCase):
+
+    def assert_setting(self, expected_name, expected_value, expected_setting_type, actual_setting):
+
+        self.assertEqual(expected_name, actual_setting.name)
+        self.assertEqual(expected_value, actual_setting.value)
+        self.assertEqual(expected_setting_type, actual_setting.setting_type)
+
+    def test_argparse_setting_with_type(self):
+
+        setting = argparse_setting("string:FOO=BAR")
+        self.assert_setting("FOO", "BAR", SettingType.string, setting)
+
+        setting = argparse_setting("package:FOO=BAR")
+        self.assert_setting("FOO", "BAR", SettingType.package, setting)
+
+    def test_argparse_setting_with_invalid_type(self):
+
+        self.assertRaises(argparse.ArgumentTypeError, argparse_setting, "invalid:FOO=BAR")
+
+    def test_argparse_setting_without_type(self):
+
+        setting = argparse_setting("FOO=BAR")
+        self.assert_setting("FOO", "BAR", SettingType.string, setting)
 
 
 class TestBaker(unittest.TestCase):

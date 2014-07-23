@@ -16,22 +16,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def argparse_setting(string):
+    try:
+        setting, value = string.split("=", 1)
+        bits = setting.split(":", 1)
+
+        name = bits[-1]
+        setting_type = SettingType['string']
+        if len(bits) == 2:
+            setting_type = SettingType[bits[0]]
+
+        return Setting(name, value, setting_type)
+
+    except:
+        raise argparse.ArgumentTypeError("must be in the format type:name=value.")
+
+
 def setup_parser(parser):
-
-    def argparse_setting(string):
-        try:
-            setting, value = string.split("=", 1)
-            bits = setting.split(":", 1)
-
-            name = bits[-1]
-            setting_type = SettingType['string']
-            if len(bits) == 2:
-                setting_type = SettingType[bits[0]]
-
-            return Setting(name, value, setting_type)
-
-        except:
-            raise argparse.ArgumentTypeError("must be in the format type:name=value.")
 
     parser.add_argument("--source", required=True, 
                         help="the source preset/toolset to bake.")
