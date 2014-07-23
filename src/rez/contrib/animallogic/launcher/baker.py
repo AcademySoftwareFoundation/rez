@@ -4,6 +4,7 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.exceptions import BakerError
 import datetime
 import getpass
+import time
 
 
 class Baker(object):
@@ -29,6 +30,10 @@ class Baker(object):
     def _strip_system_settings(self):
 
         self.settings = [setting for setting in self.settings if not setting.is_system_setting()]
+
+    def filter_settings(self, function):
+
+        self.settings = filter(function, self.settings)
 
     def apply_overrides(self, overrides):
 
@@ -59,9 +64,10 @@ class Baker(object):
     def _get_resolved_package_settings(self, max_fails=-1):
 
         package_requests = self.get_package_requests_from_settings()
+        timestamp = int(time.mktime(self.now.timetuple()))
 
         try:
-            return self.rez_service.get_resolved_settings_from_requirements(package_requests, max_fails=max_fails)
+            return self.rez_service.get_resolved_settings_from_requirements(package_requests, timestamp=timestamp, max_fails=max_fails)
         except Exception, e:
             raise BakerError(e)
 

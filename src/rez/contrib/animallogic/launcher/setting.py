@@ -41,3 +41,6 @@ class Setting(object):
 
         return self.name in self.SYSTEM_SETTING_NAMES
 
+    def is_package_setting(self):
+
+        return self.setting_type == SettingType.package

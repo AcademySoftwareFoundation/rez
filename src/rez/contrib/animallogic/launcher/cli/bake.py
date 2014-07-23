@@ -31,12 +31,14 @@ def setup_parser(parser):
                         help="the destination preset in which to store the result.")
     parser.add_argument("--description", 
                         help="a description for the new preset that is created.")
-    parser.add_argument("--resolve-packages", default=False, action='store_true',
-                        help="resolve packages found in the source setting.  This"
-                        "will also remove all version settings from the resulting preset.")
+    parser.add_argument("--skip-resolve", default=False, action='store_true',
+                        help="do not resolve packages found in the source setting."
+                        "This will cause package and version settings to be baked as-is.")
     parser.add_argument("--preserve-system-settings", default=False, action='store_true',
                         help="this will preserve protected system settings provided"
                         "by Launcher.  This option is dangerous and should be used with caution.")
+    parser.add_argument("--only-packages", default=False, action='store_true',
+                        help="discard all settings apare from those of type package.")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar="N",
                         help="Abort if the number of failed configuration "
@@ -50,10 +52,18 @@ def setup_parser(parser):
 
 def command(opts, parser):
 
-    bake(opts.source, opts.destination, opts.description, opts.overrides, opts.resolve_packages, opts.max_fails, opts.preserve_system_settings)
+    source = opts.source
+    description = opts.description
+
+    if not description:
+        description = "Preset automatically baked by Rez from %s." % source
+
+    bake(source, opts.destination, description, opts.overrides, opts.skip_resolve, 
+            opts.max_fails, opts.preserve_system_settings, opts.only_packages)
 
 
-def bake(source, destination, description, overrides, resolve_packages, max_fails, preserve_system_settings):
+def bake(source, destination, description, overrides, skip_resolve, 
+            max_fails, preserve_system_settings, only_packages):
 
     preset_proxy = client.HessianProxy(config.launcher_service_url + "/preset")
     toolset_proxy = client.HessianProxy(config.launcher_service_url + "/toolset")
@@ -74,7 +84,11 @@ def bake(source, destination, description, overrides, resolve_packages, max_fail
         display_settings(overrides)
         baker.apply_overrides(overrides)
 
-    if resolve_packages:
+    if only_packages:
+        logger.info("Removing non-package settings.")
+        baker.filter_settings(lambda x: x.is_package_setting())
+
+    if not skip_resolve:
         logger.info("Resolving package requests.")
         baker.resolve_package_settings(max_fails=max_fails)
 

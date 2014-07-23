@@ -30,11 +30,11 @@ class RezService(RezServiceInterface):
 
         return settings
 
-    def get_resolved_settings_from_requirements(self, requirements, max_fails=-1):
+    def get_resolved_settings_from_requirements(self, requirements, timestamp=None, max_fails=-1):
 
         package_paths = [config.release_packages_path]
 
-        resolved_context = ResolvedContext(requirements, package_paths, max_fails=max_fails)
+        resolved_context = ResolvedContext(requirements, package_paths, timestamp=timestamp, max_fails=max_fails)
 
         if resolved_context.status == ResolverStatus.solved:
             return self._get_package_settings_from_resolved_context(resolved_context)
