@@ -26,8 +26,8 @@ def get_command_function_from_module(module_name):
     return getattr(module, 'command')
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
 
     module_name = "rez.contrib.animallogic.ide.cli.%s" % opts.ide_subcommand
     func = get_command_function_from_module(module_name)
-    func(opts, parser)
+    func(opts, parser, extra_arg_groups)

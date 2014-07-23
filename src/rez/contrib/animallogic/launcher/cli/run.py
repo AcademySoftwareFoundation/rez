@@ -7,6 +7,6 @@ def setup_parser(parser):
 
     pass
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
 
     pass

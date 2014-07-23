@@ -61,7 +61,7 @@ def setup_parser(parser):
                         'have been retrieved from Launcher, and not before.')
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
 
     source = opts.source
     description = opts.description
