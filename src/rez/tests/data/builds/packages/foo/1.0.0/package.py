@@ -6,7 +6,7 @@ description = "foo thing"
 
 build_requires = ["floob"]
 
-private_build_requires = ["build_util", "python"]
+private_build_requires = ["build_util"]
 
 def commands():
     env.PYTHONPATH.append('{root}/python')

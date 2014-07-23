@@ -15,7 +15,7 @@ def setup_parser(parser):
                         help="Context files to add to the suite")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
     from rez.env import get_context_file
 

@@ -2,6 +2,7 @@ import os
 import os.path
 import sys
 import re
+from rez import __version__
 from rez.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.util import propertycache
@@ -49,6 +50,11 @@ class System(object):
         return ["platform-%s" % self.platform,
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
+
+    @property
+    def rez_version(self):
+        """Returns the current version of Rez."""
+        return __version__
 
     # TODO move shell detection into shell plugins
     @propertycache

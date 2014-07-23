@@ -25,7 +25,7 @@ def setup_parser(parser):
                         "Use '-h' to show help for the module")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     # gather the params
     intsall_path = (config.local_packages_path if opts.install_path is None
                     else opts.install_path)

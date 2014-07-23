@@ -7,6 +7,7 @@ import atexit
 import os
 import os.path
 import shutil
+import copy
 import time
 import posixpath
 import ntpath
@@ -246,21 +247,22 @@ def get_close_matches(term, fields, fuzziness=0.4, key=None):
             if r >= (1.0 - fuzziness):
                 matches.append((field, min(r, 0.99)))
 
-    return sorted(matches, key=lambda x:-x[1])
+    return sorted(matches, key=lambda x: -x[1])
 
 
 # fuzzy string matching on package names, such as 'boost', 'numpy-3.4'
 def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
     matches = get_close_matches(pkg, pkgs, fuzziness=fuzziness)
-    fam_matches = get_close_matches(pkg.split('-')[0], pkgs, \
-        fuzziness=fuzziness, key=lambda x:x.split('-')[0])
+    fam_matches = get_close_matches(pkg.split('-')[0], pkgs,
+                                    fuzziness=fuzziness,
+                                    key=lambda x: x.split('-')[0])
 
     d = {}
-    for pkg_,r in (matches + fam_matches):
+    for pkg_, r in (matches + fam_matches):
         d[pkg_] = d.get(pkg_, 0.0) + r
 
-    combined = [(k,v*0.5) for k,v in d.iteritems()]
-    return sorted(combined, key=lambda x:-x[1])
+    combined = [(k, v * 0.5) for k, v in d.iteritems()]
+    return sorted(combined, key=lambda x: -x[1])
 
 
 def columnise(rows, padding=2):
@@ -268,30 +270,50 @@ def columnise(rows, padding=2):
     maxwidths = {}
 
     for row in rows:
-        for i,e in enumerate(row):
+        for i, e in enumerate(row):
             se = str(e)
             nse = len(se)
-            w = maxwidths.get(i,-1)
+            w = maxwidths.get(i, -1)
             if nse > w:
                 maxwidths[i] = nse
 
     for row in rows:
         s = ''
-        for i,e in enumerate(row):
+        for i, e in enumerate(row):
             se = str(e)
-            if i < len(row)-1:
+            if i < len(row) - 1:
                 n = maxwidths[i] + padding - len(se)
-                se += ' '*n
+                se += ' ' * n
             s += se
         strs.append(s)
     return strs
+
+
+def pretty_dict(d):
+    def _lit(value):
+        if isinstance(value, dict):
+            value = dict((k, _lit(v)) for k, v in value.iteritems())
+        elif isinstance(value, list):
+            value = [_lit(x) for x in value]
+        elif isinstance(value, basestring) and '\n' in value:
+            value = yaml_literal(value)
+        return value
+
+    data = _lit(d)
+    txt = yaml.dump(data, default_flow_style=False)
+    return txt.strip()
+
 
 def pretty_env_dict(d):
     rows = [x for x in sorted(d.iteritems())]
     return '\n'.join(columnise(rows))
 
+
 def readable_time_duration(secs, approx=True, approx_thresh=0.001):
-    divs = ((24 * 60 * 60, "days"), (60 * 60, "hours"), (60, "minutes"), (1, "seconds"))
+    divs = ((24 * 60 * 60, "days"),
+            (60 * 60, "hours"),
+            (60, "minutes"),
+            (1, "seconds"))
 
     if secs == 0:
         return "0 seconds"
@@ -323,7 +345,10 @@ def get_epoch_time_from_str(s):
 
     try:
         if s.startswith('-'):
-            chars = {'d':24*60*60, 'h':60*60, 'm':60, 's':1}
+            chars = {'d': 24 * 60 * 60,
+                     'h': 60 * 60,
+                     'm': 60,
+                     's': 1}
             m = chars.get(s[-1])
             if m:
                 n = float(s[1:-1])
@@ -333,7 +358,7 @@ def get_epoch_time_from_str(s):
     except:
         pass
 
-    raise Exception("'%s' is an unrecognised time format." % s)
+    raise ValueError("'%s' is an unrecognised time format." % s)
 
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
@@ -804,12 +829,15 @@ def dicts_conflicting(dict1, dict2):
 
 
 def deep_update(dict1, dict2):
-    """Perform a deep merge of dict2 into dict1."""
+    """Perform a deep merge of `dict2` into `dict1`.
+
+    Note that `dict2` and any nested dicts are unchanged.
+    """
     for k, v in dict2.iteritems():
         if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
             deep_update(dict1[k], v)
         else:
-            dict1[k] = v
+            dict1[k] = copy.deepcopy(v)
 
 
 class propertycache(object):
@@ -1493,79 +1521,6 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             qual_words.append("%s.%s" % (qual_word, word))
 
     return qual_words
-
-
-# returns (filepath, must_cleanup)
-def write_graph(graph_str, dest_file=None, prune_pkg=None):
-    tmp_dir = None
-    cleanup = True
-
-    if dest_file:
-        cleanup = False
-    else:
-        from rez.env import get_context_file
-        from rez.config import config
-        fmt = config.dot_image_format
-
-        current_rxt_file = get_context_file()
-        if current_rxt_file:
-            tmp_dir = os.path.dirname(current_rxt_file)
-            if not os.path.exists(tmp_dir):
-                tmp_dir = None
-
-        if tmp_dir:
-            # hijack current env's tmpdir, so we don't have to clean up
-            from uuid import uuid4
-            name = "resolve-dot-%s.%s" % (uuid4().hex, fmt)
-            dest_file = os.path.join(tmp_dir, name)
-            cleanup = False
-        else:
-            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
-            os.close(tmpf[0])
-            dest_file = tmpf[1]
-
-    from rez.dot import save_graph
-    print "rendering image to " + dest_file + "..."
-    save_graph(graph_str, dest_file, prune_to_package=prune_pkg,
-               prune_to_conflict=False)
-    return dest_file, cleanup
-
-
-def view_graph(graph_str, dest_file=None, prune_pkg=None):
-    from rez.system import system
-    from rez.config import config
-
-    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
-        print >> sys.stderr, "Unable to open display."
-        sys.exit(1)
-
-    dest_file, cleanup = write_graph(graph_str, dest_file=dest_file,
-                                     prune_pkg=prune_pkg)
-
-    # view graph
-    t1 = time.time()
-    viewed = False
-    prog = config.image_viewer or 'browser'
-    print "loading image viewer (%s)..." % prog
-
-    if config.image_viewer:
-        proc = subprocess.Popen((config.image_viewer, dest_file))
-        proc.wait()
-        viewed = not bool(proc.returncode)
-
-    if not viewed:
-        import webbrowser
-        webbrowser.open_new("file://" + dest_file)
-
-    """
-    if cleanup:
-        # hacky - gotta delete tmp file, but hopefully not before app has loaded it
-        t2 = time.time()
-        if (t2 - t1) < 1:  # viewer is probably non-blocking
-            # give app a chance to load image
-            time.sleep(10)
-        os.remove(dest_file)
-    """
 
 
 @atexit.register

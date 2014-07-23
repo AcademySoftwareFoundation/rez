@@ -6,10 +6,6 @@ import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.resources import clear_caches
-import rez.bind.platform
-import rez.bind.arch
-import rez.bind.os
-import rez.bind.python
 import shutil
 import os.path
 
@@ -24,12 +20,7 @@ class TestBuild(TestBase, TempdirMixin):
         packages_path = os.path.join(path, "data", "builds", "packages")
         cls.src_root = os.path.join(cls.root, "src", "packages")
         cls.install_root = os.path.join(cls.root, "packages")
-
         shutil.copytree(packages_path, cls.src_root)
-        rez.bind.platform.bind(cls.install_root)
-        rez.bind.arch.bind(cls.install_root)
-        rez.bind.os.bind(cls.install_root)
-        rez.bind.python.bind(cls.install_root)
 
         cls.settings = dict(
             packages_path=[cls.install_root],

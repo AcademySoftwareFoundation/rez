@@ -1,0 +1,6 @@
+name: foo
+version: '1.0'
+authors:
+- joe.bloggs
+uuid: '9982b60993af4a4d89e8372472a49d02'
+description: 'foo type thing'

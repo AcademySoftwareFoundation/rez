@@ -4,7 +4,7 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     PackageMetadataError
-from rez.util import propertycache, deep_update, print_warning
+from rez.util import propertycache, deep_update, print_warning, print_error
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
@@ -206,16 +206,9 @@ class BasePackageResource(FileResource):
                     or config.error_package_name_mismatch:
                 raise SchemaError(None, msg)
             elif config.warn("package_name_mismatch"):
-                print_warning("%s: %s" % (self.path, msg))
-        return name
+                print_error("%s: %s" % (self.path, msg))
 
-    def custom_key(self, value):
-        msg = "custom key in root of package definition."
-        if config.disable_rez_1_compatibility or config.error_root_custom_key:
-            raise SchemaError(None, msg)
-        elif config.warn("root_custom_key"):
-            print_warning("%s: %s" % (self.path, msg))
-        return True
+        return name
 
     def new_rex_command(self, value):
         msg = "'commands2' section in package definition"
@@ -259,7 +252,7 @@ class BasePackageResource(FileResource):
 
             # custom keys
             Optional('custom'):                 dict,
-            Optional(basestring):               self.custom_key,
+            Optional(basestring):               object,
 
             # a dict for internal use
             Optional('_internal'):              dict,
@@ -284,6 +277,7 @@ class BasePackageResource(FileResource):
             if timestamp:
                 data["timestamp"] = timestamp
 
+<<<<<<< HEAD
 #        # graft on old-style changelog, if necessary
 #        if "changelog" not in data:
 #            changelog = self._load_component("release.changelog")
@@ -404,14 +398,14 @@ class VersionedPackageResource(BasePackageResource):
                         or config.error_version_mismatch:
                     raise SchemaError(None, msg)
                 elif config.warn("version_mismatch"):
-                    print_warning("%s: %s" % (self.path, msg))
+                    print_error("%s: %s" % (self.path, msg))
         else:
             msg = "version must be a string"
             if config.disable_rez_1_compatibility \
                     or config.error_nonstring_version:
                 raise SchemaError(None, msg)
             elif config.warn("nonstring_version"):
-                print_warning("%s: %s" % (self.path, msg))
+                print_error("%s: %s" % (self.path, msg))
         return Version(version_str)
 
     @propertycache
@@ -464,7 +458,7 @@ class CombinedPackageFamilyResource(BasePackageResource):
                                                            And([basestring],
                                                                Use(self.convert_to_rex))),
                     Optional('custom'):                 object,
-                    Optional(basestring):               self.custom_key
+                    Optional(basestring):               object
                 }
             })])
 
@@ -539,7 +533,8 @@ class DeveloperPackageResource(BasePackageResource):
     def schema(self):
         schema = super(DeveloperPackageResource, self).schema
         return _updated_schema(schema,
-                               [(Required('name'), basestring),
+                               [(Required('name'), And(basestring,
+                                                       PACKAGE_NAME_REGEX.match)),
                                 (Required('version'), Use(Version)),
                                 (Required('description'),
                                     And(basestring, Use(string.strip))),

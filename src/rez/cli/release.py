@@ -7,7 +7,6 @@ import sys
 
 def setup_parser(parser):
     from rez.cli.build import setup_parser_common
-    from rez.cli.build import add_extra_build_args, add_build_system_args
     from rez.release_vcs import get_release_vcs_types
     vcs_types = get_release_vcs_types()
 
@@ -19,25 +18,22 @@ def setup_parser(parser):
                         action="store_true",
                         help="allows release of version earlier than the "
                         "latest release.")
-    add_extra_build_args(parser)
-    add_build_system_args(parser)
-#    setup_parser_common(parser)
+    setup_parser_common(parser)
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
-    from rez.cli.build import parse_build_args
+    from rez.cli.build import get_build_args
 
     working_dir = os.getcwd()
-
-    build_args, child_build_args = parse_build_args(opts.BUILD_ARG, parser)
 
     # create vcs
     vcs = create_release_vcs(working_dir, opts.vcs)
 
     # create build system
+    build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
     buildsys = create_build_system(working_dir,
                                    buildsys_type=buildsys_type,
@@ -52,5 +48,4 @@ def command(opts, parser):
                                           vcs=vcs,
                                           ensure_latest=(not opts.no_latest),
                                           release_message=opts.message)
-    if not builder.release():
-        sys.exit(1)
+    builder.release()

@@ -8,19 +8,10 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
+from rez import __version__
 from rez.config import config
-
-
-def write_graph(graph_str, opts):
-    from rez.util import write_graph
-    write_graph(graph_str, dest_file=opts.write_graph,
-                prune_pkg=opts.prune_pkg)
-
-
-def view_graph(graph_str, opts):
-    from rez.util import view_graph
-    view_graph(graph_str, dest_file=opts.write_graph,
-               prune_pkg=opts.prune_pkg)
+from rez.dot import write_graph, view_graph, prune_graph
+from rez.vendor.version.requirement import Requirement
 
 
 def print_tools(rc):
@@ -76,7 +67,7 @@ def setup_parser(parser):
                         help="rex context file (current context if not supplied)")
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     from rez.env import get_context_file
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
@@ -85,7 +76,7 @@ def command(opts, parser):
     rxt_file = opts.FILE if opts.FILE else get_context_file()
     if not rxt_file:
         print >> sys.stderr, "running Rez v%s.\n" \
-            "not in a resolved environment context.\n" % __version__
+            "not in a resolved environment context." % __version__
         sys.exit(1)
 
     rc = ResolvedContext.load(rxt_file)
@@ -116,12 +107,13 @@ def command(opts, parser):
         elif opts.print_graph:
             gstr = _graph()
             print gstr
-        elif opts.graph:
+        elif opts.graph or opts.write_graph:
             gstr = _graph()
-            view_graph(gstr, opts)
-        elif opts.write_graph:
-            gstr = _graph()
-            write_graph(gstr, opts)
+            if opts.prune_pkg:
+                req = Requirement(opts.prune_pkg)
+                gstr = prune_graph(gstr, req.name)
+            func = view_graph if opts.graph else write_graph
+            func(gstr, dest_file=opts.write_graph)
         else:
             rc.print_info(verbose=opts.verbose)
         return

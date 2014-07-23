@@ -15,6 +15,8 @@ def setup_parser(parser):
                         help="test the rex command generator API")
     parser.add_argument("--build", action="store_true",
                         help="test the build system")
+    parser.add_argument("--release", action="store_true",
+                        help="test the release system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
     parser.add_argument("--resources", action="store_true",
@@ -23,6 +25,8 @@ def setup_parser(parser):
                         help="test package iteration and serialization")
     parser.add_argument("--config", action="store_true",
                         help="test configuration settings")
+    parser.add_argument("--completion", action="store_true",
+                        help="test completions")
     parser.add_argument("--animallogic", action="store_true",
                         help="test animal logic customisations")
     parser.add_argument("--launcher", action="store_true",
@@ -35,10 +39,10 @@ def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "context", "resources", "packages", "config", "animallogic", 
-             "launcher", "unleash"]
+             "release", "context", "resources", "packages", "config",
+             "completion", "animallogic", "launcher", "unleash"]
     suites = []
-    test_all = all([not getattr(opts, test) for test in tests])
+    test_all = all(not getattr(opts, test) for test in tests)
 
     for test in tests:
         if test_all or getattr(opts, test):
@@ -49,7 +53,7 @@ def get_suites(opts):
     return suites
 
 
-def command(opts, parser):
+def command(opts, parser, extra_arg_groups=None):
     import unittest
     import sys
     import os
