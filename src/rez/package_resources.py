@@ -277,7 +277,6 @@ class BasePackageResource(FileResource):
             if timestamp:
                 data["timestamp"] = timestamp
 
-<<<<<<< HEAD
 #        # graft on old-style changelog, if necessary
 #        if "changelog" not in data:
 #            changelog = self._load_component("release.changelog")
