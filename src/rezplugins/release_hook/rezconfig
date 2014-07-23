@@ -11,6 +11,32 @@ emailer:
     # List of recipients of post-release emails.
     recipients: []
 
+    # Message format. Available objects for formatting are:
+    # - package: The package that is being released.
+    # - system: The system object.
+    # - release: Namespace for info about the current release, contains:
+    #   - path: Installation path of release.
+    #   - message: Release message.
+    #   - changelog: Release changelog.
+    #   - previous_version: Version of previous release.
+    body: |
+        Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
+
+        USER: {system.user}
+        PACKAGE: {package.qualified_name}
+        RELEASED TO: {release.path}
+        PREVIOUS VERSION: {release.previous_version}
+        REZ VERSION: {system.rez_version}
+
+        MESSAGE:
+        {release.message}
+
+        CHANGELOG:
+        {release.changelog}
+
+    # Subject format - supports the same object formatting available in 'body'
+    subject: '[rez] [release] {system.user} released {package.qualified_name}'
+
 command:
     # If true, print the commands that are being run
     print_commands: true

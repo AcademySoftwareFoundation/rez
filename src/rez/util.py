@@ -289,6 +289,21 @@ def columnise(rows, padding=2):
     return strs
 
 
+def pretty_dict(d):
+    def _lit(value):
+        if isinstance(value, dict):
+            value = dict((k, _lit(v)) for k, v in value.iteritems())
+        elif isinstance(value, list):
+            value = [_lit(x) for x in value]
+        elif isinstance(value, basestring) and '\n' in value:
+            value = yaml_literal(value)
+        return value
+
+    data = _lit(d)
+    txt = yaml.dump(data, default_flow_style=False)
+    return txt.strip()
+
+
 def pretty_env_dict(d):
     rows = [x for x in sorted(d.iteritems())]
     return '\n'.join(columnise(rows))

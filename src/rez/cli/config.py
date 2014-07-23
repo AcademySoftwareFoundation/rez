@@ -10,9 +10,7 @@ def setup_parser(parser):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.util import AttrDictWrapper
-    from rez.config import _PluginConfigs
-    from rez.vendor import yaml
+    from rez.util import pretty_dict
 
     data = config.data
     if opts.FIELD:
@@ -26,7 +24,6 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        txt = yaml.dump(data, default_flow_style=False)
-        print txt.strip()
+        print pretty_dict(data)
     else:
         print data
