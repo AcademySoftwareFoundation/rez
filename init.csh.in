@@ -21,7 +21,7 @@ endif
 setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
 
 # Add some alias for Rez to use.
-alias b 'rez build --build-target RelWithDebInfo --install --  -- -j 16'
+alias b 'rez build --build-target RelWithDebInfo --install -- -- -j 16'
 alias b0 'rez build --build-target RelWithDebInfo --variants 0 --install -- -- -j 16'
 alias b1 'rez build --build-target RelWithDebInfo --variants 1 --install -- -- -j 16'
 alias b2 'rez build --build-target RelWithDebInfo --variants 2 --install -- -- -j 16'
