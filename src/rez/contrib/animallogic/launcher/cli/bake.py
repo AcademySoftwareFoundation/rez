@@ -18,12 +18,20 @@ logger = logging.getLogger(__name__)
 
 def setup_parser(parser):
 
-    def argparse_setting_type(string):
+    def argparse_setting(string):
         try:
-            name, value = string.split("=")
-            return Setting(name, value, SettingType.string)
+            setting, value = string.split("=", 1)
+            bits = setting.split(":", 1)
+
+            name = bits[-1]
+            setting_type = SettingType['string']
+            if len(bits) == 2:
+                setting_type = SettingType[bits[0]]
+
+            return Setting(name, value, setting_type)
+
         except:
-            raise argparse.ArgumentTypeError("must be in the format name=value.")
+            raise argparse.ArgumentTypeError("must be in the format type:name=value.")
 
     parser.add_argument("--source", required=True, 
                         help="the source preset/toolset to bake.")
@@ -41,13 +49,15 @@ def setup_parser(parser):
                         help="discard all settings apare from those of type package.")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar="N",
-                        help="Abort if the number of failed configuration "
-                        "attempts exceeds N")
-    parser.add_argument("--overrides", default=[], nargs='+', metavar='name=value', 
-                        type=argparse_setting_type,
+                        help="abort if the number of failed configuration attempts"
+                        "exceeds N")
+    parser.add_argument("--overrides", default=[], nargs='+', metavar='type:name=value', 
+                        type=argparse_setting,
                         help='overrides that can be applied to the settings retrieved'
-                        'from Launcher.  Each override must be of the form name=value'
-                        'and all settings will be created as type string.')
+                        'from Launcher.  Each override must be of the form type:name=value'
+                        'however if type is not specified the setting will be created'
+                        'as type string.  Note these overrides apply *after* the settings'
+                        'have been retrieved from Launcher, and not before.')
 
 
 def command(opts, parser):
