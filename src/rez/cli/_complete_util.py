@@ -35,7 +35,6 @@ def ConfigCompleter(prefix, **kwargs):
 
 def PackageCompleter(prefix, **kwargs):
     from rez.packages import get_completions
-    c = get_completions(prefix)
     return get_completions(prefix)
 
 
@@ -47,13 +46,14 @@ def ExecutablesCompleter(prefix, **kwargs):
     programs = set()
 
     for path in paths:
-        for name in os.listdir(path):
-            if name.startswith(prefix):
-                filepath = os.path.join(path, name)
-                if os.path.isfile(filepath):
-                    perms = os.stat(filepath).st_mode
-                    if perms & (S_IXUSR | S_IXGRP | S_IXOTH):
-                        programs.add(name)
+        if os.path.isdir(path):
+            for name in os.listdir(path):
+                if name.startswith(prefix):
+                    filepath = os.path.join(path, name)
+                    if os.path.isfile(filepath):
+                        perms = os.stat(filepath).st_mode
+                        if perms & (S_IXUSR | S_IXGRP | S_IXOTH):
+                            programs.add(name)
     return programs
 
 
@@ -100,14 +100,36 @@ class FilesCompleter(object):
         return filepaths
 
 
-class AndCompleter(object):
+class CombinedCompleter(object):
     def __init__(self, completer, *completers):
         self.completers = [completer]
         self.completers += list(completers)
 
+
+class AndCompleter(CombinedCompleter):
     def __call__(self, prefix, **kwargs):
         words = set()
         for completer in self.completers:
             words_ = set(completer(prefix, **kwargs))
             words |= words_
         return words
+
+
+class SequencedCompleter(CombinedCompleter):
+    def __init__(self, arg, completer, *completers):
+        super(SequencedCompleter, self).__init__(completer, *completers)
+        self.arg = arg
+
+    def __call__(self, prefix, **kwargs):
+        opts = kwargs.get("parsed_args")
+        if opts and hasattr(opts, self.arg):
+            value = getattr(opts, self.arg)
+            if isinstance(value, list):
+                i = len(value)
+                try:
+                    completer = self.completers[i]
+                except:
+                    completer = self.completers[-1]
+                return completer(prefix, **kwargs)
+
+        return []

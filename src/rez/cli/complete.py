@@ -13,7 +13,11 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.vendor.argcomplete.completers import ChoicesCompleter
     from rez.cli._util import subcommands, hidden_subcommands
+    from rez.util import timings
     import os
+    import re
+
+    timings.enabled = False
 
     # get comp info from environment variables
     comp_line = os.getenv("COMP_LINE", "")
@@ -60,6 +64,20 @@ def command(opts, parser, extra_arg_groups=None):
     if subcommand not in subcommands:
         return
 
+    # replace '--' with special '--N#' flag so that subcommands can specify
+    # custom completions.
+    regex = re.compile("\s--\s")
+    ddashes = regex.findall(comp_line)
+    for i, ddash in enumerate(ddashes):
+        j = comp_line.find(ddash)
+        while comp_line[j] != "-":
+            j += 1
+        j += 2
+        s = "N%d" % i
+        comp_line = comp_line[:j] + s + comp_line[j:]
+        if comp_point >= j:
+            comp_point += len(s)
+
     # create parser for subcommand
     from rez.backport.importlib import import_module
     module_name = "rez.cli.%s" % subcommand
@@ -67,7 +85,7 @@ def command(opts, parser, extra_arg_groups=None):
     parser = argparse.ArgumentParser()
     mod.setup_parser(parser, completions=True)
 
-    # have to massage comp a little so argcomplete behaves
+    # have to massage input a little so argcomplete behaves
     cmd = "rez-%s" % subcommand
     comp_line = cmd + comp_line
     comp_point += len(cmd)

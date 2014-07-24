@@ -8,6 +8,7 @@ import os.path
 
 
 def setup_parser(parser, completions=False):
+    from rez.vendor.argparse import SUPPRESS
     from rez.system import system
     from rez.shells import get_shell_types
     shells = get_shell_types()
@@ -60,13 +61,18 @@ def setup_parser(parser, completions=False):
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
         help='packages to use in the target environment')
+    extra_0_action = parser.add_argument(  # args after --
+        "--N0", dest="extra_0", nargs='*',
+        help=SUPPRESS)
 
     if completions:
         from rez.cli._complete_util import PackageCompleter, FilesCompleter, \
-            ExecutablesCompleter, AndCompleter
+            ExecutablesCompleter, AndCompleter, SequencedCompleter
         command_action.completer = AndCompleter(ExecutablesCompleter, FilesCompleter())
         input_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
         PKG_action.completer = PackageCompleter
+        extra_0_action.completer = SequencedCompleter(
+            "extra_0", ExecutablesCompleter, FilesCompleter())
 
 
 def command(opts, parser, extra_arg_groups=None):
