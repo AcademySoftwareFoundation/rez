@@ -6,42 +6,76 @@ from rez.vendor import argparse
 __doc__ = argparse.SUPPRESS
 
 
-def setup_parser(parser):
-    parser.add_argument("-t", "--type", dest="type", type=str,
-                        default="package", choices=("package", "config"),
-                        help="type of completion")
-    parser.add_argument("-c", "--command-line", dest="command_line",
-                        metavar="VARIABLE", type=str,
-                        help="assume the current command line is stored in "
-                        "the given environment variable, and base completion "
-                        "on this, rather than PREFIX")
-    parser.add_argument("PREFIX", type=str, nargs='?',
-                        help="prefix for completion")
+def setup_parser(parser, completions=False):
+    pass
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.util import timings
-    from rez.config import config
+    from rez.vendor.argcomplete.completers import ChoicesCompleter
+    from rez.cli._util import subcommands, hidden_subcommands
+    import os
 
-    words = []
-    timings.enabled = False
-    config.override("quiet", True)
+    # get comp info from environment variables
+    comp_line = os.getenv("COMP_LINE", "")
+    comp_point = os.getenv("COMP_POINT", "")
+    try:
+        comp_point = int(comp_point)
+    except:
+        comp_point = len(comp_line)
 
-    if opts.command_line:
-        import os
-        line = os.getenv(opts.command_line, '')
-        toks = line.strip().split()
-        if len(toks) > 1:
-            prefix = toks[-1]
-        else:
-            prefix = ''
+    last_word = comp_line.split()[-1]
+    if comp_line.endswith(last_word):
+        prefix = last_word
     else:
-        prefix = opts.PREFIX or ''
+        prefix = None
 
-    if opts.type == "package":
-        from rez.packages import get_completions
-        words = get_completions(prefix)
-    elif opts.type == "config":
-        words = config.get_completions(prefix)
+    def _pop_arg(l, p):
+        words = l.split()
+        arg = None
+        if words:
+            arg = words[0]
+            l_ = l.lstrip()
+            p -= (len(l) - len(l_) + len(arg))
+            l = l_[len(arg):]
+            return l, p, arg
+        return l, p, arg
 
-    print ' '.join(words)
+    # determine subcommand, possibly give subcommand completion
+    subcommand = None
+    comp_line, comp_point, cmd = _pop_arg(comp_line, comp_point)
+    if cmd in ("rez", "rezolve"):
+        comp_line, comp_point, arg = _pop_arg(comp_line, comp_point)
+        if arg:
+            if prefix != arg:
+                subcommand = arg
+    else:
+        subcommand = cmd.split("-", 1)[-1]
+
+    if subcommand is None:
+        cmds = set(subcommands) - set(hidden_subcommands)
+        if prefix:
+            cmds = (x for x in cmds if x.startswith(prefix))
+        print " ".join(cmds)
+
+    if subcommand not in subcommands:
+        return
+
+    # create parser for subcommand
+    from rez.backport.importlib import import_module
+    module_name = "rez.cli.%s" % subcommand
+    mod = import_module(module_name)
+    parser = argparse.ArgumentParser()
+    mod.setup_parser(parser, completions=True)
+
+    # have to massage comp a little so argcomplete behaves
+    cmd = "rez-%s" % subcommand
+    comp_line = cmd + comp_line
+    comp_point += len(cmd)
+
+    # generate the completions
+    from rez.cli._complete_util import RezCompletionFinder
+    completer = RezCompletionFinder(parser=parser,
+                                    comp_line=comp_line,
+                                    comp_point=comp_point)
+    words = completer.completions
+    print " ".join(words)

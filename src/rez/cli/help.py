@@ -18,7 +18,7 @@ import sys
 _verbose = False
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("pkg", metavar='PACKAGE', nargs='?',
                         help="package name")
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",

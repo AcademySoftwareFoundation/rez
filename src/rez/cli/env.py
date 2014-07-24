@@ -7,22 +7,23 @@ import os
 import os.path
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     from rez.system import system
     from rez.shells import get_shell_types
     shells = get_shell_types()
 
-    parser.add_argument("--shell", dest="shell", type=str,
-                        choices=shells, default=system.shell,
+    parser.add_argument("--shell", dest="shell", type=str, choices=shells,
+                        default=system.shell,
                         help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
                         "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
-    parser.add_argument("-c", "--command", type=str,
-                        help="read commands from string. Alternatively, list "
-                        "command arguments after a '--'")
+    command_action = parser.add_argument(
+        "-c", "--command", type=str,
+        help="read commands from string. Alternatively, list command arguments "
+        "after a '--'")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -50,13 +51,21 @@ def setup_parser(parser):
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "
                         "also store a failed resolve")
-    parser.add_argument("-i", "--input", type=str, metavar="FILE",
-                        help="use a previously saved context. Resolve settings, "
-                        "such as PKG, --ni etc are ignored in this case")
+    input_action = parser.add_argument(
+        "-i", "--input", type=str, metavar="FILE",
+        help="use a previously saved context. Resolve settings, such as PKG, "
+        "--ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode")
-    parser.add_argument("PKG", type=str, nargs='*',
-                        help='packages to use in the target environment')
+    PKG_action = parser.add_argument(
+        "PKG", type=str, nargs='*',
+        help='packages to use in the target environment')
+
+    if completions:
+        from rez.cli._complete_util import PackageCompleter, FilesCompleter
+        command_action.completer = FilesCompleter()
+        input_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        PKG_action.completer = PackageCompleter
 
 
 def command(opts, parser, extra_arg_groups=None):

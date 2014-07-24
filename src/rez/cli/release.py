@@ -5,7 +5,7 @@ import os
 import sys
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     from rez.cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
     vcs_types = get_release_vcs_types()

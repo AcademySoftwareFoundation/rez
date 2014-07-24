@@ -4,15 +4,20 @@ Create a tool suite from one or more context files
 import os.path
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("-p", "--prefix", type=str,
                         help="Tools prefix")
     parser.add_argument("-s", "--suffix", type=str,
                         help="Tools suffix")
     parser.add_argument("DEST", type=str,
                         help="Directory to write the suite into")
-    parser.add_argument("RXT", type=str, nargs='*',
-                        help="Context files to add to the suite")
+    RXT_action = parser.add_argument(
+        "RXT", type=str, nargs='*',
+        help="Context files to add to the suite")
+
+    if completions:
+        from rez.cli._complete_util import FilesCompleter
+        RXT_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
 
 
 def command(opts, parser, extra_arg_groups=None):

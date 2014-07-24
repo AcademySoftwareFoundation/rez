@@ -2,7 +2,8 @@
 Execute some Rex code and print the interpreted result.
 '''
 
-def setup_parser(parser):
+
+def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
     from rez.system import system
 
@@ -16,14 +17,22 @@ def setup_parser(parser):
                         % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the code in an empty environment")
-    parser.add_argument("--pv", "--parent-variables", dest="parent_vars",
-                        type=str, metavar='VARS',
-                        help="comma-seperated list of environment variables to "
-                        "update rather than overwrite on first reference. If "
-                        "this is set to the special value 'all', all variables "
-                        "will be treated this way")
-    parser.add_argument("FILE", type=str,
-                        help='file containing rex code to execute')
+    pv_action = parser.add_argument(
+        "--pv", "--parent-variables", dest="parent_vars", type=str,
+        metavar='VAR', nargs='+',
+        help="environment variables to update rather than overwrite on first "
+        "reference. If this is set to the special value 'all', all variables "
+        "will be treated this way")
+    FILE_action = parser.add_argument(
+        "FILE", type=str,
+        help='file containing rex code to execute')
+
+    if completions:
+        from rez.cli._complete_util import FilesCompleter
+        from rez.vendor.argcomplete.completers import EnvironCompleter
+        pv_action.completer = EnvironCompleter
+        FILE_action.completer = FilesCompleter(dirs=False,
+                                               file_patterns=["*.py", "*.rex"])
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -46,10 +55,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.parent_vars == "all":
         parent_vars = True
-    elif opts.parent_vars:
-        parent_vars = [x for x in opts.parent_vars.split(',') if x]
     else:
-        parent_vars = None
+        parent_vars = opts.parent_vars
 
     ex = RexExecutor(interpreter=interp,
                      parent_environ=parent_env,

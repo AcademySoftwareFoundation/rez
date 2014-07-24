@@ -12,7 +12,7 @@ import fnmatch
 import sys
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     types_ = ("package", "family", "variant", "auto")
     parser.add_argument("-s", "--sort", action="store_true",
                         help="print results in sorted order")

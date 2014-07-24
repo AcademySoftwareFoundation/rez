@@ -5,6 +5,29 @@ import signal
 from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS
 
 
+subcommands = [
+    "bind",
+    "bootstrap",
+    "build",
+    "config",
+    "context",
+    "complete",
+    "env",
+    "forward",
+    "help",
+    "interpret",
+    "release",
+    "search",
+    "suite",
+    "test",
+    "tools"]
+
+
+hidden_subcommands = [
+    "complete",
+    "forward"]
+
+
 class LazySubParsersAction(_SubParsersAction):
     """Argparse Action which calls the `setup_subparser` function provided to
     `LazyArgumentParser`.

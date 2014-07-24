@@ -5,7 +5,7 @@ import sys
 import os.path
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
     from rez.system import system
     shells = get_shell_types()
