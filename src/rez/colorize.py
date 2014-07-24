@@ -183,10 +183,10 @@ def _get_style_from_config(key):
     return fore_color, back_color, styles
 
 
-class ColorizedConsoleFormatter(logging.Formatter):
-    """A formatter for use with the Python logger.
+class ColorizedStreamHandler(logging.StreamHandler):
+    """A stream handler for use with the Python logger.
 
-    This formatter uses the `Colorama`_ module to style the log messages based
+    This handler uses the `Colorama`_ module to style the log messages based
     on the rez configuration.
 
     Attributes:
@@ -196,6 +196,7 @@ class ColorizedConsoleFormatter(logging.Formatter):
     .. _Colorama:
         https://pypi.python.org/pypi/colorama
     """
+
     STYLES = {
         50: critical,
         40: error,
@@ -205,15 +206,43 @@ class ColorizedConsoleFormatter(logging.Formatter):
         0:  notset,
     }
 
-    def __init__(self, fmt=None, datefmt=None):
-        logging.Formatter.__init__(self, fmt=fmt, datefmt=datefmt)
+    @property
+    def is_tty(self):
+        """Return true if the stream associated with this handler is a tty 
+        stream.
+
+        Returns:
+            bool
+        """
+        isatty = getattr(self.stream, 'isatty', None)
+        return isatty and isatty()
 
     def _get_style_function_for_level(self, level):
         return self.STYLES.get(level, notset)
 
-    def format(self, record):
-        """ Extend the base implementation of this method to apply the
+    def emit(self, record):
+        """Emit a record.
+
+        If the stream associated with this handler provides tty then the record
+        that is emitted with be formatted to include escape sequences for 
         appropriate styling.
         """
-        style = self._get_style_function_for_level(record.levelno)
-        return style(logging.Formatter.format(self, record))
+
+        try:
+            message = self.format(record)
+
+            if not self.is_tty:
+                self.stream.write(message)
+
+            else:
+                style = self._get_style_function_for_level(record.levelno)
+                self.stream.write(style(message))
+
+            self.stream.write(getattr(self, 'terminator', '\n'))
+            self.flush()
+
+        except (KeyboardInterrupt, SystemExit):
+            raise
+
+        except:
+            self.handleError(record)
