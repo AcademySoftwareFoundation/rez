@@ -198,7 +198,7 @@ def get_rez_install_path():
 
 def _add_bootstrap_pkg_path(paths):
     bootstrap_path = get_bootstrap_path()
-    return paths[:] + [bootstrap_path]
+    return paths[:] + [bootstrap_path] if bootstrap_path else paths[:]
 
 
 def shlex_join(value):
