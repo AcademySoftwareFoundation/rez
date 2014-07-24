@@ -39,6 +39,24 @@ def PackageCompleter(prefix, **kwargs):
     return get_completions(prefix)
 
 
+def ExecutablesCompleter(prefix, **kwargs):
+    from stat import S_IXUSR, S_IXGRP, S_IXOTH
+
+    paths = os.getenv("PATH", "").split(os.path.pathsep)
+    paths = (x for x in paths if x)
+    programs = set()
+
+    for path in paths:
+        for name in os.listdir(path):
+            if name.startswith(prefix):
+                filepath = os.path.join(path, name)
+                if os.path.isfile(filepath):
+                    perms = os.stat(filepath).st_mode
+                    if perms & (S_IXUSR | S_IXGRP | S_IXOTH):
+                        programs.add(name)
+    return programs
+
+
 class FilesCompleter(object):
     def __init__(self, files=True, dirs=True, file_patterns=None):
         self.files = files
@@ -80,3 +98,16 @@ class FilesCompleter(object):
             path = path[n:]
         filepaths = (os.path.join(path, x) for x in matching_names)
         return filepaths
+
+
+class AndCompleter(object):
+    def __init__(self, completer, *completers):
+        self.completers = [completer]
+        self.completers += list(completers)
+
+    def __call__(self, prefix, **kwargs):
+        words = set()
+        for completer in self.completers:
+            words_ = set(completer(prefix, **kwargs))
+            words |= words_
+        return words

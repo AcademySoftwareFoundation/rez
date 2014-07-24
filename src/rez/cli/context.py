@@ -78,7 +78,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
 
     timings.enabled = False
-    rxt_file = opts.FILE if opts.FILE else get_context_file()
+    rxt_file = opts.RXT if opts.RXT else get_context_file()
     if not rxt_file:
         print >> sys.stderr, "running Rez v%s.\n" \
             "not in a resolved environment context." % __version__

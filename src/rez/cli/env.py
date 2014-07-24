@@ -62,8 +62,9 @@ def setup_parser(parser, completions=False):
         help='packages to use in the target environment')
 
     if completions:
-        from rez.cli._complete_util import PackageCompleter, FilesCompleter
-        command_action.completer = FilesCompleter()
+        from rez.cli._complete_util import PackageCompleter, FilesCompleter, \
+            ExecutablesCompleter, AndCompleter
+        command_action.completer = AndCompleter(ExecutablesCompleter, FilesCompleter())
         input_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
         PKG_action.completer = PackageCompleter
 
