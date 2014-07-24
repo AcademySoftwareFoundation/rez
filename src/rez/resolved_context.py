@@ -264,7 +264,6 @@ class ResolvedContext(object):
         def _pr(s='', style=None):
             if style and stream_is_tty(buf):
                 s = style(s)
-
             print >> buf, s
 
         def _rt(t):
@@ -276,7 +275,7 @@ class ResolvedContext(object):
 
         if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
             _pr("The context failed to resolve:\n%s"
-                         % self.failure_description, critical)
+                % self.failure_description, critical)
             return
 
         t_str = _rt(self.created)
