@@ -2,7 +2,7 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, error, heading, warning, local, implicit
+from rez.colorize import critical, heading, local, implicit, stream_is_tty
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, create_forwarding_script, \
@@ -271,7 +271,10 @@ class ResolvedContext(object):
     def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the resolved context.
         """
-        def _pr(s=''):
+        def _pr(s='', style=None):
+            if style and stream_is_tty(buf):
+                s = style(s)
+
             print >> buf, s
 
         def _rt(t):
@@ -282,8 +285,8 @@ class ResolvedContext(object):
                 return time.strftime("%a %b %d %H:%M:%S %Y", time.localtime(t))
 
         if self.status_ in (ResolverStatus.failed, ResolverStatus.aborted):
-            _pr(critical("The context failed to resolve:\n%s"
-                         % self.failure_description))
+            _pr("The context failed to resolve:\n%s"
+                         % self.failure_description, critical)
             return
 
         t_str = _rt(self.created)
@@ -295,16 +298,16 @@ class ResolvedContext(object):
         _pr()
 
         if verbose:
-            _pr(heading("search paths:"))
+            _pr("search paths:", heading)
             for path in self.package_paths:
                 _pr(path)
             _pr()
 
-        _pr(heading("requested packages:"))
+        _pr("requested packages:", heading)
         rows = []
         colors = []
         for request in self.package_requests:
-            col = str
+            col = None
             t = ''
             if request in self.implicit_packages:
                 t = "(implicit)"
@@ -313,15 +316,15 @@ class ResolvedContext(object):
             colors.append(col)
 
         for col, line in zip(colors, columnise(rows)):
-            _pr(col(line))
+            _pr(line, col)
         _pr()
 
-        _pr(heading("resolved packages:"))
+        _pr("resolved packages:", heading)
         rows = []
         colors = []
         for pkg in (self.resolved_packages or []):
             t = []
-            col = str
+            col = None
             if not os.path.exists(pkg.root):
                 t.append('NOT FOUND')
                 col = critical
@@ -333,11 +336,11 @@ class ResolvedContext(object):
             colors.append(col)
 
         for col, line in zip(colors, columnise(rows)):
-            _pr(col(line))
+            _pr(line, col)
 
         if verbose:
             _pr()
-            _pr(heading("resolve details:"))
+            _pr("resolve details:", heading)
             _pr("load time: %.02f secs" % self.load_time)
             actual_solve_time = self.solve_time - self.load_time
             _pr("solve time: %.02f secs" % actual_solve_time)

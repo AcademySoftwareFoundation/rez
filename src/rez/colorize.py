@@ -6,6 +6,16 @@ from rez.config import config
 colorama.init()
 
 
+def stream_is_tty(stream):
+    """Return true if the stream is a tty stream.
+
+    Returns:
+        bool
+    """
+    isatty = getattr(stream, 'isatty', None)
+    return isatty and isatty()
+
+
 def critical(str_):
     """ Return the string wrapped with the appropriate styling of a critical
     message.  The styling will be determined based on the rez configuration.
@@ -214,8 +224,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         Returns:
             bool
         """
-        isatty = getattr(self.stream, 'isatty', None)
-        return isatty and isatty()
+        return stream_is_tty(self.stream)
 
     def _get_style_function_for_level(self, level):
         return self.STYLES.get(level, notset)
