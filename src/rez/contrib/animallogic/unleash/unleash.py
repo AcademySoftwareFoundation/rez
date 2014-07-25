@@ -17,7 +17,7 @@ LAUNCHER_COMMAND = "/film/tools/launcher2CL/current/generic/launch-linux.sh"
 UNLEASH_FLAVOUR = config.unleash_flavour
 UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(__file__)
-UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "_unleasher")
+UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "bin", "_unleasher")
 USERNAME = os.getenv("USER")
 
 
