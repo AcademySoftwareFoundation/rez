@@ -104,7 +104,6 @@ class GitReleaseVCS(ReleaseVCS):
         if releasable_branches:
             releasable = False
             current_branch_name = self.get_local_branch()
-
             for releasable_branch in releasable_branches:
                 if re.search(releasable_branch, current_branch_name):
                     releasable = True
