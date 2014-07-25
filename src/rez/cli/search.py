@@ -12,7 +12,7 @@ import fnmatch
 import sys
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     types_ = ("package", "family", "variant", "auto")
     parser.add_argument("-s", "--sort", action="store_true",
                         help="print results in sorted order")
@@ -49,9 +49,13 @@ def setup_parser(parser):
                         help="only show packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
-    parser.add_argument("PKG", type=str, nargs='?',
-                        help="packages to search, glob-style patterns are "
-                        "supported")
+    PKG_action = parser.add_argument(
+        "PKG", type=str, nargs='?',
+        help="packages to search, glob-style patterns are supported")
+
+    if completions:
+        from rez.cli._complete_util import PackageCompleter
+        PKG_action.completer = PackageCompleter
 
 
 def command(opts, parser, extra_arg_groups=None):

@@ -2,7 +2,7 @@
 Run unit tests
 '''
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
     parser.add_argument("--solver", action="store_true",

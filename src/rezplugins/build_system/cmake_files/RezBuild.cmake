@@ -120,8 +120,6 @@ endmacro(rez_package_in_use pkg_string result)
 
 
 
-
-
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

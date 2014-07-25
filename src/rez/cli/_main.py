@@ -7,22 +7,8 @@ import pkgutil
 import textwrap
 from itertools import groupby
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
-from rez.cli._util import LazyArgumentParser
+from rez.cli._util import subcommands, LazyArgumentParser
 from rez import __version__
-
-
-def subpackages(packagemod):
-    """
-    Given a module object, returns an iterator which yields a tuple (modulename, ispkg)
-    for the given module and all it's submodules/subpackages.
-    """
-    if hasattr(packagemod, '__path__'):
-        yield packagemod.__name__, True
-        for _, modname, ispkg in pkgutil.walk_packages(packagemod.__path__,
-                                                       packagemod.__name__ + '.'):
-            yield modname, ispkg
-    else:
-        yield packagemod.__name__, False
 
 
 class SetupRezSubParser(object):
@@ -63,10 +49,6 @@ class SetupRezSubParser(object):
         return sys.modules[self.module_name]
 
 
-def module_to_command_name(module_name):
-    return module_name.split('.')[-1].rstrip('_').replace('_', '-')
-
-
 def _add_common_args(parser):
     parser.add_argument("-v", "--verbose", action="count", default=0,
                         help="verbose mode, repeat for more verbosity")
@@ -101,46 +83,24 @@ def run(command=None):
     #  2) this allows the flags to be used when using either "rez" or
     #     "rez-build" - ie, this will work: "rez-build --debug"
     _add_common_args(parser)
-    subparsers = []
-    parents = []
 
-    for module_name, ispkg in subpackages(rez.cli):
-        short_name = module_name.split('.')[-1]
-        if short_name.startswith('_'):
-            continue
-
-        cmdname = module_to_command_name(module_name)
-        if ispkg:
-            # a package with sub-modules
-            subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
-            # recurse down a level
-            subparsers.append(subparser)
-            parents.append(module_name)
-        elif command and (short_name != command):
-            # command already chosen, skip other subparsers
-            pass
-        else:
-            # a module
-            if not module_name.startswith(parents[-1]):
-                # go up a level
-                parents.pop()
-                subparsers.pop()
-
-            subparsers[-1].add_parser(
-                cmdname,
-                help='',  # required so that it can be setup later
-                setup_subparser=SetupRezSubParser(module_name))
+    # add lazy subparsers
+    subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
+    for subcommand in subcommands:
+        module_name = "rez.cli.%s" % subcommand
+        subparser.add_parser(
+            subcommand,
+            help='',  # required so that it can be setup later
+            setup_subparser=SetupRezSubParser(module_name))
 
     # parse args, but split extras into groups separated by "--"
     all_args = ([command] + sys.argv[1:]) if command else sys.argv[1:]
-
     arg_groups = [[]]
     for arg in all_args:
         if arg == '--':
             arg_groups.append([])
             continue
         arg_groups[-1].append(arg)
-
     opts = parser.parse_args(arg_groups[0])
 
     if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1", "true", "on", "yes"):
