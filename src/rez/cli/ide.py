@@ -7,7 +7,7 @@ from rez.cli._main import SetupRezSubParser
 import sys
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
 
     launcher_subparsers = parser.add_subparsers(dest='ide_subcommand')
 

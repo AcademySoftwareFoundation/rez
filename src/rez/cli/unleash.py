@@ -12,7 +12,7 @@ from rez.contrib.animallogic.unleash.unleash import unleash
 import os
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
 
     parser.add_argument("-m", "--message", dest="message", default=None,
                         help="Specify commit message. Automatic release messages will still be appended unless used with the --ignore-auto-messages option.")
