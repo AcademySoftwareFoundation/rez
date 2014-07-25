@@ -1,6 +1,7 @@
 from rez.exceptions import BuildSystemError
 from rez.packages import load_developer_package
 from rez.util import which
+from rez.contrib.animallogic.util import filter_preferred_build_systems
 
 
 def get_buildsys_types():
@@ -18,7 +19,8 @@ def get_valid_build_systems(working_dir):
         cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
         if cls.is_valid_root(working_dir):
             clss.append(cls)
-    return clss
+
+    return filter_preferred_build_systems(clss, ['cmake'])
 
 
 def create_build_system(working_dir, buildsys_type=None, opts=None,
@@ -37,22 +39,14 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
         # deal with leftover tempfiles from child buildsys in working dir
         child_clss = set(x.child_build_system() for x in clss)
         clss = set(clss) - child_clss
-        cls = None
 
         if len(clss) > 1:
-            for x in clss:
-                if x.name() == "cmake":
-                    cls = x
-
-        else:
-            cls = iter(clss).next()
-
-        if not cls:
             s = ', '.join(x.name() for x in clss)
             raise BuildSystemError(("Source could be built with one of: %s; "
                                    "Please specify a build system") % s)
-
-        return cls(working_dir,
+        else:
+            cls = iter(clss).next()
+            return cls(working_dir,
                        opts=opts,
                        write_build_scripts=write_build_scripts,
                        verbose=verbose,
