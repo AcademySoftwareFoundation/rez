@@ -44,6 +44,7 @@ class TestBaker(unittest.TestCase):
         self.package_preset_settings = [
                                         {'name':'package_1', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 1, 'sourcePresetId':{'key':999}},
                                         {'name':'package_2', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
+                                        {'name':'platform', 'value':'CentOS', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 3, 'sourcePresetId':{'key':999}},
                                        ]
 
         self.preset_settings = [
@@ -63,6 +64,7 @@ class TestBaker(unittest.TestCase):
         self.merged_override_settings = [
                                          {'name':'package_1', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 1, 'sourcePresetId':{'key':999}},
                                          {'name':'package_2', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
+                                         {'name':'platform', 'value':'CentOS', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
                                          {'name':'string', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tString'}, 'id': 3, 'sourcePresetId':{'key':999}},
                                          {'name':'int', 'value':123, 'opSystem':None, 'type':{'name':'tInt'}, 'id': 4, 'sourcePresetId':{'key':999}},
                                          {'name':'override_2', 'value':'2.0.1', 'opSystem':None, 'type':{'name':'tString'}, 'id': 3, 'sourcePresetId':{'key':999}},
@@ -72,8 +74,8 @@ class TestBaker(unittest.TestCase):
         self.preset_path = '/presets/Rez/test'
         self.new_preset_path = '/presets/Rez/test_new'
         self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new'}
-        self.package_requests = ['package_1-1.2.3', 'package_2']
-        self.resolved_package_settings = [Setting('package_1', '1.2.3', SettingType.package), Setting('package_2', '2.0.1', SettingType.package)]
+        self.package_requests = ['package_1-1.2.3', 'package_2', 'platform-CentOS']
+        self.resolved_package_settings = [Setting('package_1', '1.2.3', SettingType.package), Setting('package_2', '2.0.1', SettingType.package), Setting('platform', 'CentOS', SettingType.package)]
         self.overrides = [Setting('string', '1.2.3', SettingType.string), Setting('override_2', '2.0.1', SettingType.string)]
 
         launcher_service = LauncherHessianService(StubPresetProxy(settings=self.settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
@@ -118,3 +120,27 @@ class TestBaker(unittest.TestCase):
         self.baker.settings = [Setting('conflict', '', SettingType.package), Setting('foo', '1', SettingType.package)]
         self.assertRaises(BakerError, self.baker.resolve_package_settings)
 
+    def test_filter_settings(self):
+
+        self.baker.settings = self.resolved_package_settings
+        self.baker.filter_settings(lambda x : not x.is_package_setting())
+        self.assertEqual(len(self.baker.settings), 0)
+
+    def test_resolve_package_settings(self):
+
+        self.baker.set_settings_from_launcher(self.preset_path, preserve_system_settings=False)
+        self.baker.resolve_package_settings()
+
+        for setting in self.baker.settings:
+            self.assertFalse(setting.is_system_package_setting())
+
+    def test_resolve_package_settings_preserve_system_settings(self):
+
+        self.baker.set_settings_from_launcher(self.preset_path, preserve_system_settings=False)
+        self.baker.resolve_package_settings(preserve_system_package_settings=True)
+
+        for setting in self.baker.settings:
+            if setting.is_system_package_setting():
+                break
+        else:
+            self.fail("System packages should not have been preserved.")

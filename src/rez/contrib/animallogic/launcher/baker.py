@@ -29,7 +29,11 @@ class Baker(object):
 
     def _strip_system_settings(self):
 
-        self.settings = [setting for setting in self.settings if not setting.is_system_setting()]
+        self.filter_settings(lambda x : not x.is_system_setting())
+
+    def _strip_system_package_settings(self):
+
+        self.filter_settings(lambda x : not x.is_system_package_setting())
 
     def filter_settings(self, function):
 
@@ -50,7 +54,7 @@ class Baker(object):
             if not override_found:
                 self.settings.append(override)
 
-    def resolve_package_settings(self, max_fails=-1):
+    def resolve_package_settings(self, max_fails=-1, preserve_system_package_settings=False):
 
         resolved_settings = []
         resolved_package_settings = self._get_resolved_package_settings(max_fails=max_fails)
@@ -60,6 +64,9 @@ class Baker(object):
                 resolved_settings.append(setting)
 
         self.settings = resolved_settings + resolved_package_settings
+
+        if not preserve_system_package_settings:
+            self._strip_system_package_settings()
 
     def _get_resolved_package_settings(self, max_fails=-1):
 

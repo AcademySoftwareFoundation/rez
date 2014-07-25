@@ -101,7 +101,7 @@ def bake(source, destination, description, overrides, skip_resolve,
 
     if not skip_resolve:
         logger.info("Resolving package requests.")
-        baker.resolve_package_settings(max_fails=max_fails)
+        baker.resolve_package_settings(max_fails=max_fails, preserve_system_package_settings=False)
 
         logger.info("Resolved settings:")
         display_settings(baker.settings)
