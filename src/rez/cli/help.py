@@ -19,26 +19,31 @@ _verbose = False
 
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("pkg", metavar='PACKAGE', nargs='?',
-                        help="package name")
     parser.add_argument("-m", "--manual", dest="manual", action="store_true",
                         default=False,
                         help="Load the rez technical user manual")
     parser.add_argument("-e", "--entries", dest="entries", action="store_true",
                         default=False,
                         help="Just print each help entry")
+    PKG_action = parser.add_argument(
+        "PKG", metavar='PACKAGE', nargs='?',
+        help="package name")
     parser.add_argument("SECTION", type=int, default=0, nargs='?',
                         help="Help section to view (1..N)")
 
+    if completions:
+        from rez.cli._complete_util import PackageCompleter
+        PKG_action.completer = PackageCompleter
+
 
 def command(opts, parser=None, extra_arg_groups=None):
-    if opts.manual or not opts.pkg:
+    if opts.manual or not opts.PKG:
         open_rez_manual()
         sys.exit(0)
 
     global _verbose
     _verbose = opts.verbose
-    requirement = Requirement(opts.pkg)
+    requirement = Requirement(opts.PKG)
     section = opts.SECTION
     package = get_latest_package_with_help(requirement)
     if not package:
