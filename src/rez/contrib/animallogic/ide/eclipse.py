@@ -78,6 +78,9 @@ class EclipseProjectBuilder(object):
         for target_directory in open(target_directories):
             depend_info = os.path.join(target_directory.strip(), 'DependInfo.cmake')
 
+            if not os.path.isfile(depend_info):
+                continue
+
             for line in open(depend_info):
                 if self.include_path_start_regex.search(line):
                     in_include_section = True
@@ -421,7 +424,7 @@ class EclipseProjectBuilder(object):
                 python_version = str(package.range)
             
         if not python_version:
-            logger.error('Unable to determine python version for .pydevproject.')
+            logger.warning('Unable to determine python version for .pydevproject.')
             return
 
         pydev_project = etree.Element("pydev_project")
