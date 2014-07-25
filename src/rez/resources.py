@@ -125,8 +125,6 @@ def load_python(stream, filepath=None):
     Returns:
         dict: dictionary of non-private objects added to the globals
     """
-    # TODO: support class-based design, where the attributes and methods of the
-    # class become values in the dictionary
     g = __builtins__.copy()
     scopes = ScopeContext()
     g['scope'] = scopes

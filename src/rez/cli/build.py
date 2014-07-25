@@ -33,7 +33,7 @@ def setup_parser_common(parser):
                         "any. Alternatively, list these after a second '--'.")
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("-c", "--clean", action="store_true",
                         help="clear the current build before rebuilding.")
     parser.add_argument("-i", "--install", action="store_true",

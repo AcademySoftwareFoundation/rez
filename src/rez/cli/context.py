@@ -30,7 +30,7 @@ def print_tools(rc):
     print
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     from rez.system import system
     from rez.shells import get_shell_types
 
@@ -63,8 +63,13 @@ def setup_parser(parser):
                         "Ignored if --interpret is False" % system.shell)
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
-    parser.add_argument("FILE", type=str, nargs='?',
-                        help="rex context file (current context if not supplied)")
+    RXT_action = parser.add_argument(
+        "RXT", type=str, nargs='?',
+        help="rex context file (current context if not supplied)")
+
+    if completions:
+        from rez.cli._complete_util import FilesCompleter
+        RXT_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -73,7 +78,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
 
     timings.enabled = False
-    rxt_file = opts.FILE if opts.FILE else get_context_file()
+    rxt_file = opts.RXT if opts.RXT else get_context_file()
     if not rxt_file:
         print >> sys.stderr, "running Rez v%s.\n" \
             "not in a resolved environment context." % __version__

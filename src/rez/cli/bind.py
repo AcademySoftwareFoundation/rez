@@ -12,7 +12,7 @@ import os
 import sys
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("-i", "--install-path", dest="install_path", type=str,
                         default=None, metavar="PATH",
                         help="install path, defaults to local package path")

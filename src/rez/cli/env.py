@@ -8,23 +8,25 @@ import os.path
 import tempfile
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
+    from rez.vendor.argparse import SUPPRESS
     from rez.system import system
     from rez.shells import get_shell_types
 
     shells = get_shell_types()
 
-    parser.add_argument("--shell", dest="shell", type=str,
-                        choices=shells, default=system.shell,
+    parser.add_argument("--shell", dest="shell", type=str, choices=shells,
+                        default=system.shell,
                         help="target shell type (default: %(default)s)")
     parser.add_argument("--rcfile", type=str,
                         help="source this file instead of the target shell's "
-                             "standard startup scripts, if possible")
+                        "standard startup scripts, if possible")
     parser.add_argument("--norc", action="store_true",
                         help="skip loading of startup scripts")
-    parser.add_argument("-c", "--command", type=str,
-                        help="read commands from string. Alternatively, list "
-                        "command arguments after a '--'")
+    command_action = parser.add_argument(
+        "-c", "--command", type=str,
+        help="read commands from string. Alternatively, list command arguments "
+        "after a '--'")
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -39,28 +41,42 @@ def setup_parser(parser):
                         help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
-                             "Supported formats are: epoch time (eg 1393014494), "
-                             "or relative time (eg -10s, -5m, -0.5h, -10d)")
+                        "Supported formats are: epoch time (eg 1393014494), "
+                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar='N',
                         help="Abort if the number of failed configuration "
-                             "attempts exceeds N")
+                        "attempts exceeds N")
     parser.add_argument("--time-limit", type=int, default=-1,
                         dest="time_limit", metavar='SECS',
                         help="Abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
-                             "starting an interactive shell. Note that this will "
-                             "also store a failed resolve")
-    parser.add_argument("-i", "--input", type=str, metavar="FILE",
-                        help="use a previously saved context. Resolve settings, "
-                             "such as PKG, --ni etc are ignored in this case")
-    parser.add_argument("-q", "--quiet", action="store_true",
-                        help="run in quiet mode")
+                        "starting an interactive shell. Note that this will "
+                        "also store a failed resolve")
     parser.add_argument("--dora", action="store_true",
                         help="Open graph in dora")
-    parser.add_argument("PKG", type=str, nargs='*',
-                        help='packages to use in the target environment')
+    input_action = parser.add_argument(
+        "-i", "--input", type=str, metavar="FILE",
+        help="use a previously saved context. Resolve settings, such as PKG, "
+        "--ni etc are ignored in this case")
+    parser.add_argument("-q", "--quiet", action="store_true",
+                        help="run in quiet mode")
+    PKG_action = parser.add_argument(
+        "PKG", type=str, nargs='*',
+        help='packages to use in the target environment')
+    extra_0_action = parser.add_argument(  # args after --
+        "--N0", dest="extra_0", nargs='*',
+        help=SUPPRESS)
+
+    if completions:
+        from rez.cli._complete_util import PackageCompleter, FilesCompleter, \
+            ExecutablesCompleter, AndCompleter, SequencedCompleter
+        command_action.completer = AndCompleter(ExecutablesCompleter, FilesCompleter())
+        input_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        PKG_action.completer = PackageCompleter
+        extra_0_action.completer = SequencedCompleter(
+            "extra_0", ExecutablesCompleter, FilesCompleter())
 
 
 def command(opts, parser, extra_arg_groups=None):

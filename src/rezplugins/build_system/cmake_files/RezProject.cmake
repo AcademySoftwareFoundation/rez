@@ -7,8 +7,15 @@
 #
 
 macro (rez_project)
+
 	project(${REZ_BUILD_PROJECT_NAME})
+
+	# this ensures there is always an 'install' target, otherwise packages with
+	# an empty build will fail to install
+	add_custom_target(install)
+
 endmacro (rez_project)
+
 
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #

@@ -6,7 +6,7 @@ from rez.vendor import argparse
 __doc__ = argparse.SUPPRESS
 
 
-def setup_parser(parser):
+def setup_parser(parser, completions=False):
     parser.add_argument("YAML", type=str)
     parser.add_argument("ARG", type=str, nargs=argparse.REMAINDER)
 

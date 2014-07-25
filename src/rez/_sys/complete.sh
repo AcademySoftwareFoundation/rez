@@ -1,25 +1,24 @@
-_rez_complete_package()
+
+_rez_complete_fn()
 {
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    COMPREPLY=( $(_rez-complete -t package ${cur}) )
+    COMPREPLY=( $(COMP_LINE=${COMP_LINE} COMP_POINT=${COMP_POINT} _rez-complete) )
 }
 
-_rez_complete_config()
-{
-    local cur
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    COMPREPLY=( $(_rez-complete -t config ${cur}) )
-}
-
-complete -F _rez_complete_package rez
-complete -F _rez_complete_package rezolve
-complete -F _rez_complete_package rez-env
-complete -F _rez_complete_package rez-search
-complete -F _rez_complete_package rez-help
-
-complete -F _rez_complete_config rez-config
-
+complete -F _rez_complete_fn rez
+complete -F _rez_complete_fn rezolve
+complete -F _rez_complete_fn rez-bind
+complete -F _rez_complete_fn rez-bootstrap
+complete -F _rez_complete_fn rez-build
+complete -F _rez_complete_fn rez-config
+complete -F _rez_complete_fn rez-context
+complete -F _rez_complete_fn rez-env
+complete -F _rez_complete_fn rez-help
+complete -F _rez_complete_fn rez-interpret
+complete -F _rez_complete_fn rez-release
+complete -F _rez_complete_fn rez-search
+complete -F _rez_complete_fn rez-suite
+complete -F _rez_complete_fn rez-test
+complete -F _rez_complete_fn rez-tools
 
 
 
