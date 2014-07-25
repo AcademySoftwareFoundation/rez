@@ -87,7 +87,8 @@ class GitReleaseVCS(ReleaseVCS):
         # check for upstream branch
         if remote is None and not self.settings.allow_no_upstream:
             raise ReleaseVCSError(
-                "Release cancelled: there is no upstream branch. To allow "
+                "Release cancelled: there is no upstream branch (git cannot see "
+                "a remote repo - you should probably FIX THIS FIRST!). To allow "
                 "the release, set the config entry "
                 "'plugins.release_vcs.git.allow_no_upstream' to true.")
 
