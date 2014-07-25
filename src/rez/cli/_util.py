@@ -15,12 +15,15 @@ subcommands = [
     "env",
     "forward",
     "help",
+    "ide",
     "interpret",
+    "launcher",
     "release",
     "search",
     "suite",
     "test",
-    "tools"]
+    "tools",
+    "unleash"]
 
 
 hidden_subcommands = [
