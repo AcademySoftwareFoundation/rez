@@ -133,6 +133,11 @@ class ReleaseHookError(RezError):
     pass
 
 
+class SuiteError(RezError):
+    """Any suite-related error."""
+    pass
+
+
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

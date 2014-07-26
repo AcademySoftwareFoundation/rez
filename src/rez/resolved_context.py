@@ -184,6 +184,19 @@ class ResolvedContext(object):
                 pkgs.append(pkg)
             self.resolved_packages_ = pkgs
 
+    def __str__(self):
+        req_str = " ".join(str(x) for x in self.package_requests)
+        if self.status == ResolverStatus.solved:
+            res_str = " ".join(x.qualified_name for x in self.resolved_packages_)
+            return "%s(%s ==> %s)" % (self.status.name, req_str, res_str)
+        else:
+            return "%s(%s)" % (self.status.name, req_str)
+
+    @property
+    def success(self):
+        """True if the context has been solved, False otherwise."""
+        return (self.status_ == ResolverStatus.solved)
+
     @property
     def status(self):
         """Return the current status of the context.
@@ -384,7 +397,7 @@ class ResolvedContext(object):
                 packages that were also present in the request.
 
         Returns:
-            Dict of {pkg-name: value}.
+            Dict of {pkg-name: (variant, value)}.
         """
         values = {}
         requested_names = [x.name for x in self.package_requests
@@ -394,7 +407,7 @@ class ResolvedContext(object):
             if (not request_only) or (pkg.name in requested_names):
                 value = getattr(pkg, key)
                 if value is not None:
-                    values[pkg.name] = value
+                    values[pkg.name] = (pkg, value)
 
         return values
 
@@ -407,7 +420,7 @@ class ResolvedContext(object):
                 that were also present in the request.
 
         Returns:
-            Dict of {pkg-name: tool-name}.
+            Dict of {pkg-name: (variant, [tools])}.
         """
         return self.get_key("tools", request_only=request_only)
 
@@ -833,9 +846,9 @@ class ResolvedContext(object):
             executor.comment("")
 
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
-            executor.setenv(prefix+"_VERSION", str(pkg.version))
-            executor.setenv(prefix+"_BASE", pkg.base)
-            executor.setenv(prefix+"_ROOT", pkg.root)
+            executor.setenv(prefix + "_VERSION", str(pkg.version))
+            executor.setenv(prefix + "_BASE", pkg.base)
+            executor.setenv(prefix + "_ROOT", pkg.root)
 
             executor.bind('this',       VariantBinding(pkg))
             executor.bind("version",    VersionBinding(pkg.version))
