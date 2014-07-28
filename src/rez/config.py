@@ -336,6 +336,15 @@ class Config(DataWrapper):
             self.overrides[key] = value
             propertycache.uncache(self, key)
 
+    def remove_override(self, key):
+        """Remove a setting override, if one exists."""
+        keys = key.split('.')
+        if len(keys) > 1:
+            raise NotImplementedError
+        elif key in self.overrides:
+            del self.overrides[key]
+            propertycache.uncache(self, key)
+
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
         return (not self.quiet and not self.warn_none and

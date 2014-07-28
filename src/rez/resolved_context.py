@@ -5,8 +5,7 @@ from rez.config import config
 from rez.colorize import critical, heading, local, implicit, stream_is_tty
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, create_forwarding_script, \
-    timings
+    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -190,7 +189,8 @@ class ResolvedContext(object):
             res_str = " ".join(x.qualified_name for x in self.resolved_packages_)
             return "%s(%s ==> %s)" % (self.status.name, req_str, res_str)
         else:
-            return "%s(%s)" % (self.status.name, req_str)
+            return "%s:%s(%s)" % (self.__class__.__name__,
+                                  self.status.name, req_str)
 
     @property
     def success(self):
@@ -601,116 +601,6 @@ class ResolvedContext(object):
         else:
             return p
 
-    def add_to_suite(self, path, rxt_name=None, prefix=None, suffix=None,
-                     request_only=True, overwrite=False, verbose=False):
-        """Add this context to a 'suite'.
-
-        When a context is added to a suite, a set of executable scripts are
-        written to the suite's bin/ subdirectory - one for each tool available
-        in this context. When these scripts are run, they spawn a subshell
-        using this context, and run the tool in that shell.
-
-        Args:
-            path: Suite directory. Either this directory or its parent must
-                exist.
-            rxt_name: Name of the rxt file to write. If None, a uuid-type
-                string is generated for you. If non-None, but that file already
-                exists in the path, then the name will be suffixed with '_2',
-                '_3' etc until it no longer conflicts with an existing file.
-            prefix: If not None, this string is prefixed to wrapped tools. For
-                example, if the context contains a tool 'maya', then
-                prefix='fx_' would create a user-facing tool called 'fx_maya'.
-            suffix: Wrapped tool suffix, or None.
-            request_only: If True, only tools from packages in the request list
-                are wrapped.
-            overwrite: If True, pre-existing wrapped tools within the path that
-                have the same name will be overwritten.
-
-        Returns:
-            Path to a subdirectory within 'path' containing the wrapped tools,
-            or None if no tools were wrapped.
-        """
-        if self.status_ != ResolverStatus.solved:
-            msg = "Cannot add a failed context to a suite"
-            if self.load_path:
-                msg += ": %s" % self.load_path
-            raise RezSystemError(msg)
-
-        path = os.path.abspath(path)
-        ppath = os.path.dirname(path)
-        if not os.path.isdir(ppath):
-            open(ppath)  # raise IOError
-        if not os.path.exists(path):
-            os.mkdir(path)
-
-        # write rxt file
-        if rxt_name:
-            if os.path.splitext(rxt_name)[1] != ".rxt":
-                rxt_name += ".rxt"
-            file = os.path.join(path, rxt_name)
-
-            i = 2
-            while os.path.exists(file):
-                file = "%s_%d.rxt" % (os.path.splitext(file)[0], i)
-                i += 1
-            rxt_name = os.path.basename(file)
-        else:
-            rxt_name = str(uuid.uuid4()).replace('-', '') + ".rxt"
-
-        rxt_file = os.path.join(path, rxt_name)
-        if verbose:
-            print "writing %s..." % rxt_file
-        self.save(rxt_file)
-
-        # write wrapped env yaml file. This is mostly just done so that Rez can
-        # know that this path contains a valid wrapped environment.
-        yaml_file = os.path.join(path, "wrapped_environment.yaml")
-        if not os.path.exists(yaml_file):
-            doc = dict(created_by=getpass.getuser(),
-                       created_at=int(time.time()))
-            with open(yaml_file, 'w') as f:
-                f.write(yaml.dump(doc, default_flow_style=False))
-
-        # create wrapped tools
-        keys = self.get_key("tools", request_only=request_only)
-        if not keys:
-            return None
-
-        n = 0
-        binpath = os.path.join(path, "bin")
-        if not os.path.exists(binpath):
-            os.mkdir(binpath)
-
-        for pkg, tools in keys.iteritems():
-            doc = dict(tools=[])
-
-            for tool in tools:
-                toolname = "%s%s%s" % ((prefix or ''), tool, (suffix or ''))
-                doc["tools"].append([pkg, toolname])
-                if verbose:
-                    print ("writing tool '%s' for package '%s'..."
-                           % (toolname, pkg))
-
-                file = os.path.join(binpath, toolname)
-                if os.path.exists(file) and not overwrite:
-                    continue
-
-                n += 1
-                create_forwarding_script(file,
-                                         module="resolved_context",
-                                         func_name="_FWD__invoke_wrapped_tool",
-                                         rxt_file=rxt_name,
-                                         tool=tool)
-
-            yaml_file = os.path.join(path, "%s.yaml"
-                                           % os.path.splitext(rxt_name)[0])
-            with open(yaml_file, 'w') as f:
-                f.write(yaml.dump(doc, default_flow_style=False))
-
-        if verbose:
-            print "\n%d tools were written to %s\n" % (n, binpath)
-        return binpath
-
     def to_dict(self):
         resolved_packages = []
         for pkg in (self.resolved_packages_ or []):
@@ -872,12 +762,3 @@ class ResolvedContext(object):
 
         # append system paths
         executor.append_system_paths()
-
-
-def _FWD__invoke_wrapped_tool(rxt_file, tool, _script, _cli_args):
-    path = os.path.join(os.path.dirname(_script), "..", rxt_file)
-    context = ResolvedContext.load(path)
-    cmd = [tool] + _cli_args
-
-    retcode, _, _ = context.execute_shell(command=cmd, block=True)
-    sys.exit(retcode)
