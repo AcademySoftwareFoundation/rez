@@ -13,6 +13,9 @@ description: Rez is a suite of tools for resolving a list of 'packages' (version
 help:
 - [ "Reference Guide", "$BROWSER http://nerdvegas.github.io/rez/" ]
 
+private_build_requires:
+- cmake-2.8
+
 requires:
 - setuptools
 
