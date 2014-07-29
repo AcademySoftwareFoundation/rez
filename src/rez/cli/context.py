@@ -8,26 +8,8 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
-from rez import __version__
-from rez.config import config
 from rez.dot import write_graph, view_graph, prune_graph
 from rez.vendor.version.requirement import Requirement
-
-
-def print_tools(rc):
-    from rez.util import columnise
-    keys = rc.get_key("tools")
-    if keys:
-        rows = [
-            ["TOOL", "PACKAGE"],
-            ["----", "-------"]]
-        for pkg, tools in sorted(keys.items()):
-            for tool in sorted(tools):
-                rows.append([tool, pkg])
-
-    strs = columnise(rows)
-    print '\n'.join(strs)
-    print
 
 
 def setup_parser(parser, completions=False):
@@ -73,15 +55,14 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.env import get_context_file
+    from rez.status import status
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
 
     timings.enabled = False
-    rxt_file = opts.RXT if opts.RXT else get_context_file()
+    rxt_file = opts.RXT if opts.RXT else status.context_file
     if not rxt_file:
-        print >> sys.stderr, "running Rez v%s.\n" \
-            "not in a resolved environment context." % __version__
+        print >> sys.stderr, "not in a resolved environment context."
         sys.exit(1)
 
     rc = ResolvedContext.load(rxt_file)
@@ -101,7 +82,7 @@ def command(opts, parser, extra_arg_groups=None):
         elif opts.print_resolve:
             print ' '.join(x.short_name() for x in rc.resolved_packages)
         elif opts.print_tools:
-            print_tools(rc)
+            rc.print_tools()
         elif opts.which:
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)
@@ -120,7 +101,7 @@ def command(opts, parser, extra_arg_groups=None):
             func = view_graph if opts.graph else write_graph
             func(gstr, dest_file=opts.write_graph)
         else:
-            rc.print_info(verbose=opts.verbose)
+            rc.print_info(verbosity=opts.verbose)
         return
 
     if opts.format == 'dict':

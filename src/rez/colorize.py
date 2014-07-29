@@ -1,3 +1,4 @@
+import sys
 import logging
 from rez.vendor import colorama
 from rez.config import config
@@ -251,3 +252,14 @@ class ColorizedStreamHandler(logging.StreamHandler):
             raise
         except:
             self.handleError(record)
+
+
+class Printer(object):
+    def __init__(self, buf=sys.stdout):
+        self.buf = buf
+        self.tty = stream_is_tty(buf)
+
+    def __call__(self, msg='', style=None):
+        if style and self.tty:
+            msg = style(msg)
+        print >> self.buf, msg

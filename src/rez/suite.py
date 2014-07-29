@@ -5,6 +5,7 @@ from rez.colorize import heading, warning, stream_is_tty
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from collections import defaultdict
+import os
 import os.path
 import shutil
 import sys
@@ -65,6 +66,7 @@ class Suite(object):
         context_path = os.path.join(self.load_path, "contexts", "%s.rxt" % name)
         context = ResolvedContext.load(context_path)
         data["context"] = context
+        data["loaded"] = True
         return context
 
     def add_context(self, name, context, description=None):
@@ -97,6 +99,16 @@ class Suite(object):
         _ = self._context(name)
         del self.contexts[name]
         self._flush_tools()
+
+    def set_context_description(self, name, description):
+        """Set a context's description.
+
+        Args:
+            name (str): Name of the context to prefix.
+            description (str): Description of context.
+        """
+        data = self._context(name)
+        data["description"] = description
 
     def set_context_prefix(self, name, prefix):
         """Set a context's prefix.
@@ -177,11 +189,13 @@ class Suite(object):
         """
         data = self._context(context_name)
         aliases = data["tool_aliases"]
-        if tool_name not in aliases:
-            aliases[tool_name] = tool_alias
-            self._flush_tools()
+        if tool_name in aliases:
+            raise SuiteError("Tool %r in context %r is already aliased to %r"
+                             % (tool_name, context_name, aliases[tool_name]))
+        aliases[tool_name] = tool_alias
+        self._flush_tools()
 
-    def dealias_tool(self, context_name, tool_name):
+    def unalias_tool(self, context_name, tool_name):
         """Deregister an alias for a specific tool.
 
         Args:
@@ -235,6 +249,8 @@ class Suite(object):
             data_ = data.copy()
             if "context" in data_:
                 del data_["context"]
+            if "loaded" in data_:
+                del data_["loaded"]
             contexts_[k] = data_
 
         return dict(contexts=contexts_)
@@ -246,15 +262,31 @@ class Suite(object):
         s.tools = None
         s.tool_conflicts = None
         s.contexts = d["contexts"]
-        s.next_priority = max(x["priority"]
-                              for x in s.contexts.itervalues()) + 1
+        if s.contexts:
+            s.next_priority = max(x["priority"]
+                                  for x in s.contexts.itervalues()) + 1
+        else:
+            s.next_priority = 1
         return s
 
     def save(self, path, verbose=False):
+        """Save the suite to disk.
+
+        Note that saving over the top of the same suite is allowed - otherwise,
+        if `path` already exists, an error is raised. This is intended to avoid
+        accidental deletion of directory trees.
+        """
+        path = os.path.realpath(path)
         if os.path.exists(path):
-            if verbose:
-                print "deleting previous files at %r..." % path
-            shutil.rmtree(path)
+            if self.load_path and self.load_path == path:
+                if verbose:
+                    print "saving over previous suite..."
+                for context_name in self.context_names:
+                    _ = self.context(context_name)  # load before dir deleted
+                shutil.rmtree(path)
+            else:
+                raise SuiteError("Cannot save, path exists: %r" % path)
+
         contexts_path = os.path.join(path, "contexts")
         os.makedirs(contexts_path)
 
@@ -307,29 +339,65 @@ class Suite(object):
             raise SuiteError("Failed loading suite: %s" % str(e))
 
         s = cls.from_dict(data)
-        s.load_path = path
+        s.load_path = os.path.realpath(path)
         return s
 
-    def print_info(self, buf=sys.stdout, verbose=False):
-        """Prints a message summarising the contents of the suite."""
-        def _pr(s='', style=None):
-            if style and stream_is_tty(buf):
-                s = style(s)
-            print >> buf, s
+    @classmethod
+    def load_visible_suites(cls, paths=None):
+        """Get a list of suites whos bin paths are visible on $PATH."""
+        suites = []
+        if paths is None:
+            paths = os.getenv("PATH", "").split(os.pathsep)
+        for path in paths:
+            if path and os.path.isdir(path):
+                path_ = os.path.dirname(path)
+                filepath = os.path.join(path_, "suite.yaml")
+                if os.path.isfile(filepath):
+                    suite = cls.load(path_)
+                    suites.append(suite)
+        return suites
 
+    def print_info(self, buf=sys.stdout, verbosity=0):
+        """Prints a message summarising the contents of the suite."""
+        from rez.colorize import Printer
+        _pr = Printer(buf)
+
+        if self.contexts:
+            tools = self.get_tools().values()
+            context_names = set()
+            variants = set()
+            for entry in tools:
+                context_names.add(entry["context_name"])
+                variants.add(str(entry["variant"]))
+            _pr("Suite contains %d tools from %d contexts and %d packages."
+                % (len(tools), len(context_names), len(variants)))
+        else:
+            _pr("Suite is empty.")
+            return
+
+        _pr()
         _pr("contexts:", heading)
         rows = []
         for data in self._sorted_contexts():
             context_name = data["name"]
-            description = data.get("description", "")
+            description = data.get("description") or ""
             rows.append((context_name, description))
         _pr("\n".join(columnise(rows)))
 
-        _pr()
-        _pr("tools:", heading)
+        if verbosity:
+            _pr()
+            _pr("tools:", heading)
+            self.print_tools(buf=buf, verbose=(verbosity >= 2))
+
+    def print_tools(self, buf=sys.stdout, verbose=False):
+        """Print table of tools available in the suite."""
+        from rez.colorize import Printer
+        _pr = Printer(buf)
+
         rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
                 ["----", "--------", "-------", "-------", ""]]
         colors = [None, None]
+        tools = self.get_tools().values()
 
         def _get_row(entry):
             context_name = entry["context_name"]
@@ -340,7 +408,6 @@ class Suite(object):
                 tool_name = "-"
             return [tool_alias, tool_name, package, context_name]
 
-        tools = self.get_tools().values()
         for data in self._sorted_contexts():
             context_name = data["name"]
             entries = [x for x in tools if x["context_name"] == context_name]
@@ -452,6 +519,9 @@ class Alias(object):
         parser.add_argument(
             "+s", "++stdin", action="store_true",
             help="read commands from standard input, rather than executing the tool")
+        parser.add_argument(
+            "+q", "++quiet", action="store_true",
+            help="run in quiet mode (hides welcome message)")
 
         opts, tool_args = parser.parse_known_args()
         if opts.stdin:
@@ -479,6 +549,7 @@ class Alias(object):
                                               stdin=opts.stdin,
                                               rcfile=opts.rcfile,
                                               norc=opts.norc,
+                                              quiet=opts.quiet,
                                               block=True)
         return retcode
 

@@ -1,49 +1,147 @@
 '''
-Create a tool suite from one or more context files
+Manage a suite or print information about an existing suite.
 '''
 import os.path
 
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("-p", "--prefix", type=str,
-                        help="Tools prefix")
-    parser.add_argument("-s", "--suffix", type=str,
-                        help="Tools suffix")
-    parser.add_argument("DEST", type=str,
-                        help="Directory to write the suite into")
-    RXT_action = parser.add_argument(
-        "RXT", type=str, nargs='*',
-        help="Context files to add to the suite")
+    parser.add_argument(
+        "-t", "--print-tools", dest="print_tools", action="store_true",
+        help="print a list of the executables available in the suite")
+    parser.add_argument(
+        "--create", action="store_true",
+        help="create an empty suite at DIR")
+    parser.add_argument(
+        "-c", "--context", type=str, metavar="NAME",
+        help="specify a context name")
+    add_action = parser.add_argument(
+        "-a", "--add", type=str, metavar="RXT",
+        help="add a context to the suite")
+    parser.add_argument(
+        "-r", "--remove", type=str, metavar="NAME",
+        help="remove a context from the suite")
+    parser.add_argument(
+        "-d", "--description", type=str, metavar="DESC",
+        help="set the description of a context in the suite")
+    parser.add_argument(
+        "-p", "--prefix", type=str,
+        help="set the prefix of a context in the suite")
+    parser.add_argument(
+        "-s", "--suffix", type=str,
+        help="set the suffix of a context in the suite")
+    parser.add_argument(
+        "--hide", type=str, metavar="TOOL",
+        help="hide a tool of a context in the suite")
+    parser.add_argument(
+        "--unhide", type=str, metavar="TOOL",
+        help="unhide a tool of a context in the suite")
+    parser.add_argument(
+        "--alias", type=str, nargs=2, metavar=("TOOL", "ALIAS"),
+        help="create an alias for a tool in the suite")
+    parser.add_argument(
+        "--unalias", type=str, metavar="TOOL",
+        help="remove an alias for a tool in the suite")
+    DIR_action = parser.add_argument(
+        "DIR", type=str, nargs='?',
+        help="directory of suite to create or manage")
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
-        RXT_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        DIR_action.completer = FilesCompleter(dirs=True, files=False)
+        add_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+
+
+def argname(attr):
+    return "--%s" % attr.replace('_', '-')
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.status import status
+    from rez.suite import Suite
     from rez.resolved_context import ResolvedContext
-    from rez.env import get_context_file
+    from rez.colorize import Printer, heading
+    import sys
 
-    paths = opts.RXT
-    if not paths:
-        current_context_file = get_context_file()
-        if current_context_file:
-            paths = [current_context_file]
+    # validate args
+    suite_actions = dict(create=[],
+                         remove=[],
+                         add=["context"],
+                         description=["context"],
+                         prefix=["context"],
+                         suffix=["context"],
+                         hide=["context"],
+                         unhide=["context"],
+                         alias=["context"],
+                         unalias=["context"])
+    query_only = True
+    for act, requires in suite_actions.iteritems():
+        if getattr(opts, act, None):
+            query_only = False
+            option = argname(act)
+            if not opts.DIR:
+                parser.error("DIR must be supplied when using %s" % option)
+            if not all(getattr(opts, x, None) for x in requires):
+                parser.error("%s must be supplied when using %s"
+                             % (argname(requires[0]), option))
 
-    if not paths:
-        print >> sys.stderr, ("running Rez v%s.\n" + \
-            "not in a resolved environment context.\n") % __version__
-        sys.exit(1)
+    # read-only operations
+    if query_only:
+        _pr = Printer()
+        if opts.DIR:
+            suite = Suite.load(opts.DIR)
+            suites = [suite]
+        else:
+            suites = status.suites
 
-    for path in paths:
-        if not os.path.exists(path):
-            open(path)  # raise IOError
+        if opts.print_tools:
+            for i, suite in enumerate(suites):
+                if not opts.DIR:
+                    if i:
+                        _pr()
+                    _pr("suite: %s" % suite.load_path, heading)
+                suite.print_tools(verbose=opts.verbose)
+        elif opts.DIR:
+            suite.print_info(verbosity=opts.verbose)
+        elif not status.print_suite_info(verbosity=opts.verbose):
+            sys.exit(1)
+        sys.exit(0)
 
-    for path in paths:
-        r = ResolvedContext.load(path)
-        rxt_name = os.path.basename(path)
-        r.add_to_suite(opts.DEST,
-                       rxt_name=rxt_name,
-                       prefix=opts.prefix,
-                       suffix=opts.suffix,
-                       verbose=opts.verbose)
+    # operations that alter the suite
+    if opts.create:
+        suite = Suite()
+        suite.save(opts.DIR)  # raises if dir already exists
+    else:
+        suite = Suite.load(opts.DIR)
+
+        if opts.add:
+            context = ResolvedContext.load(opts.add)
+            suite.add_context(name=opts.context,
+                              context=context,
+                              description=opts.description)
+        elif opts.remove:
+            suite.remove_context(name=opts.remove)
+        elif opts.description:
+            suite.set_context_description(name=opts.context,
+                                          description=opts.description)
+        elif opts.prefix or opts.suffix:
+            if opts.prefix:
+                suite.set_context_prefix(name=opts.context,
+                                         prefix=opts.prefix)
+            if opts.suffix:
+                suite.set_context_suffix(name=opts.context,
+                                         suffix=opts.suffix)
+        elif opts.hide:
+            suite.hide_tool(context_name=opts.context,
+                            tool_name=opts.hide)
+        elif opts.unhide:
+            suite.unhide_tool(context_name=opts.context,
+                              tool_name=opts.unhide)
+        elif opts.alias:
+            suite.alias_tool(context_name=opts.context,
+                             tool_name=opts.alias[0],
+                             tool_alias=opts.alias[1])
+        elif opts.unalias:
+            suite.unalias_tool(context_name=opts.context,
+                               tool_name=opts.unalias)
+
+        suite.save(opts.DIR)

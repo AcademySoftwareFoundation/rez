@@ -18,6 +18,7 @@ subcommands = [
     "interpret",
     "release",
     "search",
+    "status",
     "suite",
     "test",
     "tools"]

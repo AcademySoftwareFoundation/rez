@@ -43,11 +43,11 @@ def setup_parser(parser, completions=False):
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar='N',
-                        help="Abort if the number of failed configuration "
+                        help="abort if the number of failed configuration "
                         "attempts exceeds N")
     parser.add_argument("--time-limit", type=int, default=-1,
                         dest="time_limit", metavar='SECS',
-                        help="Abort if the resolve time exceeds SECS")
+                        help="abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "
@@ -57,7 +57,7 @@ def setup_parser(parser, completions=False):
         help="use a previously saved context. Resolve settings, such as PKG, "
         "--ni etc are ignored in this case")
     parser.add_argument("-q", "--quiet", action="store_true",
-                        help="run in quiet mode")
+                        help="run in quiet mode (hides welcome message)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
         help='packages to use in the target environment')

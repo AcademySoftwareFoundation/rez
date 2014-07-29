@@ -57,6 +57,7 @@ scripts = [
     "rez-test",
     "rez-bind",
     "rez-search",
+    "rez-status",
     "rez-bootstrap",
     "rez-help",
     "bez",

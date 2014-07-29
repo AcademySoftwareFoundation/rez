@@ -61,18 +61,15 @@ class ResolvedContext(object):
                 return self.callback(state)
             return True, ''
 
-    # TODO quiet is unused, remove
-    def __init__(self, package_requests, quiet=False, verbosity=0,
-                 timestamp=None, building=False, caching=None,
-                 package_paths=None, add_implicit_packages=True,
-                 add_bootstrap_path=None, max_fails=-1, time_limit=-1,
-                 callback=None):
+    def __init__(self, package_requests, verbosity=0, timestamp=None,
+                 building=False, caching=None, package_paths=None,
+                 add_implicit_packages=True, add_bootstrap_path=None,
+                 max_fails=-1, time_limit=-1, callback=None):
         """Perform a package resolve, and store the result.
 
         Args:
             package_requests: List of strings or Requirement objects
                 representing the request.
-            quiet: If True then hides unnecessary output
             verbosity: Verbosity level. One of [0,1,2].
             timestamp: Ignore packages greater or equal to this epoch time.
             building: True if we're resolving for a build.
@@ -271,16 +268,14 @@ class ResolvedContext(object):
         r.load_path = os.path.abspath(path)
         return r
 
-    def print_info(self, buf=sys.stdout, verbose=False):
+    def print_info(self, buf=sys.stdout, verbosity=0):
         """Prints a message summarising the contents of the resolved context.
         """
-        def _pr(s='', style=None):
-            if style and stream_is_tty(buf):
-                s = style(s)
-            print >> buf, s
+        from rez.colorize import Printer
+        _pr = Printer(buf)
 
         def _rt(t):
-            if verbose:
+            if verbosity:
                 s = time.strftime("%a %b %d %H:%M:%S %Z %Y", time.localtime(t))
                 return s + " (%d)" % int(t)
             else:
@@ -299,7 +294,7 @@ class ResolvedContext(object):
             _pr("packages released after %s were ignored" % t_str)
         _pr()
 
-        if verbose:
+        if verbosity:
             _pr("search paths:", heading)
             for path in self.package_paths:
                 _pr(path)
@@ -340,7 +335,7 @@ class ResolvedContext(object):
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
 
-        if verbose:
+        if verbosity:
             _pr()
             _pr("resolve details:", heading)
             _pr("load time: %.02f secs" % self.load_time)
@@ -348,6 +343,29 @@ class ResolvedContext(object):
             _pr("solve time: %.02f secs" % actual_solve_time)
             if self.load_path:
                 _pr("rxt file: %s" % self.load_path)
+
+        if verbosity >= 2:
+            _pr()
+            _pr("tools:", heading)
+            self.print_tools(buf=buf)
+
+    def print_tools(self, buf=sys.stdout):
+        from rez.colorize import Printer
+        _pr = Printer(buf)
+
+        from rez.util import columnise
+        data = self.get_tools()
+        if data:
+            rows = [
+                ["TOOL", "PACKAGE"],
+                ["----", "-------"]]
+            for _, (variant, tools) in sorted(data.items()):
+                pkg_str = variant.qualified_package_name
+                for tool in sorted(tools):
+                    rows.append([tool, pkg_str])
+
+        strs = columnise(rows)
+        _pr('\n'.join(strs))
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):

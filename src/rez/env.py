@@ -1,5 +1,12 @@
 """Get information about the current environment.
 """
+
+# TODO DEPRECATE
+# TODO DEPRECATE
+# TODO DEPRECATE
+# TODO DEPRECATE
+# TODO DEPRECATE
+
 from rez.resolved_context import ResolvedContext
 from rez.vendor import yaml
 import os
@@ -11,7 +18,7 @@ _context = None
 
 def get_context_file():
     """Returns the context file associated with the current environment, or
-    None if the environment is not Rez-configured.  
+    None if the environment is not Rez-configured.
     """
     return os.getenv("REZ_RXT_FILE")
 
