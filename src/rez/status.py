@@ -84,7 +84,7 @@ class Status(object):
         """Print a very brief status message."""
         lines = ["Using Rez v%s" % __version__]
         if self.context:
-            nreq = len(self.context.package_requests)
+            nreq = len(self.context.requested_packages(False))
             nres = len(self.context.resolved_packages)
             lines.append("1 active context (%d requested packages, %d resolved "
                          " packages)." % (nreq, nres))

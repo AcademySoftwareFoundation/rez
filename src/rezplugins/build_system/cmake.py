@@ -174,7 +174,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \
             (package.description or '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
-            ' '.join(x.name for x in context.package_requests)
+            ' '.join(x.name for x in context.requested_packages(True))
 
 
 def _FWD__spawn_build_shell(working_dir, build_dir):

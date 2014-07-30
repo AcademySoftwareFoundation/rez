@@ -20,7 +20,7 @@ def setup_parser(parser, completions=False):
 
     parser.add_argument("--req", "--print-request", dest="print_request",
                         action="store_true",
-                        help="print only the request list, including implicits")
+                        help="print only the request list (not including implicits)")
     parser.add_argument("--res", "--print-resolve", dest="print_resolve",
                         action="store_true",
                         help="print only the resolve list")
@@ -78,9 +78,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not opts.interpret:
         if opts.print_request:
-            print ' '.join(rc.added_implicit_packages + rc.requested_packages)
+            print " ".join(str(x) for x in rc.requested_packages(False))
         elif opts.print_resolve:
-            print ' '.join(x.short_name() for x in rc.resolved_packages)
+            print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
         elif opts.print_tools:
             rc.print_tools()
         elif opts.which:

@@ -102,11 +102,11 @@ class ResolvedContext(object):
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
 
-        self.package_requests = []
+        self._package_requests = []
         for req in package_requests:
             if isinstance(req, basestring):
                 req = Requirement(req)
-            self.package_requests.append(req)
+            self._package_requests.append(req)
 
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
@@ -116,9 +116,8 @@ class ResolvedContext(object):
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
 
         if add_implicit_packages:
-            pkg_strs = config.implicit_packages
-            self.implicit_packages = [Requirement(x) for x in pkg_strs]
-            self.package_requests.extend(self.implicit_packages)
+            self.implicit_packages = [Requirement(x)
+                                      for x in config.implicit_packages]
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -132,7 +131,7 @@ class ResolvedContext(object):
 
         # resolve results
         self.status_ = ResolverStatus.pending
-        self.resolved_packages_ = None
+        self._resolved_packages = None
         self.failure_description = None
         self.graph_string = None
         self.graph_ = None
@@ -146,12 +145,15 @@ class ResolvedContext(object):
             print_state = True
         if verbosity == 2:
             verbose_ = True
+
         callback_ = self.Callback(verbose=print_state,
                                   max_fails=max_fails,
                                   time_limit=time_limit,
                                   callback=callback)
 
-        resolver = Resolver(package_requests=self.package_requests,
+        request = self.requested_packages(include_implicit=True)
+
+        resolver = Resolver(package_requests=request,
                             package_paths=self.package_paths,
                             timestamp=self.timestamp,
                             building=self.building,
@@ -178,12 +180,13 @@ class ResolvedContext(object):
                 resource = resource_handle.get_resource()
                 pkg = Variant(resource)
                 pkgs.append(pkg)
-            self.resolved_packages_ = pkgs
+            self._resolved_packages = pkgs
 
     def __str__(self):
-        req_str = " ".join(str(x) for x in self.package_requests)
+        request = self.requested_packages(include_implicit=True)
+        req_str = " ".join(str(x) for x in request)
         if self.status == ResolverStatus.solved:
-            res_str = " ".join(x.qualified_name for x in self.resolved_packages_)
+            res_str = " ".join(x.qualified_name for x in self._resolved_packages)
             return "%s(%s ==> %s)" % (self.status.name, req_str, res_str)
         else:
             return "%s:%s(%s)" % (self.__class__.__name__,
@@ -203,11 +206,29 @@ class ResolvedContext(object):
         """
         return self.status_
 
+    def requested_packages(self, include_implicit=False):
+        """Get packages in the request.
+
+        Args:
+            include_implicit (bool): If True, implicit packages are appended
+                to the result.
+
+        Returns:
+            List of `Requirement` objects.
+        """
+        if include_implicit:
+            return self._package_requests + self.implicit_packages
+        else:
+            return self._package_requests
+
     @property
     def resolved_packages(self):
-        """Returns List of `Variant` objects representing the resolve, or None
-        if the resolve was unsuccessful."""
-        return self.resolved_packages_
+        """Get packages in the resolve.
+
+        Returns:
+            List of `Variant` objects, or None if the resolve failed.
+        """
+        return self._resolved_packages
 
     @property
     def has_graph(self):
@@ -218,7 +239,7 @@ class ResolvedContext(object):
         """Returns a Variant object or None if the package is not in the
         resolve.
         """
-        pkgs = [x for x in self.resolved_packages_ if x.name == name]
+        pkgs = [x for x in self._resolved_packages if x.name == name]
         return pkgs[0] if pkgs else None
 
     def graph(self, as_dot=False):
@@ -302,14 +323,13 @@ class ResolvedContext(object):
         _pr("requested packages:", heading)
         rows = []
         colors = []
-        for request in self.package_requests:
-            col = None
-            t = ''
-            if request in self.implicit_packages:
-                t = "(implicit)"
-                col = implicit
-            rows.append((str(request), t))
-            colors.append(col)
+        for request in self._package_requests:
+            rows.append((str(request), ""))
+            colors.append(None)
+
+        for request in self.implicit_packages:
+            rows.append((str(request), "(implicit)"))
+            colors.append(implicit)
 
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
@@ -322,10 +342,10 @@ class ResolvedContext(object):
             t = []
             col = None
             if not os.path.exists(pkg.root):
-                t.append('NOT FOUND')
+                t.append('(NOT FOUND)')
                 col = critical
             if pkg.is_local:
-                t.append('local')
+                t.append('(local)')
                 col = local
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, pkg.root, t))
@@ -424,7 +444,7 @@ class ResolvedContext(object):
             Dict of {pkg-name: (variant, value)}.
         """
         values = {}
-        requested_names = [x.name for x in self.package_requests
+        requested_names = [x.name for x in self._package_requests
                            if not x.conflict]
 
         for pkg in self.resolved_packages:
@@ -649,7 +669,7 @@ class ResolvedContext(object):
 
     def to_dict(self):
         resolved_packages = []
-        for pkg in (self.resolved_packages_ or []):
+        for pkg in (self._resolved_packages or []):
             resolved_packages.append(pkg.resource_handle.to_dict())
 
         return dict(
@@ -660,7 +680,7 @@ class ResolvedContext(object):
             building=self.building,
             caching=self.caching,
             implicit_packages=[str(x) for x in self.implicit_packages],
-            package_requests=[str(x) for x in self.package_requests],
+            package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
 
             rez_version=self.rez_version,
@@ -689,7 +709,7 @@ class ResolvedContext(object):
         r.building = d["building"]
         r.caching = d["caching"]
         r.implicit_packages = [Requirement(x) for x in d["implicit_packages"]]
-        r.package_requests = [Requirement(x) for x in d["package_requests"]]
+        r._package_requests = [Requirement(x) for x in d["package_requests"]]
         r.package_paths = d["package_paths"]
 
         r.rez_version = d["rez_version"]
@@ -709,12 +729,12 @@ class ResolvedContext(object):
         r.graph_string = d["graph"]
         r.graph_ = None
 
-        r.resolved_packages_ = []
+        r._resolved_packages = []
         for d_ in d["resolved_packages"]:
             resource_handle = ResourceHandle.from_dict(d_)
             resource = resource_handle.get_resource()
             variant = Variant(resource)
-            r.resolved_packages_.append(variant)
+            r._resolved_packages.append(variant)
 
         # SINCE SERIALIZE VERSION 1 --
 
@@ -745,7 +765,7 @@ class ResolvedContext(object):
     def _execute(self, executor):
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
-        request_str = ' '.join(str(x) for x in self.package_requests)
+        request_str = ' '.join(str(x) for x in self._package_requests)
         implicit_str = ' '.join(str(x) for x in self.implicit_packages)
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
@@ -763,16 +783,18 @@ class ResolvedContext(object):
         # rez-1 environment variables, set in backwards compatibility mode
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility:
+            request_str_ = " ".join([request_str, implicit_str]).strip()
             executor.setenv("REZ_VERSION", self.rez_version)
             executor.setenv("REZ_PATH", self.rez_path)
-            executor.setenv("REZ_REQUEST", request_str)
+            executor.setenv("REZ_REQUEST", request_str_)
             executor.setenv("REZ_RESOLVE", resolve_str)
-            executor.setenv("REZ_RAW_REQUEST", request_str)
+            executor.setenv("REZ_RAW_REQUEST", request_str_)
             executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
-        executor.bind('request', RequirementsBinding(self.package_requests))
+        executor.bind('request', RequirementsBinding(self._package_requests))
+        executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
 
         # apply each resolved package to the execution context
