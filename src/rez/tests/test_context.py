@@ -53,21 +53,6 @@ class TestContext(TestBase, TempdirMixin):
         r2 = ResolvedContext.load(file)
         self.assertEqual(r.resolved_packages, r2.resolved_packages)
 
-    def test_suite(self):
-        """Test creation of suite."""
-        r = ResolvedContext(["hello_world"])
-        suite_dir = os.path.join(self.root, "mysuite")
-        r.add_to_suite(suite_dir, "hello1")
-        r.add_to_suite(suite_dir, "hello2", prefix="whoah_")
-        r.add_to_suite(suite_dir, suffix="_dude")
-
-        for cmd in ("hello_world", "whoah_hello_world", "hello_world_dude"):
-            exe = os.path.join(suite_dir, "bin", cmd)
-            self.assertTrue(os.path.exists(exe), "should exist: %s" % exe)
-            p = subprocess.Popen([exe])
-            p.wait()
-            self.assertEqual(p.returncode, 0)
-
 
 def get_test_suites():
     suites = []
@@ -75,7 +60,6 @@ def get_test_suites():
     suite.addTest(TestContext("test_create_context"))
     suite.addTest(TestContext("test_execute_command"))
     suite.addTest(TestContext("test_serialize"))
-    suite.addTest(TestContext("test_suite"))
     suites.append(suite)
     return suites
 
