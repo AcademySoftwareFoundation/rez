@@ -124,8 +124,15 @@ class Suite(object):
         """
         data = self._context(name)
         data["prefix"] = prefix
-        data["priority"] = self._next_priority
         self._flush_tools()
+
+    def remove_context_prefix(self, name):
+        """Remove a context's prefix.
+
+        Args:
+            name (str): Name of the context to de-prefix.
+        """
+        self.set_context_prefix(name, "")
 
     def set_context_suffix(self, name, suffix):
         """Set a context's suffix.
@@ -140,8 +147,15 @@ class Suite(object):
         """
         data = self._context(name)
         data["suffix"] = suffix
-        data["priority"] = self._next_priority
         self._flush_tools()
+
+    def remove_context_suffix(self, name):
+        """Remove a context's suffix.
+
+        Args:
+            name (str): Name of the context to de-suffix.
+        """
+        self.set_context_suffix(name, "")
 
     def bump_context(self, name):
         """Causes the context's tools to take priority over all others."""
@@ -225,6 +239,22 @@ class Suite(object):
         """
         self._update_tools()
         return self.tools
+
+    def get_tool_context(self, tool_alias):
+        """Given a tool alias, return the name of the context it belong to.
+
+        Args:
+            tool_alias (str): Tool alias to search for.
+
+        Returns:
+            (str): Name of the context that exposes a visible instance of this
+            tool alias, or None if the alias is not available.
+        """
+        tools_dict = self.get_tools()
+        data = tools_dict.get(tool_alias)
+        if data:
+            return data["context_name"]
+        return None
 
     def get_hidden_tools(self):
         """Get the tools hidden in this suite.

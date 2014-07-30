@@ -13,7 +13,8 @@ def setup_parser(parser, completions=False):
         help="create an empty suite at DIR")
     parser.add_argument(
         "-c", "--context", type=str, metavar="NAME",
-        help="specify a context name")
+        help="specify a context name (only used when using a context-specific "
+        "option, such as --add)")
     add_action = parser.add_argument(
         "-a", "--add", type=str, metavar="RXT",
         help="add a context to the suite")

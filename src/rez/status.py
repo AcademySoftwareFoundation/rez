@@ -86,14 +86,15 @@ class Status(object):
         if self.context:
             nreq = len(self.context.requested_packages(False))
             nres = len(self.context.resolved_packages)
-            lines.append("1 active context (%d requested packages, %d resolved "
+            lines.append("\n1 active context (%d requested packages, %d resolved "
                          " packages)." % (nreq, nres))
         else:
-            lines.append("no active context.")
+            lines.append("\nno active context.")
+
         if self.suites:
-            names = (os.path.basename(x.load_path) for x in self.suites)
-            lines.append("%d visible suites (%s)."
-                         % (len(self.suites), ", ".join(names)))
+            lines.append("\n%d visible suites:" % len(self.suites))
+            for suite in self.suites:
+                lines.append(suite.load_path)
         else:
             lines.append("no visible suites.")
         print >> buf, "\n".join(lines)
