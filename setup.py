@@ -52,7 +52,6 @@ scripts = [
     "rez-env",
     "rez-context",
     "rez-suite",
-    "rez-tools",
     "rez-interpret",
     "rez-test",
     "rez-bind",

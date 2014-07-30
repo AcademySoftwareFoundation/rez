@@ -1,7 +1,7 @@
 from rez.util import propertycache, create_forwarding_script, columnise
 from rez.exceptions import SuiteError
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, warning, stream_is_tty
+from rez.colorize import heading, warning, error
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from collections import defaultdict
@@ -40,6 +40,7 @@ class Suite(object):
 
         self.tools = None
         self.tool_conflicts = None
+        self.hidden_tools = None
 
     @property
     def context_names(self):
@@ -158,6 +159,7 @@ class Suite(object):
         data = self._context(context_name)
         hidden_tools = data["hidden_tools"]
         if tool_name not in hidden_tools:
+            self._validate_tool(context_name, tool_name)
             hidden_tools.add(tool_name)
             self._flush_tools()
 
@@ -192,6 +194,7 @@ class Suite(object):
         if tool_name in aliases:
             raise SuiteError("Tool %r in context %r is already aliased to %r"
                              % (tool_name, context_name, aliases[tool_name]))
+        self._validate_tool(context_name, tool_name)
         aliases[tool_name] = tool_alias
         self._flush_tools()
 
@@ -216,10 +219,27 @@ class Suite(object):
             - tool_name (str): The original, non-aliased name of the tool;
             - tool_alias (str): Aliased tool name (same as key);
             - context_name (str): Name of the context containing the tool;
-            - variant (`Variant`): Variant providing the tool.
+            - variant (`Variant` or set): Variant providing the tool. If the
+              tool is in conflict within the context (more than one package has
+              a tool of the same name), this will be a set of Variants.
         """
         self._update_tools()
         return self.tools
+
+    def get_hidden_tools(self):
+        """Get the tools hidden in this suite.
+
+        Hidden tools are those that have been explicitly hidden via `hide_tool`.
+
+        Returns:
+            A list of dicts, where each dict contains:
+            - tool_name (str): The original, non-aliased name of the tool;
+            - tool_alias (str): Aliased tool name (same as key);
+            - context_name (str): Name of the context containing the tool;
+            - variant (`Variant`): Variant providing the tool.
+        """
+        self._update_tools()
+        return self.hidden_tools
 
     def get_conflicting_aliases(self):
         """Get a list of tool aliases that have one or more conflicts.
@@ -231,7 +251,10 @@ class Suite(object):
         return self.tool_conflicts.keys()
 
     def get_alias_conflicts(self, tool_alias):
-        """Get a list of conflicts on the given tool.
+        """Get a list of conflicts on the given tool alias.
+
+        Args:
+            tool_alias (str): Alias to check for conflicts.
 
         Returns: None if the alias has no conflicts, or a list of dicts, where
             each dict contains:
@@ -362,31 +385,46 @@ class Suite(object):
         from rez.colorize import Printer
         _pr = Printer(buf)
 
-        if self.contexts:
-            tools = self.get_tools().values()
-            context_names = set()
-            variants = set()
-            for entry in tools:
-                context_names.add(entry["context_name"])
-                variants.add(str(entry["variant"]))
-            _pr("Suite contains %d tools from %d contexts and %d packages."
-                % (len(tools), len(context_names), len(variants)))
-        else:
+        if not self.contexts:
             _pr("Suite is empty.")
             return
 
+        tools = self.get_tools().values()
+        context_names = set()
+        variants = set()
+        context_tools = defaultdict(set)
+        context_variants = defaultdict(set)
+
+        for entry in tools:
+            context_name = entry["context_name"]
+            variant = str(entry["variant"])
+            context_names.add(context_name)
+            variants.add(variant)
+            context_tools[context_name].add(entry["tool_name"])
+            context_variants[context_name].add(variant)
+
+        _pr("Suite contains %d tools from %d contexts and %d packages."
+            % (len(tools), len(context_names), len(variants)))
+
         _pr()
         _pr("contexts:", heading)
-        rows = []
+        _pr()
+        rows = [["NAME", "VISIBLE TOOLS", "DESCRIPTION"],
+                ["----", "-------------", "-----------"]]
+
         for data in self._sorted_contexts():
             context_name = data["name"]
             description = data.get("description") or ""
-            rows.append((context_name, description))
+            ntools = len(context_tools[context_name])
+            nvariants = len(context_variants[context_name])
+            short_desc = "%d tools from %d packages" % (ntools, nvariants)
+            rows.append((context_name, short_desc, description))
         _pr("\n".join(columnise(rows)))
 
         if verbosity:
             _pr()
             _pr("tools:", heading)
+            _pr()
             self.print_tools(buf=buf, verbose=(verbosity >= 2))
 
     def print_tools(self, buf=sys.stdout, verbose=False):
@@ -398,34 +436,68 @@ class Suite(object):
                 ["----", "--------", "-------", "-------", ""]]
         colors = [None, None]
         tools = self.get_tools().values()
+        hidden_tools = self.get_hidden_tools()
 
         def _get_row(entry):
             context_name = entry["context_name"]
             tool_alias = entry["tool_alias"]
             tool_name = entry["tool_name"]
-            package = entry["variant"].qualified_package_name
+            message = ""
+            col = None
+
+            variant = entry["variant"]
+            if isinstance(variant, set):
+                message = "(in conflict)"
+                col = error
+                if verbose:
+                    package = ", ".join(x.qualified_package_name for x in variant)
+                else:
+                    v = iter(variant).next()
+                    package = "%s (+%d more)" % (v.qualified_package_name,
+                                                 len(variant) - 1)
+            else:
+                package = variant.qualified_package_name
+
             if tool_name == tool_alias:
                 tool_name = "-"
-            return [tool_alias, tool_name, package, context_name]
+            row = [tool_alias, tool_name, package, context_name, message]
+            return row, col
 
         for data in self._sorted_contexts():
             context_name = data["name"]
             entries = [x for x in tools if x["context_name"] == context_name]
+            for entry in entries:
+                entry["hidden"] = False
+
+            if verbose:
+                hidden_entries = [x for x in hidden_tools
+                                  if x["context_name"] == context_name]
+                for entry in hidden_entries:
+                    entry["hidden"] = True
+                entries.extend(hidden_entries)
+
             entries = sorted(entries, key=lambda x: x["tool_alias"])
-            col = None
 
             for entry in entries:
-                t = _get_row(entry)
-                rows.append(t + [""])
-                colors.append(col)
+                if entry["hidden"]:
+                    row, _ = _get_row(entry)
+                    row[-1] = "(hidden)"
+                    rows.append(row)
+                    colors.append(warning)
+                else:
+                    row, col = _get_row(entry)
+                    rows.append(row)
+                    colors.append(col)
 
-                if verbose:
-                    conflicts = self.get_alias_conflicts(t[0])
-                    if conflicts:
-                        for conflict in conflicts:
-                            t = _get_row(conflict)
-                            rows.append(t + ["(not visible)"])
-                            colors.append(warning)
+                    if verbose:
+                        tool_alias = row[0]
+                        conflicts = self.get_alias_conflicts(tool_alias)
+                        if conflicts:
+                            for conflict in conflicts:
+                                row, _ = _get_row(conflict)
+                                row[-1] = "(not visible)"
+                                rows.append(row)
+                                colors.append(warning)
 
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
@@ -448,11 +520,22 @@ class Suite(object):
     def _flush_tools(self):
         self.tools = None
         self.tool_conflicts = None
+        self.hidden_tools = None
+
+    def _validate_tool(self, context_name, tool_name):
+        context = self.context(context_name)
+        context_tools = context.get_tools(request_only=True)
+        for _, tool_names in context_tools.itervalues():
+            if tool_name in tool_names:
+                return
+        raise SuiteError("No such tool %r in context %r"
+                         % (tool_name, context_name))
 
     def _update_tools(self):
         if self.tools is not None:
             return
         self.tools = {}
+        self.hidden_tools = []
         self.tool_conflicts = defaultdict(list)
 
         for data in reversed(self._sorted_contexts()):
@@ -464,10 +547,9 @@ class Suite(object):
 
             context = self.context(context_name)
             context_tools = context.get_tools(request_only=True)
+
             for variant, tool_names in context_tools.itervalues():
                 for tool_name in tool_names:
-                    if tool_name in hidden_tools:
-                        continue
                     alias = tool_aliases.get(tool_name)
                     if alias is None:
                         alias = "%s%s%s" % (prefix, tool_name, suffix)
@@ -477,8 +559,23 @@ class Suite(object):
                                  context_name=context_name,
                                  variant=variant)
 
-                    if alias in self.tools:
-                        self.tool_conflicts[alias].append(entry)
+                    if tool_name in hidden_tools:
+                        self.hidden_tools.append(entry)
+                        continue
+
+                    existing_entry = self.tools.get(alias)
+                    if existing_entry:
+                        if existing_entry.get("context_name") == context_name:
+                            # the same tool is provided in the same context by
+                            # more than one package.
+                            existing_variant = existing_entry["variant"]
+                            if isinstance(existing_variant, set):
+                                existing_variant.add(variant)
+                            else:
+                                existing_entry["variant"] = set([existing_variant,
+                                                                 variant])
+                        else:
+                            self.tool_conflicts[alias].append(entry)
                     else:
                         self.tools[alias] = entry
 

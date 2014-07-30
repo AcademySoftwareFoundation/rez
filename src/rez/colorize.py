@@ -260,6 +260,9 @@ class Printer(object):
         self.tty = stream_is_tty(buf)
 
     def __call__(self, msg='', style=None):
+        print >> self.buf, self.get(msg, style)
+
+    def get(self, msg, style=None):
         if style and self.tty:
             msg = style(msg)
-        print >> self.buf, msg
+        return msg

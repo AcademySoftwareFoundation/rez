@@ -82,16 +82,15 @@ def save_graph(graph_str, path, fmt=None, image_ratio=None):
 
 def write_graph(graph_str, dest_file=None):
     """Render a graph to an image file."""
-    tmp_dir = None
-
     if not dest_file:
-        from rez.env import get_context_file
+        from rez.status import status
         from rez.config import config
+
+        tmp_dir = None
         fmt = config.dot_image_format
 
-        current_rxt_file = get_context_file()
-        if current_rxt_file:
-            tmp_dir = os.path.dirname(current_rxt_file)
+        if status.context_file:
+            tmp_dir = os.path.dirname(status.context_file)
             if not os.path.exists(tmp_dir):
                 tmp_dir = None
 

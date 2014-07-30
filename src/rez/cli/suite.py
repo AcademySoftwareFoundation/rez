@@ -41,6 +41,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--unalias", type=str, metavar="TOOL",
         help="remove an alias for a tool in the suite")
+    parser.add_argument(
+        "-b", "--bump", type=str, metavar="NAME",
+        help="bump a context, making its tools higher priority than others")
     DIR_action = parser.add_argument(
         "DIR", type=str, nargs='?',
         help="directory of suite to create or manage")
@@ -65,6 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
     # validate args
     suite_actions = dict(create=[],
                          remove=[],
+                         bump=[],
                          add=["context"],
                          description=["context"],
                          prefix=["context"],
@@ -73,6 +77,7 @@ def command(opts, parser, extra_arg_groups=None):
                          unhide=["context"],
                          alias=["context"],
                          unalias=["context"])
+
     query_only = True
     for act, requires in suite_actions.iteritems():
         if getattr(opts, act, None):
@@ -107,41 +112,65 @@ def command(opts, parser, extra_arg_groups=None):
         sys.exit(0)
 
     # operations that alter the suite
+    def _pr(s):
+        if opts.verbose:
+            print s
+
     if opts.create:
         suite = Suite()
+        _pr("create empty suite at %r..." % opts.DIR)
         suite.save(opts.DIR)  # raises if dir already exists
     else:
+        _pr("loading suite at %r..." % opts.DIR)
         suite = Suite.load(opts.DIR)
 
         if opts.add:
+            _pr("loading context at %r..." % opts.add)
             context = ResolvedContext.load(opts.add)
+            _pr("adding context %r..." % opts.context)
             suite.add_context(name=opts.context,
                               context=context,
                               description=opts.description)
         elif opts.remove:
+            _pr("removing context %r..." % opts.context)
             suite.remove_context(name=opts.remove)
+        elif opts.bump:
+            _pr("bumping context %r..." % opts.context)
+            suite.bump_context(name=opts.bump)
         elif opts.description:
+            _pr("setting description on context %r..." % opts.context)
             suite.set_context_description(name=opts.context,
                                           description=opts.description)
         elif opts.prefix or opts.suffix:
             if opts.prefix:
+                _pr("prefixing context %r..." % opts.context)
                 suite.set_context_prefix(name=opts.context,
                                          prefix=opts.prefix)
             if opts.suffix:
+                _pr("suffixing context %r..." % opts.context)
                 suite.set_context_suffix(name=opts.context,
                                          suffix=opts.suffix)
         elif opts.hide:
+            _pr("hiding tool %r in context %r..."
+                % (opts.hide, opts.context))
             suite.hide_tool(context_name=opts.context,
                             tool_name=opts.hide)
         elif opts.unhide:
+            _pr("unhiding tool %r in context %r..."
+                % (opts.unhide, opts.context))
             suite.unhide_tool(context_name=opts.context,
                               tool_name=opts.unhide)
         elif opts.alias:
+            _pr("aliasing tool %r as %r in context %r..."
+                % (opts.alias[0], opts.alias[1], opts.context))
             suite.alias_tool(context_name=opts.context,
                              tool_name=opts.alias[0],
                              tool_alias=opts.alias[1])
         elif opts.unalias:
+            _pr("unaliasing tool %r in context %r..."
+                % (opts.unalias, opts.context))
             suite.unalias_tool(context_name=opts.context,
                                tool_name=opts.unalias)
 
+        _pr("saving suite to %r..." % opts.DIR)
         suite.save(opts.DIR)

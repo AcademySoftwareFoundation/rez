@@ -2,7 +2,7 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, heading, local, implicit, stream_is_tty
+from rez.colorize import critical, error, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, timings
@@ -271,7 +271,6 @@ class ResolvedContext(object):
     def print_info(self, buf=sys.stdout, verbosity=0):
         """Prints a message summarising the contents of the resolved context.
         """
-        from rez.colorize import Printer
         _pr = Printer(buf)
 
         def _rt(t):
@@ -350,22 +349,29 @@ class ResolvedContext(object):
             self.print_tools(buf=buf)
 
     def print_tools(self, buf=sys.stdout):
-        from rez.colorize import Printer
-        _pr = Printer(buf)
-
-        from rez.util import columnise
         data = self.get_tools()
-        if data:
-            rows = [
-                ["TOOL", "PACKAGE"],
-                ["----", "-------"]]
-            for _, (variant, tools) in sorted(data.items()):
-                pkg_str = variant.qualified_package_name
-                for tool in sorted(tools):
-                    rows.append([tool, pkg_str])
+        if not data:
+            return
 
-        strs = columnise(rows)
-        _pr('\n'.join(strs))
+        _pr = Printer(buf)
+        conflicts = set(self.get_conflicting_tools().keys())
+        rows = [["TOOL", "PACKAGE", ""],
+                ["----", "-------", ""]]
+        colors = [None, None]
+
+        for _, (variant, tools) in sorted(data.items()):
+            pkg_str = variant.qualified_package_name
+            for tool in sorted(tools):
+                col = None
+                row = [tool, pkg_str, ""]
+                if tool in conflicts:
+                    col = error
+                    row[-1] = "(in conflict)"
+                rows.append(row)
+                colors.append(col)
+
+        for col, line in zip(colors, columnise(rows)):
+            _pr(line, col)
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -441,6 +447,28 @@ class ResolvedContext(object):
             Dict of {pkg-name: (variant, [tools])}.
         """
         return self.get_key("tools", request_only=request_only)
+
+    @_on_success
+    def get_conflicting_tools(self, request_only=False):
+        """Returns tools of the same name provided by more than one package.
+
+        Args:
+            request_only: If True, only return the key from resolved packages
+                that were also present in the request.
+
+        Returns:
+            Dict of {tool-name: set([Variant])}.
+        """
+        from collections import defaultdict
+
+        tool_sets = defaultdict(set)
+        tools_dict = self.get_tools(request_only=request_only)
+        for variant, tools in tools_dict.itervalues():
+            for tool in tools:
+                tool_sets[tool].add(variant)
+
+        conflicts = dict((k, v) for k, v in tool_sets.iteritems() if len(v) > 1)
+        return conflicts
 
     @_on_success
     def get_shell_code(self, shell=None, parent_environ=None):
