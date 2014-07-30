@@ -517,7 +517,8 @@ class Python(ActionInterpreter):
         self.manager = manager
 
     def get_output(self, manager):
-        self.target_environ.update(manager.environ)
+        for key in manager.environ:
+            self.target_environ[key] = manager.environ[key].decode("string-escape")
         return manager.environ
 
     def setenv(self, key, value):
