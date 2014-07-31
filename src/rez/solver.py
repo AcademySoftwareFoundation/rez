@@ -21,6 +21,7 @@ from heapq import merge
 import os.path
 import copy
 import time
+from operator import itemgetter
 
 
 class SolverStatus(Enum):
@@ -292,7 +293,91 @@ class _PackageVariantList(_Common):
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
-    def get_intersection(self, range):
+    def extract_family_name_from_requirements(self, requirement_list):
+        family_name_list = []
+        for req in requirement_list:
+            family_name_list.append(req.name)
+        return family_name_list
+
+    def get_index_position_family_name(self, variant_list):
+        # Return a dictionary with the smaller index that they appear on any of the variants
+        index_dict = {}
+        for variant in variant_list:
+            family_name_list = self.extract_family_name_from_requirements(variant)
+            for f in family_name_list:
+                if f not in index_dict or index_dict[f] > family_name_list.index(f):
+                    index_dict[f] = family_name_list.index(f)
+        return index_dict
+
+    def order_by_weight(self, variant_list, package_request_family_names_set):
+        # Selects the variants that contains the name of a requested_package
+        # returns a slice of the variant list which contains such requested package
+
+        weight_dict = {}
+        for variant in variant_list:
+            family_name_list = self.extract_family_name_from_requirements(variant)
+            weight = len(set(family_name_list) & package_request_family_names_set)
+            weight_dict.setdefault(weight, []).append(variant)
+
+        return weight_dict
+
+    def _get_index_order_list(self, package_request_family_names, family_name_to_index_dict, variant_list_length ):
+        # TODO  variant_list_length should be the longest or shortest list from priority_variant_list (asymmetric case)?
+
+        index_order_list = []
+        for family_name in package_request_family_names:
+            if family_name in family_name_to_index_dict:
+                index_order_list.append(family_name_to_index_dict[family_name])
+
+        if index_order_list:
+            #complete the list so sort them all by version as well
+
+            for index in xrange(variant_list_length):
+                if index not in index_order_list:
+                    index_order_list.append(index)
+
+        return index_order_list
+
+    def _sort_variants(self, variants, package_request_family_names, family_name_to_index_dict):
+        # packages in request_family_names now have priority, break the variant list into the one
+        # containing it and the one that does not, and then sort them
+
+        weighted_dic = self.order_by_weight(variants, set(package_request_family_names))
+
+        weights_list = weighted_dic.keys()
+        weights_list = sorted(weights_list)
+
+        final_ordered_list = []
+        for weight in weights_list:
+            variant_list = weighted_dic[weight]
+
+            index_order_list = self._get_index_order_list(package_request_family_names,
+                                                          family_name_to_index_dict,
+                                                          len(variant_list[0]))  #TODO Check
+            if index_order_list:
+                sorted_variant_list = sorted(variant_list, key=itemgetter(*index_order_list))
+            else:
+                sorted_variant_list = sorted(variant_list)
+
+            final_ordered_list.extend(sorted_variant_list)
+
+        return final_ordered_list
+
+
+    def sort_variants(self, package_requests, variants):
+        # Sort the variant list pushing the most preferable to the end
+        # the solver then consume that one first so if that satisfy all the requirements then we
+        # get the preferred in terms of the requested package, higher version, and position on the variant list
+
+        package_request_family_names = self.extract_family_name_from_requirements(package_requests)
+        family_name_to_index_dict = self.get_index_position_family_name(variants)
+
+        reversed(package_request_family_names)   #TODO reversed so we respect the order requested?
+        variants = self._sort_variants(variants, package_request_family_names, family_name_to_index_dict)
+
+        return variants
+
+    def get_intersection(self, range, package_requests):
         if self.packages:
             loaded_variants = []
             indexes = []
@@ -304,10 +389,18 @@ class _PackageVariantList(_Common):
                 if self.timestamp and pkg.timestamp > self.timestamp:
                     continue
 
+                # Remove the current package from the package_requests ..not match gain
+                package_requests[:] = [r for r in package_requests if r.name != pkg.name]
                 indexes.append(i)
+                variants = []
                 for var in pkg.iter_variants():
                     requires = var.get_requires(
                         build_requires=self.building)
+                    variants.append(requires)
+
+                variants = self.sort_variants(package_requests, variants)
+
+                for requires in variants:
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
                                              requires=requires,
@@ -554,7 +647,7 @@ class _PackageVariantCache(object):
         self.building = building
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range):
+    def get_variant_slice(self, package_name, range, package_requests):
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
             variant_list = _PackageVariantList(
@@ -564,7 +657,7 @@ class _PackageVariantCache(object):
                 building=self.building)
             self.variant_lists[package_name] = variant_list
 
-        variants = variant_list.get_intersection(range)
+        variants = variant_list.get_intersection(range, package_requests)
         if not variants:
             return None
 
@@ -1584,7 +1677,7 @@ class Solver(_Common):
 
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
-        slice = self.package_cache.get_variant_slice(package_name, range)
+        slice = self.package_cache.get_variant_slice(package_name, range, self.package_requests)
         if slice is not None:
             slice.pr = self.pr
 
