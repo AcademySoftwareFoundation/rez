@@ -9,6 +9,9 @@ def setup_parser(parser, completions=False):
         "-t", "--print-tools", dest="print_tools", action="store_true",
         help="print a list of the executables available in the suite")
     parser.add_argument(
+        "--validate", action="store_true",
+        help="validate the suite")
+    parser.add_argument(
         "--create", action="store_true",
         help="create an empty suite at DIR")
     parser.add_argument(
@@ -62,6 +65,7 @@ def argname(attr):
 def command(opts, parser, extra_arg_groups=None):
     from rez.status import status
     from rez.suite import Suite
+    from rez.exceptions import SuiteError
     from rez.resolved_context import ResolvedContext
     from rez.colorize import Printer, heading
     import sys
@@ -99,7 +103,16 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             suites = status.suites
 
-        if opts.print_tools:
+        if opts.validate:
+            if not opts.DIR:
+                parser.error("DIR must be supplied when using --validate")
+            try:
+                suite.validate()
+            except SuiteError as e:
+                print >> sys.stderr, "The suite is invalid:\n%s" % str(e)
+                sys.exit(1)
+            print "The suite is valid."
+        elif opts.print_tools:
             for i, suite in enumerate(suites):
                 if not opts.DIR:
                     if i:

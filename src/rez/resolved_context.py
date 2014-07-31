@@ -9,13 +9,14 @@ from rez.util import columnise, convert_old_commands, shlex_join, \
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
+from rez.vendor.version.version import VersionRange
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
-from rez.packages import Variant
+from rez.packages import Variant, validate_package_name
 from rez.shells import create_shell, get_shell_types
-from rez.exceptions import RezSystemError, PackageCommandError
+from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor import yaml
 import getpass
 import inspect
@@ -236,11 +237,93 @@ class ResolvedContext(object):
         return ((self.graph_ is not None) or self.graph_string)
 
     def get_resolved_package(self, name):
-        """Returns a Variant object or None if the package is not in the
+        """Returns a `Variant` object or None if the package is not in the
         resolve.
         """
         pkgs = [x for x in self._resolved_packages if x.name == name]
         return pkgs[0] if pkgs else None
+
+    def get_patched_request(self, package_requests=None,
+                            package_subtractions=None, strict=False):
+        """Get a 'patched' request.
+
+        A patched request is a copy of this context's request, but with some
+        changes applied. This can then be used to create a new, 'patched'
+        context.
+
+        New package requests override original requests based on the type -
+        normal, conflict or weak. So 'foo-2' overrides 'foo-1', '!foo-2'
+        overrides '!foo-1' and '~foo-2' overrides '~foo-1', but a request such
+        as '!foo-2' would not replace 'foo-1' - it would be added instead.
+
+        Note that requests in `package_requests` can have the form '^foo'. This
+        is another way of supplying package subtractions.
+
+        Any new requests that don't override original requests are appended,
+        in the order that they appear in `package_requests`.
+
+        Args:
+            package_requests (list of str or list of `Requirement`):
+                Overriding requests.
+            package_subtractions (list of str): Any original request with a
+                package name in this list is removed, before the new requests
+                are added.
+            strict (bool): If True, the current context's resolve is used as the
+                original request list, rather than the request.
+
+        Returns:
+            List of `Requirement` objects that can be used to construct a new
+            `ResolvedContext` object.
+        """
+        # assemble source request
+        if strict:
+            request = []
+            for variant in self.resolved_packages:
+                req = Requirement(variant.qualified_package_name)
+                request.append(req)
+        else:
+            request = self.requested_packages()[:]
+
+        # convert '^foo'-style requests to subtractions
+        if package_requests:
+            package_subtractions = package_subtractions or []
+            indexes = []
+            for i, req in enumerate(package_requests):
+                name = str(req)
+                if name.startswith('^'):
+                    package_subtractions.append(name[1:])
+                    indexes.append(i)
+            for i in reversed(indexes):
+                del package_requests[i]
+
+        # apply subtractions
+        if package_subtractions:
+            for pkg_name in package_subtractions:
+                validate_package_name(pkg_name)
+            request = [x for x in request if x.name not in package_subtractions]
+
+        # apply overrides
+        if package_requests:
+            request_dict = dict((x.name, (i, x)) for i, x in enumerate(request))
+            request_ = []
+
+            for req in package_requests:
+                if isinstance(req, basestring):
+                    req = Requirement(req)
+
+                if req.name in request_dict:
+                    i, req_ = request_dict[req.name]
+                    if (req_ is not None) and (req_.conflict == req.conflict) \
+                            and (req_.weak == req.weak):
+                        request[i] = req
+                        del request_dict[req.name]
+                    else:
+                        request_.append(req)
+                else:
+                    request_.append(req)
+
+            request += request_
+        return request
 
     def graph(self, as_dot=False):
         """Get the resolve graph.
@@ -280,7 +363,7 @@ class ResolvedContext(object):
         load_ver = doc["serialize_version"]
         curr_ver = ResolvedContext.serialize_version
         if load_ver > curr_ver:
-            raise RezSystemError(
+            raise ResolvedContextError(
                 ("The context stored in %s cannot be "
                  "loaded, because it was written by a newer version of Rez "
                  "(serialize version %d > %d)") % (path, load_ver, curr_ver))
@@ -342,10 +425,10 @@ class ResolvedContext(object):
             t = []
             col = None
             if not os.path.exists(pkg.root):
-                t.append('(NOT FOUND)')
+                t.append('NOT FOUND')
                 col = critical
             if pkg.is_local:
-                t.append('(local)')
+                t.append('local')
                 col = local
             t = '(%s)' % ', '.join(t) if t else ''
             rows.append((pkg.qualified_package_name, pkg.root, t))
@@ -398,24 +481,18 @@ class ResolvedContext(object):
             if self.status_ == ResolverStatus.solved:
                 return fn(self, *nargs, **kwargs)
             else:
-                raise RezSystemError(
+                raise ResolvedContextError(
                     "Cannot perform operation in a failed context")
         return _check
 
     @_on_success
     def validate(self):
-        """Check compatibility with the current system.
-
-        For instance, a loaded context may have been created on a different
-        host, with different package search paths, and so may refer to packages
-        not available on the current host.
-        """
-        # check package paths
-        for pkg in self.resolved_packages:
-            if not os.path.exists(pkg.root):
-                raise RezSystemError(
-                    "Package %s path does not exist: %s"
-                    % (pkg.qualified_package_name, pkg.root))
+        """Validate the context."""
+        try:
+            for pkg in self.resolved_packages:
+                pkg.validate_data()
+        except RezError as e:
+            raise ResolvedContextError("%s: %s" % (e.__class__.__name__, str(e)))
 
     @_on_success
     def get_environ(self, parent_environ=None):

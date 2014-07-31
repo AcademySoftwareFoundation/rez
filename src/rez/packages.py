@@ -2,12 +2,18 @@ import os.path
 from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
     ResourceWrapper
-from rez.exceptions import PackageMetadataError
-from rez.package_resources import package_schema
+from rez.exceptions import PackageMetadataError, PackageRequestError
+from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
+
+
+def validate_package_name(pkg_name):
+    """Raise an error if the value is not a valid package name."""
+    if not PACKAGE_NAME_REGEX.match(pkg_name):
+        raise PackageRequestError("Not a valid package name: %r" % pkg_name)
 
 
 def iter_package_families(paths=None):
@@ -105,6 +111,12 @@ def get_completions(prefix):
     Returns:
         Sorted list of strings, may be empty.
     """
+    op = None
+    if prefix:
+        if prefix[0] in ('!', '~'):
+            op = prefix[0]
+            prefix = prefix[1:]
+
     fam = None
     for ch in ('-', '@', '#'):
         if ch in prefix:
@@ -120,6 +132,9 @@ def get_completions(prefix):
     if fam:
         words |= set(x.qualified_name for x in iter_packages(name=fam)
                      if x.qualified_name.startswith(prefix))
+
+    if op:
+        words = set(op + x for x in words)
     return words
 
 

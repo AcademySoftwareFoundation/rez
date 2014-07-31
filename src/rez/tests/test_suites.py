@@ -30,6 +30,7 @@ class TestRezSuites(TestBase, TempdirMixin):
         suite.save(path)
         suite2 = Suite.load(path)
         self.assertEqual(suite.get_tools(), suite2.get_tools())
+        self.assertEqual(set(suite.context_names), set(suite2.context_names))
 
     def test_1(self):
         """Test empty suite."""

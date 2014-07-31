@@ -195,6 +195,16 @@ release_hooks: []
 
 
 ###############################################################################
+# Suites
+###############################################################################
+
+# The prefix character used to pass rez-specific commandline arguments to alias
+# scripts in a suite. This must be a character other than '-', so that it doesn't
+# clash with the wrapped tools' own commandline arguments.
+suite_alias_prefix_char: '+'
+
+
+###############################################################################
 # Appearance
 ###############################################################################
 

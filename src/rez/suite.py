@@ -1,7 +1,7 @@
 from rez.util import propertycache, create_forwarding_script, columnise
-from rez.exceptions import SuiteError
+from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, warning, error
+from rez.colorize import heading, warning, error, Printer
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from collections import defaultdict
@@ -44,6 +44,11 @@ class Suite(object):
 
     @property
     def context_names(self):
+        """Get the names of the contexts in the suite.
+
+        Reurns:
+            List of strings.
+        """
         return self.contexts.keys()
 
     def __str__(self):
@@ -295,6 +300,16 @@ class Suite(object):
         """
         self._update_tools()
         return self.tool_conflicts.get(tool_alias)
+
+    def validate(self):
+        """Validate the suite."""
+        for context_name in self.context_names:
+            context = self.context(context_name)
+            try:
+                context.validate()
+            except ResolvedContextError as e:
+                raise SuiteError("Error in context %r: %s"
+                                 % (context_name, str(e)))
 
     def to_dict(self):
         contexts_ = {}
@@ -613,44 +628,65 @@ class Suite(object):
 class Alias(object):
     """Main execution point of an 'alias' script in a suite.
     """
-    def __init__(self, context_name, context, tool_name, cli_args):
+    def __init__(self, suite_path, context_name, context, tool_name, cli_args):
+        self.suite_path = suite_path
         self.context_name = context_name
         self.context = context
         self.tool_name = tool_name
         self.cli_args = cli_args
 
+    @propertycache
+    def suite(self):
+        return Suite.load(self.suite_path)
+
     def run(self):
         """Invoke the wrapped script.
 
         Returns:
-            Return code of the process.
+            Return code of the command, or 0 if the command is not run.
         """
+        from rez.config import config
         from rez.vendor import argparse
-        parser = argparse.ArgumentParser(prog=self.tool_name, prefix_chars="+")
+        from rez.status import status
 
-        # alias-specific options
-        parser.add_argument(
-            "+i", "++interactive", action="store_true",
+        prefix_char = config.suite_alias_prefix_char
+        parser = argparse.ArgumentParser(prog=self.tool_name,
+                                         prefix_chars=prefix_char)
+
+        def _add_argument(*nargs, **kwargs):
+            nargs_ = []
+            for narg in nargs:
+                nargs_.append(narg.replace('=', prefix_char))
+            parser.add_argument(*nargs_, **kwargs)
+
+        _add_argument(
+            "=a", "==about", action="store_true",
+            help="print information about the tool")
+        _add_argument(
+            "=i", "==interactive", action="store_true",
             help="launch an interactive shell within the tool's configured "
             "environment")
-        parser.add_argument(
-            "+c", "++command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
+        _add_argument(
+            "=c", "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
             help="read commands from string, rather than executing the tool")
-        parser.add_argument(
-            "++rcfile", type=str,
-            help="source this file instead of the target shell's "
-            "standard startup scripts, if possible")
-        parser.add_argument(
-            "++norc", action="store_true",
-            help="skip loading of startup scripts")
-        parser.add_argument(
-            "+s", "++stdin", action="store_true",
+        _add_argument(
+            "=s", "==stdin", action="store_true",
             help="read commands from standard input, rather than executing the tool")
-        parser.add_argument(
-            "+q", "++quiet", action="store_true",
-            help="run in quiet mode (hides welcome message)")
+        _add_argument(
+            "=p", "==patch", type=str, nargs='*', metavar="PKG",
+            help="run the tool in a patched environment")
+        _add_argument(
+            "==strict", action="store_true",
+            help="strict patching. Ignored if ++patch is not present")
+        _add_argument(
+            "==nl", "==no-local", dest="no_local", action="store_true",
+            help="don't load local packages when patching")
+        _add_argument(
+            "=q", "==quiet", action="store_true",
+            help="hide welcome message when entering interactive mode")
 
-        opts, tool_args = parser.parse_known_args()
+        opts, tool_args = parser.parse_known_args(self.cli_args)
+
         if opts.stdin:
             # generally shells will behave as though the '-s' flag was not present
             # when no stdin is available. So here we replicate this behaviour.
@@ -658,15 +694,41 @@ class Alias(object):
             if not select.select([sys.stdin], [], [], 0.0)[0]:
                 opts.stdin = False
 
-        # construct context, if necessary
         context = self.context
+
+        # patching
+        if opts.patch is not None:
+            new_request = opts.patch
+            request = context.get_patched_request(new_request, strict=opts.strict)
+            config.remove_override("quiet")
+            pkg_paths = (config.nonlocal_packages_path
+                         if opts.no_local else None)
+
+            context = ResolvedContext(request,
+                                      package_paths=pkg_paths)
+
+            # reapply quiet mode (see cli.forward)
+            if "REZ_QUIET" not in os.environ:
+                config.override("quiet", True)
+
+        # print info
+        if opts.about:
+            print "Tool:     %s" % self.tool_name
+            print "Suite:    %s" % self.suite_path
+
+            msg = "%s (%r)" % (self.context.load_path, self.context_name)
+            if context.load_path is None:
+                msg += " (PATCHED)"
+            print "Context:  %s" % msg
+            print
+            context.print_info()
+            return 0
 
         # construct command
         cmd = None
         if opts.command:
             cmd = opts.command
         elif opts.interactive:
-            from rez.config import config
             config.override("prompt", "%s>" % self.context_name)
             cmd = None
         else:
@@ -674,8 +736,6 @@ class Alias(object):
 
         retcode, _, _ = context.execute_shell(command=cmd,
                                               stdin=opts.stdin,
-                                              rcfile=opts.rcfile,
-                                              norc=opts.norc,
                                               quiet=opts.quiet,
                                               block=True)
         return retcode
@@ -686,6 +746,6 @@ def _FWD__invoke_suite_tool_alias(context_name, tool_name, _script, _cli_args):
     path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
     context = ResolvedContext.load(path)
 
-    alias = Alias(context_name, context, tool_name, _cli_args)
+    alias = Alias(suite_path, context_name, context, tool_name, _cli_args)
     retcode = alias.run()
     sys.exit(retcode)

@@ -74,6 +74,13 @@ class Str(Setting):
         return value
 
 
+class Char(Setting):
+    schema = Schema(basestring, lambda x: len(x) == 1)
+
+    def _parse_env_var(self, value):
+        return value
+
+
 class OptionalStr(Str):
     schema = Or(None, basestring)
 
@@ -159,6 +166,7 @@ config_schema = Schema({
     "prompt":                           Str,
     "build_directory":                  Str,
     "documentation_url":                Str,
+    "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
     "editor":                           OptionalStr,

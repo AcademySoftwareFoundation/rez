@@ -56,6 +56,12 @@ def setup_parser(parser, completions=False):
         "-i", "--input", type=str, metavar="FILE",
         help="use a previously saved context. Resolve settings, such as PKG, "
         "--ni etc are ignored in this case")
+    parser.add_argument(
+        "-p", "--patch", action="store_true",
+        help="patch the current context to create a new context")
+    parser.add_argument(
+        "--strict", action="store_true",
+        help="strict patching. Ignored if --patch is not present")
     parser.add_argument("-q", "--quiet", action="store_true",
                         help="run in quiet mode (hides welcome message)")
     PKG_action = parser.add_argument(
@@ -104,7 +110,18 @@ def command(opts, parser, extra_arg_groups=None):
             pkg_paths = (opts.paths or "").split(os.pathsep)
             pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-        rc = ResolvedContext(opts.PKG,
+        request = opts.PKG
+
+        # apply patching
+        if opts.patch:
+            from rez.status import status
+            context = status.context
+            if context is None:
+                print >> sys.stderr, "cannot patch: not in a context"
+                sys.exit(1)
+            request = context.get_patched_request(request, strict=opts.strict)
+
+        rc = ResolvedContext(request,
                              timestamp=t,
                              package_paths=pkg_paths,
                              add_implicit_packages=(not opts.no_implicit),

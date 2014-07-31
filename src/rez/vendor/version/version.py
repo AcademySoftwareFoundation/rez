@@ -636,7 +636,7 @@ class VersionRange(_Comparable):
         for bound in range.bounds:
             i = bisect_left(self.bounds, bound)
             if i:
-                if self.bounds[i-1].contains_bound(bound):
+                if self.bounds[i - 1].contains_bound(bound):
                     continue
             if (i < len(self.bounds)) and self.bounds[i].contains_bound(bound):
                 continue
@@ -760,12 +760,15 @@ class VersionRange(_Comparable):
                 the range.
             op: Operation as a string. One of 'gt'/'>', 'gte'/'>=', lt'/'<',
                 'lte'/'<=', 'eq'/'=='. If None, a bounded range will be created
-                that contains exactly this version only.
+                that contains the version superset.
         """
         lower = None
         upper = None
 
-        if op in (None, "eq", "=="):
+        if op is None:
+            lower = _LowerBound(version, True)
+            upper = _UpperBound(version.next(), False)
+        elif op in ("eq", "=="):
             lower = _LowerBound(version, True)
             upper = _UpperBound(version, True)
         elif op in ("gt", ">"):
