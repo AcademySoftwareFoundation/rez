@@ -1,0 +1,24 @@
+name = 'multi_packages_variant_sorted'
+version = '1'
+authors = ["oops"]
+uuid = "5e0b535e-a32b-4825-ae54-f88589f4bd79"
+description = "package with multi packages in variants sorted"
+variants = [
+    ["bah-1.0.0", "eek-1.0.0" ],
+    ["bah-1.0.0", "eek-1.0.1" ],
+    ["bah-1.0.0", "eek-2.0.0" ],
+    ["bah-1.0.1", "eek-1.0.0" ],
+    ["bah-1.0.1", "eek-1.0.1" ],
+    ["bah-1.0.1", "eek-2.0.0" ],
+    ["bah-2.0.0", "eek-1.0.0" ],
+    ["bah-2.0.0", "eek-1.0.1" ],
+    ["bah-2.0.0", "eek-2.0.0" ],
+    ["bah-1.0.0", "bar-4.5.3" ],
+    ["bah-1.0.0", "bar-4.8.2" ],
+    ["bah-1.0.0", "bar-4.8.5" ],
+    ["bah-1.0.1", "bar-4.5.3" ],
+    ["bah-1.0.1", "bar-4.8.2" ],
+    ["bah-1.0.1", "bar-4.8.5" ],
+    ["bah-2.0.0", "bar-4.5.3" ],
+    ["bah-2.0.0", "bar-4.8.2" ],
+    ["bah-2.0.0", "bar-4.8.5" ]]
