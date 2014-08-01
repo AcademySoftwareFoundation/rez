@@ -609,6 +609,10 @@ class ResolvedContext(object):
         from rez.shells import create_shell
         sh = create_shell(shell)
         executor = self._create_executor(sh, parent_environ)
+
+        if self.load_path and os.path.isfile(self.load_path):
+            executor.env.REZ_RXT_FILE = self.load_path
+
         self._execute(executor)
         return executor.get_output()
 
