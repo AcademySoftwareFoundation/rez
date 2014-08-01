@@ -1,7 +1,8 @@
 from rez.util import propertycache, create_forwarding_script, columnise
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, warning, error, Printer
+from rez.colorize import heading, warning, critical, Printer
+from rez.colorize import alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from collections import defaultdict
@@ -246,7 +247,8 @@ class Suite(object):
         return self.tools
 
     def get_tool_context(self, tool_alias):
-        """Given a tool alias, return the name of the context it belong to.
+        """Given a visible tool alias, return the name of the context it
+        belongs to.
 
         Args:
             tool_alias (str): Tool alias to search for.
@@ -427,7 +429,6 @@ class Suite(object):
 
     def print_info(self, buf=sys.stdout, verbosity=0):
         """Prints a message summarising the contents of the suite."""
-        from rez.colorize import Printer
         _pr = Printer(buf)
 
         if not self.contexts:
@@ -474,7 +475,6 @@ class Suite(object):
 
     def print_tools(self, buf=sys.stdout, verbose=False):
         """Print table of tools available in the suite."""
-        from rez.colorize import Printer
         _pr = Printer(buf)
 
         rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
@@ -487,13 +487,13 @@ class Suite(object):
             context_name = entry["context_name"]
             tool_alias = entry["tool_alias"]
             tool_name = entry["tool_name"]
-            message = ""
+            properties = []
             col = None
 
             variant = entry["variant"]
             if isinstance(variant, set):
-                message = "(in conflict)"
-                col = error
+                properties.append("(in conflict)")
+                col = critical
                 if verbose:
                     package = ", ".join(x.qualified_package_name for x in variant)
                 else:
@@ -505,7 +505,13 @@ class Suite(object):
 
             if tool_name == tool_alias:
                 tool_name = "-"
-            row = [tool_alias, tool_name, package, context_name, message]
+            else:
+                properties.append("(aliased)")
+                if col is None:
+                    col = alias_col
+
+            msg = " ".join(properties)
+            row = [tool_alias, tool_name, package, context_name, msg]
             return row, col
 
         for data in self._sorted_contexts():
@@ -682,6 +688,9 @@ class Alias(object):
             "==nl", "==no-local", dest="no_local", action="store_true",
             help="don't load local packages when patching")
         _add_argument(
+            "+v", "++verbose", action="count", default=0,
+            help="verbose mode, repeat for more verbosity")
+        _add_argument(
             "=q", "==quiet", action="store_true",
             help="hide welcome message when entering interactive mode")
 
@@ -705,7 +714,8 @@ class Alias(object):
                          if opts.no_local else None)
 
             context = ResolvedContext(request,
-                                      package_paths=pkg_paths)
+                                      package_paths=pkg_paths,
+                                      verbosity=opts.verbose)
 
             # reapply quiet mode (see cli.forward)
             if "REZ_QUIET" not in os.environ:
@@ -720,8 +730,20 @@ class Alias(object):
             if context.load_path is None:
                 msg += " (PATCHED)"
             print "Context:  %s" % msg
-            print
-            context.print_info()
+
+            variants = context.get_tool_variants(self.tool_name)
+            if variants:
+                if len(variants) > 1:
+                    vars_str = " ".join(x.qualified_package_name for x in variants)
+                    msg = "Packages (in conflict): %s" % vars_str
+                    Printer()(msg, critical)
+                else:
+                    variant = iter(variants).next()
+                    print "Package: %s" % variant.qualified_package_name
+
+            if opts.verbose:
+                print
+                context.print_info()
             return 0
 
         # construct command

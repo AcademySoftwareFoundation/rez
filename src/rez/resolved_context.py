@@ -468,7 +468,7 @@ class ResolvedContext(object):
                 col = None
                 row = [tool, pkg_str, ""]
                 if tool in conflicts:
-                    col = error
+                    col = critical
                     row[-1] = "(in conflict)"
                 rows.append(row)
                 colors.append(col)
@@ -544,6 +544,27 @@ class ResolvedContext(object):
             Dict of {pkg-name: (variant, [tools])}.
         """
         return self.get_key("tools", request_only=request_only)
+
+    @_on_success
+    def get_tool_variants(self, tool_name):
+        """Get the variant(s) that provide the named tool.
+
+        If there are more than one variants, the tool is in conflict, and Rez
+        does not know which variant's tool is actually exposed.
+
+        Args:
+            tool_name(str): Name of the tool to search for.
+
+        Returns:
+            List of `Variant` objects. If no variant provides the tool, an
+            empty set is returned.
+        """
+        variants = set()
+        tools_dict = self.get_tools(request_only=False)
+        for variant, tools in tools_dict.itervalues():
+            if tool_name in tools:
+                variants.add(variant)
+        return variants
 
     @_on_success
     def get_conflicting_tools(self, request_only=False):

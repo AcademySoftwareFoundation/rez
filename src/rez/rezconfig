@@ -293,6 +293,11 @@ implicit_fore: cyan
 implicit_back:
 implicit_styles:
 
+# Tool aliases in suites
+alias_fore: cyan
+alias_back:
+alias_styles:
+
 
 ###############################################################################
 # Rez-1 Compatibility

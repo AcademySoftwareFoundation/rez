@@ -160,6 +160,7 @@ config_schema = Schema({
     "heading_styles":                   OptionalStrList,
     "local_styles":                     OptionalStrList,
     "implicit_styles":                  OptionalStrList,
+    "alias_styles":                     OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
     "dot_image_format":                 Str,
@@ -188,6 +189,8 @@ config_schema = Schema({
     "local_back":                       OptionalStr,
     "implicit_fore":                    OptionalStr,
     "implicit_back":                    OptionalStr,
+    "alias_fore":                       OptionalStr,
+    "alias_back":                       OptionalStr,
     "resource_caching_maxsize":         Int,
     "add_bootstrap_path":               Bool,  # TODO deprecate
     "color_enabled":                    Bool,
