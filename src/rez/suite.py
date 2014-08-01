@@ -52,6 +52,17 @@ class Suite(object):
         """
         return self.contexts.keys()
 
+    @propertycache
+    def tools_path(self):
+        """Get the path that should be added to $PATH to expose this suite's
+        tools.
+
+        Returns:
+            Absolute path as a string, or None if this suite was not loaded
+            from disk.
+        """
+        return os.path.join(self.load_path, "bin") if self.load_path else None
+
     def __str__(self):
         return "%s(%s)" % (self.__class__.__name__, " ".join(self.context_names))
 
@@ -89,8 +100,9 @@ class Suite(object):
             raise SuiteError("Context already in suite: %r" % name)
         if not context.success:
             raise SuiteError("Context is not resolved: %r" % name)
+
         self.contexts[name] = dict(name=name,
-                                   context=context,
+                                   context=context.copy(),
                                    tool_aliases={},
                                    hidden_tools=set(),
                                    description=description,
@@ -369,16 +381,16 @@ class Suite(object):
         # write contexts
         for context_name in self.context_names:
             context = self.context(context_name)
+            context._set_parent_suite(path, context_name)
             filepath = os.path.join(contexts_path, "%s.rxt" % context_name)
             if verbose:
                 print "writing %r..." % filepath
             context.save(filepath)
 
         # create alias wrappers
-        bin_path = os.path.join(path, "bin")
-        os.makedirs(bin_path)
+        os.makedirs(self.tools_path)
         if verbose:
-            print "creating alias wrappers in %r..." % bin_path
+            print "creating alias wrappers in %r..." % self.tools_path
 
         tools = self.get_tools()
         for tool_alias, d in tools.iteritems():
@@ -387,7 +399,7 @@ class Suite(object):
             if verbose:
                 print ("creating %r -> %r (%s context)..."
                        % (tool_alias, tool_name, context_name))
-            filepath = os.path.join(bin_path, tool_alias)
+            filepath = os.path.join(self.tools_path, tool_alias)
             create_forwarding_script(filepath,
                                      module="suite",
                                      func_name="_FWD__invoke_suite_tool_alias",
@@ -414,7 +426,11 @@ class Suite(object):
 
     @classmethod
     def load_visible_suites(cls, paths=None):
-        """Get a list of suites whos bin paths are visible on $PATH."""
+        """Get a list of suites whos bin paths are visible on $PATH.
+
+        Returns:
+            List of `Suite` objects.
+        """
         suites = []
         if paths is None:
             paths = os.getenv("PATH", "").split(os.pathsep)
@@ -739,7 +755,7 @@ class Alias(object):
                     Printer()(msg, critical)
                 else:
                     variant = iter(variants).next()
-                    print "Package: %s" % variant.qualified_package_name
+                    print "Package:  %s" % variant.qualified_package_name
 
             if opts.verbose:
                 print

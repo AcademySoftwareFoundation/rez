@@ -47,6 +47,37 @@ class Status(object):
         """
         return Suite.load_visible_suites()
 
+    @propertycache
+    def parent_suite(self):
+        """Get the current parent suite.
+
+        A parent suite exists when a context within a suite is active. That is,
+        during execution of a tool within a suite, or after a user has entered
+        an interactive shell in a suite context, for example via the command-
+        line syntax 'tool +i', where 'tool' is an alias in a suite.
+
+        Returns:
+            `Suite` object, or None if there is no current parent suite.
+        """
+        if self.context and self.context.parent_suite_path:
+            return Suite.load(self.context.parent_suite_path)
+        return None
+
+    @propertycache
+    def active_suite_context_name(self):
+        """Get the name of the currently active context in a parent suite.
+
+        If a parent suite exists, then an active context exists - this is the
+        context that a tool in the suite is currently running in.
+
+        Returns:
+            (str) Context name, or None if there is no parent suite (and thus
+            no active context).
+        """
+        if self.context:
+            return self.context.suite_context_name
+        return None
+
     def print_context_info(self, buf=sys.stdout, verbosity=0):
         """Print information about the current context."""
         context = self.context
@@ -89,14 +120,20 @@ class Status(object):
             lines.append("\n1 active context (%d requested packages, %d resolved "
                          " packages)." % (nreq, nres))
         else:
-            lines.append("\nno active context.")
+            lines.append("\nNo active context.")
 
         if self.suites:
             lines.append("\n%d visible suites:" % len(self.suites))
             for suite in self.suites:
                 lines.append(suite.load_path)
         else:
-            lines.append("no visible suites.")
+            lines.append("No visible suites.")
+
+        if self.parent_suite:
+            context_name = self.active_suite_context_name
+            lines.append("\nCurrently within context %r in suite at %s"
+                         % (context_name, self.parent_suite.load_path))
+
         print >> buf, "\n".join(lines)
         return bool(self.context or self.suites)
 

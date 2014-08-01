@@ -38,7 +38,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = 1
+    serialize_version = 2
 
     class Callback(object):
         def __init__(self, verbose, max_fails, time_limit, callback):
@@ -138,6 +138,10 @@ class ResolvedContext(object):
         self.graph_ = None
         self.solve_time = 0.0
         self.load_time = 0.0
+
+        # suite information
+        self.parent_suite_path = None
+        self.suite_context_name = None
 
         # perform the solve
         verbose_ = False
@@ -242,6 +246,11 @@ class ResolvedContext(object):
         """
         pkgs = [x for x in self._resolved_packages if x.name == name]
         return pkgs[0] if pkgs else None
+
+    def copy(self):
+        """Returns a shallow copy of the context."""
+        import copy
+        return copy.copy(self)
 
     def get_patched_request(self, package_requests=None,
                             package_subtractions=None, strict=False):
@@ -363,10 +372,10 @@ class ResolvedContext(object):
         load_ver = doc["serialize_version"]
         curr_ver = ResolvedContext.serialize_version
         if load_ver > curr_ver:
-            raise ResolvedContextError(
-                ("The context stored in %s cannot be "
-                 "loaded, because it was written by a newer version of Rez "
-                 "(serialize version %d > %d)") % (path, load_ver, curr_ver))
+            Printer()(
+                ("The context stored in %s was written by a newer version of "
+                 "Rez. The load may fail (serialize version %d > %d)")
+                % (path, load_ver, curr_ver), critical)
 
         r = cls.from_dict(doc)
         r.load_path = os.path.abspath(path)
@@ -790,6 +799,9 @@ class ResolvedContext(object):
             os=self.os,
             created=self.created,
 
+            parent_suite_path=self.parent_suite_path,
+            suite_context_name=self.suite_context_name,
+
             status=self.status_.name,
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
@@ -838,7 +850,16 @@ class ResolvedContext(object):
 
         r.requested_timestamp = d.get("requested_timestamp", 0)
 
+        # SINCE SERIALIZE VERSION 2 --
+
+        r.parent_suite_path = d.get("parent_suite_path")
+        r.suite_context_name = d.get("suite_context_name")
+
         return r
+
+    def _set_parent_suite(self, suite_path, context_name):
+        self.parent_suite_path = suite_path
+        self.suite_context_name = context_name
 
     def _create_executor(self, interpreter, parent_environ):
         parent_vars = True if config.all_parent_variables \
@@ -925,6 +946,11 @@ class ResolvedContext(object):
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
+
+        # append suite path if there is an active parent suite
+        if self.parent_suite_path:
+            tools_path = os.path.join(self.parent_suite_path, "bin")
+            executor.env.PATH.append(tools_path)
 
         # append system paths
         executor.append_system_paths()
