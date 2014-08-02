@@ -388,9 +388,10 @@ class Suite(object):
             context.save(filepath)
 
         # create alias wrappers
-        os.makedirs(self.tools_path)
+        tools_path = os.path.join(path, "bin")
+        os.makedirs(tools_path)
         if verbose:
-            print "creating alias wrappers in %r..." % self.tools_path
+            print "creating alias wrappers in %r..." % tools_path
 
         tools = self.get_tools()
         for tool_alias, d in tools.iteritems():
@@ -399,7 +400,7 @@ class Suite(object):
             if verbose:
                 print ("creating %r -> %r (%s context)..."
                        % (tool_alias, tool_name, context_name))
-            filepath = os.path.join(self.tools_path, tool_alias)
+            filepath = os.path.join(tools_path, tool_alias)
             create_forwarding_script(filepath,
                                      module="suite",
                                      func_name="_FWD__invoke_suite_tool_alias",
