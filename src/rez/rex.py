@@ -553,11 +553,10 @@ class Python(ActionInterpreter):
         if self.manager:
             self.target_environ.update(self.manager.environ)
 
-        if not hasattr(args, '__iter__'):
-            import shlex
-            args = shlex.split(args)
-
-        return subprocess.Popen(args, env=self.target_environ,
+        shell_mode = not hasattr(args, '__iter__')
+        return subprocess.Popen(args,
+                                shell=shell_mode,
+                                env=self.target_environ,
                                 **subproc_kwargs)
 
     def command(self, value):
