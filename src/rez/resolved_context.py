@@ -11,7 +11,7 @@ from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from rez.backport.shutilwhich import which
-from rez.rex import RexExecutor, Python
+from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name
@@ -598,7 +598,7 @@ class ResolvedContext(object):
         return conflicts
 
     @_on_success
-    def get_shell_code(self, shell=None, parent_environ=None, style="file"):
+    def get_shell_code(self, shell=None, parent_environ=None, style=OutputStyle.file):
         """Get the shell code resulting from intepreting this context.
 
         Args:
@@ -867,7 +867,7 @@ class ResolvedContext(object):
         self.parent_suite_path = suite_path
         self.suite_context_name = context_name
 
-    def _create_executor(self, interpreter, parent_environ, style="file"):
+    def _create_executor(self, interpreter, parent_environ, style=OutputStyle.file):
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 

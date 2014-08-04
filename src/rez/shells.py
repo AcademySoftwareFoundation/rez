@@ -61,10 +61,15 @@ class Shell(ActionInterpreter):
     def get_output(self, manager):
         if manager.output_style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
-        else:
-            # strip comments, they break eval output
-            lines = (x for x in self._lines if not x.startswith('#'))
+        elif manager.output_style == OutputStyle.eval:
+            lines = []
+            for line in self._lines:
+                if not line.startswith('#'):  # strip comments
+                    line = line.rstrip().rstrip(';')
+                    lines.append(line)
             script = ';'.join(lines)
+        else:
+            raise ValueError("Unknown output style: %r" % manager.output_style)
 
         return script
 

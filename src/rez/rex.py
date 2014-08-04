@@ -203,7 +203,8 @@ class ActionManager(object):
         return a list of methods on this class for executing actions.
         methods are return as a list of (name, func) tuples
         """
-        return [(name, getattr(self, name)) for name,_ in Action.get_command_types()]
+        return [(name, getattr(self, name))
+                for name, _ in Action.get_command_types()]
 
     def get_public_methods(self):
         """
