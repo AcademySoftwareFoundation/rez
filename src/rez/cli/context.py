@@ -8,6 +8,7 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
+from rez.rex import OutputStyle
 from rez.dot import write_graph, view_graph, prune_graph
 from rez.vendor.version.requirement import Requirement
 
@@ -17,6 +18,7 @@ def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
 
     formats = get_shell_types() + ['dict', 'actions']
+    output_styles = [e.name for e in OutputStyle]
 
     parser.add_argument("--req", "--print-request", dest="print_request",
                         action="store_true",
@@ -38,11 +40,14 @@ def setup_parser(parser, completions=False):
                         type=str, help="prune the graph down to PKG")
     parser.add_argument("-i", "--interpret", action="store_true",
                         help="interpret the context and print the resulting code")
-    parser.add_argument("-f", "--format", type=str, choices=formats,
+    parser.add_argument("-f", "--format", type=str, choices=formats, default=system.shell,
                         help="print interpreted output in the given format. If "
-                        "None, the current shell language (%s) is used. If 'dict', "
-                        "a dictionary of the resulting environment is printed. "
-                        "Ignored if --interpret is False" % system.shell)
+                        "'dict', a dictionary of the resulting environment is "
+                        "printed. Ignored if --interpret is not present "
+                        " (default: %(default)s)")
+    parser.add_argument("-s", "--style", type=str, default="file", choices=output_styles,
+                        help="Set code output style. Ignored if --interpret is "
+                        "not present (default: %(default)s)")
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
     RXT_action = parser.add_argument(
@@ -112,5 +117,7 @@ def command(opts, parser, extra_arg_groups=None):
         for action in actions:
             print str(action)
     else:
-        code = rc.get_shell_code(shell=opts.format, parent_environ=parent_env)
+        code = rc.get_shell_code(shell=opts.format,
+                                 parent_environ=parent_env,
+                                 style=OutputStyle[opts.style])
         print code

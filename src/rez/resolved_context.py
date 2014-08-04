@@ -598,17 +598,19 @@ class ResolvedContext(object):
         return conflicts
 
     @_on_success
-    def get_shell_code(self, shell=None, parent_environ=None):
+    def get_shell_code(self, shell=None, parent_environ=None, style="file"):
         """Get the shell code resulting from intepreting this context.
 
-        @param shell Shell type, for eg 'bash'. If None, the current shell type
-            is used.
-        @param parent_environ Environment to interpret the context within,
-            defaults to os.environ if None.
+        Args:
+            shell (str): Shell type, for eg 'bash'. If None, the current shell
+                type is used.
+            parent_environ (dict): Environment to interpret the context within,
+                defaults to os.environ if None.
+            style (): Style to format shell code in.
         """
         from rez.shells import create_shell
         sh = create_shell(shell)
-        executor = self._create_executor(sh, parent_environ)
+        executor = self._create_executor(sh, parent_environ, style=style)
 
         if self.load_path and os.path.isfile(self.load_path):
             executor.env.REZ_RXT_FILE = self.load_path
@@ -865,11 +867,12 @@ class ResolvedContext(object):
         self.parent_suite_path = suite_path
         self.suite_context_name = context_name
 
-    def _create_executor(self, interpreter, parent_environ):
+    def _create_executor(self, interpreter, parent_environ, style="file"):
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 
         return RexExecutor(interpreter=interpreter,
+                           output_style=style,
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 

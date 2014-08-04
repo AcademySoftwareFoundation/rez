@@ -1,7 +1,7 @@
 """
 Pluggable API for creating subshells using different programs, such as bash.
 """
-from rez.rex import RexExecutor, ActionInterpreter
+from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.config import config
 from rez.util import which, shlex_join, print_warning
 import subprocess
@@ -59,15 +59,17 @@ class Shell(ActionInterpreter):
         self._lines.append(line)
 
     def get_output(self, manager):
-        line_sep = '\n' if manager.output_style == 'file' else ';'
-        script = line_sep.join(self._lines)
-        script += line_sep
+        if manager.output_style == OutputStyle.file:
+            script = '\n'.join(self._lines) + '\n'
+        else:
+            # strip comments, they break eval output
+            lines = (x for x in self._lines if not x.startswith('#'))
+            script = ';'.join(lines)
+
         return script
 
     def new_shell(self):
-        """
-        @returns A new, reset shell of the same type.
-        """
+        """Returns A new, reset shell of the same type."""
         return type(self)()
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
