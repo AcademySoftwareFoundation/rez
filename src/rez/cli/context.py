@@ -50,13 +50,22 @@ def setup_parser(parser, completions=False):
                         "not present (default: %(default)s)")
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
+    diff_action = parser.add_argument(
+        "--diff", type=str, metavar="RXT",
+        help="diff against the current context and the given context")
+    parser.add_argument(
+        "--peek", action="store_true",
+        help="diff against the current context and a re-resolved copy of the "
+        "current context, this shows how 'stale' the context is")
     RXT_action = parser.add_argument(
         "RXT", type=str, nargs='?',
         help="rex context file (current context if not supplied)")
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
-        RXT_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        rxt_completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        RXT_action.completer = rxt_completer
+        diff_action.completer = rxt_completer
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -88,6 +97,14 @@ def command(opts, parser, extra_arg_groups=None):
             print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
         elif opts.print_tools:
             rc.print_tools()
+        elif opts.diff:
+            rc_other = ResolvedContext.load(opts.diff)
+            rc.print_resolve_diff(rc_other)
+        elif opts.peek:
+            rc_new = ResolvedContext(rc.requested_packages(),
+                                     package_paths=rc.package_paths,
+                                     verbosity=opts.verbose)
+            rc.print_resolve_diff(rc_new)
         elif opts.which:
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)

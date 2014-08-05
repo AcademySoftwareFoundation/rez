@@ -1,7 +1,7 @@
 import os.path
 from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
-    ResourceWrapper
+    get_resource, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageRequestError
 from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
@@ -195,7 +195,7 @@ class _PackageBase(ResourceWrapper):
     @propertycache
     def is_local(self):
         """Returns True if this package is in the local packages path."""
-        return (self.search_path == self.config.local_packages_path)
+        return (self.search_path == config.local_packages_path)
 
     def validate_data(self):
         super(_PackageBase, self).validate_data()
@@ -311,6 +311,16 @@ class Variant(_PackageBase):
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
         return requires
+
+    @propertycache
+    def parent(self):
+        """Get the parent `Package` object."""
+        variables = self._resource.variables.copy()
+        del variables["index"]
+        resource = get_resource(resource_keys=self._resource.parent_resource.key,
+                                search_path=self.search_path,
+                                variables=variables)
+        return Package(resource)
 
     def __str__(self):
         s = "%s@%s" % (self.qualified_name, self.search_path)

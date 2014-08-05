@@ -5,7 +5,7 @@ from rez.config import config
 from rez.colorize import critical, error, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, timings
+    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, dedup, timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -14,7 +14,7 @@ from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
-from rez.packages import Variant, validate_package_name
+from rez.packages import Variant, validate_package_name, iter_packages
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor import yaml
@@ -109,16 +109,17 @@ class ResolvedContext(object):
                 req = Requirement(req)
             self._package_requests.append(req)
 
+        if add_implicit_packages:
+            self.implicit_packages = [Requirement(x)
+                                      for x in config.implicit_packages]
+        # package paths
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
         add_bootstrap = (config.add_bootstrap_path
                          if add_bootstrap_path is None else add_bootstrap_path)
         if add_bootstrap:
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
-
-        if add_implicit_packages:
-            self.implicit_packages = [Requirement(x)
-                                      for x in config.implicit_packages]
+        self.package_paths = list(dedup(self.package_paths))
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -381,6 +382,88 @@ class ResolvedContext(object):
         r.load_path = os.path.abspath(path)
         return r
 
+    def get_resolve_diff(self, other):
+        """Get the difference between the resolve in this context and another.
+
+        Diffs can only be compared if their package search paths match, an error
+        is raised otherwise.
+
+        The diff is expressed in packages, not variants - the specific variant
+        of a package is ignored.
+
+        Returns:
+            A dict containing:
+            - 'newer_packages': A dict containing items:
+              - package name (str);
+              - List of `Package` objects. These are the packages up to and
+                including the newer package in `other`, in ascending order.
+            - 'older_packages': A dict containing:
+              - package name (str);
+              - List of `Package` objects. These are the packages down to and
+                including the older package in `other`, in descending order.
+            - 'added_packages': Set of `Package` objects present in `other` but
+               not in this context;
+            - 'removed_packages': Set of `Package` objects present in this
+               context but not in `other`.
+
+            If any item ('added_packages' etc) is empty, it is not added to the
+            resulting dict. Thus, an empty dict is returned if there is no
+            difference between contexts.
+        """
+        if self.package_paths != other.package_paths:
+            from difflib import ndiff
+            diff = ndiff(self.package_paths, other.package_paths)
+            raise ResolvedContextError("Cannot diff resolves, package search "
+                                       "paths differ:\n%s" % '\n'.join(diff))
+
+        d = {}
+        self_pkgs_ = set(x.parent for x in self._resolved_packages)
+        other_pkgs_ = set(x.parent for x in other._resolved_packages)
+        self_pkgs = self_pkgs_ - other_pkgs_
+        other_pkgs = other_pkgs_ - self_pkgs_
+        if not (self_pkgs or other_pkgs):
+            return d
+
+        self_fams = dict((x.name, x) for x in self_pkgs)
+        other_fams = dict((x.name, x) for x in other_pkgs)
+
+        newer_packages = {}
+        older_packages = {}
+        added_packages = set()
+        removed_packages = set()
+
+        for pkg in self_pkgs:
+            if pkg.name not in other_fams:
+                removed_packages.add(pkg)
+            else:
+                other_pkg = other_fams[pkg.name]
+                if other_pkg.version > pkg.version:
+                    r = VersionRange.as_span(lower_version=pkg.version,
+                                             upper_version=other_pkg.version)
+                    it = iter_packages(pkg.name, range=r)
+                    pkgs = sorted(it, key=lambda x: x.version)
+                    newer_packages[pkg.name] = pkgs
+                elif other_pkg.version < pkg.version:
+                    r = VersionRange.as_span(lower_version=other_pkg.version,
+                                             upper_version=pkg.version)
+                    it = iter_packages(pkg.name, range=r)
+                    pkgs = sorted(it, key=lambda x: x.version, reverse=True)
+                    older_packages[pkg.name] = pkgs
+
+        for pkg in other_pkgs:
+            if pkg.name not in self_fams:
+                added_packages.add(pkg)
+
+        if newer_packages:
+            d["newer_packages"] = newer_packages
+        if older_packages:
+            d["older_packages"] = older_packages
+        if added_packages:
+            d["added_packages"] = added_packages
+        if removed_packages:
+            d["removed_packages"] = removed_packages
+        return d
+
     def print_info(self, buf=sys.stdout, verbosity=0):
         """Prints a message summarising the contents of the resolved context.
         """
@@ -407,9 +490,26 @@ class ResolvedContext(object):
         _pr()
 
         if verbosity:
+            rows = []
+            colors = []
+            local_packages_path = os.path.realpath(config.local_packages_path)
             _pr("search paths:", heading)
+
             for path in self.package_paths:
-                _pr(path)
+                label = ""
+                col = None
+                path_ = os.path.realpath(path)
+                if not os.path.exists(path_):
+                    label = "(NOT FOUND)"
+                    col = critical
+                elif path_ == local_packages_path:
+                    label = "(local)"
+                    col = local
+                rows.append((path, label))
+                colors.append(col)
+
+            for col, line in zip(colors, columnise(rows)):
+                _pr(line, col)
             _pr()
 
         _pr("requested packages:", heading)
@@ -484,6 +584,44 @@ class ResolvedContext(object):
 
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
+
+    def print_resolve_diff(self, other):
+        """Print the difference between the resolve of two contexts."""
+        d = self.get_resolve_diff(other)
+        if not d:
+            return
+
+        rows = []
+        newer_packages = d.get("newer_packages", {})
+        older_packages = d.get("older_packages", {})
+        added_packages = d.get("added_packages", set())
+        removed_packages = d.get("removed_packages", set())
+
+        if newer_packages:
+            for name, pkgs in newer_packages.iteritems():
+                this_pkg = pkgs[0]
+                other_pkg = pkgs[-1]
+                other_pkg_str = ("%s (+%d versions)"
+                                 % (other_pkg.qualified_name, len(pkgs) - 1))
+                rows.append((this_pkg.qualified_name, other_pkg_str))
+
+        if older_packages:
+            for name, pkgs in older_packages.iteritems():
+                this_pkg = pkgs[0]
+                other_pkg = pkgs[-1]
+                other_pkg_str = ("%s (-%d versions)"
+                                 % (other_pkg.qualified_name, len(pkgs) - 1))
+                rows.append((this_pkg.qualified_name, other_pkg_str))
+
+        if added_packages:
+            for pkg in sorted(added_packages, key=lambda x: x.name):
+                rows.append(("-", pkg.qualified_name))
+
+        if removed_packages:
+            for pkg in sorted(removed_packages, key=lambda x: x.name):
+                rows.append((pkg.qualified_name, "-"))
+
+        print '\n'.join(columnise(rows))
 
     def _on_success(fn):
         def _check(self, *nargs, **kwargs):
@@ -565,7 +703,7 @@ class ResolvedContext(object):
             tool_name(str): Name of the tool to search for.
 
         Returns:
-            List of `Variant` objects. If no variant provides the tool, an
+            Set of `Variant` objects. If no variant provides the tool, an
             empty set is returned.
         """
         variants = set()

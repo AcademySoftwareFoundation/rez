@@ -201,6 +201,15 @@ def _add_bootstrap_pkg_path(paths):
     return paths[:] + [bootstrap_path] if bootstrap_path else paths[:]
 
 
+def dedup(seq):
+    """Remove duplicates from a list whil keeping order."""
+    seen = set()
+    for item in seq:
+        if item not in seen:
+            seen.add(item)
+            yield item
+
+
 def shlex_join(value):
     import pipes
 

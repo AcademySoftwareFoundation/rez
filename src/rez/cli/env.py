@@ -93,48 +93,54 @@ def command(opts, parser, extra_arg_groups=None):
             parser.error("argument --command: not allowed with arguments after '--'")
         command = extra_arg_groups[0] or None
 
+    context = None
+    request = opts.PKG
+    t = get_epoch_time_from_str(opts.time) if opts.time else None
+
+    if opts.paths is None:
+        pkg_paths = (config.nonlocal_packages_path
+                     if opts.no_local else None)
+    else:
+        pkg_paths = (opts.paths or "").split(os.pathsep)
+        pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
+
     if opts.input:
-        rc = ResolvedContext.load(opts.input)
-        if rc.status != ResolverStatus.solved:
+        if opts.PKG:
+            parser.error("Cannot use --input and provide PKG(s) at the same time")
+        context = ResolvedContext.load(opts.input)
+        if context.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
+        context.validate()
 
-        rc.validate()
-    else:
-        t = get_epoch_time_from_str(opts.time) if opts.time else None
-
-        if opts.paths is None:
-            pkg_paths = (config.nonlocal_packages_path
-                         if opts.no_local else None)
-        else:
-            pkg_paths = (opts.paths or "").split(os.pathsep)
-            pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
-
-        request = opts.PKG
-
-        # apply patching
-        if opts.patch:
+    if opts.patch:
+        if context is None:
             from rez.status import status
             context = status.context
             if context is None:
                 print >> sys.stderr, "cannot patch: not in a context"
                 sys.exit(1)
-            request = context.get_patched_request(request, strict=opts.strict)
 
-        rc = ResolvedContext(request,
-                             timestamp=t,
-                             package_paths=pkg_paths,
-                             add_implicit_packages=(not opts.no_implicit),
-                             add_bootstrap_path=(not opts.no_bootstrap),
-                             verbosity=opts.verbose, max_fails=opts.max_fails,
-                             time_limit=opts.time_limit)
+        request = context.get_patched_request(request, strict=opts.strict)
+        context = None
 
-    success = (rc.status == ResolverStatus.solved)
+    if context is None:
+        context = ResolvedContext(
+            request,
+            timestamp=t,
+            package_paths=pkg_paths,
+            add_implicit_packages=(not opts.no_implicit),
+            add_bootstrap_path=(not opts.no_bootstrap),
+            verbosity=opts.verbose,
+            max_fails=opts.max_fails,
+            time_limit=opts.time_limit)
+
+    success = (context.status == ResolverStatus.solved)
     if not success:
-        rc.print_info(buf=sys.stderr)
+        context.print_info(buf=sys.stderr)
 
     if opts.output:
-        rc.save(opts.output)
+        context.save(opts.output)
         sys.exit(0 if success else 1)
 
     if not success:
@@ -146,11 +152,11 @@ def command(opts, parser, extra_arg_groups=None):
         opts.stdin = False
 
     quiet = opts.quiet or bool(command)
-    returncode, _, _ = rc.execute_shell(shell=opts.shell,
-                                        rcfile=opts.rcfile,
-                                        norc=opts.norc,
-                                        command=command,
-                                        stdin=opts.stdin,
-                                        quiet=quiet,
-                                        block=True)
+    returncode, _, _ = context.execute_shell(shell=opts.shell,
+                                             rcfile=opts.rcfile,
+                                             norc=opts.norc,
+                                             command=command,
+                                             stdin=opts.stdin,
+                                             quiet=quiet,
+                                             block=True)
     sys.exit(returncode)

@@ -918,7 +918,7 @@ def _iter_filtered_resources(parent_resource, resource_classes, variables):
         keys = [x.key for x in resource_classes]
         print_debug("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
                     % (keys, variables))
-        print parent_resource
+        print_debug("PARENT RESOURCE: %r" % parent_resource)
     for child in _iter_resources(parent_resource, resource_classes, variables):
         if isinstance(child, tuple(resource_classes)) \
                 and is_dict_subset(variables or {}, child.variables):

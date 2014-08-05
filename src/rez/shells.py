@@ -27,8 +27,7 @@ def create_shell(shell=None, **kwargs):
 
 
 class Shell(ActionInterpreter):
-    """
-    Class representing a shell, such as bash or tcsh.
+    """Class representing a shell, such as bash or tcsh.
     """
     @classmethod
     def name(cls):

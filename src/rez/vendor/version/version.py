@@ -737,14 +737,21 @@ class VersionRange(_Comparable):
         return ranges
 
     @classmethod
-    def as_span(cls, lower_version=None, upper_version=None):
+    def as_span(cls, lower_version=None, upper_version=None,
+                lower_inclusive=True, upper_inclusive=True):
         """Create a range from lower_version..upper_version.
 
         Args:
-            lower_version Version object representing lower bound of the range.
+            lower_version: Version object representing lower bound of the range.
+            upper_version: Version object representing upper bound of the range.
+
+        Returns:
+            `VersionRange` object.
         """
-        lower = None if lower_version is None else _LowerBound(lower_version, True)
-        upper = None if upper_version is None else _UpperBound(upper_version, True)
+        lower = (None if lower_version is None
+                 else _LowerBound(lower_version, lower_inclusive))
+        upper = (None if upper_version is None
+                 else _UpperBound(upper_version, upper_inclusive))
         bound = _Bound(lower, upper)
 
         range = cls(None)
@@ -761,6 +768,9 @@ class VersionRange(_Comparable):
             op: Operation as a string. One of 'gt'/'>', 'gte'/'>=', lt'/'<',
                 'lte'/'<=', 'eq'/'=='. If None, a bounded range will be created
                 that contains the version superset.
+
+        Returns:
+            `VersionRange` object.
         """
         lower = None
         upper = None
@@ -796,6 +806,9 @@ class VersionRange(_Comparable):
 
         Args:
             versions: List of Version objects.
+
+        Returns:
+            `VersionRange` object.
         """
         range = cls(None)
         range.bounds = []
@@ -830,7 +843,7 @@ class VersionRange(_Comparable):
             vbound = _Bound(_LowerBound(version, True))
             i = bisect_left(self.bounds, vbound)
             if i:
-                if self.bounds[i-1].contains_version(version):
+                if self.bounds[i - 1].contains_version(version):
                     return True
             if (i < nbounds) and self.bounds[i].contains_version(version):
                 return True

@@ -1,7 +1,7 @@
 from rez.util import propertycache, create_forwarding_script, columnise
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, warning, critical, Printer
+from rez.colorize import heading, warning, critical, local, Printer
 from rez.colorize import alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
@@ -690,6 +690,9 @@ class Alias(object):
             help="launch an interactive shell within the tool's configured "
             "environment")
         _add_argument(
+            "==versions", action="store_true",
+            help="list versions of package providing this tool")
+        _add_argument(
             "=c", "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
             help="read commands from string, rather than executing the tool")
         _add_argument(
@@ -705,7 +708,11 @@ class Alias(object):
             "==nl", "==no-local", dest="no_local", action="store_true",
             help="don't load local packages when patching")
         _add_argument(
-            "+v", "++verbose", action="count", default=0,
+            "==peek", action="store_true",
+            help="diff against the tool's context and a re-resolved copy - "
+            "this shows how 'stale' the context is")
+        _add_argument(
+            "=v", "==verbose", action="count", default=0,
             help="verbose mode, repeat for more verbosity")
         _add_argument(
             "=q", "==quiet", action="store_true",
@@ -721,6 +728,20 @@ class Alias(object):
                 opts.stdin = False
 
         context = self.context
+        _pr = Printer()
+
+        # peek
+        if opts.peek:
+            config.remove_override("quiet")
+            new_context = ResolvedContext(context.requested_packages(),
+                                          package_paths=context.package_paths,
+                                          verbosity=opts.verbose)
+            # reapply quiet mode (see cli.forward)
+            if "REZ_QUIET" not in os.environ:
+                config.override("quiet", True)
+
+            context.print_resolve_diff(new_context)
+            return 0
 
         # patching
         if opts.patch is not None:
@@ -738,6 +759,11 @@ class Alias(object):
             if "REZ_QUIET" not in os.environ:
                 config.override("quiet", True)
 
+        def _print_conflicting(variants):
+            vars_str = " ".join(x.qualified_package_name for x in variants)
+            msg = "Packages (in conflict): %s" % vars_str
+            _pr(msg, critical)
+
         # print info
         if opts.about:
             print "Tool:     %s" % self.tool_name
@@ -751,16 +777,42 @@ class Alias(object):
             variants = context.get_tool_variants(self.tool_name)
             if variants:
                 if len(variants) > 1:
-                    vars_str = " ".join(x.qualified_package_name for x in variants)
-                    msg = "Packages (in conflict): %s" % vars_str
-                    Printer()(msg, critical)
+                    _print_conflicting(variants)
                 else:
                     variant = iter(variants).next()
                     print "Package:  %s" % variant.qualified_package_name
 
             if opts.verbose:
                 print
-                context.print_info()
+                context.print_info(verbosity=opts.verbose - 1)
+            return 0
+        elif opts.versions:
+            variants = context.get_tool_variants(self.tool_name)
+            if variants:
+                if len(variants) > 1:
+                    _print_conflicting(variants)
+                    return 1
+                else:
+                    from rez.packages import iter_packages
+                    variant = iter(variants).next()
+                    it = iter_packages(name=variant.name)
+                    rows = []
+                    colors = []
+
+                    for pkg in sorted(it, key=lambda x: x.version, reverse=True):
+                        if pkg.version == variant.version:
+                            name = "* %s" % pkg.qualified_name
+                            col = heading
+                        else:
+                            name = "  %s" % pkg.qualified_name
+                            col = local if pkg.is_local else None
+
+                        label = "(local)" if pkg.is_local else ""
+                        rows.append((name, pkg.path, label))
+                        colors.append(col)
+
+                    for col, line in zip(colors, columnise(rows)):
+                        _pr(line, col)
             return 0
 
         # construct command
