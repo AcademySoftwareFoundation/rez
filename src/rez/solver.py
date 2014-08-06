@@ -15,7 +15,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import columnise
+from rez.util import columnise, timings
 from rez.config import config
 from heapq import merge
 import copy
@@ -629,22 +629,35 @@ class _PackageVariantList(_Common):
                 package_requests = [r for r in self.package_requests if r.name != pkg.name]
 
                 indexes.append(i)
-                variants = []
+                variants_to_sort = []
+                original_variants=[]
                 for var in pkg.iter_variants():
                     requires = var.get_requires(
                         build_requires=self.building)
-                    variants.append(requires)
+                    variants_to_sort.append(requires)
+                    original_variants.append(var)
 
-                if any(variants):
-                    variants = VariantSorter(variants, package_requests).sort_variants()
+                if any(variants_to_sort):
+                    timings.start("solver.sort_variants")
+                    sorted_variants = VariantSorter(variants_to_sort, package_requests).sort_variants()
+                    timings.end("solver.sort_variants")
+                else:
+                    sorted_variants = variants_to_sort
 
-                for index, requires in enumerate(variants):
+                for var in original_variants:
+                    # Map the variants to the new indexes in the sorted_variants
+                    original_requires = var.get_requires(build_requires=self.building)
+                    if var.resource_handle.variables.get('index') is not None:
+                        new_index = sorted_variants.index(original_requires)
+                        var.index = new_index
+
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
-                                             requires=requires,
-                                             index=var.index if not var.index else index,
+                                             requires=original_requires,
+                                             index=var.index,
                                              userdata=var.resource_handle)
                     loaded_variants.append(variant)
+                loaded_variants = sorted(loaded_variants, key=lambda v: v.index)
 
             if loaded_variants:
                 self.variants = list(merge(self.variants, loaded_variants))
@@ -1583,6 +1596,9 @@ class _ResolvePhase(_Common):
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
+                # We changed the index to help the solver pick the 'preferred' variant
+                # At this point we should add it back for the original index
+                variant.index = variant.userdata.variables.get('index', None)
                 variants.append(variant)
 
         return variants
