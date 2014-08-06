@@ -12,13 +12,12 @@ from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
-    RequirementList
+    RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import columnise
+from rez.util import columnise, timings
 from rez.config import config
 from heapq import merge
-import os.path
 import copy
 import time
 from operator import itemgetter
@@ -79,6 +78,326 @@ class _Printer(object):
 
     def __nonzero__(self):
         return self.verbose
+
+
+class VariantSorter(object):
+    """
+    Example of the variant sorting algorithm see test cases in tests_solver for more
+
+    #initial order
+
+    #0    [ foo-1, bar-1, zex-1, bah-1 ]
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]
+    #3    [ foo-3, zex-4, bah-4, eek-4 ]
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]
+    #5    [ foo-4, bar-4, zex-1, bah-6 ]
+    #6    [ foo-3, eek-1, zex-4, bah-4 ]
+    #7    [ bar-4, bah-1 ]
+    #8    [ bar-2, bah-2 foo-1 ]
+    #9    [ bar-4, bah-1, foo-2 ]
+    #10   [ bar-4, bah-2 ]
+    #11   [ foo-3, zex-4, bah-2, eek-5 ]
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]
+    #13   [ bar-3, bah-4 ]
+
+
+    # request eek zex foo
+
+    We calculate the weights (The weight to each variant is given by the intersection with the fam_requires )
+      and separate them in variant slices of the same weight
+                                             W
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]   3
+    #3    [ foo-3, zex-4, bah-4, eek-4 ]   3
+    #6    [ foo-3, eek-1, zex-4, bah-4 ]   3
+    #11   [ foo-3, zex-4, bah-2, eek-5 ]   3
+    #12   [ foo-1, eek-1, zex-4, bah-4 ]   3
+
+    #0    [ foo-1, bar-1 , zex-1, bah-1 ]   2
+    #2    [ foo-1, bar-3 , zex-3, bah-3 ]   2
+    #4    [ foo-1, bar-2 , zex-5, bah-5 ]   2
+    #5    [ foo-4, bar-4 , zex-1, bah-6 ]   2
+
+    #8    [ bar-2, bah-2, foo-1 ]           1
+    #9    [ bar-4, bah-1, foo-2 ]           1
+
+    #7    [ bar-4, bah-1 ]                  0
+    #10   [ bar-4, bah-2 ]                  0
+    #13   [ bar-3, bah-4 ]                  0
+
+    now we sort the different slices by the index (column of the smaller index in which the fam_requires appear)
+       respecting the order of the request)
+
+    We start sorting the lowest weight first and add back to the final list of variants
+
+    Sorting variant slices of weight 0
+    -------------
+    There are not fam names overlapping with fam_requires fort these variants so the sorted()
+                    is applied which cause to sort them by 'default. That't it by column (0, 1)
+
+    #13   [ bar-3, bah-4 ]                  0
+    #7    [ bar-4, bah-1 ]                  0
+    #10   [ bar-4, bah-2 ]                  0
+
+
+    Sorting variant slices of weight 1
+    -------------
+    positions_of_package_request_in_variant = {foo=2}
+      - No requested packages are in the same column (There is no ambiguity to sort them, so no need to keep splitting)
+    Sort weight 1 by columns (2, 0,  1)        # lowest of foo (2), and default 0, 1
+
+    #8    [ bar-2, bah-2, foo-1 ]           1
+    #9    [ bar-4, bah-1, foo-2 ]           1
+
+    Sorting variant slices of weight 2
+    --------------
+    positions_of_package_request_in_variant = {foo=0, zex=2}
+       - No requested packages are in the same column (There is no ambiguity to sort them, so no need to keep splitting)
+       - Sort them as the appear in the request (eek zex foo)
+    Sort weight 2  by columns  (2 , 0 , 1, 3)   # lowest of zex (2), lowest of foo (0) and default 1, 3
+
+    #0    [ foo-1, bar-1, zex-1, bah-1 ]   2
+    #5    [ foo-4, bar-4, zex-1, bah-6 ]   2
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]   2
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]   2
+
+
+    Sorting variant slices of weight 3
+    --------------
+    positions_of_package_request_in_variant = {foo=0, zex=1, eek=1}
+       - eek and zex appear in the same column, we need to give more weight to the one that appear first in fam_requires
+         ( eek, zex, foo), so invert the request list and use the new weight  or len(request_list) - fam_index)
+            (foo=0, zex=1, eek=2)
+
+            Intersection weight 3, position weight 1
+            #3    [ foo-3, zex-4, bah-4, eek-4 ]      3,1
+            #11   [ foo-3, zex-4, bah-2, eek-5 ]      3,1
+
+            intersection weight 3, position weight 2
+            #6    [ foo-3, eek-1, zex-4, bah-4 ]      3,2
+            #1    [ foo-1, eek-3, zex-2, bah-2 ]      3,2
+            #12   [ foo-1, eek-1, zex-4, bah-4 ]      3,2
+
+        ------
+
+            Sort Intersection weight 3, position weight 1
+               recompute positions_of_package_request_in_variant = {foo=0, zex=1, eek=3}
+               - No requested packages are in the same column (now there is no ambiguity to sort them, no need to split)
+               Sort weight 3 position weight 1 by columns  (3, 1, 0, 2)   # lowest of eek (3), lowest of zex(1),
+                                                                            lowest of foo (0) and default 2
+            #3    [ foo-3, zex-4, bah-4, eek-4 ]   3,1
+            #11   [ foo-3, zex-4, bah-2, eek-5 ]   3,1
+
+
+            Sort Intersection weight 3, position weight 2
+               recompute positions_of_package_request_in_variant = {foo=0, zex=2, eek=1}
+              - No requested packages are in the same column (now there is no ambiguity to sort them, no need to split)
+               Sort weight 3 position weight 2 by columns  (1, 2, 0, 3)  # lowest of eek (1), lowest of zex(2),
+                                                                           lowest of foo (0) and default 3
+
+            #12   [ foo-1, eek-1, zex-4, bah-4 ]   3,2
+            #6    [ foo-3, eek-1, zex-4, bah-4 ]   3,2
+            #1    [ foo-1, eek-3, zex-2, bah-2 ]   3,2
+
+
+    final list of variants sorted
+
+                                             w      new index
+
+    #13   [ bar-3, bah-4 ]                  0           #0
+    #7    [ bar-4, bah-1 ]                  0           #1
+    #10   [ bar-4, bah-2 ]                  0           #2
+    #8    [ bar-2, bah-2, foo-1 ]           1           #3
+    #9    [ bar-4, bah-1, foo-2 ]           1           #4
+    #0    [ foo-1, bar-1, zex-1, bah-1 ]   2            #5
+    #5    [ foo-4, bar-4, zex-1, bah-6 ]   2            #6
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]   2            #7
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]   2            #8
+    #3    [ foo-3, zex-4, bah-4, eek-4 ]   3,1          #9
+    #11   [ foo-3, zex-4, bah-2, eek-5 ]   3,1          #10
+    #12   [ foo-1, eek-1, zex-4, bah-4 ]   3,2          #11
+    #6    [ foo-3, eek-1, zex-4, bah-4 ]   3,2          #12
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]   3,2          #13
+
+
+    The solver should start consuming from the #1 which is our preferred and it would work its way up if the current
+    does not resolve
+
+    The order in which the family names  appear in the request would also influence the package selection
+    """
+
+    def __init__(self, variants, package_requests):
+        self.variants = variants
+        self.fam_requires = extract_family_name_from_requirements(package_requests)
+
+    def sort_variants(self):
+        """
+        Sort the variant list pushing the most preferable to the end of the variants list
+        the solver then would consume the last one first so if that satisfies all the requirements then we
+        get the 'preferred in terms of the requested packages, position on the variant list,and higher version
+        """
+        weighted_dic = self._weight_variants_against_family_request()
+        return self._sort_variants_by_weight(weighted_dic)
+
+
+    def _sort_variants_by_weight(self, weighted_dict):
+        """
+        Iterates the variant slices for each weight passed on weighted_dict and sort the individual variants slices
+
+        @param weighted_dict: a dic with the weight as the key and a variant_slice on the values
+        @return a list with the weighted variants_slices sorted
+        """
+
+        ordered_variants = []
+        for weight in sorted(weighted_dict.keys()):  # Sorted, so we start adding the one with the least weight first
+            variants_slice = weighted_dict[weight]
+            variants_sorted_by_position = self._sort_variant_slice_by_position(variants_slice)
+            ordered_variants.extend(variants_sorted_by_position)
+
+        return ordered_variants
+
+    def _weight_variants_against_family_request(self):
+        """
+        Group the variants of the same weight
+        The weight to each variant is given by the intersection with the fam_requires
+
+        @return a dict with weight as the key and a list of variants in the value
+        """
+        fam_requires_set = set(self.fam_requires)
+        weighted_dict = {}
+        for variant in self.variants:
+            weight = len(self.intersect_variant_with_package_request(fam_requires_set, variant))
+            weighted_dict.setdefault(weight, []).append(variant)
+
+        return weighted_dict
+
+    def intersect_variant_with_package_request(self, fam_requires_set, variant):
+        """
+        Calculates the intersection of a variant and the fam_requires
+        """
+        fams = extract_family_name_from_requirements(variant)
+        intersection_set = set(fams) & fam_requires_set
+        return intersection_set
+
+
+    def _sort_variant_slice_by_position(self, variants_slice):
+        """
+        Order a variant_slice by the index position in which fam names of the fam_request appears on the variants_slice
+        @param variants_slice: a list of variants of the same intersecting weight
+        """
+        fam_to_index_map = self.find_lowest_index_of_each_package_family_in_variants(variants_slice)
+
+        # Check that there are no family names with the same index if they are we have to split them taking into account
+        # the order in which they appear in the package request
+        if self.is_sorting_ambiguous(fam_to_index_map):
+            # we need to keep splitting the variants_slice, but this time we use the position in the packages mapped
+            # to the order of the fam_requires to weight the packages
+            weighted_dic =self._weight_variants_against_family_position_in_variant(variants_slice, fam_to_index_map)
+            return self._sort_variants_by_weight(weighted_dict=weighted_dic)
+        else:
+             return self._apply_sorting(fam_to_index_map, variants_slice)
+
+    def is_sorting_ambiguous(self, fam_to_index_map):
+        """
+        checks if there is more than one repeated value in fam_to_index_map, which means that two requested family
+         names appear in the same column of a variants_slice
+
+         @param fam_to_index_map: a dict containing the lowest index fam names appear in a variant slice
+        """
+        return len(set(fam_to_index_map.values())) < len(fam_to_index_map.values())
+
+    def _weight_variants_against_family_position_in_variant(self, variants_slice, fam_to_index_map):
+        """
+        Group the variants_slice that of the same weight
+        variants_slice contains a list of ambiguous
+        Weight is given to the the variant based on the (inverse) order of the fam_requires.
+         package_request   [ foo, eek , bla ] --> weight foo=2, eek=1 bla=0
+
+        To assign a variant to a weight group we check if the variant family index is the same as the lowest index that
+         family appears on the the variants_slice
+
+        @param variants_slice: a list of variants with the same intersecting weight
+        @param fam_to_index_map: a dict containing the lowest index fam names appear in a variant slice
+        @return a dict with weight as the key and a list of variants_slice in the value
+        """
+
+        weighted_dict = {}
+        for variant in variants_slice:
+            fams = extract_family_name_from_requirements(variant)
+            for fam in self.fam_requires:
+                if fam in fams and fams.index(fam) == fam_to_index_map[fam]:
+                    weighted_dict.setdefault(len(self.fam_requires) - self.fam_requires.index(fam), []).append(variant)
+                    break
+
+        return weighted_dict
+
+
+    def _apply_sorting(self, fam_to_index_map, variants_slice):
+
+        """
+        apply the sorting by columns in a variants slice
+
+        @param variants_slice: a list of variants with the same intersecting weight
+        @param fam_to_index_map: a dict containing the lowest index fam names appear in a variant slice
+
+        @return:
+        """
+        minimum_length_of_variants = min([len(variant) for variant in variants_slice])
+        ordered_indexes_to_order_by = self._get_index_order_list(fam_to_index_map, minimum_length_of_variants)
+
+        return sorted(variants_slice, key=itemgetter(*ordered_indexes_to_order_by))
+
+    def _get_index_order_list(self, fam_to_index_map, variant_list_length):
+        """
+        Returns a list of the ordered indexes, first the smallest indexes the fam in the fam_requires appears
+         and then padded with the left to right order (as they appear on the list)
+
+        i.e  - fam_requires is foo, bar
+             - variant is [bah, eek, foo, zex, bar]
+                          [bla, eek, zex, bar, foo]
+
+                returns ( 2, 3 , 0, 1, 4)
+
+        @param fam_to_index_map: a dict containing the lowest index fam names appear in a variant slice
+        @param variant_list_length: The shorted length a list in the variants_slice
+        @return: an ordered list of indexes based on the weight
+        """
+        # get the indexes as they appear in the request
+        ordered_indexes = [fam_to_index_map[fam] for fam in self.fam_requires if fam in fam_to_index_map]
+
+        if ordered_indexes:
+            # Complete the list so we also sort the rest of the columns
+            # not named in fam_requires by default decreasing order
+            for index in xrange(variant_list_length):
+                if index not in ordered_indexes:
+                    ordered_indexes.append(index)
+        else:
+            # if no family names appear on the request we give them a default decreasing order
+            ordered_indexes = range(0, variant_list_length)
+
+        return ordered_indexes
+
+    def find_lowest_index_of_each_package_family_in_variants(self, variants_slice):
+        """
+        Returns a dictionary with the smallest index that a family name of the package request
+        appears on any of the variants
+
+        @param variants_slice: a list of variants with the same intersecting weight
+        @return: a dict containing the lowest index fam names appear in a variant slice
+
+        i.e request [foo eek zex ]   variants [ bla foo zex eek ]
+                                              [ bla eek zex     ]
+                                              [ foo zex
+            return foo=0 eek=1 zex=1
+
+        """
+        fam_to_index_map = {}
+        for variant in variants_slice:
+            fams = extract_family_name_from_requirements(variant)
+            for fam in fams:
+                if fam in self.fam_requires and (fam not in fam_to_index_map or fam_to_index_map[fam] > fams.index(fam)):
+                    fam_to_index_map[fam] = fams.index(fam)
+        return fam_to_index_map
 
 
 class SolverState(object):
@@ -276,13 +595,13 @@ class PackageVariant(_Common):
         idxstr = '' if self.index is None else str(self.index)
         return "%s[%s]" % (str(stmt), idxstr)
 
-
 class _PackageVariantList(_Common):
     """A sorted list of package variants, loaded lazily."""
-    def __init__(self, package_name, package_paths=None, timestamp=0,
+    def __init__(self, package_name, package_paths=None, package_requests=None, timestamp=0,
                  building=False):
         self.package_name = package_name
         self.package_paths = package_paths
+        self.package_requests = package_requests
         self.timestamp = timestamp
         self.building = building
         self.variants = []
@@ -293,118 +612,7 @@ class _PackageVariantList(_Common):
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
-    def extract_family_name_from_requirements(self, requirement_list):
-        return [req.name for req in requirement_list]
-
-    def get_family_name_to_index_position_map(self, variants):
-        """
-        Returns a dictionary with the smallest index that a family name  appear on any of the variants
-        Note: Variants can appear in more than one position (column)
-        """
-        fam_to_index_map = {}
-        for variant in variants:
-            if not variant:
-                continue
-            fams = self.extract_family_name_from_requirements(variant)
-            for fam in fams:
-                if fam not in fam_to_index_map or fam_to_index_map[fam] > fams.index(fam):
-                    fam_to_index_map[fam] = fams.index(fam)
-        return fam_to_index_map
-
-    def _get_weights_dict(self, variant_list, fam_requires):
-        # Selects the variants that contains the name of a requested_package
-        # returns a slice of the variant list which contains such requested package
-
-        fam_requires_set = set(fam_requires)
-        weight_dict = {}
-        for variant in variant_list:
-            family_name_list = self.extract_family_name_from_requirements(variant)
-            weight = len(set(family_name_list) & fam_requires_set)
-            weight_dict.setdefault(weight, []).append(variant)
-
-        return weight_dict
-
-    def _get_index_order_list(self, fam_requires, fam_to_index_map, variant_list_length):
-        """
-        Returns a list of the ordered indexes, first the smallest index a fam in the fam_requires appear
-         and then padded with the left to right order (as they appear on the list)
-
-        i.e  - fam_requires is foo, bar
-             - variant is [bah, eek, foo bar zex]
-                          [bla, eek, bar bla zex]
-
-                returns [ 1,2,0,3,4]
-
-        @param fam_requires: the name of the families as they appear on the original rez request
-        @param fam_to_index_map: a dictionary with the lowest index a family appears on the variants list
-        @param variant_list_length: The length of the list (not sure yet if it should be the longest/shortest
-        @return: an ordered list of indexes
-        """
-        ordered_indexes = [fam_to_index_map[fam] for fam in fam_requires if fam in fam_to_index_map]
-
-        if ordered_indexes:
-            # Complete the list so we also sort the rest of the columns not name in fam_requires
-            for index in xrange(variant_list_length):
-                if index not in ordered_indexes:
-                    ordered_indexes.append(index)
-
-        return ordered_indexes
-
-    def _sort_variant_slice_by_position(self, fam_requires, fam_to_index_map, variants):
-        """
-        Order the variants slice by the position in which they appear on the original request
-        """
-
-        # TODO Check we might need the longest/shortest no just the length of the first variant (asymmetric case)?
-        ordered_indexes_to_order_by = self._get_index_order_list(fam_requires, fam_to_index_map, len(variants[0]))
-
-        if ordered_indexes_to_order_by:
-            return sorted(variants, key=itemgetter(*ordered_indexes_to_order_by))
-        else:
-            return sorted(variants)
-
-
-    def _sort_variants_by_weight(self, variants, fam_requires, fam_to_index_map):
-        """
-        Separate the variants by weight then sort the sliced list of variants of the same weight and
-           then return a list with the weight layered slices sorted
-        Packages named in fam_requires gives weight to each variant
-        """
-
-          # This reversing would cause that we respect the order in which they appear in the original request
-        # if a packages x has a variant  # 0  [foo, eek]
-        #                                # 1 [bar, ekk]
-        # A request "x bar foo" where both have the same weight will end up prioritize variant #1
-        # A request "x foo bar" where both have the same weight will end up prioritize variant #0
-        # Not sure if that is desired
-
-        reversed(fam_requires)
-
-        weighted_dic = self._get_weights_dict(variants, fam_requires)
-
-        ordered_variants = []
-        for weight in sorted(weighted_dic.keys()):  # Sorted so we start adding the one with the least weight first
-            variants = weighted_dic[weight]
-            variants_sorted_by_position = self._sort_variant_slice_by_position(fam_requires, fam_to_index_map, variants)
-            ordered_variants.extend(variants_sorted_by_position)
-
-        return ordered_variants
-
-    def sort_variants(self, package_requests, variants):
-        """
-        Sort the variant list pushing the most preferable to the end of the variant list
-        the solver then consume that one first so if that satisfy all the requirements then we
-        get the preferred in terms of the requested packages, higher version, and position on the variant list
-        """
-
-        fam_requires = self.extract_family_name_from_requirements(package_requests)
-        fam_to_index_map = self.get_family_name_to_index_position_map(variants)
-
-        variants = self._sort_variants_by_weight(variants, fam_requires, fam_to_index_map)
-
-        return variants
-
-    def get_intersection(self, range, package_requests):
+    def get_intersection(self, range):
         if self.packages:
             loaded_variants = []
             indexes = []
@@ -416,26 +624,40 @@ class _PackageVariantList(_Common):
                 if self.timestamp and pkg.timestamp > self.timestamp:
                     continue
 
-                # Remove the current package from the package_requests ..
-                # probably no much gain and we are creating a new list.. remove this line?
-                package_requests = [r for r in package_requests if r.name != pkg.name]
+                # Remove the current package from the package_requests ..since it can not appear in its variants.
+                # probably no much gain and we are creating a new list.. might remove this line?
+                package_requests = [r for r in self.package_requests if r.name != pkg.name]
 
                 indexes.append(i)
-                variants = []
+                variants_to_sort = []
+                original_variants=[]
                 for var in pkg.iter_variants():
                     requires = var.get_requires(
                         build_requires=self.building)
-                    variants.append(requires)
+                    variants_to_sort.append(requires)
+                    original_variants.append(var)
 
-                variants = self.sort_variants(package_requests, variants)
+                if any(variants_to_sort):
+                    timings.start("solver.sort_variants")
+                    sorted_variants = VariantSorter(variants_to_sort, package_requests).sort_variants()
+                    timings.end("solver.sort_variants")
+                else:
+                    sorted_variants = variants_to_sort
 
-                for index, requires in enumerate(variants):
+                for var in original_variants:
+                    # Map the variants to the new indexes in the sorted_variants
+                    original_requires = var.get_requires(build_requires=self.building)
+                    if var.resource_handle.variables.get('index') is not None:
+                        new_index = sorted_variants.index(original_requires)
+                        var.index = new_index
+
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
-                                             requires=requires,
-                                             index=index,
+                                             requires=original_requires,
+                                             index=var.index,
                                              userdata=var.resource_handle)
                     loaded_variants.append(variant)
+                loaded_variants = sorted(loaded_variants, key=lambda v: v.index)
 
             if loaded_variants:
                 self.variants = list(merge(self.variants, loaded_variants))
@@ -669,24 +891,26 @@ class _PackageVariantSlice(_Common):
 
 
 class _PackageVariantCache(object):
-    def __init__(self, package_paths=None, timestamp=0, building=False):
+    def __init__(self, package_paths=None, package_requests=None, timestamp=0, building=False):
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
         self.timestamp = timestamp
         self.building = building
+        self.package_request = package_requests
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range, package_requests):
+    def get_variant_slice(self, package_name, range):
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
             variant_list = _PackageVariantList(
                 package_name,
+                package_requests=self.package_request,
                 package_paths=self.package_paths,
                 timestamp=self.timestamp,
                 building=self.building)
             self.variant_lists[package_name] = variant_list
 
-        variants = variant_list.get_intersection(range, package_requests)
+        variants = variant_list.get_intersection(range)
         if not variants:
             return None
 
@@ -1372,6 +1596,9 @@ class _ResolvePhase(_Common):
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
+                # We changed the index to help the solver pick the 'preferred' variant
+                # At this point we should add it back for the original index
+                variant.index = variant.userdata.variables.get('index', None)
                 variants.append(variant)
 
         return variants
@@ -1425,6 +1652,7 @@ class Solver(_Common):
         self._init()
 
         self.package_cache = _PackageVariantCache(self.package_paths,
+                                                  package_requests=package_requests,
                                                   timestamp=timestamp,
                                                   building=building)
 
@@ -1706,7 +1934,7 @@ class Solver(_Common):
 
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
-        slice = self.package_cache.get_variant_slice(package_name, range, self.package_requests)
+        slice = self.package_cache.get_variant_slice(package_name, range)
         if slice is not None:
             slice.pr = self.pr
 
