@@ -1534,6 +1534,11 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
 
 @atexit.register
 def _atexit():
+    # show cursor - progress lib may have hidden it
+    SHOW_CURSOR = '\x1b[?25h'
+    sys.stdout.write(SHOW_CURSOR)
+    sys.stdout.flush()
+
     # remove temp dirs
     if rm_tmdirs:
         for path in _tmpdirs:

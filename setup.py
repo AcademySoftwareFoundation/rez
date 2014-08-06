@@ -59,6 +59,7 @@ scripts = [
     "rez-status",
     "rez-bootstrap",
     "rez-help",
+    "rez-depends",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete"

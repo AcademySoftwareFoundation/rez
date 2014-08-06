@@ -101,7 +101,7 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = (config.nonlocal_packages_path
                      if opts.no_local else None)
     else:
-        pkg_paths = (opts.paths or "").split(os.pathsep)
+        pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
     if opts.input:

@@ -12,6 +12,7 @@ subcommands = [
     "config",
     "context",
     "complete",
+    "depends",
     "env",
     "forward",
     "help",

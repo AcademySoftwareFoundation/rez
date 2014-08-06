@@ -9,7 +9,7 @@ import tempfile
 import subprocess
 from uuid import uuid4
 from rez.rex import OutputStyle
-from rez.dot import write_graph, view_graph, prune_graph
+from rez.dot import save_graph, view_graph, prune_graph
 from rez.vendor.version.requirement import Requirement
 
 
@@ -120,7 +120,7 @@ def command(opts, parser, extra_arg_groups=None):
             if opts.prune_pkg:
                 req = Requirement(opts.prune_pkg)
                 gstr = prune_graph(gstr, req.name)
-            func = view_graph if opts.graph else write_graph
+            func = view_graph if opts.graph else save_graph
             func(gstr, dest_file=opts.write_graph)
         else:
             rc.print_info(verbosity=opts.verbose)
