@@ -95,7 +95,12 @@ _handled_term = False
 
 
 def sigbase_handler(signum, frame):
-    """"Kill all child procs."""
+    # show cursor - progress lib may have hidden it
+    SHOW_CURSOR = '\x1b[?25h'
+    sys.stdout.write(SHOW_CURSOR)
+    sys.stdout.flush()
+
+    # kill all child procs
     os.killpg(os.getpgid(0), signum)
     sys.exit(1)
 
