@@ -84,6 +84,7 @@ class VariantSorter(object):
     """
     Example of the variant sorting algorithm see test cases in tests_solver for more
 
+
     #initial order
 
     #0    [ foo-1, bar-1, zex-1, bah-1 ]
@@ -155,7 +156,6 @@ class VariantSorter(object):
        - No requested packages are in the same column (There is no ambiguity to sort them, so no need to keep splitting)
        - Sort them as the appear in the request (eek zex foo)
     Sort weight 2  by columns  (2 , 0 , 1, 3)   # lowest of zex (2), lowest of foo (0) and default 1, 3
-
     #0    [ foo-1, bar-1, zex-1, bah-1 ]   2
     #5    [ foo-4, bar-4, zex-1, bah-6 ]   2
     #2    [ foo-1, bar-3, zex-3, bah-3 ]   2
@@ -279,7 +279,6 @@ class VariantSorter(object):
         intersection_set = set(fams) & fam_requires_set
         return intersection_set
 
-
     def _sort_variant_slice_by_position(self, variants_slice):
         """
         Order a variant_slice by the index position in which fam names of the fam_request appears on the variants_slice
@@ -389,7 +388,6 @@ class VariantSorter(object):
                                               [ bla eek zex     ]
                                               [ foo zex
             return foo=0 eek=1 zex=1
-
         """
         fam_to_index_map = {}
         for variant in variants_slice:
@@ -657,7 +655,8 @@ class _PackageVariantList(_Common):
                                              index=var.index,
                                              userdata=var.resource_handle)
                     loaded_variants.append(variant)
-                loaded_variants = sorted(loaded_variants, key=lambda v: v.index)
+                # sort all now by version and variant
+                loaded_variants = sorted(loaded_variants, key=lambda v: (v.version, v.index))
 
             if loaded_variants:
                 self.variants = list(merge(self.variants, loaded_variants))

@@ -256,9 +256,9 @@ class Requirement(_Common):
         if not other:
             return +1
 
-        if other.range < self.range:
+        if other.range < self.range_:
             return +1
-        elif other.range > self.range:
+        elif other.range > self.range_:
             return -1
         return 0
 
@@ -368,3 +368,6 @@ class RequirementList(_Common):
             return "%s <--!--> %s" % (s1, s2)
         else:
             return ' '.join(str(x) for x in self.requirements_)
+
+def extract_family_name_from_requirements(requirement_list):
+    return [req.name for req in requirement_list]
