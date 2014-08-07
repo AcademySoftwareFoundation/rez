@@ -657,7 +657,8 @@ class _PackageVariantList(_Common):
                                              index=var.index,
                                              userdata=var.resource_handle)
                     loaded_variants.append(variant)
-                loaded_variants = sorted(loaded_variants, key=lambda v: v.index)
+                # sort all now by version and variant
+                loaded_variants = sorted(loaded_variants, key=lambda v: (v.version, v.index))
 
             if loaded_variants:
                 self.variants = list(merge(self.variants, loaded_variants))
