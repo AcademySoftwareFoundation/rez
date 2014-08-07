@@ -250,13 +250,29 @@ class Version(_Comparable):
 
             self.seps = seps[1:-1]
 
+    def copy(self):
+        """Returns a copy of the version."""
+        other = Version(None)
+        other.tokens = self.tokens[:]
+        other.seps = self.seps[:]
+        return other
+
+    def trim(self, len_):
+        """Return a copy of the version, possibly with less tokens.
+
+        Args:
+            len_ (int): New version length. If >= current length, an
+                unchanged copy of the version is returned.
+        """
+        other = Version(None)
+        other.tokens = self.tokens[:len_]
+        other.seps = self.seps[:len_ - 1]
+        return other
+
     def next(self):
         """Return 'next' version. Eg, next(1.2) is 1.2_"""
         if self.tokens:
-            other = Version(None)
-            other.tokens = self.tokens[:]
-            other.seps = self.seps
-
+            other = self.copy()
             tok = other.tokens.pop()
             other.tokens.append(tok.next())
             return other

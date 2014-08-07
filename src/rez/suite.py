@@ -382,7 +382,7 @@ class Suite(object):
         for context_name in self.context_names:
             context = self.context(context_name)
             context._set_parent_suite(path, context_name)
-            filepath = os.path.join(contexts_path, "%s.rxt" % context_name)
+            filepath = self._context_path(context_name)
             if verbose:
                 print "writing %r..." % filepath
             context.save(filepath)
@@ -472,16 +472,17 @@ class Suite(object):
         _pr()
         _pr("contexts:", heading)
         _pr()
-        rows = [["NAME", "VISIBLE TOOLS", "DESCRIPTION"],
-                ["----", "-------------", "-----------"]]
+        rows = [["NAME", "VISIBLE TOOLS", "PATH", "DESCRIPTION"],
+                ["----", "-------------", "----", "-----------"]]
 
         for data in self._sorted_contexts():
             context_name = data["name"]
+            context_path = self._context_path(context_name) or '-'
             description = data.get("description") or ""
             ntools = len(context_tools[context_name])
             nvariants = len(context_variants[context_name])
             short_desc = "%d tools from %d packages" % (ntools, nvariants)
-            rows.append((context_name, short_desc, description))
+            rows.append((context_name, short_desc, context_path, description))
         _pr("\n".join(columnise(rows)))
 
         if verbosity:
@@ -575,6 +576,12 @@ class Suite(object):
         if not data:
             raise SuiteError("No such context: %r" % name)
         return data
+
+    def _context_path(self, name):
+        if not self.load_path:
+            return None
+        filepath = os.path.join(self.load_path, "contexts", "%s.rxt" % name)
+        return filepath
 
     def _sorted_contexts(self):
         return sorted(self.contexts.values(), key=lambda x: x["priority"])

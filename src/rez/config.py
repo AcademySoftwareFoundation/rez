@@ -209,6 +209,7 @@ config_schema = Schema({
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,
+    "show_progress":                    Bool,
     "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,

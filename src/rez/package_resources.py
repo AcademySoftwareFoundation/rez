@@ -4,7 +4,7 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceError, ResourceNotFoundError, \
     PackageMetadataError
-from rez.util import propertycache, deep_update, print_warning, print_error
+from rez.util import propertycache, deep_update, print_warning
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
@@ -206,7 +206,7 @@ class BasePackageResource(FileResource):
                     or config.error_package_name_mismatch:
                 raise SchemaError(None, msg)
             elif config.warn("package_name_mismatch"):
-                print_error("%s: %s" % (self.path, msg))
+                print_warning("%s: %s" % (self.path, msg))
 
         return name
 
@@ -397,14 +397,14 @@ class VersionedPackageResource(BasePackageResource):
                         or config.error_version_mismatch:
                     raise SchemaError(None, msg)
                 elif config.warn("version_mismatch"):
-                    print_error("%s: %s" % (self.path, msg))
+                    print_warning("%s: %s" % (self.path, msg))
         else:
             msg = "version must be a string"
             if config.disable_rez_1_compatibility \
                     or config.error_nonstring_version:
                 raise SchemaError(None, msg)
             elif config.warn("nonstring_version"):
-                print_error("%s: %s" % (self.path, msg))
+                print_warning("%s: %s" % (self.path, msg))
         return Version(version_str)
 
     @propertycache

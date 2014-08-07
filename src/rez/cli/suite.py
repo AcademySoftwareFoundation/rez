@@ -18,6 +18,9 @@ def setup_parser(parser, completions=False):
         "-c", "--context", type=str, metavar="NAME",
         help="specify a context name (only used when using a context-specific "
         "option, such as --add)")
+    parser.add_argument(
+        "-i", "--interactive", action="store_true",
+        help="enter an interactive shell in the given context")
     add_action = parser.add_argument(
         "-a", "--add", type=str, metavar="RXT",
         help="add a context to the suite")
@@ -81,7 +84,8 @@ def command(opts, parser, extra_arg_groups=None):
                          hide=["context"],
                          unhide=["context"],
                          alias=["context"],
-                         unalias=["context"])
+                         unalias=["context"],
+                         interactive=["context"])
 
     query_only = True
     for act, requires in suite_actions.iteritems():
@@ -93,6 +97,13 @@ def command(opts, parser, extra_arg_groups=None):
             if not all(getattr(opts, x, None) for x in requires):
                 parser.error("%s must be supplied when using %s"
                              % (argname(requires[0]), option))
+
+    # interactive operations
+    if opts.interactive:
+        suite = Suite.load(opts.DIR)
+        context = suite.context(opts.context)
+        retcode, _, _ = context.execute_shell(block=True)
+        sys.exit(retcode)
 
     # read-only operations
     if query_only:
@@ -118,6 +129,7 @@ def command(opts, parser, extra_arg_groups=None):
                     if i:
                         _pr()
                     _pr("suite: %s" % suite.load_path, heading)
+                    _pr()
                 suite.print_tools(verbose=opts.verbose)
         elif opts.DIR:
             suite.print_info(verbosity=opts.verbose)

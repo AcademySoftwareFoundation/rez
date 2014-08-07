@@ -162,10 +162,6 @@ debug_all: false
 # Turn off all debugging messages. This overrides debug_all.
 debug_none: false
 
-# Suppress all warnings and debugging messages. Overrides all warn_xxx and
-# debug_xxx settings
-quiet: false
-
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
 # generally not interesting to the package author. If set to False, rex errors
@@ -207,6 +203,13 @@ suite_alias_prefix_char: '+'
 ###############################################################################
 # Appearance
 ###############################################################################
+
+# Suppress all extraneous output - warnings, debug messages, progress indicators
+# and so on. Overrides all warn_xxx and debug_xxx settings.
+quiet: false
+
+# Show progress bars where applicable
+show_progress: true
 
 # The editor used to get user input in some cases.
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.

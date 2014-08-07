@@ -62,8 +62,12 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--strict", action="store_true",
         help="strict patching. Ignored if --patch is not present")
-    parser.add_argument("-q", "--quiet", action="store_true",
-                        help="run in quiet mode (hides welcome message)")
+    parser.add_argument(
+        "--patch-rank", type=int, metavar="N", default=0,
+        help="patch rank. Ignored if --patch is not present")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="run in quiet mode (hides welcome message)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
         help='packages to use in the target environment')
@@ -121,7 +125,9 @@ def command(opts, parser, extra_arg_groups=None):
                 print >> sys.stderr, "cannot patch: not in a context"
                 sys.exit(1)
 
-        request = context.get_patched_request(request, strict=opts.strict)
+        request = context.get_patched_request(request,
+                                              strict=opts.strict,
+                                              rank=opts.patch_rank)
         context = None
 
     if context is None:

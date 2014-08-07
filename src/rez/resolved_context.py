@@ -254,7 +254,7 @@ class ResolvedContext(object):
         return copy.copy(self)
 
     def get_patched_request(self, package_requests=None,
-                            package_subtractions=None, strict=False):
+                            package_subtractions=None, strict=False, rank=0):
         """Get a 'patched' request.
 
         A patched request is a copy of this context's request, but with some
@@ -280,6 +280,12 @@ class ResolvedContext(object):
                 are added.
             strict (bool): If True, the current context's resolve is used as the
                 original request list, rather than the request.
+            rank (int): If > 1, package versions can only increase in this rank
+                and further - for example, rank=3 means that only version patch
+                numbers are allowed to increase, major and minor versions will
+                not change. This is only applied to packages that have not been
+                explicitly overridden in `package_requests`. If rank <= 1, or
+                `strict` is True, rank is ignored.
 
         Returns:
             List of `Requirement` objects that can be used to construct a new
@@ -333,6 +339,20 @@ class ResolvedContext(object):
                     request_.append(req)
 
             request += request_
+
+        # add rank limiters
+        if not strict and rank > 1:
+            overrides = set(x.name for x in package_requests if not x.conflict)
+            rank_limiters = []
+            for variant in self.resolved_packages:
+                if variant.name not in overrides:
+                    if len(variant.version) >= rank:
+                        version = variant.version.trim(rank - 1)
+                        version = version.next()
+                        req = "~%s<%s" % (variant.name, str(version))
+                        rank_limiters.append(req)
+            request += rank_limiters
+
         return request
 
     def graph(self, as_dot=False):

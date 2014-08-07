@@ -26,9 +26,13 @@ from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
+from rez.vendor.progress.bar import Bar
 
 
 logger = logging.getLogger(__name__)
+
+
+DEV_NULL = open(os.devnull, 'w')
 
 
 try:
@@ -54,6 +58,16 @@ yaml.add_representer(yaml_literal, yaml_literal_presenter)
 class Common(object):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+class ProgressBar(Bar):
+    def __init__(self, label, max):
+        from rez.config import config
+        if config.quiet or not config.show_progress:
+            self.file = DEV_NULL
+            self.hide_cursor = False
+
+        super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
 
 class LazySingleton(object):
@@ -93,6 +107,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
     content = yaml.dump(doc, default_flow_style=False)
     with open(filepath, 'w') as f:
+        # TODO make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
@@ -158,11 +173,6 @@ def relative_path(from_path, to_path):
     return os.path.relpath(from_path, to_path)
 
 
-def is_subdirectory(path, directory):
-    relative = relative_path(path, directory)
-    return not relative.startswith(os.pardir)
-
-
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
     if not os.path.exists(path):
@@ -202,7 +212,7 @@ def _add_bootstrap_pkg_path(paths):
 
 
 def dedup(seq):
-    """Remove duplicates from a list whil keeping order."""
+    """Remove duplicates from a list while keeping order."""
     seen = set()
     for item in seq:
         if item not in seen:
