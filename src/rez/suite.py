@@ -382,7 +382,7 @@ class Suite(object):
         for context_name in self.context_names:
             context = self.context(context_name)
             context._set_parent_suite(path, context_name)
-            filepath = self._context_path(context_name)
+            filepath = self._context_path(context_name, path)
             if verbose:
                 print "writing %r..." % filepath
             context.save(filepath)
@@ -577,10 +577,11 @@ class Suite(object):
             raise SuiteError("No such context: %r" % name)
         return data
 
-    def _context_path(self, name):
-        if not self.load_path:
+    def _context_path(self, name, suite_path=None):
+        suite_path = suite_path or self.load_path
+        if not suite_path:
             return None
-        filepath = os.path.join(self.load_path, "contexts", "%s.rxt" % name)
+        filepath = os.path.join(suite_path, "contexts", "%s.rxt" % name)
         return filepath
 
     def _sorted_contexts(self):
