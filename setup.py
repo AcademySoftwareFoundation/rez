@@ -76,7 +76,9 @@ setup(
     scripts=[os.path.join('bin', x) for x in scripts],
     include_package_data=True,
     package_dir = {'': 'src'},
-    packages=find_packages('src', exclude=["tests"]),
+    packages=find_packages('src', exclude=["build_utils",
+                                           "build_utils.*",
+                                           "tests"]),
     package_data = {
         'rez':
             ['rezconfig', 'logging.conf'] +
