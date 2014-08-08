@@ -60,8 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     ex = RexExecutor(interpreter=interp,
                      parent_environ=parent_env,
-                     parent_variables=parent_vars,
-                     bind_rez=False)
+                     parent_variables=parent_vars)
 
     ex.execute_code(code, filename=opts.FILE)
 

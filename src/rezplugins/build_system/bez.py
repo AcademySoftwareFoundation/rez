@@ -12,7 +12,6 @@ import os.path
 import sys
 
 
-
 class BezBuildSystem(BuildSystem):
     """The Bez build system.
 

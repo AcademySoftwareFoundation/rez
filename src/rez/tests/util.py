@@ -1,6 +1,7 @@
 import rez.vendor.unittest2 as unittest
 from rez.config import config, _create_locked_config
 from rez.shells import get_shell_types
+from rez.util import in_virtualenv
 import tempfile
 import shutil
 import os.path
@@ -50,8 +51,9 @@ def shell_dependent(fn):
 def install_dependent(fn):
     """Function decorator that skips tests if not run via 'rez-test' tool."""
     def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_TEST_RUNNING"):
+        if os.getenv("__REZ_TEST_RUNNING") and in_virtualenv():
             fn(self, *args, **kwargs)
         else:
-            print "\nskipping test, must be run via 'rez-test' tool"
+            print ("\nskipping test, must be run via 'rez-test' tool, from "
+                   "a PRODUCTION rez installation.")
     return _fn

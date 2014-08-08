@@ -1100,5 +1100,8 @@ class ResolvedContext(object):
             tools_path = os.path.join(self.parent_suite_path, "bin")
             executor.env.PATH.append(tools_path)
 
+        # append rez path
+        executor.append_rez_path()
+
         # append system paths
         executor.append_system_paths()

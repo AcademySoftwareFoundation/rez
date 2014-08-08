@@ -32,12 +32,11 @@ def find_files(pattern, path=None, root="rez"):
     return paths
 
 
-# parse version from source
-with open("src/rez/__init__.py") as f:
-    code = f.read()
-loc = code.split('\n')
-ver_loc = [x for x in loc if x.startswith("__version__")][0]
-version = ver_loc.split()[-1].replace('"', '')
+# get version from source
+with open("src/rez/_version.py") as f:
+    code = f.read().strip()
+exec(code)
+version = _rez_version
 
 
 scripts = [
