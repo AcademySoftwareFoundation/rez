@@ -71,14 +71,24 @@ if __name__ == "__main__":
     usage = "usage: %prog [options] DEST_DIR"
     parser = OptionParser(usage=usage)
     parser.add_option(
+        '-s', '--subdir', action='store_true',
+        help="Add a subdirectory named 'rez-<VERSION>' to the install path")
+    parser.add_option(
         '-v', '--verbose', action='count', dest='verbose', default=0,
         help="Increase verbosity.")
     opts, args = parser.parse_args()
 
+    # determine install path
     if len(args) != 1:
         parser.error("expected DEST_DIR")
     dest_dir = os.path.expanduser(args[0])
     dest_dir = os.path.realpath(dest_dir)
+
+    if opts.subdir:
+        dir_ = "rez-%s" % _rez_version
+        dest_dir = os.path.join(dest_dir, dir_)
+
+    print "installing rez to %s..." % dest_dir
 
     # make virtualenv verbose
     log_level = Logger.level_for_integer(2 - opts.verbose)
