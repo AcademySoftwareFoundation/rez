@@ -5,7 +5,7 @@ from rez.config import config
 from rez.colorize import critical, error, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, dedup, timings
+    mkdtemp_, rmdtemp, dedup, timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -64,8 +64,8 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 add_implicit_packages=True, add_bootstrap_path=None,
-                 max_fails=-1, time_limit=-1, callback=None):
+                 add_implicit_packages=True, max_fails=-1, time_limit=-1,
+                 callback=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -81,9 +81,6 @@ class ResolvedContext(object):
                 config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
-            add_bootstrap_path: If True, append the package search path with
-                the bootstrap path. If False, do not append. If None, use the
-                default specified in config.add_bootstrap_path.
             max_fails (int): Abort the resolve after this many failed
                 resolve steps. If -1, does not abort.
             time_limit (int): Abort the resolve if it takes longer than this
@@ -115,10 +112,6 @@ class ResolvedContext(object):
         # package paths
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
-        add_bootstrap = (config.add_bootstrap_path
-                         if add_bootstrap_path is None else add_bootstrap_path)
-        if add_bootstrap:
-            self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
         self.package_paths = list(dedup(self.package_paths))
 
         # info about env the resolve occurred in
@@ -767,8 +760,9 @@ class ResolvedContext(object):
             style (): Style to format shell code in.
         """
         from rez.shells import create_shell
-        sh = create_shell(shell)
-        executor = self._create_executor(sh, parent_environ, style=style)
+        executor = self._create_executor(interpreter=create_shell(shell),
+                                         parent_environ=parent_environ,
+                                         style=style)
 
         if self.load_path and os.path.isfile(self.load_path):
             executor.env.REZ_RXT_FILE = self.load_path
@@ -1025,7 +1019,8 @@ class ResolvedContext(object):
         self.parent_suite_path = suite_path
         self.suite_context_name = context_name
 
-    def _create_executor(self, interpreter, parent_environ, style=OutputStyle.file):
+    def _create_executor(self, interpreter, parent_environ,
+                         style=OutputStyle.file):
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 
@@ -1033,18 +1028,6 @@ class ResolvedContext(object):
                            output_style=style,
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
-
-    def _get_shell_code(self, shell, parent_environ):
-        # create the shell
-        from rez.shells import create_shell
-        sh = create_shell(shell)
-
-        # interpret this context and write out the native context file
-        executor = self._create_executor(sh, parent_environ)
-        self._execute(executor)
-        context_code = executor.get_output()
-
-        return sh, context_code
 
     def _execute(self, executor):
         # bind various info to the execution context
@@ -1076,10 +1059,10 @@ class ResolvedContext(object):
             executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
-        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self._package_requests))
         executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
+        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
         # apply each resolved package to the execution context
         for pkg in resolved_pkgs:

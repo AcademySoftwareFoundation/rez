@@ -15,8 +15,8 @@ from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
-    expandvars
+from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
+    in_virtualenv, get_rez_bin_path
 from rez.vendor.enum import Enum
 
 
@@ -791,14 +791,11 @@ class RexExecutor(object):
         self.environ = EnvironmentDict(self.manager)
         self.bind('env', AttrDictWrapper(self.environ))
 
-        if bind_rez:
-            script_path = get_script_path()
-            if not script_path:
-                binary = which("rezolve")
-                if binary:
-                    script_path = os.path.dirname(binary)
-            if script_path:
-                self.environ["PATH"] = script_path
+        # only bind if we're in a virtualenv
+        if bind_rez and in_virtualenv():
+            binpath = get_rez_bin_path()
+            if binpath:
+                self.environ["PATH"] = binpath
 
         for cmd, func in self.manager.get_public_methods():
             self.bind(cmd, func)

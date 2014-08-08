@@ -34,9 +34,6 @@ def setup_parser(parser, completions=False):
                         help="don't load local packages")
     parser.add_argument("--paths", type=str, default=None,
                         help="set package search path")
-    parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
-                        action="store_true",
-                        help="don't load bootstrap packages")
     parser.add_argument("-t", "--time", type=str,
                         help="ignore packages released after the given time. "
                         "Supported formats are: epoch time (eg 1393014494), "
@@ -136,7 +133,6 @@ def command(opts, parser, extra_arg_groups=None):
             timestamp=t,
             package_paths=pkg_paths,
             add_implicit_packages=(not opts.no_implicit),
-            add_bootstrap_path=(not opts.no_bootstrap),
             verbosity=opts.verbose,
             max_fails=opts.max_fails,
             time_limit=opts.time_limit)

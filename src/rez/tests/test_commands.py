@@ -17,7 +17,6 @@ class TestCommands(TestBase):
     def setUpClass(cls):
         cls.settings = dict(
             packages_path=[cls.get_packages_path()],
-            add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[],

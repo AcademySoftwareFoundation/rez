@@ -167,50 +167,6 @@ def set_rm_tmpdirs(enable):
     rm_tmdirs = enable
 
 
-def relative_path(from_path, to_path):
-    from_path = os.path.realpath(from_path)
-    to_path = os.path.realpath(to_path)
-    return os.path.relpath(from_path, to_path)
-
-
-def _get_rez_dist_path(dirname):
-    path = os.path.join(module_root_path, dirname)
-    if not os.path.exists(path):
-        # this will happen if we are the bootstrapped rez pkg
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        path = os.path.realpath(path)
-        path = os.path.join(path, dirname)
-
-        # the dist may not be available - this happens when unit tests are
-        # run from source
-        if not os.path.exists(path):
-            return None
-
-    return path
-
-
-def get_bootstrap_path():
-    path = _get_rez_dist_path("packages/rez")
-    if path:
-        return os.path.dirname(path)
-    else:
-        return _get_rez_dist_path("packages")
-
-
-def get_script_path():
-    return _get_rez_dist_path("bin")
-
-
-def get_rez_install_path():
-    path = os.path.join(get_script_path(), "..")
-    return os.path.realpath(path)
-
-
-def _add_bootstrap_pkg_path(paths):
-    bootstrap_path = get_bootstrap_path()
-    return paths[:] + [bootstrap_path] if bootstrap_path else paths[:]
-
-
 def dedup(seq):
     """Remove duplicates from a list while keeping order."""
     seen = set()
@@ -232,6 +188,11 @@ def shlex_join(value):
         return str(value)
 
 
+def in_virtualenv():
+    """Returns True if we're running inside a virtualenv."""
+    return hasattr(sys, "real_prefix")
+
+
 # returns path to first program in the list to be successfully found
 def which(*programs):
     from rez.backport.shutilwhich import which as which_
@@ -239,6 +200,22 @@ def which(*programs):
         path = which_(prog)
         if path:
             return path
+    return None
+
+
+def get_rez_bin_path():
+    """Get path containing rez binaries."""
+    if sys.argv and sys.argv[0]:
+        executable = sys.argv[0]
+        path = os.path.dirname(executable)
+        rezolve_exe = os.path.join(path, "rezolve")
+        if os.path.exists(rezolve_exe):
+            return path
+
+    path = which("rezolve")
+    if path:
+        return os.path.dirname(path)
+    return None
 
 
 # case-insensitive fuzzy string match
