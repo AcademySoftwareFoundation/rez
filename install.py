@@ -4,6 +4,7 @@ production-ready Rez installation in the specified directory.
 """
 import os
 import sys
+import shutil
 import os.path
 import textwrap
 import subprocess
@@ -87,6 +88,11 @@ if __name__ == "__main__":
     if opts.subdir:
         dir_ = "rez-%s" % _rez_version
         dest_dir = os.path.join(dest_dir, dir_)
+
+        # pretty safe to delete this dir if it already exists...
+        if os.path.exists(dest_dir):
+            print "removing previous rez install from %s..." % dest_dir
+            shutil.rmtree(dest_dir)
 
     print "installing rez to %s..." % dest_dir
 
