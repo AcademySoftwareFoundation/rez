@@ -103,107 +103,194 @@ class VariantSorter(object):
     #12   [ foo-1 , eek-1, zex-4, bah-4 ]
     #13   [ bar-3, bah-4 ]
 
-
     # request eek zex foo
+
 
     """
 
     def __init__(self, variants, package_requests):
         self.variants = variants
-        self.fam_requires = extract_family_name_from_requirements(package_requests)
+        self.fam_requires = self._curated_package_request(package_requests)
+
+    def _curated_package_request(self, package_request):
+        """
+        optimization: only leave the fam in the package request that we know cant take any effect in the sorting
+        """
+        fam_names_in_variants = set()
+
+        for variant in self.variants:
+            for fam in extract_family_name_from_requirements(variant):
+                fam_names_in_variants.add(fam)
+
+        fam_requires = extract_family_name_from_requirements(package_request)
+        curated_fam_requires = [fam for fam in fam_requires if fam in fam_names_in_variants]
+
+        return curated_fam_requires
 
     def sort_variants(self):
 
-        return self._sort_variants_by_request_order(self.variants, self.fam_requires[:])
+        return self._sort_variants_by_intersection_weight()
 
-    def _sort_variants_by_request_order(self, variants, fam_requires):
-        final_order_variant_list = []
+    def _sort_variants_by_intersection_weight(self):
+        """
+        Slices the list of variants in groups by intersection weight and sort each slice by version range
+
+        The intersection weight of a variant is the the amount of named packages in the fam requires that appear in the
+          variant regardless of the order
+
+        @return a list with the intersecting weighted variants_slices sorted
+        """
+        weighted_dict = self._weight_variants_against_family_request()
+
+        ordered_variants = []
+        for weight in sorted(weighted_dict.keys()):  # Sorted, so we start adding the one with the least weight first
+            variants_slice = weighted_dict[weight]
+            variants_sorted_by_version_range = self._sort_variants_by_version_range(variants_slice, self.fam_requires[:])
+            ordered_variants.extend(variants_sorted_by_version_range)
+
+        return ordered_variants
+
+    def _sort_variants_by_version_range(self, variants_slice, fam_requires):
+        """
+        Start sorting the slice by VersionRange using the first entry in the fam_requires
+            If the sort is ambiguous keep sorting using the next entry in the fam_requires
+
+                If we exhaust all the fam_requires and we still have ambiguous sorted variants,
+                pick the one that pulls least packages.
+
+                    If still ambiguous sort by the version range by the next highest positional weighted family
+
+        @param variants_slice: a slice of the original variants list
+        @param fam_requires: a list with families (packages names)
+        @return the variant_slice sorted by VersionRange and other criteria when ambiguous
+        """
+        #TODO optimize/make clear this function
+
+        ordered_variant_list = []
 
         try:
             fam_name = fam_requires.pop(0)
-        except IndexError, e:
-            #we need to sort in a different way
+        except IndexError:
             fam_name = None
 
         if fam_name:
-            groups = self.groups_by_version_ranges(fam_name, variants)
+            groups = self.groups_by_version_ranges(fam_name, variants_slice)
         else:
-            groups = self.group_by_number_of_packages(variants)
+            # No more fam names so try now the
+            groups = self.group_by_number_of_packages(variants_slice)
 
         for group, tie_variants in sorted(groups.items(), key=lambda x:x[0]):
             if len(tie_variants) == 1:
-                final_order_variant_list.append(tie_variants[0])
+                ordered_variant_list.append(tie_variants[0])
             else:
                 if not fam_name:
                     # if we were not able to sort based on the farm_requires, get weights for the rest of the families
-                    fam_requires = self.get_list_of_key_by_positional_weight(variants)
-                final_order_variant_list.extend(self._sort_variants_by_request_order(tie_variants, fam_requires))
+                    fam_requires = self.get_list_of_key_by_positional_weight(variants_slice)
+                ordered_variant_list.extend(self._sort_variants_by_version_range(tie_variants, fam_requires))
 
-        return final_order_variant_list
+        return ordered_variant_list
 
+    def groups_by_version_ranges(self, fam_name, variants_slice):
+        """
+        Groups the variant slice by VersionRange of a given fam_name
+        @param fam_name: a string with a package name
+        @param variants_slice: a list of variants
+        @return: a dict with VersionRanges as keys containing a list of variants with the same VersionRange
+        """
+        group_dict = {}
+        for variant in variants_slice:
+            version_range = self._get_version_range_of_request_on_variant(variant, fam_name)
+            if version_range:
+                group_dict.setdefault(version_range, []).append(variant)
 
-    def groups_by_version_ranges(self, fam_name, variants):
-        version_ranges = []
-        for variant in variants:
-            vr = self.get_version_range_of_request_on_variant(variant, fam_name)
-            version_ranges.append((vr, variant))
-        sorted_ranges = sorted(version_ranges, key=lambda x: x[0])
-        groups = self.group_same_ranges(sorted_ranges)
-        return groups
+        return group_dict
 
+    def _weight_variants_against_family_request(self):
+        """
+        Group the variants of the same weight
+        The weight to each variant is given by the intersection with the fam_requires
 
-    def get_version_range_of_request_on_variant(self, variant, fam):
+        @return a dict with weight as keys containing variants with the same intersection weight
+        """
+        fam_requires_set = set(self.fam_requires)
+        weighted_dict = {}
+        for variant in self.variants:
+            weight = len(self._intersect_variant_with_package_request(fam_requires_set, variant))
+            weighted_dict.setdefault(weight, []).append(variant)
 
+        #TODO  probably a this stage we should check if a variant contains an antipackage of any of the packages in the
+        # package request and give it negative weight.. but it might be more costly?
+
+        return weighted_dict
+
+    def _intersect_variant_with_package_request(self, fam_requires_set, variant):
+        """
+        Calculates the intersection of a variant and the fam_requires
+        """
+        fams = extract_family_name_from_requirements(variant)
+        intersection_set = set(fams) & fam_requires_set
+        return intersection_set
+
+    def _get_version_range_of_request_on_variant(self, variant, fam_name):
+        """
+        Extracts the fam_name version range from the a variant
+
+        @param variant: a variant containing package requirements
+        @param fam_name: a string with a package name
+        @return: The version range of the package, or the exact version range if the package is not in the variant or None
+        if the variant is conflict
+        """
         for requirement in variant:
-            if requirement.name == fam:
+            if requirement.name == fam_name:
                 if not requirement.conflict:
                     return requirement.range
                 else:
-                    #TODO: Return a negative Version range?
-                    pass
-        return VersionRange("==")
+                    # This stack on top of VersionRange("==") when sorted
+                    # TODO any other more meaningful VersionRange we know is going to on top when we sort by range?
+                    VersionRange("==")
 
-    def group_same_ranges(self, sorted_ranges):
-        group_dict = {}
-        for ver_range, variant in sorted_ranges:
-            group_dict.setdefault(ver_range, []).append(variant)
-        return group_dict
+        return VersionRange("")
 
-    def group_by_number_of_packages(self, variants):
+    def group_by_number_of_packages(self, variants_slice):
         """
-        More weigh is given to the variant with the least amount of packages
+        Group the variants of the same weight
+        More weight is given to the variant with the least amount of packages
 
-        @param variants:
-        @return:
+        @param variants_slice: a list of variants
+        @return: a dict with weight as keys containing a list of variants with the same length
         """
         group_dict = {}
         max_length = 0
-        for v in variants:
+        for v in variants_slice:
             if len(v) > max_length:
                 max_length = len(v)
 
-        for variant in variants:
+        for variant in variants_slice:
             group_dict.setdefault(max_length - len(variant), []).append(variant)
         return group_dict
 
 
     def get_list_of_key_by_positional_weight(self, variants):
-        rest_of_families = []
-        weight_map = {}
+
+        #TODO optimize/make clear this function
+
+        remaining_families_sorted_by_positional_weight = []
+        averaged_weight_map = {}
         for variant in variants:
             for w, req in enumerate(variant, start=2):
-                #weight_map[req.name] += 1.0/w
-                weight_map.setdefault(req.name, 0.0)
-                weight_map[req.name] += 1.0/w
+                averaged_weight_map.setdefault(req.name, 0.0)
+                averaged_weight_map[req.name] += 1.0/w
+
         # sort by alphabetically first in case of tied weight
-        sorted_alphabetically = sorted(weight_map.items(), key=lambda x: x[0].lower())
-        # Now sorted by weight reversed , higher weight first
+        sorted_alphabetically = sorted(averaged_weight_map.items(), key=lambda x: x[0].lower())
+        # Now sorted by weight reversed, higher weight first
         sorted_by_weight = sorted(sorted_alphabetically, key=lambda x: x[1], reverse=True)
+
         for fam, _ in sorted_by_weight:
             if fam not in self.fam_requires:
-                rest_of_families.append(fam)
+                remaining_families_sorted_by_positional_weight.append(fam)
 
-        return rest_of_families
+        return remaining_families_sorted_by_positional_weight
 
 class SolverState(object):
     """Represent the current state of the solver instance for use with a
