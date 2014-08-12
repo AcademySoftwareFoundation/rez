@@ -494,7 +494,7 @@ class ResolvedContext(object):
             d["removed_packages"] = removed_packages
         return d
 
-    def print_info(self, buf=sys.stdout, verbosity=0, sort=True):
+    def print_info(self, buf=sys.stdout, verbosity=0, sort=False):
         """Prints a message summarising the contents of the resolved context.
         """
         _pr = Printer(buf)
