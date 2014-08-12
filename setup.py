@@ -60,6 +60,7 @@ scripts = [
     "rez-bootstrap",
     "rez-help",
     "rez-depends",
+    "rez-launcher",
     "rez-unleash",
     "rez-ide",
     "bez",
