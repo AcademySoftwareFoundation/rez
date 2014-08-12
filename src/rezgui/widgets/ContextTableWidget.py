@@ -4,8 +4,11 @@ from functools import partial
 
 
 class ContextTableWidget(QtGui.QTableWidget):
+    default_row_count = 10
+
     def __init__(self, parent=None):
-        super(ContextTableWidget, self).__init__(10, 2, parent)
+        super(ContextTableWidget, self).__init__(self.default_row_count,
+                                                 2, parent)
         self.context = None
 
         self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
@@ -48,13 +51,21 @@ class ContextTableWidget(QtGui.QTableWidget):
             next_edit = self.cellWidget(row, column)
             if next_edit is None:
                 self._set_package_edit(row, column)
-        else:
-            pass
 
     def _packageChangeDone(self, row, column, txt):
+        next_edit = self.cellWidget(row + 1, column)
         if txt:
-            next_edit = self.cellWidget(row + 1, column)
             if next_edit:
                 self.setCurrentCell(row + 1, column)
-        else:
-            pass
+                next_edit.setFocus()
+        elif next_edit:
+            self._delete_cell(row, column)
+
+    def _delete_cell(self, row, column):
+        for i in range(row, self.rowCount()):
+            edit = self.cellWidget(i, column)
+            next_edit = self.cellWidget(i + 1, column)
+            if next_edit:
+                next_edit.clone_into(edit)
+            else:
+                self.removeCellWidget(i, column)
