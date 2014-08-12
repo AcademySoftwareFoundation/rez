@@ -344,7 +344,7 @@ warn_nonstring_version: true
 error_nonstring_version: false
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
-warn_old_commands: true
+warn_old_commands: false
 error_old_commands: false
 
 # Print old commands and their converted rex equivalent. Note that this can
