@@ -17,7 +17,7 @@ class RezService(RezServiceInterface):
 
     def _create_setting_from_package(self, package):
 
-        setting = Setting(package.name, str(package.version), SettingType.package)
+        setting = Setting(package.name, "==%s" % (package.version), SettingType.package)
 
         return setting
 
