@@ -88,16 +88,16 @@ class CSH(UnixShell):
                 self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
             new_prompt = "$REZ_ENV_PROMPT"
-            new_prompt = (new_prompt+" %s") if config.prefix_prompt \
-                else ("%s "+new_prompt)
+            new_prompt = (new_prompt + " %s") if config.prefix_prompt \
+                else ("%s " + new_prompt)
             new_prompt = new_prompt % curr_prompt
             self._addline('set prompt="%s"' % new_prompt)
 
-        completion = os.path.join(module_root_path, "_sys", "complete.csh")
+        completion = os.path.join(module_root_path, "completion", "complete.csh")
         self.source(completion)
 
     def _saferefenv(self, key):
-        self._addline("if (!($?%s)) setenv %s" % (key,key))
+        self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
         self._addline('setenv %s "%s"' % (key, value))

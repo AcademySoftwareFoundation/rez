@@ -68,6 +68,23 @@ def patch_rez_binaries(dest_dir):
         maker._make_script(entry, [], options=options)
 
 
+def copy_completion_scripts(dest_dir):
+    # find completion dir in rez package
+    path = os.path.join(dest_dir, "lib")
+    completion_path = None
+    for root, dirs, _ in os.walk(path):
+        if os.path.basename(root) == "completion":
+            completion_path = root
+            break
+
+    if completion_path:
+        dest_path = os.path.join(dest_dir, "completion")
+        shutil.copytree(completion_path, dest_path)
+        return dest_path
+
+    return None
+
+
 if __name__ == "__main__":
     usage = "usage: %prog [options] DEST_DIR"
     parser = OptionParser(usage=usage)
@@ -112,8 +129,15 @@ if __name__ == "__main__":
     # patch the rez binaries
     patch_rez_binaries(dest_dir)
 
+    # copy completion scripts into venv
+    completion_path = copy_completion_scripts(dest_dir)
+
     # done
     print
     print "SUCCESS! To activate Rez, add the following path to $PATH:"
     print os.path.join(dest_dir, "bin")
+
+    if completion_path:
+        print "You may also want to source the relevant completion script from:"
+        print completion_path
     print

@@ -83,8 +83,7 @@ setup(
         'rez':
             ['rezconfig', 'logging.conf'] +
             ['README*'] +
-            find_files('*.csh', '_sys') +
-            find_files('*.sh', '_sys') +
+            find_files('*.*', 'completion') +
             find_files('*.*', 'tests/data'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
