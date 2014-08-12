@@ -89,9 +89,6 @@ if __name__ == "__main__":
     usage = "usage: %prog [options] DEST_DIR"
     parser = OptionParser(usage=usage)
     parser.add_option(
-        '-s', '--subdir', action='store_true',
-        help="Add a subdirectory named 'rez-<VERSION>' to the install path")
-    parser.add_option(
         '-v', '--verbose', action='count', dest='verbose', default=0,
         help="Increase verbosity.")
     opts, args = parser.parse_args()
@@ -99,17 +96,10 @@ if __name__ == "__main__":
     # determine install path
     if len(args) != 1:
         parser.error("expected DEST_DIR")
-    dest_dir = os.path.expanduser(args[0])
+
+    dest_dir = args[0].format(version=_rez_version)
+    dest_dir = os.path.expanduser(dest_dir)
     dest_dir = os.path.realpath(dest_dir)
-
-    if opts.subdir:
-        dir_ = "rez-%s" % _rez_version
-        dest_dir = os.path.join(dest_dir, dir_)
-
-        # pretty safe to delete this dir if it already exists...
-        if os.path.exists(dest_dir):
-            print "removing previous rez install from %s..." % dest_dir
-            shutil.rmtree(dest_dir)
 
     print "installing rez to %s..." % dest_dir
 
