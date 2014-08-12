@@ -27,6 +27,8 @@ def setup_parser(parser, completions=False):
                         help="test configuration settings")
     parser.add_argument("--completion", action="store_true",
                         help="test completions")
+    parser.add_argument("--suites", action="store_true",
+                        help="test suites")
     parser.add_argument("--animallogic", action="store_true",
                         help="test animal logic customisations")
     parser.add_argument("--launcher", action="store_true",
@@ -40,7 +42,7 @@ def get_suites(opts):
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
              "release", "context", "resources", "packages", "config",
-             "completion", "animallogic", "launcher", "unleash"]
+             "completion", "suites", "animallogic", "launcher", "unleash"]
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
 

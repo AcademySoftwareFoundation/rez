@@ -35,9 +35,6 @@ def setup_parser(parser, completions=False):
                         "version of each package")
     parser.add_argument("-e", "--errors", action="store_true",
                         help="search for packages containing errors")
-    parser.add_argument("--soe", "--stop-on-error", dest="stop_on_error",
-                        action="store_true",
-                        help="stop if a package error is encountered")
     parser.add_argument("--nw", "--no-warnings", dest="no_warnings",
                         action="store_true",
                         help="suppress warnings")
@@ -116,8 +113,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     def _handle(e):
         print_error(str(e))
-        if opts.stop_on_error:
-            sys.exit(1)
 
     def _print_resource(r):
         if opts.validate:

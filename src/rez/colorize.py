@@ -1,3 +1,4 @@
+import sys
 import logging
 from rez.vendor import colorama
 from rez.config import config
@@ -120,6 +121,19 @@ def implicit(str_):
       str: The string styled with the appropriate escape sequences.
     """
     return _color_level(str_, 'implicit')
+
+
+def alias(str_):
+    """ Return the string wrapped with the appropriate styling to display a
+    tool alias.  The styling will be determined based on the rez configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+    return _color_level(str_, 'alias')
 
 
 def notset(str_):
@@ -251,3 +265,17 @@ class ColorizedStreamHandler(logging.StreamHandler):
             raise
         except:
             self.handleError(record)
+
+
+class Printer(object):
+    def __init__(self, buf=sys.stdout):
+        self.buf = buf
+        self.tty = stream_is_tty(buf)
+
+    def __call__(self, msg='', style=None):
+        print >> self.buf, self.get(msg, style)
+
+    def get(self, msg, style=None):
+        if style and self.tty:
+            msg = style(msg)
+        return msg
