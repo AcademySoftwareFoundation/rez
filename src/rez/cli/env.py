@@ -45,11 +45,11 @@ def setup_parser(parser, completions=False):
                         "or relative time (eg -10s, -5m, -0.5h, -10d)")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar='N',
-                        help="Abort if the number of failed configuration "
+                        help="abort if the number of failed configuration "
                         "attempts exceeds N")
     parser.add_argument("--time-limit", type=int, default=-1,
                         dest="time_limit", metavar='SECS',
-                        help="Abort if the resolve time exceeds SECS")
+                        help="abort if the resolve time exceeds SECS")
     parser.add_argument("-o", "--output", type=str, metavar="FILE",
                         help="store the context into an rxt file, instead of "
                         "starting an interactive shell. Note that this will "
@@ -60,8 +60,18 @@ def setup_parser(parser, completions=False):
         "-i", "--input", type=str, metavar="FILE",
         help="use a previously saved context. Resolve settings, such as PKG, "
         "--ni etc are ignored in this case")
-    parser.add_argument("-q", "--quiet", action="store_true",
-                        help="run in quiet mode")
+    parser.add_argument(
+        "-p", "--patch", action="store_true",
+        help="patch the current context to create a new context")
+    parser.add_argument(
+        "--strict", action="store_true",
+        help="strict patching. Ignored if --patch is not present")
+    parser.add_argument(
+        "--patch-rank", type=int, metavar="N", default=0,
+        help="patch rank. Ignored if --patch is not present")
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="run in quiet mode (hides welcome message)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
         help='packages to use in the target environment')
@@ -92,34 +102,53 @@ def command(opts, parser, extra_arg_groups=None):
             parser.error("argument --command: not allowed with arguments after '--'")
         command = extra_arg_groups[0] or None
 
+    context = None
+    request = opts.PKG
+    t = get_epoch_time_from_str(opts.time) if opts.time else None
+
+    if opts.paths is None:
+        pkg_paths = (config.nonlocal_packages_path
+                     if opts.no_local else None)
+    else:
+        pkg_paths = opts.paths.split(os.pathsep)
+        pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
+
     if opts.input:
-        rc = ResolvedContext.load(opts.input)
-        if rc.status != ResolverStatus.solved:
+        if opts.PKG:
+            parser.error("Cannot use --input and provide PKG(s) at the same time")
+        context = ResolvedContext.load(opts.input)
+        if context.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
+        context.validate()
 
-        rc.validate()
-    else:
-        t = get_epoch_time_from_str(opts.time) if opts.time else None
+    if opts.patch:
+        if context is None:
+            from rez.status import status
+            context = status.context
+            if context is None:
+                print >> sys.stderr, "cannot patch: not in a context"
+                sys.exit(1)
 
-        if opts.paths is None:
-            pkg_paths = (config.nonlocal_packages_path
-                         if opts.no_local else None)
-        else:
-            pkg_paths = (opts.paths or "").split(os.pathsep)
-            pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
+        request = context.get_patched_request(request,
+                                              strict=opts.strict,
+                                              rank=opts.patch_rank)
+        context = None
 
-        rc = ResolvedContext(opts.PKG,
-                             timestamp=t,
-                             package_paths=pkg_paths,
-                             add_implicit_packages=(not opts.no_implicit),
-                             add_bootstrap_path=(not opts.no_bootstrap),
-                             verbosity=opts.verbose, max_fails=opts.max_fails,
-                             time_limit=opts.time_limit)
+    if context is None:
+        context = ResolvedContext(
+            request,
+            timestamp=t,
+            package_paths=pkg_paths,
+            add_implicit_packages=(not opts.no_implicit),
+            add_bootstrap_path=(not opts.no_bootstrap),
+            verbosity=opts.verbose,
+            max_fails=opts.max_fails,
+            time_limit=opts.time_limit)
 
-    success = (rc.status == ResolverStatus.solved)
+    success = (context.status == ResolverStatus.solved)
     if not success:
-        rc.print_info(buf=sys.stderr)
+        context.print_info(buf=sys.stderr)
 
     if opts.dora:
         if opts.output:
@@ -131,7 +160,7 @@ def command(opts, parser, extra_arg_groups=None):
         launch_dora_from_context_file(context_file_name)
 
     if opts.output:
-        rc.save(opts.output)
+        context.save(opts.output)
         sys.exit(0 if success else 1)
 
     if not success:
@@ -143,11 +172,11 @@ def command(opts, parser, extra_arg_groups=None):
         opts.stdin = False
 
     quiet = opts.quiet or bool(command)
-    returncode, _, _ = rc.execute_shell(shell=opts.shell,
-                                        rcfile=opts.rcfile,
-                                        norc=opts.norc,
-                                        command=command,
-                                        stdin=opts.stdin,
-                                        quiet=quiet,
-                                        block=True)
+    returncode, _, _ = context.execute_shell(shell=opts.shell,
+                                             rcfile=opts.rcfile,
+                                             norc=opts.norc,
+                                             command=command,
+                                             stdin=opts.stdin,
+                                             quiet=quiet,
+                                             block=True)
     sys.exit(returncode)

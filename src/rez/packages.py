@@ -1,13 +1,19 @@
 import os.path
 from rez.util import Common, propertycache
 from rez.resources import iter_resources, iter_child_resources, \
-    ResourceWrapper
-from rez.exceptions import PackageMetadataError
-from rez.package_resources import package_schema
+    get_resource, ResourceWrapper
+from rez.exceptions import PackageMetadataError, PackageRequestError
+from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
+
+
+def validate_package_name(pkg_name):
+    """Raise an error if the value is not a valid package name."""
+    if not PACKAGE_NAME_REGEX.match(pkg_name):
+        raise PackageRequestError("Not a valid package name: %r" % pkg_name)
 
 
 def iter_package_families(paths=None):
@@ -99,15 +105,30 @@ def load_developer_package(path):
     return package
 
 
-def get_completions(prefix):
+def get_completions(prefix, family_only=False):
     """Get autocompletion options given a prefix string.
 
+    Args:
+        prefix (str): Prefix to match.
+        family_only (bool): If True, only match package names, do not include
+            version component.
+
     Returns:
-        Sorted list of strings, may be empty.
+        List of strings, may be empty.
     """
+    op = None
+    if prefix:
+        if prefix[0] in ('!', '~'):
+            if family_only:
+                return []
+            op = prefix[0]
+            prefix = prefix[1:]
+
     fam = None
     for ch in ('-', '@', '#'):
         if ch in prefix:
+            if family_only:
+                return []
             fam = prefix.split(ch)[0]
             break
 
@@ -117,9 +138,16 @@ def get_completions(prefix):
                     if x.name.startswith(prefix))
         if len(words) == 1:
             fam = iter(words).next()
+
+    if family_only:
+        return words
+
     if fam:
         words |= set(x.qualified_name for x in iter_packages(name=fam)
                      if x.qualified_name.startswith(prefix))
+
+    if op:
+        words = set(op + x for x in words)
     return words
 
 
@@ -180,7 +208,7 @@ class _PackageBase(ResourceWrapper):
     @propertycache
     def is_local(self):
         """Returns True if this package is in the local packages path."""
-        return (self.search_path == self.config.local_packages_path)
+        return (self.search_path == config.local_packages_path)
 
     def validate_data(self):
         super(_PackageBase, self).validate_data()
@@ -296,6 +324,16 @@ class Variant(_PackageBase):
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
         return requires
+
+    @propertycache
+    def parent(self):
+        """Get the parent `Package` object."""
+        variables = self._resource.variables.copy()
+        del variables["index"]
+        resource = get_resource(resource_keys=self._resource.parent_resource.key,
+                                search_path=self.search_path,
+                                variables=variables)
+        return Package(resource)
 
     def __str__(self):
         s = "%s@%s" % (self.qualified_name, self.search_path)

@@ -17,6 +17,7 @@ from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
     expandvars
+from rez.vendor.enum import Enum
 
 
 #===============================================================================
@@ -149,14 +150,20 @@ Shebang.register()
 # Action Manager
 #===============================================================================
 
-class ActionManager(object):
+class OutputStyle(Enum):
+    """ Enum to represent the style of code output when using Rex.
     """
-    Handles the execution book-keeping.  Tracks env variable values, and
+    file = ("Code as it would appear in a script file.", )
+    eval = ("Code in a form that can be evaluated.", )
+
+
+class ActionManager(object):
+    """Handles the execution book-keeping.  Tracks env variable values, and
     triggers the callbacks of the `ActionInterpreter`.
     """
-    def __init__(self, interpreter, output_style='file', parent_environ=None,
-                 parent_variables=None, formatter=None, verbose=False,
-                 env_sep_map=None):
+    def __init__(self, interpreter, output_style=OutputStyle.file,
+                 parent_environ=None, parent_variables=None, formatter=None,
+                 verbose=False, env_sep_map=None):
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -196,7 +203,8 @@ class ActionManager(object):
         return a list of methods on this class for executing actions.
         methods are return as a list of (name, func) tuples
         """
-        return [(name, getattr(self, name)) for name,_ in Action.get_command_types()]
+        return [(name, getattr(self, name))
+                for name, _ in Action.get_command_types()]
 
     def get_public_methods(self):
         """
@@ -553,11 +561,10 @@ class Python(ActionInterpreter):
         if self.manager:
             self.target_environ.update(self.manager.environ)
 
-        if not hasattr(args, '__iter__'):
-            import shlex
-            args = shlex.split(args)
-
-        return subprocess.Popen(args, env=self.target_environ,
+        shell_mode = not hasattr(args, '__iter__')
+        return subprocess.Popen(args,
+                                shell=shell_mode,
+                                env=self.target_environ,
                                 **subproc_kwargs)
 
     def command(self, value):
@@ -740,8 +747,8 @@ class RexExecutor(object):
     ex.alias('foo','foo -l')
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
-                 parent_variables=None, output_style='file', bind_rez=True,
-                 shebang=True, add_default_namespaces=True):
+                 parent_variables=None, output_style=OutputStyle.file,
+                 bind_rez=True, shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -926,7 +933,7 @@ class RexExecutor(object):
             filename, lineno, name, line = frame
             if filename == codefile and line is None:
                 try:
-                    line = loc[lineno-1].strip()
+                    line = loc[lineno - 1].strip()
                     frames[i] = (filename, lineno, "<rex commands>", line)
                 except:
                     pass

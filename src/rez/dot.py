@@ -55,20 +55,23 @@ def prune_graph(graph_str, package_name):
     return write_dot(g)
 
 
-def save_graph(graph_str, path, fmt=None, image_ratio=None):
+def save_graph(graph_str, dest_file, fmt=None, image_ratio=None):
     """Render a graph to an image file.
 
     Args:
         graph_str (str): Dot-language graph string.
-        path (str): Filepath to save the graph to.
+        dest_file (str): Filepath to save the graph to.
         fmt (str): Format, eg "png", "jpg".
         image_ratio (float): Image ratio.
+
+    Returns:
+        String representing format that was written, such as 'png'.
     """
     g = pydot.graph_from_dot_data(graph_str)
 
     # determine the dest format
     if fmt is None:
-        fmt = os.path.splitext(path)[1].lower().strip('.') or "png"
+        fmt = os.path.splitext(dest_file)[1].lower().strip('.') or "png"
     if hasattr(g, "write_" + fmt):
         write_fn = getattr(g, "write_" + fmt)
     else:
@@ -76,22 +79,46 @@ def save_graph(graph_str, path, fmt=None, image_ratio=None):
 
     if image_ratio:
         g.set_ratio(str(image_ratio))
-    write_fn(path)
+    write_fn(dest_file)
     return fmt
 
 
-def write_graph(graph_str, dest_file=None):
-    """Render a graph to an image file."""
-    tmp_dir = None
+def view_graph(graph_str, dest_file=None):
+    """View a dot graph in an image viewer."""
+    from rez.system import system
+    from rez.config import config
 
+    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
+        print >> sys.stderr, "Unable to open display."
+        sys.exit(1)
+
+    dest_file = _write_graph(graph_str, dest_file=dest_file)
+
+    # view graph
+    viewed = False
+    prog = config.image_viewer or 'browser'
+    print "loading image viewer (%s)..." % prog
+
+    if config.image_viewer:
+        proc = subprocess.Popen((config.image_viewer, dest_file))
+        proc.wait()
+        viewed = not bool(proc.returncode)
+
+    if not viewed:
+        import webbrowser
+        webbrowser.open_new("file://" + dest_file)
+
+
+def _write_graph(graph_str, dest_file=None):
     if not dest_file:
-        from rez.env import get_context_file
+        from rez.status import status
         from rez.config import config
+
+        tmp_dir = None
         fmt = config.dot_image_format
 
-        current_rxt_file = get_context_file()
-        if current_rxt_file:
-            tmp_dir = os.path.dirname(current_rxt_file)
+        if status.context_file:
+            tmp_dir = os.path.dirname(status.context_file)
             if not os.path.exists(tmp_dir):
                 tmp_dir = None
 
@@ -108,29 +135,3 @@ def write_graph(graph_str, dest_file=None):
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file)
     return dest_file
-
-
-def view_graph(graph_str, dest_file=None):
-    """View a dot graph in an image viewer."""
-    from rez.system import system
-    from rez.config import config
-
-    if (system.platform == "linux") and (not os.getenv("DISPLAY")):
-        print >> sys.stderr, "Unable to open display."
-        sys.exit(1)
-
-    dest_file = write_graph(graph_str, dest_file=dest_file)
-
-    # view graph
-    viewed = False
-    prog = config.image_viewer or 'browser'
-    print "loading image viewer (%s)..." % prog
-
-    if config.image_viewer:
-        proc = subprocess.Popen((config.image_viewer, dest_file))
-        proc.wait()
-        viewed = not bool(proc.returncode)
-
-    if not viewed:
-        import webbrowser
-        webbrowser.open_new("file://" + dest_file)

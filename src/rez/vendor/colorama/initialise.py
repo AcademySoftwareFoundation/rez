@@ -18,6 +18,13 @@ def reset_all():
     AnsiToWin32(orig_stdout).reset_all()
 
 
+def colorama_atexit():
+    try:
+        reset_all()
+    except:
+        pass
+
+
 def init(autoreset=False, convert=None, strip=None, wrap=True):
 
     if not wrap and any([autoreset, convert, strip]):
@@ -31,7 +38,7 @@ def init(autoreset=False, convert=None, strip=None, wrap=True):
 
     global atexit_done
     if not atexit_done:
-        atexit.register(reset_all)
+        atexit.register(colorama_atexit)
         atexit_done = True
 
 

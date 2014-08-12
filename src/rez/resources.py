@@ -76,10 +76,11 @@ def _updated_schema(schema, items=None, rm_keys=None):
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []
-    for name in os.listdir(path):
-        filepath = os.path.join(path, name)
-        if is_file is None or os.path.isfile(filepath) == is_file:
-            names.append(name)
+    if os.path.exists(path):
+        for name in os.listdir(path):
+            filepath = os.path.join(path, name)
+            if is_file is None or os.path.isfile(filepath) == is_file:
+                names.append(name)
     return names
 
 
@@ -918,7 +919,7 @@ def _iter_filtered_resources(parent_resource, resource_classes, variables):
         keys = [x.key for x in resource_classes]
         print_debug("\nSEARCHING RESOURCES:\nClasses: %r\nVariables: %r"
                     % (keys, variables))
-        print parent_resource
+        print_debug("PARENT RESOURCE: %r" % parent_resource)
     for child in _iter_resources(parent_resource, resource_classes, variables):
         if isinstance(child, tuple(resource_classes)) \
                 and is_dict_subset(variables or {}, child.variables):

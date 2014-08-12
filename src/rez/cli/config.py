@@ -4,13 +4,13 @@ Print current rez settings.
 
 
 def setup_parser(parser, completions=False):
-    FIELD = parser.add_argument(
+    FIELD_action = parser.add_argument(
         "FIELD", type=str, nargs='?',
         help="print the value of a specific setting")
 
     if completions:
         from rez.cli._complete_util import ConfigCompleter
-        FIELD.completer = ConfigCompleter
+        FIELD_action.completer = ConfigCompleter
 
 
 def command(opts, parser, extra_arg_groups=None):

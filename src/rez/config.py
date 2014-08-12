@@ -74,6 +74,13 @@ class Str(Setting):
         return value
 
 
+class Char(Setting):
+    schema = Schema(basestring, lambda x: len(x) == 1)
+
+    def _parse_env_var(self, value):
+        return value
+
+
 class OptionalStr(Str):
     schema = Or(None, basestring)
 
@@ -153,6 +160,7 @@ config_schema = Schema({
     "heading_styles":                   OptionalStrList,
     "local_styles":                     OptionalStrList,
     "implicit_styles":                  OptionalStrList,
+    "alias_styles":                     OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
     "unleash_packages_path":            Str,
@@ -165,6 +173,7 @@ config_schema = Schema({
     "unleash_launcher_preset":          Str,
     "unleash_flavour":                  Str,
     "unleash_target":                   Str,
+    "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
     "editor":                           OptionalStr,
@@ -186,6 +195,8 @@ config_schema = Schema({
     "local_back":                       OptionalStr,
     "implicit_fore":                    OptionalStr,
     "implicit_back":                    OptionalStr,
+    "alias_fore":                       OptionalStr,
+    "alias_back":                       OptionalStr,
     "resource_caching_maxsize":         Int,
     "add_bootstrap_path":               Bool,  # TODO deprecate
     "color_enabled":                    Bool,
@@ -204,6 +215,7 @@ config_schema = Schema({
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,
+    "show_progress":                    Bool,
     "catch_rex_errors":                 Bool,
     "prefix_prompt":                    Bool,
     "warn_old_commands":                Bool,
@@ -340,6 +352,15 @@ class Config(DataWrapper):
             self.plugins.override(keys[1:], value)
         else:
             self.overrides[key] = value
+            propertycache.uncache(self, key)
+
+    def remove_override(self, key):
+        """Remove a setting override, if one exists."""
+        keys = key.split('.')
+        if len(keys) > 1:
+            raise NotImplementedError
+        elif key in self.overrides:
+            del self.overrides[key]
             propertycache.uncache(self, key)
 
     def warn(self, key):
