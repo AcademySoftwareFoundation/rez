@@ -21,7 +21,8 @@ subcommands = [
     "search",
     "status",
     "suite",
-    "test"]
+    "test",
+    "gui"]
 
 
 hidden_subcommands = [

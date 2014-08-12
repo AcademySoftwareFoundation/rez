@@ -225,7 +225,11 @@ config_schema = Schema({
     "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
     "disable_rez_1_compatibility":      Bool,
-    "env_var_separators":               Dict
+    "env_var_separators":               Dict,
+
+    # GUI settings
+    "use_pyside":                       Bool,
+    "use_pyqt":                         Bool
 })
 
 

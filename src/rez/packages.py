@@ -105,11 +105,13 @@ def load_developer_package(path):
     return package
 
 
-def get_completions(prefix, family_only=False):
+def get_completions(prefix, paths=None, family_only=False):
     """Get autocompletion options given a prefix string.
 
     Args:
         prefix (str): Prefix to match.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
         family_only (bool): If True, only match package names, do not include
             version component.
 
@@ -132,22 +134,23 @@ def get_completions(prefix, family_only=False):
             fam = prefix.split(ch)[0]
             break
 
-    words = set()
+    words = []
     if not fam:
-        words = set(x.name for x in iter_package_families()
-                    if x.name.startswith(prefix))
+        words = sorted(x.name for x in iter_package_families(paths=paths)
+                       if x.name.startswith(prefix))
         if len(words) == 1:
-            fam = iter(words).next()
+            fam = words[0]
 
     if family_only:
         return words
 
     if fam:
-        words |= set(x.qualified_name for x in iter_packages(name=fam)
-                     if x.qualified_name.startswith(prefix))
+        it = iter_packages(name=fam, paths=paths)
+        pkgs = sorted(it, key=lambda x: x.version)
+        words.extend(x.qualified_name for x in pkgs)
 
     if op:
-        words = set(op + x for x in words)
+        words = [op + x for x in words]
     return words
 
 

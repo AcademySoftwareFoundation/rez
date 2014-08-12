@@ -395,3 +395,20 @@ plugins:
         # a regular expression that can be used with re.match, for example
         # '^master$'.
         releasable_branches:
+
+
+
+###############################################################################
+###############################################################################
+# GUI
+###############################################################################
+###############################################################################
+
+# All of the settings listed here onwards apply only to the GUIs available in
+# the "rezgui" part of the module.
+
+# Setting either of these options to true will force rez to select that qt
+# binding. If both are false, the qt binding is detected. Setting both to true
+# will cause an error.
+use_pyside: false
+use_pyqt: false

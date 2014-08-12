@@ -62,7 +62,8 @@ scripts = [
     "rez-depends",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
-    "_rez-complete"
+    "_rez-complete",
+    "rez-gui"
 ]
 
 # post install hook. Don't believe google - this is how you do it.

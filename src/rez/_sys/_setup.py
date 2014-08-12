@@ -84,7 +84,7 @@ def _create_scripts(install_base_dir, install_scripts_dir, scripts):
 
                     code = textwrap.dedent( \
                     """
-                    #!%(py_exe)s -E
+                    #!%(py_exe)s
                     __PATCH__
                     from rez.cli._main import run
                     run('%(cmd)s')
