@@ -15,8 +15,7 @@ from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
-    in_virtualenv, get_rez_bin_path
+from rez.util import AttrDictWrapper, shlex_join, which, expandvars
 from rez.vendor.enum import Enum
 
 
@@ -826,10 +825,8 @@ class RexExecutor(object):
     def append_rez_path(self):
         """Append rez path to $PATH, so that rez cli tools are available in
         the generated environment."""
-        if in_virtualenv():
-            binpath = get_rez_bin_path()
-            if binpath:
-                self.env.PATH.append(binpath)
+        if system.rez_bin_path:
+            self.env.PATH.append(system.rez_bin_path)
 
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):

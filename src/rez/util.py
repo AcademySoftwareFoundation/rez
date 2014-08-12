@@ -188,17 +188,6 @@ def shlex_join(value):
         return str(value)
 
 
-def in_virtualenv():
-    """Returns True if we're running inside a virtualenv."""
-    if hasattr(sys, 'real_prefix'):
-        # virtualenv venvs
-        result = True
-    else:
-        # PEP 405 venvs
-        result = sys.prefix != getattr(sys, 'base_prefix', sys.prefix)
-    return result
-
-
 # returns path to first program in the list to be successfully found
 def which(*programs):
     from rez.backport.shutilwhich import which as which_
@@ -206,26 +195,6 @@ def which(*programs):
         path = which_(prog)
         if path:
             return path
-    return None
-
-
-def get_rez_bin_path():
-    """Get path containing rez binaries."""
-    binpath = None
-    if sys.argv and sys.argv[0]:
-        executable = sys.argv[0]
-        path = os.path.dirname(executable)
-        rezolve_exe = os.path.join(path, "rezolve")
-        if os.path.exists(rezolve_exe):
-            binpath = path
-
-    if not binpath:
-        path = which("rezolve")
-        if path:
-            binpath = os.path.dirname(path)
-
-    if binpath:
-        return os.path.realpath(binpath)
     return None
 
 

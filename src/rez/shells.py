@@ -2,8 +2,9 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
+from rez.util import which, shlex_join, print_warning
 from rez.config import config
-from rez.util import which, shlex_join, print_warning, in_virtualenv
+from rez.system import system
 import subprocess
 import os.path
 import sys
@@ -192,7 +193,7 @@ class UnixShell(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                if in_virtualenv():
+                if system.is_production_rez_install:
                     ex.command('rezolve context')
                 else:
                     ex.info("Rez command line tools are not available.")

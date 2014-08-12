@@ -132,6 +132,11 @@ if __name__ == "__main__":
     # copy completion scripts into venv
     completion_path = copy_completion_scripts(dest_dir)
 
+    # mark venv as production rez install. Do not remove - rez uses this!
+    validation_file = os.path.join(dest_dir, "rez_production_install")
+    with open(validation_file, 'w') as f:
+        pass
+
     # done
     print
     print "SUCCESS! To activate Rez, add the following path to $PATH:"
