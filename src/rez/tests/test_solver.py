@@ -475,8 +475,8 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         for package in context.resolved_packages:
             self.assertNotEquals(package.name, "eek", 'eek should not be in the resolved packages')
 
-        expected_eek_package_version = self.getPackageVersion("eek", "1.0.1")
-        expected_bah_package_version = self.getPackageVersion("bah", "1.0.0")
+        expected_eek_package_version = self.getPackageVersion("eek", "1.0.0")
+        expected_bah_package_version = self.getPackageVersion("bah", "1.0.1")
 
         request2 = [ 'variant_with_antipackage', 'asymmetric_variants', 'bah']
         context2 = ResolvedContext(request2)
@@ -486,6 +486,40 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         self.assertEqual(resolved_bah_package_version, expected_bah_package_version, 'wrong bah version selected')
         self.assertEqual(resolved_eek_package_version, expected_eek_package_version, 'wrong eek version selected')
 
+        expected_eek_package_version = self.getPackageVersion("eek", "1.0.0")
+        expected_bah_package_version = self.getPackageVersion("bah", "1.0.1")
+
+        request3 = [ 'variant_with_antipackage', 'asymmetric_variants', 'eek']
+        context3 = ResolvedContext(request3)
+        resolved_bah_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(context3, 'bah')
+        resolved_eek_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(context3, 'eek')
+
+        self.assertEqual(resolved_bah_package_version, expected_bah_package_version, 'wrong bah version selected')
+        self.assertEqual(resolved_eek_package_version, expected_eek_package_version, 'wrong eek version selected')
+
+        expected_eek_package_version = self.getPackageVersion("eek", "1.0.1")
+        expected_bah_package_version = self.getPackageVersion("bah", "1.0.0")
+
+        request4 = [ 'asymmetric_variants', 'variant_with_antipackage', 'eek', 'bah']
+        context4 = ResolvedContext(request4)
+        resolved_bah_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(context4, 'bah')
+        resolved_eek_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(context4, 'eek')
+
+        self.assertEqual(resolved_bah_package_version, expected_bah_package_version, 'wrong bah version selected')
+        self.assertEqual(resolved_eek_package_version, expected_eek_package_version, 'wrong eek version selected')
+
+
+    def test_variant_with_weak_packages(self):
+        """
+        Test tha the variant with the weak package is not preferred
+        """
+        expected_bah_package_version = self.getPackageVersion("bah", "1.0.1")
+
+        request = ['variant_with_weak_package_in_variant', 'bah']
+        context = ResolvedContext(request)
+        resolved_bah_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(context, 'bah')
+
+        self.assertEqual(resolved_bah_package_version, expected_bah_package_version, 'wrong bah version selected')
 
 
     def getPackageVersion(self, package_name, package_version):

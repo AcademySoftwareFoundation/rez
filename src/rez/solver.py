@@ -88,25 +88,208 @@ class VariantSorter(object):
 
     #initial order
 
-    #0    [ foo-1, bar-1, zex-1, bah-1 ]
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]
     #1    [ foo-1, eek-3, zex-2, bah-2 ]
     #2    [ foo-1, bar-3, zex-3, bah-3 ]
-    #3    [ foo-3, zex-4, bah-4, eek-4 ]
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]
     #4    [ foo-1, bar-2, zex-5, bah-5 ]
-    #5    [ foo-4, bar-4, zex-1, bah-6 ]
-    #6    [ foo-3, eek-1, zex-4, bah-4 ]
-    #7    [ bar-4, bah-1 ]
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]
+    #6    [ foo-3, eek-5, zex-4 ]
+    #7    [ bar-4]
     #8    [ bar-2, bah-2 foo-1 ]
     #9    [ bar-4, bah-1, foo-2 ]
     #10   [ bar-4, bah-2 ]
-    #11   [ foo-3, zex-4, bah-2, eek-5 ]
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]
     #12   [ foo-1 , eek-1, zex-4, bah-4 ]
     #13   [ bar-3, bah-4 ]
 
-    # request eek zex foo
+    # request eek zex foo-1+   (fam_requires=eek, zex, foo)
+
+    First group variants per intersecting weight.
+     Weight is given by the intersecting teh variant package name with the fam request
+
+                                                IntWeight
+
+
+    #7    [ bar-4]                                 0
+    #10   [ bar-4, bah-2 ]                         0
+    #13   [ bar-3, bah-4 ]                         0
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1
+    #9    [ bar-4, bah-1, foo-2 ]                  1
+
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3
+    #6    [ foo-3, eek-5, zex-4 ]                  3
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3
+
+    Now sort each variant starting for the one with less weigh by VersionRange of the fam_requires
+
+    Sorting intersecting Weight 0
+    -----------------------------
+    These variants does not contain any of the fam_requires so the next criteria is get the weight by amount of
+     packages. We want the variants  with less packages to be picked first so they have more weight
+
+                                                IntWeight      PackagesWeight
+
+
+    #7    [ bar-4]                                 0                1
+
+    #10   [ bar-4, bah-2 ]                         0                0
+    #13   [ bar-3, bah-4 ]                         0                0
+
+    We still need to sort the variants with PackagesWeight 0
+    Take a weighted average of where they appear in all the variants.
+
+    Position Weight is given 1 if found in position 0 , 1/2 in position 1, 1/3 in position 2 and so on
+
+    #10   [ bar-4, bah-2 ]
+    #13   [ bar-3, bah-4 ]
+
+    so bar = 2 (1+1) and bah = 1 ( 0.5 + 0.5 ) , so we now sort by bar and in case of tie we sort by bah
+
+                                                IntWeight      PackagesWeight         bar VersionRange
+
+    #13   [ bar-3, bah-4 ]                         0                0                       3
+
+    #10   [ bar-4, bah-2 ]                         0                0                       4
+
+    Sorting by bar VersionRange gives a sorted group so we do not need to sort by bah
+
+    So the group IntWeight 0 sorted is
+                                                IntWeight      PackagesWeight         bar VersionRange
+
+    #13   [ bar-3, bah-4 ]                         0                0                       3
+    #10   [ bar-4, bah-2 ]                         0                0                       4
+    #7    [ bar-4]                                 0                1                       -
+
+
+    Sorting intersecting Weight 1
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+     eek and zex won't take any effect on the sorting so only when sorting by foo VersionRange we will remove the tie
+
+                                                IntWeight      foo VersionRange
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1                   1
+    #9    [ bar-4, bah-1, foo-2 ]                  1                   2
+
+    So the group IntWeight 1 sorted is
+
+                                                IntWeight      foo VersionRange
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1                  1
+    #9    [ bar-4, bah-1, foo-2 ]                  1                  2
+
+
+
+    Sorting intersecting Weight 2
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+     eek does not take any effect so we sort by zex
+
+                                                IntWeight      zex VersionRange
+
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                1
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                1
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2                3
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2                5
+
+
+    The variants with zex=1 VersionRange still are tied so we need to sort by the next fam_requires foo
+
+
+                                                IntWeight      zex VersionRange   foo VersionRange
+
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                 1                   1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                 1                   4
+
+    So the group IntWeight 2 sorted is
+
+                                                IntWeight      zex VersionRange   foo VersionRange
+
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                 1                   1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                 1                   4
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2                 3                   -
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2                 5                   -
+
+
+    Sorting intersecting Weight 3
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+    Sorting by eek VersionRange yields
+
+                                                IntWeight      eek VersionRange
+
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3                 1
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3
+
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5
+
+
+    Group with eek=1 do no need sorting.
+    Group with eek=3 versionRange need to keep sorting by the next fam_requires zex which yields
+
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3                   2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3                   4
+
+    Group with eek=5 versionRange need to keep sorting by the next fam_requires zex which yields
+
+
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5                   4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5                   5
+
+    Even variant #11 will pull more packages than #6 we prefer #11 which has higher version of the fam_requires
+
+
+    So the group IntWeight 3 sorted is
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3                 1                   -
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3                   2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3                   4
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5                   4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5                   5
+
+
+
+    The final sorted list
+    ----------------------
+
+                                           IntWeight   eek VRange    zex VRange   foo VRange  packageWeight  bar VRange
+
+    #13   [ bar-3, bah-4 ]                   0             -            -             -             0            3
+    #10   [ bar-4, bah-2 ]                   0             -            -             -             0            4
+    #7    [ bar-4]                           0             -            -             -             1            -
+    #8    [ bar-2, bah-2 foo-1 ]             1             -            -             1
+    #9    [ bar-4, bah-1, foo-2 ]            1             -            -             2
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]     2             -            1             1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]     2             -            1             4
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]     2             3            -
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]     2             5            -
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]    3             1            -
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]     3             3            2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]     3             3            4
+    #6    [ foo-3, eek-5, zex-4 ]            3             5            4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]     3             5            5
 
 
     """
+
+
 
     def __init__(self, variants, package_requests):
         self.variants = variants
@@ -114,7 +297,7 @@ class VariantSorter(object):
 
     def _curated_package_request(self, package_request):
         """
-        optimization: only leave the fam in the package request that we know cant take any effect in the sorting
+        optimization: only leave the fam in the package request that we know can take effect in the sorting
         """
         fam_names_in_variants = set()
 
@@ -133,36 +316,66 @@ class VariantSorter(object):
 
     def _sort_variants_by_intersection_weight(self):
         """
-        Slices the list of variants in groups by intersection weight and sort each slice by version range
+        Slices the list of variants in groups by intersection weight and sort each slice by VersionRange
 
         The intersection weight of a variant is the the amount of named packages in the fam requires that appear in the
           variant regardless of the order
 
         @return a list with the intersecting weighted variants_slices sorted
         """
-        weighted_dict = self._weight_variants_against_family_request()
+        intersection_weight_dict = self._weight_variants_against_family_request()
 
         ordered_variants = []
-        for weight in sorted(weighted_dict.keys()):  # Sorted, so we start adding the one with the least weight first
-            variants_slice = weighted_dict[weight]
-            variants_sorted_by_version_range = self._sort_variants_by_version_range(variants_slice, self.fam_requires[:])
+        for weight in sorted(intersection_weight_dict.keys()):  # Sorted, so we start adding the least weight first
+            variants_slice = intersection_weight_dict[weight]
+            variants_sorted_by_version_range = self._sort_variants_by_version_range(variants_slice,
+                                                                                    self.fam_requires[:])
             ordered_variants.extend(variants_sorted_by_version_range)
 
         return ordered_variants
 
+    def _weight_variants_against_family_request(self):
+        """
+        Group the variants of the same weight
+        The weight to each variant is given by the intersection of its family names with the fam_requires
+
+        @return a dict with weight as keys containing variants with the same intersection weight
+        """
+        fam_requires_set = set(self.fam_requires)
+        weighted_dict = {}
+        for variant in self.variants:
+            weight = len(self._intersect_variant_with_package_request(fam_requires_set, variant))
+            weighted_dict.setdefault(weight, []).append(variant)
+
+        #TODO  to be correct a this point we should check every request in every variant to check if it contains
+        # an antipackage (conflict) and give it negative weight, but it might be costly given it is not a common case?
+        # Given that it is not a common case to have an anitpackage in the variants, and the fact that the
+        # The antipackage will end up with the least priority when we sort its group we might be ok not sorting it here
+
+        return weighted_dict
+
+    def _intersect_variant_with_package_request(self, fam_requires_set, variant):
+        """
+        Calculates the intersection of a variant and the fam_requires
+        """
+        fams = extract_family_name_from_requirements(variant)
+        intersection_set = set(fams) & fam_requires_set
+        return intersection_set
+
     def _sort_variants_by_version_range(self, variants_slice, fam_requires):
         """
-        Start sorting the slice by VersionRange using the first entry in the fam_requires
+        Recursively start sorting the slice by VersionRange using the entries in the fam_requires
             If the sort is ambiguous keep sorting using the next entry in the fam_requires
 
-                If we exhaust all the fam_requires and we still have ambiguous sorted variants,
-                pick the one that pulls least packages.
+                If we exhaust all the fam_requires and we still have ambiguous variants,
+                pick the one that pulls the least number of packages.
 
-                    If still ambiguous sort by the version range by the next highest positional weighted family
+                    If still ambiguous find the average positional weight of the fams not in the fam_requires and sort
+                       by the VersionRange of the next highest weighted fam
 
         @param variants_slice: a slice of the original variants list
         @param fam_requires: a list with families (packages names)
-        @return the variant_slice sorted by VersionRange and other criteria when ambiguous
+        @return the variant_slice sorted by VersionRange.
         """
         #TODO optimize/make clear this function
 
@@ -176,77 +389,57 @@ class VariantSorter(object):
         if fam_name:
             groups = self.groups_by_version_ranges(fam_name, variants_slice)
         else:
-            # No more fam names so try now the
+            # We could not break the tie by the fam_requires. Try with the weight by number of packages
             groups = self.group_by_number_of_packages(variants_slice)
 
-        for group, tie_variants in sorted(groups.items(), key=lambda x:x[0]):
-            if len(tie_variants) == 1:
-                ordered_variant_list.append(tie_variants[0])
+        for group, tied_variants in sorted(groups.items(), key=lambda x:x[0]):
+            if len(tied_variants) == 1:
+                # we broke the tie append
+                ordered_variant_list.append(tied_variants[0])
             else:
                 if not fam_name:
-                    # if we were not able to sort based on the farm_requires, get weights for the rest of the families
-                    fam_requires = self.get_list_of_key_by_positional_weight(variants_slice)
-                ordered_variant_list.extend(self._sort_variants_by_version_range(tie_variants, fam_requires))
+                    # If we were not able to break the tie based on the farm_requires, nor with by the number of
+                    # packages in the tied variants, we get a list of families by average positional weight
+                    # as the new key to sort by VersionRange
+                    fam_requires = self._get_list_of_key_by_positional_weight(variants_slice)
+
+                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires))
 
         return ordered_variant_list
 
     def groups_by_version_ranges(self, fam_name, variants_slice):
         """
         Groups the variant slice by VersionRange of a given fam_name
+
         @param fam_name: a string with a package name
         @param variants_slice: a list of variants
         @return: a dict with VersionRanges as keys containing a list of variants with the same VersionRange
         """
         group_dict = {}
         for variant in variants_slice:
-            version_range = self._get_version_range_of_request_on_variant(variant, fam_name)
-            if version_range:
-                group_dict.setdefault(version_range, []).append(variant)
+            version_range = self._get_version_range_of_request_on_variant(fam_name, variant)
+            group_dict.setdefault(version_range, []).append(variant)
 
         return group_dict
 
-    def _weight_variants_against_family_request(self):
-        """
-        Group the variants of the same weight
-        The weight to each variant is given by the intersection with the fam_requires
 
-        @return a dict with weight as keys containing variants with the same intersection weight
-        """
-        fam_requires_set = set(self.fam_requires)
-        weighted_dict = {}
-        for variant in self.variants:
-            weight = len(self._intersect_variant_with_package_request(fam_requires_set, variant))
-            weighted_dict.setdefault(weight, []).append(variant)
 
-        #TODO  probably a this stage we should check if a variant contains an antipackage of any of the packages in the
-        # package request and give it negative weight.. but it might be more costly?
-
-        return weighted_dict
-
-    def _intersect_variant_with_package_request(self, fam_requires_set, variant):
-        """
-        Calculates the intersection of a variant and the fam_requires
-        """
-        fams = extract_family_name_from_requirements(variant)
-        intersection_set = set(fams) & fam_requires_set
-        return intersection_set
-
-    def _get_version_range_of_request_on_variant(self, variant, fam_name):
+    def _get_version_range_of_request_on_variant(self, fam_name, variant):
         """
         Extracts the fam_name version range from the a variant
 
-        @param variant: a variant containing package requirements
         @param fam_name: a string with a package name
-        @return: The version range of the package, or the exact version range if the package is not in the variant or None
-        if the variant is conflict
+        @param variant: a variant containing package requirements
+        @return: a VersionRange - The version range of the package if it exists, the exact VersionRange if the package
+        is a conflict, or the 'any VersionRange' if the the family is not found in the variant
         """
         for requirement in variant:
             if requirement.name == fam_name:
                 if not requirement.conflict:
                     return requirement.range
                 else:
-                    # This stack on top of VersionRange("==") when sorted
-                    # TODO any other more meaningful VersionRange we know is going to on top when we sort by range?
+                    # This stack on top of VersionRange("") when sorted
+                    # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
                     VersionRange("==")
 
         return VersionRange("")
@@ -257,40 +450,46 @@ class VariantSorter(object):
         More weight is given to the variant with the least amount of packages
 
         @param variants_slice: a list of variants
-        @return: a dict with weight as keys containing a list of variants with the same length
+        @return: a dict with weight as keys containing a list of variants with the same length weight
         """
         group_dict = {}
-        max_length = 0
-        for v in variants_slice:
-            if len(v) > max_length:
-                max_length = len(v)
+
+        # find out the longest variant length
+        max_length = max(len(v) for v in variants_slice)
 
         for variant in variants_slice:
             group_dict.setdefault(max_length - len(variant), []).append(variant)
         return group_dict
 
 
-    def get_list_of_key_by_positional_weight(self, variants):
+    def _get_list_of_key_by_positional_weight(self, variants_slice):
+        """
+        Gets the positional averaged weight of the variants that do not appear in the fam_requires
 
-        #TODO optimize/make clear this function
+        weight=1 is given if the fam appears in index 0, weight=1/2 if appears in index 1, weight=1/3
+         if appears in index 2, and so on
 
+
+        @param variants_slice: a list of variants
+        @return: an ordered list of family names by averaged positional weight
+        """
         remaining_families_sorted_by_positional_weight = []
         averaged_weight_map = {}
-        for variant in variants:
-            for w, req in enumerate(variant, start=2):
-                averaged_weight_map.setdefault(req.name, 0.0)
-                averaged_weight_map[req.name] += 1.0/w
+        for variant in variants_slice:
+            for w, req in enumerate(variant, start=1):
+                if req.name not in self.fam_requires:
+                    averaged_weight_map.setdefault(req.name, 0.0)
+                    averaged_weight_map[req.name] += 1.0/w
 
         # sort by alphabetically first in case of tied weight
         sorted_alphabetically = sorted(averaged_weight_map.items(), key=lambda x: x[0].lower())
-        # Now sorted by weight reversed, higher weight first
+        # Now sorted by weight reversed, highest weight first
         sorted_by_weight = sorted(sorted_alphabetically, key=lambda x: x[1], reverse=True)
 
-        for fam, _ in sorted_by_weight:
-            if fam not in self.fam_requires:
-                remaining_families_sorted_by_positional_weight.append(fam)
+        remaining_families_sorted_by_positional_weight = [fam for fam, _ in sorted_by_weight]
 
         return remaining_families_sorted_by_positional_weight
+
 
 class SolverState(object):
     """Represent the current state of the solver instance for use with a
