@@ -302,8 +302,7 @@ class VariantSorter(object):
         fam_names_in_variants = set()
 
         for variant in self.variants:
-            for fam in extract_family_name_from_requirements(variant):
-                fam_names_in_variants.add(fam)
+            fam_names_in_variants.update(extract_family_name_from_requirements(variant))
 
         fam_requires = extract_family_name_from_requirements(package_request)
         curated_fam_requires = [fam for fam in fam_requires if fam in fam_names_in_variants]
@@ -377,22 +376,18 @@ class VariantSorter(object):
         @param fam_requires: a list with families (packages names)
         @return the variant_slice sorted by VersionRange.
         """
-        #TODO optimize/make clear this function
 
         ordered_variant_list = []
 
-        try:
+        if fam_requires:
             fam_name = fam_requires.pop(0)
-        except IndexError:
-            fam_name = None
-
-        if fam_name:
             groups = self.groups_by_version_ranges(fam_name, variants_slice)
         else:
             # We could not break the tie by the fam_requires. Try with the weight by number of packages
+            fam_name = None
             groups = self.group_by_number_of_packages(variants_slice)
 
-        for group, tied_variants in sorted(groups.items(), key=lambda x:x[0]):
+        for _, tied_variants in sorted(groups.items(), key=itemgetter(0)):
             if len(tied_variants) == 1:
                 # we broke the tie append
                 ordered_variant_list.append(tied_variants[0])
@@ -440,7 +435,7 @@ class VariantSorter(object):
                 else:
                     # This stack on top of VersionRange("") when sorted
                     # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
-                    VersionRange("==")
+                    return VersionRange("==")
 
         return VersionRange("")
 

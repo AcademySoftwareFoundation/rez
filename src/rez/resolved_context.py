@@ -321,8 +321,8 @@ class ResolvedContext(object):
         _pr("resolved packages:", heading)
         rows = []
         colors = []
-        sorted_packages = sorted(self.resolved_packages, key=lambda pkg: pkg.name.lower())
-        for pkg in (sorted_packages or []):
+
+        for pkg in (self.resolved_packages or []):
             t = []
             col = None
             if not os.path.exists(pkg.root):
