@@ -39,7 +39,7 @@ class GraphicsView(QtGui.QGraphicsView):
             event.ignore()
         else:
             scale = 1.0 + (event.delta() * 0.001)
-            self.view.scale(scale, scale)
+            self.scale(scale, scale)
             event.accept()
 
     def _scroll_pos(self):
