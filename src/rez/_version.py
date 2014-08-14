@@ -1,1 +1,1 @@
-_rez_version = "2.0.ALPHA.146"
+_rez_version = "2.0.ALPHA.147"
