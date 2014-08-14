@@ -416,6 +416,7 @@ plugins:
             - '^master$'
             - '^AL_master$'
             - '^hotfix'
+            - '^release-'
             - '^AL_2\.0$'
 
 
