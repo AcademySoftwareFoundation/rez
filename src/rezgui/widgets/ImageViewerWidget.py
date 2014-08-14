@@ -6,10 +6,14 @@ class GraphicsView(QtGui.QGraphicsView):
     def __init__(self, parent=None):
         super(GraphicsView, self).__init__(parent)
         self.interactive = True
+        self.press_pos = None
+        self.press_transform = None
 
     def mousePressEvent(self, event):
         if self.interactive:
             self.setCursor(QtCore.Qt.ClosedHandCursor)
+            self.press_pos = QtGui.QCursor.pos()
+            self.press_transform = self.transform()
 
     def mouseReleaseEvent(self, event):
         if self.interactive:
@@ -17,8 +21,18 @@ class GraphicsView(QtGui.QGraphicsView):
 
     def mouseMoveEvent(self, event):
         if self.interactive:
-            pos = event.pos()
-            print pos.x(), pos.y()
+            pos = QtGui.QCursor.pos()
+            diff = pos - self.press_pos
+            transform = QtGui.QTransform(self.press_transform)
+            scale = transform.m11()
+            diff *= 1
+            transform.translate(diff.x(), diff.y())
+            self.setTransform(transform)
+            print transform.m31(), transform.m32()
+
+    def viewportEvent(self, event):
+        print ">>>", self.transform().m31(), self.transform().m32()
+        return super(GraphicsView, self).viewportEvent(event)
 
 
 class ImageViewerWidget(QtGui.QWidget):
@@ -46,7 +60,7 @@ class ImageViewerWidget(QtGui.QWidget):
         if enabled != self.fit:
             self.fit = enabled
             self.view.interactive = not enabled
-            current_scale = self._get_scale()
+            current_scale = self.view.transform().m11()
 
             if enabled:
                 self.prev_scale = current_scale
@@ -58,6 +72,3 @@ class ImageViewerWidget(QtGui.QWidget):
     def _fit_in_view(self):
         if self.fit:
             self.view.fitInView(self.image_item, QtCore.Qt.KeepAspectRatio)
-
-    def _get_scale(self):
-        return self.view.transform().m11()
