@@ -37,7 +37,7 @@ class fake_entry(object):
         if self.name == "bez":
             module = "_bez"
         elif self.name == "_rez_fwd":  # TODO rename this binary
-            target = "forward"
+            target = "'forward'"
         elif self.name not in ("rez", "rezolve"):
             target = "'%s'" % self.name.split('-', 1)[-1]
         return self.code_template.format(module=module, target=target)
