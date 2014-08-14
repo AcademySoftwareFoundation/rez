@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
-from rezgui.widgets.ContextTableWidget import ContextTableWidget
+from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
 
 
 class TestDialog(QtGui.QDialog):
@@ -8,12 +8,10 @@ class TestDialog(QtGui.QDialog):
         super(TestDialog, self).__init__(parent)
         self.setWindowTitle("Rez GUI")
 
-        self.edit = PackageLineEdit()
-        self.table = ContextTableWidget()
+        self.mgr = ContextManagerWidget()
         layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.edit)
-        layout.addWidget(self.table)
+        layout.addWidget(self.mgr)
         self.setLayout(layout)
 
     def sizeHint(self):
-        return QtCore.QSize(1000, 600)
+        return QtCore.QSize(800, 400)

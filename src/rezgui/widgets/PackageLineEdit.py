@@ -6,11 +6,12 @@ from rez.vendor.version.requirement import Requirement
 
 class PackageLineEdit(QtGui.QLineEdit):
 
-    packageChangeDone = QtCore.Signal(str)
+    focusOutViaKeyPress = QtCore.Signal(str)
+    focusOut = QtCore.Signal(str)
 
-    def __init__(self, parent=None, paths=None, family_only=False):
+    def __init__(self, settings, parent=None, family_only=False):
         super(PackageLineEdit, self).__init__(parent)
-        self.paths = paths
+        self.settings = settings
         self.family_only = family_only
         self.default_style = None
 
@@ -21,7 +22,6 @@ class PackageLineEdit(QtGui.QLineEdit):
         self.setCompleter(self.completer)
 
         self.textEdited.connect(self._textEdited)
-        self.textChanged.connect(self._textChanged)
 
     def mouseReleaseEvent(self, event):
         if not self.hasSelectedText():
@@ -34,24 +34,37 @@ class PackageLineEdit(QtGui.QLineEdit):
                                     QtCore.Qt.Key_Enter,
                                     QtCore.Qt.Key_Return):
             self._update_status(True)
-            self.packageChangeDone.emit(self.text())
+            self.focusOutViaKeyPress.emit(self.text())
             return True
         return super(PackageLineEdit, self).event(event)
 
+    def focusOutEvent(self, event):
+        self._update_status(True)
+        self.focusOut.emit(self.text())
+        return super(PackageLineEdit, self).focusOutEvent(event)
+
+    def refresh(self):
+        self._update_status(True)
+
     def clone_into(self, other):
-        other.setText(self.text())
-        other.setStyleSheet(self.styleSheet())
-        other.paths = self.paths
+        other.settings = self.settings
         other.family_only = self.family_only
         other.default_style = self.default_style
+        other.setText(self.text())
+        other.setStyleSheet(self.styleSheet())
+        completions = self.completions.stringList()
+        other.completions.setStringList(completions)
+        other.completer.setCompletionPrefix(self.text())
+
+    @property
+    def _paths(self):
+        return self.settings.get("packages_path")
 
     def _textEdited(self, txt):
         words = get_completions(txt,
-                                paths=self.paths,
+                                paths=self._paths,
                                 family_only=self.family_only)
-        self.completions.setStringList(words)
-
-    def _textChanged(self, txt):
+        self.completions.setStringList(list(reversed(words)))
         self._update_status()
 
     def _set_style(self, style=None):
@@ -68,8 +81,8 @@ class PackageLineEdit(QtGui.QLineEdit):
             self._set_style()
             self.setToolTip("")
 
-        def _err(msg):
-            self._set_style("QLineEdit { border : 2px solid red;}")
+        def _err(msg, color="red"):
+            self._set_style("QLineEdit { border : 2px solid %s;}" % color)
             self.setToolTip(msg)
 
         txt = str(self.text())
@@ -83,17 +96,16 @@ class PackageLineEdit(QtGui.QLineEdit):
             _err(str(e))
             return
 
+        _ok()
         if identify_package and not req.conflict:
             try:
                 it = iter_packages(name=req.name,
                                    range=req.range,
-                                   paths=self.paths)
+                                   paths=self._paths)
                 pkg = sorted(it, key=lambda x: x.version)[-1]
             except Exception:
-                _err("cannot find package: %r" % txt)
+                _err("cannot find package: %r" % txt, "orange")
                 return
 
             if pkg.description:
                 self.setToolTip(pkg.description)
-        else:
-            _ok()
