@@ -1,6 +1,5 @@
 import shutil
 import tempfile
-from rez.packages import load_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
@@ -449,6 +448,7 @@ def get_test_suites():
     suite.addTest(TestSolver("test_7"))
     suite.addTest(TestSolver("test_8"))
     suites.append(suite)
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(TestVariantResolutionOrder))
     return suites
 
 if __name__ == '__main__':

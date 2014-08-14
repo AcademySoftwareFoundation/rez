@@ -5,8 +5,6 @@ This gives direct access to the solver. You should use the resolve() function
 in resolve.py instead, which will use cached data where possible to provide you
 with a faster resolve.
 """
-from collections import defaultdict
-import operator
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
