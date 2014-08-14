@@ -54,7 +54,9 @@ package_schema = Schema({
     Optional('build_requires'):         [Requirement],
     Optional('private_build_requires'): [Requirement],
     Optional('variants'):               [[Requirement]],
+    Optional('pre_commands'):           rex_command,
     Optional('commands'):               rex_command,
+    Optional('post_commands'):          rex_command,
 
     # custom keys
     Optional('custom'):                 object,
@@ -210,16 +212,10 @@ class BasePackageResource(FileResource):
 
         return name
 
-    def new_rex_command(self, value):
-        msg = "'commands2' section in package definition"
-        if config.disable_rez_1_compatibility or config.error_commands2:
-            raise SchemaError(None, msg)
-        elif config.warn("commands2"):
-            print_warning("%s: %s" % (self.path, msg))
-        return True
-
     @propertycache
     def schema(self):
+        rex_schema = Or(rex_command, And([basestring], Use(self.convert_to_rex)))
+
         return Schema({
             Optional('config_version'):         0,  # this will only match 0
 
@@ -239,11 +235,9 @@ class BasePackageResource(FileResource):
             Optional('variants'):               [[Use(Requirement)]],
             Optional('build_requires'):         [Use(Requirement)],
             Optional('private_build_requires'): [Use(Requirement)],
-            Optional('commands'):               Or(rex_command,
-                                                   And([basestring],
-                                                       Use(self.convert_to_rex))),
-            Optional('commands2'):              And(rex_command,
-                                                    self.new_rex_command),
+            Optional('pre_commands'):           rex_schema,
+            Optional('commands'):               rex_schema,
+            Optional('post_commands'):          rex_schema,
 
             # backwards compatibility for rez-egg-install- generated packages
             Optional('unsafe_name'):            object,
@@ -261,10 +255,6 @@ class BasePackageResource(FileResource):
     @Resource.cached
     def load(self):
         data = super(BasePackageResource, self).load().copy()
-
-        # commands2 support
-        if "commands2" in data:
-            data["commands"] = data.pop("commands2")
 
         # graft release info onto resource
         release_data = self._load_component("release.data")

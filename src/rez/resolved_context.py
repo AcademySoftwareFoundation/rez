@@ -1030,6 +1030,21 @@ class ResolvedContext(object):
                            parent_variables=parent_vars)
 
     def _execute(self, executor):
+        br = '#' * 80
+        br_minor = '-' * 80
+
+        def _heading(txt):
+            executor.comment("")
+            executor.comment("")
+            executor.comment(br)
+            executor.comment(txt)
+            executor.comment(br)
+
+        def _minor_heading(txt):
+            executor.comment("")
+            executor.comment(txt)
+            executor.comment(br_minor)
+
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self._package_requests)
@@ -1037,6 +1052,7 @@ class ResolvedContext(object):
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
 
+        _heading("system setup")
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
@@ -1064,25 +1080,42 @@ class ResolvedContext(object):
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
-        # apply each resolved package to the execution context
-        for pkg in resolved_pkgs:
-            executor.comment("")
-            executor.comment("Commands from package %s" % pkg.qualified_name)
-            executor.comment("")
+        #
+        # -- apply each resolved package to the execution context
+        #
 
+        _heading("package variables")
+        error_class = Exception if config.catch_rex_errors else None
+
+        # set basic package variables and create per-package bindings
+        bindings = {}
+        for pkg in resolved_pkgs:
+            _minor_heading("variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
             executor.setenv(prefix + "_VERSION", str(pkg.version))
             executor.setenv(prefix + "_BASE", pkg.base)
             executor.setenv(prefix + "_ROOT", pkg.root)
+            bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
+                                      variant=VariantBinding(pkg))
 
-            executor.bind('this',       VariantBinding(pkg))
-            executor.bind("version",    VersionBinding(pkg.version))
-            executor.bind('root',       pkg.root)
-            executor.bind('base',       pkg.base)
+        # commands
+        for attr in ("pre_commands", "commands", "post_commands"):
+            found = False
+            for pkg in resolved_pkgs:
+                commands = getattr(pkg, attr)
+                if commands is None:
+                    continue
+                if not found:
+                    found = True
+                    _heading(attr)
 
-            commands = pkg.commands
-            if commands:
-                error_class = Exception if config.catch_rex_errors else None
+                _minor_heading("%s from package %s" % (attr, pkg.qualified_name))
+                bindings_ = bindings[pkg.name]
+                executor.bind('this',       bindings_["variant"])
+                executor.bind("version",    bindings_["version"])
+                executor.bind('root',       pkg.root)
+                executor.bind('base',       pkg.base)
+
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
@@ -1095,6 +1128,7 @@ class ResolvedContext(object):
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
+        _heading("post system setup")
         # append suite path if there is an active parent suite
         if self.parent_suite_path:
             tools_path = os.path.join(self.parent_suite_path, "bin")
