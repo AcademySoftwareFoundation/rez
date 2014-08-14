@@ -7,32 +7,51 @@ class GraphicsView(QtGui.QGraphicsView):
         super(GraphicsView, self).__init__(parent)
         self.interactive = True
         self.press_pos = None
-        self.press_transform = None
 
     def mousePressEvent(self, event):
         if self.interactive:
             self.setCursor(QtCore.Qt.ClosedHandCursor)
             self.press_pos = QtGui.QCursor.pos()
-            self.press_transform = self.transform()
+            self.press_scroll_pos = self._scroll_pos()
+            event.accept()
+        else:
+            event.ignore()
 
     def mouseReleaseEvent(self, event):
         if self.interactive:
             self.unsetCursor()
+            event.accept()
+        else:
+            event.ignore()
 
     def mouseMoveEvent(self, event):
         if self.interactive:
             pos = QtGui.QCursor.pos()
-            diff = pos - self.press_pos
-            transform = QtGui.QTransform(self.press_transform)
-            scale = transform.m11()
-            diff *= 1
-            transform.translate(diff.x(), diff.y())
-            self.setTransform(transform)
-            print transform.m31(), transform.m32()
+            pos_delta = pos - self.press_pos
+            scroll_pos = self.press_scroll_pos - pos_delta
+            self._set_scroll_pos(scroll_pos)
+            event.accept()
+        else:
+            event.ignore()
 
-    def viewportEvent(self, event):
-        print ">>>", self.transform().m31(), self.transform().m32()
-        return super(GraphicsView, self).viewportEvent(event)
+    def wheelEvent(self, event):
+        if self.fit:
+            event.ignore()
+        else:
+            scale = 1.0 + (event.delta() * 0.001)
+            self.view.scale(scale, scale)
+            event.accept()
+
+    def _scroll_pos(self):
+        hs = self.horizontalScrollBar()
+        vs = self.verticalScrollBar()
+        return QtCore.QPoint(hs.value(), vs.value())
+
+    def _set_scroll_pos(self, pos):
+        hs = self.horizontalScrollBar()
+        vs = self.verticalScrollBar()
+        hs.setValue(pos.x())
+        vs.setValue(pos.y())
 
 
 class ImageViewerWidget(QtGui.QWidget):
@@ -53,8 +72,11 @@ class ImageViewerWidget(QtGui.QWidget):
         self.view.show()
 
     def resizeEvent(self, event):
-        super(ImageViewerWidget, self).resizeEvent(event)
-        self._fit_in_view()
+        if self.fit:
+            self._fit_in_view()
+            event.accept()
+        else:
+            event.ignore()
 
     def fit_to_window(self, enabled):
         if enabled != self.fit:

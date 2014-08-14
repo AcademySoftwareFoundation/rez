@@ -1,5 +1,5 @@
 import os.path
-from rez.util import Common, propertycache
+from rez.util import Common, propertycache, dedup
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageRequestError
@@ -138,6 +138,7 @@ def get_completions(prefix, paths=None, family_only=False):
     if not fam:
         words = sorted(x.name for x in iter_package_families(paths=paths)
                        if x.name.startswith(prefix))
+        words = list(dedup(words))
         if len(words) == 1:
             fam = words[0]
 

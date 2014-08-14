@@ -7,6 +7,7 @@ from functools import partial
 class ImageViewerDialog(QtGui.QDialog):
     def __init__(self, image_file, parent=None):
         super(ImageViewerDialog, self).__init__(parent)
+        self.setWindowTitle("Resolve Graph")
 
         self.image_viewer = ImageViewerWidget(image_file)
         ok_btn = QtGui.QPushButton("Ok")
