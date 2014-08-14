@@ -5,6 +5,7 @@ Note: Even though this is a python-based package, it does not list python as a
 requirement. This is not typical! This package is intended as a very simple test
 case, and for that reason we do not want any dependencies.
 """
+from __future__ import absolute_import
 from rez.package_maker_ import make_py_package, root, code_provider
 from rez.exceptions import RezBindError
 from rez.vendor.version.version import Version

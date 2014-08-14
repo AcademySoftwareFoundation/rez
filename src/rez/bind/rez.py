@@ -1,6 +1,7 @@
 """
 Binds rez itself as a rez package.
 """
+from __future__ import absolute_import
 import rez
 from rez.package_maker_ import make_py_package, code_provider
 from rez.bind_utils import check_version

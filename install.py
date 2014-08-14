@@ -24,18 +24,23 @@ from build_utils.distlib.scripts import ScriptMaker
 class fake_entry(object):
     code_template = textwrap.dedent(
         """
-        # EASY-INSTALL-SCRIPT: 'rez=={rez_version}','{name}'
-        __requires__ = 'rez=={rez_version}'
-        import pkg_resources
-        pkg_resources.run_script('rez=={rez_version}', '{name}')
-        """)
+        from rez.cli.{module} import run
+        run({target})
+        """).strip() + '\n'
 
     def __init__(self, name):
         self.name = name
 
     def get_script_text(self):
-        return self.code_template.format(rez_version=_rez_version,
-                                         name=self.name)
+        module = "_main"
+        target = ""
+        if self.name == "bez":
+            module = "_bez"
+        elif self.name == "_rez_fwd":  # TODO rename this binary
+            module = "forward"
+        elif self.name not in ("rez", "rezolve"):
+            target = "'%s'" % self.name.split('-', 1)[-1]
+        return self.code_template.format(module=module, target=target)
 
 
 class _ScriptMaker(ScriptMaker):
@@ -86,7 +91,8 @@ def copy_completion_scripts(dest_dir):
 
 
 if __name__ == "__main__":
-    usage = "usage: %prog [options] DEST_DIR"
+    usage = ("usage: %prog [options] DEST_DIR ('{version}' in DEST_DIR will "
+             "expand to Rez version)")
     parser = OptionParser(usage=usage)
     parser.add_option(
         '-v', '--verbose', action='count', dest='verbose', default=0,
