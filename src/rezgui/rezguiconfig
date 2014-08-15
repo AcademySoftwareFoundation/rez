@@ -1,0 +1,13 @@
+#
+# Rez GUI configuration settings. Do not change this file.
+#
+
+resolve:
+    # Maximum number of fails during a resolve
+    max_fails: "None"
+
+    # Default resolving verbosity
+    verbosity: "0"
+
+    # If true, prints package loads during a resolve
+    show_package_loads: true

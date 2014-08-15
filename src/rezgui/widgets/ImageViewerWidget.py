@@ -3,10 +3,11 @@ from rezgui.util import create_pane
 
 
 class GraphicsView(QtGui.QGraphicsView):
-    def __init__(self, parent=None):
+    def __init__(self, parent=None, max_scale=None):
         super(GraphicsView, self).__init__(parent)
         self.interactive = True
         self.press_pos = None
+        self.max_scale = max_scale
 
     def mousePressEvent(self, event):
         if self.interactive:
@@ -35,12 +36,24 @@ class GraphicsView(QtGui.QGraphicsView):
             event.ignore()
 
     def wheelEvent(self, event):
-        if self.fit:
-            event.ignore()
-        else:
+        if self.interactive:
             scale = 1.0 + (event.delta() * 0.001)
+            if scale < 1.0:
+                rect = self.mapToScene(self.rect()).boundingRect()
+                if rect.width() > self.scene().width() \
+                        and rect.height() > self.scene().height():
+                    # all of image visible in viewport
+                    event.ignore()
+                    return
+            elif self.max_scale and self.transform().m11() > self.max_scale:
+                # we're zoomed in really close
+                event.ignore()
+                return
+
             self.scale(scale, scale)
             event.accept()
+        else:
+            event.ignore()
 
     def _scroll_pos(self):
         hs = self.horizontalScrollBar()
@@ -64,7 +77,10 @@ class ImageViewerWidget(QtGui.QWidget):
         image = QtGui.QPixmap(image_file)
         self.image_item = self.scene.addPixmap(image)
         self.image_item.setTransformationMode(QtCore.Qt.SmoothTransformation)
-        self.view = GraphicsView(self.scene)
+        npix = max(image.width(), image.height())
+        max_scale = npix / 200.0
+        self.view = GraphicsView(self.scene, max_scale=max_scale)
+        self._fit_in_view()
 
         create_pane([self.view], False, parent_widget=self)
         self.view.setRenderHints(QtGui.QPainter.Antialiasing
@@ -84,7 +100,7 @@ class ImageViewerWidget(QtGui.QWidget):
             self.view.interactive = not enabled
             current_scale = self.view.transform().m11()
 
-            if enabled:
+            if self.fit:
                 self.prev_scale = current_scale
                 self._fit_in_view()
             else:
@@ -92,5 +108,4 @@ class ImageViewerWidget(QtGui.QWidget):
                 self.view.scale(factor, factor)
 
     def _fit_in_view(self):
-        if self.fit:
-            self.view.fitInView(self.image_item, QtCore.Qt.KeepAspectRatio)
+        self.view.fitInView(self.image_item, QtCore.Qt.KeepAspectRatio)

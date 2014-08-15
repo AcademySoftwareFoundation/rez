@@ -1,32 +1,49 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
+from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.dialogs.ImageViewerDialog import ImageViewerDialog
+from rezgui.config import config
 from rez.resolved_context import ResolvedContext
-from functools import partial
+from rez.dot import save_graph
+import tempfile
 import threading
 import StringIO
+import os
 
 
 class Resolver(QtCore.QObject):
 
     finished = QtCore.Signal()
-    update = QtCore.Signal(str)
+    graph_written = QtCore.Signal(str, str)
 
-    def __init__(self, settings):
+    def __init__(self, settings, verbosity=0, buf=None):
         super(Resolver, self).__init__()
         self.settings = settings
+        self.verbosity = verbosity
+        self.buf = buf
         self.context = None
         self.keep_going = True
         self.abort_reason = None
 
-    def __call__(self, solver_state):
-        self.update.emit(str(solver_state) + '\n')
-        return self.keep_going, self.abort_reason
-
     def resolve(self, request):
-        context = ResolvedContext(request, callback=self)
+        context = ResolvedContext(
+            request,
+            package_paths=self.settings.get("packages_path"),
+            verbosity=self.verbosity,
+            buf=self.buf,
+            callback=self._callback,
+            package_load_callback=self._package_load_callback)
+
         self.context = context
         self.finished.emit()
+
+    def save_graph(self, filepath):
+        try:
+            graph_str = self.context.graph(as_dot=True)
+            save_graph(graph_str, filepath)
+            self.graph_written.emit(filepath, "")
+        except Exception as e:
+            self.graph_written.emit("", str(e))
 
     def cancel(self):
         self.keep_going = False
@@ -34,6 +51,15 @@ class Resolver(QtCore.QObject):
 
     def success(self):
         return self.context and self.context.success
+
+    def _callback(self, solver_state):
+        if self.buf and self.verbosity == 0:
+            print >> self.buf, "solve step %d..." % solver_state.num_solves
+        return self.keep_going, self.abort_reason
+
+    def _package_load_callback(self, package):
+        if self.buf:
+            print >> self.buf, "loading %s..." % str(package)
 
 
 class ResolveDialog(QtGui.QDialog):
@@ -48,22 +74,27 @@ class ResolveDialog(QtGui.QDialog):
         self.resolver = None
         self.thread = None
         self.started = False
-        self.finished = False
+        self._finished = False
 
-        self.edit = QtGui.QTextEdit()
-        self.edit.setReadOnly(True)
-        self.edit.setStyleSheet("font: 10pt 'Courier'")
+        self.busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
+
+        self.edit = StreamableTextEdit()
+        self.edit.setStyleSheet("font: 9pt 'Courier'")
 
         self.bar = QtGui.QProgressBar()
         self.bar.setRange(0, 10)
 
+        self.save_context_btn = QtGui.QPushButton("Save Context As...")
+        self.graph_btn = QtGui.QPushButton("View Graph...")
         self.ok_btn = QtGui.QPushButton("Ok")
         self.cancel_btn = QtGui.QPushButton("Cancel")
         self.resolve_btn = QtGui.QPushButton("Resolve")
-        self.graph_btn = QtGui.QPushButton("View Graph...")
         self.ok_btn.hide()
         self.graph_btn.hide()
+        self.save_context_btn.hide()
+
         btn_pane = create_pane([None,
+                               self.save_context_btn,
                                self.graph_btn,
                                self.ok_btn,
                                self.cancel_btn,
@@ -74,27 +105,37 @@ class ResolveDialog(QtGui.QDialog):
         layout.addWidget(self.bar)
         layout.addWidget(self.edit, 1)
 
+        self.max_fails_combo = None
+        self.verbosity_combo = None
+        self.show_package_loads_checkbox = None
+
         if self.advanced:
             group = QtGui.QGroupBox("resolve settings")
 
             label = QtGui.QLabel("maximum fails:")
-            max_fails_combo = QtGui.QComboBox()
-            max_fails_combo.setEditable(True)
-            max_fails_combo.addItem("None")
-            max_fails_combo.addItem("0")
-            max_fails_combo.addItem("1")
-            max_fails_combo.addItem("2")
-            max_fails_pane = create_pane([label, 10, max_fails_combo], True)
+            self.max_fails_combo = QtGui.QComboBox()
+            self.max_fails_combo.setEditable(True)
+            self.max_fails_combo.addItem("None")
+            self.max_fails_combo.addItem("0")
+            self.max_fails_combo.addItem("1")
+            self.max_fails_combo.addItem("2")
+            config.attach(self.max_fails_combo, "resolve/max_fails")
+            max_fails_pane = create_pane([label, 10, self.max_fails_combo], True)
 
             label = QtGui.QLabel("verbosity:")
-            verbosity_combo = QtGui.QComboBox()
-            verbosity_combo.addItem("0")
-            verbosity_combo.addItem("1")
-            verbosity_combo.addItem("2")
-            verbosity_pane = create_pane([label, 10, verbosity_combo], True)
+            self.verbosity_combo = QtGui.QComboBox()
+            self.verbosity_combo.addItem("0")
+            self.verbosity_combo.addItem("1")
+            self.verbosity_combo.addItem("2")
+            config.attach(self.verbosity_combo, "resolve/verbosity")
+            verbosity_pane = create_pane([label, 10, self.verbosity_combo], True)
+
+            self.show_package_loads_checkbox = QtGui.QCheckBox("show package loads")
+            config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
 
             create_pane([max_fails_pane,
                         verbosity_pane,
+                        self.show_package_loads_checkbox,
                         None],
                         False, parent_widget=group, spacing=5, margin=10)
 
@@ -110,7 +151,8 @@ class ResolveDialog(QtGui.QDialog):
         self.cancel_btn.clicked.connect(self._cancel_resolve)
         self.resolve_btn.clicked.connect(self._start_resolve)
         self.graph_btn.clicked.connect(self._view_graph)
-        self.ok_btn.clicked.connect(partial(self.done, 0))
+        self.save_context_btn.clicked.connect(self._save_context)
+        self.ok_btn.clicked.connect(self.close)
 
     def resolve(self, request):
         self.request = request
@@ -133,35 +175,51 @@ class ResolveDialog(QtGui.QDialog):
         return None
 
     def sizeHint(self):
-        return QtCore.QSize(500, 200)
+        if self.advanced:
+            return QtCore.QSize(600, 400)
+        else:
+            return QtCore.QSize(400, 200)
 
     def reject(self):
-        if self.finished or not self.started:
+        if self._finished or not self.started:
             super(ResolveDialog, self).reject()
         else:
             self._cancel_resolve()
 
     def closeEvent(self, event):
-        if self.finished:
-            super(ResolveDialog, self).closeEvent(event)
+        if self._finished or not self.started:
+            event.accept()
         else:
             self._cancel_resolve()
             event.ignore()
 
-    def _log(self, msg):
+    def _log(self, msg, color=None):
+        if color:
+            old_color = self.edit.textColor()
+            self.edit.setTextColor(QtGui.QColor(color))
         self.edit.append(msg)
         self.edit.moveCursor(QtGui.QTextCursor.End)
+        if color:
+            self.edit.setTextColor(old_color)
 
     def _start_resolve(self):
         self.setWindowTitle("Resolving...")
         self.resolve_btn.hide()
         self.cancel_btn.show()
-        self.bar.setRange(0, 0)
+        self._set_progress(False)
         self.started = True
 
-        self.resolver = Resolver(self.settings)
+        verbosity = 0
+        if self.advanced:
+            verbosity = int(self.verbosity_combo.currentText())
+
+        self.resolver = Resolver(self.settings,
+                                 verbosity=verbosity,
+                                 buf=self.edit)
+
         self.resolver.finished.connect(self._resolve_finished)
-        self.resolver.update.connect(self._resolve_update)
+        self.resolver.graph_written.connect(self._graph_written)
+
         self.thread = threading.Thread(target=self.resolver.resolve,
                                        args=(self.request,))
         self.thread.start()
@@ -171,17 +229,20 @@ class ResolveDialog(QtGui.QDialog):
             self.cancel_btn.setText("Cancelling...")
             self.resolver.cancel()
 
-    def _resolve_update(self, msg):
-        self._log(msg)
-
     def _resolve_finished(self):
-        self.finished = True
+        self._finished = True
         self.cancel_btn.setEnabled(False)
-        self.bar.setMaximum(10)
-        self.bar.setValue(10)
+        self._set_progress(True)
 
-        self.graph_btn.setEnabled(self.resolver.context.has_graph)
+        if self.advanced:
+            self.max_fails_combo.setEnabled(False)
+            self.verbosity_combo.setEnabled(False)
+
+        if self.resolver.context.has_graph:
+            self.graph_btn.setEnabled(True)
+            self.save_context_btn.setEnabled(True)
         self.graph_btn.show()
+        self.save_context_btn.show()
 
         if self.resolver.success():
             if self.advanced:
@@ -192,24 +253,56 @@ class ResolveDialog(QtGui.QDialog):
                 self.resolver.context.print_info(buf=sbuf)
                 msg = "\nTHE RESOLVE SUCCEEDED:\n\n"
                 msg += sbuf.getvalue()
-                self.edit.setTextColor(QtGui.QColor("green"))
-                self._log(msg)
+                self._log(msg, "green")
             else:
                 self.done(0)
             return
 
-        self.edit.setTextColor(QtGui.QColor("red"))
         msg = "\nTHE RESOLVE FAILED"
         desc = self.resolver.context.failure_description
         if desc:
             msg += ":\n%s" % desc
-        self._log(msg)
+        self._log(msg, "red")
 
         self.cancel_btn.hide()
         self.ok_btn.show()
 
+    def _save_context(self):
+        filepath = QtGui.QFileDialog.getSaveFileName(
+            self, "Save Context", filter="Context files (*.rxt)")
+        if filepath:
+            self.resolver.context.save(filepath)
+            self._log("\nSaved context to: %s" % filepath)
+
     def _view_graph(self):
         self._log("\nRendering graph...")
+        self.graph_btn.setEnabled(False)
+        fd, filepath = tempfile.mkstemp(suffix=".png", prefix="rez-graph-")
+        os.close(fd)
 
-        dlg = ImageViewerDialog("/home/ajohns/tmp/foo.png")
-        dlg.exec_()
+        self._finished = False
+        self._set_progress(False)
+        QtGui.QApplication.setOverrideCursor(self.busy_cursor)
+
+        self.thread = threading.Thread(target=self.resolver.save_graph,
+                                       args=(filepath,))
+        self.thread.start()
+
+    def _graph_written(self, filepath, error_message):
+        QtGui.QApplication.restoreOverrideCursor()
+        self.graph_btn.setEnabled(True)
+        self._set_progress(True)
+        self._finished = True
+
+        if filepath:
+            dlg = ImageViewerDialog(filepath)
+            dlg.exec_()
+        else:
+            self.log('\n' + error_message, "red")
+
+    def _set_progress(self, done=True):
+        if done:
+            self.bar.setMaximum(10)
+            self.bar.setValue(10)
+        else:
+            self.bar.setRange(0, 0)

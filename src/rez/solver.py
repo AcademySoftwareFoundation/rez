@@ -21,6 +21,7 @@ from heapq import merge
 import os.path
 import copy
 import time
+import sys
 
 
 class SolverStatus(Enum):
@@ -40,18 +41,19 @@ class SolverStatus(Enum):
 
 
 class _Printer(object):
-    def __init__(self, verbose):
+    def __init__(self, verbose, buf=None):
         self.verbose = verbose
+        self.buf = buf or sys.stdout
         self.pending_sub = None
         self.pending_br = False
         self.last_pr = True
 
     def header(self, txt):
         if self.verbose:
-            print
-            print '-' * 80
-            print txt
-            print '-' * 80
+            self.pr()
+            self.pr('-' * 80)
+            self.pr(txt)
+            self.pr('-' * 80)
             self.pending_br = False
             self.pending_sub = None
             self.last_pr = False
@@ -63,18 +65,21 @@ class _Printer(object):
         if self.verbose:
             if self.pending_sub:
                 if self.last_pr:
-                    print
-                print self.pending_sub
+                    self.pr()
+                self.pr(self.pending_sub)
                 self.pending_sub = None
             elif self.pending_br:
-                print
+                self.pr()
 
-            print txt
+            self.pr(txt)
             self.last_pr = True
             self.pending_br = False
 
     def br(self):
         self.pending_br = True
+
+    def pr(self, txt=''):
+        print >> self.buf, txt
 
     def __nonzero__(self):
         return self.verbose
@@ -279,11 +284,12 @@ class PackageVariant(_Common):
 class _PackageVariantList(_Common):
     """A sorted list of package variants, loaded lazily."""
     def __init__(self, package_name, package_paths=None, timestamp=0,
-                 building=False):
+                 building=False, package_load_callback=None):
         self.package_name = package_name
         self.package_paths = package_paths
         self.timestamp = timestamp
         self.building = building
+        self.package_load_callback = package_load_callback
         self.variants = []
 
         it = iter_packages(self.package_name, paths=self.package_paths)
@@ -297,6 +303,9 @@ class _PackageVariantList(_Common):
             loaded_variants = []
             indexes = []
             for i, pkg in enumerate(self.packages):
+                if self.package_load_callback:
+                    self.package_load_callback(pkg)
+
                 # checking version against range before timestamp is important
                 # - metadata needs to be loaded to determine package timestamp.
                 if pkg.version not in range:
@@ -547,11 +556,13 @@ class _PackageVariantSlice(_Common):
 
 
 class _PackageVariantCache(object):
-    def __init__(self, package_paths=None, timestamp=0, building=False):
+    def __init__(self, package_paths=None, timestamp=0, building=False,
+                 package_load_callback=None):
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
         self.timestamp = timestamp
         self.building = building
+        self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
     def get_variant_slice(self, package_name, range):
@@ -561,7 +572,8 @@ class _PackageVariantCache(object):
                 package_name,
                 package_paths=self.package_paths,
                 timestamp=self.timestamp,
-                building=self.building)
+                building=self.building,
+                package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
         variants = variant_list.get_intersection(range)
@@ -1266,7 +1278,8 @@ class Solver(_Common):
     non-conflicting packages that include all dependencies.
     """
     def __init__(self, package_requests, package_paths=None, timestamp=0,
-                 callback=None, building=False, optimised=True, verbose=False):
+                 callback=None, building=False, optimised=True, verbose=False,
+                 buf=None, package_load_callback=None):
         """Create a Solver.
 
         Args:
@@ -1282,11 +1295,14 @@ class Solver(_Common):
                 a 2-tuple:
                 - bool: If True, continue the solve, otherwise abort;
                 - str: Reason for solve abort, ignored if solve not aborted.
+            package_load_callback: If not None, this callable will be called
+                prior to each package being loaded. It is passed a single
+                `Package` object.
         """
         self.package_requests = package_requests
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
-        self.pr = _Printer(verbose)
+        self.pr = _Printer(verbose, buf=buf)
         self.optimised = optimised
         self.timestamp = timestamp
         self.callback = callback
@@ -1302,9 +1318,11 @@ class Solver(_Common):
         self.solve_begun = None
         self._init()
 
-        self.package_cache = _PackageVariantCache(self.package_paths,
-                                                  timestamp=timestamp,
-                                                  building=building)
+        self.package_cache = _PackageVariantCache(
+            self.package_paths,
+            timestamp=timestamp,
+            package_load_callback=package_load_callback,
+            building=building)
 
         # merge the request
         self.pr("request: %s" % ' '.join(str(x) for x in package_requests))

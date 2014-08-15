@@ -41,16 +41,17 @@ class ResolvedContext(object):
     serialize_version = 2
 
     class Callback(object):
-        def __init__(self, verbose, max_fails, time_limit, callback):
+        def __init__(self, verbose, max_fails, time_limit, callback, buf=None):
             self.verbose = verbose
             self.max_fails = max_fails
             self.time_limit = time_limit
             self.callback = callback
             self.start_time = time.time()
+            self.buf = buf or sys.stdout
 
         def __call__(self, state):
             if self.verbose:
-                print state
+                print >> self.buf, state
             if self.max_fails != -1 and state.num_fails >= self.max_fails:
                 return False, ("fail limit reached: aborted after %d failures"
                                % state.num_fails)
@@ -65,7 +66,8 @@ class ResolvedContext(object):
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
                  add_implicit_packages=True, add_bootstrap_path=None,
-                 max_fails=-1, time_limit=-1, callback=None):
+                 max_fails=-1, time_limit=-1, callback=None,
+                 package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -93,6 +95,11 @@ class ResolvedContext(object):
                 a 2-tuple:
                 - bool: If True, continue the solve, otherwise abort;
                 - str: Reason for solve abort, ignored if solve not aborted.
+            package_load_callback: If not None, this callable will be called
+                prior to each package being loaded. It is passed a single
+                `Package` object.
+            buf (file-like object): Where to print verbose output to, defaults
+                to stdout.
         """
         self.load_path = None
 
@@ -153,6 +160,7 @@ class ResolvedContext(object):
             verbose_ = True
 
         callback_ = self.Callback(verbose=print_state,
+                                  buf=buf,
                                   max_fails=max_fails,
                                   time_limit=time_limit,
                                   callback=callback)
@@ -165,7 +173,9 @@ class ResolvedContext(object):
                             building=self.building,
                             caching=caching,
                             callback=callback_,
-                            verbose=verbose_)
+                            package_load_callback=package_load_callback,
+                            verbose=verbose_,
+                            buf=buf)
         resolver.solve()
 
         # convert the results

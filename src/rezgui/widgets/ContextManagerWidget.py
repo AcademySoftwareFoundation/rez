@@ -21,7 +21,7 @@ class ContextManagerWidget(QtGui.QWidget):
         self.load_context = None
         self.current_context = None
 
-        # settings
+        # context settings
         settings = {
             "packages_path":        config.packages_path,
             "implicit_packages":    config.implicit_packages

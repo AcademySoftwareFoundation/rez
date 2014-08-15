@@ -14,4 +14,4 @@ class TestDialog(QtGui.QDialog):
         self.setLayout(layout)
 
     def sizeHint(self):
-        return QtCore.QSize(800, 400)
+        return QtCore.QSize(800, 500)

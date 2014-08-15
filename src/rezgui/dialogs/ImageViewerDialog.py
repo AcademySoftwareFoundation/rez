@@ -1,7 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.ImageViewerWidget import ImageViewerWidget
 from rezgui.util import create_pane
-from functools import partial
 
 
 class ImageViewerDialog(QtGui.QDialog):
@@ -15,8 +14,5 @@ class ImageViewerDialog(QtGui.QDialog):
         btn_pane = create_pane([None, fit_checkbox, 10, ok_btn], True)
         create_pane([(self.image_viewer, 1), btn_pane], False, parent_widget=self)
 
-        ok_btn.clicked.connect(partial(self.done, 0))
-        fit_checkbox.stateChanged.connect(self._fit_to_window)
-
-    def _fit_to_window(self, state):
-        self.image_viewer.fit_to_window(bool(state))
+        ok_btn.clicked.connect(self.close)
+        fit_checkbox.stateChanged.connect(self.image_viewer.fit_to_window)
