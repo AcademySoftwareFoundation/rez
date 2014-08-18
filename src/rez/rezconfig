@@ -128,6 +128,8 @@ env_var_separators:
     CMAKE_MODULE_PATH: ';'
     AL_MAYA_AUTO_EVAL: ' '
     AL_MAYA_AUTO_LOADVERSIONEDTOOL: ' '
+    AL_MAYA_AUTO_NEWSCENEEVENT: ' '
+    AL_MAYA_AUTO_OPENSCENEEVENT: ' '
     AL_MAYA_AUTO_PRELOADMEL: ' '
     AL_MAYA_AUTO_PYEVAL: ' '
     AL_PYAPPS_LIST: ','
@@ -178,10 +180,6 @@ debug_all: false
 # Turn off all debugging messages. This overrides debug_all.
 debug_none: false
 
-# Suppress all warnings and debugging messages. Overrides all warn_xxx and
-# debug_xxx settings
-quiet: true
-
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
 # generally not interesting to the package author. If set to False, rex errors
@@ -211,8 +209,25 @@ release_hooks: []
 
 
 ###############################################################################
+# Suites
+###############################################################################
+
+# The prefix character used to pass rez-specific commandline arguments to alias
+# scripts in a suite. This must be a character other than '-', so that it doesn't
+# clash with the wrapped tools' own commandline arguments.
+suite_alias_prefix_char: '+'
+
+
+###############################################################################
 # Appearance
 ###############################################################################
+
+# Suppress all extraneous output - warnings, debug messages, progress indicators
+# and so on. Overrides all warn_xxx and debug_xxx settings.
+quiet: false
+
+# Show progress bars where applicable
+show_progress: true
 
 # The editor used to get user input in some cases.
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
@@ -299,6 +314,11 @@ implicit_fore: cyan
 implicit_back:
 implicit_styles:
 
+# Tool aliases in suites
+alias_fore: cyan
+alias_back:
+alias_styles:
+
 
 ###############################################################################
 # Rez-1 Compatibility
@@ -324,7 +344,7 @@ warn_nonstring_version: true
 error_nonstring_version: false
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
-warn_old_commands: true
+warn_old_commands: false
 error_old_commands: false
 
 # Print old commands and their converted rex equivalent. Note that this can
@@ -396,6 +416,7 @@ plugins:
             - '^master$'
             - '^AL_master$'
             - '^hotfix'
+            - '^release-'
             - '^AL_2\.0$'
 
 

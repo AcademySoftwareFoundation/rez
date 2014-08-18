@@ -82,6 +82,16 @@ class PackageCommandError(RezError):
     pass
 
 
+class PackageRequestError(RezError):
+    """There is an error related to a package request."""
+    pass
+
+
+class ResolvedContextError(RezError):
+    """An error occurred in a resolved context."""
+    pass
+
+
 class RexError(RezError):
     """There is an error in Rex code."""
     pass
@@ -130,6 +140,11 @@ class ReleaseVCSError(ReleaseError):
 
 class ReleaseHookError(RezError):
     """Base class for release-hook- related errors."""
+    pass
+
+
+class SuiteError(RezError):
+    """Any suite-related error."""
     pass
 
 

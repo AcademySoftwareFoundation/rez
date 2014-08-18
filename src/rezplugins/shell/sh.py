@@ -91,8 +91,8 @@ class SH(UnixShell):
                 self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
             new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
-            new_prompt = (new_prompt+" %s") if config.prefix_prompt \
-                else ("%s "+new_prompt)
+            new_prompt = (new_prompt + " %s") if config.prefix_prompt \
+                else ("%s " + new_prompt)
             new_prompt = new_prompt % curr_prompt
             self._addline('export PS1="%s"' % new_prompt)
 
@@ -106,8 +106,8 @@ class SH(UnixShell):
         self._addline("unset %s" % key)
 
     def alias(self, key, value):
-        self._addline("{key}() {{ {value}; }};export -f {key};".format(
-            key=key, value=value))
+        cmd = "function {key}() {{ {value}; }};export -f {key};"
+        self._addline(cmd.format(key=key, value=value))
 
     def _saferefenv(self, key):
         pass

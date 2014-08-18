@@ -8,26 +8,9 @@ import time
 import tempfile
 import subprocess
 from uuid import uuid4
-from rez import __version__
-from rez.config import config
-from rez.dot import write_graph, view_graph, prune_graph
+from rez.rex import OutputStyle
+from rez.dot import save_graph, view_graph, prune_graph
 from rez.vendor.version.requirement import Requirement
-
-
-def print_tools(rc):
-    from rez.util import columnise
-    keys = rc.get_key("tools")
-    if keys:
-        rows = [
-            ["TOOL", "PACKAGE"],
-            ["----", "-------"]]
-        for pkg, tools in sorted(keys.items()):
-            for tool in sorted(tools):
-                rows.append([tool, pkg])
-
-    strs = columnise(rows)
-    print '\n'.join(strs)
-    print
 
 
 def setup_parser(parser, completions=False):
@@ -35,10 +18,11 @@ def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
 
     formats = get_shell_types() + ['dict', 'actions']
+    output_styles = [e.name for e in OutputStyle]
 
     parser.add_argument("--req", "--print-request", dest="print_request",
                         action="store_true",
-                        help="print only the request list, including implicits")
+                        help="print only the request list (not including implicits)")
     parser.add_argument("--res", "--print-resolve", dest="print_resolve",
                         action="store_true",
                         help="print only the resolve list")
@@ -56,32 +40,43 @@ def setup_parser(parser, completions=False):
                         type=str, help="prune the graph down to PKG")
     parser.add_argument("-i", "--interpret", action="store_true",
                         help="interpret the context and print the resulting code")
-    parser.add_argument("-f", "--format", type=str, choices=formats,
+    parser.add_argument("-f", "--format", type=str, choices=formats, default=system.shell,
                         help="print interpreted output in the given format. If "
-                        "None, the current shell language (%s) is used. If 'dict', "
-                        "a dictionary of the resulting environment is printed. "
-                        "Ignored if --interpret is False" % system.shell)
+                        "'dict', a dictionary of the resulting environment is "
+                        "printed. Ignored if --interpret is not present "
+                        " (default: %(default)s)")
+    parser.add_argument("-s", "--style", type=str, default="file", choices=output_styles,
+                        help="Set code output style. Ignored if --interpret is "
+                        "not present (default: %(default)s)")
     parser.add_argument("--no-env", dest="no_env", action="store_true",
                         help="interpret the context in an empty environment")
+    diff_action = parser.add_argument(
+        "--diff", type=str, metavar="RXT",
+        help="diff against the current context and the given context")
+    parser.add_argument(
+        "--peek", action="store_true",
+        help="diff against the current context and a re-resolved copy of the "
+        "current context, this shows how 'stale' the context is")
     RXT_action = parser.add_argument(
         "RXT", type=str, nargs='?',
         help="rex context file (current context if not supplied)")
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
-        RXT_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        rxt_completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        RXT_action.completer = rxt_completer
+        diff_action.completer = rxt_completer
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.env import get_context_file
+    from rez.status import status
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
 
     timings.enabled = False
-    rxt_file = opts.RXT if opts.RXT else get_context_file()
+    rxt_file = opts.RXT if opts.RXT else status.context_file
     if not rxt_file:
-        print >> sys.stderr, "running Rez v%s.\n" \
-            "not in a resolved environment context." % __version__
+        print >> sys.stderr, "not in a resolved environment context."
         sys.exit(1)
 
     rc = ResolvedContext.load(rxt_file)
@@ -97,11 +92,19 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not opts.interpret:
         if opts.print_request:
-            print ' '.join(rc.added_implicit_packages + rc.requested_packages)
+            print " ".join(str(x) for x in rc.requested_packages(False))
         elif opts.print_resolve:
-            print ' '.join(x.short_name() for x in rc.resolved_packages)
+            print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
         elif opts.print_tools:
-            print_tools(rc)
+            rc.print_tools()
+        elif opts.diff:
+            rc_other = ResolvedContext.load(opts.diff)
+            rc.print_resolve_diff(rc_other)
+        elif opts.peek:
+            rc_new = ResolvedContext(rc.requested_packages(),
+                                     package_paths=rc.package_paths,
+                                     verbosity=opts.verbose)
+            rc.print_resolve_diff(rc_new)
         elif opts.which:
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)
@@ -117,10 +120,10 @@ def command(opts, parser, extra_arg_groups=None):
             if opts.prune_pkg:
                 req = Requirement(opts.prune_pkg)
                 gstr = prune_graph(gstr, req.name)
-            func = view_graph if opts.graph else write_graph
+            func = view_graph if opts.graph else save_graph
             func(gstr, dest_file=opts.write_graph)
         else:
-            rc.print_info(verbose=opts.verbose)
+            rc.print_info(verbosity=opts.verbose)
         return
 
     if opts.format == 'dict':
@@ -131,5 +134,7 @@ def command(opts, parser, extra_arg_groups=None):
         for action in actions:
             print str(action)
     else:
-        code = rc.get_shell_code(shell=opts.format, parent_environ=parent_env)
+        code = rc.get_shell_code(shell=opts.format,
+                                 parent_environ=parent_env,
+                                 style=OutputStyle[opts.style])
         print code

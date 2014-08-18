@@ -177,12 +177,12 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \
             (package.description or '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
-            ' '.join(x.name for x in context.package_requests)
+            ' '.join(x.name for x in context.requested_packages(True))
 
 
 def get_current_variant_index(context, package):
     current_variant_index = 0
-    current_request_without_implicit_packages = set(context.package_requests).difference(set(context.implicit_packages))
+    current_request_without_implicit_packages = set(context.requested_packages()).difference(set(context.implicit_packages))
 
     for index, variant in enumerate(package.iter_variants()):
         request = variant.get_requires(build_requires=True, private_build_requires=True)

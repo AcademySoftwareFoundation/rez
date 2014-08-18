@@ -38,6 +38,11 @@ def PackageCompleter(prefix, **kwargs):
     return get_completions(prefix)
 
 
+def PackageFamilyCompleter(prefix, **kwargs):
+    from rez.packages import get_completions
+    return get_completions(prefix, family_only=True)
+
+
 def ExecutablesCompleter(prefix, **kwargs):
     from stat import S_IXUSR, S_IXGRP, S_IXOTH
 

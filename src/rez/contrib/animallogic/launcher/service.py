@@ -87,7 +87,7 @@ class LauncherHessianService(LauncherServiceInterface):
         try:
             settings = method(*args)
         except Exception, e:
-            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e.message['message']))
+            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e))
 
         return [self._create_setting_from_dict(setting) for setting in settings]
 

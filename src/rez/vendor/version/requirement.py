@@ -161,8 +161,29 @@ class Requirement(_Common):
 
     @property
     def conflict(self):
-        """True if the requirement is a conflict requirement, eg "!foo"."""
+        """True if the requirement is a conflict requirement, eg "!foo", "~foo-1".
+        """
         return self.conflict_
+
+    @property
+    def weak(self):
+        """True if the requirement is weak, eg "~foo".
+
+        Note that weak requirements are also conflict requirements, but not
+        necessarily the other way around.
+        """
+        return self.negate_
+
+    def make_conflict(self):
+        """Change the requirement into a conflict. If already conflict, this
+        has no effect."""
+        self.conflict_ = True
+
+    def make_weak(self):
+        """Change the requirement into a weak reference. If already weak, this
+        has no effect."""
+        self.conflict_ = True
+        self.negate_ = True
 
     def safe_str(self):
         """Return a string representation that is safe for the current filesystem,
