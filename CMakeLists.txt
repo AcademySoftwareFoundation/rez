@@ -13,6 +13,9 @@ endif ()
 
 set(python_library_dir ${CMAKE_INSTALL_PREFIX}/lib/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/site-packages)
 
+get_filename_component(relative_path_to_setup ${CMAKE_SOURCE_DIR}/setup.py  PATH)
+file(RELATIVE_PATH relative_path ${CMAKE_CURRENT_BINARY_DIR} ${relative_path_to_setup})
+
 configure_file(init.csh.in init.csh @ONLY)
 configure_file(init.sh.in init.sh @ONLY)
 configure_file(setup.py setup.py @ONLY)
