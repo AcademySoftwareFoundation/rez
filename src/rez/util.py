@@ -50,9 +50,20 @@ class yaml_literal(str):
 
 
 def yaml_literal_presenter(dumper, data):
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
-yaml.add_representer(yaml_literal, yaml_literal_presenter)
+    tag = None
+    try:
+        data = unicode(data, 'ascii')
+        tag = u'tag:yaml.org,2002:str'
+    except UnicodeDecodeError:
+        try:
+            data = unicode(data, 'utf-8')
+            tag = u'tag:yaml.org,2002:str'
+        except UnicodeDecodeError:
+            data = data.encode('base64')
+            tag = u'tag:yaml.org,2002:binary'
+    return dumper.represent_scalar(tag, data, '|')
 
+yaml.add_representer(yaml_literal, yaml_literal_presenter)
 
 # TODO deprecate
 class Common(object):
