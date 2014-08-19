@@ -52,8 +52,7 @@ class StubReleaseVCS(ReleaseVCS):
             return
 
         print "Creating tag '%s'..." % tag_name
-        message_utf8 = unicode(yaml_literal(message), 'utf-8')
-        data["tags"][tag_name] = message_utf8
+        data["tags"][tag_name] = yaml_literal(message)
         self._write_stub(data)
 
     def _read_stub(self):

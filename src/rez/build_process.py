@@ -228,21 +228,18 @@ class StandardBuildProcess(BuildProcess):
         self._hdr("Releasing %s..." % self.package.qualified_name)
         _do_build(install=True, clean=False)
 
-        changelog_utf8 = unicode(yaml_literal(changelog), 'utf-8')
         # write release info (changelog etc) into release path
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=changelog_utf8)
+            changelog=yaml_literal(changelog))
 
         if self.release_message:
             release_message = self.release_message.strip()
         else:
             release_message = "Rez-%s released %s" \
                 % (__version__, self.package.qualified_name)
-
-        release_message_utf8 = unicode(yaml_literal(release_message), 'utf-8')
-        release_info["release_message"] = release_message_utf8
+        release_info["release_message"] = yaml_literal(release_message)
 
         if last_pkg:
             release_info["previous_version"] = str(last_version)
