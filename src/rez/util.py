@@ -59,6 +59,8 @@ def yaml_literal_presenter(dumper, data):
             tag = u'tag:yaml.org,2002:binary'
     return dumper.represent_scalar(tag, data, '|')
 
+yaml.add_representer(yaml_literal, yaml_literal_presenter)
+
 # TODO deprecate
 class Common(object):
     def __repr__(self):
