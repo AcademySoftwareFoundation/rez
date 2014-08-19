@@ -1,8 +1,8 @@
 from rezgui.qt import QtCore, QtGui
+import os.path
 
 
-def create_pane(widgets, horizontal, parent_widget=None, spacing=0,
-                margin=0):
+def create_pane(widgets, horizontal, parent_widget=None, compact=False):
     """Create a widget containing an aligned set of widgets.
 
     Args:
@@ -20,8 +20,9 @@ def create_pane(widgets, horizontal, parent_widget=None, spacing=0,
     pane = parent_widget or QtGui.QWidget()
     type_ = QtGui.QHBoxLayout if horizontal else QtGui.QVBoxLayout
     layout = type_()
-    layout.setSpacing(spacing)
-    layout.setContentsMargins(margin, margin, margin, margin)
+    if compact:
+        layout.setSpacing(2)
+        layout.setContentsMargins(2, 2, 2, 2)
 
     for widget in widgets:
         stretch = 0
@@ -37,3 +38,28 @@ def create_pane(widgets, horizontal, parent_widget=None, spacing=0,
 
     pane.setLayout(layout)
     return pane
+
+
+icons = {}
+
+
+def get_icon(filename):
+    """Returns a `QPixmap` containing the given image."""
+    icon = icons.get(filename)
+    if icon:
+        return icon
+
+    filepath = os.path.dirname(__file__)
+    filepath = os.path.join(filepath, "icons", filename)
+    icon = QtGui.QPixmap(filepath)
+    icons[filename] = icon
+    return icon
+
+
+def get_icon_widget(filename, tooltip=None):
+    icon = get_icon(filename)
+    icon_label = QtGui.QLabel()
+    icon_label.setPixmap(icon)
+    if tooltip:
+        icon_label.setToolTip(tooltip)
+    return icon_label

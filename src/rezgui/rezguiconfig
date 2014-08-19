@@ -1,13 +1,30 @@
 #
 # Rez GUI configuration settings. Do not change this file.
 #
+layout:
+    window:
+        main:
+            width: 800
+            height: 500
+        resolve:
+            width: 400
+            height: 200
+        advanced_resolve:
+            width: 600
+            height: 400
+        resolve_graph:
+            width: 800
+            height: 700
 
 resolve:
     # Maximum number of fails during a resolve
     max_fails: "None"
 
     # Default resolving verbosity
-    verbosity: "0"
+    verbosity: 0
 
     # If true, prints package loads during a resolve
     show_package_loads: true
+
+    # If true, graph view defaults to fit in window
+    fit_graph: false

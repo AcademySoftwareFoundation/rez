@@ -1429,7 +1429,9 @@ class DataWrapper(object):
     schema_error = Exception
     schema = None
 
-    # TODO deprecate
+    def __init__(self):
+        pass
+
     def get(self, key, default=None):
         """Get a key value by name."""
         return getattr(self, key, default)
@@ -1441,13 +1443,27 @@ class DataWrapper(object):
             problems because a DataWrapper instance can in some cases be
             incorrectly picked up by the Schema library as a schema validator.
         """
+        _ = self.validated_data()
+
+    @propertycache
+    def validated_data(self):
+        """Return validated data.
+
+        Returns:
+            A dict containing all data of this object, or None if this class
+            does not provide a data schema.
+        """
         if self.schema:
+            d = {}
             for key in self._schema_keys:
-                getattr(self, key)  # forces validation of key
+                d[key] = getattr(self, key)
+            return d
+        else:
+            return None
 
     @property
     def _data(self):
-        """Load object data.
+        """Load raw object data.
 
         The data returned by this method should conform to the schema defined
         by the `schema` class attribute. You almost certainly want to decorate

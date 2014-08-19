@@ -15,12 +15,11 @@ class SettingsWidget(QtGui.QWidget):
         self.data = data or {}
 
         self.edit = QtGui.QTextEdit()
+        self.edit.setStyleSheet("font: 9pt 'Courier'")
         apply_btn = QtGui.QPushButton("Apply")
         btn_pane = create_pane([None, apply_btn], True)
 
         layout = QtGui.QVBoxLayout()
-        layout.setSpacing(0)
-        layout.setContentsMargins(0, 0, 0, 0)
         layout.addWidget(self.edit)
         layout.addWidget(btn_pane)
         self.setLayout(layout)

@@ -3,20 +3,41 @@ from functools import partial
 
 
 class Config(QtCore.QSettings):
+    """Persistent application settings.
+
+    Methods are also provided for easily attaching widgets to settings.
+    """
     def __init__(self, default_settings, organization=None, application=None,
                  parent=None):
         super(Config, self).__init__(organization, application, parent)
         self.default_settings = default_settings
 
-    def value(self, key):
-        default = self._default_value(key)
-        val = super(Config, self).value(key, default)
-        if hasattr(val, "toPyObject"):
-            val = val.toPyObject()
-        if type(val) == type(default):
-            return val
+    def value(self, key, type_=None):
+        """Get the value of a setting.
+
+        If `type` is not provided, the key must be for a known setting,
+        present in the 'rezguiconfig' file. Conversely if `type` IS provided,
+        the key must be for an unknown setting.
+        """
+        if type_ is None:
+            default = self._default_value(key)
+            val = super(Config, self).value(key, default)
+            if hasattr(val, "toPyObject"):
+                val = val.toPyObject()
+            if type(val) == type(default):
+                return val
+            else:
+                return self._convert_value(val, type(default))
         else:
-            return self._convert_value(val, type(default))
+            val = super(Config, self).value(key, None)
+            if hasattr(val, "toPyObject"):
+                val = val.toPyObject()
+            if val is None:
+                return None
+            return self._convert_value(val, type_)
+
+    def get(self, key, type_=None):
+        return self.value(key, type_)
 
     def attach(self, widget, key):
         if isinstance(widget, QtGui.QComboBox):
@@ -47,7 +68,7 @@ class Config(QtCore.QSettings):
         self.setValue(key, value)
 
     def _attach_combobox(self, widget, key):
-        value = self.value(key)
+        value = str(self.value(key))
         index = widget.findText(value)
         if index == -1:
             widget.setEditText(value)

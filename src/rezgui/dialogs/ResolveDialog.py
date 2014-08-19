@@ -1,8 +1,10 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
+from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.dialogs.ImageViewerDialog import ImageViewerDialog
 from rezgui.config import config
+from rez.exceptions import RezError
 from rez.resolved_context import ResolvedContext
 from rez.dot import save_graph
 import tempfile
@@ -24,17 +26,25 @@ class Resolver(QtCore.QObject):
         self.context = None
         self.keep_going = True
         self.abort_reason = None
+        self.error_message = None
 
     def resolve(self, request):
-        context = ResolvedContext(
-            request,
-            package_paths=self.settings.get("packages_path"),
-            verbosity=self.verbosity,
-            buf=self.buf,
-            callback=self._callback,
-            package_load_callback=self._package_load_callback)
+        if config.get("resolve/show_package_loads"):
+            package_load_callback = self._package_load_callback
+        else:
+            package_load_callback = None
 
-        self.context = context
+        try:
+            self.context = ResolvedContext(
+                request,
+                package_paths=self.settings.get("packages_path"),
+                verbosity=self.verbosity,
+                buf=self.buf,
+                callback=self._callback,
+                package_load_callback=package_load_callback)
+        except RezError as e:
+            self.error_message = str(e)
+
         self.finished.emit()
 
     def save_graph(self, filepath):
@@ -62,9 +72,11 @@ class Resolver(QtCore.QObject):
             print >> self.buf, "loading %s..." % str(package)
 
 
-class ResolveDialog(QtGui.QDialog):
+class ResolveDialog(ConfiguredDialog):
     def __init__(self, settings, parent=None, advanced=False):
-        super(ResolveDialog, self).__init__(parent)
+        config_key = ("layout/window/advanced_resolve" if advanced
+                      else "layout/window/resolve")
+        super(ResolveDialog, self).__init__(config, config_key, parent)
         self.setWindowTitle("Resolve")
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -105,12 +117,13 @@ class ResolveDialog(QtGui.QDialog):
         layout.addWidget(self.bar)
         layout.addWidget(self.edit, 1)
 
+        self.resolve_group = None
         self.max_fails_combo = None
         self.verbosity_combo = None
         self.show_package_loads_checkbox = None
 
         if self.advanced:
-            group = QtGui.QGroupBox("resolve settings")
+            self.resolve_group = QtGui.QGroupBox("resolve settings")
 
             label = QtGui.QLabel("maximum fails:")
             self.max_fails_combo = QtGui.QComboBox()
@@ -120,7 +133,7 @@ class ResolveDialog(QtGui.QDialog):
             self.max_fails_combo.addItem("1")
             self.max_fails_combo.addItem("2")
             config.attach(self.max_fails_combo, "resolve/max_fails")
-            max_fails_pane = create_pane([label, 10, self.max_fails_combo], True)
+            max_fails_pane = create_pane([None, label, self.max_fails_combo], True)
 
             label = QtGui.QLabel("verbosity:")
             self.verbosity_combo = QtGui.QComboBox()
@@ -128,18 +141,21 @@ class ResolveDialog(QtGui.QDialog):
             self.verbosity_combo.addItem("1")
             self.verbosity_combo.addItem("2")
             config.attach(self.verbosity_combo, "resolve/verbosity")
-            verbosity_pane = create_pane([label, 10, self.verbosity_combo], True)
+            verbosity_pane = create_pane([None, label, self.verbosity_combo], True)
 
             self.show_package_loads_checkbox = QtGui.QCheckBox("show package loads")
+            self.show_package_loads_checkbox.setLayoutDirection(QtCore.Qt.RightToLeft)
             config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
+            show_loads_pane = create_pane([None, self.show_package_loads_checkbox], True)
 
             create_pane([max_fails_pane,
-                        verbosity_pane,
-                        self.show_package_loads_checkbox,
-                        None],
-                        False, parent_widget=group, spacing=5, margin=10)
+                         verbosity_pane,
+                         show_loads_pane,
+                         None],
+                        False,
+                        parent_widget=self.resolve_group)
 
-            pane = create_pane([group, None, btn_pane], True)
+            pane = create_pane([self.resolve_group, None, btn_pane], True)
             self.cancel_btn.hide()
             layout.addWidget(pane)
         else:
@@ -174,12 +190,6 @@ class ResolveDialog(QtGui.QDialog):
             return self.resolver.context
         return None
 
-    def sizeHint(self):
-        if self.advanced:
-            return QtCore.QSize(600, 400)
-        else:
-            return QtCore.QSize(400, 200)
-
     def reject(self):
         if self._finished or not self.started:
             super(ResolveDialog, self).reject()
@@ -188,7 +198,7 @@ class ResolveDialog(QtGui.QDialog):
 
     def closeEvent(self, event):
         if self._finished or not self.started:
-            event.accept()
+            super(ResolveDialog, self).closeEvent(event)
         else:
             self._cancel_resolve()
             event.ignore()
@@ -211,7 +221,7 @@ class ResolveDialog(QtGui.QDialog):
 
         verbosity = 0
         if self.advanced:
-            verbosity = int(self.verbosity_combo.currentText())
+            verbosity = config.get("resolve/verbosity")
 
         self.resolver = Resolver(self.settings,
                                  verbosity=verbosity,
@@ -227,45 +237,45 @@ class ResolveDialog(QtGui.QDialog):
     def _cancel_resolve(self):
         if self.started:
             self.cancel_btn.setText("Cancelling...")
+            self.cancel_btn.setEnabled(False)
             self.resolver.cancel()
 
     def _resolve_finished(self):
         self._finished = True
-        self.cancel_btn.setEnabled(False)
+        self.cancel_btn.hide()
+        self.ok_btn.show()
         self._set_progress(True)
 
         if self.advanced:
-            self.max_fails_combo.setEnabled(False)
-            self.verbosity_combo.setEnabled(False)
+            self.resolve_group.setEnabled(False)
+
+        if self.resolver.error_message:
+            msg = "\nTHE RESOLVE FAILED:\n%s" % self.resolver.error_message
+            self._log(msg, "red")
+            return
 
         if self.resolver.context.has_graph:
             self.graph_btn.setEnabled(True)
-            self.save_context_btn.setEnabled(True)
+
+        self.save_context_btn.setEnabled(True)
         self.graph_btn.show()
         self.save_context_btn.show()
 
         if self.resolver.success():
             if self.advanced:
-                self.cancel_btn.hide()
-                self.ok_btn.show()
-
                 sbuf = StringIO.StringIO()
                 self.resolver.context.print_info(buf=sbuf)
                 msg = "\nTHE RESOLVE SUCCEEDED:\n\n"
                 msg += sbuf.getvalue()
                 self._log(msg, "green")
             else:
-                self.done(0)
-            return
-
-        msg = "\nTHE RESOLVE FAILED"
-        desc = self.resolver.context.failure_description
-        if desc:
-            msg += ":\n%s" % desc
-        self._log(msg, "red")
-
-        self.cancel_btn.hide()
-        self.ok_btn.show()
+                self.close()
+        else:
+            msg = "\nTHE RESOLVE FAILED"
+            desc = self.resolver.context.failure_description
+            if desc:
+                msg += ":\n%s" % desc
+            self._log(msg, "red")
 
     def _save_context(self):
         filepath = QtGui.QFileDialog.getSaveFileName(

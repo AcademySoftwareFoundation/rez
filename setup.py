@@ -127,7 +127,8 @@ setup(
             find_files('*.cmake', 'build_system', root='rezplugins') +
             find_files('*.*', 'build_system/template_files', root='rezplugins'),
         'rezgui':
-            find_files('rezguiconfig', root='rezgui')
+            find_files('rezguiconfig', root='rezgui') +
+            find_files('*.*', 'icons', root='rezgui')
     },
     classifiers = [
         "Development Status :: 3 - Alpha",

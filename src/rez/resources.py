@@ -771,6 +771,7 @@ class ResourceWrapper(DataWrapper):
     """Base class for implementing a class that wraps a resource.
     """
     def __init__(self, resource):
+        super(ResourceWrapper, self).__init__()
         self._resource = resource
 
     @property

@@ -293,7 +293,7 @@ class Version(_Comparable):
         return bool(self.tokens)
 
     def __eq__(self, other):
-        return (self.tokens == other.tokens)
+        return isinstance(other, Version) and self.tokens == other.tokens
 
     def __lt__(self, other):
         if self.tokens is None:
@@ -907,7 +907,7 @@ class VersionRange(_Comparable):
         return '|'.join(str(x) for x in self.bounds)
 
     def __eq__(self, other):
-        return (self.bounds == other.bounds)
+        return  isinstance(other, VersionRange) and self.bounds == other.bounds
 
     def __lt__(self, other):
         return (self.bounds < other.bounds)

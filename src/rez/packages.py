@@ -207,6 +207,11 @@ class _PackageBase(ResourceWrapper):
 
     @propertycache
     def config(self):
+        """Returns the config for this package.
+
+        Defaults to global config if this package did not provide a 'config'
+        section.
+        """
         return self._config or config
 
     @propertycache
@@ -214,7 +219,13 @@ class _PackageBase(ResourceWrapper):
         """Returns True if this package is in the local packages path."""
         return (self.search_path == config.local_packages_path)
 
+    @propertycache
+    def in_search_paths(self):
+        """Returns True if this package is in a current package search path."""
+        return (self.search_path in config.packages_path)
+
     def validate_data(self):
+        # TODO move compilation into per-key data validation
         super(_PackageBase, self).validate_data()
         if self.commands and isinstance(self.commands, basestring):
             from rez.rex import RexExecutor
@@ -224,6 +235,21 @@ class _PackageBase(ResourceWrapper):
                 raise PackageMetadataError(value=str(e),
                                            path=self.path,
                                            resource_key=self._resource.key)
+
+    def print_info(self, buf=None):
+        """Print the contents of the package, in yaml format."""
+        from rez.yaml import dump_yaml, PackageOrderedDumper
+        data = self.validated_data.copy()
+        data = dict((k, v) for k, v in data.iteritems()
+                    if v is not None and not k.startswith('_'))
+
+        if "config_version" in data:
+            del data["config_version"]
+        # TODO
+        if "config" in data:
+            del data["config"]
+        txt = dump_yaml(data, Dumper=PackageOrderedDumper)
+        print >> buf, txt
 
     def __str__(self):
         return "%s@%s" % (self.qualified_name, self.search_path)

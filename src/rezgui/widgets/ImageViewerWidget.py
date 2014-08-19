@@ -80,19 +80,17 @@ class ImageViewerWidget(QtGui.QWidget):
         npix = max(image.width(), image.height())
         max_scale = npix / 200.0
         self.view = GraphicsView(self.scene, max_scale=max_scale)
-        self._fit_in_view()
 
         create_pane([self.view], False, parent_widget=self)
         self.view.setRenderHints(QtGui.QPainter.Antialiasing
                                  | QtGui.QPainter.SmoothPixmapTransform)
         self.view.show()
+        self._fit_in_view()
 
     def resizeEvent(self, event):
         if self.fit:
             self._fit_in_view()
-            event.accept()
-        else:
-            event.ignore()
+        event.accept()
 
     def fit_to_window(self, enabled):
         if enabled != self.fit:

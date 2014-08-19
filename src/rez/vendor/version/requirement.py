@@ -56,7 +56,8 @@ class VersionedObject(_Common):
         return self.version_
 
     def __eq__(self, other):
-        return ((self.name_ == other.name_)
+        return (isinstance(other, VersionedObject)
+                and (self.name_ == other.name_)
                 and (self.version_ == other.version_))
 
     def __hash__(self):
@@ -267,9 +268,10 @@ class Requirement(_Common):
                 return r
 
     def __eq__(self, other):
-        return (self.name_ == other.name_) \
-            and (self.range_ == other.range_) \
-            and (self.conflict_ == other.conflict_)
+        return (isinstance(other, Requirement)
+                and (self.name_ == other.name_)
+                and (self.range_ == other.range_)
+                and (self.conflict_ == other.conflict_))
 
     def __hash__(self):
         return hash((self.name_, self.range_, self.conflict_))
@@ -367,8 +369,9 @@ class RequirementList(_Common):
         return self.requirements_dict.get(name)
 
     def __eq__(self, other):
-        return (self.requirements_ == other.requirements_) \
-            and (self.conflict_ == other.conflict_)
+        return (isinstance(other, RequirementList)
+                and (self.requirements_ == other.requirements_)
+                and (self.conflict_ == other.conflict_))
 
     def __str__(self):
         if self.conflict_:

@@ -9,7 +9,7 @@ class PackageLineEdit(QtGui.QLineEdit):
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)
 
-    def __init__(self, settings, parent=None, family_only=False):
+    def __init__(self, settings=None, parent=None, family_only=False):
         super(PackageLineEdit, self).__init__(parent)
         self.settings = settings
         self.family_only = family_only
@@ -33,18 +33,18 @@ class PackageLineEdit(QtGui.QLineEdit):
                 and event.key() in (QtCore.Qt.Key_Tab,
                                     QtCore.Qt.Key_Enter,
                                     QtCore.Qt.Key_Return):
-            self._update_status(True)
+            self._update_status()
             self.focusOutViaKeyPress.emit(self.text())
             return True
         return super(PackageLineEdit, self).event(event)
 
     def focusOutEvent(self, event):
-        self._update_status(True)
+        self._update_status()
         self.focusOut.emit(self.text())
         return super(PackageLineEdit, self).focusOutEvent(event)
 
     def refresh(self):
-        self._update_status(True)
+        self._update_status()
 
     def clone_into(self, other):
         other.settings = self.settings
@@ -58,14 +58,13 @@ class PackageLineEdit(QtGui.QLineEdit):
 
     @property
     def _paths(self):
-        return self.settings.get("packages_path")
+        return (self.settings or {}).get("packages_path")
 
     def _textEdited(self, txt):
         words = get_completions(txt,
                                 paths=self._paths,
                                 family_only=self.family_only)
         self.completions.setStringList(list(reversed(words)))
-        self._update_status()
 
     def _set_style(self, style=None):
         if style is None:
@@ -76,7 +75,7 @@ class PackageLineEdit(QtGui.QLineEdit):
                 self.default_style = self.styleSheet()
             self.setStyleSheet(style)
 
-    def _update_status(self, identify_package=False):
+    def _update_status(self):
         def _ok():
             self._set_style()
             self.setToolTip("")
@@ -97,7 +96,7 @@ class PackageLineEdit(QtGui.QLineEdit):
             return
 
         _ok()
-        if identify_package and not req.conflict:
+        if not req.conflict:
             try:
                 it = iter_packages(name=req.name,
                                    range=req.range,
