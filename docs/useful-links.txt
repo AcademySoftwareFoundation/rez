@@ -1,8 +1,0 @@
-CMake help:
-http://www.cmake.org/cmake/help/cmake-2-8-docs.html
-
-YAML Language guide:
-http://www.yaml.org/spec/1.2/spec.html
-
-PyYAML:
-http://pyyaml.org/wiki/PyYAML

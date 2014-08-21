@@ -1,5 +1,8 @@
 *.pyc
-rez.configured
-rez.installed
-rez.cppcompiler
-use_configure.sh
+.project
+.pydevproject
+src/rez.egg-info/
+build/
+dist/
+*~
+docs/_build

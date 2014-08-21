@@ -1,0 +1,10 @@
+name: rextest
+version: '1.2'
+
+commands: |
+  env.REXTEST_ROOT = '{root}'
+  env.REXTEST_VERSION = this.version
+  env.REXTEST_MAJOR_VERSION = this.version.major
+  # prepend to non-existent var
+  env.REXTEST_DIRS.prepend('{root}/data')
+  alias('rextest', 'foobar')
