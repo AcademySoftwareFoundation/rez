@@ -15,6 +15,9 @@ layout:
         resolve_graph:
             width: 800
             height: 700
+        package_versions:
+            width: 700
+            height: 800
 
 resolve:
     # Maximum number of fails during a resolve

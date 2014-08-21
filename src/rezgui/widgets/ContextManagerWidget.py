@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane
+from rezgui.util import create_pane, create_toolbutton
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
 from rezgui.widgets.VariantSummaryWidget import VariantSummaryWidget
 from rezgui.widgets.VariantDetailsWidget import VariantDetailsWidget
@@ -39,21 +39,12 @@ class ContextManagerWidget(QtGui.QWidget):
         # widgets
         self.context_table = ContextTableWidget(self.settings)
 
-        menu = QtGui.QMenu()
-        a1 = QtGui.QAction("Resolve", self)
-        a1.triggered.connect(self._resolve)
-        menu.addAction(a1)
-        a2 = QtGui.QAction("Advanced...", self)
-        a2.triggered.connect(partial(self._resolve, advanced=True))
-        menu.addAction(a2)
-
-        resolve_btn = QtGui.QToolButton()
+        resolve_btn = create_toolbutton(
+            [("Resolve", self._resolve),
+             ("Advanced...", partial(self._resolve, advanced=True))])
         szpol = QtGui.QSizePolicy()
         szpol.setHorizontalPolicy(QtGui.QSizePolicy.Ignored)
         resolve_btn.setSizePolicy(szpol)
-        resolve_btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
-        resolve_btn.setDefaultAction(a1)
-        resolve_btn.setMenu(menu)
 
         self.reset_btn = QtGui.QPushButton("Reset...")
         self.diff_btn = QtGui.QPushButton("Diff Mode")
@@ -70,6 +61,7 @@ class ContextManagerWidget(QtGui.QWidget):
         self.package_tab.addTab(self.variant_summary, "package summary")
         self.package_tab.addTab(self.variant_versions, "versions")
         self.package_tab.addTab(self.variant_details, "details")
+        self.package_tab.setEnabled(False)
 
         bottom_pane = create_pane([(self.package_tab, 1), btn_pane], True)
 
@@ -110,6 +102,7 @@ class ContextManagerWidget(QtGui.QWidget):
         self.context_table.variantSelected.connect(self._variantSelected)
         self.package_tab.currentChanged.connect(self._packageTabChanged)
         self.resolve_graph_btn.clicked.connect(self._view_resolve_graph)
+        self.variant_details.viewGraph.connect(self._view_pruned_resolve_graph)
         self.reset_btn.clicked.connect(self._reset)
 
     def set_context(self, context):
@@ -170,6 +163,11 @@ class ContextManagerWidget(QtGui.QWidget):
         assert self.current_context
         graph_str = self.current_context.graph(as_dot=True)
         view_graph(graph_str, self)
+
+    def _view_pruned_resolve_graph(self, package_name):
+        assert self.current_context
+        graph_str = self.current_context.graph(as_dot=True)
+        view_graph(graph_str, self, prune_to=package_name)
 
     def _current_context_settings(self):
         assert self.current_context

@@ -88,17 +88,17 @@ class ResolveDialog(ConfiguredDialog):
 
         self.save_context_btn = QtGui.QPushButton("Save Context As...")
         self.graph_btn = QtGui.QPushButton("View Graph...")
-        self.ok_btn = QtGui.QPushButton("Ok")
+        self.close_btn = QtGui.QPushButton("Close")
         self.cancel_btn = QtGui.QPushButton("Cancel")
         self.resolve_btn = QtGui.QPushButton("Resolve")
-        self.ok_btn.hide()
+        self.close_btn.hide()
         self.graph_btn.hide()
         self.save_context_btn.hide()
 
         btn_pane = create_pane([None,
                                self.save_context_btn,
                                self.graph_btn,
-                               self.ok_btn,
+                               self.close_btn,
                                self.cancel_btn,
                                self.resolve_btn],
                                not self.advanced)
@@ -158,7 +158,7 @@ class ResolveDialog(ConfiguredDialog):
         self.resolve_btn.clicked.connect(self._start_resolve)
         self.graph_btn.clicked.connect(self._view_graph)
         self.save_context_btn.clicked.connect(self._save_context)
-        self.ok_btn.clicked.connect(self.close)
+        self.close_btn.clicked.connect(self.close)
 
     def resolve(self, request):
         self.request = request
@@ -232,7 +232,7 @@ class ResolveDialog(ConfiguredDialog):
     def _resolve_finished(self):
         self._finished = True
         self.cancel_btn.hide()
-        self.ok_btn.show()
+        self.close_btn.show()
         self._set_progress(True)
 
         if self.advanced:

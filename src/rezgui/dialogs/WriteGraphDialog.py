@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
-from rez.dot import save_graph
+from rez.dot import save_graph, prune_graph
 from multiprocessing import Process
 import tempfile
 import threading
@@ -8,22 +8,25 @@ import os
 import os.path
 
 
-def _save_graph(graph_str, filepath):
+def _save_graph(graph_str, filepath, prune_to):
     # rez cli tools do a killpg() on sig handling, this inadvertantly causes
     # the main GUI to terminate when Writer.process is terminated! Setting this
     # variable suppresses the killpg() and stops that from happening.
     os.environ["_REZ_NO_KILLPG"] = "1"
     os.environ["_REZ_QUIET_ON_SIG"] = "1"
+    if prune_to:
+        graph_str = prune_graph(graph_str, prune_to)
     save_graph(graph_str, filepath)
 
 
 class Writer(QtCore.QObject):
     graph_written = QtCore.Signal(str, str)
 
-    def __init__(self, graph_str, filepath):
+    def __init__(self, graph_str, filepath, prune_to=None):
         super(Writer, self).__init__()
         self.graph_str = graph_str
         self.filepath = filepath
+        self.prune_to = prune_to
         self.process = None
 
     def cancel(self):
@@ -34,8 +37,10 @@ class Writer(QtCore.QObject):
         filepath = ""
         error_msg = ""
         try:
-            self.process = Process(target=_save_graph,
-                                   args=(self.graph_str, self.filepath))
+            self.process = Process(
+                target=_save_graph,
+                args=(self.graph_str, self.filepath, self.prune_to))
+
             self.process.start()
             self.process.join()
             if self.process.exitcode == 0:
@@ -47,10 +52,10 @@ class Writer(QtCore.QObject):
 
 
 class WriteGraphDialog(QtGui.QDialog):
-    def __init__(self, graph_str, filepath, parent=None):
+    def __init__(self, graph_str, filepath, parent=None, prune_to=None):
         super(WriteGraphDialog, self).__init__(parent)
         self.setWindowTitle("Rendering graph...")
-        self.writer = Writer(graph_str, filepath)
+        self.writer = Writer(graph_str, filepath, prune_to)
         self.thread = None
         self._finished = False
         self.success = False
@@ -103,6 +108,8 @@ class WriteGraphDialog(QtGui.QDialog):
         self.bar.setMaximum(10)
         self.bar.setValue(10)
         QtGui.QApplication.restoreOverrideCursor()
+        self.setWindowTitle("Rendered graph")
+
         if error_message:
             QtGui.QMessageBox.critical(self, "Failed rendering resolve graph",
                                        error_message)
@@ -114,13 +121,13 @@ class WriteGraphDialog(QtGui.QDialog):
 graph_file_lookup = {}
 
 
-def view_graph(graph_str, parent=None):
+def view_graph(graph_str, parent=None, prune_to=None):
     """View a graph."""
     from rezgui.dialogs.ImageViewerDialog import ImageViewerDialog
     from rez.config import config
 
     # check for already written tempfile
-    h = hash(graph_str)
+    h = hash((graph_str, prune_to))
     filepath = graph_file_lookup.get(h)
     if filepath and not os.path.exists(filepath):
         filepath = None
@@ -131,7 +138,7 @@ def view_graph(graph_str, parent=None):
         fd, filepath = tempfile.mkstemp(suffix=suffix, prefix="rez-graph-")
         os.close(fd)
 
-        dlg = WriteGraphDialog(graph_str, filepath, parent)
+        dlg = WriteGraphDialog(graph_str, filepath, parent, prune_to=prune_to)
         if not dlg.write_graph():
             return
 

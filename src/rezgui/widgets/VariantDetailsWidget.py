@@ -4,6 +4,9 @@ from rezgui.util import create_pane
 
 
 class VariantDetailsWidget(QtGui.QWidget):
+
+    viewGraph = QtCore.Signal(str)  # package_name
+
     def __init__(self, parent=None):
         super(VariantDetailsWidget, self).__init__(parent)
         self.variant = None
@@ -11,11 +14,16 @@ class VariantDetailsWidget(QtGui.QWidget):
         self.label = QtGui.QLabel()
         self.edit = StreamableTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
+        self.view_graph_btn = QtGui.QPushButton("View Graph...")
+        btn_pane = create_pane([None, self.view_graph_btn], True)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.edit)
+        layout.addWidget(btn_pane)
         self.setLayout(layout)
+
+        self.view_graph_btn.clicked.connect(self._view_graph)
 
         self.clear()
 
@@ -38,3 +46,6 @@ class VariantDetailsWidget(QtGui.QWidget):
             self.edit.moveCursor(QtGui.QTextCursor.Start)
 
         self.variant = variant
+
+    def _view_graph(self):
+        self.viewGraph.emit(self.variant.name)
