@@ -2,11 +2,10 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
-from rezgui.dialogs.ImageViewerDialog import ImageViewerDialog
+from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.config import config
 from rez.exceptions import RezError
 from rez.resolved_context import ResolvedContext
-from rez.dot import save_graph
 import tempfile
 import threading
 import StringIO
@@ -16,7 +15,6 @@ import os
 class Resolver(QtCore.QObject):
 
     finished = QtCore.Signal()
-    graph_written = QtCore.Signal(str, str)
 
     def __init__(self, settings, verbosity=0, buf=None):
         super(Resolver, self).__init__()
@@ -46,14 +44,6 @@ class Resolver(QtCore.QObject):
             self.error_message = str(e)
 
         self.finished.emit()
-
-    def save_graph(self, filepath):
-        try:
-            graph_str = self.context.graph(as_dot=True)
-            save_graph(graph_str, filepath)
-            self.graph_written.emit(filepath, "")
-        except Exception as e:
-            self.graph_written.emit("", str(e))
 
     def cancel(self):
         self.keep_going = False
@@ -228,7 +218,6 @@ class ResolveDialog(ConfiguredDialog):
                                  buf=self.edit)
 
         self.resolver.finished.connect(self._resolve_finished)
-        self.resolver.graph_written.connect(self._graph_written)
 
         self.thread = threading.Thread(target=self.resolver.resolve,
                                        args=(self.request,))
@@ -285,30 +274,8 @@ class ResolveDialog(ConfiguredDialog):
             self._log("\nSaved context to: %s" % filepath)
 
     def _view_graph(self):
-        self._log("\nRendering graph...")
-        self.graph_btn.setEnabled(False)
-        fd, filepath = tempfile.mkstemp(suffix=".png", prefix="rez-graph-")
-        os.close(fd)
-
-        self._finished = False
-        self._set_progress(False)
-        QtGui.QApplication.setOverrideCursor(self.busy_cursor)
-
-        self.thread = threading.Thread(target=self.resolver.save_graph,
-                                       args=(filepath,))
-        self.thread.start()
-
-    def _graph_written(self, filepath, error_message):
-        QtGui.QApplication.restoreOverrideCursor()
-        self.graph_btn.setEnabled(True)
-        self._set_progress(True)
-        self._finished = True
-
-        if filepath:
-            dlg = ImageViewerDialog(filepath)
-            dlg.exec_()
-        else:
-            self.log('\n' + error_message, "red")
+        graph_str = self.resolver.context.graph(as_dot=True)
+        view_graph(graph_str, self)
 
     def _set_progress(self, done=True):
         if done:

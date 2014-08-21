@@ -356,6 +356,31 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     return s
 
 
+positional_suffix = ("th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th")
+
+
+def positional_number_string(n):
+    """Print the position string equivalent of a positive integer. Examples:
+    0: zeroeth
+    1: first
+    2: second
+    14: 14th
+    21: 21st
+    """
+    if n > 20:
+        suffix = positional_suffix(n % 10)
+        return "%d%s" % (n, suffix)
+    elif n > 3:
+        return "%dth" % n
+    elif n == 3:
+        return "third"
+    elif n == 2:
+        return "second"
+    elif n == 1:
+        return "first"
+    return "zeroeth"
+
+
 def get_epoch_time_from_str(s):
     try:
         return int(s)

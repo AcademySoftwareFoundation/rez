@@ -1,5 +1,7 @@
 from rezgui.qt import QtCore, QtGui
+from rez.util import readable_time_duration
 import os.path
+import time
 
 
 def create_pane(widgets, horizontal, parent_widget=None, compact=False):
@@ -43,8 +45,9 @@ def create_pane(widgets, horizontal, parent_widget=None, compact=False):
 icons = {}
 
 
-def get_icon(filename):
+def get_icon(name):
     """Returns a `QPixmap` containing the given image."""
+    filename = name + ".png"
     icon = icons.get(filename)
     if icon:
         return icon
@@ -63,3 +66,11 @@ def get_icon_widget(filename, tooltip=None):
     if tooltip:
         icon_label.setToolTip(tooltip)
     return icon_label
+
+
+def get_timestamp_str(timestamp):
+    now = int(time.time())
+    release_time = time.localtime(timestamp)
+    release_time_str = time.strftime('%m %b %Y %H:%M', release_time)
+    ago = readable_time_duration(now - timestamp)
+    return "%s (%s ago)" % (release_time_str, ago)

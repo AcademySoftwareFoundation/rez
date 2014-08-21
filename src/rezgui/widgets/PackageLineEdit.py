@@ -47,7 +47,6 @@ class PackageLineEdit(QtGui.QLineEdit):
         self._update_status()
 
     def clone_into(self, other):
-        other.settings = self.settings
         other.family_only = self.family_only
         other.default_style = self.default_style
         other.setText(self.text())
@@ -58,7 +57,7 @@ class PackageLineEdit(QtGui.QLineEdit):
 
     @property
     def _paths(self):
-        return (self.settings or {}).get("packages_path")
+        return self.settings.get("packages_path")
 
     def _textEdited(self, txt):
         words = get_completions(txt,

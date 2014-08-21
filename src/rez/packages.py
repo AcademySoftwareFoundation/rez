@@ -219,11 +219,6 @@ class _PackageBase(ResourceWrapper):
         """Returns True if this package is in the local packages path."""
         return (self.search_path == config.local_packages_path)
 
-    @propertycache
-    def in_search_paths(self):
-        """Returns True if this package is in a current package search path."""
-        return (self.search_path in config.packages_path)
-
     def validate_data(self):
         # TODO move compilation into per-key data validation
         super(_PackageBase, self).validate_data()

@@ -1,7 +1,7 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, get_icon_widget
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
-from rez.packages import Variant, iter_packages
+from rezgui.widgets.VariantCellWidget import VariantCellWidget
+from rez.packages import Variant
 from functools import partial
 
 
@@ -27,7 +27,6 @@ class ContextTableWidget(QtGui.QTableWidget):
         self.modified = False
         self.diff_mode = False
         self._current_variant = None
-        self.cell_data = {}
 
         self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -59,11 +58,6 @@ class ContextTableWidget(QtGui.QTableWidget):
 
         return QtGui.QItemSelectionModel.ClearAndSelect
 
-    def clear(self):
-        """Clear the table."""
-        super(ContextTableWidget, self).clear()
-        self.cell_data = {}
-
     def current_variant(self):
         """Returns the currently selected variant, if any."""
         return self._current_variant
@@ -90,10 +84,9 @@ class ContextTableWidget(QtGui.QTableWidget):
         return self._get_request(0)
 
     def refresh(self):
-        for i in range(self.rowCount()):
-            edit = self.cellWidget(i, 0)
-            if edit:
-                edit.refresh()
+        for column in (0, 1):
+            for widget in self._iter_column_widgets(column):
+                widget.refresh()
 
     def _currentCellChanged(self, currentRow, currentColumn,
                             previousRow, previousColumn):
@@ -105,9 +98,9 @@ class ContextTableWidget(QtGui.QTableWidget):
                 self.clearSelection()
 
         # detect click on variant cell
-        data = self._cell_data(currentRow, currentColumn)
-        if data and isinstance(data, Variant):
-            self._current_variant = data
+        widget = self.cellWidget(currentRow, currentColumn)
+        if widget and isinstance(widget, VariantCellWidget):
+            self._current_variant = widget.variant
         else:
             self._current_variant = None
         self.variantSelected.emit(self._current_variant)
@@ -137,11 +130,11 @@ class ContextTableWidget(QtGui.QTableWidget):
             self._set_package_cell(i, request_column, request)
             variant = context.get_resolved_package(request.name)
             if variant:
-                self._set_variant_cell(i, resolve_column, variant, context)
+                self._set_variant_cell(i, resolve_column, variant)
                 resolved = [x for x in resolved if x.name != request.name]
 
         for i, variant in enumerate(resolved):
-            self._set_variant_cell(i + num_requests, resolve_column, variant, context)
+            self._set_variant_cell(i + num_requests, resolve_column, variant)
 
         self._set_package_cell(num_requests, request_column)
 
@@ -153,7 +146,7 @@ class ContextTableWidget(QtGui.QTableWidget):
 
         txt = str(request) if request else ""
 
-        edit = PackageLineEdit(self.settings.data)
+        edit = PackageLineEdit(self.settings)
         edit.setText(txt)
         edit.setStyleSheet("QLineEdit { border : 0px;}")
         self.setCellWidget(row, column, edit)
@@ -164,33 +157,11 @@ class ContextTableWidget(QtGui.QTableWidget):
         edit.refresh()
         return edit
 
-    def _set_variant_cell(self, row, column, variant, context):
-        label = QtGui.QLabel(variant.qualified_package_name)
-        if variant.description:
-            label.setToolTip(variant.description)
-
-        widgets = [(label, 1)]
-        if variant.is_local:
-            icon = get_icon_widget("local.png", "package is local")
-            widgets.append(icon)
-
-        # test if variant is latest package
-        latest_pkg = None
-        try:
-            it = iter_packages(name=variant.name, paths=context.package_paths)
-            latest_pkg = sorted(it, key=lambda x: x.version)[-1]
-        except:
-            pass
-        if latest_pkg and variant.version == latest_pkg.version:
-            icon = get_icon_widget("tick.png", "package is latest")
-            widgets.append(icon)
-
-        pane = create_pane(widgets, True, compact=True)
-        self.setCellWidget(row, column, pane)
-        self.cell_data[(row, column)] = variant
-
-    def _cell_data(self, row, column):
-        return self.cell_data.get((row, column))
+    def _set_variant_cell(self, row, column, variant):
+        if row >= self.rowCount():
+            self.setRowCount(row + 1)
+        widget = VariantCellWidget(variant, self.settings)
+        self.setCellWidget(row, column, widget)
 
     def _set_cell_text(self, row, column, txt):
         if row >= self.rowCount():
@@ -209,8 +180,6 @@ class ContextTableWidget(QtGui.QTableWidget):
             self.modified = True
             resolve_column = 1 if column == 0 else 2
             self._enable_column(resolve_column, False)
-            item = QtGui.QTableWidgetItem("request*")
-            self.setHorizontalHeaderItem(column, item)
             self.contextModified.emit()
 
     def _enable_column(self, column, enabled):

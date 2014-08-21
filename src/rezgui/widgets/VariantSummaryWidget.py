@@ -1,8 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
-from rezgui.util import create_pane
-from rez.util import readable_time_duration
-import time
+from rezgui.util import create_pane, get_timestamp_str
 
 
 class VariantSummaryWidget(QtGui.QWidget):
@@ -16,7 +14,6 @@ class VariantSummaryWidget(QtGui.QWidget):
         self.table.setGridStyle(QtCore.Qt.DotLine)
         self.table.setFocusPolicy(QtCore.Qt.NoFocus)
         self.table.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
-        self.table.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAsNeeded)
 
         hh = self.table.horizontalHeader()
         hh.setStretchLastSection(True)
@@ -52,14 +49,13 @@ class VariantSummaryWidget(QtGui.QWidget):
             self.table.clear()
             rows = []
 
-            if variant.timestamp:
-                now = int(time.time())
-                release_time = time.localtime(variant.timestamp)
-                release_time_str = time.strftime('%m %b %Y %H:%M', release_time)
-                ago = readable_time_duration(now - variant.timestamp)
-                rows.append(("released: ", "%s (%s ago)" % (release_time_str, ago)))
             if variant.description:
                 rows.append(("description: ", variant.description))
+            if variant.path:
+                rows.append(("location: ", variant.path))
+            if variant.timestamp:
+                release_time_str = get_timestamp_str(variant.timestamp)
+                rows.append(("released: ", release_time_str))
             if variant.authors:
                 txt = "; ".join(variant.authors)
                 rows.append(("authors: ", txt))
