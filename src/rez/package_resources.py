@@ -1,16 +1,12 @@
-from rez.resources import _or_regex, _updated_schema, register_resource, \
-    Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
-    Required, metadata_loaders, load_resource, load_yaml
-from rez.config import config, Config, create_config
-from rez.exceptions import ResourceError, ResourceNotFoundError, \
-    PackageMetadataError
-from rez.util import propertycache, deep_update, print_warning
-from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
-    Optional
-from rez.vendor.version.version import Version, VersionRange
+from rez.resources import _or_regex, register_resource, Resource, SearchPath, \
+    ArbitraryPath, FolderResource, FileResource, metadata_loaders, \
+    load_resource
+from rez.config import config
+from rez.exceptions import ResourceNotFoundError, PackageMetadataError, \
+    ResourceContentError
+from rez.util import deep_update, print_warning
+from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
-import os.path
-import string
 import re
 
 
@@ -19,62 +15,6 @@ PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 VERSION_COMPONENT_REGSTR = '(?:[0-9a-zA-Z_]+)'
 VERSION_REGSTR = ('%(comp)s(?:[.-]%(comp)s)*'
                   % dict(comp=VERSION_COMPONENT_REGSTR))
-
-
-# -----------------------------------------------------------------------------
-# Schema Implementations
-# -----------------------------------------------------------------------------
-
-# TODO: inspect arguments of the function to confirm proper number?
-rex_command = Or(callable,  # python function
-                 basestring  # new-style rex
-                 )
-
-
-# The master package schema.  All resources delivering metadata to the Package
-# class must ultimately validate against this master schema. This schema
-# intentionally does no casting of types: that should happen on the resource
-# schemas.
-package_schema = Schema({
-    Optional('config_version'):         int,  # deprecated
-
-    Optional('uuid'):                   basestring,
-    Optional('description'):            basestring,
-    Required('name'):                   basestring,
-    Optional('version'):                Version,
-    Optional('authors'):                [basestring],
-    # TODO timestamp is going to become per-variant
-    Optional('timestamp'):              int,
-    # Required('timestamp'):              int,
-    Optional('config'):                 Config,
-    Optional('help'):                   Or(basestring,
-                                           [[basestring]]),
-    Optional('tools'):                  [basestring],
-    Optional('requires'):               [Requirement],
-    Optional('build_requires'):         [Requirement],
-    Optional('private_build_requires'): [Requirement],
-    Optional('variants'):               [[Requirement]],
-    Optional('commands'):               rex_command,
-
-    # custom keys
-    Optional('custom'):                 object,
-    Optional(basestring):               object,
-
-    # a dict for internal use
-    Optional('_internal'):              dict,
-
-    # release data
-    Optional('revision'):               object,
-    Optional('changelog'):              basestring,
-    Optional('release_message'):        Or(None, basestring),
-    Optional('previous_version'):       Version,
-    Optional('previous_revision'):      object,
-
-    # rez-1 rez-egg-install properties
-    Optional('unsafe_name'):            object,
-    Optional('unsafe_version'):         object,
-    Optional('EGG-INFO'):               object,
-})
 
 
 # -----------------------------------------------------------------------------
@@ -125,7 +65,6 @@ class ReleaseTimestampResource(FileResource):
     key = 'release.timestamp'
     path_pattern = 'release_time.txt'
     parent_resource = MetadataFolder
-    schema = Use(int)
 
 
 class ChangelogResource(FileResource):
@@ -133,7 +72,6 @@ class ChangelogResource(FileResource):
     key = 'release.changelog'
     path_pattern = 'changelog.txt'
     parent_resource = MetadataFolder
-    schema = Use(str)
 
 
 class ReleaseInfoResource(FileResource):
@@ -142,12 +80,6 @@ class ReleaseInfoResource(FileResource):
     path_pattern = 'info.txt'
     parent_resource = MetadataFolder
     loader = 'yaml'
-    schema = Schema({
-        Required('ACTUAL_BUILD_TIME'): int,
-        Required('BUILD_TIME'): int,
-        Required('USER'): basestring,
-        Optional('SVN'): basestring
-    })
 
 # -- END deprecated
 
@@ -157,7 +89,7 @@ class ReleaseDataResource(FileResource):
     path_pattern = 'release.yaml'
     parent_resource = PackageVersionFolder
 
-    def load_changelog(v):
+    def convert_changelog(self, v):
         if v is None:
             return ""
         elif isinstance(v, basestring):
@@ -165,19 +97,11 @@ class ReleaseDataResource(FileResource):
         else:
             return '\n'.join(v)
 
-    schema = Schema({
-        # TODO this is going to move to per-variant
-        Optional('timestamp'): int,
-        # Required('timestamp'): int,
-        Required('revision'): object,
-        Required('changelog'): And(Or(basestring,
-                                      [basestring]),
-                                   Use(load_changelog)),
-        Optional('release_message'): Or(None, basestring),
-        Optional('previous_version'): Use(Version),
-        Optional('previous_revision'): object,
-        Optional(basestring): object
-    })
+    @Resource.cached
+    def load(self):
+        data = super(ReleaseDataResource, self).load().copy()
+        data['changelog'] = self.convert_changelog(data['changelog'])
+        return data
 
 
 class BasePackageResource(FileResource):
@@ -189,7 +113,8 @@ class BasePackageResource(FileResource):
         from rez.util import convert_old_commands
         msg = "package is using old-style commands."
         if config.disable_rez_1_compatibility or config.error_old_commands:
-            raise SchemaError(None, msg)
+            # TODO: exception should contain msg?
+            raise ResourceContentError("commands", self.path, self.key)
         elif config.warn("old_commands"):
             print_warning("%s: %s" % (self.path, msg))
         return convert_old_commands(commands)
@@ -204,7 +129,8 @@ class BasePackageResource(FileResource):
             msg = "name %r does not match %r" % (value, name)
             if config.disable_rez_1_compatibility \
                     or config.error_package_name_mismatch:
-                raise SchemaError(None, msg)
+            # TODO: exception should contain msg?
+                raise ResourceContentError("name", self.path, self.key)
             elif config.warn("package_name_mismatch"):
                 print_warning("%s: %s" % (self.path, msg))
 
@@ -213,58 +139,27 @@ class BasePackageResource(FileResource):
     def new_rex_command(self, value):
         msg = "'commands2' section in package definition"
         if config.disable_rez_1_compatibility or config.error_commands2:
-            raise SchemaError(None, msg)
+            # TODO: exception should contain msg?
+            raise ResourceContentError("commands2", self.path, self.key)
         elif config.warn("commands2"):
             print_warning("%s: %s" % (self.path, msg))
         return True
 
-    @propertycache
-    def schema(self):
-        return Schema({
-            Optional('config_version'):         0,  # this will only match 0
-
-            Optional('uuid'):                   basestring,
-            Optional('description'):            And(basestring,
-                                                    Use(string.strip)),
-            Required('name'):                   And(basestring,
-                                                    Use(self.convert_name)),
-            Optional('authors'):                [basestring],
-            Optional('config'):                 And(dict,
-                                                    Use(lambda x:
-                                                        create_config(overrides=x))),
-            Optional('help'):                   Or(basestring,
-                                                   [[basestring]]),
-            Optional('tools'):                  [basestring],
-            Optional('requires'):               [Use(Requirement)],
-            Optional('variants'):               [[Use(Requirement)]],
-            Optional('build_requires'):         [Use(Requirement)],
-            Optional('private_build_requires'): [Use(Requirement)],
-            Optional('commands'):               Or(rex_command,
-                                                   And([basestring],
-                                                       Use(self.convert_to_rex))),
-            Optional('commands2'):              And(rex_command,
-                                                    self.new_rex_command),
-
-            # backwards compatibility for rez-egg-install- generated packages
-            Optional('unsafe_name'):            object,
-            Optional('unsafe_version'):         object,
-            Optional('EGG-INFO'):               object,
-
-            # custom keys
-            Optional('custom'):                 dict,
-            Optional(basestring):               object,
-
-            # a dict for internal use
-            Optional('_internal'):              dict,
-        })
+    def is_rex_command(self, value):
+        return callable(value) or isinstance(value, basestring)
 
     @Resource.cached
     def load(self):
         data = super(BasePackageResource, self).load().copy()
 
+        data["name"] = self.convert_name(data["name"])
+
+        if not self.is_rex_command(data["commands"]):
+            data["commands"] = self.convert_to_rex(data["commands"])
+
         # commands2 support
-        if "commands2" in data:
-            data["commands"] = data.pop("commands2")
+        if "commands2" in data and self.is_rex_command(data["commands2"]):
+            data["commands"] = self.new_rex_command(data.pop("commands2"))
 
         # graft release info onto resource
         release_data = self._load_component("release.data")
@@ -284,7 +179,7 @@ class BasePackageResource(FileResource):
                 data["changelog"] = changelog
         return data
 
-    # TODO just load the handle rather than the resource data, and add lazy
+    # TODO: just load the handle rather than the resource data, and add lazy
     # loading mechanism
     def _load_component(self, resource_key):
         variables = dict((k, v) for k, v in self.variables.iteritems()
@@ -298,7 +193,7 @@ class BasePackageResource(FileResource):
             data = None
         return data
 
-    # TODO move into variant
+    # TODO: move into variant
     def _load_timestamp(self):
         timestamp = self._load_component("release.timestamp") or 0
         if not timestamp:
@@ -368,7 +263,6 @@ class VersionlessVariantResource(BaseVariantResource):
     parent_resource = VersionlessPackageResource
     variable_keys = ["index"]
     sub_resource = True
-    schema = None
     versioned = False
 
 
@@ -395,24 +289,25 @@ class VersionedPackageResource(BasePackageResource):
                 msg = "version %r does not match %r" % (value, version_str)
                 if config.disable_rez_1_compatibility \
                         or config.error_version_mismatch:
-                    raise SchemaError(None, msg)
+                    # TODO: exception should contain msg?
+                    raise ResourceContentError("version", self.path, self.key)
                 elif config.warn("version_mismatch"):
                     print_warning("%s: %s" % (self.path, msg))
         else:
             msg = "version must be a string"
             if config.disable_rez_1_compatibility \
                     or config.error_nonstring_version:
-                raise SchemaError(None, msg)
+                # TODO: exception should contain msg?
+                raise ResourceContentError("version", self.path, self.key)
             elif config.warn("nonstring_version"):
                 print_warning("%s: %s" % (self.path, msg))
         return Version(version_str)
 
-    @propertycache
-    def schema(self):
-        schema = super(VersionedPackageResource, self).schema
-        return _updated_schema(schema,
-                               [(Required('version'),
-                                 Use(self.convert_version))])
+    @Resource.cached
+    def load(self):
+        data = super(VersionedPackageResource, self).load().copy()
+        data['version'] = self.convert_version(data['version'])
+        return data
 
 
 class VersionedVariantResource(BaseVariantResource):
@@ -421,7 +316,6 @@ class VersionedVariantResource(BaseVariantResource):
     parent_resource = VersionedPackageResource
     variable_keys = ["index"]
     sub_resource = True
-    schema = None
     versioned = True
 
 
@@ -438,29 +332,6 @@ class CombinedPackageFamilyResource(BasePackageResource):
     variable_regex = dict(name=PACKAGE_NAME_REGSTR,
                           ext=_or_regex(metadata_loaders.keys()))
 
-    @propertycache
-    def schema(self):
-        schema = super(CombinedPackageFamilyResource, self).schema
-        return _updated_schema(
-            schema,
-            [(Optional('versions'), [Use(Version)]),
-             (Optional('version_overrides'), {
-                Use(VersionRange): {
-                    Optional('help'):                   Or(basestring,
-                                                           [[basestring]]),
-                    Optional('tools'):                  [basestring],
-                    Optional('requires'):               [Use(Requirement)],
-                    Optional('build_requires'):         [Use(Requirement)],
-                    Optional('private_build_requires'): [Use(Requirement)],
-                    Optional('variants'):               [[Use(Requirement)]],
-                    Optional('commands'):               Or(rex_command,
-                                                           And([basestring],
-                                                               Use(self.convert_to_rex))),
-                    Optional('custom'):                 object,
-                    Optional(basestring):               object
-                }
-            })])
-
 
 class CombinedPackageResource(BasePackageResource):
     """A versioned package that is contained within a
@@ -468,7 +339,6 @@ class CombinedPackageResource(BasePackageResource):
     """
     key = 'package.combined'
     sub_resource = True
-    schema = None
     parent_resource = CombinedPackageFamilyResource
     variable_keys = ["version"]
 
@@ -528,18 +398,6 @@ class DeveloperPackageResource(BasePackageResource):
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
     versioned = True
 
-    @propertycache
-    def schema(self):
-        schema = super(DeveloperPackageResource, self).schema
-        return _updated_schema(schema,
-                               [(Required('name'), And(basestring,
-                                                       PACKAGE_NAME_REGEX.match)),
-                                (Required('version'), Use(Version)),
-                                (Required('description'),
-                                    And(basestring, Use(string.strip))),
-                                (Required('authors'), [basestring]),
-                                (Required('uuid'), basestring)])
-
 
 class DeveloperVariantResource(BaseVariantResource):
     """A variant within a `DeveloperPackageResource`."""
@@ -547,7 +405,6 @@ class DeveloperVariantResource(BaseVariantResource):
     parent_resource = DeveloperPackageResource
     variable_keys = ["index"]
     sub_resource = True
-    schema = None
     versioned = True
 
 
@@ -567,7 +424,10 @@ register_resource(VersionlessVariantResource)
 register_resource(ReleaseDataResource)
 register_resource(CombinedPackageFamilyResource)
 register_resource(CombinedPackageResource)
-# deprecated
+
+
+# -- deprecated package resources
+
 register_resource(MetadataFolder)
 register_resource(ReleaseTimestampResource)
 register_resource(ReleaseInfoResource)

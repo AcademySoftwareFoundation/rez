@@ -7,12 +7,6 @@ A resource is given a hierarchical name and a file path pattern (like
 "{name}/{version}/package.yaml") and are collected under a particular
 configuration version.
 
-If the resource is a file, an optional metadata schema can be provided to
-validate the contents (e.g. enforce data types and document structure) of the
-data. This validation is run after the data is deserialized, so it is decoupled
-from the storage format. New resource formats can be added and share the same
-validators.
-
 The upshot is that once a resource is registered, instances of the resource can
 be iterated over using `iter_resources` without the higher level code requiring
 an understanding of the underlying file and folder structure.  This ensures
@@ -28,45 +22,17 @@ from collections import defaultdict
 from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
-from rez.exceptions import ResourceError, ResourceNotFoundError, \
-    ResourceContentError
+from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.backport.lru_cache import lru_cache
 from rez.vendor import yaml
-# FIXME: handle this double-module business
-from rez.vendor.schema.schema import Schema, SchemaError, Optional
 
 
 # dict of resource classes, keyed by resource key (eg 'package.versioned')
 _resource_classes = {}
 
 
-# make an alias which just so happens to be the same number of characters as
-# 'Optional'  so that our schema are easier to read
-Required = Schema
-
-
 def _or_regex(strlist):
     return '|'.join('(%s)' % e for e in strlist)
-
-
-def _updated_schema(schema, items=None, rm_keys=None):
-    """Get an updated copy of a schema."""
-    items = items or ()
-    rm_keys = rm_keys or ()
-    items_ = dict((x[0]._schema, x) for x in items)
-    schema_ = {}
-
-    for key, value in schema._schema.iteritems():
-        k = key._schema
-        if k not in rm_keys:
-            item = items_.get(k)
-            if item is not None:
-                del items_[k]
-                key, value = item
-            schema_[key] = value
-
-    schema_.update(dict(items_.itervalues()))
-    return Schema(schema_)
 
 
 # -----------------------------------------------------------------------------
@@ -182,7 +148,7 @@ def load_yaml(stream, filepath=None):
     return yaml.load(text) or {}
 
 
-# TODO pluggize
+# TODO: pluggize
 metadata_loaders = {}
 metadata_loaders['py'] = load_python
 metadata_loaders['yaml'] = load_yaml
@@ -235,7 +201,7 @@ def register_resource(resource_class):
     """Register a `Resource` class.
 
     This informs rez where to find a resource relative to the
-    rez search path, and optionally how to validate its data.
+    rez search path.
 
     Args:
         resource_class (Resource): the resource class.
@@ -393,16 +359,11 @@ class ResourceHandle(object):
 class Resource(object):
     """Abstract base class for data resources.
 
-    The `Package` class expects its metadata to match a specific schema, but
-    each individual resource may have its own schema specific to the file it
-    loads, and that schema is able to modify the data on validation so that it
-    conforms to the Package's master schema.
-
     As an additional conform layer, each resource implements a `load` method,
     which is the main entry point for loading that resource's metadata. By
-    default, this method loads the contents of the resource file and validates
-    its contents using the Resource's schema, however, this method can also
-    be used to mutate the metadata and graft other resources into it.
+    default, this method loads the contents of the resource file, however, this
+    method can also be used to mutate the metadata and graft other resources
+    into it.
 
     In this paradigm, the responsibility for handling variability is shifted
     from the package to the resource. This makes it easier to implement
@@ -418,8 +379,6 @@ class Resource(object):
             functions `iter_resources`, `get_resource`, and `load_resource`
             when the type of resource desired is known. This attribute must be
             overridden by `Resource` subclasses.
-        schema (Schema, optional): schema defining the structure of the data
-            which will be loaded
         parent_resource (Resource class): the resource above this one in the
             tree.  An instance of this type is passed to `iter_instances`
             on this class to allow this resource to determine which instances
@@ -438,7 +397,6 @@ class Resource(object):
             by the parent `CombinedPackageFamilyResource` class.
     """
     key = None
-    schema = None
     parent_resource = None
     sub_resource = False
     path_pattern = None
@@ -579,8 +537,7 @@ class Resource(object):
         """load the resource's data.
 
         Returns:
-            The resource data as a dict. The implementation should validate the
-            data against the schema, if any. If no data is associated with this
+            The resource data as a dict. If no data is associated with this
             resource, None is returned.
         """
         return None
@@ -713,9 +670,7 @@ class FileResource(FileSystemResource):
     def load(self):
         """load the resource data.
 
-        For a file this means use `load_file` to deserialize the data, and then
-        validate it against the `Schema` instance provided by the resource's
-        `schema` attribute.
+        For a file this means use `load_file` to deserialize the data.
 
         This gives the resource a chance to do further modifications to the
         loaded metadata (beyond what is possible or practical to do with the
@@ -723,21 +678,7 @@ class FileResource(FileSystemResource):
         loaded from other reources.
         """
         if os.path.isfile(self.path):
-            try:
-                data = load_file(self.path, self.loader)
-                if self.schema:
-                    k = "resources.validate.%s" % self.__class__.__name__
-                    timings.start(k)
-                    try:
-                        data_ = self.schema.validate(data)
-                    finally:
-                        timings.end(k)
-                    return data_
-            except SchemaError as e:
-                error_cls = self._contents_exception_type()
-                raise error_cls(value=str(e),
-                                path=self.path,
-                                resource_key=self.key)
+            data = load_file(self.path, self.loader)
             return data
         else:
             msg = "not a file" if os.path.exists(self.path) \
@@ -1135,8 +1076,8 @@ def load_resource(filepath=None, resource_keys=None, search_path=None,
             eg '{name}/{version}/package.{ext}'. If a resource's variables are
             not a superset of these, the resource is not matched.
         root_resource_key (str): The root of the resource type hierarchy to
-            search. If None, is determined from resource_keys. If both are None,
-            defaults to 'folder.packages_root'.
+            search. If None, is determined from resource_keys. If both are
+            None, defaults to 'folder.packages_root'.
 
     Returns:
         The resource metadata, as a dict.
