@@ -1119,3 +1119,10 @@ class ResolvedContext(object):
 
         # append system paths
         executor.append_system_paths()
+
+if __name__ == "__main__":
+    rc = ResolvedContext(["pydot", "ALF"], verbosity=0, timestamp=None,
+                 building=False, caching=None, package_paths=None,
+                 add_implicit_packages=True, add_bootstrap_path=False,
+                 max_fails=-1, time_limit=-1, callback=None)
+    rc.print_info()

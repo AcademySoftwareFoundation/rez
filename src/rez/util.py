@@ -683,7 +683,7 @@ def convert_old_commands(commands, annotate=True):
                 if idx in (0, len(parts) - 1):
                     func = "appendenv" if idx == 0 else "prependenv"
                     parts = parts[1:] if idx == 0 else parts[:-1]
-                    val = os.pathsep.join(parts)
+                    val = separator.join(parts)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
 
@@ -1555,3 +1555,11 @@ def _atexit():
         timings.dump()
     except:
         pass
+
+
+def safe_str(input):
+    import platform
+    if platform.system() == "Windows":
+        raise NotImplemented
+    else:
+        return str(self)

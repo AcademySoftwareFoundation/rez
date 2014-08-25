@@ -362,7 +362,7 @@ class Variant(_PackageBase):
         if self.index is None:
             return ''
         else:
-            dirs = [Requirement(x).safe_str()
+            dirs = [x
                     for x in self._internal.get("variant_requires")]
             return os.path.join(*dirs) if dirs else ''
 

@@ -36,6 +36,7 @@ def _make_key(args, kwds, typed,
         return key[0]
     return _HashedSeq(key)
 
+'''
 def lru_cache(maxsize=100, typed=False):
     """Least-recently-used cache decorator.
 
@@ -165,3 +166,44 @@ def lru_cache(maxsize=100, typed=False):
         return update_wrapper(wrapper, user_function)
 
     return decorating_function
+'''
+
+
+
+from itertools import tee
+from types import GeneratorType
+
+Tee = tee([], 1)[0].__class__
+
+def memoized(f):
+    cache={}
+    def ret(*args):
+        if args not in cache:
+            cache[args]=f(*args)
+        if isinstance(cache[args], (GeneratorType, Tee)):
+            # the original can't be used any more,
+            # so we need to change the cache as well
+            cache[args], r = tee(cache[args])
+            return r
+        return cache[args]
+    return ret
+
+
+def lru_cache(maxsize=100, typed=False):
+    def decorating_function(user_function):
+        cache = dict()
+        make_key = _make_key
+
+        def wrapper(*args, **kwds):
+            key = make_key(args, kwds, typed) if kwds or typed else args
+            if key not in cache:
+                cache[key] = user_function(*args, **kwds)
+            if isinstance(cache[key], (GeneratorType, Tee)):
+                # the original can't be used any more,
+                # so we need to change the cache as well
+                cache[key], r = tee(cache[key])
+                return r
+            return cache[key]
+        return update_wrapper(wrapper, user_function)
+    return decorating_function
+

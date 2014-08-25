@@ -646,6 +646,7 @@ class FileSystemResource(Resource):
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
+    @lru_cache()
     def iter_instances(cls, parent_resource):
         for name in _listdir(parent_resource.path, cls.is_file):
             match = _ResourcePathParser.parse_filepart(cls, name)

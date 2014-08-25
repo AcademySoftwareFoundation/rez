@@ -7,6 +7,7 @@ from rez.exceptions import ResourceNotFoundError, PackageMetadataError, \
 from rez.util import deep_update, print_warning
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
+from rez.util import safe_str
 import re
 
 
@@ -218,7 +219,7 @@ class BaseVariantResource(BasePackageResource):
         if idx is not None:
             try:
                 variant_requires = variants[idx]
-                data["_internal"] = dict(variant_requires=variant_requires)
+                data["_internal"] = dict(variant_requires=[safe_str(v) for v in variant_requires])
                 requires = data.get("requires", []) + variant_requires
                 data["requires"] = requires
             except IndexError:
