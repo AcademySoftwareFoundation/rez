@@ -541,12 +541,36 @@ class _VersionRangeParser(object):
             self.bounds.append(self._bound(lower, upper, tokens))
 
     def _parse(self, s, make_token, debug):
-        self.stack = []
-        self.bounds = []
-        self.make_token = make_token
-        self.debug = debug
-        self.ranges.parseString(s, parseAll=True)
-        return self.bounds
+        
+        bounds = []
+        lower = None
+        upper = None
+        exclusive = False
+        
+        
+        exact_version_regex = "==(?P<version>[0-9a-zA-Z_][.\-0-9a-zA-Z_]*)"
+        match = re.search(exact_version_regex, s)
+        if match:
+            ver = Version(''.join(match.groupdict()["version"]), make_token=make_token)
+            lower = _LowerBound(ver, True)
+            upper = _UpperBound(ver, True)
+        
+        lower_bound_regex = "(?P<version>[0-9a-zA-Z_][.\-0-9a-zA-Z_]*)\+"
+        match = re.search(lower_bound_regex, s)
+        if match:
+            ver = Version(''.join(match.groupdict()["version"]), make_token=make_token)
+            lower = _LowerBound(ver, True)
+        
+        upper_bound_regex = "<=|<(?P<version>[0-9a-zA-Z_][.\-0-9a-zA-Z_]*)"
+        match = re.search(upper_bound_regex, s)
+        if match:
+            ver = Version(''.join(match.groupdict()["version"]), make_token=make_token)
+            upper = _UpperBound(ver, False)
+        
+        bounds.append(self._bound(lower, upper, ""))
+        
+        return bounds
+
 
 
 class VersionRange(_Comparable):

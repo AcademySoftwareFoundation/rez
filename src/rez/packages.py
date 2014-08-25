@@ -1,13 +1,72 @@
 import os.path
-from rez.util import Common, propertycache
+from rez.util import propertycache
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
-from rez.exceptions import PackageMetadataError, PackageRequestError
-from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
-from rez.config import config
-from rez.vendor.schema.schema import Schema, Optional
+from rez.exceptions import PackageMetadataError, PackageRequestError, \
+    ResourceError, ResourceNotFoundError
+from rez.package_resources import PACKAGE_NAME_REGEX
+from rez.config import config, create_config
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
+from rez.vendor.schema.schema import Schema, Use, And, Or, Optional
+import string
+
+
+# make an alias which just so happens to be the same number of characters as
+# 'Optional'  so that our schema are easier to read
+Required = Schema
+
+
+# The master package schema.  All resources delivering metadata to the Package
+# class must ultimately validate against this master schema. This schema
+# intentionally does no casting of types: that should happen on the resource
+# schemas.
+package_schema = Schema({
+    Optional('config_version'):         0,  # deprecated this will only match 0
+
+    Optional('uuid'):                   basestring,
+    Optional('description'):            And(basestring, Use(string.strip)),
+    Required('name'):                   And(basestring,
+                                            PACKAGE_NAME_REGEX.match),
+    Optional('version'):                Version,
+    Optional('authors'):                [basestring],
+    # TODO: timestamp is going to become per-variant
+    Optional('timestamp'):              Use(int),
+
+    Optional('config'):                 And(dict,
+                                            Use(lambda x:
+                                                create_config(overrides=x))),
+    Optional('help'):                   Or(basestring,
+                                           [[basestring]]),
+    Optional('tools'):                  [basestring],
+
+    Optional('requires'):               [Use(Requirement)],
+    Optional('variants'):               [[Use(Requirement)]],
+    Optional('build_requires'):         [Use(Requirement)],
+    Optional('private_build_requires'): [Use(Requirement)],
+
+    Optional('commands'):               Or(basestring, callable),
+
+    # custom keys
+    Optional('custom'):                 object,
+    Optional(basestring):               object,
+
+    # a dict for internal use
+    Optional('_internal'):              dict,
+
+    # release data
+    Optional('revision'):               object,
+    Optional('changelog'):              basestring,
+
+    Optional('release_message'):        Or(None, basestring),
+    Optional('previous_version'):       Use(Version),
+    Optional('previous_revision'):      object,
+
+    # rez-1 rez-egg-install properties
+    Optional('unsafe_name'):            object,
+    Optional('unsafe_version'):         object,
+    Optional('EGG-INFO'):               object,
+})
 
 
 def validate_package_name(pkg_name):
@@ -303,7 +362,7 @@ class Variant(_PackageBase):
         if self.index is None:
             return ''
         else:
-            dirs = [x.safe_str()
+            dirs = [x
                     for x in self._internal.get("variant_requires")]
             return os.path.join(*dirs) if dirs else ''
 

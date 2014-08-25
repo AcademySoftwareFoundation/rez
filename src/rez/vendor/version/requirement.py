@@ -1,5 +1,6 @@
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.util import _Common
+from rez.util import safe_str
 import re
 
 
@@ -188,11 +189,7 @@ class Requirement(_Common):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to
         the same value."""
-        import platform
-        if platform.system() == "Windows":
-            raise NotImplemented
-        else:
-            return str(self)
+        return safe_str(str(self))
 
     def conflicts_with(self, other):
         """Returns True if this requirement conflicts with another."""
