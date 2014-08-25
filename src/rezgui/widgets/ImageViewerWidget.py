@@ -14,14 +14,12 @@ class GraphicsView(QtGui.QGraphicsView):
             self.setCursor(QtCore.Qt.ClosedHandCursor)
             self.press_pos = QtGui.QCursor.pos()
             self.press_scroll_pos = self._scroll_pos()
-            event.accept()
         else:
             event.ignore()
 
     def mouseReleaseEvent(self, event):
         if self.interactive:
             self.unsetCursor()
-            event.accept()
         else:
             event.ignore()
 
@@ -31,7 +29,6 @@ class GraphicsView(QtGui.QGraphicsView):
             pos_delta = pos - self.press_pos
             scroll_pos = self.press_scroll_pos - pos_delta
             self._set_scroll_pos(scroll_pos)
-            event.accept()
         else:
             event.ignore()
 
@@ -51,7 +48,6 @@ class GraphicsView(QtGui.QGraphicsView):
                 return
 
             self.scale(scale, scale)
-            event.accept()
         else:
             event.ignore()
 

@@ -31,3 +31,7 @@ resolve:
 
     # If true, graph view defaults to fit in window
     fit_graph: false
+
+launch:
+    # Use this command to launch tools in a detached terminal
+    terminal_command: "x-terminal-emulator --noclose -e"

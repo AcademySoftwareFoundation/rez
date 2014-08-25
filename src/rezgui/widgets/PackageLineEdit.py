@@ -8,6 +8,7 @@ class PackageLineEdit(QtGui.QLineEdit):
 
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)
+    focusIn = QtCore.Signal()
 
     def __init__(self, settings=None, parent=None, family_only=False):
         super(PackageLineEdit, self).__init__(parent)
@@ -37,6 +38,10 @@ class PackageLineEdit(QtGui.QLineEdit):
             self.focusOutViaKeyPress.emit(self.text())
             return True
         return super(PackageLineEdit, self).event(event)
+
+    def focusInEvent(self, event):
+        self.focusIn.emit()
+        return super(PackageLineEdit, self).focusInEvent(event)
 
     def focusOutEvent(self, event):
         self._update_status()

@@ -19,8 +19,7 @@ class VariantSummaryWidget(QtGui.QWidget):
         hh.setStretchLastSection(True)
         hh.setVisible(False)
         vh = self.table.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.Fixed)
-        vh.setDefaultSectionSize(3 * self.table.fontMetrics().height() / 2)
+        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.label)
@@ -65,11 +64,15 @@ class VariantSummaryWidget(QtGui.QWidget):
 
             self.table.setRowCount(len(rows))
             for i, row in enumerate(rows):
-                item = QtGui.QTableWidgetItem(row[0])
+                label, value = row
+                item = QtGui.QTableWidgetItem(label)
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.table.setVerticalHeaderItem(i, item)
-                item = QtGui.QTableWidgetItem(row[1])
-                self.table.setItem(i, 0, item)
+                if isinstance(value, str):
+                    item = QtGui.QTableWidgetItem(row[1])
+                    self.table.setItem(i, 0, item)
+                else:
+                    self.table.setCellWidget(i, 0, value)
 
             vh = self.table.verticalHeader()
             vh.setVisible(True)

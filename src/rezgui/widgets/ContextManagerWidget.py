@@ -1,10 +1,12 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, create_toolbutton
+from rezgui.widgets.ContextToolsWidget import ContextToolsWidget
+from rezgui.widgets.VariantToolsList import VariantToolsList
+from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
 from rezgui.widgets.VariantSummaryWidget import VariantSummaryWidget
 from rezgui.widgets.VariantDetailsWidget import VariantDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
-from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.SettingsWidget import SettingsWidget
 from rezgui.dialogs.ResolveDialog import ResolveDialog
@@ -57,9 +59,12 @@ class ContextManagerWidget(QtGui.QWidget):
         self.variant_versions = VariantVersionsWidget(self.settings)
         self.variant_details = VariantDetailsWidget()
 
+        self.variant_tools = VariantToolsList()
+
         self.package_tab = QtGui.QTabWidget()
         self.package_tab.addTab(self.variant_summary, "package summary")
         self.package_tab.addTab(self.variant_versions, "versions")
+        self.package_tab.addTab(self.variant_tools, "tools")
         self.package_tab.addTab(self.variant_details, "details")
         self.package_tab.setEnabled(False)
 
@@ -73,19 +78,17 @@ class ContextManagerWidget(QtGui.QWidget):
             context_splitter.setStretchFactor(0, 2)
             context_splitter.setStretchFactor(1, 1)
 
-        self.resolve_details_edit = StreamableTextEdit()
-        self.resolve_details_edit.setStyleSheet("font: 9pt 'Courier'")
+        self.tools_list = ContextToolsWidget()
 
-        self.resolve_graph_btn = QtGui.QPushButton("View Graph...")
-        btn_pane = create_pane([None, self.resolve_graph_btn], True)
-        resolve_details_pane = create_pane([self.resolve_details_edit, btn_pane],
-                                           False)
+        self.resolve_details = ContextDetailsWidget()
 
         self.tab = QtGui.QTabWidget()
         self.tab.addTab(context_splitter, "context")
-        self.tab.addTab(self.settings, "context settings")
-        self.tab.addTab(resolve_details_pane, "resolve details")
+        self.tab.addTab(self.settings, "settings")
+        self.tab.addTab(self.tools_list, "tools")
+        self.tab.addTab(self.resolve_details, "resolve details")
         self.tab.setTabEnabled(2, False)
+        self.tab.setTabEnabled(3, False)
 
         # layout
         layout = QtGui.QVBoxLayout()
@@ -101,7 +104,6 @@ class ContextManagerWidget(QtGui.QWidget):
         self.context_table.contextModified.connect(self._contextModified)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.package_tab.currentChanged.connect(self._packageTabChanged)
-        self.resolve_graph_btn.clicked.connect(self._view_resolve_graph)
         self.variant_details.viewGraph.connect(self._view_pruned_resolve_graph)
         self.reset_btn.clicked.connect(self._reset)
 
@@ -112,12 +114,14 @@ class ContextManagerWidget(QtGui.QWidget):
         self.settings.reset(settings)
 
         self.context_table.set_context(self.current_context)
+        self.tools_list.set_context(self.current_context)
+        self.resolve_details.set_context(self.current_context)
+        self._update_package_tabs("set_context", self.current_context)
 
-        self.resolve_details_edit.clear()
-        self.current_context.print_info(buf=self.resolve_details_edit)
         self.tab.setTabText(0, "context")
-        self.tab.setTabText(1, "context settings")
+        self.tab.setTabText(1, "settings")
         self.tab.setTabEnabled(2, True)
+        self.tab.setTabEnabled(3, True)
         self.diff_btn.setEnabled(True)
         self.reset_btn.setEnabled(False)
 
@@ -159,11 +163,6 @@ class ContextManagerWidget(QtGui.QWidget):
         if ret == QtGui.QMessageBox.Ok:
             self.set_context(self.current_context)
 
-    def _view_resolve_graph(self):
-        assert self.current_context
-        graph_str = self.current_context.graph(as_dot=True)
-        view_graph(graph_str, self)
-
     def _view_pruned_resolve_graph(self, package_name):
         assert self.current_context
         graph_str = self.current_context.graph(as_dot=True)
@@ -179,16 +178,16 @@ class ContextManagerWidget(QtGui.QWidget):
         }
 
     def _settingsApplied(self):
-        self.tab.setTabText(1, "context settings*")
+        self.tab.setTabText(1, "settings*")
         self.context_table.refresh()
         self._update_package_tabs("refresh")
 
     def _settingsChanged(self):
-        self.tab.setTabText(1, "context settings**")
+        self.tab.setTabText(1, "settings**")
         self._set_modified()
 
     def _settingsChangesDiscarded(self):
-        self.tab.setTabText(1, "context settings*")
+        self.tab.setTabText(1, "settings*")
 
     def _contextModified(self):
         self.tab.setTabText(0, "context*")

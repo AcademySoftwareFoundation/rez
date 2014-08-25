@@ -61,7 +61,6 @@ class VariantVersionsWidget(QtGui.QWidget):
 
     def set_variant(self, variant):
         self.table.set_variant(variant)
-
         if variant == self.variant:
             return
 
@@ -105,7 +104,9 @@ class VariantVersionsWidget(QtGui.QWidget):
         if self.changelog_btn.text() == label:
             view_changelogs = True
             label = "Hide Changelogs"
+
         self.changelog_btn.setText(label)
+        self.changelog_btn.defaultAction().setText(label)
         self._view_changelogs(view_changelogs)
 
     def _view_changelogs_window(self):

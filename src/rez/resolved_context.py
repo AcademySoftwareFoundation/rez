@@ -866,7 +866,7 @@ class ResolvedContext(object):
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
-                      **Popen_args):
+                      start_new_session=False, **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -891,7 +891,9 @@ class ResolvedContext(object):
                 here, rather than to the default location (which is in a
                 tempdir). If you use this arg, you are responsible for cleaning
                 up the file.
-            popen_args: args to pass to the shell process object constructor.
+            start_new_session: If True, change the process group of the target
+                process.
+            Popen_args: args to pass to the shell process object constructor.
 
         Returns:
             If blocking: A 3-tuple of (returncode, stdout, stderr);
@@ -899,6 +901,13 @@ class ResolvedContext(object):
         """
         if hasattr(command, "__iter__"):
             command = shlex_join(command)
+
+        # start a new session if specified
+        if start_new_session:
+            if "preexec_fn" in Popen_args:
+                raise ValueError("Cannot specify both 'start_new_session' and "
+                                 "custom Popen args")
+            Popen_args["preexec_fn"] = os.setpgrp
 
         # block if the shell is likely to be interactive
         if block is None:

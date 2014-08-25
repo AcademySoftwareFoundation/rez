@@ -4,7 +4,8 @@ import os.path
 import time
 
 
-def create_pane(widgets, horizontal, parent_widget=None, compact=False):
+def create_pane(widgets, horizontal, parent_widget=None, compact=False,
+                compact_spacing=2):
     """Create a widget containing an aligned set of widgets.
 
     Args:
@@ -23,8 +24,9 @@ def create_pane(widgets, horizontal, parent_widget=None, compact=False):
     type_ = QtGui.QHBoxLayout if horizontal else QtGui.QVBoxLayout
     layout = type_()
     if compact:
-        layout.setSpacing(2)
-        layout.setContentsMargins(2, 2, 2, 2)
+        layout.setSpacing(compact_spacing)
+        layout.setContentsMargins(compact_spacing, compact_spacing,
+                                  compact_spacing, compact_spacing)
 
     for widget in widgets:
         stretch = 0

@@ -116,6 +116,11 @@ def dump_yaml(data, Dumper=_Dumper):
     return yaml.dump(data, default_flow_style=False, Dumper=Dumper)
 
 
+def dump_package_yaml(data, Dumper=_Dumper):
+    """Convenience function for dumping with PackageOrderedDumper."""
+    return yaml.dump(data, default_flow_style=False, Dumper=PackageOrderedDumper)
+
+
 def load_yaml(filepath):
     """Convenience function for loading yaml-encoded data from disk."""
     with open(filepath) as f:

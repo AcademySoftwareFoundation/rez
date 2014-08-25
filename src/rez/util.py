@@ -328,11 +328,13 @@ def pretty_env_dict(d):
     return '\n'.join(columnise(rows))
 
 
-def readable_time_duration(secs, approx=True, approx_thresh=0.001):
-    divs = ((24 * 60 * 60, "days"),
-            (60 * 60, "hours"),
-            (60, "minutes"),
-            (1, "seconds"))
+def readable_time_duration(secs):
+    divs = ((365 * 24 * 3600, "years", 10),
+            (7 * 24 * 3600, "weeks", 10),
+            (24 * 3600, "days", 7),
+            (3600, "hours", 8),
+            (60, "minutes", 5),
+            (1, "seconds", 60))
 
     if secs == 0:
         return "0 seconds"
@@ -340,20 +342,20 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     if neg:
         secs = -secs
 
-    results = []
-    remainder = secs
-    for seconds, label in divs:
-        value, remainder = divmod(remainder, seconds)
-        if value:
-            results.append((value, label))
-            if approx and (float(remainder) / secs) >= approx_thresh:
-                # quit if remainder drops below threshold
-                break
-    s = ', '.join(['%d %s' % x for x in results])
+    for seconds, unit, threshold in divs:
+        if secs >= seconds:
+            f = secs / float(seconds)
+            rounding = 0 if f > threshold else 1
+            f = round(f, rounding)
+            f = int(f * 10) / 10.0
+            if f == 1.0:
+                unit = unit[:-1]
+            txt = "%g %s" % (f, unit)
+            break
 
     if neg:
-        s = '-' + s
-    return s
+        txt = '-' + txt
+    return txt
 
 
 positional_suffix = ("th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th")

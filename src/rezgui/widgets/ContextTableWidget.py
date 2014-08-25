@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.widgets.PackageLineEdit import PackageLineEdit
+from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
 from rezgui.widgets.VariantCellWidget import VariantCellWidget
 from rez.packages import Variant
 from functools import partial
@@ -35,8 +35,7 @@ class ContextTableWidget(QtGui.QTableWidget):
         hh.setDefaultSectionSize(12 * self.fontMetrics().height())
 
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.Fixed)
-        vh.setDefaultSectionSize(3 * self.fontMetrics().height() / 2)
+        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
         vh.setVisible(False)
 
         self.currentCellChanged.connect(self._currentCellChanged)
@@ -49,7 +48,7 @@ class ContextTableWidget(QtGui.QTableWidget):
 
         widget = self.cellWidget(row, column)
         if widget:
-            if isinstance(widget, PackageLineEdit):
+            if isinstance(widget, PackageSelectWidget):
                 return QtGui.QItemSelectionModel.Clear
         else:
             item = self.item(row, column)
@@ -103,6 +102,7 @@ class ContextTableWidget(QtGui.QTableWidget):
             self._current_variant = widget.variant
         else:
             self._current_variant = None
+            self.setCurrentIndex(QtCore.QModelIndex())
         self.variantSelected.emit(self._current_variant)
 
     def _iter_column_widgets(self, column):
@@ -146,15 +146,14 @@ class ContextTableWidget(QtGui.QTableWidget):
 
         txt = str(request) if request else ""
 
-        edit = PackageLineEdit(self.settings)
+        edit = PackageSelectWidget(self.settings)
         edit.setText(txt)
-        edit.setStyleSheet("QLineEdit { border : 0px;}")
         self.setCellWidget(row, column, edit)
         edit.textChanged.connect(partial(self._packageTextChanged, row, column))
         edit.focusOut.connect(partial(self._packageFocusOut, row, column))
         edit.focusOutViaKeyPress.connect(partial(self._packageFocusOutViaKeyPress,
                                                  row, column))
-        edit.refresh()
+        #edit.refresh()
         return edit
 
     def _set_variant_cell(self, row, column, variant):
@@ -201,7 +200,7 @@ class ContextTableWidget(QtGui.QTableWidget):
     def _delete_cell(self, row, column):
         for i in range(row, self.rowCount()):
             edit = self.cellWidget(i, column)
-            assert edit and isinstance(edit, PackageLineEdit)
+            assert edit and isinstance(edit, PackageSelectWidget)
 
             next_edit = self.cellWidget(i + 1, column)
             if next_edit:
@@ -227,5 +226,5 @@ class ContextTableWidget(QtGui.QTableWidget):
     def _set_current_cell(self, row, column):
         self.setCurrentCell(row, column)
         edit = self.cellWidget(row, column)
-        if edit:
-            edit.setFocus()
+        if edit and hasattr(edit, "setCurrent"):
+            edit.setCurrent()

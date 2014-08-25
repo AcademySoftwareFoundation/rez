@@ -1,4 +1,5 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.util import get_timestamp_str
 from rez.packages import iter_packages
 
 
@@ -19,11 +20,9 @@ class VariantVersionsTable(QtGui.QTableWidget):
         self.setVerticalScrollMode(QtGui.QAbstractItemView.ScrollPerPixel)
 
         hh = self.horizontalHeader()
-        hh.setStretchLastSection(True)
         hh.setVisible(False)
         vh = self.verticalHeader()
-        vh.setResizeMode(QtGui.QHeaderView.Fixed)
-        vh.setDefaultSectionSize(3 * self.fontMetrics().height() / 2)
+        vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
         self.clear()
 
@@ -45,6 +44,8 @@ class VariantVersionsTable(QtGui.QTableWidget):
         self.setRowCount(0)
         vh = self.verticalHeader()
         vh.setVisible(False)
+        hh = self.horizontalHeader()
+        hh.setVisible(False)
 
     def refresh(self):
         variant = self.variant
@@ -54,6 +55,17 @@ class VariantVersionsTable(QtGui.QTableWidget):
     def set_variant(self, variant):
         if variant == self.variant:
             return
+
+        hh = self.horizontalHeader()
+        if self.view_changelog:
+            self.setColumnCount(1)
+            hh.setResizeMode(0, QtGui.QHeaderView.Stretch)
+            hh.setVisible(False)
+        else:
+            self.setColumnCount(2)
+            self.setHorizontalHeaderLabels(["path", "released"])
+            hh.setResizeMode(0, QtGui.QHeaderView.Interactive)
+            hh.setVisible(True)
 
         package_paths = self.settings.get("packages_path")
 
@@ -70,10 +82,23 @@ class VariantVersionsTable(QtGui.QTableWidget):
                 self.num_versions += 1
                 if package.version == variant.version:
                     self.version_index = i
-                rows.append((str(package.version) + ' ', package.path))
+                version_str = str(package.version) + ' '
+                path_str = package.path
+                release_str = get_timestamp_str(package.timestamp) \
+                    if package.timestamp else '-'
+
                 if self.view_changelog:
-                    changelog = package.changelog or "-"
+                    if package.timestamp:
+                        path_str += " - %s" % release_str
+                    if package.changelog:
+                        changelog = package.changelog.rstrip() + '\n'
+                    else:
+                        changelog = "-"
+
+                    rows.append((version_str, path_str))
                     rows.append(("", changelog))
+                else:
+                    rows.append((version_str, path_str, release_str))
 
             self.setRowCount(len(rows))
             for i, row in enumerate(rows):
@@ -81,29 +106,32 @@ class VariantVersionsTable(QtGui.QTableWidget):
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.setVerticalHeaderItem(i, item)
 
-                item = QtGui.QTableWidgetItem(row[1])
-                if self.view_changelog and not (i % 2):
-                    brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                   QtGui.QPalette.Button)
-                    item.setBackground(brush)
-                    brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                   QtGui.QPalette.ButtonText)
-                    item.setForeground(brush)
+                for j in range(len(row) - 1):
+                    item = QtGui.QTableWidgetItem(row[j + 1])
+                    if self.view_changelog and not (i % 2):
+                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
+                                                       QtGui.QPalette.Button)
+                        item.setBackground(brush)
+                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
+                                                       QtGui.QPalette.ButtonText)
+                        item.setForeground(brush)
 
-                    font = item.font()
-                    font.setWeight(QtGui.QFont.Bold)
-                    item.setFont(font)
-                else:
-                    # gets rid of passive row highlighting
-                    brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                   QtGui.QPalette.Base)
-                    item.setBackground(brush)
+                        font = item.font()
+                        font.setWeight(QtGui.QFont.Bold)
+                        item.setFont(font)
+                    else:
+                        # gets rid of passive row highlighting
+                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
+                                                       QtGui.QPalette.Base)
+                        item.setBackground(brush)
 
-                self.setItem(i, 0, item)
+                    self.setItem(i, j, item)
 
             vh = self.verticalHeader()
             vh.setVisible(True)
             self.resizeRowsToContents()
+            self.resizeColumnsToContents()
+            hh.setStretchLastSection(True)
 
             self.allow_selection = True
             index = self.version_index

@@ -233,7 +233,7 @@ class _PackageBase(ResourceWrapper):
 
     def print_info(self, buf=None):
         """Print the contents of the package, in yaml format."""
-        from rez.yaml import dump_yaml, PackageOrderedDumper
+        from rez.yaml import dump_package_yaml
         data = self.validated_data.copy()
         data = dict((k, v) for k, v in data.iteritems()
                     if v is not None and not k.startswith('_'))
@@ -243,7 +243,7 @@ class _PackageBase(ResourceWrapper):
         # TODO
         if "config" in data:
             del data["config"]
-        txt = dump_yaml(data, Dumper=PackageOrderedDumper)
+        txt = dump_package_yaml(data)
         print >> buf, txt
 
     def __str__(self):
