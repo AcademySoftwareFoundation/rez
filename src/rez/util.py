@@ -686,7 +686,7 @@ def convert_old_commands(commands, annotate=True):
                 if idx in (0, len(parts) - 1):
                     func = "appendenv" if idx == 0 else "prependenv"
                     parts = parts[1:] if idx == 0 else parts[:-1]
-                    val = os.pathsep.join(parts)
+                    val = separator.join(parts)
                     val = convert_old_environment_variable_references(val)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
