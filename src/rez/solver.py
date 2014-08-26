@@ -18,7 +18,6 @@ from rez.packages import iter_packages
 from rez.util import columnise
 from rez.config import config
 from heapq import merge
-import os.path
 import copy
 import time
 

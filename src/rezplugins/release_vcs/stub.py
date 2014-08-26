@@ -2,7 +2,6 @@
 Stub version control system, for testing purposes
 """
 from rez.release_vcs import ReleaseVCS
-from rez.exceptions import ReleaseVCSError
 from rez.util import print_warning, yaml_literal
 from rez.vendor import yaml
 import os.path
