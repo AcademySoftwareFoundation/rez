@@ -19,6 +19,7 @@ known as the 'any' range, is used to refer to any version of an object.
 from rez.vendor.version.util import VersionError, _Common, total_ordering
 import rez.vendor.pyparsing.pyparsing as pp
 from bisect import bisect_left
+import copy
 import threading
 import re
 
@@ -89,7 +90,7 @@ class NumericToken(VersionToken):
         if not token.isdigit():
             raise VersionError("Invalid version token: '%s'" % token)
         else:
-            self.n = int(n)
+            self.n = int(token)
 
     @classmethod
     def create_random_token_string(cls):

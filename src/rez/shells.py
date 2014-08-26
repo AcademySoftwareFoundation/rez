@@ -6,7 +6,6 @@ from rez.config import config
 from rez.util import which, shlex_join, print_warning
 import subprocess
 import os.path
-import sys
 
 
 def get_shell_types():

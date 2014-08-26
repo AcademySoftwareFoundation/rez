@@ -1,20 +1,16 @@
 from rez.packages import load_developer_package, iter_packages
 from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
-from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
-    print_debug, yaml_literal
+from rez.util import convert_dicts, AttrDictWrapper, print_debug, yaml_literal
 from rez.release_hook import create_release_hooks
-from rez.vendor.version.version import Version
 from rez import __version__
 from rez.vendor import yaml
 import getpass
 import shutil
 import os
 import os.path
-import sys
 import time
 
 

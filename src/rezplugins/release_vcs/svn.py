@@ -3,7 +3,6 @@ Svn version control
 """
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSError
-import subprocess
 import os.path
 import pysvn
 

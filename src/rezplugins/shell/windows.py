@@ -2,6 +2,8 @@
 Windows shell
 """
 from rez.shells import Shell
+import os
+import subprocess
 
 
 raise Exception("Windows shell support is not yet complete")
