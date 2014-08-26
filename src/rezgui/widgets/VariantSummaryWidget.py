@@ -68,11 +68,8 @@ class VariantSummaryWidget(QtGui.QWidget):
                 item = QtGui.QTableWidgetItem(label)
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.table.setVerticalHeaderItem(i, item)
-                if isinstance(value, str):
-                    item = QtGui.QTableWidgetItem(row[1])
-                    self.table.setItem(i, 0, item)
-                else:
-                    self.table.setCellWidget(i, 0, value)
+                item = QtGui.QTableWidgetItem(value)
+                self.table.setItem(i, 0, item)
 
             vh = self.table.verticalHeader()
             vh.setVisible(True)

@@ -2,12 +2,12 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.ImageViewerWidget import ImageViewerWidget
 from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.util import create_pane
-from rezgui.config import config
+from rezgui.objects.App import app
 
 
 class ImageViewerDialog(ConfiguredDialog):
     def __init__(self, image_file, parent=None):
-        super(ImageViewerDialog, self).__init__(config,
+        super(ImageViewerDialog, self).__init__(app.config,
                                                 "layout/window/resolve_graph",
                                                 parent)
         self.setWindowTitle("Resolve Graph")
@@ -21,4 +21,4 @@ class ImageViewerDialog(ConfiguredDialog):
 
         close_btn.clicked.connect(self.close)
         fit_checkbox.stateChanged.connect(self.image_viewer.fit_to_window)
-        config.attach(fit_checkbox, "resolve/fit_graph")
+        app.config.attach(fit_checkbox, "resolve/fit_graph")

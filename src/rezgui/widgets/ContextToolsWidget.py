@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.ToolWidget import ToolWidget
 from rezgui.util import get_icon, create_pane
+from rezgui.objects.App import app
 
 
 class _TreeNode(QtGui.QLabel):
@@ -23,6 +24,7 @@ class ContextToolsWidget(QtGui.QTreeWidget):
     def __init__(self, parent=None):
         super(ContextToolsWidget, self).__init__(parent)
         self.context = None
+        self.tool_widgets = {}
 
         icon = get_icon("package")
         self.package_icon = QtGui.QIcon(icon)
@@ -35,9 +37,12 @@ class ContextToolsWidget(QtGui.QTreeWidget):
         self.setColumnCount(2)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
 
+        app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
+
     def clear(self):
         super(ContextToolsWidget, self).clear()
         self.context = None
+        self.tool_widgets = {}
 
     def set_context(self, context):
         self.clear()
@@ -55,9 +60,10 @@ class ContextToolsWidget(QtGui.QTreeWidget):
 
             for tool in sorted(variant.tools):
                 item_ = QtGui.QTreeWidgetItem(item)
-                widget = ToolWidget(context, tool)
+                widget = ToolWidget(context, tool, app.process_tracker)
                 widget.clicked.connect(self._clear_selection)
                 self.setItemWidget(item_, 1, widget)
+                self.tool_widgets[tool] = widget
 
         self.resizeColumnToContents(0)
         self.context = context
@@ -65,3 +71,11 @@ class ContextToolsWidget(QtGui.QTreeWidget):
     def _clear_selection(self):
         self.setCurrentIndex(QtCore.QModelIndex())
         self.clearSelection()
+
+    def _instanceCountChanged(self, context_id, tool_name, num_procs):
+        if self.context is None or context_id != id(self.context):
+            return
+
+        widget = self.tool_widgets.get(str(tool_name))
+        if widget:
+            widget.set_instance_count(num_procs)

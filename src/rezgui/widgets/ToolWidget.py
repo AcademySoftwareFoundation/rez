@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.IconButton import IconButton
-from rezgui.config import config
+from rezgui.objects.App import app
 from rezgui.util import get_icon_widget
 
 
@@ -8,11 +8,11 @@ class ToolWidget(QtGui.QWidget):
 
     clicked = QtCore.Signal()
 
-    def __init__(self, context, tool_name, parent=None):
+    def __init__(self, context, tool_name, process_tracker=None, parent=None):
         super(ToolWidget, self).__init__(parent)
         self.context = context
         self.tool_name = tool_name
-        self.procs = []
+        self.process_tracker = process_tracker
 
         self.tool_icon = get_icon_widget("spanner")
         self.label = QtGui.QLabel(tool_name)
@@ -22,11 +22,11 @@ class ToolWidget(QtGui.QWidget):
         font.setItalic(True)
         self.instances_label.setFont(font)
 
-        self.timer = QtCore.QTimer(self)
-        self.timer.setInterval(1000)
-        self.timer.timeout.connect(self._update_procs)
-
-        self.setCursor(QtCore.Qt.PointingHandCursor)
+        if self.context:
+            self.setCursor(QtCore.Qt.PointingHandCursor)
+            if self.process_tracker:
+                nprocs = self.process_tracker.num_instances(self.context, self.tool_name)
+                self.set_instance_count(nprocs)
 
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(2)
@@ -37,6 +37,9 @@ class ToolWidget(QtGui.QWidget):
         self.setLayout(layout)
 
     def contextMenuEvent(self, event):
+        if not self.context:
+            return
+
         menu = QtGui.QMenu(self)
         run_action = menu.addAction("Run")
         run_term_action = menu.addAction("Run In Terminal")
@@ -49,13 +52,16 @@ class ToolWidget(QtGui.QWidget):
 
     def mouseReleaseEvent(self, event):
         super(ToolWidget, self).mouseReleaseEvent(event)
+        if not self.context:
+            return
+
         self.clicked.emit()
         if event.button() == QtCore.Qt.LeftButton:
             self._launch_tool()
 
     def _launch_tool(self, terminal=False):
         if terminal:
-            term_cmd = config.get("launch/terminal_command")
+            term_cmd = app.config.get("launch/terminal_command")
             if not term_cmd:
                 title = "Cannot launch tool from separate terminal"
                 body = "The command is not configured"
@@ -68,24 +74,12 @@ class ToolWidget(QtGui.QWidget):
         proc = self.context.execute_shell(command=command,
                                           block=False,
                                           start_new_session=True)
-        self.procs.append(proc)
-        self._update_procs()
+        if self.process_tracker:
+            self.process_tracker.add_instance(self.context, self.tool_name, proc)
 
-    def _update_procs(self):
-        # remove terminated processes
-        procs = []
-        for proc in self.procs:
-            if proc.poll() is None:
-                procs.append(proc)
-        self.procs = procs
-
-        # update label
-        if procs:
-            txt = "%d instances running..." % len(procs)
-            if not self.timer.isActive():
-                self.timer.start()
+    def set_instance_count(self, nprocs):
+        if nprocs:
+            txt = "%d instances running..." % nprocs
         else:
             txt = ""
-            self.timer.stop()
-
         self.instances_label.setText(txt)

@@ -18,6 +18,9 @@ layout:
         package_versions:
             width: 700
             height: 800
+        browse_package:
+            width: 700
+            height: 700
 
 resolve:
     # Maximum number of fails during a resolve

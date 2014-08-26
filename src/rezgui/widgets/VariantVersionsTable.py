@@ -137,7 +137,7 @@ class VariantVersionsTable(QtGui.QTableWidget):
             index = self.version_index
             if self.view_changelog:
                 index *= 2
-            self.selectRow(self.version_index)
+            self.selectRow(index)
             self.allow_selection = False
 
         self.variant = variant

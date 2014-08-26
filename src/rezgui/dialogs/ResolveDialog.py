@@ -3,7 +3,7 @@ from rezgui.util import create_pane
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.dialogs.WriteGraphDialog import view_graph
-from rezgui.config import config
+from rezgui.objects.App import app
 from rez.exceptions import RezError
 from rez.resolved_context import ResolvedContext
 import tempfile
@@ -27,7 +27,7 @@ class Resolver(QtCore.QObject):
         self.error_message = None
 
     def resolve(self, request):
-        if config.get("resolve/show_package_loads"):
+        if app.config.get("resolve/show_package_loads"):
             package_load_callback = self._package_load_callback
         else:
             package_load_callback = None
@@ -66,7 +66,7 @@ class ResolveDialog(ConfiguredDialog):
     def __init__(self, settings, parent=None, advanced=False):
         config_key = ("layout/window/advanced_resolve" if advanced
                       else "layout/window/resolve")
-        super(ResolveDialog, self).__init__(config, config_key, parent)
+        super(ResolveDialog, self).__init__(app.config, config_key, parent)
         self.setWindowTitle("Resolve")
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -122,7 +122,7 @@ class ResolveDialog(ConfiguredDialog):
             self.max_fails_combo.addItem("0")
             self.max_fails_combo.addItem("1")
             self.max_fails_combo.addItem("2")
-            config.attach(self.max_fails_combo, "resolve/max_fails")
+            app.config.attach(self.max_fails_combo, "resolve/max_fails")
             max_fails_pane = create_pane([None, label, self.max_fails_combo], True)
 
             label = QtGui.QLabel("verbosity:")
@@ -130,12 +130,12 @@ class ResolveDialog(ConfiguredDialog):
             self.verbosity_combo.addItem("0")
             self.verbosity_combo.addItem("1")
             self.verbosity_combo.addItem("2")
-            config.attach(self.verbosity_combo, "resolve/verbosity")
+            app.config.attach(self.verbosity_combo, "resolve/verbosity")
             verbosity_pane = create_pane([None, label, self.verbosity_combo], True)
 
             self.show_package_loads_checkbox = QtGui.QCheckBox("show package loads")
             self.show_package_loads_checkbox.setLayoutDirection(QtCore.Qt.RightToLeft)
-            config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
+            app.config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
             show_loads_pane = create_pane([None, self.show_package_loads_checkbox], True)
 
             create_pane([max_fails_pane,
@@ -211,7 +211,7 @@ class ResolveDialog(ConfiguredDialog):
 
         verbosity = 0
         if self.advanced:
-            verbosity = config.get("resolve/verbosity")
+            verbosity = app.config.get("resolve/verbosity")
 
         self.resolver = Resolver(self.settings,
                                  verbosity=verbosity,

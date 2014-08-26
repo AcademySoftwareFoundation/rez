@@ -11,5 +11,5 @@ class IconButton(QtGui.QLabel):
         icon = get_icon(icon_name)
         self.setPixmap(icon)
 
-    def mouseReleaseEvent(self, event):
+    def mousePressEvent(self, event):
         self.clicked.emit(event.button())

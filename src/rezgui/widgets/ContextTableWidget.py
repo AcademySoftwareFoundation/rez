@@ -226,5 +226,5 @@ class ContextTableWidget(QtGui.QTableWidget):
     def _set_current_cell(self, row, column):
         self.setCurrentCell(row, column)
         edit = self.cellWidget(row, column)
-        if edit and hasattr(edit, "setCurrent"):
-            edit.setCurrent()
+        if edit:
+            edit.setFocus()

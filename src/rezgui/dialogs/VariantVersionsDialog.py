@@ -1,12 +1,12 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
 from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
-from rezgui.config import config
+from rezgui.objects.App import app
 
 
 class VariantVersionsDialog(ConfiguredDialog):
     def __init__(self, settings, variant, parent=None):
-        super(VariantVersionsDialog, self).__init__(config,
+        super(VariantVersionsDialog, self).__init__(app.config,
                                                     "layout/window/package_versions",
                                                     parent)
         self.setWindowTitle("Package Versions")

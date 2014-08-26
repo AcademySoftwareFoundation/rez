@@ -13,7 +13,7 @@ from rezgui.dialogs.ResolveDialog import ResolveDialog
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema
-from rezgui.config import config as rezgui_config
+from rezgui.objects.App import app
 from rez.config import config
 from functools import partial
 
@@ -70,7 +70,7 @@ class ContextManagerWidget(QtGui.QWidget):
 
         bottom_pane = create_pane([(self.package_tab, 1), btn_pane], True)
 
-        context_splitter = ConfiguredSplitter(rezgui_config, "layout/splitter/main")
+        context_splitter = ConfiguredSplitter(app.config, "layout/splitter/main")
         context_splitter.setOrientation(QtCore.Qt.Vertical)
         context_splitter.addWidget(self.context_table)
         context_splitter.addWidget(bottom_pane)

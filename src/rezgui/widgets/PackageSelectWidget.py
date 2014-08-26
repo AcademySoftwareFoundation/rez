@@ -1,4 +1,5 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.IconButton import IconButton
 
@@ -29,6 +30,7 @@ class PackageSelectWidget(QtGui.QWidget):
         self.edit.focusOut.connect(self._focusOut)
         self.edit.focusOutViaKeyPress.connect(self._focusOutViaKeyPress)
         self.edit.textChanged.connect(self._textChanged)
+        self.btn.clicked.connect(self._browse_package)
 
     def text(self):
         return self.edit.text()
@@ -39,12 +41,12 @@ class PackageSelectWidget(QtGui.QWidget):
     def refresh(self):
         self.edit.refresh()
 
-    def setCurrent(self):
-        self.edit.setFocus()
-        self.btn.show()
-
     def clone_into(self, other):
         self.edit.clone_into(other.edit)
+
+    def setFocus(self):
+        self.edit.setFocus()
+        self.btn.show()
 
     def _focusIn(self):
         self.btn.show()
@@ -59,3 +61,10 @@ class PackageSelectWidget(QtGui.QWidget):
 
     def _textChanged(self, txt):
         self.textChanged.emit(txt)
+
+    def _browse_package(self, button):
+        self.btn.show()
+        dlg = BrowsePackageDialog(settings=self.settings,
+                                  parent=self.parentWidget())
+        dlg.exec_()
+        self.setFocus()

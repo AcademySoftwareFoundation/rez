@@ -246,6 +246,30 @@ class ResolvedContext(object):
         """
         return self._resolved_packages
 
+    def __eq__(self, other):
+        """Equality test.
+
+        Two contexts are considered equal if they have a equivalent request,
+        and an equivalent resolve. Other details, such as timestamp, are not
+        considered.
+        """
+        return (isinstance(other, ResolvedContext)
+                and other.requested_packages(True) == self.requested_packages(True)
+                and other.resolved_packages == self.resolved_packages)
+
+    def __hash__(self):
+        list_ = []
+        req = self.requested_packages(True)
+        list_.append(tuple(req))
+        res = self.resolved_packages
+        if res is None:
+            list_.append(None)
+        else:
+            list_.append(tuple(res))
+
+        value = tuple(list_)
+        return hash(value)
+
     @property
     def has_graph(self):
         """Return True if the resolve has a graph."""
