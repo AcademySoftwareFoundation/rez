@@ -1,6 +1,5 @@
 from rez.exceptions import BuildSystemError
 from rez.packages import load_developer_package
-from rez.util import which
 
 
 def get_buildsys_types():

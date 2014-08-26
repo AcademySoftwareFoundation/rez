@@ -4,6 +4,7 @@ from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
+from rez.util import convert_old_commands
 import inspect
 import textwrap
 import os
@@ -307,6 +308,39 @@ class TestRex(TestBase):
                        'FOO': ",".join(["test1","test2","test3"]),
                        'BAH': " ".join(["B","A","C"])})
 
+    def test_9(self):
+        """Convert old style commands to rex"""
+
+        expected = ""
+        rez_commands = convert_old_commands([], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "setenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "setenv('A', 'B:{env.C}')"
+        rez_commands = convert_old_commands(["export A=B:$C"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "appendenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=$A:B"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "prependenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B:$A"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "appendenv('A', 'B:{env.C}')"
+        rez_commands = convert_old_commands(["export A=$A:B:$C"],
+                                            annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "prependenv('A', '{env.C}:B')"
+        rez_commands = convert_old_commands(["export A=$C:B:$A"],
+                                            annotate=False)
+        self.assertEqual(rez_commands, expected)
+
 
 def get_test_suites():
     suites = []
@@ -319,6 +353,7 @@ def get_test_suites():
     suite.addTest(TestRex("test_6"))
     suite.addTest(TestRex("test_7"))
     suite.addTest(TestRex("test_8"))
+    suite.addTest(TestRex("test_9"))
     suites.append(suite)
     return suites
 

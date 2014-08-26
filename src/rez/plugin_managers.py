@@ -6,7 +6,6 @@ from rez.util import LazySingleton, propertycache, deep_update, columnise, \
     print_debug
 from rez.exceptions import RezPluginError
 import os.path
-import sys
 
 
 # modified from pkgutil standard library:

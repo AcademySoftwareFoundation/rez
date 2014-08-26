@@ -1,10 +1,9 @@
 import sys
 import os
-import os.path
 from rez import __version__
 from rez.util import propertycache
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, stream_is_tty
+from rez.colorize import heading
 from rez.suite import Suite
 
 

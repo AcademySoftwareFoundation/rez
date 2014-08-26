@@ -1,17 +1,10 @@
 import os
 import subprocess
 import sys
-import posixpath
-import ntpath
-from string import Formatter, Template
+from string import Formatter
 import re
 import UserDict
 import inspect
-import textwrap
-import pipes
-import time
-import getpass
-from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError

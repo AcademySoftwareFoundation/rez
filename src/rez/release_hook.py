@@ -1,4 +1,3 @@
-from rez.exceptions import ReleaseHookError
 from rez.util import print_warning
 from rez.packages import load_developer_package
 

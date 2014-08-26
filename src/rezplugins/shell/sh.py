@@ -1,8 +1,6 @@
 """
 SH shell
 """
-import sys
-import select
 import os
 import os.path
 import subprocess

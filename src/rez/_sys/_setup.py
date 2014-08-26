@@ -1,8 +1,5 @@
 from rez import module_root_path
-from rez.system import system
-from rez.util import _mkdirs
 import textwrap
-import stat
 import sys
 import shutil
 import os

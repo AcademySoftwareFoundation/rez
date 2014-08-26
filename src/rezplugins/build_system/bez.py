@@ -3,7 +3,6 @@ Built-in simple python build system.
 """
 from rez.vendor import yaml
 from rez.build_system import BuildSystem
-from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package

@@ -1,6 +1,5 @@
 import os
 import os.path
-import sys
 import re
 from rez import __version__
 from rez.platform_ import platform_
