@@ -4,6 +4,7 @@ from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.PackageVersionsTable import PackageVersionsTable
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.objects.App import app
+from rez.vendor.version.requirement import Requirement
 
 
 class BrowsePackageWidget(QtGui.QWidget):
@@ -34,6 +35,21 @@ class BrowsePackageWidget(QtGui.QWidget):
 
         self.edit.focusOutViaKeyPress.connect(self._set_package_name)
         self.versions_table.itemSelectionChanged.connect(self._set_package)
+
+    def set_package_text(self, txt):
+        try:
+            req = Requirement(str(txt))
+            package_name = req.name
+            version_range = req.range
+        except:
+            package_name = str(txt)
+            version_range = None
+
+        self.edit.setText(package_name)
+        self._set_package_name(package_name)
+
+        if version_range is not None:
+            self.versions_table.select_version(version_range)
 
     def current_package(self):
         return self.versions_table.current_package()

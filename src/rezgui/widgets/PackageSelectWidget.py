@@ -65,6 +65,7 @@ class PackageSelectWidget(QtGui.QWidget):
     def _browse_package(self, button):
         self.btn.show()
         dlg = BrowsePackageDialog(settings=self.settings,
+                                  package_text=self.text(),
                                   parent=self.parentWidget())
         dlg.exec_()
         if dlg.package:

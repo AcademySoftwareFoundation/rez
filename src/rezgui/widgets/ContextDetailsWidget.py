@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.dialogs.WriteGraphDialog import view_graph
+from rezgui.widgets.ContextEnvironWidget import ContextEnvironWidget
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rez.shells import get_shell_types
 from rez.system import system
@@ -37,8 +38,11 @@ class ContextDetailsWidget(QtGui.QTabWidget):
         btn_pane = create_pane([None, label, self.code_combo], True)
         code_pane = create_pane([self.code_edit, btn_pane], False)
 
+        self.environ_widget = ContextEnvironWidget()
+
         self.addTab(overview_pane, "overview")
         self.addTab(code_pane, "shell code")
+        self.addTab(self.environ_widget, "environment")
 
         self.graph_btn.clicked.connect(self._view_graph)
         self.code_combo.currentIndexChanged.connect(self._update_code)
@@ -58,6 +62,7 @@ class ContextDetailsWidget(QtGui.QTabWidget):
             return
 
         self.context.print_info(buf=self.overview_edit, verbosity=1)
+        self.environ_widget.set_context(self.context)
         self.graph_btn.setEnabled(True)
 
     def _currentTabChanged(self, index):

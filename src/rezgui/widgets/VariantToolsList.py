@@ -24,7 +24,7 @@ class VariantToolsList(QtGui.QTableWidget):
         app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
     def clear(self):
-        self.setRowCount(0)
+        super(VariantToolsList, self).clear()
         self.setEnabled(False)
         self.tool_widgets = {}
 

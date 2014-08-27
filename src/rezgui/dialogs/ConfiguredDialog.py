@@ -34,7 +34,7 @@ class ConfiguredDialog(QtGui.QDialog):
             self.config.setValue(self.config_key + "/pos_x", pos.x())
             self.config.setValue(self.config_key + "/pos_y", pos.y())
 
-        event.accept()
+        self.config.sync()
 
     def parent_window(self):
         parent = self.parentWidget()

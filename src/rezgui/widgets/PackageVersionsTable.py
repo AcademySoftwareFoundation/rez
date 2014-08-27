@@ -30,6 +30,24 @@ class PackageVersionsTable(QtGui.QTableWidget):
     def current_package(self):
         return self.packages.get(self.currentRow())
 
+    def select_version(self, version_range):
+        """Select the latest versioned package in the given range.
+
+        If there are no packages in the range, the selection is cleared.
+        """
+        row = -1
+        version = None
+        for i, package in self.packages.iteritems():
+            if package.version in version_range \
+                    and (version is None or version < package.version):
+                version = package.version
+                row = i
+
+        self.clearSelection()
+        if row != -1:
+            self.selectRow(row)
+        return version
+
     def set_package_name(self, package_name):
         if package_name == self.package_name:
             return
