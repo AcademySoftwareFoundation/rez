@@ -429,6 +429,11 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         expected_packages = ['bah-1.0.1']
         self._solve(request, expected_packages)
 
+    def test_package_name_in_require_and_variant(self):
+
+        request = ['package_name_in_require_and_variant']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
 
     @staticmethod
     def getResolvedPackageVersion(context, package_name):
