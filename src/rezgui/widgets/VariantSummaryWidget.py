@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.util import create_pane, get_timestamp_str
+from rez.packages import Variant
 
 
 class VariantSummaryWidget(QtGui.QWidget):
@@ -14,6 +15,7 @@ class VariantSummaryWidget(QtGui.QWidget):
         self.table.setGridStyle(QtCore.Qt.DotLine)
         self.table.setFocusPolicy(QtCore.Qt.NoFocus)
         self.table.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
+        self.table.setAlternatingRowColors(True)
 
         hh = self.table.horizontalHeader()
         hh.setStretchLastSection(True)
@@ -61,6 +63,12 @@ class VariantSummaryWidget(QtGui.QWidget):
             if variant.requires:
                 txt = "; ".join(str(x) for x in variant.requires)
                 rows.append(("requires: ", txt))
+
+            # if a package, show changelog. If a variant, show a variant table
+            if isinstance(variant, Variant):
+                pass
+            elif variant.changelog:
+                rows.append(("changelog: ", variant.changelog))
 
             self.table.setRowCount(len(rows))
             for i, row in enumerate(rows):

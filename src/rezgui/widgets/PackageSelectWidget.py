@@ -67,4 +67,7 @@ class PackageSelectWidget(QtGui.QWidget):
         dlg = BrowsePackageDialog(settings=self.settings,
                                   parent=self.parentWidget())
         dlg.exec_()
+        if dlg.package:
+            txt = dlg.package.qualified_name
+            self.setText(txt)
         self.setFocus()

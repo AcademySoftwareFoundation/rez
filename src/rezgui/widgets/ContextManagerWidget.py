@@ -1,16 +1,12 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, create_toolbutton
 from rezgui.widgets.ContextToolsWidget import ContextToolsWidget
-from rezgui.widgets.VariantToolsList import VariantToolsList
 from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
-from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
-from rezgui.widgets.VariantSummaryWidget import VariantSummaryWidget
-from rezgui.widgets.VariantDetailsWidget import VariantDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.ContextTableWidget import ContextTableWidget
+from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.SettingsWidget import SettingsWidget
 from rezgui.dialogs.ResolveDialog import ResolveDialog
-from rezgui.dialogs.WriteGraphDialog import view_graph
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema
 from rezgui.objects.App import app
@@ -55,18 +51,8 @@ class ContextManagerWidget(QtGui.QWidget):
         btn_pane = create_pane([None, self.diff_btn, self.reset_btn,
                                 resolve_btn], False)
 
-        self.variant_summary = VariantSummaryWidget()
-        self.variant_versions = VariantVersionsWidget(self.settings)
-        self.variant_details = VariantDetailsWidget()
-
-        self.variant_tools = VariantToolsList()
-
-        self.package_tab = QtGui.QTabWidget()
-        self.package_tab.addTab(self.variant_summary, "package summary")
-        self.package_tab.addTab(self.variant_versions, "versions")
-        self.package_tab.addTab(self.variant_tools, "tools")
-        self.package_tab.addTab(self.variant_details, "details")
-        self.package_tab.setEnabled(False)
+        self.package_tab = PackageTabWidget(settings=self.settings,
+                                            versions_tab=True)
 
         bottom_pane = create_pane([(self.package_tab, 1), btn_pane], True)
 
@@ -103,8 +89,6 @@ class ContextManagerWidget(QtGui.QWidget):
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.contextModified.connect(self._contextModified)
         self.context_table.variantSelected.connect(self._variantSelected)
-        self.package_tab.currentChanged.connect(self._packageTabChanged)
-        self.variant_details.viewGraph.connect(self._view_pruned_resolve_graph)
         self.reset_btn.clicked.connect(self._reset)
 
     def set_context(self, context):
@@ -116,7 +100,7 @@ class ContextManagerWidget(QtGui.QWidget):
         self.context_table.set_context(self.current_context)
         self.tools_list.set_context(self.current_context)
         self.resolve_details.set_context(self.current_context)
-        self._update_package_tabs("set_context", self.current_context)
+        self.package_tab.set_context(self.current_context)
 
         self.tab.setTabText(0, "context")
         self.tab.setTabText(1, "settings")
@@ -163,11 +147,6 @@ class ContextManagerWidget(QtGui.QWidget):
         if ret == QtGui.QMessageBox.Ok:
             self.set_context(self.current_context)
 
-    def _view_pruned_resolve_graph(self, package_name):
-        assert self.current_context
-        graph_str = self.current_context.graph(as_dot=True)
-        view_graph(graph_str, self, prune_to=package_name)
-
     def _current_context_settings(self):
         assert self.current_context
         context = self.current_context
@@ -180,7 +159,7 @@ class ContextManagerWidget(QtGui.QWidget):
     def _settingsApplied(self):
         self.tab.setTabText(1, "settings*")
         self.context_table.refresh()
-        self._update_package_tabs("refresh")
+        self.package_tab.refresh()
 
     def _settingsChanged(self):
         self.tab.setTabText(1, "settings**")
@@ -194,23 +173,9 @@ class ContextManagerWidget(QtGui.QWidget):
         self._set_modified()
 
     def _variantSelected(self, variant):
-        self._set_variant(variant)
-
-    def _packageTabChanged(self, index):
-        variant = self.context_table.current_variant()
-        self._set_variant(variant)
+        self.package_tab.set_variant(variant)
 
     def _set_modified(self):
         self.diff_btn.setEnabled(False)
         if self.current_context:
             self.reset_btn.setEnabled(True)
-
-    def _set_variant(self, variant):
-        self.package_tab.setEnabled(variant is not None)
-        self._update_package_tabs("set_variant", variant)
-
-    def _update_package_tabs(self, attr, *nargs, **kwargs):
-        for i in range(self.package_tab.count()):
-            widget = self.package_tab.widget(i)
-            if hasattr(widget, attr):
-                getattr(widget, attr)(*nargs, **kwargs)

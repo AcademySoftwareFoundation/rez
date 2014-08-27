@@ -9,6 +9,7 @@ class PackageVersionsTable(QtGui.QTableWidget):
         super(PackageVersionsTable, self).__init__(0, 2, parent)
         self.settings = settings
         self.package_name = None
+        self.packages = {}
 
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -26,11 +27,15 @@ class PackageVersionsTable(QtGui.QTableWidget):
         self.verticalHeader().setVisible(False)
         self.horizontalHeader().setVisible(False)
 
+    def current_package(self):
+        return self.packages.get(self.currentRow())
+
     def set_package_name(self, package_name):
         if package_name == self.package_name:
             return
 
         package_paths = self.settings.get("packages_path")
+        self.packages = {}
         rows = []
 
         busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
@@ -48,12 +53,14 @@ class PackageVersionsTable(QtGui.QTableWidget):
             QtGui.QApplication.restoreOverrideCursor()
             return
 
-        for package in sorted(packages, key=lambda x: x.version, reverse=True):
+        for i, package in enumerate(sorted(packages, key=lambda x: x.version,
+                                           reverse=True)):
             version_str = str(package.version) + ' '
             path_str = package.path
             release_str = get_timestamp_str(package.timestamp) \
                 if package.timestamp else '-'
             rows.append((version_str, path_str, release_str))
+            self.packages[i] = package
 
         QtGui.QApplication.restoreOverrideCursor()
 
@@ -79,4 +86,5 @@ class PackageVersionsTable(QtGui.QTableWidget):
         self.package_name = package_name
         self.setEnabled(True)
 
+        self.clearSelection()  # ensure an itemSelectionChanged signal
         self.selectRow(0)
