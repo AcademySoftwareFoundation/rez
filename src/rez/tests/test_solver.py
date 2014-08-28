@@ -430,9 +430,19 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         self._solve(request, expected_packages)
 
     def test_package_name_in_require_and_variant(self):
-
+        """
+        Test weird but valid case where a package family name appears in the requires and also in the variants
+        """
         request = ['package_name_in_require_and_variant']
         expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_different_slices_sorting_respect_request_criteria(self):
+        """
+        Test that the sort of different variants slices get sorted with the same request criteria
+        """
+        request = ['python-2.7',  'eek', 'three_packages_in_variant']
+        expected_packages = ['bah-1.0.1', 'eek-2.0.0', 'python-2.7.0']
         self._solve(request, expected_packages)
 
     @staticmethod

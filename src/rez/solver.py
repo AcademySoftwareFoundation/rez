@@ -396,7 +396,7 @@ class VariantSorter(object):
                     # as the new key to sort by VersionRange
                     fam_requires = self._get_list_of_key_by_positional_weight(variants_slice)
 
-                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires))
+                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires[:]))
 
         return ordered_variant_list
 
