@@ -6,33 +6,25 @@ import sys
 import atexit
 import os
 import os.path
-import shutil
 import copy
-import time
 import posixpath
 import ntpath
 import UserDict
 import re
 import shutil
-import subprocess
 import textwrap
 import tempfile
 import threading
 import time
-import subprocess as sp
 from collections import MutableMapping, defaultdict
 import logging
-from types import MethodType
 from string import Formatter
 from rez import module_root_path
 from rez.vendor import yaml
-from rez.vendor.progress.bar import Bar
+from rez.yaml import dump_yaml
 
 
 logger = logging.getLogger(__name__)
-
-
-DEV_NULL = open(os.devnull, 'w')
 
 
 try:
@@ -43,43 +35,10 @@ except AttributeError:
     OrderedDict = backport.ordereddict.OrderedDict
 
 
-# use `yaml_literal` to wrap multi-line strings written to yaml files, to
-# get the nice pipe-style block formatting
-class yaml_literal(str):
-    pass
-
-
-def yaml_literal_presenter(dumper, data):
-    tag = None
-    try:
-        data = unicode(data, 'ascii')
-        tag = u'tag:yaml.org,2002:str'
-    except UnicodeDecodeError:
-        try:
-            data = unicode(data, 'utf-8')
-            tag = u'tag:yaml.org,2002:str'
-        except UnicodeDecodeError:
-            data = data.encode('base64')
-            tag = u'tag:yaml.org,2002:binary'
-    return dumper.represent_scalar(tag, data, '|')
-
-yaml.add_representer(yaml_literal, yaml_literal_presenter)
-
-
 # TODO deprecate
 class Common(object):
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
-
-
-class ProgressBar(Bar):
-    def __init__(self, label, max):
-        from rez.config import config
-        if config.quiet or not config.show_progress:
-            self.file = DEV_NULL
-            self.hide_cursor = False
-
-        super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
 
 class LazySingleton(object):
@@ -119,7 +78,6 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
     content = yaml.dump(doc, default_flow_style=False)
     with open(filepath, 'w') as f:
-        # TODO make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
@@ -185,6 +143,11 @@ def relative_path(from_path, to_path):
     return os.path.relpath(from_path, to_path)
 
 
+def is_subdirectory(path, directory):
+    relative = relative_path(path, directory)
+    return not relative.startswith(os.pardir)
+
+
 def _get_rez_dist_path(dirname):
     path = os.path.join(module_root_path, dirname)
     if not os.path.exists(path):
@@ -221,15 +184,6 @@ def get_rez_install_path():
 def _add_bootstrap_pkg_path(paths):
     bootstrap_path = get_bootstrap_path()
     return paths[:] + [bootstrap_path] if bootstrap_path else paths[:]
-
-
-def dedup(seq):
-    """Remove duplicates from a list while keeping order."""
-    seen = set()
-    for item in seq:
-        if item not in seen:
-            seen.add(item)
-            yield item
 
 
 def shlex_join(value):
@@ -327,7 +281,7 @@ def pretty_dict(d):
         elif isinstance(value, list):
             value = [_lit(x) for x in value]
         elif isinstance(value, basestring) and '\n' in value:
-            value = yaml_literal(value)
+            value = dump_yaml(value)
         return value
 
     data = _lit(d)
@@ -695,7 +649,7 @@ def convert_old_commands(commands, annotate=True):
                 if idx in (0, len(parts) - 1):
                     func = "appendenv" if idx == 0 else "prependenv"
                     parts = parts[1:] if idx == 0 else parts[:-1]
-                    val = separator.join(parts)
+                    val = os.pathsep.join(parts)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
 
