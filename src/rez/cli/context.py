@@ -59,7 +59,7 @@ def setup_parser(parser, completions=False):
         "current context, this shows how 'stale' the context is")
     RXT_action = parser.add_argument(
         "RXT", type=str, nargs='?',
-        help="rex context file (current context if not supplied)")
+        help="rez context file (current context if not supplied)")
 
     if completions:
         from rez.cli._complete_util import FilesCompleter

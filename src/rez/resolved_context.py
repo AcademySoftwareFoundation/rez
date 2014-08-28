@@ -421,16 +421,24 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
+        try:
+            return cls._load(path)
+        except Exception as e:
+            raise ResolvedContextError("Failed to load context from %r: %s: %s"
+                                       % (path, e.__class__.__name__, str(e)))
+
+    @classmethod
+    def _load(cls, path):
         with open(path) as f:
             doc = yaml.load(f.read())
 
         load_ver = doc["serialize_version"]
         curr_ver = ResolvedContext.serialize_version
         if load_ver > curr_ver:
-            Printer()(
+            print >> sys.stderr, \
                 ("The context stored in %s was written by a newer version of "
-                 "Rez. The load may fail (serialize version %d > %d)")
-                % (path, load_ver, curr_ver), critical)
+                 "Rez. The load may fail (serialize version %d > %d)"
+                 % (path, load_ver, curr_ver), critical)
 
         r = cls.from_dict(doc)
         r.load_path = os.path.abspath(path)

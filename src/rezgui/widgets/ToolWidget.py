@@ -61,12 +61,7 @@ class ToolWidget(QtGui.QWidget):
 
     def _launch_tool(self, terminal=False):
         if terminal:
-            term_cmd = app.config.get("terminal_command")
-            if not term_cmd:
-                title = "Cannot launch tool from separate terminal"
-                body = "The command is not configured"
-                QtGui.QMessageBox.warning(self, title, body)
-                return
+            term_cmd = app.config.get("terminal_command") or ""
             command = term_cmd.strip().split() + [self.tool_name]
         else:
             command = [self.tool_name]

@@ -1,15 +1,15 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.ImageViewerWidget import ImageViewerWidget
-from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.util import create_pane
 from rezgui.objects.App import app
 
 
-class ImageViewerDialog(ConfiguredDialog):
+class ImageViewerDialog(QtGui.QDialog, StoreSizeMixin):
     def __init__(self, image_file, parent=None):
-        super(ImageViewerDialog, self).__init__(app.config,
-                                                "layout/window/resolve_graph",
-                                                parent)
+        config_key = "layout/window/resolve_graph"
+        super(ImageViewerDialog, self).__init__(parent)
+        StoreSizeMixin.__init__(self, app.config, config_key)
         self.setWindowTitle("Resolve Graph")
 
         self.image_viewer = ImageViewerWidget(image_file)

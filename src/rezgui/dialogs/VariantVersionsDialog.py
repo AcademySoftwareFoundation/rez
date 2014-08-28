@@ -1,14 +1,15 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
-from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.objects.App import app
 
 
-class VariantVersionsDialog(ConfiguredDialog):
+class VariantVersionsDialog(QtGui.QDialog, StoreSizeMixin):
     def __init__(self, settings, variant, parent=None):
-        super(VariantVersionsDialog, self).__init__(app.config,
-                                                    "layout/window/package_versions",
-                                                    parent)
+        config_key = "layout/window/package_versions"
+        super(VariantVersionsDialog, self).__init__(parent)
+        StoreSizeMixin.__init__(self, app.config, config_key)
+
         self.setWindowTitle("Package Versions")
         self.versions_widget = VariantVersionsWidget(settings, in_window=True)
 

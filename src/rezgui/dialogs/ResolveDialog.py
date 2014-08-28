@@ -1,5 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
+from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.dialogs.WriteGraphDialog import view_graph
@@ -62,11 +63,13 @@ class Resolver(QtCore.QObject):
             print >> self.buf, "loading %s..." % str(package)
 
 
-class ResolveDialog(ConfiguredDialog):
+class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
     def __init__(self, settings, parent=None, advanced=False):
         config_key = ("layout/window/advanced_resolve" if advanced
                       else "layout/window/resolve")
-        super(ResolveDialog, self).__init__(app.config, config_key, parent)
+        super(ResolveDialog, self).__init__(parent)
+        StoreSizeMixin.__init__(self, app.config, config_key)
+
         self.setWindowTitle("Resolve")
         self.setContentsMargins(0, 0, 0, 0)
 
@@ -189,6 +192,7 @@ class ResolveDialog(ConfiguredDialog):
     def closeEvent(self, event):
         if self._finished or not self.started:
             super(ResolveDialog, self).closeEvent(event)
+            StoreSizeMixin.closeEvent(self, event)
         else:
             self._cancel_resolve()
             event.ignore()

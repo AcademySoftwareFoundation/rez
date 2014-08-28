@@ -1,15 +1,16 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
-from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
+from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.BrowsePackageWidget import BrowsePackageWidget
 from rezgui.objects.App import app
 
 
-class BrowsePackageDialog(ConfiguredDialog):
+class BrowsePackageDialog(QtGui.QDialog, StoreSizeMixin):
     def __init__(self, settings, package_text=None, parent=None):
-        super(BrowsePackageDialog, self).__init__(app.config,
-                                                  "layout/window/browse_package",
-                                                  parent)
+        config_key = "layout/window/browse_package"
+        super(BrowsePackageDialog, self).__init__(parent)
+        StoreSizeMixin.__init__(self, app.config, config_key)
+
         self.setWindowTitle("Find Package")
         self.package = None
 

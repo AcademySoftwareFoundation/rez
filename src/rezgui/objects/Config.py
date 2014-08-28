@@ -16,7 +16,7 @@ class Config(QtCore.QSettings):
         """Get the value of a setting.
 
         If `type` is not provided, the key must be for a known setting,
-        present in the 'rezguiconfig' file. Conversely if `type` IS provided,
+        present in `self.default_settings`. Conversely if `type` IS provided,
         the key must be for an unknown setting.
         """
         if type_ is None:

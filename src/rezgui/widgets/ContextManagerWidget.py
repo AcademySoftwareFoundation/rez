@@ -16,6 +16,13 @@ from functools import partial
 
 class ContextManagerWidget(QtGui.QWidget):
 
+    modified = QtCore.Signal(bool)
+
+    settings_titles = {
+        "packages_path":        "Search path for Rez package",
+        "implicit_packages":    "Packages that are implicitly added to the request"
+    }
+
     settings_schema = Schema({
         "packages_path":        [basestring],
         "implicit_packages":    [basestring]
@@ -24,7 +31,8 @@ class ContextManagerWidget(QtGui.QWidget):
     def __init__(self, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
         self.load_context = None
-        self.current_context = None
+        self.context = None
+        self.is_resolved = False
 
         # context settings
         settings = {
@@ -32,7 +40,8 @@ class ContextManagerWidget(QtGui.QWidget):
             "implicit_packages":    config.implicit_packages
         }
         self.settings = SettingsWidget(data=settings,
-                                       schema=self.settings_schema)
+                                       schema=self.settings_schema,
+                                       titles=self.settings_titles)
 
         # widgets
         self.context_table = ContextTableWidget(self.settings)
@@ -46,10 +55,12 @@ class ContextManagerWidget(QtGui.QWidget):
 
         self.reset_btn = QtGui.QPushButton("Reset...")
         self.diff_btn = QtGui.QPushButton("Diff Mode")
+        self.shell_btn = QtGui.QPushButton("Open Shell")
         self.reset_btn.setEnabled(False)
         self.diff_btn.setEnabled(False)
-        btn_pane = create_pane([None, self.diff_btn, self.reset_btn,
-                                resolve_btn], False)
+        self.shell_btn.setEnabled(False)
+        btn_pane = create_pane([None, self.shell_btn, self.diff_btn,
+                                self.reset_btn, resolve_btn], False)
 
         self.package_tab = PackageTabWidget(settings=self.settings,
                                             versions_tab=True)
@@ -89,25 +100,29 @@ class ContextManagerWidget(QtGui.QWidget):
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.contextModified.connect(self._contextModified)
         self.context_table.variantSelected.connect(self._variantSelected)
+        self.shell_btn.clicked.connect(self._open_shell)
         self.reset_btn.clicked.connect(self._reset)
 
+    def sizeHint(self):
+        return QtCore.QSize(800, 500)
+
     def set_context(self, context):
-        self.current_context = context
+        self.context = context
 
         settings = self._current_context_settings()
         self.settings.reset(settings)
 
-        self.context_table.set_context(self.current_context)
-        self.tools_list.set_context(self.current_context)
-        self.resolve_details.set_context(self.current_context)
-        self.package_tab.set_context(self.current_context)
+        self.context_table.set_context(self.context)
+        self.tools_list.set_context(self.context)
+        self.resolve_details.set_context(self.context)
+        self.package_tab.set_context(self.context)
 
         self.tab.setTabText(0, "context")
         self.tab.setTabText(1, "settings")
         self.tab.setTabEnabled(2, True)
         self.tab.setTabEnabled(3, True)
-        self.diff_btn.setEnabled(True)
-        self.reset_btn.setEnabled(False)
+
+        self._set_resolved(True)
 
     def _resolve(self, advanced=False):
         # check for pending settings changes
@@ -137,7 +152,7 @@ class ContextManagerWidget(QtGui.QWidget):
             self.set_context(context)
 
     def _reset(self):
-        assert self.current_context
+        assert self.context
         ret = QtGui.QMessageBox.warning(
             self,
             "The context has been modified.",
@@ -145,11 +160,18 @@ class ContextManagerWidget(QtGui.QWidget):
             QtGui.QMessageBox.Ok,
             QtGui.QMessageBox.Cancel)
         if ret == QtGui.QMessageBox.Ok:
-            self.set_context(self.current_context)
+            self.set_context(self.context)
+
+    def _open_shell(self):
+        assert self.context
+        shell_cmd = app.config.get("shell_command") or ""
+        self.context.execute_shell(command=shell_cmd,
+                                   block=False,
+                                   start_new_session=True)
 
     def _current_context_settings(self):
-        assert self.current_context
-        context = self.current_context
+        assert self.context
+        context = self.context
         implicit_strs = [str(x) for x in context.implicit_packages]
         return {
             "packages_path":        context.package_paths,
@@ -163,19 +185,21 @@ class ContextManagerWidget(QtGui.QWidget):
 
     def _settingsChanged(self):
         self.tab.setTabText(1, "settings**")
-        self._set_modified()
+        self._set_resolved(False)
 
     def _settingsChangesDiscarded(self):
         self.tab.setTabText(1, "settings*")
 
     def _contextModified(self):
         self.tab.setTabText(0, "context*")
-        self._set_modified()
+        self._set_resolved(False)
 
     def _variantSelected(self, variant):
         self.package_tab.set_variant(variant)
 
-    def _set_modified(self):
-        self.diff_btn.setEnabled(False)
-        if self.current_context:
-            self.reset_btn.setEnabled(True)
+    def _set_resolved(self, resolved=True):
+        self.is_resolved = resolved
+        self.diff_btn.setEnabled(not resolved)
+        self.shell_btn.setEnabled(not resolved)
+        self.reset_btn.setEnabled(resolved and bool(self.context))
+        self.modified.emit(not resolved)

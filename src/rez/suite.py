@@ -354,9 +354,10 @@ class Suite(object):
     def save(self, path, verbose=False):
         """Save the suite to disk.
 
-        Note that saving over the top of the same suite is allowed - otherwise,
-        if `path` already exists, an error is raised. This is intended to avoid
-        accidental deletion of directory trees.
+        Args:
+            path (str): Path to save the suite to. If a suite is already saved
+                at `path`, then it will be overwritten. Otherwise, if `path`
+                exists, an error is raised.
         """
         path = os.path.realpath(path)
         if os.path.exists(path):

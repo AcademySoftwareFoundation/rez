@@ -200,13 +200,12 @@ class ContextTableWidget(QtGui.QTableWidget):
     def _delete_cell(self, row, column):
         for i in range(row, self.rowCount()):
             edit = self.cellWidget(i, column)
-            assert edit and isinstance(edit, PackageSelectWidget)
-
-            next_edit = self.cellWidget(i + 1, column)
-            if next_edit:
-                next_edit.clone_into(edit)
-            else:
-                self.removeCellWidget(i, column)
+            if edit and isinstance(edit, PackageSelectWidget):
+                next_edit = self.cellWidget(i + 1, column)
+                if next_edit:
+                    next_edit.clone_into(edit)
+                else:
+                    self.removeCellWidget(i, column)
         self._trim_trailing_rows()
 
     def _trim_trailing_rows(self):

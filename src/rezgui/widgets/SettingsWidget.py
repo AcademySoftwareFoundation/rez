@@ -11,10 +11,11 @@ class SettingsWidget(QtGui.QWidget):
     settingsChanged = QtCore.Signal()
     settingsChangesDiscarded = QtCore.Signal()
 
-    def __init__(self, parent=None, schema=None, data=None):
+    def __init__(self, parent=None, schema=None, data=None, titles=None):
         super(SettingsWidget, self).__init__(parent)
         self.schema = schema
         self.data = data or {}
+        self.titles = titles or {}
 
         self.edit = QtGui.QTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
@@ -89,7 +90,17 @@ class SettingsWidget(QtGui.QWidget):
         self.settingsChangesDiscarded.emit()
 
     def _update_text(self):
-        txt = yaml.dump(self.data, default_flow_style=False)
+        lines = []
+        for key, value in self.data.iteritems():
+            lines.append('')
+            txt = yaml.dump({key: value}, default_flow_style=False)
+            title = self.titles.get(key)
+            if title:
+                lines.append("# %s" % title)
+            lines.append(txt.rstrip())
+
+        txt = '\n'.join(lines) + '\n'
+        txt = txt.lstrip()
         self.edit.setPlainText(txt)
         self.discard_btn.setEnabled(False)
         self.apply_btn.setEnabled(False)
