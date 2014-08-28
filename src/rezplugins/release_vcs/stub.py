@@ -2,9 +2,9 @@
 Stub version control system, for testing purposes
 """
 from rez.release_vcs import ReleaseVCS
-from rez.util import print_warning
+from rez.exceptions import ReleaseVCSError
+from rez.util import print_warning, yaml_literal
 from rez.vendor import yaml
-from rez.yaml import dump_yaml
 import os.path
 import time
 
@@ -52,7 +52,7 @@ class StubReleaseVCS(ReleaseVCS):
             return
 
         print "Creating tag '%s'..." % tag_name
-        data["tags"][tag_name] = dump_yaml(message)
+        data["tags"][tag_name] = yaml_literal(message)
         self._write_stub(data)
 
     def _read_stub(self):

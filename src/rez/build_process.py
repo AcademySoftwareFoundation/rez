@@ -1,19 +1,21 @@
 from rez.packages import load_developer_package, iter_packages
 from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
+from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import convert_dicts, AttrDictWrapper, print_debug
+from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
+    print_debug, yaml_literal
 from rez.release_hook import create_release_hooks
-from rez.yaml import dump_yaml
+from rez.vendor.version.version import Version
 from rez import __version__
 from rez.vendor import yaml
 import getpass
 import shutil
 import os
 import os.path
+import sys
 import time
-
 
 
 class BuildProcess(object):
@@ -230,14 +232,14 @@ class StandardBuildProcess(BuildProcess):
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=dump_yaml(changelog))
+            changelog=yaml_literal(changelog))
 
         if self.release_message:
             release_message = self.release_message.strip()
         else:
             release_message = "Rez-%s released %s" \
                 % (__version__, self.package.qualified_name)
-        release_info["release_message"] = dump_yaml(release_message)
+        release_info["release_message"] = yaml_literal(release_message)
 
         if last_pkg:
             release_info["previous_version"] = str(last_version)
@@ -396,3 +398,4 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
+
