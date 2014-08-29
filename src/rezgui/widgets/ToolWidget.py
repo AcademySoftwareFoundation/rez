@@ -25,7 +25,8 @@ class ToolWidget(QtGui.QWidget):
         if self.context:
             self.setCursor(QtCore.Qt.PointingHandCursor)
             if self.process_tracker:
-                nprocs = self.process_tracker.num_instances(self.context, self.tool_name)
+                nprocs = self.process_tracker.num_instances(self.context,
+                                                            self.tool_name)
                 self.set_instance_count(nprocs)
 
         layout = QtGui.QHBoxLayout()
@@ -60,17 +61,11 @@ class ToolWidget(QtGui.QWidget):
             self._launch_tool()
 
     def _launch_tool(self, terminal=False):
-        if terminal:
-            term_cmd = app.config.get("terminal_command") or ""
-            command = term_cmd.strip().split() + [self.tool_name]
-        else:
-            command = [self.tool_name]
-
-        proc = self.context.execute_shell(command=command,
-                                          block=False,
-                                          start_new_session=True)
+        proc = app.execute_shell(context=self.context,
+                                 command=self.tool_name,
+                                 terminal=terminal)
         if self.process_tracker:
-            self.process_tracker.add_instance(self.context, self.tool_name, proc)
+            self.process_tracker.add_instance(context, self.tool_name, proc)
 
     def set_instance_count(self, nprocs):
         if nprocs:

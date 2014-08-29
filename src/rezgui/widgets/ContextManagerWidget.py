@@ -164,10 +164,7 @@ class ContextManagerWidget(QtGui.QWidget):
 
     def _open_shell(self):
         assert self.context
-        shell_cmd = app.config.get("shell_command") or ""
-        self.context.execute_shell(command=shell_cmd,
-                                   block=False,
-                                   start_new_session=True)
+        app.execute_shell(context=self.context, terminal=True)
 
     def _current_context_settings(self):
         assert self.context
@@ -199,7 +196,7 @@ class ContextManagerWidget(QtGui.QWidget):
 
     def _set_resolved(self, resolved=True):
         self.is_resolved = resolved
-        self.diff_btn.setEnabled(not resolved)
-        self.shell_btn.setEnabled(not resolved)
-        self.reset_btn.setEnabled(resolved and bool(self.context))
+        self.diff_btn.setEnabled(resolved)
+        self.shell_btn.setEnabled(resolved)
+        self.reset_btn.setEnabled(not resolved and bool(self.context))
         self.modified.emit(not resolved)

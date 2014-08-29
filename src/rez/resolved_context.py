@@ -898,7 +898,7 @@ class ResolvedContext(object):
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
-                      start_new_session=False, **Popen_args):
+                      start_new_session=False, pre_command=None, **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -925,6 +925,8 @@ class ResolvedContext(object):
                 up the file.
             start_new_session: If True, change the process group of the target
                 process.
+            pre_command: Command to inject before the shell command itself. This
+                is for internal use.
             Popen_args: args to pass to the shell process object constructor.
 
         Returns:
@@ -982,6 +984,7 @@ class ResolvedContext(object):
                            command=command,
                            env=parent_environ,
                            quiet=quiet,
+                           pre_command=pre_command,
                            **Popen_args)
         if block:
             stdout, stderr = p.communicate()

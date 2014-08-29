@@ -38,8 +38,5 @@ resolve:
 # Split character in the environment table widget
 split_char: "None"
 
-shell_command_title: "Use this command to open a detached shell"
-shell_command: "x-terminal-emulator"
-
-terminal_command_title: "Use this command to launch tools in a detached terminal"
+terminal_command_title: "Use this command to launch in a detached terminal"
 terminal_command: "x-terminal-emulator --noclose -e"

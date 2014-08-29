@@ -25,6 +25,7 @@ def setup_parser(parser, completions=False):
         "-c", "--command", type=str,
         help="read commands from string. Alternatively, list command arguments "
         "after a '--'")
+    parser.add_argument("--pre-command", type=str, help=SUPPRESS)
     parser.add_argument("-s", "--stdin", action="store_true",
                         help="read commands from standard input")
     parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
@@ -164,5 +165,6 @@ def command(opts, parser, extra_arg_groups=None):
                                              command=command,
                                              stdin=opts.stdin,
                                              quiet=quiet,
+                                             pre_command=opts.pre_command,
                                              block=True)
     sys.exit(returncode)
