@@ -898,7 +898,8 @@ class ResolvedContext(object):
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
-                      start_new_session=False, pre_command=None, **Popen_args):
+                      start_new_session=False, detached=False, pre_command=None,
+                      **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -924,7 +925,10 @@ class ResolvedContext(object):
                 tempdir). If you use this arg, you are responsible for cleaning
                 up the file.
             start_new_session: If True, change the process group of the target
-                process.
+                process. Note that this may override the Popen_args keyword
+                'preexec_fn'.
+            detached: If True, open a separate terminal. Note that this may
+                override the `pre_command` argument.
             pre_command: Command to inject before the shell command itself. This
                 is for internal use.
             Popen_args: args to pass to the shell process object constructor.
@@ -938,10 +942,18 @@ class ResolvedContext(object):
 
         # start a new session if specified
         if start_new_session:
-            if "preexec_fn" in Popen_args:
-                raise ValueError("Cannot specify both 'start_new_session' and "
-                                 "custom Popen args")
             Popen_args["preexec_fn"] = os.setpgrp
+
+        # open a separate terminal if specified
+        if detached:
+            term_cmd = config.terminal_emulator_command
+            if term_cmd:
+                term_cmd = term_cmd.strip().split()
+            else:
+                from rez.platform_ import platform_
+                term_cmd = platform_.terminal_emulator_command
+            if term_cmd:
+                pre_command = term_cmd
 
         # block if the shell is likely to be interactive
         if block is None:

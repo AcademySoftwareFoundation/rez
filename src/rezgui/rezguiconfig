@@ -21,6 +21,9 @@ layout:
         browse_package:
             width: 700
             height: 700
+        process:
+            width: 600
+            height: 500
 
 resolve:
     # Maximum number of fails during a resolve
@@ -37,6 +40,3 @@ resolve:
 
 # Split character in the environment table widget
 split_char: "None"
-
-terminal_command_title: "Use this command to launch in a detached terminal"
-terminal_command: "x-terminal-emulator --noclose -e"

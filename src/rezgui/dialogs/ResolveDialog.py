@@ -2,7 +2,6 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
-from rezgui.dialogs.ConfiguredDialog import ConfiguredDialog
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.App import app
 from rez.exceptions import RezError

@@ -35,7 +35,7 @@ class App(QtGui.QApplication):
         th.start()
         return th
 
-    def execute_shell(self, context, command=None, terminal=False):
+    def execute_shell(self, context, command=None, terminal=False, **Popen_args):
 
         # if the gui was called from a rez-env'd environ, then the new shell
         # here will have a prompt like '>>'. It's not incorrect, but it is a
@@ -45,12 +45,12 @@ class App(QtGui.QApplication):
         if "REZ_ENV_PROMPT" in env:
             del env["REZ_ENV_PROMPT"]
 
-        term_cmd = self.config.get("terminal_command") if terminal else None
-        proc = context.execute_shell(command=command,
+        return context.execute_shell(command=command,
                                      block=False,
-                                     pre_command=term_cmd,
+                                     detached=terminal,
                                      parent_environ=env,
-                                     start_new_session=True)
+                                     start_new_session=True,
+                                     **Popen_args)
 
 # app singleton
 app = App()

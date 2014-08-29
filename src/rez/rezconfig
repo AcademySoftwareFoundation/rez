@@ -1,4 +1,4 @@
-#
+#------------------------------------------------------------------------------
 # Rez configuration settings. Do not change this file.
 #
 # Settings are determined in the following way:
@@ -20,7 +20,7 @@
 # expansions are supported:
 # - Any property of the system object: Eg '{system.platform}' (see system.py)
 # - Any environment variable: Eg '${HOME}'
-#
+#------------------------------------------------------------------------------
 
 
 ###############################################################################
@@ -115,6 +115,10 @@ all_resetting_variables: false
 # rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
 # current shell is used (for eg, 'bash').
 default_shell: ''
+
+# The command to use to launch a new Rez environment in a separate terminal (this
+# is enabled using rez-env's 'detached' option). If None, it is detected.
+terminal_emulator_command:
 
 # This setting can be used to override the separator used for environment
 # variables that represent a list of items. By default, the value of os.pathsep

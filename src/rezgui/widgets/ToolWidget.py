@@ -1,7 +1,9 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.dialogs.ProcessDialog import ProcessDialog
 from rezgui.widgets.IconButton import IconButton
 from rezgui.objects.App import app
 from rezgui.util import get_icon_widget
+import subprocess
 
 
 class ToolWidget(QtGui.QWidget):
@@ -44,12 +46,16 @@ class ToolWidget(QtGui.QWidget):
         menu = QtGui.QMenu(self)
         run_action = menu.addAction("Run")
         run_term_action = menu.addAction("Run In Terminal")
+        run_moniter_action = menu.addAction("Run And Moniter")
+
         action = menu.exec_(self.mapToGlobal(event.pos()))
         self.clicked.emit()
         if action == run_action:
             self._launch_tool()
         elif action == run_term_action:
             self._launch_tool(terminal=True)
+        elif action == run_moniter_action:
+            self._launch_tool(moniter=True)
 
     def mouseReleaseEvent(self, event):
         super(ToolWidget, self).mouseReleaseEvent(event)
@@ -60,12 +66,19 @@ class ToolWidget(QtGui.QWidget):
         if event.button() == QtCore.Qt.LeftButton:
             self._launch_tool()
 
-    def _launch_tool(self, terminal=False):
+    def _launch_tool(self, terminal=False, moniter=False):
+        buf = subprocess.PIPE if moniter else None
         proc = app.execute_shell(context=self.context,
                                  command=self.tool_name,
-                                 terminal=terminal)
+                                 terminal=terminal,
+                                 stdout=buf,
+                                 stderr=buf)
+
         if self.process_tracker:
-            self.process_tracker.add_instance(context, self.tool_name, proc)
+            self.process_tracker.add_instance(self.context, self.tool_name, proc)
+        if moniter:
+            dlg = ProcessDialog(proc, self.tool_name)
+            dlg.exec_()
 
     def set_instance_count(self, nprocs):
         if nprocs:

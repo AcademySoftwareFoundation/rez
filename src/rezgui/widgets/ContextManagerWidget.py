@@ -17,6 +17,7 @@ from functools import partial
 class ContextManagerWidget(QtGui.QWidget):
 
     modified = QtCore.Signal(bool)
+    resolved = QtCore.Signal(bool)  # True if resolve was successful
 
     settings_titles = {
         "packages_path":        "Search path for Rez package",
@@ -147,9 +148,11 @@ class ContextManagerWidget(QtGui.QWidget):
 
         # do the resolve, set as current if successful
         dlg = ResolveDialog(self.settings, parent=self, advanced=advanced)
-        if dlg.resolve(request):
+        success = dlg.resolve(request)
+        if success:
             context = dlg.get_context()
             self.set_context(context)
+        self.resolved.emit(success)
 
     def _reset(self):
         assert self.context

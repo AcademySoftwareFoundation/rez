@@ -2,7 +2,7 @@ import platform
 import sys
 import os
 import os.path
-from rez.util import propertycache
+from rez.util import propertycache, which
 from rez.exceptions import RezSystemError
 
 
@@ -25,6 +25,20 @@ class Platform(object):
     @property
     def os(self):
         """Returns the name of the operating system."""
+        raise NotImplementedError
+
+    @property
+    def terminal_emulator_command(self):
+        """Returns the command to use to run another command in a separate
+        terminal emulator.
+
+        The command is expected to have the target command and arguments
+        appended to it.
+
+        Returns:
+            List of strings, or None if the terminal emulator could not be
+            determined.
+        """
         raise NotImplementedError
 
     @property
@@ -151,6 +165,18 @@ class LinuxPlatform(_UnixPlatform):
         raise RezSystemError("cannot detect operating system")
 
     @propertycache
+    def terminal_emulator_command(self):
+        term = which("x-terminal-emulator", "xterm", "konsole")
+        if term is None:
+            return None
+
+        term = os.path.basename(term)
+        if term in ("x-terminal-emulator", "konsole"):
+            return [term, "--noclose", "-e"]
+        else:
+            return [term, "-hold", "-e"]
+
+    @propertycache
     def image_viewer(self):
         from rez.util import which
         return which("xdg-open", "eog", "kview")
@@ -177,6 +203,18 @@ class OSXPlatform(_UnixPlatform):
     def os(self):
         release = platform.mac_ver()[0]
         return "osx-%s" % release
+
+    @propertycache
+    def terminal_emulator_command(self):
+        term = which("x-terminal-emulator", "xterm")
+        if term is None:
+            return None
+
+        term = os.path.basename(term)
+        if term == "x-terminal-emulator":
+            return [term, "--noclose", "-e"]
+        else:
+            return [term, "-hold", "-e"]
 
     @property
     def image_viewer(self):

@@ -11,6 +11,11 @@ from rez.util import propertycache
 class System(object):
     """Access to underlying system data.
     """
+    @property
+    def rez_version(self):
+        """Returns the current version of Rez."""
+        return __version__
+
     @propertycache
     def platform(self):
         """Get the current platform.
@@ -50,11 +55,6 @@ class System(object):
         return ["platform-%s" % self.platform,
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
-
-    @property
-    def rez_version(self):
-        """Returns the current version of Rez."""
-        return __version__
 
     # TODO move shell detection into shell plugins
     @propertycache

@@ -170,6 +170,7 @@ config_schema = Schema({
     "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
+    "terminal_emulator_command":        OptionalStr,
     "editor":                           OptionalStr,
     "image_viewer":                     OptionalStr,
     "browser":                          OptionalStr,

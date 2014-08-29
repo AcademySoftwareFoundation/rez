@@ -3,6 +3,7 @@ from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
 from rez.exceptions import ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from contextlib import contextmanager
+import os.path
 import time
 
 
@@ -13,15 +14,16 @@ class ContextSubWindow(QtGui.QMdiSubWindow):
 
         widget = ContextManagerWidget()
         if context:
-            self.filepath = context.load_path
             widget.set_context(context)
+            self._set_filepath(context.load_path)
             title = context.load_path
         else:
-            title = "new context"
+            self.setWindowTitle("new context[*]")
+            self.setWindowModified(True)
 
-        self.setWindowTitle(title)
         self.setWidget(widget)
         widget.modified.connect(self._modified)
+        widget.resolved.connect(self._resolved)
 
     def is_save_as_able(self):
         widget = self.widget()
@@ -31,27 +33,42 @@ class ContextSubWindow(QtGui.QMdiSubWindow):
         return bool(self.is_save_as_able() and self.filepath)
 
     def save_context(self):
+        if self.mdiArea().activeSubWindow() != self:
+            return
+
         assert self.filepath
         widget = self.widget()
         assert widget.context
         with self.window()._status("Saving %s..." % self.filepath):
             widget.context.save(self.filepath)
-        self.setWindowTitle(self.filepath)
+        self._set_filepath(self.filepath)
 
     def save_context_as(self):
+        if self.mdiArea().activeSubWindow() != self:
+            return
+
+        dir_ = os.path.dirname(self.filepath) if self.filepath else ""
         filepath = QtGui.QFileDialog.getSaveFileName(
-            self, "Save Context", filter="Context files (*.rxt)")
+            self, "Save Context", dir_, "Context files (*.rxt)")
+
         if filepath:
+            widget = self.widget()
+            filepath = str(filepath)
             with self.window()._status("Saving %s..." % filepath):
                 widget.context.save(filepath)
-            self.filepath = filepath
-            self.setWindowTitle(self.filepath)
+            self._set_filepath(filepath)
+
+    def _set_filepath(self, filepath):
+        self.filepath = filepath
+        self.setWindowTitle(os.path.basename(filepath) + "[*]")
+        self.setWindowModified(False)
 
     def _modified(self):
-        title = str(self.windowTitle())
-        if not title.endswith('*'):
-            title += '*'
-            self.setWindowTitle(title)
+        self.setWindowModified(True)
+
+    def _resolved(self, success):
+        # for some reason the subwindow occasionally loses focus after a resolve
+        self.mdiArea().setActiveSubWindow(self)
 
 
 class MainWindow(QtGui.QMainWindow):

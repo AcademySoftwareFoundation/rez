@@ -39,13 +39,8 @@ class VariantVersionsWidget(QtGui.QWidget):
             buttons.append(self.changelog_btn)
 
         btn_pane = create_pane(buttons, True, compact=not self.in_window)
-
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.table)
-        layout.addWidget(btn_pane)
-        self.setLayout(layout)
-
+        create_pane([self.label, self.table, btn_pane], False, compact=True,
+                    parent_widget=self)
         self.clear()
 
     def clear(self):

@@ -15,16 +15,12 @@ class VariantDetailsWidget(QtGui.QWidget):
         self.edit.setStyleSheet("font: 9pt 'Courier'")
         self.view_graph_btn = QtGui.QPushButton("View Graph...")
         self.view_graph_btn.hide()
-        btn_pane = create_pane([None, self.view_graph_btn], True)
+        btn_pane = create_pane([None, self.view_graph_btn], True, compact=True)
 
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.edit)
-        layout.addWidget(btn_pane)
-        self.setLayout(layout)
+        create_pane([self.label, self.edit, btn_pane], False, compact=True,
+                    parent_widget=self)
 
         self.view_graph_btn.clicked.connect(self._view_graph)
-
         self.clear()
 
     def clear(self):
