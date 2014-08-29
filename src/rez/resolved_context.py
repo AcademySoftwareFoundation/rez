@@ -9,19 +9,17 @@ from rez.util import columnise, convert_old_commands, shlex_join, \
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
-from rez.vendor.version.version import VersionRange
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name
-from rez.shells import create_shell, get_shell_types
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor import yaml
+from rez.yaml import dump_yaml
 import getpass
 import inspect
 import time
-import uuid
 import sys
 import os
 import os.path
@@ -350,7 +348,7 @@ class ResolvedContext(object):
     def save(self, path):
         """Save the resolved context to file."""
         doc = self.to_dict()
-        content = yaml.dump(doc)
+        content = dump_yaml(doc)
         with open(path, 'w') as f:
             f.write(content)
 

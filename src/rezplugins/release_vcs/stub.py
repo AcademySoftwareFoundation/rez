@@ -49,10 +49,10 @@ class StubReleaseVCS(ReleaseVCS):
             data["tags"] = {}
         elif tag_name in data["tags"]:
             print_warning("Skipped tag creation, tag '%s' already exists" % tag_name)
-            return
+            return                                                                         F
 
         print "Creating tag '%s'..." % tag_name
-        data["tags"][tag_name] = dump_yaml(message)
+        data["tags"][tag_name] = message
         self._write_stub(data)
 
     def _read_stub(self):
@@ -61,7 +61,7 @@ class StubReleaseVCS(ReleaseVCS):
 
     def _write_stub(self, data):
         with open(os.path.join(self.path, '.stub'), 'w') as f:
-            f.write(yaml.dump(data, default_flow_style=False))
+            f.write(dump_yaml(data))
 
 
 def register_plugin():

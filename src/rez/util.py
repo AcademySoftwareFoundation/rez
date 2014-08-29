@@ -20,7 +20,6 @@ from collections import MutableMapping, defaultdict
 import logging
 from string import Formatter
 from rez import module_root_path
-from rez.vendor import yaml
 from rez.yaml import dump_yaml
 
 
@@ -76,7 +75,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     if kwargs:
         doc["kwargs"] = kwargs
 
-    content = yaml.dump(doc, default_flow_style=False)
+    content = dump_yaml(doc)
     with open(filepath, 'w') as f:
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
@@ -281,11 +280,11 @@ def pretty_dict(d):
         elif isinstance(value, list):
             value = [_lit(x) for x in value]
         elif isinstance(value, basestring) and '\n' in value:
-            value = dump_yaml(value)
+            value = value
         return value
 
     data = _lit(d)
-    txt = yaml.dump(data, default_flow_style=False)
+    txt = dump_yaml(data)
     return txt.strip()
 
 

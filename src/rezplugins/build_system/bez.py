@@ -1,13 +1,13 @@
 """
 Built-in simple python build system.
 """
-from rez.vendor import yaml
 from rez.build_system import BuildSystem
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
 from rez.config import config
+from rez.yaml import dump_yaml
 import os.path
 import sys
 
@@ -62,7 +62,7 @@ class BezBuildSystem(BuildSystem):
             install_path=install_path)
 
         ret = {}
-        content = yaml.dump(doc)
+        content = dump_yaml(doc)
         bezfile = os.path.join(build_path, ".bez.yaml")
         with open(bezfile, 'w') as f:
             f.write(content + '\n')

@@ -18,6 +18,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
 from rez.vendor import yaml
 from rez.exceptions import PackageMetadataError, RezSystemError
 from rez.util import OrderedDict
+from rez.yaml import dump_package_yaml
 from contextlib import contextmanager
 import inspect
 import textwrap
@@ -349,7 +350,7 @@ class YamlPackageMaker(PackageMaker):
 
         metafile = os.path.join(self.base_path, "package.yaml")
         with open(metafile, 'w') as f:
-            yaml.dump(doc, f)
+            dump_package_yaml(doc, f)
 
 
 def _make_package(maker):

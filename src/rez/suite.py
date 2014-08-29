@@ -4,6 +4,7 @@ from rez.resolved_context import ResolvedContext
 from rez.colorize import heading, warning, error, Printer
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.yaml import dump_yaml
 from collections import defaultdict
 import os
 import os.path
@@ -362,7 +363,7 @@ class Suite(object):
         data = self.to_dict()
         filepath = os.path.join(path, "suite.yaml")
         with open(filepath, "w") as f:
-            f.write(yaml.dump(data))
+            f.write(dump_yaml(data))
 
         # write contexts
         for context_name in self.context_names:
