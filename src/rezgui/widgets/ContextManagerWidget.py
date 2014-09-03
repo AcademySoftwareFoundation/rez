@@ -248,7 +248,7 @@ class ContextManagerWidget(QtGui.QWidget):
     def _effectiveRequestStateChanged(self, state):
         self.context_table.show_effective_request(state == QtCore.Qt.Checked)
 
-    def _set_lock_type(self, lock_type=None):
-        icon_name = lock_type or "no_lock"
-        icon = get_icon(icon_name, as_qicon=True)
+    def _set_lock_type(self, lock_type):
+        icon = get_icon(lock_type, as_qicon=True)
         self.resolve_btn.setIcon(icon)
+        #self.context_table.set_default_patch_lock(lock_type)

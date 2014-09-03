@@ -11,6 +11,7 @@ class VariantCellWidget(QtGui.QWidget):
         self.settings = settings
         self.variant = variant
         self.context = context
+        self.stale = False
         self.lock_status = None
         self.lock_icon = None
         self.icons = []  # 3-tuples: widget, name, tooltip
@@ -77,11 +78,13 @@ class VariantCellWidget(QtGui.QWidget):
         lock_name = self.settings.get("default_patch_lock")
         return PatchLock[lock_name], True
 
-    def make_stale(self, b):
-        font = self.label.font()
-        font.setItalic(b)
-        self.label.setFont(font)
-        self.label.setEnabled(not b)
+    def set_stale(self, b=True):
+        if b != self.stale:
+            font = self.label.font()
+            font.setItalic(b)
+            self.label.setFont(font)
+            self.label.setEnabled(not b)
+            self.stale = b
 
     def set_lock_status(self, lock_type=None, faint=False):
         if lock_type is None:
@@ -120,6 +123,7 @@ class VariantCellWidget(QtGui.QWidget):
             if name == name_:
                 return
             self.layout.removeWidget(widget_)
+            widget_.setParent(None)
 
         widget = get_icon_widget(name, tooltip)
         self.layout.insertWidget(0, widget)

@@ -191,6 +191,8 @@ class ContextTableWidget(QtGui.QTableWidget):
         if row >= self.rowCount():
             self.setRowCount(row + 1)
         widget = VariantCellWidget(variant, context, self.settings)
+        self.contextModified.connect(widget.set_stale)
+        self.settings.settingsChanged.connect(widget.set_stale)
         self.setCellWidget(row, column, widget)
 
     def _set_cell_text(self, row, column, txt):
@@ -210,12 +212,8 @@ class ContextTableWidget(QtGui.QTableWidget):
         if not self.modified:
             self.modified = True
             resolve_column = 1 if column == 0 else 2
-            self._stale_column(resolve_column, True)
+            self.refresh(resolve_column)
             self.contextModified.emit()
-
-    def _stale_column(self, column, make_stale):
-        for _, widget in self._iter_column_widgets(column, VariantCellWidget):
-            widget.make_stale(make_stale)
 
     def _enable_column(self, column, enabled):
         for _, widget in self._iter_column_widgets(column):
