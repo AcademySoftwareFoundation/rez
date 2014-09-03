@@ -24,9 +24,9 @@ class VariantToolsList(QtGui.QTableWidget):
         app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
     def clear(self):
+        self.tool_widgets = {}
         super(VariantToolsList, self).clear()
         self.setEnabled(False)
-        self.tool_widgets = {}
 
     def refresh(self):
         variant = self.variant
@@ -41,13 +41,12 @@ class VariantToolsList(QtGui.QTableWidget):
         if variant == self.variant:
             return
 
-        if variant is None:
-            self.clear()
-        else:
+        self.clear()
+
+        if variant is not None:
             tools = sorted(variant.tools or [])
             self.setRowCount(len(tools))
             self.setEnabled(True)
-            self.tool_widgets = {}
 
             for i, tool in enumerate(tools):
                 widget = ToolWidget(self.context, tool, app.process_tracker)

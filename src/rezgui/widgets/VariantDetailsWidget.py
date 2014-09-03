@@ -45,6 +45,7 @@ class VariantDetailsWidget(QtGui.QWidget):
             self.edit.clear()
             variant.print_info(self.edit)
             self.edit.moveCursor(QtGui.QTextCursor.Start)
+            self.view_graph_btn.setVisible(self.context is not None)
 
         self.variant = variant
 

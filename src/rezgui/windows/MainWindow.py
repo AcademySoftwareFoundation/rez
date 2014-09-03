@@ -1,74 +1,9 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
+from rezgui.windows.ContextSubWindow import ContextSubWindow
 from rez.exceptions import ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from contextlib import contextmanager
-import os.path
 import time
-
-
-class ContextSubWindow(QtGui.QMdiSubWindow):
-    def __init__(self, context=None, parent=None):
-        super(ContextSubWindow, self).__init__(parent)
-        self.filepath = None
-
-        widget = ContextManagerWidget()
-        if context:
-            widget.set_context(context)
-            self._set_filepath(context.load_path)
-            title = context.load_path
-        else:
-            self.setWindowTitle("new context[*]")
-            self.setWindowModified(True)
-
-        self.setWidget(widget)
-        widget.modified.connect(self._modified)
-        widget.resolved.connect(self._resolved)
-
-    def is_save_as_able(self):
-        widget = self.widget()
-        return bool(widget.is_resolved and widget.context)
-
-    def is_saveable(self):
-        return bool(self.is_save_as_able() and self.filepath)
-
-    def save_context(self):
-        if self.mdiArea().activeSubWindow() != self:
-            return
-
-        assert self.filepath
-        widget = self.widget()
-        assert widget.context
-        with self.window()._status("Saving %s..." % self.filepath):
-            widget.context.save(self.filepath)
-        self._set_filepath(self.filepath)
-
-    def save_context_as(self):
-        if self.mdiArea().activeSubWindow() != self:
-            return
-
-        dir_ = os.path.dirname(self.filepath) if self.filepath else ""
-        filepath = QtGui.QFileDialog.getSaveFileName(
-            self, "Save Context", dir_, "Context files (*.rxt)")
-
-        if filepath:
-            widget = self.widget()
-            filepath = str(filepath)
-            with self.window()._status("Saving %s..." % filepath):
-                widget.context.save(filepath)
-            self._set_filepath(filepath)
-
-    def _set_filepath(self, filepath):
-        self.filepath = filepath
-        self.setWindowTitle(os.path.basename(filepath) + "[*]")
-        self.setWindowModified(False)
-
-    def _modified(self):
-        self.setWindowModified(True)
-
-    def _resolved(self, success):
-        # for some reason the subwindow occasionally loses focus after a resolve
-        self.mdiArea().setActiveSubWindow(self)
 
 
 class MainWindow(QtGui.QMainWindow):
@@ -95,8 +30,23 @@ class MainWindow(QtGui.QMainWindow):
                                            self._open_context)
         self.save_context_action = _action(file_menu, "&Save Context")
         self.save_context_as_action = _action(file_menu, "Save Context As...")
+        file_menu.addSeparator()
+        self.quit_action = _action(file_menu, "Quit", self.close)
 
         file_menu.aboutToShow.connect(self._update_file_menu)
+
+    def closeEvent(self, event):
+        # attempt to close modified contexts first
+        subwindows = [x for x in self.mdi.subWindowList() if x.isWindowModified()]
+        subwindows += [x for x in self.mdi.subWindowList() if not x.isWindowModified()]
+
+        for subwindow in subwindows:
+            if not subwindow.close():
+                event.ignore()
+                return
+
+        if self.mdi.subWindowList():
+            event.ignore()
 
     def cascade(self):
         self.mdi.cascadeSubWindows()

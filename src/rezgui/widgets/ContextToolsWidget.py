@@ -26,8 +26,7 @@ class ContextToolsWidget(QtGui.QTreeWidget):
         self.context = None
         self.tool_widgets = {}
 
-        icon = get_icon("package")
-        self.package_icon = QtGui.QIcon(icon)
+        self.package_icon = get_icon("package", as_qicon=True)
 
         h = self.header()
         h.stretchLastSection()

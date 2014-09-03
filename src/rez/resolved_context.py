@@ -17,6 +17,7 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
 from rez.packages import Variant, validate_package_name, iter_packages
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
+from rez.vendor.enum import Enum
 from rez.vendor import yaml
 import getpass
 import inspect
@@ -25,6 +26,19 @@ import uuid
 import sys
 import os
 import os.path
+
+
+class PatchLock(Enum):
+    """ Enum to represent the 'lock type' used when patching context objects.
+    """
+    no_lock = ("No locking",)
+    lock_2 = ("Minor version updates only (rank 2)",)
+    lock_3 = ("Patch version updates only (rank 3)",)
+    lock_4 = ("Build version updates only (rank 4)",)
+    lock = ("Exact version",)
+
+    def __init__(self, description):
+        self.description = description
 
 
 class ResolvedContext(object):
@@ -38,7 +52,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = 2
+    serialize_version = 3
 
     class Callback(object):
         def __init__(self, verbose, max_fails, time_limit, callback, buf=None):
@@ -127,6 +141,9 @@ class ResolvedContext(object):
         if add_bootstrap:
             self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
         self.package_paths = list(dedup(self.package_paths))
+
+        # patch settings
+        self.default_patch_lock = PatchLock.no_lock
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -287,6 +304,7 @@ class ResolvedContext(object):
         import copy
         return copy.copy(self)
 
+    # TODO deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,
                             package_subtractions=None, strict=False, rank=0):
         """Get a 'patched' request.
@@ -1020,6 +1038,8 @@ class ResolvedContext(object):
             package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
 
+            default_patch_lock=self.default_patch_lock.name,
+
             rez_version=self.rez_version,
             rez_path=self.rez_path,
             user=self.user,
@@ -1076,14 +1096,18 @@ class ResolvedContext(object):
             variant = Variant(resource)
             r._resolved_packages.append(variant)
 
-        # SINCE SERIALIZE VERSION 1 --
+        # -- SINCE SERIALIZE VERSION 1
 
         r.requested_timestamp = d.get("requested_timestamp", 0)
 
-        # SINCE SERIALIZE VERSION 2 --
+        # -- SINCE SERIALIZE VERSION 2
 
         r.parent_suite_path = d.get("parent_suite_path")
         r.suite_context_name = d.get("suite_context_name")
+
+        # -- SINCE SERIALIZE VERSION 3
+
+        r.default_patch_lock = PatchLock[d.get("default_patch_lock", "no_lock")]
 
         return r
 

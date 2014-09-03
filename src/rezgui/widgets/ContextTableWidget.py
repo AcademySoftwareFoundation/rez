@@ -1,4 +1,5 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
 from rezgui.widgets.VariantCellWidget import VariantCellWidget
 from rez.packages import Variant
@@ -26,6 +27,7 @@ class ContextTableWidget(QtGui.QTableWidget):
         self.context = None
         self.modified = False
         self.diff_mode = False
+        self._show_effective_request = False
         self._current_variant = None
 
         self.setEditTriggers(QtGui.QAbstractItemView.NoEditTriggers)
@@ -39,7 +41,6 @@ class ContextTableWidget(QtGui.QTableWidget):
         vh.setVisible(False)
 
         self.currentCellChanged.connect(self._currentCellChanged)
-
         self.set_context()
 
     def selectionCommand(self, index, event=None):
@@ -47,19 +48,19 @@ class ContextTableWidget(QtGui.QTableWidget):
         column = index.column()
 
         widget = self.cellWidget(row, column)
-        if widget:
-            if isinstance(widget, PackageSelectWidget):
-                return QtGui.QItemSelectionModel.Clear
+        if widget and isinstance(widget, VariantCellWidget):
+            return QtGui.QItemSelectionModel.ClearAndSelect
         else:
-            item = self.item(row, column)
-            if not item or not item.text():
-                return QtGui.QItemSelectionModel.NoUpdate
-
-        return QtGui.QItemSelectionModel.ClearAndSelect
+            return QtGui.QItemSelectionModel.Clear
 
     def current_variant(self):
         """Returns the currently selected variant, if any."""
         return self._current_variant
+
+    def show_effective_request(self, b):
+        if b != self._show_effective_request:
+            self._show_effective_request = b
+            self.refresh(0)
 
     def set_context(self, context=None):
         """Set contents to the given `ResolvedContext`."""
@@ -73,6 +74,7 @@ class ContextTableWidget(QtGui.QTableWidget):
             self.context = context
         else:
             self._set_package_cell(0, 0)
+        self.refresh(0)
 
     def get_request(self):
         """Get the current request list.
@@ -82,21 +84,40 @@ class ContextTableWidget(QtGui.QTableWidget):
         """
         return self._get_request(0)
 
-    def refresh(self):
-        for column in (0, 1):
-            for widget in self._iter_column_widgets(column):
-                widget.refresh()
+    def refresh(self, columns=None):
+        if columns is None:
+            columns = (0, 1)
+        elif isinstance(columns, int):
+            columns = [columns]
+
+        # refresh variants and requests
+        for column in columns:
+            for _, widget in self._iter_column_widgets(column):
+                if hasattr(widget, "refresh"):
+                    widget.refresh()
+
+        if 0 in columns:
+            # remove effective request cells
+            for row, widget in self._iter_column_widgets(0, EffectivePackageCellWidget):
+                self.removeCellWidget(row, 0)
+
+            # update effective request cells
+            if self._show_effective_request:
+                # get row following package select widgets
+                last_row = -1
+                for row, widget in self._iter_column_widgets(0, PackageSelectWidget):
+                    last_row = row
+
+                row = last_row + 1
+                implicit_packages = self.settings.get("implicit_packages")
+                for request_str in implicit_packages:
+                    self._set_effective_package_cell(row, 0, request_str, "implicit")
+                    row += 1
+
+        self._trim_trailing_rows()
 
     def _currentCellChanged(self, currentRow, currentColumn,
                             previousRow, previousColumn):
-        # clear selection if inactive cell is clicked
-        indexes = self.selectedIndexes()
-        if indexes:
-            index = indexes[0]
-            if index.row() != currentRow or index.column() != currentColumn:
-                self.clearSelection()
-
-        # detect click on variant cell
         widget = self.cellWidget(currentRow, currentColumn)
         if widget and isinstance(widget, VariantCellWidget):
             self._current_variant = widget.variant
@@ -105,17 +126,16 @@ class ContextTableWidget(QtGui.QTableWidget):
             self.setCurrentIndex(QtCore.QModelIndex())
         self.variantSelected.emit(self._current_variant)
 
-    def _iter_column_widgets(self, column):
-        for i in range(self.rowCount()):
-            widget = self.cellWidget(i, column)
-            if widget:
-                yield widget
-            else:
-                break
+    def _iter_column_widgets(self, column, types=None):
+        types = types or QtGui.QWidget
+        for row in range(self.rowCount()):
+            widget = self.cellWidget(row, column)
+            if widget and isinstance(widget, types):
+                yield row, widget
 
     def _get_request(self, column):
         request_strs = []
-        for edit in self._iter_column_widgets(column):
+        for _, edit in self._iter_column_widgets(column, PackageSelectWidget):
             txt = str(edit.text()).strip()
             if txt:
                 request_strs.append(txt)
@@ -125,24 +145,30 @@ class ContextTableWidget(QtGui.QTableWidget):
         requests = context.requested_packages()
         resolved = context.resolved_packages[:]
         num_requests = len(requests)
+        consumed = set()
 
         for i, request in enumerate(requests):
             self._set_package_cell(i, request_column, request)
             variant = context.get_resolved_package(request.name)
-            if variant:
-                self._set_variant_cell(i, resolve_column, variant)
+            if variant and variant.name not in consumed:
+                consumed.add(variant.name)
+                self._set_variant_cell(i, resolve_column, context, variant)
                 resolved = [x for x in resolved if x.name != request.name]
 
         for i, variant in enumerate(resolved):
-            self._set_variant_cell(i + num_requests, resolve_column, variant)
+            self._set_variant_cell(i + num_requests, resolve_column, context, variant)
 
         self._set_package_cell(num_requests, request_column)
 
     def _set_package_cell(self, row, column, request=None):
         if row >= self.rowCount():
             self.setRowCount(row + 1)
-        if self.cellWidget(row, column):
-            return
+
+        if request is None:
+            # don't overwrite existing package request
+            widget = self.cellWidget(row, column)
+            if widget and isinstance(widget, PackageSelectWidget):
+                return None
 
         txt = str(request) if request else ""
 
@@ -153,13 +179,18 @@ class ContextTableWidget(QtGui.QTableWidget):
         edit.focusOut.connect(partial(self._packageFocusOut, row, column))
         edit.focusOutViaKeyPress.connect(partial(self._packageFocusOutViaKeyPress,
                                                  row, column))
-        #edit.refresh()
         return edit
 
-    def _set_variant_cell(self, row, column, variant):
+    def _set_effective_package_cell(self, row, column, request, lock_type):
         if row >= self.rowCount():
             self.setRowCount(row + 1)
-        widget = VariantCellWidget(variant, self.settings)
+        cell = EffectivePackageCellWidget(request, lock_type)
+        self.setCellWidget(row, column, cell)
+
+    def _set_variant_cell(self, row, column, context, variant):
+        if row >= self.rowCount():
+            self.setRowCount(row + 1)
+        widget = VariantCellWidget(variant, context, self.settings)
         self.setCellWidget(row, column, widget)
 
     def _set_cell_text(self, row, column, txt):
@@ -173,40 +204,50 @@ class ContextTableWidget(QtGui.QTableWidget):
 
     def _packageTextChanged(self, row, column, txt):
         if txt:
-            self._set_package_cell(row + 1, column)
+            if self._set_package_cell(row + 1, column):
+                self.refresh(column)
 
         if not self.modified:
             self.modified = True
             resolve_column = 1 if column == 0 else 2
-            self._enable_column(resolve_column, False)
+            self._stale_column(resolve_column, True)
             self.contextModified.emit()
 
+    def _stale_column(self, column, make_stale):
+        for _, widget in self._iter_column_widgets(column, VariantCellWidget):
+            widget.make_stale(make_stale)
+
     def _enable_column(self, column, enabled):
-        for widget in self._iter_column_widgets(column):
+        for _, widget in self._iter_column_widgets(column):
             widget.setEnabled(enabled)
 
     def _packageFocusOut(self, row, column, txt):
         if txt:
             self._set_package_cell(row + 1, column)
-        elif self.cellWidget(row + 1, column):
-            self._delete_cell(row, column)
+        else:
+            widget = self.cellWidget(row + 1, column)
+            if widget and isinstance(widget, PackageSelectWidget):
+                self._delete_cell(row, column)
+        self.refresh(column)
 
     def _packageFocusOutViaKeyPress(self, row, column, txt):
         if txt:
             self._set_current_cell(row + 1, column)
-        elif self.cellWidget(row + 1, column):
-            self._delete_cell(row, column)
+        else:
+            widget = self.cellWidget(row + 1, column)
+            if widget and isinstance(widget, PackageSelectWidget):
+                self._delete_cell(row, column)
+        self.refresh(column)
 
     def _delete_cell(self, row, column):
         for i in range(row, self.rowCount()):
             edit = self.cellWidget(i, column)
             if edit and isinstance(edit, PackageSelectWidget):
                 next_edit = self.cellWidget(i + 1, column)
-                if next_edit:
+                if next_edit and isinstance(next_edit, PackageSelectWidget):
                     next_edit.clone_into(edit)
                 else:
                     self.removeCellWidget(i, column)
-        self._trim_trailing_rows()
 
     def _trim_trailing_rows(self):
         n = 0

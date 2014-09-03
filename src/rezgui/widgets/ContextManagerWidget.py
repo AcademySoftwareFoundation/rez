@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, create_toolbutton
+from rezgui.util import create_pane, create_toolbutton, get_icon, lock_types
 from rezgui.widgets.ContextToolsWidget import ContextToolsWidget
 from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
@@ -7,10 +7,11 @@ from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.SettingsWidget import SettingsWidget
 from rezgui.dialogs.ResolveDialog import ResolveDialog
-from rez.vendor.version.requirement import Requirement
-from rez.vendor.schema.schema import Schema
 from rezgui.objects.App import app
+from rez.vendor.version.requirement import Requirement
+from rez.vendor.schema.schema import Schema, Or
 from rez.config import config
+from rez.resolved_context import PatchLock
 from functools import partial
 
 
@@ -20,25 +21,27 @@ class ContextManagerWidget(QtGui.QWidget):
     resolved = QtCore.Signal(bool)  # True if resolve was successful
 
     settings_titles = {
-        "packages_path":        "Search path for Rez package",
-        "implicit_packages":    "Packages that are implicitly added to the request"
+        "packages_path":        "Search path for Rez packages",
+        "implicit_packages":    "Packages that are implicitly added to the request",
+        "default_patch_lock":   "Locking to apply during a re-resolve"
     }
 
     settings_schema = Schema({
         "packages_path":        [basestring],
-        "implicit_packages":    [basestring]
+        "implicit_packages":    [basestring],
+        "default_patch_lock":   Or(*[x.name for x in PatchLock])
     })
 
     def __init__(self, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
-        self.load_context = None
         self.context = None
         self.is_resolved = False
 
         # context settings
         settings = {
             "packages_path":        config.packages_path,
-            "implicit_packages":    config.implicit_packages
+            "implicit_packages":    config.implicit_packages,
+            "default_patch_lock":   PatchLock.no_lock.name
         }
         self.settings = SettingsWidget(data=settings,
                                        schema=self.settings_schema,
@@ -46,32 +49,64 @@ class ContextManagerWidget(QtGui.QWidget):
 
         # widgets
         self.context_table = ContextTableWidget(self.settings)
+        self.show_effective_request_checkbox = QtGui.QCheckBox("show effective request")
 
-        resolve_btn = create_toolbutton(
-            [("Resolve", self._resolve),
-             ("Advanced...", partial(self._resolve, advanced=True))])
-        szpol = QtGui.QSizePolicy()
-        szpol.setHorizontalPolicy(QtGui.QSizePolicy.Ignored)
-        resolve_btn.setSizePolicy(szpol)
-
-        self.reset_btn = QtGui.QPushButton("Reset...")
         self.diff_btn = QtGui.QPushButton("Diff Mode")
         self.shell_btn = QtGui.QPushButton("Open Shell")
-        self.reset_btn.setEnabled(False)
-        self.diff_btn.setEnabled(False)
-        self.shell_btn.setEnabled(False)
-        btn_pane = create_pane([None, self.shell_btn, self.diff_btn,
-                                self.reset_btn, resolve_btn], False)
+
+        self.resolve_btn = QtGui.QToolButton()
+
+        def _action(menu, label, slot, icon_name=None, group=None):
+            nargs = [label, self.resolve_btn]
+            if icon_name:
+                icon = get_icon(icon_name, as_qicon=True)
+                nargs.insert(0, icon)
+            action = QtGui.QAction(*nargs)
+            action.triggered.connect(slot)
+            if group:
+                action.setCheckable(True)
+                group.addAction(action)
+            menu.addAction(action)
+            return action
+
+        menu = QtGui.QMenu()
+        default_action = _action(menu, "Resolve", self._resolve)
+        _action(menu, "Advanced Resolve...", partial(self._resolve, advanced=True))
+        self.reset_action = _action(menu, "Reset To Last Resolve...", self._reset)
+
+        menu.addSeparator()
+        lock_group = QtGui.QActionGroup(menu)
+        self.lock_menu = menu.addMenu("Set Locking To...")
+        fn = partial(self._set_lock_type, "no_lock")
+        _action(self.lock_menu, "No Locking", fn, "no_lock", lock_group)
+        for k, v in lock_types.iteritems():
+            fn = partial(self._set_lock_type, k)
+            _action(self.lock_menu, "Lock to %s" % v, fn, k, lock_group)
+
+        self.resolve_btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
+        self.resolve_btn.setDefaultAction(default_action)
+        self.resolve_btn.setMenu(menu)
+        icon = get_icon("no_lock", as_qicon=True)
+        self.resolve_btn.setIcon(icon)
+        self.resolve_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
+
+        btn_pane = create_pane([self.show_effective_request_checkbox,
+                                None,
+                                self.shell_btn,
+                                self.diff_btn,
+                                self.resolve_btn],
+                               True, compact=True, compact_spacing=0)
+
+        context_pane = create_pane([self.context_table, btn_pane], False,
+                                   compact=True, compact_spacing=0)
 
         self.package_tab = PackageTabWidget(settings=self.settings,
                                             versions_tab=True)
 
-        bottom_pane = create_pane([(self.package_tab, 1), btn_pane], True)
-
         context_splitter = ConfiguredSplitter(app.config, "layout/splitter/main")
         context_splitter.setOrientation(QtCore.Qt.Vertical)
-        context_splitter.addWidget(self.context_table)
-        context_splitter.addWidget(bottom_pane)
+        context_splitter.addWidget(context_pane)
+        context_splitter.addWidget(self.package_tab)
         if not context_splitter.apply_saved_layout():
             context_splitter.setStretchFactor(0, 2)
             context_splitter.setStretchFactor(1, 1)
@@ -102,7 +137,10 @@ class ContextManagerWidget(QtGui.QWidget):
         self.context_table.contextModified.connect(self._contextModified)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_btn.clicked.connect(self._open_shell)
-        self.reset_btn.clicked.connect(self._reset)
+        self.show_effective_request_checkbox.stateChanged.connect(
+            self._effectiveRequestStateChanged)
+
+        self._set_resolved(False)
 
     def sizeHint(self):
         return QtCore.QSize(800, 500)
@@ -173,9 +211,11 @@ class ContextManagerWidget(QtGui.QWidget):
         assert self.context
         context = self.context
         implicit_strs = [str(x) for x in context.implicit_packages]
+
         return {
             "packages_path":        context.package_paths,
-            "implicit_packages":    implicit_strs
+            "implicit_packages":    implicit_strs,
+            "default_patch_lock":   context.default_patch_lock.name
         }
 
     def _settingsApplied(self):
@@ -201,5 +241,14 @@ class ContextManagerWidget(QtGui.QWidget):
         self.is_resolved = resolved
         self.diff_btn.setEnabled(resolved)
         self.shell_btn.setEnabled(resolved)
-        self.reset_btn.setEnabled(not resolved and bool(self.context))
+        self.reset_action.setEnabled(not resolved and bool(self.context))
+        self.lock_menu.setEnabled(bool(self.context))
         self.modified.emit(not resolved)
+
+    def _effectiveRequestStateChanged(self, state):
+        self.context_table.show_effective_request(state == QtCore.Qt.Checked)
+
+    def _set_lock_type(self, lock_type=None):
+        icon_name = lock_type or "no_lock"
+        icon = get_icon(icon_name, as_qicon=True)
+        self.resolve_btn.setIcon(icon)

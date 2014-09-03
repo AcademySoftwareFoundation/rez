@@ -1,7 +1,14 @@
 from rezgui.qt import QtCore, QtGui
-from rez.util import readable_time_duration
+from rez.util import readable_time_duration, OrderedDict
 import os.path
 import time
+
+
+lock_types = OrderedDict([
+    ("lock_2",  "minor version updates only (rank 2)"),
+    ("lock_3",  "patch version updates only (rank 3)"),
+    ("lock_4",  "build version updates only (rank 4)"),
+    ("lock",    "exact version")])
 
 
 def create_pane(widgets, horizontal, parent_widget=None, compact=False,
@@ -66,24 +73,28 @@ def create_toolbutton(entries, parent=None):
     btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
     btn.setDefaultAction(actions[0])
     btn.setMenu(menu)
-    return btn
+    return btn, actions
 
 
 icons = {}
 
 
-def get_icon(name):
-    """Returns a `QPixmap` containing the given image."""
+def get_icon(name, as_qicon=False):
+    """Returns a `QPixmap` containing the given image, or a QIcon if `as_qicon`
+    is True"""
     filename = name + ".png"
     icon = icons.get(filename)
-    if icon:
-        return icon
+    if not icon:
+        path = os.path.dirname(__file__)
+        path = os.path.join(path, "icons")
+        filepath = os.path.join(path, filename)
+        if not os.path.exists(filepath):
+            filepath = os.path.join(path, "pink.png")
 
-    filepath = os.path.dirname(__file__)
-    filepath = os.path.join(filepath, "icons", filename)
-    icon = QtGui.QPixmap(filepath)
-    icons[filename] = icon
-    return icon
+        icon = QtGui.QPixmap(filepath)
+        icons[filename] = icon
+
+    return QtGui.QIcon(icon) if as_qicon else icon
 
 
 def get_icon_widget(filename, tooltip=None):

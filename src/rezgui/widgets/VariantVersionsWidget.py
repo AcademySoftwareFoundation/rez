@@ -32,7 +32,7 @@ class VariantVersionsWidget(QtGui.QWidget):
             buttons.append(close_btn)
             close_btn.clicked.connect(self._close_window)
         else:
-            self.changelog_btn = create_toolbutton(
+            self.changelog_btn, _ = create_toolbutton(
                 [("View Changelogs", self._view_or_hide_changelogs),
                  ("View In Window...", self._view_changelogs_window)],
                 self)

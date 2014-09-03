@@ -50,7 +50,7 @@ class Resolver(QtCore.QObject):
         self.abort_reason = "Cancelled by user."
 
     def success(self):
-        return self.context and self.context.success
+        return bool(self.context and self.context.success)
 
     def _callback(self, solver_state):
         if self.buf and self.verbosity == 0:
