@@ -1,16 +1,20 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, get_icon_widget, lock_types
+from rezgui.models.ContextModel import ContextModel
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
 from rez.resolved_context import PatchLock
 from rez.vendor.version.requirement import RequirementList
 
 
-class VariantCellWidget(QtGui.QWidget):
-    def __init__(self, variant, context, settings=None, parent=None):
+class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
+    def __init__(self, context_model, variant, parent=None):
         super(VariantCellWidget, self).__init__(parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
+
+        #self.context_model = context_model
         self.variant = variant
-        self.context = context
+        #self.context = context
         self.stale = False
         self.lock_status = None
         self.lock_icon = None
@@ -28,14 +32,24 @@ class VariantCellWidget(QtGui.QWidget):
 
         self.refresh()
 
-    def refresh(self):
+    def refresh(self, flags=0):
+        self._contextChanged(ContextModel.CONTEXT_CHANGED)
+
+    def _contextChanged(self, flags=0):
+        # update stale status
+        self.set_stale(self.context_model.is_stale())
+
+        if not flags & (ContextModel.PACKAGES_PATH_CHANGED |
+                        ContextModel.CONTEXT_CHANGED):
+            return
+
         # update icons
         new_icons = []
 
         if self.variant.is_local:
             new_icons.append(("local", "package is local"))
 
-        package_paths = self.settings.get("packages_path")
+        package_paths = self.context_model.packages_path
         if self.variant.search_path in package_paths:
             packages = None
             try:
@@ -52,7 +66,7 @@ class VariantCellWidget(QtGui.QWidget):
                     # test if variant is in request, and is latest possible
                     range_ = None
                     try:
-                        request = self.context.requested_packages(True)
+                        request = self.context().requested_packages(True)
                         reqlist = RequirementList(request)
                         if self.variant.name in reqlist.names:
                             range_ = reqlist.get(self.variant.name).range
@@ -75,8 +89,8 @@ class VariantCellWidget(QtGui.QWidget):
         self.set_lock_status(lock_type.name, faint=is_default)
 
     def _get_patch_lock(self):
-        lock_name = self.settings.get("default_patch_lock")
-        return PatchLock[lock_name], True
+        lock = self.context_model.default_patch_lock
+        return lock, True
 
     def set_stale(self, b=True):
         if b != self.stale:
@@ -86,6 +100,7 @@ class VariantCellWidget(QtGui.QWidget):
             self.label.setEnabled(not b)
             self.stale = b
 
+    # TODO remove this, drive via model instead
     def set_lock_status(self, lock_type=None, faint=False):
         if lock_type is None:
             self._remove_lock_icon()

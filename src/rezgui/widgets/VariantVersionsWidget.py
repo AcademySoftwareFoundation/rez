@@ -1,26 +1,28 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, create_toolbutton
 from rezgui.widgets.VariantVersionsTable import VariantVersionsTable
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.util import positional_number_string
 
 
-class VariantVersionsWidget(QtGui.QWidget):
+class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
 
     closeWindow = QtCore.Signal()
 
-    def __init__(self, settings, in_window=False, parent=None):
+    def __init__(self, context_model=None, in_window=False, parent=None):
         """
         Args:
             in_window (bool): If True, the 'view changelogs' option turns
                 into a checkbox, dropping the 'View in window' option.
         """
         super(VariantVersionsWidget, self).__init__(parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
+
         self.in_window = in_window
         self.variant = None
 
         self.label = QtGui.QLabel()
-        self.table = VariantVersionsTable(settings)
+        self.table = VariantVersionsTable(self.context_model)
         buttons = [None]
 
         if self.in_window:
@@ -59,7 +61,7 @@ class VariantVersionsWidget(QtGui.QWidget):
         if variant == self.variant:
             return
 
-        package_paths = self.settings.get("packages_path")
+        package_paths = self.context_model.packages_path
 
         if variant is None:
             self.clear()
@@ -106,7 +108,7 @@ class VariantVersionsWidget(QtGui.QWidget):
 
     def _view_changelogs_window(self):
         from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
-        dlg = VariantVersionsDialog(self.settings, self.variant, self)
+        dlg = VariantVersionsDialog(self.context_model, self.variant, self)
         dlg.exec_()
 
     def _close_window(self):

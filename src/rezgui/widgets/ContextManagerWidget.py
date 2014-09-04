@@ -7,18 +7,16 @@ from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.SettingsWidget import SettingsWidget
 from rezgui.dialogs.ResolveDialog import ResolveDialog
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
+from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
-from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema, Or
 from rez.config import config
 from rez.resolved_context import PatchLock
 from functools import partial
 
 
-class ContextManagerWidget(QtGui.QWidget):
-
-    modified = QtCore.Signal(bool)
-    resolved = QtCore.Signal(bool)  # True if resolve was successful
+class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
     settings_titles = {
         "packages_path":        "Search path for Rez packages",
@@ -32,10 +30,9 @@ class ContextManagerWidget(QtGui.QWidget):
         "default_patch_lock":   Or(*[x.name for x in PatchLock])
     })
 
-    def __init__(self, parent=None):
+    def __init__(self, context_model=None, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
-        self.context = None
-        self.is_resolved = False
+        ContextViewMixin.__init__(self, context_model)
 
         # context settings
         settings = {
@@ -48,7 +45,7 @@ class ContextManagerWidget(QtGui.QWidget):
                                        titles=self.settings_titles)
 
         # widgets
-        self.context_table = ContextTableWidget(self.settings)
+        self.context_table = ContextTableWidget(self.context_model)
         self.show_effective_request_checkbox = QtGui.QCheckBox("show effective request")
 
         self.diff_btn = QtGui.QPushButton("Diff Mode")
@@ -100,8 +97,7 @@ class ContextManagerWidget(QtGui.QWidget):
         context_pane = create_pane([self.context_table, btn_pane], False,
                                    compact=True, compact_spacing=0)
 
-        self.package_tab = PackageTabWidget(settings=self.settings,
-                                            versions_tab=True)
+        self.package_tab = PackageTabWidget(self.context_model, versions_tab=True)
 
         context_splitter = ConfiguredSplitter(app.config, "layout/splitter/main")
         context_splitter.setOrientation(QtCore.Qt.Vertical)
@@ -134,66 +130,31 @@ class ContextManagerWidget(QtGui.QWidget):
         self.settings.settingsApplied.connect(self._settingsApplied)
         self.settings.settingsChanged.connect(self._settingsChanged)
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
-        self.context_table.contextModified.connect(self._contextModified)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_btn.clicked.connect(self._open_shell)
         self.show_effective_request_checkbox.stateChanged.connect(
             self._effectiveRequestStateChanged)
 
-        self._set_resolved(False)
+        self.refresh()
 
     def sizeHint(self):
         return QtCore.QSize(800, 500)
 
-    def set_context(self, context):
-        self.context = context
-
-        settings = self._current_context_settings()
-        self.settings.reset(settings)
-
-        self.context_table.set_context(self.context)
-        self.tools_list.set_context(self.context)
-        self.resolve_details.set_context(self.context)
-        self.package_tab.set_context(self.context)
-
-        self.tab.setTabText(0, "context")
-        self.tab.setTabText(1, "settings")
-        self.tab.setTabEnabled(2, True)
-        self.tab.setTabEnabled(3, True)
-
-        self._set_resolved(True)
+    def refresh(self):
+        stale = self.context_model.is_stale()
+        self.diff_btn.setEnabled(not stale)
+        self.shell_btn.setEnabled(not stale)
+        self.reset_action.setEnabled(self.context_model.can_revert())
+        self.lock_menu.setEnabled(bool(self.context()))
+        tab_text = "context*" if stale else "context"
+        self.tab.setTabText(0, tab_text)
 
     def _resolve(self, advanced=False):
-        # check for pending settings changes
-        if self.settings.pending_changes():
-            title = "Context settings changes are pending."
-            body = ("The context settings have been modified, and must be "
-                    "applied or discarded in order to continue.")
-            QtGui.QMessageBox.warning(self, title, body)
-            self.tab.setCurrentIndex(1)
-            return
-
-        # get and validate request from context table
-        request = []
-        for req_str in self.context_table.get_request():
-            try:
-                req = Requirement(req_str)
-                request.append(req)
-            except Exception as e:
-                title = "Invalid package request - %r" % req_str
-                QtGui.QMessageBox.warning(self, title, str(e))
-                return None
-
-        # do the resolve, set as current if successful
-        dlg = ResolveDialog(self.settings, parent=self, advanced=advanced)
-        success = dlg.resolve(request)
-        if success:
-            context = dlg.get_context()
-            self.set_context(context)
-        self.resolved.emit(success)
+        dlg = ResolveDialog(self.context_model, parent=self, advanced=advanced)
+        dlg.resolve()  # this updates the model on successful solve
 
     def _reset(self):
-        assert self.context
+        assert self.context_model.can_revert()
         ret = QtGui.QMessageBox.warning(
             self,
             "The context has been modified.",
@@ -201,11 +162,11 @@ class ContextManagerWidget(QtGui.QWidget):
             QtGui.QMessageBox.Ok,
             QtGui.QMessageBox.Cancel)
         if ret == QtGui.QMessageBox.Ok:
-            self.set_context(self.context)
+            self.context_model.revert()
 
     def _open_shell(self):
-        assert self.context
-        app.execute_shell(context=self.context, terminal=True)
+        assert self.context()
+        app.execute_shell(context=self.context(), terminal=True)
 
     def _current_context_settings(self):
         assert self.context
@@ -219,31 +180,26 @@ class ContextManagerWidget(QtGui.QWidget):
         }
 
     def _settingsApplied(self):
-        self.tab.setTabText(1, "settings*")
-        self.context_table.refresh()
-        self.package_tab.refresh()
+        pass
+        #self.tab.setTabText(1, "settings*")
+        #self.context_table.refresh()
+        #self.package_tab.refresh()
 
     def _settingsChanged(self):
-        self.tab.setTabText(1, "settings**")
-        self._set_resolved(False)
+        pass
+        #self.tab.setTabText(1, "settings**")
+        #self._set_resolved(False)
 
     def _settingsChangesDiscarded(self):
-        self.tab.setTabText(1, "settings*")
+        pass
+        #self.tab.setTabText(1, "settings*")
 
-    def _contextModified(self):
-        self.tab.setTabText(0, "context*")
-        self._set_resolved(False)
+    def _contextChanged(self, flags=0):
+        #self.tab.setTabText(0, "context*")
+        self.refresh()
 
     def _variantSelected(self, variant):
         self.package_tab.set_variant(variant)
-
-    def _set_resolved(self, resolved=True):
-        self.is_resolved = resolved
-        self.diff_btn.setEnabled(resolved)
-        self.shell_btn.setEnabled(resolved)
-        self.reset_action.setEnabled(not resolved and bool(self.context))
-        self.lock_menu.setEnabled(bool(self.context))
-        self.modified.emit(not resolved)
 
     def _effectiveRequestStateChanged(self, state):
         self.context_table.show_effective_request(state == QtCore.Qt.Checked)

@@ -1,12 +1,14 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_timestamp_str
 from rez.packages import iter_packages
 
 
-class VariantVersionsTable(QtGui.QTableWidget):
-    def __init__(self, settings, parent=None):
+class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
+    def __init__(self, context_model=None, parent=None):
         super(VariantVersionsTable, self).__init__(0, 1, parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
+
         self.variant = None
         self.allow_selection = False
         self.num_versions = -1
@@ -67,7 +69,7 @@ class VariantVersionsTable(QtGui.QTableWidget):
             hh.setResizeMode(0, QtGui.QHeaderView.Interactive)
             hh.setVisible(True)
 
-        package_paths = self.settings.get("packages_path")
+        package_paths = self.context_model.packages_path
 
         if variant is None or variant.search_path not in package_paths:
             self.clear()

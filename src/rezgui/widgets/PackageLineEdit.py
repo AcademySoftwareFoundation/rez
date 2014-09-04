@@ -1,18 +1,20 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.models.ContextModel import ContextModel
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.exceptions import RezError
 from rez.packages import get_completions, iter_packages
 from rez.vendor.version.requirement import Requirement
 
 
-class PackageLineEdit(QtGui.QLineEdit):
+class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
 
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)
     focusIn = QtCore.Signal()
 
-    def __init__(self, settings=None, parent=None, family_only=False):
+    def __init__(self, context_model=None, parent=None, family_only=False):
         super(PackageLineEdit, self).__init__(parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
         self.family_only = family_only
         self.default_style = None
 
@@ -48,9 +50,6 @@ class PackageLineEdit(QtGui.QLineEdit):
         self.focusOut.emit(self.text())
         return super(PackageLineEdit, self).focusOutEvent(event)
 
-    def refresh(self):
-        self._update_status()
-
     def clone_into(self, other):
         other.family_only = self.family_only
         other.default_style = self.default_style
@@ -60,9 +59,13 @@ class PackageLineEdit(QtGui.QLineEdit):
         other.completions.setStringList(completions)
         other.completer.setCompletionPrefix(self.text())
 
+    def _contextChanged(self, flags=0):
+        if flags & ContextModel.PACKAGES_PATH_CHANGED:
+            self._update_status()
+
     @property
     def _paths(self):
-        return self.settings.get("packages_path")
+        return self.context_model.packages_path
 
     def _textEdited(self, txt):
         words = get_completions(txt,

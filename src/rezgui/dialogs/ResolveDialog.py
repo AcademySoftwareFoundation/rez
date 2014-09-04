@@ -6,6 +6,7 @@ from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.App import app
 from rez.exceptions import RezError
 from rez.resolved_context import ResolvedContext
+from rez.vendor.version.requirement import Requirement
 import tempfile
 import threading
 import StringIO
@@ -16,9 +17,10 @@ class Resolver(QtCore.QObject):
 
     finished = QtCore.Signal()
 
-    def __init__(self, settings, verbosity=0, buf=None):
+    def __init__(self, context_model, verbosity=0, buf=None):
         super(Resolver, self).__init__()
-        self.settings = settings
+        self.context_model = context_model
+        self.context = None
         self.verbosity = verbosity
         self.buf = buf
         self.context = None
@@ -26,16 +28,14 @@ class Resolver(QtCore.QObject):
         self.abort_reason = None
         self.error_message = None
 
-    def resolve(self, request):
+    def resolve(self):
         if app.config.get("resolve/show_package_loads"):
             package_load_callback = self._package_load_callback
         else:
             package_load_callback = None
 
         try:
-            self.context = ResolvedContext(
-                request,
-                package_paths=self.settings.get("packages_path"),
+            self.context = self.context_model.resolve_context(
                 verbosity=self.verbosity,
                 buf=self.buf,
                 callback=self._callback,
@@ -63,7 +63,7 @@ class Resolver(QtCore.QObject):
 
 
 class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
-    def __init__(self, settings, parent=None, advanced=False):
+    def __init__(self, context_model, parent=None, advanced=False):
         config_key = ("layout/window/advanced_resolve" if advanced
                       else "layout/window/resolve")
         super(ResolveDialog, self).__init__(parent)
@@ -72,9 +72,8 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.setWindowTitle("Resolve")
         self.setContentsMargins(0, 0, 0, 0)
 
-        self.settings = settings
+        self.context_model = context_model
         self.advanced = advanced
-        self.request = None
         self.resolver = None
         self.thread = None
         self.started = False
@@ -162,9 +161,17 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.save_context_btn.clicked.connect(self._save_context)
         self.close_btn.clicked.connect(self.close)
 
-    def resolve(self, request):
-        self.request = request
-        request_str = " ".join(str(x) for x in self.request)
+    def resolve(self):
+        # validate the request before opening dialog
+        for req_str in self.context_model.request:
+            try:
+                _ = Requirement(req_str)
+            except Exception as e:
+                title = "Invalid package request - %r" % req_str
+                QtGui.QMessageBox.warning(self, title, str(e))
+                return
+
+        request_str = " ".join(str(x) for x in self.context_model.request)
         self._log("Resolving: %s...\n" % request_str)
 
         if not self.advanced:
@@ -216,14 +223,13 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         if self.advanced:
             verbosity = app.config.get("resolve/verbosity")
 
-        self.resolver = Resolver(self.settings,
+        self.resolver = Resolver(self.context_model,
                                  verbosity=verbosity,
                                  buf=self.edit)
 
         self.resolver.finished.connect(self._resolve_finished)
 
-        self.thread = threading.Thread(target=self.resolver.resolve,
-                                       args=(self.request,))
+        self.thread = threading.Thread(target=self.resolver.resolve)
         self.thread.start()
 
     def _cancel_resolve(self):

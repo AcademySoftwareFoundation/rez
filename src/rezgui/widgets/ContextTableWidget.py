@@ -2,30 +2,29 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
 from rezgui.widgets.VariantCellWidget import VariantCellWidget
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
+from rezgui.models.ContextModel import ContextModel
 from rez.packages import Variant
 from functools import partial
 
 
-class ContextTableWidget(QtGui.QTableWidget):
+class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
     default_row_count = 10
 
-    contextModified = QtCore.Signal()
+    #contextModified = QtCore.Signal()
     variantSelected = QtCore.Signal(object)
 
-    def __init__(self, settings=None, read_only=False, parent=None):
+    def __init__(self, context_model=None, parent=None):
         """Create a context table.
 
         Args:
             settings (`SettingsWidget`): Context settings, such as search path.
                 Ignored if `read_only` is True.
-            read_only (bool): Read-only mode.
         """
         super(ContextTableWidget, self).__init__(self.default_row_count,
                                                  2, parent)
-        self.settings = settings
-        self.read_only = read_only
-        self.context = None
-        self.modified = False
+        ContextViewMixin.__init__(self, context_model)
+
         self.diff_mode = False
         self._show_effective_request = False
         self._current_variant = None
@@ -41,7 +40,7 @@ class ContextTableWidget(QtGui.QTableWidget):
         vh.setVisible(False)
 
         self.currentCellChanged.connect(self._currentCellChanged)
-        self.set_context()
+        self.refresh()
 
     def selectionCommand(self, index, event=None):
         row = index.row()
@@ -60,21 +59,7 @@ class ContextTableWidget(QtGui.QTableWidget):
     def show_effective_request(self, b):
         if b != self._show_effective_request:
             self._show_effective_request = b
-            self.refresh(0)
-
-    def set_context(self, context=None):
-        """Set contents to the given `ResolvedContext`."""
-        self.clear()
-        self.setHorizontalHeaderLabels(["request", "resolve"])
-        self.modified = False
-        self.context = None
-
-        if context:
-            self._apply_context(context, 0, 1)
-            self.context = context
-        else:
-            self._set_package_cell(0, 0)
-        self.refresh(0)
+            self._update_column(0)
 
     def get_request(self):
         """Get the current request list.
@@ -84,35 +69,36 @@ class ContextTableWidget(QtGui.QTableWidget):
         """
         return self._get_request(0)
 
-    def refresh(self, columns=None):
-        if columns is None:
-            columns = (0, 1)
-        elif isinstance(columns, int):
-            columns = [columns]
+    def refresh(self):
+        self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
-        # refresh variants and requests
-        for column in columns:
-            for _, widget in self._iter_column_widgets(column):
-                if hasattr(widget, "refresh"):
-                    widget.refresh()
+    def _contextChanged(self, flags=0):
+        if flags & ContextModel.CONTEXT_CHANGED:
+            self.clear()
+            self.setHorizontalHeaderLabels(["request", "resolve"])
 
-        if 0 in columns:
-            # remove effective request cells
-            for row, widget in self._iter_column_widgets(0, EffectivePackageCellWidget):
-                self.removeCellWidget(row, 0)
+            if self.context():
+                self._apply_context(self.context_model, 0, 1)
+            else:
+                self._set_package_cell(0, 0)
+            self._update_column(0)
 
-            # update effective request cells
-            if self._show_effective_request:
-                # get row following package select widgets
-                last_row = -1
-                for row, widget in self._iter_column_widgets(0, PackageSelectWidget):
-                    last_row = row
+    def _update_column(self, column):
+        # remove effective request cells
+        for row, widget in self._iter_column_widgets(column, EffectivePackageCellWidget):
+            self.removeCellWidget(row, column)
 
-                row = last_row + 1
-                implicit_packages = self.settings.get("implicit_packages")
-                for request_str in implicit_packages:
-                    self._set_effective_package_cell(row, 0, request_str, "implicit")
-                    row += 1
+        # update effective request cells
+        if self._show_effective_request:
+            # get row following package select widgets
+            last_row = -1
+            for row, widget in self._iter_column_widgets(column, PackageSelectWidget):
+                last_row = row
+
+            row = last_row + 1
+            for request_str in self.context_model.implicit_packages:
+                self._set_effective_package_cell(row, column, request_str, "implicit")
+                row += 1
 
         self._trim_trailing_rows()
 
@@ -141,7 +127,8 @@ class ContextTableWidget(QtGui.QTableWidget):
                 request_strs.append(txt)
         return request_strs
 
-    def _apply_context(self, context, request_column, resolve_column):
+    def _apply_context(self, context_model, request_column, resolve_column):
+        context = context_model.context()
         requests = context.requested_packages()
         resolved = context.resolved_packages[:]
         num_requests = len(requests)
@@ -152,11 +139,12 @@ class ContextTableWidget(QtGui.QTableWidget):
             variant = context.get_resolved_package(request.name)
             if variant and variant.name not in consumed:
                 consumed.add(variant.name)
-                self._set_variant_cell(i, resolve_column, context, variant)
+                self._set_variant_cell(i, resolve_column, context_model, variant)
                 resolved = [x for x in resolved if x.name != request.name]
 
         for i, variant in enumerate(resolved):
-            self._set_variant_cell(i + num_requests, resolve_column, context, variant)
+            self._set_variant_cell(i + num_requests, resolve_column,
+                                   context_model, variant)
 
         self._set_package_cell(num_requests, request_column)
 
@@ -172,7 +160,7 @@ class ContextTableWidget(QtGui.QTableWidget):
 
         txt = str(request) if request else ""
 
-        edit = PackageSelectWidget(self.settings)
+        edit = PackageSelectWidget(self.context_model)
         edit.setText(txt)
         self.setCellWidget(row, column, edit)
         edit.textChanged.connect(partial(self._packageTextChanged, row, column))
@@ -187,12 +175,10 @@ class ContextTableWidget(QtGui.QTableWidget):
         cell = EffectivePackageCellWidget(request, lock_type)
         self.setCellWidget(row, column, cell)
 
-    def _set_variant_cell(self, row, column, context, variant):
+    def _set_variant_cell(self, row, column, context_model, variant):
         if row >= self.rowCount():
             self.setRowCount(row + 1)
-        widget = VariantCellWidget(variant, context, self.settings)
-        self.contextModified.connect(widget.set_stale)
-        self.settings.settingsChanged.connect(widget.set_stale)
+        widget = VariantCellWidget(context_model, variant)
         self.setCellWidget(row, column, widget)
 
     def _set_cell_text(self, row, column, txt):
@@ -207,26 +193,7 @@ class ContextTableWidget(QtGui.QTableWidget):
     def _packageTextChanged(self, row, column, txt):
         if txt:
             if self._set_package_cell(row + 1, column):
-                self.refresh(column)
-
-        if not self.modified:
-            self.modified = True
-            resolve_column = 1 if column == 0 else 2
-            self.refresh(resolve_column)
-            self.contextModified.emit()
-
-    def _enable_column(self, column, enabled):
-        for _, widget in self._iter_column_widgets(column):
-            widget.setEnabled(enabled)
-
-    def _packageFocusOut(self, row, column, txt):
-        if txt:
-            self._set_package_cell(row + 1, column)
-        else:
-            widget = self.cellWidget(row + 1, column)
-            if widget and isinstance(widget, PackageSelectWidget):
-                self._delete_cell(row, column)
-        self.refresh(column)
+                self._update_column(column)
 
     def _packageFocusOutViaKeyPress(self, row, column, txt):
         if txt:
@@ -235,7 +202,22 @@ class ContextTableWidget(QtGui.QTableWidget):
             widget = self.cellWidget(row + 1, column)
             if widget and isinstance(widget, PackageSelectWidget):
                 self._delete_cell(row, column)
-        self.refresh(column)
+
+            new_request = self.get_request()
+            self.context_model.set_request(new_request)
+            self._update_column(column)
+
+    def _packageFocusOut(self, row, column, txt):
+        if txt:
+            self._set_package_cell(row + 1, column)
+        else:
+            widget = self.cellWidget(row + 1, column)
+            if widget and isinstance(widget, PackageSelectWidget):
+                self._delete_cell(row, column)
+
+        new_request = self.get_request()
+        self.context_model.set_request(new_request)
+        self._update_column(column)
 
     def _delete_cell(self, row, column):
         for i in range(row, self.rowCount()):

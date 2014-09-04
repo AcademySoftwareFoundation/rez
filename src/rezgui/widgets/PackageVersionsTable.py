@@ -1,13 +1,15 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_timestamp_str
 from rez.packages import iter_packages
 from rez.exceptions import RezError
 
 
-class PackageVersionsTable(QtGui.QTableWidget):
-    def __init__(self, settings, parent=None):
+class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
+    def __init__(self, context_model=None, parent=None):
         super(PackageVersionsTable, self).__init__(0, 2, parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
+
         self.package_name = None
         self.packages = {}
 
@@ -52,7 +54,7 @@ class PackageVersionsTable(QtGui.QTableWidget):
         if package_name == self.package_name:
             return
 
-        package_paths = self.settings.get("packages_path")
+        package_paths = self.context_model.packages_path
         self.packages = {}
         rows = []
 

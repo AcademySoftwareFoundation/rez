@@ -1,13 +1,14 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.util import create_pane
 
 
-class VariantDetailsWidget(QtGui.QWidget):
-    def __init__(self, parent=None):
+class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
+    def __init__(self, context_model=None, parent=None):
         super(VariantDetailsWidget, self).__init__(parent)
-        self.context = None
+        ContextViewMixin.__init__(self, context_model)
         self.variant = None
 
         self.label = QtGui.QLabel()
@@ -29,10 +30,6 @@ class VariantDetailsWidget(QtGui.QWidget):
         self.edit.clear()
         self.setEnabled(False)
 
-    def set_context(self, context):
-        self.context = context
-        self.view_graph_btn.setVisible(context is not None)
-
     def set_variant(self, variant):
         if variant == self.variant:
             return
@@ -45,10 +42,10 @@ class VariantDetailsWidget(QtGui.QWidget):
             self.edit.clear()
             variant.print_info(self.edit)
             self.edit.moveCursor(QtGui.QTextCursor.Start)
-            self.view_graph_btn.setVisible(self.context is not None)
+            self.view_graph_btn.setVisible(self.context() is not None)
 
         self.variant = variant
 
     def _view_graph(self):
-        graph_str = self.context.graph(as_dot=True)
+        graph_str = self.context().graph(as_dot=True)
         view_graph(graph_str, self, prune_to=self.variant.name)

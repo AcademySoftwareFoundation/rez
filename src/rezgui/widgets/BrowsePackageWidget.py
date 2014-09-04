@@ -3,22 +3,22 @@ from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.PackageVersionsTable import PackageVersionsTable
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.objects.App import app
 from rez.vendor.version.requirement import Requirement
 
 
-class BrowsePackageWidget(QtGui.QWidget):
+class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
 
     packageSelected = QtCore.Signal()
 
-    def __init__(self, settings, parent=None):
+    def __init__(self, context_model=None, parent=None):
         super(BrowsePackageWidget, self).__init__(parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
 
-        self.edit = PackageLineEdit(self.settings, family_only=True)
-        self.versions_table = PackageVersionsTable(settings)
-        self.package_tab = PackageTabWidget(settings=self.settings,
-                                            versions_tab=False)
+        self.edit = PackageLineEdit(context_model, family_only=True)
+        self.versions_table = PackageVersionsTable(context_model)
+        self.package_tab = PackageTabWidget(versions_tab=False)
 
         splitter = ConfiguredSplitter(app.config, "layout/splitter/browse_package")
         splitter.setOrientation(QtCore.Qt.Vertical)

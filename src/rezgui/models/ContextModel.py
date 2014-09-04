@@ -12,25 +12,33 @@ class ContextModel(QtCore.QObject):
     This model not only represents a context, but also contains the settings
     needed to create a new context, or re-resolve an existing context.
     """
-    dataChanged = QtCore.Signal()
+    dataChanged = QtCore.Signal(int)
 
-    def __init__(self, parent=None):
+    # dataChanged flags
+    REQUEST_CHANGED = 1
+    PACKAGES_PATH_CHANGED = 2
+    LOCKS_CHANGED = 4
+    CONTEXT_CHANGED = 8
+
+    def __init__(self, context=None, parent=None):
         super(ContextModel, self).__init__(parent)
 
         self._context = None
         self._stale = True
 
-        self.request_strings = []
+        self.request = []
         self.packages_path = config.packages_path
         self.implicit_packages = config.implicit_packages
         self.default_patch_lock = PatchLock.no_lock
+
+        if context:
+            self._set_context(context)
 
     def is_stale(self):
         """Returns True if the context is stale.
 
         If the context is stale, this means there are pending changes. To update
-        the model, you should call create_context() to build a new context with
-        the current settings, and then set this context using set_context().
+        the model, you should call resolve_context().
         """
         return self._stale
 
@@ -39,46 +47,34 @@ class ContextModel(QtCore.QObject):
         return self._context
 
     def set_request(self, request_strings):
-        self.request_strings = request_strings[:]
-        self._changed()
+        self._changed("request", request_strings, self.REQUEST_CHANGED)
 
     def set_packages_path(self, packages_path):
-        self.packages_path = packages_path
-        self._changed()
+        self._changed("packages_path", packages_path, self.PACKAGES_PATH_CHANGED)
 
     def set_default_patch_lock(self, lock):
-        self.default_patch_lock = lock
-        self._changed()
+        self._changed("default_patch_lock", lock, self.LOCKS_CHANGED)
 
-    def create_context(self, verbosity=0, callback=None, buf=None,
-                       package_load_callback=None):
-        """Create a new context using the current settings.
+    def resolve_context(self, verbosity=0, callback=None, buf=None,
+                        package_load_callback=None):
+        """Update the current context by performing a re-resolve.
 
-        If a context already exists, then we are performing a 'patch' - ie, we
-        are using the current settings, plus the previous context, to build the
-        new context.
+        The newly resolved context is only applied if it is a successful solve.
 
         Returns:
-            `ResolvedContext` object.
+            `ResolvedContext` object, which may be a successful or failed solve.
         """
-        return ResolvedContext(
-            self.request_strings,
+        context = ResolvedContext(
+            self.request,
             package_paths=self.packages_path,
             verbosity=verbosity,
             buf=buf,
             callback=callback,
             package_load_callback=package_load_callback)
 
-    def set_context(self, context):
-        """Set the current context."""
-        self._context = context
-        self._stale = False
-
-        self.request_strings = [str(x) for x in context.requested_packages()]
-        self.packages_path = context.packages_path
-        self.implicit_packages = context.implicit_packages
-        self.default_patch_lock = context.default_patch_lock
-        self.dataChanged.emit()
+        if context.success:
+            self._set_context(context)
+        return context
 
     def can_revert(self):
         """Return True if the model is revertable, False otherwise."""
@@ -86,9 +82,31 @@ class ContextModel(QtCore.QObject):
 
     def revert(self):
         """Discard any pending changes."""
-        assert self.can_revert()
-        self.set_context(self._context)
+        if self.can_revert():
+            self._set_context(self._context)
 
-    def _changed(self):
+    def set_context(self, context):
+        """Replace the current context with another."""
+        self._set_context(context)
+
+    def _set_context(self, context):
+        self._context = context
+        self._stale = False
+
+        self.request = [str(x) for x in context.requested_packages()]
+        self.packages_path = context.package_paths
+        self.implicit_packages = context.implicit_packages
+        self.default_patch_lock = context.default_patch_lock
+
+        self.dataChanged.emit(self.CONTEXT_CHANGED |
+                              self.REQUEST_CHANGED |
+                              self.PACKAGES_PATH_CHANGED |
+                              self.LOCKS_CHANGED)
+
+    def _changed(self, attr, value, flags):
+        if getattr(self, attr) == value:
+            return
         self._stale = True
-        self.dataChanged.emit()
+        setattr(self, attr, value)
+        print "DATACHANGED", attr
+        self.dataChanged.emit(flags)

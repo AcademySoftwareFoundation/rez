@@ -299,7 +299,7 @@ class UnixShell(Shell):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command
-        cmd.extend([self.executable, self.norc_arg, target_file])
+        cmd = cmd + [self.executable, self.norc_arg, target_file]
         p = subprocess.Popen(cmd, env=env, **Popen_args)
         return p
 

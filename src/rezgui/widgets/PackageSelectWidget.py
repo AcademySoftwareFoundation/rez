@@ -1,20 +1,21 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
 from rezgui.widgets.IconButton import IconButton
 
 
-class PackageSelectWidget(QtGui.QWidget):
+class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
 
     focusOutViaKeyPress = QtCore.Signal(str)
     focusOut = QtCore.Signal(str)
     textChanged = QtCore.Signal(str)
 
-    def __init__(self, settings=None, parent=None):
+    def __init__(self, context_model=None, parent=None):
         super(PackageSelectWidget, self).__init__(parent)
-        self.settings = settings
+        ContextViewMixin.__init__(self, context_model)
 
-        self.edit = PackageLineEdit(settings, self)
+        self.edit = PackageLineEdit(self.context_model, self)
         self.edit.setStyleSheet("QLineEdit { border : 0px;}")
         self.btn = IconButton("round_plus")
         self.btn.hide()
@@ -37,9 +38,6 @@ class PackageSelectWidget(QtGui.QWidget):
 
     def setText(self, txt):
         self.edit.setText(txt)
-
-    def refresh(self):
-        self.edit.refresh()
 
     def clone_into(self, other):
         self.edit.clone_into(other.edit)
@@ -64,7 +62,8 @@ class PackageSelectWidget(QtGui.QWidget):
 
     def _browse_package(self, button):
         self.btn.show()
-        dlg = BrowsePackageDialog(settings=self.settings,
+        # TODO
+        dlg = BrowsePackageDialog(context_model=self.context_model,
                                   package_text=self.text(),
                                   parent=self.parentWidget())
         dlg.exec_()

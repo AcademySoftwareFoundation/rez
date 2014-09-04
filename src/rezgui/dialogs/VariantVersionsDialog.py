@@ -5,13 +5,13 @@ from rezgui.objects.App import app
 
 
 class VariantVersionsDialog(QtGui.QDialog, StoreSizeMixin):
-    def __init__(self, settings, variant, parent=None):
+    def __init__(self, context_model, variant, parent=None):
         config_key = "layout/window/package_versions"
         super(VariantVersionsDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)
 
         self.setWindowTitle("Package Versions")
-        self.versions_widget = VariantVersionsWidget(settings, in_window=True)
+        self.versions_widget = VariantVersionsWidget(context_model, in_window=True)
 
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.versions_widget)

@@ -1,13 +1,15 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.objects.App import app
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.ToolWidget import ToolWidget
 
 
-class VariantToolsList(QtGui.QTableWidget):
-    def __init__(self, parent=None):
+class VariantToolsList(QtGui.QTableWidget, ContextViewMixin):
+    def __init__(self, context_model=None, parent=None):
         super(VariantToolsList, self).__init__(0, 1, parent)
+        ContextViewMixin.__init__(self, context_model)
+
         self.variant = None
-        self.context = None
         self.tool_widgets = {}
 
         self.setGridStyle(QtCore.Qt.DotLine)
@@ -28,15 +30,6 @@ class VariantToolsList(QtGui.QTableWidget):
         super(VariantToolsList, self).clear()
         self.setEnabled(False)
 
-    def refresh(self):
-        variant = self.variant
-        self.variant = None
-        self.set_variant(variant)
-
-    def set_context(self, context):
-        self.context = context
-        self.variant = None
-
     def set_variant(self, variant):
         if variant == self.variant:
             return
@@ -47,15 +40,16 @@ class VariantToolsList(QtGui.QTableWidget):
             tools = sorted(variant.tools or [])
             self.setRowCount(len(tools))
             self.setEnabled(True)
+            context = self.context()
 
             for i, tool in enumerate(tools):
-                widget = ToolWidget(self.context, tool, app.process_tracker)
+                widget = ToolWidget(context, tool, app.process_tracker)
                 widget.clicked.connect(self._clear_selection)
                 self.setCellWidget(i, 0, widget)
                 self.tool_widgets[tool] = widget
 
             select_mode = QtGui.QAbstractItemView.SingleSelection \
-                if self.context else QtGui.QAbstractItemView.NoSelection
+                if context else QtGui.QAbstractItemView.NoSelection
             self.setSelectionMode(select_mode)
 
         self.variant = variant
@@ -65,7 +59,7 @@ class VariantToolsList(QtGui.QTableWidget):
         self.setCurrentIndex(QtCore.QModelIndex())
 
     def _instanceCountChanged(self, context_id, tool_name, num_procs):
-        if self.context is None or context_id != id(self.context):
+        if self.context() is None or context_id != id(self.context()):
             return
 
         widget = self.tool_widgets.get(str(tool_name))
