@@ -12,6 +12,7 @@ import sys
 
 def setup_parser(parser):
 
+    parser.add_argument("--no-build", "-n", action="store_true")
     parser.add_argument("--build-project", action="store_true")
     parser.add_argument("--build-cproject", action="store_true")
     parser.add_argument("--build-cproject-settings", action="store_true")
@@ -24,22 +25,23 @@ def command(opts, parser, extra_arg_groups=None):
 
     working_dir = os.getcwd()
 
-    build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
-
-    buildsys_type = opts.buildsys if ("buildsys" in opts) else None
-    buildsys = create_build_system(working_dir,
-                                   buildsys_type=buildsys_type,
-                                   opts=opts,
-                                   write_build_scripts=False,
-                                   verbose=True,
-                                   build_args=build_args,
-                                   child_build_args=child_build_args)
-
-    builder = LocalSequentialBuildProcess(working_dir,
-                                          buildsys,
-                                          vcs=None)
-
-    builder.build(clean=True, variants=opts.variants)
+    if not opts.no_build:
+        build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
+    
+        buildsys_type = opts.buildsys if ("buildsys" in opts) else None
+        buildsys = create_build_system(working_dir,
+                                       buildsys_type=buildsys_type,
+                                       opts=opts,
+                                       write_build_scripts=False,
+                                       verbose=True,
+                                       build_args=build_args,
+                                       child_build_args=child_build_args)
+    
+        builder = LocalSequentialBuildProcess(working_dir,
+                                              buildsys,
+                                              vcs=None)
+    
+        builder.build(clean=True, variants=opts.variants)
 
     files = ["build_project", "build_cproject", "build_cproject_settings", "build_pydevproject"]
     build_all = all([not getattr(opts, file_) for file_ in files])
