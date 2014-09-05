@@ -55,6 +55,12 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
             # update icons
             new_icons = []
 
+            if self.variant.index is not None:
+                package = self.variant.parent
+                if package.num_variants > 1:
+                    txt = "1 of %d variants" % package.num_variants
+                    new_icons.append(("variant", txt))
+
             if self.variant.is_local:
                 new_icons.append(("local", "package is local"))
 

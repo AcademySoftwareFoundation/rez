@@ -23,13 +23,14 @@ class _TreeNode(QtGui.QLabel):
 
 
 class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
+
+    toolsChanged = QtCore.Signal()
+
     def __init__(self, context_model=None, parent=None):
         super(ContextToolsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
-        #self.context = None
         self.tool_widgets = {}
-
         self.package_icon = get_icon("package", as_qicon=True)
 
         h = self.header()
@@ -43,6 +44,9 @@ class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
         app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
         self.refresh()
+
+    def num_tools(self):
+        return len(self.tool_widgets)
 
     def refresh(self):
         self.clear()
@@ -70,6 +74,7 @@ class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
                 self.tool_widgets[tool] = widget
 
         self.resizeColumnToContents(0)
+        self.toolsChanged.emit()
 
     def _contextChanged(self, flags=0):
         if not flags & (ContextModel.CONTEXT_CHANGED):

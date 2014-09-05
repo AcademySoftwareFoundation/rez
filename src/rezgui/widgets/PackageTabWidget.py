@@ -1,4 +1,5 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.util import get_icon
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.VariantSummaryWidget import VariantSummaryWidget
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
@@ -20,11 +21,15 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         else:
             self.versions_widget = None
 
-        self.addTab(self.summary_widget, "package summary")
+        icon = get_icon("package", as_qicon=True)
+        self.addTab(self.summary_widget, icon, "package summary")
         if self.versions_widget:
-            self.addTab(self.versions_widget, "versions")
-        self.addTab(self.tools_widget, "tools")
-        self.addTab(self.details_widget, "details")
+            icon = get_icon("versions", as_qicon=True)
+            self.addTab(self.versions_widget, icon, "versions")
+        icon = get_icon("tools", as_qicon=True)
+        self.addTab(self.tools_widget, icon, "tools")
+        icon = get_icon("info", as_qicon=True)
+        self.addTab(self.details_widget, icon, "details")
         self.setEnabled(False)
 
     def set_package(self, package):

@@ -97,10 +97,14 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.resolve_details = ContextDetailsWidget(self.context_model)
 
         self.tab = QtGui.QTabWidget()
-        self.tab.addTab(context_splitter, "context")
-        self.tab.addTab(self.settings, "settings")
-        self.tab.addTab(self.tools_list, "tools")
-        self.tab.addTab(self.resolve_details, "resolve details")
+        icon = get_icon("context", as_qicon=True)
+        self.tab.addTab(context_splitter, icon, "context")
+        icon = get_icon("context_settings", as_qicon=True)
+        self.tab.addTab(self.settings, icon, "settings")
+        icon = get_icon("tools", as_qicon=True)
+        self.tab.addTab(self.tools_list, icon, "tools")
+        icon = get_icon("info", as_qicon=True)
+        self.tab.addTab(self.resolve_details, icon, "resolve details")
         self.tab.setTabEnabled(2, False)
         self.tab.setTabEnabled(3, False)
 
@@ -118,10 +122,12 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_btn.clicked.connect(self._open_shell)
         self.lock_menu.aboutToShow.connect(self._update_lock_menu)
+        self.tools_list.toolsChanged.connect(self._updateToolsCount)
         self.show_effective_request_checkbox.stateChanged.connect(
             self._effectiveRequestStateChanged)
 
         self.refresh()
+        self._updateToolsCount()
 
     def sizeHint(self):
         return QtCore.QSize(800, 500)
@@ -206,3 +212,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def _update_lock_menu(self):
         action = self.lock_actions[self.context_model.default_patch_lock]
         action.setChecked(True)
+
+    def _updateToolsCount(self):
+        label = "tools (%d)" % self.tools_list.num_tools()
+        self.tab.setTabText(2, label)
