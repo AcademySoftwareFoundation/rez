@@ -82,7 +82,8 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         context_pane = create_pane([self.context_table, btn_pane], False,
                                    compact=True, compact_spacing=0)
 
-        self.package_tab = PackageTabWidget(self.context_model, versions_tab=True)
+        self.package_tab = PackageTabWidget(
+            self.context_model, versions_tab=True)
 
         context_splitter = ConfiguredSplitter(app.config, "layout/splitter/main")
         context_splitter.setOrientation(QtCore.Qt.Vertical)

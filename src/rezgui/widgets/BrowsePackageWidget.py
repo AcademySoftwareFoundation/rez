@@ -5,19 +5,22 @@ from rezgui.widgets.PackageVersionsTable import PackageVersionsTable
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.objects.App import app
-from rez.vendor.version.requirement import Requirement
+from rez.vendor.version.requirement import Requirement, VersionedObject
 
 
 class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
 
     packageSelected = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None,
+    def __init__(self, context_model=None, parent=None, lock_package=False,
                  package_selectable_callback=None):
         super(BrowsePackageWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.edit = PackageLineEdit(context_model, family_only=True)
+        if lock_package:
+            self.edit.hide()
+
         self.versions_table = PackageVersionsTable(context_model,
                                                    callback=package_selectable_callback)
         self.package_tab = PackageTabWidget(versions_tab=False)
@@ -46,6 +49,12 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
         except:
             package_name = str(txt)
             version_range = None
+
+        try:
+            obj = VersionedObject(str(txt))
+            self.versions_table.set_highlight_version(obj.version)
+        except:
+            pass
 
         self.edit.setText(package_name)
         self._set_package_name(package_name)

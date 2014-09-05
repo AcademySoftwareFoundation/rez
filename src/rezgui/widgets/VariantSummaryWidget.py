@@ -1,7 +1,8 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.util import create_pane, get_timestamp_str
-from rez.packages import Variant
+from rez.packages import Package, Variant
+from rez.util import find_last_sublist
 
 
 class VariantSummaryWidget(QtGui.QWidget):
@@ -58,16 +59,24 @@ class VariantSummaryWidget(QtGui.QWidget):
                 release_time_str = get_timestamp_str(variant.timestamp)
                 rows.append(("released: ", release_time_str))
             if variant.authors:
-                txt = "; ".join(variant.authors)
+                txt = ", ".join(variant.authors)
                 rows.append(("authors: ", txt))
             if variant.requires:
-                txt = "; ".join(str(x) for x in variant.requires)
+                var_strs = [str(x) for x in variant.requires]
+                if isinstance(variant, Variant):
+                    # put variant-specific requires in square brackets
+                    var_reqs = variant.variant_requires()
+                    if var_reqs:
+                        index = find_last_sublist(variant.requires, var_reqs)
+                        if index is not None:
+                            var_strs[index] = "[%s" % var_strs[index]
+                            index2 = index + len(var_reqs) - 1
+                            var_strs[index2] = "%s]" % var_strs[index2]
+                txt = ", ".join(var_strs)
                 rows.append(("requires: ", txt))
 
-            # if a package, show changelog. If a variant, show a variant table
-            if isinstance(variant, Variant):
-                pass
-            elif variant.changelog:
+            # if a package, show changelog.
+            if isinstance(variant, Package) and variant.changelog:
                 rows.append(("changelog: ", variant.changelog))
 
             self.table.setRowCount(len(rows))

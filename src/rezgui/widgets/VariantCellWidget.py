@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, get_icon_widget, add_locking_submenu, \
-    add_menu_action
+    add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
@@ -112,9 +112,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
     def _set_stale(self, b=True):
         if b != self.stale:
-            font = self.label.font()
-            font.setItalic(b)
-            self.label.setFont(font)
+            update_font(self.label, italic=b)
             self.label.setEnabled(not b)
             self.stale = b
 

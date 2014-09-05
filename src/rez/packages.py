@@ -328,8 +328,7 @@ class Variant(_PackageBase):
         if self.index is None:
             return ''
         else:
-            dirs = [x.safe_str()
-                    for x in self._internal.get("variant_requires")]
+            dirs = [x.safe_str() for x in self.variant_requires()]
             return os.path.join(*dirs) if dirs else ''
 
     def get_requires(self, build_requires=False, private_build_requires=False):
@@ -349,6 +348,14 @@ class Variant(_PackageBase):
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
         return requires
+
+    def variant_requires(self):
+        """Get the requirements that have come from the variant part of the
+        package only."""
+        if self.index is None:
+            return []
+        else:
+            return self._internal.get("variant_requires", [])
 
     @propertycache
     def parent(self):

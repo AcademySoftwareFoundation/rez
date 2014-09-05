@@ -46,31 +46,6 @@ def create_pane(widgets, horizontal, parent_widget=None, compact=False,
     return pane
 
 
-def create_toolbutton(entries, parent=None):
-    """Create a toolbutton.
-
-    Args:
-        entries: List of (label, slot) tuples.
-
-    Returns:
-        `QtGui.QToolBar`.
-    """
-    btn = QtGui.QToolButton(parent)
-    menu = QtGui.QMenu()
-    actions = []
-
-    for label, slot in entries:
-        action = QtGui.QAction(label, btn)
-        action.triggered.connect(slot)
-        actions.append(action)
-        menu.addAction(action)
-
-    btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
-    btn.setDefaultAction(actions[0])
-    btn.setMenu(menu)
-    return btn, actions
-
-
 icons = {}
 
 
@@ -123,6 +98,29 @@ def add_menu_action(menu, label, slot, icon_name=None, group=None):
     return action
 
 
+def create_toolbutton(entries, parent=None):
+    """Create a toolbutton.
+
+    Args:
+        entries: List of (label, slot) tuples.
+
+    Returns:
+        `QtGui.QToolBar`.
+    """
+    btn = QtGui.QToolButton(parent)
+    menu = QtGui.QMenu()
+    actions = []
+
+    for label, slot in entries:
+        action = add_menu_action(menu, label, slot)
+        actions.append(action)
+
+    btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
+    btn.setDefaultAction(actions[0])
+    btn.setMenu(menu)
+    return btn, actions
+
+
 def add_locking_submenu(menu, slot):
     group = QtGui.QActionGroup(menu)
     lock_menu = menu.addMenu("Lock To...")
@@ -135,3 +133,12 @@ def add_locking_submenu(menu, slot):
         actions[lock_type] = action
 
     return lock_menu, actions
+
+
+def update_font(widget, italic=None, bold=None):
+    font = widget.font()
+    if italic is not None:
+        font.setItalic(italic)
+    if bold is not None:
+        font.setBold(bold)
+    widget.setFont(font)

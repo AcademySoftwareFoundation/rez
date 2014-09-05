@@ -34,6 +34,10 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
             buttons.append(close_btn)
             close_btn.clicked.connect(self._close_window)
         else:
+            browse_versions_btn = QtGui.QPushButton("Browse Other Versions...")
+            browse_versions_btn.clicked.connect(self._browseOtherVersions)
+            buttons.append(browse_versions_btn)
+
             self.changelog_btn, _ = create_toolbutton(
                 [("View Changelogs", self._view_or_hide_changelogs),
                  ("View In Window...", self._view_changelogs_window)],
@@ -109,6 +113,17 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
     def _view_changelogs_window(self):
         from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
         dlg = VariantVersionsDialog(self.context_model, self.variant, self)
+        dlg.exec_()
+
+    def _browseOtherVersions(self):
+        from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
+        dlg = BrowsePackageDialog(context_model=self.context_model,
+                                  package_text=self.variant.qualified_package_name,
+                                  close_only=True,
+                                  lock_package=True,
+                                  parent=self.parentWidget())
+
+        dlg.setWindowTitle("Versions - %s" % self.variant.name)
         dlg.exec_()
 
     def _close_window(self):

@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rezgui.util import get_timestamp_str
+from rezgui.util import get_timestamp_str, update_font
 from rez.packages import iter_packages
 from rez.exceptions import RezError
 
@@ -18,6 +18,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
         self.package_name = None
         self.callback = callback
+        self.highlight_version = None
         self.packages = {}
 
         self.setGridStyle(QtCore.Qt.DotLine)
@@ -30,6 +31,10 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         vh = self.verticalHeader()
         vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
         self.clear()
+
+    def set_highlight_version(self, version):
+        """This package version will appear in the list in bold."""
+        self.highlight_version = version
 
     def clear(self):
         super(PackageVersionsTable, self).clear()
@@ -58,9 +63,6 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         return version
 
     def set_package_name(self, package_name):
-        if package_name == self.package_name:
-            return
-
         package_paths = self.context_model.packages_path
         self.packages = {}
         self.clear()
@@ -86,11 +88,9 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             path_str = package.path
             release_str = get_timestamp_str(package.timestamp) \
                 if package.timestamp else '-'
-            if self.callback:
-                enabled = self.callback(package)
-            else:
-                enabled = True
-            rows.append((enabled, version_str, path_str, release_str))
+            enabled = self.callback(package) if self.callback else True
+            highlighted = (package.version == self.highlight_version)
+            rows.append((highlighted, enabled, version_str, path_str, release_str))
             self.packages[i] = package
 
         QtGui.QApplication.restoreOverrideCursor()
@@ -98,19 +98,24 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         first_selectable_row = -1
 
         for i, row in enumerate(rows):
-            enabled, version_str = row[:2]
+            highlighted, enabled, version_str = row[:3]
+            row = row[3:]
             item = QtGui.QTableWidgetItem(version_str)
             item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             self.setVerticalHeaderItem(i, item)
+            if highlighted:
+                update_font(item, bold=True)
 
-            for j in range(len(row) - 2):
-                item = QtGui.QTableWidgetItem(row[j + 2])
+            for j in range(len(row)):
+                item = QtGui.QTableWidgetItem(row[j])
                 if enabled:
                     if first_selectable_row == -1:
                         first_selectable_row = i
                 else:
                     item.setFlags(QtCore.Qt.NoItemFlags)
                 self.setItem(i, j, item)
+                if highlighted:
+                    update_font(item, bold=True)
 
         self.setHorizontalHeaderLabels(["path", "released"])
         self.resizeRowsToContents()

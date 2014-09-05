@@ -62,7 +62,6 @@ class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
 
     def _browse_package(self, button):
         self.btn.show()
-        # TODO
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   package_text=self.text(),
                                   parent=self.parentWidget())

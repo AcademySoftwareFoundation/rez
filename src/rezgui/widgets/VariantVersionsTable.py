@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rezgui.util import get_timestamp_str
+from rezgui.util import get_timestamp_str, update_font
 from rez.packages import iter_packages
 
 
@@ -58,6 +58,8 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         if variant == self.variant:
             return
 
+        self.clear()
+
         hh = self.horizontalHeader()
         if self.view_changelog:
             self.setColumnCount(1)
@@ -71,12 +73,11 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
         package_paths = self.context_model.packages_path
 
-        if variant is None or variant.search_path not in package_paths:
-            self.clear()
-        else:
+        if variant and variant.search_path in package_paths:
             rows = []
             self.num_versions = 0
             self.version_index = -1
+            row_index = -1
             it = iter_packages(name=variant.name, paths=package_paths)
 
             for i, package in enumerate(sorted(it, key=lambda x: x.version,
@@ -84,6 +85,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 self.num_versions += 1
                 if package.version == variant.version:
                     self.version_index = i
+                    row_index = len(rows)
                 version_str = str(package.version) + ' '
                 path_str = package.path
                 release_str = get_timestamp_str(package.timestamp) \
@@ -107,6 +109,8 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 item = QtGui.QTableWidgetItem(row[0])
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
                 self.setVerticalHeaderItem(i, item)
+                if i == row_index:
+                    update_font(item, bold=True)
 
                 for j in range(len(row) - 1):
                     item = QtGui.QTableWidgetItem(row[j + 1])
@@ -117,12 +121,9 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                         brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
                                                        QtGui.QPalette.ButtonText)
                         item.setForeground(brush)
-
-                        font = item.font()
-                        font.setWeight(QtGui.QFont.Bold)
-                        item.setFont(font)
+                        update_font(item, bold=True)
                     else:
-                        # gets rid of passive row highlighting
+                        # gets rid of mouse-hover row highlighting
                         brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
                                                        QtGui.QPalette.Base)
                         item.setBackground(brush)
@@ -136,10 +137,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             hh.setStretchLastSection(True)
 
             self.allow_selection = True
-            index = self.version_index
-            if self.view_changelog:
-                index *= 2
-            self.selectRow(index)
+            self.selectRow(row_index)
             self.allow_selection = False
 
         self.variant = variant

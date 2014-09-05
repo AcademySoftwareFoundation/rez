@@ -855,6 +855,18 @@ def expandvars(text, environ=None):
     return text
 
 
+def find_last_sublist(list_, sublist):
+    """Given a list, find the last occurance of a sublist within it.
+
+    Returns:
+        Index where the sublist starts, or None if there is no match.
+    """
+    for i in reversed(range(len(list_) - len(sublist) + 1)):
+        if list_[i] == sublist[0] and list_[i:i + len(sublist)] == sublist:
+            return i
+    return None
+
+
 def is_dict_subset(dict1, dict2):
     """Returns True if dict1 is a subset of dict2."""
     for k, v in dict1.iteritems():

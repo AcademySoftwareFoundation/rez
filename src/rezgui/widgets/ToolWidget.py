@@ -2,7 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.dialogs.ProcessDialog import ProcessDialog
 from rezgui.widgets.IconButton import IconButton
 from rezgui.objects.App import app
-from rezgui.util import get_icon_widget
+from rezgui.util import get_icon_widget, update_font
 import subprocess
 
 
@@ -20,9 +20,7 @@ class ToolWidget(QtGui.QWidget):
         self.label = QtGui.QLabel(tool_name)
         self.instances_label = QtGui.QLabel("")
         self.instances_label.setEnabled(False)
-        font = self.instances_label.font()
-        font.setItalic(True)
-        self.instances_label.setFont(font)
+        update_font(self.instances_label, italic=True)
 
         if self.context:
             self.setCursor(QtCore.Qt.PointingHandCursor)
