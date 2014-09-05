@@ -1,11 +1,15 @@
 
-from rez.packages import load_developer_package
-from rez.resolved_context import ResolvedContext
-from rez.rex import RexExecutor, Python
 import logging
 import os
 import re
+import functools
+
 import xml.etree.cElementTree as etree
+
+from rezplugins.build_system.cmake import CMakeBuildSystem
+from rez.packages import load_developer_package
+from rez.resolved_context import ResolvedContext
+from rez.rex import RexExecutor, Python
 
 
 logger = logging.getLogger(__name__)
@@ -191,11 +195,14 @@ class EclipseProjectBuilder(object):
             fd.write(txt)
 
     def build_all(self):
-
-        self.build_project()
-        self.build_cproject()
-        self.build_cproject_settings()
-        self.build_pydevproject()
+        try:
+            self.build_project()
+            self.build_cproject()
+            self.build_cproject_settings()
+            self.build_pydevproject()
+        except:
+            logger.exception('Failure!')
+            raise
 
     def build_project(self):
 
@@ -466,14 +473,30 @@ class EclipseProjectBuilder(object):
 
         for i, variant in enumerate(self.variants):
             resolved_context_file = os.path.join('build', variant.subpath, 'build.rxt')
-            resolved_context = ResolvedContext.load(resolved_context_file)
+            context = ResolvedContext.load(resolved_context_file)
 
+            callback = functools.partial(CMakeBuildSystem._add_build_actions,
+                                         context=context,
+                                         package=self.package)
+        
+            retcode, _, _ = context.execute_shell(block=True,
+                                                      command='pwd',
+                                                      actions_callback=callback,
+                                                      context_filepath='/var/tmp/ctx.ctx')
             target_environ = {}
-            interpreter = Python(target_environ=target_environ)
-            executor = resolved_context._create_executor(interpreter, None)
-            resolved_context._execute(executor)
-            executor.get_output()
-            target_environ['module'] = ''
+            for line in open('/var/tmp/ctx.ctx'):
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                line = line.replace('export ', '')
+                eqIndex = line.find('=')
+                if eqIndex == -1:
+                    continue
+                key = line[:eqIndex]
+                val = line[eqIndex+2:-1] # strip double quotes
+                target_environ[key] = val
+            target_environ['module'] = ''  # for eclipse to stop complaining about syntax errors!
+            
             for key, value in target_environ.items():
                 if self.bracket_regex.search(value):
                     continue

@@ -7,7 +7,6 @@ from rez.build_system import create_build_system
 from rez.cli.build import setup_parser_common, get_build_args
 from rez.contrib.animallogic.ide.eclipse import EclipseProjectBuilder
 import os
-import sys
 
 
 def setup_parser(parser):
@@ -32,7 +31,7 @@ def command(opts, parser, extra_arg_groups=None):
         buildsys = create_build_system(working_dir,
                                        buildsys_type=buildsys_type,
                                        opts=opts,
-                                       write_build_scripts=False,
+                                       write_build_scripts=True,
                                        verbose=True,
                                        build_args=build_args,
                                        child_build_args=child_build_args)
