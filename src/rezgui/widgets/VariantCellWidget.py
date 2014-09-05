@@ -1,5 +1,6 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, get_icon_widget, lock_types
+from rezgui.util import create_pane, get_icon_widget, add_locking_submenu, \
+    add_menu_action
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
@@ -12,9 +13,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         super(VariantCellWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
-        #self.context_model = context_model
         self.variant = variant
-        #self.context = context
         self.stale = False
         self.lock_status = None
         self.lock_icon = None
@@ -32,67 +31,86 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
         self.refresh()
 
-    def refresh(self, flags=0):
+    def contextMenuEvent(self, event):
+        menu = QtGui.QMenu(self)
+        _, actions = add_locking_submenu(menu, self._set_lock_type)
+        lock = self.context_model.get_patch_lock(self.variant.name)
+        if lock is not None:
+            actions[lock].setChecked(True)
+
+        action = add_menu_action(menu, "Remove Lock", self._remove_lock)
+        action.setEnabled(lock is not None)
+
+        menu.exec_(self.mapToGlobal(event.pos()))
+        menu.setParent(None)
+
+    def refresh(self):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
     def _contextChanged(self, flags=0):
-        # update stale status
-        self.set_stale(self.context_model.is_stale())
+        self._set_stale(self.context_model.is_stale())
 
-        if not flags & (ContextModel.PACKAGES_PATH_CHANGED |
-                        ContextModel.CONTEXT_CHANGED):
-            return
+        if flags & (ContextModel.PACKAGES_PATH_CHANGED |
+                    ContextModel.CONTEXT_CHANGED):
+            # update icons
+            new_icons = []
 
-        # update icons
-        new_icons = []
+            if self.variant.is_local:
+                new_icons.append(("local", "package is local"))
 
-        if self.variant.is_local:
-            new_icons.append(("local", "package is local"))
+            package_paths = self.context_model.packages_path
+            if self.variant.search_path in package_paths:
+                packages = None
+                try:
+                    it = iter_packages(name=self.variant.name, paths=package_paths)
+                    packages = sorted(it, key=lambda x: x.version)
+                except:
+                    pass
+                if packages:
+                    # test if variant is latest package
+                    latest_pkg = packages[-1]
+                    if self.variant.version == latest_pkg.version:
+                        new_icons.append(("green_tick", "package is latest"))
+                    else:
+                        # test if variant is in request, and is latest possible
+                        range_ = None
+                        try:
+                            request = self.context().requested_packages(True)
+                            reqlist = RequirementList(request)
+                            if self.variant.name in reqlist.names:
+                                range_ = reqlist.get(self.variant.name).range
+                        except:
+                            pass
+                        if range_ is not None:
+                            packages = [x for x in packages if x.version in range_]
+                            if packages:
+                                latest_pkg = packages[-1]
+                                if self.variant.version == latest_pkg.version:
+                                    new_icons.append(("yellow_tick",
+                                                      "package is latest within request"))
+            else:
+                new_icons.append(("error", "package is not in the search path"))
 
-        package_paths = self.context_model.packages_path
-        if self.variant.search_path in package_paths:
-            packages = None
-            try:
-                it = iter_packages(name=self.variant.name, paths=package_paths)
-                packages = sorted(it, key=lambda x: x.version)
-            except:
-                pass
-            if packages:
-                # test if variant is latest package
-                latest_pkg = packages[-1]
-                if self.variant.version == latest_pkg.version:
-                    new_icons.append(("green_tick", "package is latest"))
-                else:
-                    # test if variant is in request, and is latest possible
-                    range_ = None
-                    try:
-                        request = self.context().requested_packages(True)
-                        reqlist = RequirementList(request)
-                        if self.variant.name in reqlist.names:
-                            range_ = reqlist.get(self.variant.name).range
-                    except:
-                        pass
-                    if range_ is not None:
-                        packages = [x for x in packages if x.version in range_]
-                        if packages:
-                            latest_pkg = packages[-1]
-                            if self.variant.version == latest_pkg.version:
-                                new_icons.append(("orange_tick",
-                                                  "package is latest within request"))
-        else:
-            new_icons.append(("error", "package is not in the search path"))
+            self._set_icons(new_icons)
 
-        self._set_icons(new_icons)
+        if flags & (ContextModel.LOCKS_CHANGED |
+                    ContextModel.CONTEXT_CHANGED):
+            # update lock icon
+            lock = self.context_model.get_patch_lock(self.variant.name)
+            if lock is None:
+                lock = self.context_model.default_patch_lock
+                icon_name = "%s_faint" % lock.name
+            else:
+                icon_name = lock.name
+            self._set_lock_icon(icon_name, lock.description.lower())
 
-        # update lock icon
-        lock_type, is_default = self._get_patch_lock()
-        self.set_lock_status(lock_type.name, faint=is_default)
+    def _set_lock_type(self, lock_type):
+        self.context_model.set_patch_lock(self.variant.name, lock_type)
 
-    def _get_patch_lock(self):
-        lock = self.context_model.default_patch_lock
-        return lock, True
+    def _remove_lock(self):
+        self.context_model.remove_patch_lock(self.variant.name)
 
-    def set_stale(self, b=True):
+    def _set_stale(self, b=True):
         if b != self.stale:
             font = self.label.font()
             font.setItalic(b)
@@ -100,23 +118,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
             self.label.setEnabled(not b)
             self.stale = b
 
-    # TODO remove this, drive via model instead
-    def set_lock_status(self, lock_type=None, faint=False):
-        if lock_type is None:
-            self._remove_lock_icon()
-        else:
-            desc = lock_types.get(lock_type)
-            tooltip = ("locked to %s" % desc) if desc else "no locking"
-            icon_name = lock_type
-            if faint:
-                icon_name += "_faint"
-            self._set_lock_icon(icon_name, tooltip)
-
     def _set_icons(self, icons):
-        """
-        Args:
-            icons: List of (name, tooltip) tuples.
-        """
         current_icons = [tuple(x[1:]) for x in self.icons]
         if icons == current_icons:
             return
@@ -143,9 +145,3 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         widget = get_icon_widget(name, tooltip)
         self.layout.insertWidget(0, widget)
         self.lock_icon = (widget, name, tooltip)
-
-    def _remove_lock_icon(self):
-        if self.lock_icon:
-            widget = self.lock_icon[0]
-            self.layout.removeWidget(widget)
-            self.lock_icon = None

@@ -12,12 +12,14 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
 
     packageSelected = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None,
+                 package_selectable_callback=None):
         super(BrowsePackageWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.edit = PackageLineEdit(context_model, family_only=True)
-        self.versions_table = PackageVersionsTable(context_model)
+        self.versions_table = PackageVersionsTable(context_model,
+                                                   callback=package_selectable_callback)
         self.package_tab = PackageTabWidget(versions_tab=False)
 
         splitter = ConfiguredSplitter(app.config, "layout/splitter/browse_package")

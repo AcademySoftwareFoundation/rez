@@ -1,11 +1,12 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, create_toolbutton, get_icon, lock_types
+from rezgui.util import create_pane, get_icon, add_locking_submenu, add_menu_action
 from rezgui.widgets.ContextToolsWidget import ContextToolsWidget
 from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.SettingsWidget import SettingsWidget
+from rezgui.widgets.ContextResolveTimeLabel import ContextResolveTimeLabel
 from rezgui.dialogs.ResolveDialog import ResolveDialog
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
@@ -30,6 +31,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         "default_patch_lock":   Or(*[x.name for x in PatchLock])
     })
 
+    # see ContextSubWindow._resolve, it is the reason for this signal
+    resolved = QtCore.Signal()
+
     def __init__(self, context_model=None, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
@@ -48,47 +52,28 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.context_table = ContextTableWidget(self.context_model)
         self.show_effective_request_checkbox = QtGui.QCheckBox("show effective request")
 
+        resolve_time_label = ContextResolveTimeLabel(self.context_model)
         self.diff_btn = QtGui.QPushButton("Diff Mode")
         self.shell_btn = QtGui.QPushButton("Open Shell")
 
         self.resolve_btn = QtGui.QToolButton()
 
-        def _action(menu, label, slot, icon_name=None, group=None):
-            nargs = [label, self.resolve_btn]
-            if icon_name:
-                icon = get_icon(icon_name, as_qicon=True)
-                nargs.insert(0, icon)
-            action = QtGui.QAction(*nargs)
-            action.triggered.connect(slot)
-            if group:
-                action.setCheckable(True)
-                group.addAction(action)
-            menu.addAction(action)
-            return action
-
         menu = QtGui.QMenu()
-        default_action = _action(menu, "Resolve", self._resolve)
-        _action(menu, "Advanced Resolve...", partial(self._resolve, advanced=True))
-        self.reset_action = _action(menu, "Reset To Last Resolve...", self._reset)
-
+        default_action = add_menu_action(menu, "Resolve", self._resolve)
+        add_menu_action(menu, "Advanced Resolve...", partial(self._resolve, advanced=True))
+        self.reset_action = add_menu_action(menu, "Reset To Last Resolve...", self._reset)
         menu.addSeparator()
-        lock_group = QtGui.QActionGroup(menu)
-        self.lock_menu = menu.addMenu("Set Locking To...")
-        fn = partial(self._set_lock_type, "no_lock")
-        _action(self.lock_menu, "No Locking", fn, "no_lock", lock_group)
-        for k, v in lock_types.iteritems():
-            fn = partial(self._set_lock_type, k)
-            _action(self.lock_menu, "Lock to %s" % v, fn, k, lock_group)
+
+        self.lock_menu, self.lock_actions = add_locking_submenu(menu, self._set_lock_type)
 
         self.resolve_btn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
         self.resolve_btn.setDefaultAction(default_action)
         self.resolve_btn.setMenu(menu)
-        icon = get_icon("no_lock", as_qicon=True)
-        self.resolve_btn.setIcon(icon)
         self.resolve_btn.setToolButtonStyle(QtCore.Qt.ToolButtonTextBesideIcon)
 
         btn_pane = create_pane([self.show_effective_request_checkbox,
                                 None,
+                                resolve_time_label,
                                 self.shell_btn,
                                 self.diff_btn,
                                 self.resolve_btn],
@@ -107,9 +92,8 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
             context_splitter.setStretchFactor(0, 2)
             context_splitter.setStretchFactor(1, 1)
 
-        self.tools_list = ContextToolsWidget()
-
-        self.resolve_details = ContextDetailsWidget()
+        self.tools_list = ContextToolsWidget(self.context_model)
+        self.resolve_details = ContextDetailsWidget(self.context_model)
 
         self.tab = QtGui.QTabWidget()
         self.tab.addTab(context_splitter, "context")
@@ -132,6 +116,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_btn.clicked.connect(self._open_shell)
+        self.lock_menu.aboutToShow.connect(self._update_lock_menu)
         self.show_effective_request_checkbox.stateChanged.connect(
             self._effectiveRequestStateChanged)
 
@@ -141,17 +126,12 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         return QtCore.QSize(800, 500)
 
     def refresh(self):
-        stale = self.context_model.is_stale()
-        self.diff_btn.setEnabled(not stale)
-        self.shell_btn.setEnabled(not stale)
-        self.reset_action.setEnabled(self.context_model.can_revert())
-        self.lock_menu.setEnabled(bool(self.context()))
-        tab_text = "context*" if stale else "context"
-        self.tab.setTabText(0, tab_text)
+        self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
     def _resolve(self, advanced=False):
         dlg = ResolveDialog(self.context_model, parent=self, advanced=advanced)
         dlg.resolve()  # this updates the model on successful solve
+        self.resolved.emit()
 
     def _reset(self):
         assert self.context_model.can_revert()
@@ -195,8 +175,23 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         #self.tab.setTabText(1, "settings*")
 
     def _contextChanged(self, flags=0):
-        #self.tab.setTabText(0, "context*")
-        self.refresh()
+        stale = self.context_model.is_stale()
+        is_context = bool(self.context())
+
+        self.diff_btn.setEnabled(not stale)
+        self.shell_btn.setEnabled(not stale)
+        self.reset_action.setEnabled(self.context_model.can_revert())
+        self.lock_menu.setEnabled(is_context)
+
+        self.tab.setTabEnabled(2, is_context)
+        self.tab.setTabEnabled(3, is_context)
+        tab_text = "context*" if stale else "context"
+        self.tab.setTabText(0, tab_text)
+
+        if flags & (ContextModel.LOCKS_CHANGED | ContextModel.CONTEXT_CHANGED):
+            lock_type = self.context_model.default_patch_lock
+            icon = get_icon(lock_type.name, as_qicon=True)
+            self.resolve_btn.setIcon(icon)
 
     def _variantSelected(self, variant):
         self.package_tab.set_variant(variant)
@@ -205,6 +200,8 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.context_table.show_effective_request(state == QtCore.Qt.Checked)
 
     def _set_lock_type(self, lock_type):
-        icon = get_icon(lock_type, as_qicon=True)
-        self.resolve_btn.setIcon(icon)
-        #self.context_table.set_default_patch_lock(lock_type)
+        self.context_model.set_default_patch_lock(lock_type)
+
+    def _update_lock_menu(self):
+        action = self.lock_actions[self.context_model.default_patch_lock]
+        action.setChecked(True)

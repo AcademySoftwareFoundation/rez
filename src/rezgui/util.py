@@ -1,14 +1,9 @@
 from rezgui.qt import QtCore, QtGui
-from rez.util import readable_time_duration, OrderedDict
+from rez.util import readable_time_duration
+from rez.resolved_context import PatchLock
+from functools import partial
 import os.path
 import time
-
-
-lock_types = OrderedDict([
-    ("lock_2",  "minor version updates only (rank 2)"),
-    ("lock_3",  "patch version updates only (rank 3)"),
-    ("lock_4",  "build version updates only (rank 4)"),
-    ("lock",    "exact version")])
 
 
 def create_pane(widgets, horizontal, parent_widget=None, compact=False,
@@ -109,6 +104,34 @@ def get_icon_widget(filename, tooltip=None):
 def get_timestamp_str(timestamp):
     now = int(time.time())
     release_time = time.localtime(timestamp)
-    release_time_str = time.strftime('%m %b %Y %H:%M', release_time)
+    release_time_str = time.strftime('%d %b %Y %H:%M:%S', release_time)
     ago = readable_time_duration(now - timestamp)
     return "%s (%s ago)" % (release_time_str, ago)
+
+
+def add_menu_action(menu, label, slot, icon_name=None, group=None):
+    nargs = [label, menu]
+    if icon_name:
+        icon = get_icon(icon_name, as_qicon=True)
+        nargs.insert(0, icon)
+    action = QtGui.QAction(*nargs)
+    action.triggered.connect(slot)
+    if group:
+        action.setCheckable(True)
+        group.addAction(action)
+    menu.addAction(action)
+    return action
+
+
+def add_locking_submenu(menu, slot):
+    group = QtGui.QActionGroup(menu)
+    lock_menu = menu.addMenu("Lock To...")
+    actions = {}
+
+    for lock_type in PatchLock:
+        fn = partial(slot, lock_type)
+        action = add_menu_action(lock_menu, lock_type.description, fn,
+                                 lock_type.name, group)
+        actions[lock_type] = action
+
+    return lock_menu, actions

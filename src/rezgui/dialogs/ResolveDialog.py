@@ -2,6 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
+from rezgui.widgets.TimestampWidget import TimestampWidget
 from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.App import app
 from rez.exceptions import RezError
@@ -139,11 +140,18 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             app.config.attach(self.show_package_loads_checkbox, "resolve/show_package_loads")
             show_loads_pane = create_pane([None, self.show_package_loads_checkbox], True)
 
-            create_pane([max_fails_pane,
-                         verbosity_pane,
-                         show_loads_pane,
-                         None],
-                        False,
+            self.timestamp_widget = TimestampWidget(self.context_model)
+
+            left_pane = create_pane([self.timestamp_widget, None], False,
+                                    compact=True)
+
+            right_pane = create_pane([max_fails_pane,
+                                      verbosity_pane,
+                                      show_loads_pane,
+                                      None],
+                                     False, compact=True)
+
+            create_pane([left_pane, right_pane], True,
                         parent_widget=self.resolve_group)
 
             pane = create_pane([self.resolve_group, None, btn_pane], True)

@@ -1,5 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.ToolWidget import ToolWidget
+from rezgui.models.ContextModel import ContextModel
+from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_icon, create_pane
 from rezgui.objects.App import app
 
@@ -20,10 +22,12 @@ class _TreeNode(QtGui.QLabel):
             self.item.setExpanded(not self.item.isExpanded())
 
 
-class ContextToolsWidget(QtGui.QTreeWidget):
-    def __init__(self, parent=None):
+class ContextToolsWidget(QtGui.QTreeWidget, ContextViewMixin):
+    def __init__(self, context_model=None, parent=None):
         super(ContextToolsWidget, self).__init__(parent)
-        self.context = None
+        ContextViewMixin.__init__(self, context_model)
+
+        #self.context = None
         self.tool_widgets = {}
 
         self.package_icon = get_icon("package", as_qicon=True)
@@ -38,13 +42,14 @@ class ContextToolsWidget(QtGui.QTreeWidget):
 
         app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
-    def clear(self):
-        super(ContextToolsWidget, self).clear()
-        self.context = None
-        self.tool_widgets = {}
+        self.refresh()
 
-    def set_context(self, context):
+    def refresh(self):
         self.clear()
+        self.tool_widgets = {}
+        context = self.context()
+        if not context:
+            return
 
         variants = (x for x in context.resolved_packages if x.tools)
         for variant in sorted(variants, key=lambda x: x.name):
@@ -65,14 +70,18 @@ class ContextToolsWidget(QtGui.QTreeWidget):
                 self.tool_widgets[tool] = widget
 
         self.resizeColumnToContents(0)
-        self.context = context
+
+    def _contextChanged(self, flags=0):
+        if not flags & (ContextModel.CONTEXT_CHANGED):
+            return
+        self.refresh()
 
     def _clear_selection(self):
         self.setCurrentIndex(QtCore.QModelIndex())
         self.clearSelection()
 
     def _instanceCountChanged(self, context_id, tool_name, num_procs):
-        if self.context is None or context_id != id(self.context):
+        if self.context() is None or context_id != id(self.context()):
             return
 
         widget = self.tool_widgets.get(str(tool_name))

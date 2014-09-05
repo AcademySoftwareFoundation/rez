@@ -6,11 +6,18 @@ from rez.exceptions import RezError
 
 
 class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, parent=None, callback=None):
+        """
+        Args:
+            callback (callable): If supplied, this will be called and passed
+            a `Package` for each package in the versions list. If the callable
+            returns False, that package will be disabled for selection.
+        """
         super(PackageVersionsTable, self).__init__(0, 2, parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.package_name = None
+        self.callback = callback
         self.packages = {}
 
         self.setGridStyle(QtCore.Qt.DotLine)
@@ -56,6 +63,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
         package_paths = self.context_model.packages_path
         self.packages = {}
+        self.clear()
         rows = []
 
         busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
@@ -67,7 +75,6 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             packages = []
 
         if not packages:
-            self.clear()
             self.setEnabled(False)
             self.package_name = None
             QtGui.QApplication.restoreOverrideCursor()
@@ -79,19 +86,30 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             path_str = package.path
             release_str = get_timestamp_str(package.timestamp) \
                 if package.timestamp else '-'
-            rows.append((version_str, path_str, release_str))
+            if self.callback:
+                enabled = self.callback(package)
+            else:
+                enabled = True
+            rows.append((enabled, version_str, path_str, release_str))
             self.packages[i] = package
 
         QtGui.QApplication.restoreOverrideCursor()
-
         self.setRowCount(len(rows))
+        first_selectable_row = -1
+
         for i, row in enumerate(rows):
-            item = QtGui.QTableWidgetItem(row[0])
+            enabled, version_str = row[:2]
+            item = QtGui.QTableWidgetItem(version_str)
             item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
             self.setVerticalHeaderItem(i, item)
 
-            for j in range(len(row) - 1):
-                item = QtGui.QTableWidgetItem(row[j + 1])
+            for j in range(len(row) - 2):
+                item = QtGui.QTableWidgetItem(row[j + 2])
+                if enabled:
+                    if first_selectable_row == -1:
+                        first_selectable_row = i
+                else:
+                    item.setFlags(QtCore.Qt.NoItemFlags)
                 self.setItem(i, j, item)
 
         self.setHorizontalHeaderLabels(["path", "released"])
@@ -106,5 +124,5 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.package_name = package_name
         self.setEnabled(True)
 
-        self.clearSelection()  # ensure an itemSelectionChanged signal
-        self.selectRow(0)
+        if first_selectable_row != -1:
+            self.selectRow(first_selectable_row)

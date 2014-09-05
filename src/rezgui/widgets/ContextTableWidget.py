@@ -40,6 +40,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         vh.setVisible(False)
 
         self.currentCellChanged.connect(self._currentCellChanged)
+        self.itemSelectionChanged.connect(self._itemSelectionChanged)
         self.refresh()
 
     def selectionCommand(self, index, event=None):
@@ -111,6 +112,12 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             self._current_variant = None
             self.setCurrentIndex(QtCore.QModelIndex())
         self.variantSelected.emit(self._current_variant)
+
+    # this is only here to clear the current index, which leaves an annoying
+    # visual cue even though the cell is not selected
+    def _itemSelectionChanged(self):
+        if not self.selectedIndexes():
+            self.setCurrentIndex(QtCore.QModelIndex())
 
     def _iter_column_widgets(self, column, types=None):
         types = types or QtGui.QWidget

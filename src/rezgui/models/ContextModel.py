@@ -30,6 +30,7 @@ class ContextModel(QtCore.QObject):
         self.packages_path = config.packages_path
         self.implicit_packages = config.implicit_packages
         self.default_patch_lock = PatchLock.no_lock
+        self.patch_locks = {}
 
         if context:
             self._set_context(context)
@@ -46,6 +47,10 @@ class ContextModel(QtCore.QObject):
         """Return the current context, if any."""
         return self._context
 
+    def get_patch_lock(self, package_name):
+        """Return the patch lock associated with the package, or None."""
+        return self.patch_locks.get(package_name)
+
     def set_request(self, request_strings):
         self._changed("request", request_strings, self.REQUEST_CHANGED)
 
@@ -54,6 +59,17 @@ class ContextModel(QtCore.QObject):
 
     def set_default_patch_lock(self, lock):
         self._changed("default_patch_lock", lock, self.LOCKS_CHANGED)
+
+    def set_patch_lock(self, package_name, lock):
+        existing_lock = self.patch_locks.get(package_name)
+        if lock != existing_lock:
+            self.patch_locks[package_name] = lock
+            self.dataChanged.emit(self.LOCKS_CHANGED)
+
+    def remove_patch_lock(self, package_name):
+        if package_name in self.patch_locks:
+            del self.patch_locks[package_name]
+            self.dataChanged.emit(self.LOCKS_CHANGED)
 
     def resolve_context(self, verbosity=0, callback=None, buf=None,
                         package_load_callback=None):
@@ -97,6 +113,7 @@ class ContextModel(QtCore.QObject):
         self.packages_path = context.package_paths
         self.implicit_packages = context.implicit_packages
         self.default_patch_lock = context.default_patch_lock
+        self.patch_locks = context.patch_locks.copy()
 
         self.dataChanged.emit(self.CONTEXT_CHANGED |
                               self.REQUEST_CHANGED |

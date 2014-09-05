@@ -10,6 +10,7 @@ class IconButton(QtGui.QLabel):
         super(IconButton, self).__init__(parent)
         icon = get_icon(icon_name)
         self.setPixmap(icon)
+        self.setCursor(QtCore.Qt.PointingHandCursor)
 
     def mousePressEvent(self, event):
         self.clicked.emit(event.button())

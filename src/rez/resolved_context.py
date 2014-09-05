@@ -37,6 +37,8 @@ class PatchLock(Enum):
     lock_4 = ("Build version updates only (rank 4)",)
     lock = ("Exact version",)
 
+    __order__ = "no_lock,lock_2,lock_3,lock_4,lock"
+
     def __init__(self, description):
         self.description = description
 
@@ -88,7 +90,8 @@ class ResolvedContext(object):
             package_requests: List of strings or Requirement objects
                 representing the request.
             verbosity: Verbosity level. One of [0,1,2].
-            timestamp: Ignore packages greater or equal to this epoch time.
+            timestamp: Ignore packages released after this epoch time. Packages
+                released at exactly this time will not be ignored.
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used. If None, defaults to
@@ -144,6 +147,7 @@ class ResolvedContext(object):
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
+        self.patch_locks = {}
 
         # info about env the resolve occurred in
         self.rez_version = __version__
@@ -1027,6 +1031,8 @@ class ResolvedContext(object):
         for pkg in (self._resolved_packages or []):
             resolved_packages.append(pkg.resource_handle.to_dict())
 
+        patch_locks = dict((k, v.name) for k, v in self.patch_locks)
+
         return dict(
             serialize_version=ResolvedContext.serialize_version,
 
@@ -1039,6 +1045,7 @@ class ResolvedContext(object):
             package_paths=self.package_paths,
 
             default_patch_lock=self.default_patch_lock.name,
+            patch_locks=patch_locks,
 
             rez_version=self.rez_version,
             rez_path=self.rez_path,
@@ -1108,6 +1115,8 @@ class ResolvedContext(object):
         # -- SINCE SERIALIZE VERSION 3
 
         r.default_patch_lock = PatchLock[d.get("default_patch_lock", "no_lock")]
+        patch_locks = d.get("patch_locks", {})
+        r.patch_locks = dict((k, PatchLock[v]) for k, v in patch_locks)
 
         return r
 

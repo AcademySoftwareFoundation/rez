@@ -6,7 +6,8 @@ from rezgui.objects.App import app
 
 
 class BrowsePackageDialog(QtGui.QDialog, StoreSizeMixin):
-    def __init__(self, context_model, package_text=None, parent=None):
+    def __init__(self, context_model, package_text=None, parent=None,
+                 package_selectable_callback=None):
         config_key = "layout/window/browse_package"
         super(BrowsePackageDialog, self).__init__(parent)
         StoreSizeMixin.__init__(self, app.config, config_key)
@@ -14,7 +15,8 @@ class BrowsePackageDialog(QtGui.QDialog, StoreSizeMixin):
         self.setWindowTitle("Find Package")
         self.package = None
 
-        self.widget = BrowsePackageWidget(context_model, self)
+        self.widget = BrowsePackageWidget(
+            context_model, self, package_selectable_callback=package_selectable_callback)
 
         self.ok_btn = QtGui.QPushButton("Ok")
         cancel_btn = QtGui.QPushButton("Cancel")

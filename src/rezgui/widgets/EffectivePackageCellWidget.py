@@ -1,18 +1,18 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, get_icon_widget, lock_types
+from rezgui.util import create_pane, get_icon_widget
+from rez.resolved_context import PatchLock
 
 
 class EffectivePackageCellWidget(QtGui.QWidget):
-    types_ = lock_types.copy()
-    types_["implicit"] = "implicit package"
-
     def __init__(self, request, type_, parent=None):
         super(EffectivePackageCellWidget, self).__init__(parent)
 
-        tooltip = self.types_.get(type_)
-        assert tooltip
-        icon_widget = get_icon_widget(type_, tooltip)
+        if type_ == "implicit":
+            tooltip = "implicit package"
+        else:
+            tooltip = PatchLock[type_].description
 
+        icon_widget = get_icon_widget(type_, tooltip)
         label = QtGui.QLabel(str(request))
         font = label.font()
         font.setItalic(True)

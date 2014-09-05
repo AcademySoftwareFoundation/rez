@@ -21,6 +21,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
             self.setWindowModified(True)
 
         widget = ContextManagerWidget(context_model)
+        widget.resolved.connect(self._resolved)
         self.setWidget(widget)
 
     def closeEvent(self, event):
@@ -117,6 +118,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
     def _contextChanged(self, flags=0):
         self.setWindowModified(True)
 
-        if flags & ContextModel.CONTEXT_CHANGED:
-            # for some reason the subwindow occasionally loses focus after a resolve
-            self.mdiArea().setActiveSubWindow(self)
+    # for some reason the subwindow occasionally loses focus to another
+    # subwindow after a resolve - this slot gets the focus back.
+    def _resolved(self):
+        self.mdiArea().setActiveSubWindow(self)
