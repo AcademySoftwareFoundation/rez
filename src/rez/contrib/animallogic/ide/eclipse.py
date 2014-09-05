@@ -10,6 +10,7 @@ from rezplugins.build_system.cmake import CMakeBuildSystem
 from rez.packages import load_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.rex import RexExecutor, Python
+import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -423,7 +424,8 @@ class EclipseProjectBuilder(object):
         for i, variant in enumerate(self.variants):
             for name, path, cmd in self.find_target_directories(variant, i):
                 self.add_make_target(build_targets, name, path, cmd)
-                self.add_make_target(build_targets, name + '_clean', path, 'clean')
+                if name.startswith('all'):
+                    self.add_make_target(build_targets, name + '_clean', path, 'clean')
 
         self.pretty_print(cproject, '.cproject', prefix='<?fileVersion 4.0.0?>\n')
         logger.info('Build .cproject file for %r and %d variants.' % (self.name, len(self.variants)))
@@ -478,22 +480,22 @@ class EclipseProjectBuilder(object):
             callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                          context=context,
                                          package=self.package)
-        
-            retcode, _, _ = context.execute_shell(block=True,
-                                                      command='pwd',
-                                                      actions_callback=callback,
-                                                      context_filepath='/var/tmp/ctx.ctx')
+            
+            tmp = tempfile.NamedTemporaryFile()
+            context.execute_shell(block=True,
+                                  command='env > %s'%tmp.name,
+                                  actions_callback=callback)
+            
             target_environ = {}
-            for line in open('/var/tmp/ctx.ctx'):
+            for line in open(tmp.name).readlines():
                 line = line.strip()
                 if not line or line.startswith('#'):
                     continue
-                line = line.replace('export ', '')
                 eqIndex = line.find('=')
                 if eqIndex == -1:
                     continue
                 key = line[:eqIndex]
-                val = line[eqIndex+2:-1] # strip double quotes
+                val = line[eqIndex+1:] # strip double quotes
                 target_environ[key] = val
             target_environ['module'] = ''  # for eclipse to stop complaining about syntax errors!
             
