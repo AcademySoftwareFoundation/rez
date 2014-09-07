@@ -9,7 +9,7 @@ import xml.etree.cElementTree as etree
 from rezplugins.build_system.cmake import CMakeBuildSystem
 from rez.packages import load_developer_package
 from rez.resolved_context import ResolvedContext
-from rez.rex import RexExecutor, Python
+from rez.rex import Python
 import tempfile
 
 
