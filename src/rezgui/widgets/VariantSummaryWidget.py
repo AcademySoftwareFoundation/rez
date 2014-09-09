@@ -59,7 +59,7 @@ class VariantSummaryWidget(QtGui.QWidget):
                 release_time_str = get_timestamp_str(variant.timestamp)
                 rows.append(("released: ", release_time_str))
             if variant.authors:
-                txt = ", ".join(variant.authors)
+                txt = "; ".join(variant.authors)
                 rows.append(("authors: ", txt))
             if variant.requires:
                 var_strs = [str(x) for x in variant.requires]
@@ -72,7 +72,7 @@ class VariantSummaryWidget(QtGui.QWidget):
                             var_strs[index] = "[%s" % var_strs[index]
                             index2 = index + len(var_reqs) - 1
                             var_strs[index2] = "%s]" % var_strs[index2]
-                txt = ", ".join(var_strs)
+                txt = "; ".join(var_strs)
                 rows.append(("requires: ", txt))
 
             # if a package, show changelog.

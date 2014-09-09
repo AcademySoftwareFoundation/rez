@@ -330,7 +330,8 @@ def pretty_env_dict(d):
 
 def readable_time_duration(secs):
     divs = ((365 * 24 * 3600, "years", 10),
-            (7 * 24 * 3600, "weeks", 10),
+            (30 * 24 * 3600, "months", 12),
+            (7 * 24 * 3600, "weeks", 5),
             (24 * 3600, "days", 7),
             (3600, "hours", 8),
             (60, "minutes", 5),

@@ -71,8 +71,8 @@ class ContextModel(QtCore.QObject):
             del self.patch_locks[package_name]
             self.dataChanged.emit(self.LOCKS_CHANGED)
 
-    def resolve_context(self, verbosity=0, callback=None, buf=None,
-                        package_load_callback=None):
+    def resolve_context(self, verbosity=0, max_fails=-1, timestamp=None,
+                        callback=None, buf=None, package_load_callback=None):
         """Update the current context by performing a re-resolve.
 
         The newly resolved context is only applied if it is a successful solve.
@@ -84,6 +84,8 @@ class ContextModel(QtCore.QObject):
             self.request,
             package_paths=self.packages_path,
             verbosity=verbosity,
+            max_fails=max_fails,
+            timestamp=timestamp,
             buf=buf,
             callback=callback,
             package_load_callback=package_load_callback)

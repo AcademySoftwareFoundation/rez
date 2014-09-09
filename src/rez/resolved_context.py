@@ -68,7 +68,7 @@ class ResolvedContext(object):
         def __call__(self, state):
             if self.verbose:
                 print >> self.buf, state
-            if self.max_fails != -1 and state.num_fails >= self.max_fails:
+            if self.max_fails != -1 and state.num_fails > self.max_fails:
                 return False, ("fail limit reached: aborted after %d failures"
                                % state.num_fails)
             if self.time_limit != -1:
@@ -103,8 +103,8 @@ class ResolvedContext(object):
             add_bootstrap_path: If True, append the package search path with
                 the bootstrap path. If False, do not append. If None, use the
                 default specified in config.add_bootstrap_path.
-            max_fails (int): Abort the resolve after this many failed
-                resolve steps. If -1, does not abort.
+            max_fails (int): Abort the resolve if the number of failed steps is
+                greater than this number. If -1, does not abort.
             time_limit (int): Abort the resolve if it takes longer than this
                 many seconds. If -1, there is no time limit.
             callback: If not None, this callable will be called after each

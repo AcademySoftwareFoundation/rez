@@ -28,7 +28,7 @@ class ContextResolveTimeLabel(QtGui.QLabel, ContextViewMixin):
             time_txt = readable_time_duration(minutes * 60)
         else:
             time_txt = "moments"
-        self.setText("resolved %s ago " % time_txt)
+        self.setText("resolved %s ago" % time_txt)
         self.timer.start()
 
     def _contextChanged(self, flags=0):

@@ -18,11 +18,15 @@ class Resolver(QtCore.QObject):
 
     finished = QtCore.Signal()
 
-    def __init__(self, context_model, verbosity=0, buf=None):
+    def __init__(self, context_model, verbosity=0, max_fails=-1, timestamp=None,
+                 show_package_loads=True, buf=None):
         super(Resolver, self).__init__()
         self.context_model = context_model
         self.context = None
         self.verbosity = verbosity
+        self.max_fails = max_fails
+        self.timestamp = timestamp
+        self.show_package_loads = show_package_loads
         self.buf = buf
         self.context = None
         self.keep_going = True
@@ -30,14 +34,13 @@ class Resolver(QtCore.QObject):
         self.error_message = None
 
     def resolve(self):
-        if app.config.get("resolve/show_package_loads"):
-            package_load_callback = self._package_load_callback
-        else:
-            package_load_callback = None
-
+        package_load_callback = (self._package_load_callback
+                                 if self.show_package_loads else None)
         try:
             self.context = self.context_model.resolve_context(
                 verbosity=self.verbosity,
+                max_fails=self.max_fails,
+                timestamp=self.timestamp,
                 buf=self.buf,
                 callback=self._callback,
                 package_load_callback=package_load_callback)
@@ -90,17 +93,20 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
 
         self.save_context_btn = QtGui.QPushButton("Save Context As...")
         self.graph_btn = QtGui.QPushButton("View Graph...")
-        self.close_btn = QtGui.QPushButton("Close")
+        self.ok_btn = QtGui.QPushButton("Ok")
+        self.start_again_btn = QtGui.QPushButton("Start Again")
         self.cancel_btn = QtGui.QPushButton("Cancel")
         self.resolve_btn = QtGui.QPushButton("Resolve")
-        self.close_btn.hide()
+        self.ok_btn.hide()
         self.graph_btn.hide()
+        self.start_again_btn.hide()
         self.save_context_btn.hide()
 
         btn_pane = create_pane([None,
                                self.save_context_btn,
                                self.graph_btn,
-                               self.close_btn,
+                               self.start_again_btn,
+                               self.ok_btn,
                                self.cancel_btn,
                                self.resolve_btn],
                                not self.advanced)
@@ -141,6 +147,9 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             show_loads_pane = create_pane([None, self.show_package_loads_checkbox], True)
 
             self.timestamp_widget = TimestampWidget(self.context_model)
+            context = self.context_model.context()
+            if context and context.requested_timestamp:
+                self.timestamp_widget.set_time(context.requested_timestamp)
 
             left_pane = create_pane([self.timestamp_widget, None], False,
                                     compact=True)
@@ -167,7 +176,8 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.resolve_btn.clicked.connect(self._start_resolve)
         self.graph_btn.clicked.connect(self._view_graph)
         self.save_context_btn.clicked.connect(self._save_context)
-        self.close_btn.clicked.connect(self.close)
+        self.start_again_btn.clicked.connect(self._reset)
+        self.ok_btn.clicked.connect(self.close)
 
     def resolve(self):
         # validate the request before opening dialog
@@ -176,12 +186,10 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
                 _ = Requirement(req_str)
             except Exception as e:
                 title = "Invalid package request - %r" % req_str
-                QtGui.QMessageBox.warning(self, title, str(e))
+                QtGui.QMessageBox.critical(self, title, str(e))
                 return
 
-        request_str = " ".join(str(x) for x in self.context_model.request)
-        self._log("Resolving: %s...\n" % request_str)
-
+        self._reset()
         if not self.advanced:
             self._start_resolve()
 
@@ -211,6 +219,24 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             self._cancel_resolve()
             event.ignore()
 
+    def _reset(self):
+        self.setWindowTitle("Resolve")
+        self.cancel_btn.setText("Cancel")
+        self.cancel_btn.hide()
+        self.ok_btn.hide()
+        self.start_again_btn.hide()
+        self.graph_btn.hide()
+        self.save_context_btn.hide()
+        self.resolve_btn.show()
+        self._set_progress(False)
+
+        if self.advanced:
+            self.resolve_group.setEnabled(True)
+
+        self.edit.clear()
+        request_str = " ".join(str(x) for x in self.context_model.request)
+        self._log("Resolving: %s...\n" % request_str)
+
     def _log(self, msg, color=None):
         if color:
             old_color = self.edit.textColor()
@@ -221,18 +247,31 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             self.edit.setTextColor(old_color)
 
     def _start_resolve(self):
+        max_fails = self._get_max_fails()
+        if max_fails is None:
+            return
+
         self.setWindowTitle("Resolving...")
         self.resolve_btn.hide()
         self.cancel_btn.show()
-        self._set_progress(False)
+        self._set_progress(None)
         self.started = True
 
         verbosity = 0
+        show_package_loads = True
+        timestamp = None
         if self.advanced:
             verbosity = app.config.get("resolve/verbosity")
+            show_package_loads = app.config.get("resolve/show_package_loads")
+            timestamp = self.timestamp_widget.datetime()
+            if timestamp is not None:
+                timestamp = timestamp.toTime_t()
 
         self.resolver = Resolver(self.context_model,
                                  verbosity=verbosity,
+                                 max_fails=max_fails,
+                                 timestamp=timestamp,
+                                 show_package_loads=show_package_loads,
                                  buf=self.edit)
 
         self.resolver.finished.connect(self._resolve_finished)
@@ -249,10 +288,11 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
     def _resolve_finished(self):
         self._finished = True
         self.cancel_btn.hide()
-        self.close_btn.show()
+        self.ok_btn.show()
         self._set_progress(True)
 
         if self.advanced:
+            self.start_again_btn.show()
             self.resolve_group.setEnabled(False)
 
         if self.resolver.error_message:
@@ -283,6 +323,24 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
                 msg += ":\n%s" % desc
             self._log(msg, "red")
 
+    def _get_max_fails(self):
+        if self.max_fails_combo is None:
+            return -1
+        txt = str(self.max_fails_combo.currentText())
+        if txt == "None":
+            return -1
+        try:
+            i = int(txt)
+        except:
+            i = -1
+        if i < 0:
+            title = "Invalid max fails value"
+            body = "Must be a positive integer."
+            QtGui.QMessageBox.critical(self, title, body)
+            self.max_fails_combo.setCurrentIndex(0)
+            return None
+        return i
+
     def _save_context(self):
         filepath = QtGui.QFileDialog.getSaveFileName(
             self, "Save Context", filter="Context files (*.rxt)")
@@ -295,8 +353,11 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         view_graph(graph_str, self)
 
     def _set_progress(self, done=True):
-        if done:
+        if done is True:
             self.bar.setMaximum(10)
             self.bar.setValue(10)
-        else:
+        elif done is False:
+            self.bar.setMaximum(10)
+            self.bar.setValue(0)
+        elif done is None:
             self.bar.setRange(0, 0)

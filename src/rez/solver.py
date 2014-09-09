@@ -1425,7 +1425,7 @@ class Solver(_Common):
         if self.status != SolverStatus.unsolved:
             return
 
-        self.pr.header("SOLVE #%d..." % (self.solve_count+1))
+        self.pr.header("SOLVE #%d..." % (self.solve_count + 1))
         start_time = time.time()
         phase = self._pop_phase()
 
@@ -1436,7 +1436,7 @@ class Solver(_Common):
 
         if phase.status == SolverStatus.exhausted:
             self.pr.subheader("SPLITTING:")
-            phase,next_phase = phase.split()
+            phase, next_phase = phase.split()
             self._push_phase(next_phase)
             self.pr("new phase: %s" % str(phase))
 
@@ -1457,9 +1457,9 @@ class Solver(_Common):
             if final_phase.status == SolverStatus.cyclic:
                 self.pr("FAIL: a cyclic dependency was detected")
             elif self.pr:
-                print "SUCCESS"
-                print "solve time: %.2f seconds" % self.solve_time
-                print "load time: %.2f seconds" % self.load_time
+                self.pr("SUCCESS")
+                self.pr("solve time: %.2f seconds" % self.solve_time)
+                self.pr("load time: %.2f seconds" % self.load_time)
         else:
             assert(new_phase.status == SolverStatus.exhausted)
             self._push_phase(new_phase)

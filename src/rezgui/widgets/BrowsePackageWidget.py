@@ -67,6 +67,7 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
 
     def _set_package_name(self, package_name):
         self.versions_table.set_package_name(package_name)
+        self.versions_table.set_highlight_version(None)
         self.versions_table.setFocus()
 
     def _set_package(self):

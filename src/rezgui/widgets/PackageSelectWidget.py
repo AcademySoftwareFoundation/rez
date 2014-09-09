@@ -17,7 +17,7 @@ class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
 
         self.edit = PackageLineEdit(self.context_model, self)
         self.edit.setStyleSheet("QLineEdit { border : 0px;}")
-        self.btn = IconButton("package")
+        self.btn = IconButton("package", "browse packages")
         self.btn.hide()
 
         layout = QtGui.QHBoxLayout()
