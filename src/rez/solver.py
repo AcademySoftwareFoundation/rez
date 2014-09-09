@@ -396,7 +396,7 @@ class VariantSorter(object):
                     # as the new key to sort by VersionRange
                     fam_requires = self._get_list_of_key_by_positional_weight(variants_slice)
 
-                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires))
+                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires[:]))
 
         return ordered_variant_list
 
@@ -426,16 +426,20 @@ class VariantSorter(object):
         @return: a VersionRange - The version range of the package if it exists, the exact VersionRange if the package
         is a conflict, or the 'any VersionRange' if the the family is not found in the variant
         """
-        for requirement in variant:
-            if requirement.name == fam_name:
-                if not requirement.conflict:
-                    return requirement.range
-                else:
-                    # This stack on top of VersionRange("") when sorted
-                    # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
-                    return VersionRange("==")
+        matching_fam_names_in_variant = [req for req in variant if req.name == fam_name]
+        if matching_fam_names_in_variant:
+            # Get the highest version if thre is more than one matching name
+            requirement = sorted(matching_fam_names_in_variant).pop()
+            if not requirement.conflict:
+                return requirement.range
+            else:
+                # This stack on top of VersionRange("") when sorted
+                # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
+                return VersionRange("==")
+        else:
+            return VersionRange("")
 
-        return VersionRange("")
+
 
     def group_by_number_of_packages(self, variants_slice):
         """

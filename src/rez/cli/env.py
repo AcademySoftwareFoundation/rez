@@ -155,7 +155,7 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
 
-        rc.save(context_file_name)
+        context.save(context_file_name)
         launch_dora_from_context_file(context_file_name)
 
     if opts.output:

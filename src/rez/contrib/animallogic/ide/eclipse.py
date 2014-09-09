@@ -1,11 +1,16 @@
 
-from rez.packages import load_developer_package
-from rez.resolved_context import ResolvedContext
-from rez.rex import RexExecutor, Python
 import logging
 import os
 import re
+import functools
+
 import xml.etree.cElementTree as etree
+
+from rezplugins.build_system.cmake import CMakeBuildSystem
+from rez.packages import load_developer_package
+from rez.resolved_context import ResolvedContext
+from rez.rex import Python
+import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -15,6 +20,7 @@ class EclipseProjectBuilder(object):
 
     include_path_start_regex = re.compile('CMAKE_C_TARGET_INCLUDE_PATH')
     end_section_regex = re.compile('\)')
+    bracket_regex = re.compile('[{}]')
 
     def __init__(self, working_directory):
 
@@ -72,15 +78,16 @@ class EclipseProjectBuilder(object):
     def find_include_paths(self, variant):
 
         paths = []
-        in_include_section = False
         target_directories = os.path.join('build', variant.subpath, 'CMakeFiles/TargetDirectories.txt')
 
         for target_directory in open(target_directories):
-            depend_info = os.path.join(target_directory.strip(), 'DependInfo.cmake')
+            target_directory = target_directory.strip()
+            depend_info = os.path.join(target_directory, 'DependInfo.cmake')
 
             if not os.path.isfile(depend_info):
                 continue
 
+            in_include_section = False
             for line in open(depend_info):
                 if self.include_path_start_regex.search(line):
                     in_include_section = True
@@ -91,17 +98,18 @@ class EclipseProjectBuilder(object):
                     continue
 
                 if in_include_section:
-                    paths.append(self.parse_include_path_from_line(line))
+                    paths.append(self.parse_include_path_from_line(variant, line))
 
         return paths
 
-    def parse_include_path_from_line(self, line):
+    def parse_include_path_from_line(self, variant, line):
 
         path = line.strip()[1:-1]
 
-        if path[0:5] == '../..':
+        if path.startswith('../'):
+            relpath = os.path.relpath(os.path.join(os.path.join('build', variant.subpath, path)))
             # replace the 5 chars '../..' by local workspace keyword
-            path = '${workspace_loc:/%s%s}'%(self.name, path[5:])
+            path = '${workspace_loc:/%s/%s}'%(self.name, relpath)
 
         for dependency in self.local_dependencies:
             if path.find('/%s/' % dependency) != -1:
@@ -120,13 +128,10 @@ class EclipseProjectBuilder(object):
         autodiscovery.set('selectedProfileId', '')
 
     def find_target_directories(self, variant, variant_index):
-
         paths = []
         names = set()
-        variant_name = variant.subpath
-        target_directories = os.path.join('build', variant_name, 'CMakeFiles/TargetDirectories.txt')
-
-        paths.append(('%s' % variant_name, os.path.join('build', variant_name)))
+        variant_dir = os.path.join('build', variant.subpath)
+        target_directories = os.path.join(variant_dir, 'CMakeFiles/TargetDirectories.txt')
 
         for line in open(target_directories):
             path = line.strip().replace(self.working_directory, '')[1:]
@@ -136,21 +141,31 @@ class EclipseProjectBuilder(object):
             if steps[-1] in ('package-yaml', 'cmake'):
                 continue
 
-            name = steps[-1] + '_%d' % variant_index
+            cmd = steps[-1]
+            if cmd == 'install':
+                name = 'all' + '_%d' % variant_index
+            else:
+                name = steps[-1] + '_%d' % variant_index
+                cmd += ' install'
+            
+            steps = steps[:-2]
+            path = '/'.join(steps)
+            paths.append((name, path, cmd))
 
-            paths.append((name, path))
-            for i in range(len(steps)-5):
-                substeps = steps[2:-i-3]
-
-                if not substeps:
+            relpath = os.path.relpath(path, start=variant_dir)
+            
+            substeps = relpath.split('/')
+            for i in range(len(substeps)):
+                subsubsteps = substeps[:-i]
+ 
+                if not subsubsteps:
                     continue
-
-                name = '_'.join(substeps) + '_%d' % variant_index
-                path = os.path.join(*steps[:-3-i])
-                path = path.replace('/%i' % variant_index, '/%s' % variant_name)
+ 
+                name = '_'.join(subsubsteps) + '_%d' % variant_index
+                subpath = os.path.join(variant_dir, *subsubsteps)
 
                 if name not in names:
-                    paths.append((name, path))
+                    paths.append((name, subpath, 'install'))
                     names.add(name)
 
         return paths
@@ -181,11 +196,14 @@ class EclipseProjectBuilder(object):
             fd.write(txt)
 
     def build_all(self):
-
-        self.build_project()
-        self.build_cproject()
-        self.build_cproject_settings()
-        self.build_pydevproject()
+        try:
+            self.build_project()
+            self.build_cproject()
+            self.build_cproject_settings()
+            self.build_pydevproject()
+        except:
+            logger.exception('Failure!')
+            raise
 
     def build_project(self):
 
@@ -282,8 +300,8 @@ class EclipseProjectBuilder(object):
             target_platform.set('osList', 'linux,hpux,aix,qnx')
             target_platform.set('superClass', 'cdt.managedbuild.target.gnu.platform.base')
 
-            builder = etree.SubElement(target_platform, "builder")
-            builder.set('buildPath', '${workspace_loc:/%s}/build/%d' % (self.name, i))
+            builder = etree.SubElement(tool_chain, "builder")
+            builder.set('buildPath', '${workspace_loc:/%s/build/%s}' % (self.name, variant.subpath))
             builder.set('id', 'cdt.managedbuild.target.gnu.builder.base.%d' % i)
             builder.set('keepEnvironmentInBuildfile', 'false')
             builder.set('managedBuildOn', 'false')
@@ -404,9 +422,10 @@ class EclipseProjectBuilder(object):
         build_targets = etree.SubElement(storage_module, "buildTargets")
 
         for i, variant in enumerate(self.variants):
-            for name, path in self.find_target_directories(variant, i):
-                self.add_make_target(build_targets, name, path, 'install')
-                self.add_make_target(build_targets, name + '_clean', path, 'clean')
+            for name, path, cmd in self.find_target_directories(variant, i):
+                self.add_make_target(build_targets, name, path, cmd)
+                if name.startswith('all'):
+                    self.add_make_target(build_targets, name + '_clean', path, 'clean')
 
         self.pretty_print(cproject, '.cproject', prefix='<?fileVersion 4.0.0?>\n')
         logger.info('Build .cproject file for %r and %d variants.' % (self.name, len(self.variants)))
@@ -456,15 +475,33 @@ class EclipseProjectBuilder(object):
 
         for i, variant in enumerate(self.variants):
             resolved_context_file = os.path.join('build', variant.subpath, 'build.rxt')
-            resolved_context = ResolvedContext.load(resolved_context_file)
+            context = ResolvedContext.load(resolved_context_file)
 
+            callback = functools.partial(CMakeBuildSystem._add_build_actions,
+                                         context=context,
+                                         package=self.package)
+            
+            tmp = tempfile.NamedTemporaryFile()
+            context.execute_shell(block=True,
+                                  command='env > %s'%tmp.name,
+                                  actions_callback=callback)
+            
             target_environ = {}
-            interpreter = Python(target_environ=target_environ)
-            executor = resolved_context._create_executor(interpreter, None)
-            resolved_context._execute(executor)
-            executor.get_output()
-
+            for line in open(tmp.name).readlines():
+                line = line.strip()
+                if not line or line.startswith('#'):
+                    continue
+                eqIndex = line.find('=')
+                if eqIndex == -1:
+                    continue
+                key = line[:eqIndex]
+                val = line[eqIndex+1:] # strip double quotes
+                target_environ[key] = val
+            target_environ['module'] = ''  # for eclipse to stop complaining about syntax errors!
+            
             for key, value in target_environ.items():
+                if self.bracket_regex.search(value):
+                    continue
                 settings += '''
 environment/project/cdt.managedbuild.toolchain.gnu.base.%(i)s/%(key)s/delimiter=\:
 environment/project/cdt.managedbuild.toolchain.gnu.base.%(i)s/%(key)s/operation=replace
