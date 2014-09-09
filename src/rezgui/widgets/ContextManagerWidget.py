@@ -81,6 +81,8 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         for lock_type in PatchLock:
             fn = partial(self._set_lock_type, lock_type)
             add_menu_action(menu, lock_type.description, fn, lock_type.name)
+        menu.addSeparator()
+        add_menu_action(menu, "Remove Explicit Locks", self._removeExplicitLocks)
         self.lock_tbtn.setMenu(menu)
 
         resolve_tbtn = QtGui.QToolButton()
@@ -103,6 +105,12 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         toolbar.addWidget(self.lock_tbtn)
         toolbar.addWidget(resolve_tbtn)
         self.time_lock_action.setVisible(False)
+
+        self.time_lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.shell_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.diff_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        resolve_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
 
         btn_pane = create_pane([self.show_effective_request_checkbox,
                                 None, toolbar],
@@ -257,3 +265,6 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def _updateToolsCount(self):
         label = "tools (%d)" % self.tools_list.num_tools()
         self.tab.setTabText(2, label)
+
+    def _removeExplicitLocks(self):
+        self.context_model.remove_all_patch_locks()

@@ -6,10 +6,6 @@ from rez.colorize import critical, error, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, \
     mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, dedup, timings
-from rez.vendor.pygraph.readwrite.dot import write as write_dot
-from rez.vendor.pygraph.readwrite.dot import read as read_dot
-from rez.vendor.version.requirement import Requirement
-from rez.vendor.version.version import VersionRange
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -17,6 +13,10 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
 from rez.packages import Variant, validate_package_name, iter_packages
 from rez.shells import create_shell, get_shell_types
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
+from rez.vendor.pygraph.readwrite.dot import write as write_dot
+from rez.vendor.pygraph.readwrite.dot import read as read_dot
+from rez.vendor.version.requirement import Requirement, VersionedObject
+from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 import getpass
@@ -41,6 +41,39 @@ class PatchLock(Enum):
 
     def __init__(self, description):
         self.description = description
+
+
+def get_lock_request(name, version, patch_lock):
+    """Given a package and patch lock, return the equivalent request.
+
+    For example, for object 'foo-1.2.1' and lock type 'lock_3', the equivalent
+    request is '~foo-1.2'. This restricts updates to foo to patch-or-lower
+    version changes only.
+
+    For objects not versioned down to a given lock level, the closest possible
+    lock is applied. So 'lock_3' applied to 'foo-1' would give '~foo-1'.
+
+    Args:
+        name (str): Package name.
+        version (Version): Package version.
+        patch_lock (PatchLock): Lock type to apply.
+
+    Returns:
+        `Requirement` object, or None if there is no equivalent request.
+    """
+    if patch_lock == PatchLock.lock:
+        s = "~%s==%s" % (name, str(version))
+        return Requirement(s)
+    elif (patch_lock == PatchLock.no_lock) or (not version):
+        return None
+
+    n = (1 if patch_lock == PatchLock.lock_2
+         else 2 if patch_lock == PatchLock.lock_3
+         else 3)
+
+    version2 = version.trim(n)
+    s = "~%s-%s" % (name, str(version2))
+    return Requirement(s)
 
 
 class ResolvedContext(object):

@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore
-from rez.resolved_context import ResolvedContext, PatchLock
+from rez.resolved_context import ResolvedContext, PatchLock, get_lock_request
 from rez.config import config
+from collections import defaultdict
 
 
 class ContextModel(QtCore.QObject):
@@ -51,6 +52,29 @@ class ContextModel(QtCore.QObject):
         """Return the patch lock associated with the package, or None."""
         return self.patch_locks.get(package_name)
 
+    def get_lock_requests(self):
+        """Take the current context, and the current patch locks, and determine
+        the effective requests that will be added to the main request.
+
+        Returns:
+            A dict of (PatchLock, [Requirement]) tuples. Each requirement will be
+            a weak package reference. If there is no current context, an empty
+            dict will be returned.
+        """
+        d = defaultdict(list)
+        if self._context:
+            for variant in self._context.resolved_packages:
+                name = variant.name
+                version = variant.version
+                lock = self.patch_locks.get(name)
+                if lock is None:
+                    lock = self.default_patch_lock
+
+                request = get_lock_request(name, version, lock)
+                if request is not None:
+                    d[lock].append(request)
+        return d
+
     def set_request(self, request_strings):
         self._changed("request", request_strings, self.REQUEST_CHANGED)
 
@@ -64,11 +88,19 @@ class ContextModel(QtCore.QObject):
         existing_lock = self.patch_locks.get(package_name)
         if lock != existing_lock:
             self.patch_locks[package_name] = lock
+            self._stale = True
             self.dataChanged.emit(self.LOCKS_CHANGED)
 
     def remove_patch_lock(self, package_name):
         if package_name in self.patch_locks:
             del self.patch_locks[package_name]
+            self._stale = True
+            self.dataChanged.emit(self.LOCKS_CHANGED)
+
+    def remove_all_patch_locks(self):
+        if self.patch_locks:
+            self.patch_locks = {}
+            self._stale = True
             self.dataChanged.emit(self.LOCKS_CHANGED)
 
     def resolve_context(self, verbosity=0, max_fails=-1, timestamp=None,

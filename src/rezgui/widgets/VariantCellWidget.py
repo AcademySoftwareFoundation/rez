@@ -1,11 +1,11 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, get_icon_widget, add_locking_submenu, \
-    add_menu_action, update_font
+from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
 from rez.resolved_context import PatchLock
 from rez.vendor.version.requirement import RequirementList
+from functools import partial
 
 
 class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
@@ -32,12 +32,13 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         self.refresh()
 
     def contextMenuEvent(self, event):
-        menu = QtGui.QMenu(self)
-        _, actions = add_locking_submenu(menu, self._set_lock_type)
         lock = self.context_model.get_patch_lock(self.variant.name)
-        if lock is not None:
-            actions[lock].setChecked(True)
-
+        menu = QtGui.QMenu(self)
+        for lock_type in PatchLock:
+            if lock_type != lock:
+                fn = partial(self._set_lock_type, lock_type)
+                add_menu_action(menu, lock_type.description, fn, lock_type.name)
+        menu.addSeparator()
         action = add_menu_action(menu, "Remove Lock", self._remove_lock)
         action.setEnabled(lock is not None)
 

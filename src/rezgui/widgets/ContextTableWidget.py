@@ -74,6 +74,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
     def _contextChanged(self, flags=0):
+        update_request = False
         if flags & ContextModel.CONTEXT_CHANGED:
             self.clear()
             self.setHorizontalHeaderLabels(["request", "resolve"])
@@ -82,6 +83,12 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
                 self._apply_context(self.context_model, 0, 1)
             else:
                 self._set_package_cell(0, 0)
+            update_request = True
+
+        if flags & ContextModel.LOCKS_CHANGED and self._show_effective_request:
+            update_request = True
+
+        if update_request:
             self._update_column(0)
 
     def _update_column(self, column):
@@ -100,6 +107,13 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             for request_str in self.context_model.implicit_packages:
                 self._set_effective_package_cell(row, column, request_str, "implicit")
                 row += 1
+
+            d = self.context_model.get_lock_requests()
+            for lock, requests in d.iteritems():
+                for request in requests:
+                    request_str = str(request)
+                    self._set_effective_package_cell(row, column, request_str, lock.name)
+                    row += 1
 
         self._trim_trailing_rows()
 
