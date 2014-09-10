@@ -1,4 +1,5 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.util import update_font, create_pane
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
 from rezgui.widgets.PackageLineEdit import PackageLineEdit
@@ -11,7 +12,7 @@ class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
     focusOut = QtCore.Signal(str)
     textChanged = QtCore.Signal(str)
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, read_only=False, parent=None):
         super(PackageSelectWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
@@ -20,18 +21,18 @@ class PackageSelectWidget(QtGui.QWidget, ContextViewMixin):
         self.btn = IconButton("package", "browse packages")
         self.btn.hide()
 
-        layout = QtGui.QHBoxLayout()
-        layout.setSpacing(2)
-        layout.setContentsMargins(0, 0, 0, 0)
-        layout.addWidget(self.edit, 1)
-        layout.addWidget(self.btn)
-        self.setLayout(layout)
+        create_pane([(self.edit, 1), self.btn, 2], True, compact=True,
+                    compact_spacing=0, parent_widget=self)
 
-        self.edit.focusIn.connect(self._focusIn)
-        self.edit.focusOut.connect(self._focusOut)
-        self.edit.focusOutViaKeyPress.connect(self._focusOutViaKeyPress)
-        self.edit.textChanged.connect(self._textChanged)
-        self.btn.clicked.connect(self._browse_package)
+        if read_only:
+            self.edit.setReadOnly(True)
+            update_font(self.edit, italic=True)
+        else:
+            self.edit.focusIn.connect(self._focusIn)
+            self.edit.focusOut.connect(self._focusOut)
+            self.edit.focusOutViaKeyPress.connect(self._focusOutViaKeyPress)
+            self.edit.textChanged.connect(self._textChanged)
+            self.btn.clicked.connect(self._browse_package)
 
     def text(self):
         return self.edit.text()

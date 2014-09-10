@@ -91,8 +91,13 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         resolve_tbtn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
         menu = QtGui.QMenu()
         default_action = add_menu_action(menu, "Resolve", self._resolve, "resolve")
-        add_menu_action(menu, "Advanced Resolve...", partial(self._resolve, advanced=True))
-        self.reset_action = add_menu_action(menu, "Reset To Last Resolve...", self._reset)
+        add_menu_action(menu, "Advanced Resolve...",
+                        partial(self._resolve, advanced=True), "advanced_resolve")
+        self.revert_action = add_menu_action(menu, "Revert To Last Resolve...",
+                                             self._revert_to_last_resolve, "revert")
+        self.revert_diff_action = add_menu_action(menu, "Revert To Diff Source...",
+                                                  self._revert_to_diff, "revert_to_diff")
+        self.revert_diff_action.setEnabled(False)
         resolve_tbtn.setDefaultAction(default_action)
         resolve_tbtn.setMenu(menu)
 
@@ -158,6 +163,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_tbtn.clicked.connect(self._open_shell)
+        self.diff_tbtn.clicked.connect(self._change_diff_mode)
         self.time_lock_tbtn.clicked.connect(self._timelockClicked)
         self.tools_list.toolsChanged.connect(self._updateToolsCount)
         self.show_effective_request_checkbox.stateChanged.connect(
@@ -177,20 +183,33 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         dlg.resolve()  # this updates the model on successful solve
         self.resolved.emit()
 
-    def _reset(self):
-        assert self.context_model.can_revert()
+    def _changes_prompt(self):
         ret = QtGui.QMessageBox.warning(
             self,
             "The context has been modified.",
             "Your changes will be lost. Are you sure?",
             QtGui.QMessageBox.Ok,
             QtGui.QMessageBox.Cancel)
-        if ret == QtGui.QMessageBox.Ok:
+        return (ret == QtGui.QMessageBox.Ok)
+
+    def _revert_to_last_resolve(self):
+        assert self.context_model.can_revert()
+        if self._changes_prompt():
             self.context_model.revert()
+
+    def _revert_to_diff(self):
+        if self._changes_prompt():
+            self.context_table.revert_to_diff()
 
     def _open_shell(self):
         assert self.context()
         app.execute_shell(context=self.context(), terminal=True)
+
+    def _change_diff_mode(self):
+        b = self.diff_tbtn.isChecked()
+        self.context_table.set_diff_mode(b)
+        self.revert_diff_action.setEnabled(b)
+        self.diff_tbtn.setEnabled(not self.context_model.is_stale())
 
     def _current_context_settings(self):
         assert self.context
@@ -223,9 +242,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         context = self.context()
         is_context = bool(context)
 
-        self.diff_tbtn.setEnabled(not stale)
+        self.diff_tbtn.setEnabled(self.diff_tbtn.isChecked() or not stale)
         self.shell_tbtn.setEnabled(not stale)
-        self.reset_action.setEnabled(self.context_model.can_revert())
+        self.revert_action.setEnabled(self.context_model.can_revert())
         self.lock_tbtn.setEnabled(is_context)
 
         self.tab.setTabEnabled(2, is_context)

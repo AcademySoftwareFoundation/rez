@@ -9,27 +9,27 @@ from functools import partial
 
 
 class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
-    def __init__(self, context_model, variant, parent=None):
+    def __init__(self, context_model, variant, diff_variant=None, parent=None):
         super(VariantCellWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.variant = variant
+        self.diff_variant = diff_variant
         self.stale = False
         self.lock_status = None
         self.lock_icon = None
         self.icons = []  # 3-tuples: widget, name, tooltip
+        self.compare_state = None
 
         self.label = QtGui.QLabel(self.variant.qualified_package_name)
         if self.variant.description:
             self.label.setToolTip(self.variant.description)
 
-        self.layout = QtGui.QHBoxLayout()
-        self.layout.setSpacing(2)
-        self.layout.setContentsMargins(2, 2, 2, 2)
-        self.layout.addWidget(self.label, 1)
-        self.setLayout(self.layout)
-
+        create_pane([(self.label, 1)], True, compact=True, parent_widget=self)
         self.refresh()
+
+    def text(self):
+        return self.variant.qualified_package_name
 
     def contextMenuEvent(self, event):
         lock = self.context_model.get_patch_lock(self.variant.name)
@@ -89,12 +89,47 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                         except:
                             pass
                         if range_ is not None:
-                            packages = [x for x in packages if x.version in range_]
-                            if packages:
-                                latest_pkg = packages[-1]
+                            packages_ = [x for x in packages if x.version in range_]
+                            if packages_:
+                                latest_pkg = packages_[-1]
                                 if self.variant.version == latest_pkg.version:
                                     new_icons.append(("yellow_tick",
                                                       "package is latest within request"))
+
+                # test against diff source
+                self.compare_state = None
+                if self.diff_variant is not None:
+                    if self.variant.version == self.diff_variant.version:
+                        icon_name = "equal_to"
+                        desc = "packages are equal"
+                        self.compare_state = "equal_to"
+                    else:
+                        def _version_index(version):
+                            if packages:
+                                indices = [i for i in range(len(packages))
+                                           if packages[i].version == version]
+                                if indices:
+                                    return indices[0]
+                            return None
+
+                        this_index = _version_index(self.variant.version)
+                        diff_index = _version_index(self.diff_variant.version)
+                        diff_visible = self.diff_variant.search_path in package_paths
+                        diffable = diff_visible and (None not in (this_index, diff_index))
+                        newer = (self.variant.version > self.diff_variant.version)
+
+                        if not diffable:  # testing
+                            pass
+                        elif newer:
+                            icon_name = "greater_than"
+                            desc = "package is newer"
+                            self.compare_state = "greater_than"
+                        else:
+                            icon_name = "less_than"
+                            desc = "package is older"
+                            self.compare_state = "less_than"
+
+                    new_icons.append((icon_name, desc))
             else:
                 new_icons.append(("error", "package is not in the search path"))
 
@@ -120,7 +155,6 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
     def _set_stale(self, b=True):
         if b != self.stale:
             update_font(self.label, italic=b)
-            self.label.setEnabled(not b)
             self.stale = b
 
     def _set_icons(self, icons):
@@ -128,25 +162,27 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         if icons == current_icons:
             return
 
+        layout = self.layout()
         for t in self.icons:
             widget = t[0]
-            self.layout.removeWidget(widget)
+            layout.removeWidget(widget)
             widget.setParent(None)
         self.icons = []
 
         for name, tooltip in icons:
             widget = get_icon_widget(name, tooltip)
-            self.layout.addWidget(widget)
+            layout.addWidget(widget)
             self.icons.append((widget, name, tooltip))
 
     def _set_lock_icon(self, name, tooltip):
+        layout = self.layout()
         if self.lock_icon:
             widget_, name_, tooltip_ = self.lock_icon
             if name == name_:
                 return
-            self.layout.removeWidget(widget_)
+            layout.removeWidget(widget_)
             widget_.setParent(None)
 
         widget = get_icon_widget(name, tooltip)
-        self.layout.insertWidget(0, widget)
+        layout.insertWidget(0, widget)
         self.lock_icon = (widget, name, tooltip)

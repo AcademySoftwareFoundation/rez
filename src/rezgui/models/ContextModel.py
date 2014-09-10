@@ -2,6 +2,7 @@ from rezgui.qt import QtCore
 from rez.resolved_context import ResolvedContext, PatchLock, get_lock_request
 from rez.config import config
 from collections import defaultdict
+import copy
 
 
 class ContextModel(QtCore.QObject):
@@ -35,6 +36,17 @@ class ContextModel(QtCore.QObject):
 
         if context:
             self._set_context(context)
+
+    def copy(self):
+        """Returns a copy of the context."""
+        other = ContextModel(self._context, self.parent())
+        other._stale = self._stale
+        other.request = self.request[:]
+        other.packages_path = self.packages_path
+        other.implicit_packages = self.implicit_packages
+        other.default_patch_lock = self.default_patch_lock
+        other.patch_locks = copy.deepcopy(self.patch_locks)
+        return other
 
     def is_stale(self):
         """Returns True if the context is stale.
@@ -145,9 +157,9 @@ class ContextModel(QtCore.QObject):
 
         self.request = [str(x) for x in context.requested_packages()]
         self.packages_path = context.package_paths
-        self.implicit_packages = context.implicit_packages
+        self.implicit_packages = context.implicit_packages[:]
         self.default_patch_lock = context.default_patch_lock
-        self.patch_locks = context.patch_locks.copy()
+        self.patch_locks = copy.deepcopy(context.patch_locks)
 
         self.dataChanged.emit(self.CONTEXT_CHANGED |
                               self.REQUEST_CHANGED |
@@ -159,5 +171,4 @@ class ContextModel(QtCore.QObject):
             return
         self._stale = True
         setattr(self, attr, value)
-        print "DATACHANGED", attr
         self.dataChanged.emit(flags)
