@@ -3,27 +3,32 @@ from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_fo
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
-from rez.resolved_context import PatchLock
-from rez.vendor.version.requirement import RequirementList
+from rez.resolved_context import PatchLock, get_lock_request
+from rez.vendor.version.requirement import Requirement, RequirementList
 from functools import partial
 
 
+# TODO deal with variant missing from disk
 class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
-    def __init__(self, context_model, variant, diff_variant=None, parent=None):
+    def __init__(self, context_model, variant, reference_variant=None,
+                 hide_locks=False, read_only=False, parent=None):
         super(VariantCellWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.variant = variant
-        self.diff_variant = diff_variant
+        self.reference_variant = reference_variant
         self.stale = False
         self.lock_status = None
         self.lock_icon = None
+        self.hide_locks = hide_locks
+        self.read_only = read_only
         self.icons = []  # 3-tuples: widget, name, tooltip
-        self.compare_state = None
 
         self.label = QtGui.QLabel(self.variant.qualified_package_name)
         if self.variant.description:
-            self.label.setToolTip(self.variant.description)
+            desc = "%s@%s" % (self.variant.qualified_package_name,
+                              self.variant.search_path)
+            self.label.setToolTip(desc)
 
         create_pane([(self.label, 1)], True, compact=True, parent_widget=self)
         self.refresh()
@@ -32,15 +37,36 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         return self.variant.qualified_package_name
 
     def contextMenuEvent(self, event):
-        lock = self.context_model.get_patch_lock(self.variant.name)
+        if self.read_only or self.hide_locks:
+            return
+
+        current_lock = self.context_model.get_patch_lock(self.variant.name)
         menu = QtGui.QMenu(self)
+        consumed_reqs = set()
+
         for lock_type in PatchLock:
-            if lock_type != lock:
-                fn = partial(self._set_lock_type, lock_type)
-                add_menu_action(menu, lock_type.description, fn, lock_type.name)
+            if lock_type == PatchLock.no_lock:
+                desc = lock_type.description
+            else:
+                req = self._get_lock_requirement(lock_type)
+                if lock_type == PatchLock.lock:
+                    desc = "Exact version (%s)" % str(req)
+                elif req and req not in consumed_reqs:
+                    unit = lock_type.description.split()[0]
+                    desc = ("%s version updates only (%s.*)"
+                            % (unit.capitalize(), str(req)))
+                    consumed_reqs.add(req)
+                else:
+                    continue
+
+            fn = partial(self._set_lock_type, lock_type)
+            action = add_menu_action(menu, desc, fn, lock_type.name)
+            if lock_type == current_lock:
+                action.setEnabled(False)
+
         menu.addSeparator()
         action = add_menu_action(menu, "Remove Lock", self._remove_lock)
-        action.setEnabled(lock is not None)
+        action.setEnabled(current_lock is not None)
 
         menu.exec_(self.mapToGlobal(event.pos()))
         menu.setParent(None)
@@ -95,7 +121,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                                 if self.variant.version == latest_pkg.version:
                                     new_icons.append(("yellow_tick",
                                                       "package is latest within request"))
-
+                """
                 # test against diff source
                 self.compare_state = None
                 if self.diff_variant is not None:
@@ -130,13 +156,14 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                             self.compare_state = "less_than"
 
                     new_icons.append((icon_name, desc))
+                """
             else:
                 new_icons.append(("error", "package is not in the search path"))
 
             self._set_icons(new_icons)
 
-        if flags & (ContextModel.LOCKS_CHANGED |
-                    ContextModel.CONTEXT_CHANGED):
+        if (not self.hide_locks) and (flags & (ContextModel.LOCKS_CHANGED |
+                                      ContextModel.CONTEXT_CHANGED)):
             # update lock icon
             lock = self.context_model.get_patch_lock(self.variant.name)
             if lock is None:
@@ -144,7 +171,31 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                 icon_name = "%s_faint" % lock.name
             else:
                 icon_name = lock.name
-            self._set_lock_icon(icon_name, lock.description.lower())
+
+            # update lock tooltip
+            if lock == PatchLock.no_lock:
+                desc = lock.description
+            else:
+                req = self._get_lock_requirement(lock)
+                if req:
+                    if lock == PatchLock.lock:
+                        desc = "Exact version (%s)" % str(req)
+                    else:
+                        unit = lock.description.split()[0]
+                        desc = ("%s version updates only (%s.*)"
+                                % (unit.capitalize(), str(req)))
+                else:
+                    desc = lock.description
+
+            self._set_lock_icon(icon_name, desc.lower())
+
+    # note: returns the non-weak requirement
+    def _get_lock_requirement(self, lock_type):
+        if lock_type == PatchLock.no_lock:
+            return None
+        version = self.reference_variant.version if self.reference_variant \
+            else self.variant.version
+        return get_lock_request(self.variant.name, version, lock_type, weak=False)
 
     def _set_lock_type(self, lock_type):
         self.context_model.set_patch_lock(self.variant.name, lock_type)

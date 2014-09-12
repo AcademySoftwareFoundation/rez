@@ -972,8 +972,26 @@ class propertycache(object):
         self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):
+        """
+        TODO: Fix this bug:
+
+        class Foo(object):
+            @propertycache
+            def bah(self): return True
+
+        class Bah(Foo):
+            @propertycache
+            def bah(self): return False
+
+        a = Bah()
+        super(Bah, a).bah()
+        True
+        a.bah()
+        True  # should be False
+        """
         if instance is None:
             return None
+
         d = instance.__dict__.get('_cachedproperties', {})
         if self.name in d:
             return d[self.name]

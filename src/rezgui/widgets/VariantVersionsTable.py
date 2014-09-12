@@ -2,17 +2,20 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_timestamp_str, update_font
 from rez.packages import iter_packages
+from rez.vendor.version.version import VersionRange
 
 
 class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, reference_variant=None, parent=None):
         super(VariantVersionsTable, self).__init__(0, 1, parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.variant = None
+        self.reference_variant = reference_variant
         self.allow_selection = False
         self.num_versions = -1
         self.version_index = -1
+        self.reference_version_index = -1
         self.view_changelog = False
 
         self.setGridStyle(QtCore.Qt.DotLine)
@@ -49,6 +52,11 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         hh = self.horizontalHeader()
         hh.setVisible(False)
 
+    def get_reference_difference(self):
+        if self.version_index == -1 or self.reference_version_index == -1:
+            return None
+        return (self.reference_version_index - self.version_index)
+
     def refresh(self):
         variant = self.variant
         self.variant = None
@@ -77,29 +85,50 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             rows = []
             self.num_versions = 0
             self.version_index = -1
+            self.reference_version_index = -1
             row_index = -1
-            it = iter_packages(name=variant.name, paths=package_paths)
+            reference_row_index = -1
+            reference_version = None
+            range_ = None
 
-            for i, package in enumerate(sorted(it, key=lambda x: x.version,
-                                               reverse=True)):
+            if self.reference_variant and self.reference_variant.name == variant.name:
+                reference_version = self.reference_variant.version
+                versions = sorted([reference_version, variant.version])
+                range_ = VersionRange.as_span(*versions)
+
+            it = iter_packages(name=variant.name, paths=package_paths, range=range_)
+            packages = sorted(it, key=lambda x: x.version, reverse=True)
+
+            for i, package in enumerate(packages):
                 self.num_versions += 1
                 if package.version == variant.version:
                     self.version_index = i
                     row_index = len(rows)
+
+                if reference_version is not None \
+                        and package.version == reference_version:
+                    self.reference_version_index = i
+                    reference_row_index = len(rows)
+
                 version_str = str(package.version) + ' '
                 path_str = package.path
                 release_str = get_timestamp_str(package.timestamp) \
                     if package.timestamp else '-'
 
                 if self.view_changelog:
+                    rows.append((version_str, path_str))
+
+                    if reference_version is not None and i == len(packages) - 1:
+                        # don't include the last changelog when in reference mode,
+                        # we are only interested in what is inbetween the versions.
+                        continue
+
                     if package.timestamp:
                         path_str += " - %s" % release_str
                     if package.changelog:
                         changelog = package.changelog.rstrip() + '\n'
                     else:
                         changelog = "-"
-
-                    rows.append((version_str, path_str))
                     rows.append(("", changelog))
                 else:
                     rows.append((version_str, path_str, release_str))
@@ -111,6 +140,8 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 self.setVerticalHeaderItem(i, item)
                 if i == row_index:
                     update_font(item, bold=True)
+                elif i == reference_row_index:
+                    update_font(item, bold=True, italic=True)
 
                 for j in range(len(row) - 1):
                     item = QtGui.QTableWidgetItem(row[j + 1])

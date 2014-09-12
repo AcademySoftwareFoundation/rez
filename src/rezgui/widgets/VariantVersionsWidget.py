@@ -9,9 +9,12 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
 
     closeWindow = QtCore.Signal()
 
-    def __init__(self, context_model=None, in_window=False, parent=None):
+    def __init__(self, context_model=None, reference_variant=None,
+                 in_window=False, parent=None):
         """
         Args:
+            reference_variant (`Variant`): Used to show the difference between
+                two variants.
             in_window (bool): If True, the 'view changelogs' option turns
                 into a checkbox, dropping the 'View in window' option.
         """
@@ -22,7 +25,8 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
         self.variant = None
 
         self.label = QtGui.QLabel()
-        self.table = VariantVersionsTable(self.context_model)
+        self.table = VariantVersionsTable(self.context_model,
+                                          reference_variant=reference_variant)
         buttons = [None]
 
         if self.in_window:
@@ -76,18 +80,27 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
                 self.label.setText(txt)
             else:
                 self.setEnabled(True)
-                if self.table.version_index == 0:
-                    if self.table.num_versions == 1:
-                        txt = "the only package"
+                diff_num = self.table.get_reference_difference()
+                if diff_num is None:
+                    # normal mode
+                    if self.table.version_index == 0:
+                        if self.table.num_versions == 1:
+                            txt = "the only package"
+                        else:
+                            txt = "the latest package"
                     else:
-                        txt = "the latest package"
+                        nth = positional_number_string(self.table.version_index + 1)
+                        txt = "the %s latest package" % nth
+                    if self.table.num_versions > 1:
+                        txt += " of %d packages" % self.table.num_versions
+                    txt = "%s is %s" % (variant.qualified_package_name, txt)
                 else:
-                    nth = positional_number_string(self.table.version_index + 1)
-                    txt = "the %s latest package" % nth
-                if self.table.num_versions > 1:
-                    txt += " of %d packages" % self.table.num_versions
+                    # reference mode - showing difference between two versions
+                    adj = "ahead" if diff_num > 0 else "behind"
+                    diff_num = abs(diff_num)
+                    unit = "version" if diff_num == 1 else "versions"
+                    txt = "Package is %d %s %s" % (diff_num, unit, adj)
 
-            txt = "%s is %s" % (variant.qualified_package_name, txt)
             self.label.setText(txt)
 
         self.variant = variant

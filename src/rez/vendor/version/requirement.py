@@ -174,17 +174,6 @@ class Requirement(_Common):
         """
         return self.negate_
 
-    def make_conflict(self):
-        """Change the requirement into a conflict. If already conflict, this
-        has no effect."""
-        self.conflict_ = True
-
-    def make_weak(self):
-        """Change the requirement into a weak reference. If already weak, this
-        has no effect."""
-        self.conflict_ = True
-        self.negate_ = True
-
     def safe_str(self):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to

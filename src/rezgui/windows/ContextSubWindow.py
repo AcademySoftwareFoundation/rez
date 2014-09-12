@@ -11,18 +11,18 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
         context_model = ContextModel(context)
         ContextViewMixin.__init__(self, context_model)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
-        self.filepath = None
-
-        if context:
-            self._set_filepath(context.load_path)
-            title = context.load_path
-        else:
-            self.setWindowTitle("new context[*]")
-            self.setWindowModified(True)
 
         widget = ContextManagerWidget(context_model)
         widget.resolved.connect(self._resolved)
+        widget.diffModeChanged.connect(self._diffModeChanged)
         self.setWidget(widget)
+        self._update_window_title()
+
+    def filepath(self):
+        context = self.context()
+        if context and context.load_path:
+            return context.load_path
+        return None
 
     def closeEvent(self, event):
         if self.can_close():
@@ -31,54 +31,57 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
             event.ignore()
 
     def can_close(self):
-        if self.isWindowModified():
-            if self.filepath:
-                filename = os.path.basename(self.filepath)
-                id_str = "context %r" % filename
-                title = "Close %s" % filename
-            else:
-                id_str = "the context"
-                title = "Close context"
+        if not self.context_model.is_modified():
+            return True
 
-            if self.context_model.is_stale():
-                ret = QtGui.QMessageBox.warning(
-                    self,
-                    title,
-                    "%s is pending a resolve.\n"
-                    "Close and discard changes?\n"
-                    "If you close, your changes will be lost."
-                    % id_str.capitalize(),
-                    QtGui.QMessageBox.Discard,
-                    QtGui.QMessageBox.Cancel)
-                if ret == QtGui.QMessageBox.Cancel:
-                    return False
-            else:
-                ret = QtGui.QMessageBox.warning(
-                    self,
-                    title,
-                    "Save the changes to %s before closing?\n"
-                    "If you don't save the context, your changes will be lost."
-                    % id_str,
-                    QtGui.QMessageBox.Save,
-                    QtGui.QMessageBox.Discard,
-                    QtGui.QMessageBox.Cancel)
-                if ret == QtGui.QMessageBox.Save:
-                    if self.is_saveable():
-                        return self._save_context()
-                    else:
-                        assert self.is_save_as_able()
-                        return self._save_context_as()
-                elif ret == QtGui.QMessageBox.Discard:
+        if self.filepath():
+            filename = os.path.basename(self.filepath())
+            id_str = "context %r" % filename
+            title = "Close %s" % filename
+        else:
+            id_str = "the context"
+            title = "Close context"
+
+        if self.context_model.is_stale():
+            ret = QtGui.QMessageBox.warning(
+                self,
+                title,
+                "%s is pending a resolve.\n"
+                "Close and discard changes?\n"
+                "If you close, your changes will be lost."
+                % id_str.capitalize(),
+                QtGui.QMessageBox.Discard,
+                QtGui.QMessageBox.Cancel)
+            return (ret == QtGui.QMessageBox.Discard)
+        else:
+            ret = QtGui.QMessageBox.warning(
+                self,
+                title,
+                "Save the changes to %s before closing?\n"
+                "If you don't save the context, your changes will be lost."
+                % id_str,
+                QtGui.QMessageBox.Save,
+                QtGui.QMessageBox.Discard,
+                QtGui.QMessageBox.Cancel)
+            if ret == QtGui.QMessageBox.Save:
+                if self.is_saveable():
+                    self._save_context()
                     return True
                 else:
-                    return False
-        return True
+                    assert self.is_save_as_able()
+                    return self._save_context_as()
+            else:
+                return (ret == QtGui.QMessageBox.Discard)
+
+        # should never get here
+        assert False
+        return False
 
     def is_save_as_able(self):
         return not self.context_model.is_stale()
 
     def is_saveable(self):
-        return bool(self.is_save_as_able() and self.filepath)
+        return bool(self.is_save_as_able() and self.filepath())
 
     def save_context(self):
         if self.mdiArea().activeSubWindow() != self:
@@ -91,32 +94,32 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
         self._save_context_as()
 
     def _save_context(self):
-        assert self.filepath
-        with self.window()._status("Saving %s..." % self.filepath):
-            self.context().save(self.filepath)
-        self._set_filepath(self.filepath)
+        assert self.filepath()
+        with self.window()._status("Saving %s..." % self.filepath()):
+            self.context_model.save(self.filepath())
         return True
 
     def _save_context_as(self):
-        dir_ = os.path.dirname(self.filepath) if self.filepath else ""
+        dir_ = os.path.dirname(self.filepath()) if self.filepath() else ""
         filepath = QtGui.QFileDialog.getSaveFileName(
             self, "Save Context", dir_, "Context files (*.rxt)")
 
         if filepath:
             filepath = str(filepath)
             with self.window()._status("Saving %s..." % filepath):
-                self.context().save(filepath)
-            self._set_filepath(filepath)
+                self.context_model.save(filepath)
 
         return bool(filepath)
 
-    def _set_filepath(self, filepath):
-        self.filepath = filepath
-        self.setWindowTitle(os.path.basename(filepath) + "[*]")
-        self.setWindowModified(False)
-
     def _contextChanged(self, flags=0):
-        self.setWindowModified(True)
+        self._update_window_title()
+
+    def _diffModeChanged(self):
+        self._update_window_title()
+
+    def _update_window_title(self):
+        title = self.widget().get_title()
+        self.setWindowTitle(title)
 
     # for some reason the subwindow occasionally loses focus to another
     # subwindow after a resolve - this slot gets the focus back.

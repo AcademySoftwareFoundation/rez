@@ -31,19 +31,20 @@ import os.path
 class PatchLock(Enum):
     """ Enum to represent the 'lock type' used when patching context objects.
     """
-    no_lock = ("No locking",)
-    lock_2 = ("Minor version updates only (rank 2)",)
-    lock_3 = ("Patch version updates only (rank 3)",)
-    lock_4 = ("Build version updates only (rank 4)",)
-    lock = ("Exact version",)
+    no_lock = ("No locking", 0)
+    lock_2 = ("Minor version updates only (X.*)", 1)
+    lock_3 = ("Patch version updates only (X.X.*)", 2)
+    lock_4 = ("Build version updates only (X.X.X.*)", 3)
+    lock = ("Exact version", 0)
 
     __order__ = "no_lock,lock_2,lock_3,lock_4,lock"
 
-    def __init__(self, description):
+    def __init__(self, description, rank):
         self.description = description
+        self.rank = rank
 
 
-def get_lock_request(name, version, patch_lock):
+def get_lock_request(name, version, patch_lock, weak=True):
     """Given a package and patch lock, return the equivalent request.
 
     For example, for object 'foo-1.2.1' and lock type 'lock_3', the equivalent
@@ -61,18 +62,14 @@ def get_lock_request(name, version, patch_lock):
     Returns:
         `Requirement` object, or None if there is no equivalent request.
     """
+    ch = '~' if weak else ''
     if patch_lock == PatchLock.lock:
-        s = "~%s==%s" % (name, str(version))
+        s = "%s%s==%s" % (ch, name, str(version))
         return Requirement(s)
     elif (patch_lock == PatchLock.no_lock) or (not version):
         return None
-
-    n = (1 if patch_lock == PatchLock.lock_2
-         else 2 if patch_lock == PatchLock.lock_3
-         else 3)
-
-    version2 = version.trim(n)
-    s = "~%s-%s" % (name, str(version2))
+    version_ = version.trim(patch_lock.rank)
+    s = "%s%s-%s" % (ch, name, str(version_))
     return Requirement(s)
 
 
@@ -299,6 +296,15 @@ class ResolvedContext(object):
             List of `Variant` objects, or None if the resolve failed.
         """
         return self._resolved_packages
+
+    def set_load_path(self, path):
+        """Set the path that this context was reportedly loaded from.
+
+        You may want to use this method in cases where a context is saved to
+        disk, but you need to associate this new path with the context while it
+        is still in use.
+        """
+        self.load_path = path
 
     def __eq__(self, other):
         """Equality test.

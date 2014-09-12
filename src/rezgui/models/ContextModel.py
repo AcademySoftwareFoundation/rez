@@ -21,12 +21,14 @@ class ContextModel(QtCore.QObject):
     PACKAGES_PATH_CHANGED = 2
     LOCKS_CHANGED = 4
     CONTEXT_CHANGED = 8
+    LOADPATH_CHANGED = 16
 
     def __init__(self, context=None, parent=None):
         super(ContextModel, self).__init__(parent)
 
         self._context = None
         self._stale = True
+        self._modified = True
 
         self.request = []
         self.packages_path = config.packages_path
@@ -36,11 +38,13 @@ class ContextModel(QtCore.QObject):
 
         if context:
             self._set_context(context)
+            self._modified = False
 
     def copy(self):
         """Returns a copy of the context."""
         other = ContextModel(self._context, self.parent())
         other._stale = self._stale
+        other._modified = self._modified
         other.request = self.request[:]
         other.packages_path = self.packages_path
         other.implicit_packages = self.implicit_packages
@@ -55,6 +59,14 @@ class ContextModel(QtCore.QObject):
         the model, you should call resolve_context().
         """
         return self._stale
+
+    def is_modified(self):
+        """Returns True if the context has been changed since save/load, False
+        otherwise.
+
+        If the context has never been saved, True is always returned.
+        """
+        return self._modified
 
     def context(self):
         """Return the current context, if any."""
@@ -88,32 +100,37 @@ class ContextModel(QtCore.QObject):
         return d
 
     def set_request(self, request_strings):
-        self._changed("request", request_strings, self.REQUEST_CHANGED)
+        self._attr_changed("request", request_strings, self.REQUEST_CHANGED)
 
     def set_packages_path(self, packages_path):
-        self._changed("packages_path", packages_path, self.PACKAGES_PATH_CHANGED)
+        self._attr_changed("packages_path", packages_path, self.PACKAGES_PATH_CHANGED)
+
+    def save(self, filepath):
+        assert self._context
+        assert not self._stale
+        self._context.save(filepath)
+        self._context.set_load_path(filepath)
+        self._modified = False
+        self.dataChanged.emit(self.LOADPATH_CHANGED)
 
     def set_default_patch_lock(self, lock):
-        self._changed("default_patch_lock", lock, self.LOCKS_CHANGED)
+        self._attr_changed("default_patch_lock", lock, self.LOCKS_CHANGED)
 
     def set_patch_lock(self, package_name, lock):
         existing_lock = self.patch_locks.get(package_name)
         if lock != existing_lock:
             self.patch_locks[package_name] = lock
-            self._stale = True
-            self.dataChanged.emit(self.LOCKS_CHANGED)
+            self._changed(self.LOCKS_CHANGED)
 
     def remove_patch_lock(self, package_name):
         if package_name in self.patch_locks:
             del self.patch_locks[package_name]
-            self._stale = True
-            self.dataChanged.emit(self.LOCKS_CHANGED)
+            self._changed(self.LOCKS_CHANGED)
 
     def remove_all_patch_locks(self):
         if self.patch_locks:
             self.patch_locks = {}
-            self._stale = True
-            self.dataChanged.emit(self.LOCKS_CHANGED)
+            self._changed(self.LOCKS_CHANGED)
 
     def resolve_context(self, verbosity=0, max_fails=-1, timestamp=None,
                         callback=None, buf=None, package_load_callback=None):
@@ -135,7 +152,10 @@ class ContextModel(QtCore.QObject):
             package_load_callback=package_load_callback)
 
         if context.success:
+            if self._context and self._context.load_path:
+                context.set_load_path(self._context.load_path)
             self._set_context(context)
+            self._modified = True
         return context
 
     def can_revert(self):
@@ -149,9 +169,15 @@ class ContextModel(QtCore.QObject):
 
     def set_context(self, context):
         """Replace the current context with another."""
-        self._set_context(context)
+        self._set_context(context, emit=False)
+        self._modified = (not context.load_path)
+        self.dataChanged.emit(self.CONTEXT_CHANGED |
+                              self.REQUEST_CHANGED |
+                              self.PACKAGES_PATH_CHANGED |
+                              self.LOCKS_CHANGED |
+                              self.LOADPATH_CHANGED)
 
-    def _set_context(self, context):
+    def _set_context(self, context, emit=True):
         self._context = context
         self._stale = False
 
@@ -160,15 +186,19 @@ class ContextModel(QtCore.QObject):
         self.implicit_packages = context.implicit_packages[:]
         self.default_patch_lock = context.default_patch_lock
         self.patch_locks = copy.deepcopy(context.patch_locks)
+        if emit:
+            self.dataChanged.emit(self.CONTEXT_CHANGED |
+                                  self.REQUEST_CHANGED |
+                                  self.PACKAGES_PATH_CHANGED |
+                                  self.LOCKS_CHANGED)
 
-        self.dataChanged.emit(self.CONTEXT_CHANGED |
-                              self.REQUEST_CHANGED |
-                              self.PACKAGES_PATH_CHANGED |
-                              self.LOCKS_CHANGED)
+    def _changed(self, flags):
+        self._stale = True
+        self._modified = True
+        self.dataChanged.emit(flags)
 
-    def _changed(self, attr, value, flags):
+    def _attr_changed(self, attr, value, flags):
         if getattr(self, attr) == value:
             return
-        self._stale = True
         setattr(self, attr, value)
-        self.dataChanged.emit(flags)
+        self._changed(flags)

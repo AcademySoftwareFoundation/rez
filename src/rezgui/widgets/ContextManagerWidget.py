@@ -34,8 +34,8 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         "default_patch_lock":   Or(*[x.name for x in PatchLock])
     })
 
-    # see ContextSubWindow._resolve, it is the reason for this signal
     resolved = QtCore.Signal()
+    diffModeChanged = QtCore.Signal()
 
     def __init__(self, context_model=None, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
@@ -95,7 +95,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
                         partial(self._resolve, advanced=True), "advanced_resolve")
         self.revert_action = add_menu_action(menu, "Revert To Last Resolve...",
                                              self._revert_to_last_resolve, "revert")
-        self.revert_diff_action = add_menu_action(menu, "Revert To Diff Source...",
+        self.revert_diff_action = add_menu_action(menu, "Revert To Reference...",
                                                   self._revert_to_diff, "revert_to_diff")
         self.revert_diff_action.setEnabled(False)
         resolve_tbtn.setDefaultAction(default_action)
@@ -175,6 +175,10 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def sizeHint(self):
         return QtCore.QSize(800, 500)
 
+    def get_title(self):
+        """Returns a string suitable for titling a window containing this widget."""
+        return self.context_table.get_title()
+
     def refresh(self):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
@@ -210,6 +214,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.context_table.set_diff_mode(b)
         self.revert_diff_action.setEnabled(b)
         self.diff_tbtn.setEnabled(not self.context_model.is_stale())
+        self.diffModeChanged.emit()
 
     def _current_context_settings(self):
         assert self.context

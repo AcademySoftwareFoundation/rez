@@ -205,7 +205,7 @@ class _PackageBase(ResourceWrapper):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
 
-    @propertycache
+    @property
     def config(self):
         """Returns the config for this package.
 
@@ -214,7 +214,7 @@ class _PackageBase(ResourceWrapper):
         """
         return self._config or config
 
-    @propertycache
+    @property
     def is_local(self):
         """Returns True if this package is in the local packages path."""
         return (self.search_path == config.local_packages_path)
@@ -305,16 +305,16 @@ class Variant(_PackageBase):
     def index(self):
         return self._resource.get("index")
 
-    @propertycache
+    @property
     def qualified_package_name(self):
         return super(Variant, self).qualified_name
 
-    @propertycache
+    @property
     def qualified_name(self):
         idxstr = '' if self.index is None else ("%d" % self.index)
         return "%s[%s]" % (self.qualified_package_name, idxstr)
 
-    @propertycache
+    @property
     def base(self):
         return os.path.dirname(self.path)
 
