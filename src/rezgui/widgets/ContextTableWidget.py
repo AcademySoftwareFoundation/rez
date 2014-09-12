@@ -40,7 +40,10 @@ class CompareCell(QtGui.QWidget):
                 it = iter_packages(name=self.left_variant.name,
                                    paths=package_paths, range=range_)
                 diff_num = sum(1 for x in it) - 1
+
                 unit = "version" if diff_num == 1 else "versions"
+                icon_suffixes = {1: "_1", 2: "_2", 3: "_3"}
+                icon_suffix = icon_suffixes.get(diff_num, "")
 
             if self.left_variant.version == self.right_variant.version:
                 self.mode = "equal_to"
@@ -51,7 +54,7 @@ class CompareCell(QtGui.QWidget):
                 self._set_color(0, 1, 0)
                 if self.comparable:
                     desc = "package is %d %s ahead" % (diff_num, unit)
-                    widget = IconButton("greater_than", desc)
+                    widget = IconButton("greater_than" + icon_suffix, desc)
                 else:
                     widget = IconButton("greater_than", "package is newer")
             else:
@@ -59,7 +62,7 @@ class CompareCell(QtGui.QWidget):
                 self._set_color(1, 0, 0)
                 if self.comparable:
                     desc = "package is %d %s behind" % (diff_num, unit)
-                    widget = IconButton("less_than", desc)
+                    widget = IconButton("less_than" + icon_suffix, desc)
                 else:
                     widget = IconButton("less_than", "package is older")
         elif self.right_variant:

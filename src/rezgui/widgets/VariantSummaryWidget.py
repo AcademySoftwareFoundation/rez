@@ -47,7 +47,11 @@ class VariantSummaryWidget(QtGui.QWidget):
             self.clear()
         else:
             self.setEnabled(True)
-            self.label.setText(str(variant))
+            if isinstance(variant, Package):
+                label = str(variant)
+            else:
+                label = "%s@%s" % (variant.qualified_package_name, variant.search_path)
+            self.label.setText(label)
             self.table.clear()
             rows = []
 

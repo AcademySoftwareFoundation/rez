@@ -125,7 +125,8 @@ class VariantVersionsWidget(QtGui.QWidget, ContextViewMixin):
 
     def _view_changelogs_window(self):
         from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
-        dlg = VariantVersionsDialog(self.context_model, self.variant, self)
+        dlg = VariantVersionsDialog(self.context_model, self.variant,
+                                    parent=self)
         dlg.exec_()
 
     def _browseOtherVersions(self):

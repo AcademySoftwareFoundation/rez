@@ -16,6 +16,7 @@ from rezgui.objects.App import app
 from rez.vendor.schema.schema import Schema, Or
 from rez.config import config
 from rez.resolved_context import PatchLock
+from rez.util import readable_time_duration
 from functools import partial
 import time
 
@@ -85,6 +86,19 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         add_menu_action(menu, "Remove Explicit Locks", self._removeExplicitLocks)
         self.lock_tbtn.setMenu(menu)
 
+        self.revert_tbtn = QtGui.QToolButton()
+        self.revert_tbtn.setToolTip("revert")
+        icon = get_icon("revert", as_qicon=True)
+        self.revert_tbtn.setIcon(icon)
+        self.revert_tbtn.setPopupMode(QtGui.QToolButton.InstantPopup)
+        menu = QtGui.QMenu()
+        self.revert_action = add_menu_action(menu, "Revert To Last Resolve...",
+                                             self._revert_to_last_resolve, "revert")
+        self.revert_diff_action = add_menu_action(menu, "Revert To Reference...",
+                                                  self._revert_to_diff, "revert_to_diff")
+        self.revert_diff_action.setEnabled(False)
+        self.revert_tbtn.setMenu(menu)
+
         resolve_tbtn = QtGui.QToolButton()
         icon = get_icon("resolve", as_qicon=True)
         resolve_tbtn.setIcon(icon)
@@ -93,11 +107,6 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         default_action = add_menu_action(menu, "Resolve", self._resolve, "resolve")
         add_menu_action(menu, "Advanced Resolve...",
                         partial(self._resolve, advanced=True), "advanced_resolve")
-        self.revert_action = add_menu_action(menu, "Revert To Last Resolve...",
-                                             self._revert_to_last_resolve, "revert")
-        self.revert_diff_action = add_menu_action(menu, "Revert To Reference...",
-                                                  self._revert_to_diff, "revert_to_diff")
-        self.revert_diff_action.setEnabled(False)
         resolve_tbtn.setDefaultAction(default_action)
         resolve_tbtn.setMenu(menu)
 
@@ -108,6 +117,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         toolbar.addWidget(self.shell_tbtn)
         toolbar.addWidget(self.diff_tbtn)
         toolbar.addWidget(self.lock_tbtn)
+        toolbar.addWidget(self.revert_tbtn)
         toolbar.addWidget(resolve_tbtn)
         self.time_lock_action.setVisible(False)
 
@@ -213,8 +223,17 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         b = self.diff_tbtn.isChecked()
         self.context_table.set_diff_mode(b)
         self.revert_diff_action.setEnabled(b)
-        self.diff_tbtn.setEnabled(not self.context_model.is_stale())
+        #self.diff_tbtn.setEnabled(not self.context_model.is_stale())
+        self._enable_revert(diff=(not self.context_model.is_stale()))
         self.diffModeChanged.emit()
+
+    def _enable_revert(self, last_resolve=None, diff=None):
+        if last_resolve is not None:
+            self.revert_action.setEnabled(last_resolve)
+        if diff is not None:
+            self.revert_diff_action.setEnabled(diff)
+        self.revert_tbtn.setEnabled(self.revert_action.isEnabled()
+                                    or self.revert_diff_action.isEnabled())
 
     def _current_context_settings(self):
         assert self.context
@@ -247,9 +266,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         context = self.context()
         is_context = bool(context)
 
+        self._enable_revert(last_resolve=self.context_model.can_revert())
         self.diff_tbtn.setEnabled(self.diff_tbtn.isChecked() or not stale)
         self.shell_tbtn.setEnabled(not stale)
-        self.revert_action.setEnabled(self.context_model.can_revert())
         self.lock_tbtn.setEnabled(is_context)
 
         self.tab.setTabEnabled(2, is_context)
@@ -281,6 +300,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def _timelockClicked(self):
         title = "The resolve is timelocked"
         body = str(self.time_lock_tbtn.toolTip()).capitalize()
+        secs = int(time.time()) - self.context().requested_timestamp
+        t_str = readable_time_duration(secs)
+        body += "\n(%s ago)" % t_str
         QtGui.QMessageBox.information(self, title, body)
 
     def _set_lock_type(self, lock_type):

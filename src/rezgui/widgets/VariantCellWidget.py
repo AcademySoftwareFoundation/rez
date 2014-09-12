@@ -99,19 +99,29 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                     packages = sorted(it, key=lambda x: x.version)
                 except:
                     pass
+
+                # apply a tick icon if appropriate
+                ticked = False
                 if packages:
                     # test if variant is latest package
                     latest_pkg = packages[-1]
                     if self.variant.version == latest_pkg.version:
                         new_icons.append(("green_tick", "package is latest"))
-                    else:
-                        # test if variant is in request, and is latest possible
+                        ticked = True
+
+                    range_ = None
+                    packages_ = None
+
+                    # test if variant is in request, and is latest possible
+                    if not ticked:
                         range_ = None
                         try:
                             request = self.context().requested_packages(True)
                             reqlist = RequirementList(request)
                             if self.variant.name in reqlist.names:
-                                range_ = reqlist.get(self.variant.name).range
+                                variant_ = reqlist.get(self.variant.name)
+                                if not variant_.conflict:
+                                    range_ = variant_.range
                         except:
                             pass
                         if range_ is not None:
@@ -121,42 +131,44 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                                 if self.variant.version == latest_pkg.version:
                                     new_icons.append(("yellow_tick",
                                                       "package is latest within request"))
-                """
-                # test against diff source
-                self.compare_state = None
-                if self.diff_variant is not None:
-                    if self.variant.version == self.diff_variant.version:
-                        icon_name = "equal_to"
-                        desc = "packages are equal"
-                        self.compare_state = "equal_to"
-                    else:
-                        def _version_index(version):
-                            if packages:
-                                indices = [i for i in range(len(packages))
-                                           if packages[i].version == version]
-                                if indices:
-                                    return indices[0]
-                            return None
+                                    ticked = True
 
-                        this_index = _version_index(self.variant.version)
-                        diff_index = _version_index(self.diff_variant.version)
-                        diff_visible = self.diff_variant.search_path in package_paths
-                        diffable = diff_visible and (None not in (this_index, diff_index))
-                        newer = (self.variant.version > self.diff_variant.version)
+                    # test if variant was latest package at time of resolve
+                    if not ticked and self.variant.timestamp:
+                        untimestamped_packages = [x for x in packages
+                                                  if not x.timestamp]
+                        if not untimestamped_packages:
+                            resolve_time = self.context().timestamp
+                            old_packages = [x for x in packages
+                                            if x.timestamp <= resolve_time]
+                            if old_packages:
+                                latest_pkg = old_packages[-1]
+                                if self.variant.version == latest_pkg.version:
+                                    new_icons.append(
+                                        ("green_white_tick",
+                                         "package was latest at time of resolve"))
+                                    ticked = True
 
-                        if not diffable:  # testing
-                            pass
-                        elif newer:
-                            icon_name = "greater_than"
-                            desc = "package is newer"
-                            self.compare_state = "greater_than"
-                        else:
-                            icon_name = "less_than"
-                            desc = "package is older"
-                            self.compare_state = "less_than"
-
-                    new_icons.append((icon_name, desc))
-                """
+                    # test if variant is in request, and was latest possible at
+                    # the time of resolve
+                    if (not ticked
+                            and self.variant.timestamp
+                            and range_ is not None
+                            and packages_ is not None):
+                        untimestamped_packages = [x for x in packages_
+                                                  if not x.timestamp]
+                        if not untimestamped_packages:
+                            resolve_time = self.context().timestamp
+                            old_packages = [x for x in packages_
+                                            if x.timestamp <= resolve_time]
+                            if old_packages:
+                                latest_pkg = old_packages[-1]
+                                if self.variant.version == latest_pkg.version:
+                                    new_icons.append(
+                                        ("yellow_white_tick",
+                                         "package was latest within request, "
+                                         "at time of resolve"))
+                                    ticked = True
             else:
                 new_icons.append(("error", "package is not in the search path"))
 
