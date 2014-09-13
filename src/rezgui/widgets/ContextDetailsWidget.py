@@ -1,8 +1,8 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
-from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.widgets.ContextEnvironWidget import ContextEnvironWidget
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
+from rezgui.widgets.ViewGraphButton import ViewGraphButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.shells import get_shell_types
@@ -19,7 +19,7 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.overview_edit = StreamableTextEdit()
         self.overview_edit.setStyleSheet("font: 9pt 'Courier'")
 
-        self.graph_btn = QtGui.QPushButton("View Graph...")
+        self.graph_btn = ViewGraphButton(context_model)
         btn_pane = create_pane([None, self.graph_btn], True)
         overview_pane = create_pane([self.overview_edit, btn_pane], False)
 
@@ -44,7 +44,7 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.addTab(code_pane, "shell code")
         self.addTab(self.environ_widget, "environment")
 
-        self.graph_btn.clicked.connect(self._view_graph)
+        #self.graph_btn.clicked.connect(self._view_graph)
         self.code_combo.currentIndexChanged.connect(self._update_code)
         self.currentChanged.connect(self._currentTabChanged)
 
@@ -57,11 +57,11 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         context = self.context()
         if not context:
             self.setEnabled(False)
-            self.graph_btn.setEnabled(False)
+            #self.graph_btn.setEnabled(False)
             return
 
         self.code_pending = True
-        self.graph_btn.setEnabled(True)
+        #self.graph_btn.setEnabled(True)
         context.print_info(buf=self.overview_edit, verbosity=1)
         self.overview_edit.moveCursor(QtGui.QTextCursor.Start)
         self.environ_widget.set_context(context)
@@ -75,10 +75,10 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         if index == 1 and self.code_pending:
             self._update_code()
 
-    def _view_graph(self):
-        assert self.context()
-        graph_str = self.context().graph(as_dot=True)
-        view_graph(graph_str, self)
+    #def _view_graph(self):
+    #    assert self.context()
+    #    graph_str = self.context().graph(as_dot=True)
+    #    view_graph(graph_str, self)
 
     def _update_code(self):
         self.code_edit.clear()

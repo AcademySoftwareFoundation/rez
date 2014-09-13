@@ -333,7 +333,7 @@ class ResolvedContext(object):
     @property
     def has_graph(self):
         """Return True if the resolve has a graph."""
-        return ((self.graph_ is not None) or self.graph_string)
+        return bool((self.graph_ is not None) or self.graph_string)
 
     def get_resolved_package(self, name):
         """Returns a `Variant` object or None if the package is not in the
@@ -458,7 +458,7 @@ class ResolvedContext(object):
                 a pygraph.digraph object is returned.
 
         Returns:
-            A string or pygraph.digraph object, or None if there is no graph
+            A string or `pygraph.digraph` object, or None if there is no graph
             associated with the resolve.
         """
         if not self.has_graph:
@@ -754,6 +754,40 @@ class ResolvedContext(object):
                 raise ResolvedContextError(
                     "Cannot perform operation in a failed context")
         return _check
+
+    @_on_success
+    def get_dependency_graph(self):
+        """Generate the dependency graph.
+
+        The dependency graph is a simpler subset of the resolve graph. It
+        contains package name nodes connected directly to their dependencies.
+        Weak references and conflict requests are not included in the graph.
+
+        Returns:
+            `pygraph.digraph` object.
+        """
+        from rez.vendor.pygraph.classes.digraph import digraph
+
+        nodes = {}
+        edges = set()
+        for variant in self._resolved_packages:
+            nodes[variant.name] = variant.qualified_package_name
+            for request in variant.get_requires():
+                if not request.conflict:
+                    edges.add((variant.name, request.name))
+
+        g = digraph()
+        node_color = "#AAFFAA"
+        node_fontsize = 10
+        attrs = [("fontsize", node_fontsize),
+                 ("fillcolor", node_color),
+                 ("style", "filled")]
+
+        for name, qname in nodes.iteritems():
+            g.add_node(name, attrs=attrs + [("label", qname)])
+        for edge in edges:
+            g.add_edge(edge)
+        return g
 
     @_on_success
     def validate(self):

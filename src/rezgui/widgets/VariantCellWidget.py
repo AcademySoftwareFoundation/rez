@@ -30,7 +30,11 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                               self.variant.search_path)
             self.label.setToolTip(desc)
 
-        create_pane([(self.label, 1)], True, compact=True, parent_widget=self)
+        self.depends_icon = get_icon_widget("depends", "dependent package")
+        self.depends_icon.hide()
+        create_pane([self.label, self.depends_icon, None],
+                    True, compact=True, parent_widget=self)
+
         self.refresh()
 
     def text(self):
@@ -73,6 +77,15 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
     def refresh(self):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
+
+    def set_reference_sibling(self, variant=None):
+        if variant is None or self.variant.name == variant.name:
+            b = False
+        else:
+            b = self.context_model.package_depends_on(self.variant.name, variant.name)
+
+        update_font(self.label, underline=b)
+        self.depends_icon.setVisible(b)
 
     def _contextChanged(self, flags=0):
         self._set_stale(self.context_model.is_stale())

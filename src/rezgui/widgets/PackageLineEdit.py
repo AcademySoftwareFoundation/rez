@@ -18,6 +18,19 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         self.family_only = family_only
         self.default_style = None
 
+        pal = self.palette()
+        self.normal_font = self.font()
+        self.normal_disabled_text_color = pal.color(QtGui.QPalette.Disabled,
+                                                    QtGui.QPalette.Text)
+        self.placeholder_font = self.font()
+        self.placeholder_font.setItalic(True)
+        self.setFont(self.placeholder_font)
+        self.setPlaceholderText("enter package")
+
+        # testing
+        #pal.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text,
+        #             pal.color(QtGui.QPalette.Text))
+
         self.completer = QtGui.QCompleter(self)
         self.completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
         self.completions = QtGui.QStringListModel(self.completer)
@@ -25,6 +38,7 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         self.setCompleter(self.completer)
 
         self.textEdited.connect(self._textEdited)
+        self.textChanged.connect(self._textChanged)
 
     def mouseReleaseEvent(self, event):
         if not self.hasSelectedText():
@@ -58,6 +72,10 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         completions = self.completions.stringList()
         other.completions.setStringList(completions)
         other.completer.setCompletionPrefix(self.text())
+
+    def _textChanged(self, txt):
+        font = self.normal_font if txt else self.placeholder_font
+        self.setFont(font)
 
     def _contextChanged(self, flags=0):
         if flags & ContextModel.PACKAGES_PATH_CHANGED:

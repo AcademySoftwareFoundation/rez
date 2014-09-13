@@ -133,7 +133,9 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 else:
                     rows.append((version_str, path_str, release_str))
 
+            pal = self.palette()
             self.setRowCount(len(rows))
+
             for i, row in enumerate(rows):
                 item = QtGui.QTableWidgetItem(row[0])
                 item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
@@ -146,17 +148,17 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 for j in range(len(row) - 1):
                     item = QtGui.QTableWidgetItem(row[j + 1])
                     if self.view_changelog and not (i % 2):
-                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                       QtGui.QPalette.Button)
+                        brush = pal.brush(QtGui.QPalette.Active,
+                                          QtGui.QPalette.Button)
                         item.setBackground(brush)
-                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                       QtGui.QPalette.ButtonText)
+                        brush = pal.brush(QtGui.QPalette.Active,
+                                          QtGui.QPalette.ButtonText)
                         item.setForeground(brush)
                         update_font(item, bold=True)
                     else:
                         # gets rid of mouse-hover row highlighting
-                        brush = QtGui.QPalette().brush(QtGui.QPalette.Active,
-                                                       QtGui.QPalette.Base)
+                        brush = pal.brush(QtGui.QPalette.Active,
+                                          QtGui.QPalette.Base)
                         item.setBackground(brush)
 
                     self.setItem(i, j, item)

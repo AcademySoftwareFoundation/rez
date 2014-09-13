@@ -1,8 +1,9 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
-from rezgui.dialogs.WriteGraphDialog import view_graph
+from rezgui.widgets.ViewGraphButton import ViewGraphButton
 from rezgui.util import create_pane
+from rez.packages import Package
 
 
 class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
@@ -14,19 +15,16 @@ class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
         self.label = QtGui.QLabel()
         self.edit = StreamableTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
-        self.view_graph_btn = QtGui.QPushButton("View Graph...")
-        self.view_graph_btn.hide()
+        self.view_graph_btn = ViewGraphButton(context_model)
         btn_pane = create_pane([None, self.view_graph_btn], True, compact=True)
 
         create_pane([self.label, self.edit, btn_pane], False, compact=True,
                     parent_widget=self)
 
-        self.view_graph_btn.clicked.connect(self._view_graph)
         self.clear()
 
     def clear(self):
         self.label.setText("no package selected")
-        self.view_graph_btn.hide()
         self.edit.clear()
         self.setEnabled(False)
 
@@ -37,15 +35,16 @@ class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
         if variant is None:
             self.clear()
         else:
+            if isinstance(variant, Package):
+                label = str(variant)
+            else:
+                label = "%s@%s" % (variant.qualified_package_name, variant.search_path)
+            self.label.setText(label)
+
             self.setEnabled(True)
-            self.label.setText(str(variant))
             self.edit.clear()
             variant.print_info(self.edit)
             self.edit.moveCursor(QtGui.QTextCursor.Start)
-            self.view_graph_btn.setVisible(self.context() is not None)
+            self.view_graph_btn.set_variant(variant)
 
         self.variant = variant
-
-    def _view_graph(self):
-        graph_str = self.context().graph(as_dot=True)
-        view_graph(graph_str, self, prune_to=self.variant.name)

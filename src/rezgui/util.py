@@ -121,24 +121,12 @@ def create_toolbutton(entries, parent=None):
     return btn, actions
 
 
-def add_locking_submenu(menu, slot):
-    group = QtGui.QActionGroup(menu)
-    lock_menu = menu.addMenu("Lock To...")
-    actions = {}
-
-    for lock_type in PatchLock:
-        fn = partial(slot, lock_type)
-        action = add_menu_action(lock_menu, lock_type.description, fn,
-                                 lock_type.name, group)
-        actions[lock_type] = action
-
-    return lock_menu, actions
-
-
-def update_font(widget, italic=None, bold=None):
+def update_font(widget, italic=None, bold=None, underline=None):
     font = widget.font()
     if italic is not None:
         font.setItalic(italic)
     if bold is not None:
         font.setBold(bold)
+    if underline is not None:
+        font.setUnderline(underline)
     widget.setFont(font)

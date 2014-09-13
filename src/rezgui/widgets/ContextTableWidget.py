@@ -131,9 +131,7 @@ class CompareCell(QtGui.QWidget):
 
     def _set_color(self, *c):
         f = 0.8
-        pal = QtGui.QPalette()
-        col = pal.color(QtGui.QPalette.Active, QtGui.QPalette.Base)
-
+        col = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
         bg_c = (col.redF(), col.greenF(), col.blueF())
         bg_c = [x * f for x in bg_c]
         c = [x * (1 - f) for x in c]
@@ -144,7 +142,7 @@ class CompareCell(QtGui.QWidget):
 class CellDelegate(QtGui.QStyledItemDelegate):
     def __init__(self, parent=None):
         super(CellDelegate, self).__init__(parent)
-        pal = QtGui.QPalette()
+        pal = self.parent().palette()
         col = pal.color(QtGui.QPalette.Active, QtGui.QPalette.Button)
         self.pen = QtGui.QPen(col)
         self.stale_color = QtGui.QColor("orange")
@@ -159,10 +157,10 @@ class CellDelegate(QtGui.QStyledItemDelegate):
         self.path.cubicTo(-0.2, 0.5, 0.6, 1, 0, 1)
 
     def paint(self, painter, option, index):
-        super(CellDelegate, self).paint(painter, option, index)
         row = index.row()
         column = index.column()
         table = self.parent()
+        cmp_widget = table.cellWidget(row, 2)
         stale = table.context_model.is_stale()
         rect = option.rect
         oldbrush = painter.brush()
@@ -172,22 +170,33 @@ class CellDelegate(QtGui.QStyledItemDelegate):
             pen = self.stale_pen if stale and to_stale else self.pen
             painter.setPen(pen)
 
+        selected_cells = set((x.row(), x.column()) for x in table.selectedIndexes())
+        pal = table.palette()
+        highlight_color = pal.color(QtGui.QPalette.Highlight)
+
+        # determine cell bg color and paint it
+        bg_color = None
+        if (row, column) in selected_cells:
+            bg_color = highlight_color
+        elif cmp_widget and \
+                ((cmp_widget.left() and column == 1)
+                 or (cmp_widget.right() and column == 3)):
+            bg_color = cmp_widget.color
+        else:
+            bg_color = pal.color(QtGui.QPalette.Base)
+        painter.fillRect(rect, bg_color)
+
+        # draw grid lines
         r = (rect.topRight(), rect.bottomRight())
         b = (rect.bottomLeft(), rect.bottomRight() - QtCore.QPoint(1, 0))
         _setpen(column < 2)
-
-        def _get_compare_cell(row_, column_):
-            widget = table.cellWidget(row_, column_)
-            if widget and isinstance(widget, CompareCell):
-                return widget
 
         if column == 0:
             painter.drawLine(*r)
             _setpen(False)
             painter.drawLine(*b)
         elif column == 1:
-            widget = _get_compare_cell(row, 2)
-            if not widget or not widget.left():
+            if not cmp_widget or not cmp_widget.left():
                 painter.drawLine(*r)
             if row == table.rowCount() - 1:
                 painter.drawLine(*b)
@@ -197,19 +206,17 @@ class CellDelegate(QtGui.QStyledItemDelegate):
                 _setpen(False)
                 painter.drawLine(*b)
         elif column == 2:
+            # draw the curvy bits in the comparison column
             draw_right_edge = True
-            widget = _get_compare_cell(row, column)
 
             def _draw_path():
                 painter.setRenderHints(QtGui.QPainter.Antialiasing, True)
-                if widget.color:
-                    painter.setBrush(QtGui.QBrush(widget.color))
                 painter.drawPath(self.path)
                 painter.resetTransform()
                 painter.setRenderHints(QtGui.QPainter.Antialiasing, False)
 
-            if widget:
-                if widget.left():
+            if cmp_widget:
+                if cmp_widget.left():
                     painter.translate(rect.topLeft() - QtCore.QPoint(1, 0.5))
                     painter.scale(rect.width() / 2.5, rect.height())
                     _setpen(True)
@@ -218,11 +225,19 @@ class CellDelegate(QtGui.QStyledItemDelegate):
                         pen.setCosmetic(True)
                         pen.setWidthF(1.5)
                         painter.setPen(pen)
+                    if (row, 1) in selected_cells:
+                        painter.setBrush(QtGui.QBrush(highlight_color))
+                    elif cmp_widget.color:
+                        painter.setBrush(QtGui.QBrush(cmp_widget.color))
                     _draw_path()
                     _setpen(False)
-                if widget.right():
+                if cmp_widget.right():
                     painter.translate(rect.topRight() - QtCore.QPoint(-1, 0.5))
                     painter.scale(-rect.width() / 2.5, rect.height())
+                    if (row, 3) in selected_cells:
+                        painter.setBrush(QtGui.QBrush(highlight_color))
+                    elif cmp_widget.color:
+                        painter.setBrush(QtGui.QBrush(cmp_widget.color))
                     _draw_path()
                     draw_right_edge = False
 
@@ -234,6 +249,10 @@ class CellDelegate(QtGui.QStyledItemDelegate):
 
         painter.setPen(oldpen)
         painter.setBrush(oldbrush)
+
+        if cmp_widget and column in (1, 3):
+            index = table.model().index(row, 2)
+            table.update(index)
 
 
 class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
@@ -448,6 +467,14 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         else:
             self._current_variant = None
             self.setCurrentIndex(QtCore.QModelIndex())
+
+        # update other variants, this causes them to show/hide the depends icon
+        if previousColumn != currentColumn:
+            for _, widget in self._iter_column_widgets(previousColumn, VariantCellWidget):
+                widget.set_reference_sibling(None)
+        for _, widget in self._iter_column_widgets(currentColumn, VariantCellWidget):
+            widget.set_reference_sibling(self._current_variant)
+
         self.variantSelected.emit(self._current_variant)
 
     # this is only here to clear the current index, which leaves an annoying
@@ -521,8 +548,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             row += 1
 
     def _update_comparison_column(self, column):
-        pal = QtGui.QPalette()
-        no_color = pal.color(QtGui.QPalette.Active, QtGui.QPalette.Base)
+        #no_color = self.palette().color(QtGui.QPalette.Active, QtGui.QPalette.Base)
 
         for row in range(self.rowCount()):
             left = self.cellWidget(row, column - 1)
@@ -532,13 +558,6 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             if left_variant or right_variant:
                 widget = CompareCell(self.context_model, left_variant, right_variant)
                 self.setCellWidget(row, column, widget)
-                # this removes mouse-hover highlighting
-                self._set_cell_color(row, column, no_color)
-                if widget.color:
-                    if widget.left():
-                        self._set_cell_color(row, column - 1, widget.color)
-                    if widget.right():
-                        self._set_cell_color(row, column + 1, widget.color)
 
     def _set_package_cell(self, row, column, request=None):
         if row >= self.rowCount():
@@ -588,17 +607,6 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
             self.removeCellWidget(row, column)
         item = QtGui.QTableWidgetItem(txt)
         self.setItem(row, column, item)
-
-    def _set_cell_color(self, row, column, color):
-        item = self.item(row, column)
-        if item is None:
-            item = QtGui.QTableWidgetItem()
-            self.setItem(row, column, item)
-
-        # have to use 1-px image to get flat shading
-        img = QtGui.QPixmap(QtCore.QSize(1, 1))
-        img.fill(color)
-        item.setBackground(QtGui.QBrush(img))
 
     def _packageTextChanged(self, row, column, txt):
         if txt:

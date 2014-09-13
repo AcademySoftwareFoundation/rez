@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore
 from rez.resolved_context import ResolvedContext, PatchLock, get_lock_request
 from rez.config import config
+from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from collections import defaultdict
 import copy
 
@@ -29,6 +30,7 @@ class ContextModel(QtCore.QObject):
         self._context = None
         self._stale = True
         self._modified = True
+        self._dependency_lookup = None
 
         self.request = []
         self.packages_path = config.packages_path
@@ -67,6 +69,18 @@ class ContextModel(QtCore.QObject):
         If the context has never been saved, True is always returned.
         """
         return self._modified
+
+    def package_depends_on(self, name_a, name_b):
+        """Returns True if package A in the current context depends on package
+        B, False otherwise. Conflicts and weak references are not considered
+        dependencies."""
+        assert self._context
+        if self._dependency_lookup is None:
+            graph = self._context.get_dependency_graph()
+            self._dependency_lookup = accessibility(graph)
+
+        neighbours = self._dependency_lookup.get(name_a, [])
+        return (name_b in neighbours)
 
     def context(self):
         """Return the current context, if any."""
@@ -180,6 +194,7 @@ class ContextModel(QtCore.QObject):
     def _set_context(self, context, emit=True):
         self._context = context
         self._stale = False
+        self._dependency_lookup = None
 
         self.request = [str(x) for x in context.requested_packages()]
         self.packages_path = context.package_paths

@@ -1,6 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, get_icon, add_locking_submenu, \
-    add_menu_action, get_icon_widget
+from rezgui.util import create_pane, get_icon, add_menu_action
 from rezgui.widgets.ContextToolsWidget import ContextToolsWidget
 from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
