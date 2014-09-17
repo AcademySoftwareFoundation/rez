@@ -1501,14 +1501,14 @@ class DataWrapper(object):
             problems because a DataWrapper instance can in some cases be
             incorrectly picked up by the Schema library as a schema validator.
         """
-        _ = self.validated_data()
+        _ = self.validated_data
 
     @propertycache
     def validated_data(self):
         """Return validated data.
 
         Returns:
-            A dict containing all data of this object, or None if this class
+            A dict containing all data for this object, or None if this class
             does not provide a data schema.
         """
         if self.schema:

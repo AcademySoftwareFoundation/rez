@@ -148,7 +148,8 @@ def get_completions(prefix, paths=None, family_only=False):
     if fam:
         it = iter_packages(name=fam, paths=paths)
         pkgs = sorted(it, key=lambda x: x.version)
-        words.extend(x.qualified_name for x in pkgs)
+        words.extend(x.qualified_name for x in pkgs
+                     if x.qualified_name.startswith(prefix))
 
     if op:
         words = [op + x for x in words]
