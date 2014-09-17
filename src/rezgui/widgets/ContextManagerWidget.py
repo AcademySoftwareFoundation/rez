@@ -14,7 +14,7 @@ from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
 from rez.vendor.schema.schema import Schema, Or
 from rez.config import config
-from rez.resolved_context import PatchLock
+from rez.resolved_context import ResolvedContext, PatchLock
 from rez.util import readable_time_duration
 from functools import partial
 import time
@@ -67,10 +67,26 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.shell_tbtn.setIcon(icon)
 
         self.diff_tbtn = QtGui.QToolButton()
-        self.diff_tbtn.setToolTip("diff mode")
+        self.diff_tbtn.setToolTip("enter diff mode")
+        self.diff_tbtn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
+        self.diff_menu = QtGui.QMenu()
+        self.diff_action = add_menu_action(
+            self.diff_menu, "Diff Against Current",
+            self._diff_with_last_resolve, "diff")
+        self.diff_to_disk_action = add_menu_action(
+            self.diff_menu, "Diff Against Disk",
+            self._diff_with_disk, "diff_to_disk")
+        self.diff_to_other_action = add_menu_action(
+            self.diff_menu, "Diff Against Other...",
+            self._diff_with_other, "diff_to_other")
+        self.diff_tbtn.setMenu(self.diff_menu)
+        self.diff_tbtn.setDefaultAction(self.diff_action)
+
+        self.undiff_tbtn = QtGui.QToolButton()
+        self.undiff_tbtn.setToolTip("leave diff mode")
         icon = get_icon("diff", as_qicon=True)
-        self.diff_tbtn.setIcon(icon)
-        self.diff_tbtn.setCheckable(True)
+        self.undiff_tbtn.setIcon(icon)
+        self.undiff_tbtn.setCheckable(True)
 
         self.lock_tbtn = QtGui.QToolButton()
         self.lock_tbtn.setToolTip("locking")
@@ -90,35 +106,40 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         icon = get_icon("revert", as_qicon=True)
         self.revert_tbtn.setIcon(icon)
         self.revert_tbtn.setPopupMode(QtGui.QToolButton.InstantPopup)
-        menu = QtGui.QMenu()
-        self.revert_action = add_menu_action(menu, "Revert To Last Resolve...",
-                                             self._revert_to_last_resolve, "revert")
-        self.revert_diff_action = add_menu_action(menu, "Revert To Reference...",
-                                                  self._revert_to_diff, "revert_to_diff")
-        self.revert_diff_action.setEnabled(False)
-        self.revert_tbtn.setMenu(menu)
+
+        self.revert_menu = QtGui.QMenu()
+        self.revert_action = add_menu_action(
+            self.revert_menu, "Revert To Last Resolve...",
+            self._revert_to_last_resolve, "revert")
+        self.revert_diff_action = add_menu_action(
+            self.revert_menu, "Revert To Reference...",
+            self._revert_to_diff, "revert_to_diff")
+        self.revert_disk_action = add_menu_action(
+            self.revert_menu, "Revert To Disk...",
+            self._revert_to_disk, "revert_to_disk")
+        self.revert_tbtn.setMenu(self.revert_menu)
 
         resolve_tbtn = QtGui.QToolButton()
-        icon = get_icon("resolve", as_qicon=True)
-        resolve_tbtn.setIcon(icon)
         resolve_tbtn.setPopupMode(QtGui.QToolButton.MenuButtonPopup)
         menu = QtGui.QMenu()
-        default_action = add_menu_action(menu, "Resolve", self._resolve, "resolve")
+        default_resolve_action = add_menu_action(menu, "Resolve", self._resolve, "resolve")
         add_menu_action(menu, "Advanced Resolve...",
                         partial(self._resolve, advanced=True), "advanced_resolve")
-        resolve_tbtn.setDefaultAction(default_action)
+        resolve_tbtn.setDefaultAction(default_resolve_action)
         resolve_tbtn.setMenu(menu)
 
         toolbar = QtGui.QToolBar()
         toolbar.addWidget(resolve_time_label)
-        self.time_lock_action = toolbar.addWidget(self.time_lock_tbtn)
+        self.time_lock_tbtn_action = toolbar.addWidget(self.time_lock_tbtn)
         toolbar.addSeparator()
         toolbar.addWidget(self.shell_tbtn)
-        toolbar.addWidget(self.diff_tbtn)
+        self.diff_tbtn_action = toolbar.addWidget(self.diff_tbtn)
+        self.undiff_tbtn_action = toolbar.addWidget(self.undiff_tbtn)
         toolbar.addWidget(self.lock_tbtn)
         toolbar.addWidget(self.revert_tbtn)
         toolbar.addWidget(resolve_tbtn)
-        self.time_lock_action.setVisible(False)
+        self.time_lock_tbtn_action.setVisible(False)
+        self.undiff_tbtn_action.setVisible(False)
 
         self.time_lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.shell_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
@@ -172,9 +193,11 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_tbtn.clicked.connect(self._open_shell)
-        self.diff_tbtn.clicked.connect(self._change_diff_mode)
+        self.undiff_tbtn.clicked.connect(self._leave_diff_mode)
         self.time_lock_tbtn.clicked.connect(self._timelockClicked)
         self.tools_list.toolsChanged.connect(self._updateToolsCount)
+        self.diff_menu.aboutToShow.connect(self._aboutToShowDiffMenu)
+        self.revert_menu.aboutToShow.connect(self._aboutToShowRevertMenu)
         self.show_effective_request_checkbox.stateChanged.connect(
             self._effectiveRequestStateChanged)
 
@@ -214,25 +237,60 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         if self._changes_prompt():
             self.context_table.revert_to_diff()
 
+    def _revert_to_disk(self):
+        if self._changes_prompt():
+            self.context_table.revert_to_disk()
+
     def _open_shell(self):
         assert self.context()
         app.execute_shell(context=self.context(), terminal=True)
 
-    def _change_diff_mode(self):
-        b = self.diff_tbtn.isChecked()
-        self.context_table.set_diff_mode(b)
-        self.revert_diff_action.setEnabled(b)
-        #self.diff_tbtn.setEnabled(not self.context_model.is_stale())
-        self._enable_revert(diff=(not self.context_model.is_stale()))
+    def _leave_diff_mode(self):
+        self.context_table.leave_diff_mode()
+        self._change_diff_mode(False)
+
+    def _diff_with_last_resolve(self):
+        self.context_table.enter_diff_mode()
+        self._change_diff_mode(True)
+
+    def _diff_with_disk(self):
+        filepath = self.context_model.filepath()
+        self._diff_with_file(filepath)
+
+    def _diff_with_other(self):
+        filepath = QtGui.QFileDialog.getOpenFileName(
+            self, "Open Context", filter="Context files (*.rxt)")
+        if filepath:
+            self._diff_with_file(str(filepath))
+
+    def _diff_with_file(self, filepath):
+        assert filepath
+        disk_context = ResolvedContext.load(filepath)
+        model = ContextModel(disk_context)
+        self.context_table.enter_diff_mode(model)
+        self._change_diff_mode(True)
+
+    def _change_diff_mode(self, enabled):
+        self.undiff_tbtn.setChecked(enabled)
+        self.diff_tbtn_action.setVisible(not enabled)
+        self.undiff_tbtn_action.setVisible(enabled)
         self.diffModeChanged.emit()
 
-    def _enable_revert(self, last_resolve=None, diff=None):
-        if last_resolve is not None:
-            self.revert_action.setEnabled(last_resolve)
-        if diff is not None:
-            self.revert_diff_action.setEnabled(diff)
-        self.revert_tbtn.setEnabled(self.revert_action.isEnabled()
-                                    or self.revert_diff_action.isEnabled())
+    def _aboutToShowDiffMenu(self):
+        stale = self.context_model.is_stale()
+        self.diff_action.setEnabled(not stale)
+        self.diff_to_other_action.setEnabled(not stale)
+        self.diff_to_disk_action.setEnabled(bool(self.context_model.filepath())
+                                            and not stale)
+
+    def _aboutToShowRevertMenu(self):
+        model = self.context_model
+        self.revert_action.setEnabled(model.can_revert())
+        self.revert_disk_action.setEnabled(bool(model.filepath())
+                                           and model.is_modified())
+        self.revert_diff_action.setEnabled(self.context_table.diff_mode
+                                           and self.context_table.diff_from_source
+                                           and not model.is_stale())
 
     def _current_context_settings(self):
         assert self.context
@@ -265,8 +323,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         context = self.context()
         is_context = bool(context)
 
-        self._enable_revert(last_resolve=self.context_model.can_revert())
-        self.diff_tbtn.setEnabled(self.diff_tbtn.isChecked() or not stale)
+        #self.diff_tbtn.setEnabled(self.diff_tbtn.isChecked() or not stale)
         self.shell_tbtn.setEnabled(not stale)
         self.lock_tbtn.setEnabled(is_context)
 
@@ -281,9 +338,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
                 t_str = time.strftime("%a %b %d %H:%M:%S %Y", t)
                 txt = "packages released after %s were ignored" % t_str
                 self.time_lock_tbtn.setToolTip(txt)
-                self.time_lock_action.setVisible(True)
+                self.time_lock_tbtn_action.setVisible(True)
             else:
-                self.time_lock_action.setVisible(False)
+                self.time_lock_tbtn_action.setVisible(False)
 
         if flags & (ContextModel.LOCKS_CHANGED | ContextModel.CONTEXT_CHANGED):
             lock_type = self.context_model.default_patch_lock

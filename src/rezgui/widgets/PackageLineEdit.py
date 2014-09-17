@@ -12,24 +12,24 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
     focusOut = QtCore.Signal(str)
     focusIn = QtCore.Signal()
 
-    def __init__(self, context_model=None, parent=None, family_only=False):
+    def __init__(self, context_model=None, parent=None, family_only=False,
+                 read_only=False):
         super(PackageLineEdit, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
+        self.read_only = read_only
         self.family_only = family_only
         self.default_style = None
 
         pal = self.palette()
         self.normal_font = self.font()
-        self.normal_disabled_text_color = pal.color(QtGui.QPalette.Disabled,
-                                                    QtGui.QPalette.Text)
         self.placeholder_font = self.font()
         self.placeholder_font.setItalic(True)
-        self.setFont(self.placeholder_font)
-        self.setPlaceholderText("enter package")
-
-        # testing
-        #pal.setColor(QtGui.QPalette.Disabled, QtGui.QPalette.Text,
-        #             pal.color(QtGui.QPalette.Text))
+        self.normal_text_color = pal.color(QtGui.QPalette.Text)
+        self.placeholder_text_color = pal.color(QtGui.QPalette.Disabled,
+                                                QtGui.QPalette.Text)
+        if not self.read_only:
+            self.setPlaceholderText("enter package")
+            self._update_font()
 
         self.completer = QtGui.QCompleter(self)
         self.completer.setCompletionMode(QtGui.QCompleter.PopupCompletion)
@@ -56,11 +56,13 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         return super(PackageLineEdit, self).event(event)
 
     def focusInEvent(self, event):
+        self._update_font()
         self.focusIn.emit()
         return super(PackageLineEdit, self).focusInEvent(event)
 
     def focusOutEvent(self, event):
         self._update_status()
+        self._update_font()
         self.focusOut.emit(self.text())
         return super(PackageLineEdit, self).focusOutEvent(event)
 
@@ -74,8 +76,23 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         other.completer.setCompletionPrefix(self.text())
 
     def _textChanged(self, txt):
-        font = self.normal_font if txt else self.placeholder_font
+        self._update_font()
+
+    def _update_font(self):
+        if self.read_only:
+            return
+        elif self.text():
+            font = self.normal_font
+            color = self.normal_text_color
+        else:
+            font = self.placeholder_font
+            color = self.placeholder_text_color
+
         self.setFont(font)
+        pal = self.palette()
+        pal.setColor(QtGui.QPalette.Active, QtGui.QPalette.Text, color)
+        pal.setColor(QtGui.QPalette.Inactive, QtGui.QPalette.Text, color)
+        self.setPalette(pal)
 
     def _contextChanged(self, flags=0):
         if flags & ContextModel.PACKAGES_PATH_CHANGED:

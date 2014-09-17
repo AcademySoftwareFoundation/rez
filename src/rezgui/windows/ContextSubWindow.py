@@ -19,10 +19,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
         self._update_window_title()
 
     def filepath(self):
-        context = self.context()
-        if context and context.load_path:
-            return context.load_path
-        return None
+        return self.context_model.filepath()
 
     def closeEvent(self, event):
         if self.can_close():

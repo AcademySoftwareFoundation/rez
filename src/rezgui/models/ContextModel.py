@@ -30,6 +30,7 @@ class ContextModel(QtCore.QObject):
         self._context = None
         self._stale = True
         self._modified = True
+        self._dependency_graph = None
         self._dependency_lookup = None
 
         self.request = []
@@ -71,20 +72,32 @@ class ContextModel(QtCore.QObject):
         return self._modified
 
     def package_depends_on(self, name_a, name_b):
-        """Returns True if package A in the current context depends on package
-        B, False otherwise. Conflicts and weak references are not considered
-        dependencies."""
+        """Returns dependency information about two packages:
+
+            0: A does not depend, directly or indirectly, on B;
+            1: A depends indirectly on B;
+            2: A depends directly on B.
+        """
         assert self._context
         if self._dependency_lookup is None:
-            graph = self._context.get_dependency_graph()
-            self._dependency_lookup = accessibility(graph)
+            self._dependency_graph = self._context.get_dependency_graph()
+            self._dependency_lookup = accessibility(self._dependency_graph)
 
-        neighbours = self._dependency_lookup.get(name_a, [])
-        return (name_b in neighbours)
+        downstream = self._dependency_lookup.get(name_a, [])
+        accessible = (name_b in downstream)
+        if accessible:
+            neighbours = self._dependency_graph.neighbors(name_a)
+            return 2 if name_b in neighbours else 1
+        else:
+            return 0
 
     def context(self):
         """Return the current context, if any."""
         return self._context
+
+    def filepath(self):
+        """Return the path the current context was saved/loaded to, if any."""
+        return self._context.load_path if self._context else None
 
     def get_patch_lock(self, package_name):
         """Return the patch lock associated with the package, or None."""

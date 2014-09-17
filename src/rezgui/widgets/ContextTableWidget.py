@@ -7,6 +7,7 @@ from rezgui.widgets.IconButton import IconButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.packages import Variant, iter_packages
+from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from functools import partial
@@ -30,8 +31,10 @@ class CompareCell(QtGui.QWidget):
         widget = None
         if self.left_variant and self.right_variant:
             self.side = "both"
+            equal_versions = (self.left_variant.version == self.right_variant.version)
+            right_variant_visible = (self.right_variant.search_path in package_paths)
+            self.comparable = right_variant_visible and not equal_versions
 
-            self.comparable = (self.right_variant.search_path in package_paths)
             if self.comparable:
                 # determine how far apart the variant versions are
                 versions = sorted([self.left_variant.version,
@@ -45,10 +48,18 @@ class CompareCell(QtGui.QWidget):
                 icon_suffixes = {1: "_1", 2: "_2", 3: "_3"}
                 icon_suffix = icon_suffixes.get(diff_num, "")
 
-            if self.left_variant.version == self.right_variant.version:
+            if self.left_variant == self.right_variant:
                 self.mode = "equal_to"
                 self._set_color(0.7, 0.7, 0.7)
                 widget = IconButton("equal_to", "packages are equal")
+            elif self.left_variant.version == self.right_variant.version:
+                # same version, but package is different. This can happen when
+                # a local package is released which then hides a central package
+                # of the same version
+                self.mode = "equalish"
+                self._set_color(1, 1, 0)
+                widget = IconButton(
+                    "equalish", "packages versions are equal, but package is different")
             elif self.left_variant.version > self.right_variant.version:
                 self.mode = "greater_than"
                 self._set_color(0, 1, 0)
@@ -91,43 +102,49 @@ class CompareCell(QtGui.QWidget):
         def _var_str(var):
             return "%s@%s" % (var.qualified_package_name, var.search_path)
 
-        if self.mode == "equal_to":
-            QtGui.QMessageBox.information(
-                self,
-                "Equal Packages",
-                "The packages are equal")
-        elif self.mode == "missing":
-            QtGui.QMessageBox.information(
-                self,
-                "Missing Package",
-                "The package is no longer present in the current resolve")
-        elif self.mode == "new":
-            QtGui.QMessageBox.information(
-                self,
-                "New Package",
-                "The package is newly present in the current resolve")
-        elif self.comparable:
+        if self.comparable:
             from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog
             dlg = VariantVersionsDialog(self.context_model, self.left_variant,
                                         reference_variant=self.right_variant,
                                         parent=self)
             dlg.exec_()
+        elif self.mode == "equal_to":
+            QtGui.QMessageBox.information(
+                self,
+                "Equal Package",
+                "The packages are equal")
+        elif self.mode == "equalish":
+            QtGui.QMessageBox.information(
+                self,
+                "Equal Version Package",
+                "The package in the current resolve:\n(%s)\n\nis the same "
+                "version as the package in the reference resolve:\n(%s)\n\n"
+                "but is a different package."
+                % (_var_str(self.left_variant), _var_str(self.right_variant)))
+        elif self.mode == "missing":
+            QtGui.QMessageBox.information(
+                self,
+                "Missing Package",
+                "The package is present in the reference resolve only")
+        elif self.mode == "new":
+            QtGui.QMessageBox.information(
+                self,
+                "New Package",
+                "The package is present in the current resolve only")
         elif self.mode == "greater_than":
-            body = ("The package in the current resolve:\n(%s)\n\nis newer than "
-                    "the package in the reference resolve (%s)"
-                    % (_var_str(self.left_variant), _var_str(self.right_variant)))
             QtGui.QMessageBox.information(
                 self,
                 "Newer Package",
-                body)
+                "The package in the current resolve:\n(%s)\n\nis newer than "
+                "the package in the reference resolve (%s)"
+                % (_var_str(self.left_variant), _var_str(self.right_variant)))
         else:
-            body = ("The package in the current resolve:\n(%s)\n\nis older than "
-                    "the package in the reference resolve (%s)"
-                    % (_var_str(self.left_variant), _var_str(self.right_variant)))
             QtGui.QMessageBox.information(
                 self,
                 "Older Package",
-                body)
+                "The package in the current resolve:\n(%s)\n\nis older than "
+                "the package in the reference resolve (%s)"
+                % (_var_str(self.left_variant), _var_str(self.right_variant)))
 
     def _set_color(self, *c):
         f = 0.8
@@ -269,8 +286,8 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         ContextViewMixin.__init__(self, context_model)
 
         self.diff_mode = False
-        self.diff_from_source = True
         self.diff_context_model = None
+        self.diff_from_source = False
         self._show_effective_request = False
         self._current_variant = None
 
@@ -321,30 +338,46 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         """
         return self._get_request(0)
 
-    def set_diff_mode(self, b):
-        """Enable/disable diff mode."""
-        if b == self.diff_mode:
-            return
+    def enter_diff_mode(self, context_model=None):
+        """Enter diff mode.
 
-        assert self.context_model.context()
-        self.diff_mode = b
+        Args:
+            context_model (`ContextModel`): Context to diff against. If None, a
+            copy of the current context is used.
+        """
+        assert not self.diff_mode
+        self.diff_mode = True
 
-        if self.diff_mode:
-            assert not self.context_model.is_stale()
-            self.clear()
-            self.setColumnCount(5)
-            self.diff_context_model = self.context_model.copy()
+        if context_model is None:
             self.diff_from_source = True
+            self.diff_context_model = self.context_model.copy()
         else:
-            self.diff_context_model = None
-            self.setColumnCount(2)
+            self.diff_from_source = False
+            self.diff_context_model = context_model
 
+        self.clear()
+        self.setColumnCount(5)
+        self.refresh()
+
+    def leave_diff_mode(self):
+        """Leave diff mode."""
+        assert self.diff_mode
+        self.diff_mode = False
+        self.diff_context_model = None
+        self.diff_from_source = False
+        self.setColumnCount(2)
         self.refresh()
 
     def revert_to_diff(self):
         assert self.diff_mode
         source_context = self.diff_context_model.context()
         self.context_model.set_context(source_context)
+
+    def revert_to_disk(self):
+        filepath = self.context_model.filepath()
+        assert filepath
+        disk_context = ResolvedContext.load(filepath)
+        self.context_model.set_context(disk_context)
 
     def get_title(self):
         """Returns a string suitable for titling a window containing this table."""

@@ -24,10 +24,15 @@ class VariantSummaryWidget(QtGui.QWidget):
         vh = self.table.verticalHeader()
         vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
+        """
         layout = QtGui.QVBoxLayout()
         layout.addWidget(self.label)
         layout.addWidget(self.table)
         self.setLayout(layout)
+        """
+
+        create_pane([self.label, self.table], False, compact=True,
+                    parent_widget=self)
 
         self.clear()
 

@@ -80,12 +80,12 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
     def set_reference_sibling(self, variant=None):
         if variant is None or self.variant.name == variant.name:
-            b = False
+            access = 0
         else:
-            b = self.context_model.package_depends_on(self.variant.name, variant.name)
+            access = self.context_model.package_depends_on(self.variant.name, variant.name)
 
-        update_font(self.label, underline=b)
-        self.depends_icon.setVisible(b)
+        update_font(self.label, underline=bool(access))
+        self.depends_icon.setVisible(access == 2)
 
     def _contextChanged(self, flags=0):
         self._set_stale(self.context_model.is_stale())
