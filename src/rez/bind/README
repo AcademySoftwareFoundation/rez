@@ -3,8 +3,8 @@ Rez "bind" modules.
 A bind module is a python file implementing the function 'bind'. Its purpose is
 to find some existing piece of software on the system, and to create the relevant
 directories and package definition file to interface that software with Rez. In
-some rare instances (such as the bootstrap 'hello_world' package) the software
-is created from scratch.
+some rare instances (such as the 'hello_world' package) the software is created
+from scratch.
 
 As well as 'bind', each file can optionally implement a 'setup_parser' function,
 which exposes settings to the 'rez-bind' cli tool. For example, a bind module

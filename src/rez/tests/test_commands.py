@@ -17,7 +17,6 @@ class TestCommands(TestBase):
     def setUpClass(cls):
         cls.settings = dict(
             packages_path=[cls.get_packages_path()],
-            add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[],
@@ -95,18 +94,30 @@ class TestCommands(TestBase):
         """Resolve a package with a dependency, see that their commands are
         concatenated as expected."""
         pkg = VersionedObject("rextest2-2")
-        base = os.path.join(self.packages_path, "rextest2", "2")
+        base = os.path.join(self.packages_path, "rextest", "1.3")
+        base2 = os.path.join(self.packages_path, "rextest2", "2")
 
         cmds = [Setenv('REZ_USED_REQUEST', "rextest2-2"),
-                Setenv('REZ_USED_RESOLVE', "rextest-1.3 rextest2-2")]
-        cmds += self._get_rextest_commands(VersionedObject("rextest-1.3"))
-        cmds += [Setenv('REZ_REXTEST2_VERSION', '2'),
-                 Setenv('REZ_REXTEST2_BASE', base),
-                 Setenv('REZ_REXTEST2_ROOT', base),
-                 Appendenv('REXTEST_DIRS', os.path.join(base, "data2")),
-                 Setenv('REXTEST2_REXTEST_VER', '1.3'),
-                 Setenv('REXTEST2_REXTEST_BASE',
-                        os.path.join(self.packages_path, "rextest", "1.3"))]
+                Setenv('REZ_USED_RESOLVE', "rextest-1.3 rextest2-2"),
+                # rez's rextest vars
+                Setenv('REZ_REXTEST_VERSION', "1.3"),
+                Setenv('REZ_REXTEST_BASE', base),
+                Setenv('REZ_REXTEST_ROOT', base),
+                # rez's rextest2 vars
+                Setenv('REZ_REXTEST2_VERSION', '2'),
+                Setenv('REZ_REXTEST2_BASE', base2),
+                Setenv('REZ_REXTEST2_ROOT', base2),
+                # rextest's commands
+                Setenv('REXTEST_ROOT', base),
+                Setenv('REXTEST_VERSION', "1.3"),
+                Setenv('REXTEST_MAJOR_VERSION', "1"),
+                Setenv('REXTEST_DIRS', os.path.join(base, "data")),
+                Alias('rextest', 'foobar'),
+                # rextext2's commands
+                Appendenv('REXTEST_DIRS', os.path.join(base2, "data2")),
+                Setenv('REXTEST2_REXTEST_VER', '1.3'),
+                Setenv('REXTEST2_REXTEST_BASE',
+                       os.path.join(self.packages_path, "rextest", "1.3"))]
 
         self._test_package(pkg, {}, cmds)
         # first prepend should still override

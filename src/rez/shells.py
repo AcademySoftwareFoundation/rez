@@ -2,8 +2,9 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.config import config
 from rez.util import which, shlex_join, print_warning
+from rez.config import config
+from rez.system import system
 import subprocess
 import os.path
 import sys
@@ -197,7 +198,11 @@ class UnixShell(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                ex.command('rezolve context')
+                if system.is_production_rez_install:
+                    ex.command('rezolve context')
+                else:
+                    ex.info("Rez command line tools are not available.")
+                    ex.info("")
 
         def _write_shell(ex, filename):
             code = ex.get_output()
@@ -209,7 +214,6 @@ class UnixShell(Shell):
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
-                               bind_rez=False,
                                add_default_namespaces=False)
 
         executor = _create_ex()

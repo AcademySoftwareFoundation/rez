@@ -4,8 +4,8 @@ from rez.system import system
 from rez.config import config
 from rez.colorize import critical, error, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
-from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, dedup, timings
+from rez.util import columnise, convert_old_commands, shlex_join, mkdtemp_, \
+    dedup, timings
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -31,11 +31,11 @@ import os.path
 class PatchLock(Enum):
     """ Enum to represent the 'lock type' used when patching context objects.
     """
-    no_lock = ("No locking", 0)
+    no_lock = ("No locking", -1)
     lock_2 = ("Minor version updates only (X.*)", 1)
     lock_3 = ("Patch version updates only (X.X.*)", 2)
     lock_4 = ("Build version updates only (X.X.X.*)", 3)
-    lock = ("Exact version", 0)
+    lock = ("Exact version", -1)
 
     __order__ = "no_lock,lock_2,lock_3,lock_4,lock"
 
@@ -111,9 +111,8 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 add_implicit_packages=True, add_bootstrap_path=None,
-                 max_fails=-1, time_limit=-1, callback=None,
-                 package_load_callback=None, buf=None):
+                 add_implicit_packages=True, max_fails=-1, time_limit=-1,
+                 callback=None, package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -130,9 +129,6 @@ class ResolvedContext(object):
                 config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
-            add_bootstrap_path: If True, append the package search path with
-                the bootstrap path. If False, do not append. If None, use the
-                default specified in config.add_bootstrap_path.
             max_fails (int): Abort the resolve if the number of failed steps is
                 greater than this number. If -1, does not abort.
             time_limit (int): Abort the resolve if it takes longer than this
@@ -169,10 +165,6 @@ class ResolvedContext(object):
         # package paths
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
-        add_bootstrap = (config.add_bootstrap_path
-                         if add_bootstrap_path is None else add_bootstrap_path)
-        if add_bootstrap:
-            self.package_paths = _add_bootstrap_pkg_path(self.package_paths)
         self.package_paths = list(dedup(self.package_paths))
 
         # patch settings
@@ -904,8 +896,9 @@ class ResolvedContext(object):
             style (): Style to format shell code in.
         """
         from rez.shells import create_shell
-        sh = create_shell(shell)
-        executor = self._create_executor(sh, parent_environ, style=style)
+        executor = self._create_executor(interpreter=create_shell(shell),
+                                         parent_environ=parent_environ,
+                                         style=style)
 
         if self.load_path and os.path.isfile(self.load_path):
             executor.env.REZ_RXT_FILE = self.load_path
@@ -1197,7 +1190,8 @@ class ResolvedContext(object):
         self.parent_suite_path = suite_path
         self.suite_context_name = context_name
 
-    def _create_executor(self, interpreter, parent_environ, style=OutputStyle.file):
+    def _create_executor(self, interpreter, parent_environ,
+                         style=OutputStyle.file):
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 
@@ -1206,19 +1200,22 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
-    def _get_shell_code(self, shell, parent_environ):
-        # create the shell
-        from rez.shells import create_shell
-        sh = create_shell(shell)
-
-        # interpret this context and write out the native context file
-        executor = self._create_executor(sh, parent_environ)
-        self._execute(executor)
-        context_code = executor.get_output()
-
-        return sh, context_code
-
     def _execute(self, executor):
+        br = '#' * 80
+        br_minor = '-' * 80
+
+        def _heading(txt):
+            executor.comment("")
+            executor.comment("")
+            executor.comment(br)
+            executor.comment(txt)
+            executor.comment(br)
+
+        def _minor_heading(txt):
+            executor.comment("")
+            executor.comment(txt)
+            executor.comment(br_minor)
+
         # bind various info to the execution context
         resolved_pkgs = self.resolved_packages or []
         request_str = ' '.join(str(x) for x in self._package_requests)
@@ -1226,6 +1223,7 @@ class ResolvedContext(object):
         resolve_str = ' '.join(x.qualified_package_name for x in resolved_pkgs)
         package_paths_str = os.pathsep.join(self.package_paths)
 
+        _heading("system setup")
         executor.setenv("REZ_USED", self.rez_path)
         executor.setenv("REZ_USED_VERSION", self.rez_version)
         executor.setenv("REZ_USED_TIMESTAMP", str(self.timestamp))
@@ -1248,30 +1246,47 @@ class ResolvedContext(object):
             executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
-        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
         executor.bind('request', RequirementsBinding(self._package_requests))
         executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
+        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
-        # apply each resolved package to the execution context
+        #
+        # -- apply each resolved package to the execution context
+        #
+
+        _heading("package variables")
+        error_class = Exception if config.catch_rex_errors else None
+
+        # set basic package variables and create per-package bindings
+        bindings = {}
         for pkg in resolved_pkgs:
-            executor.comment("")
-            executor.comment("Commands from package %s" % pkg.qualified_name)
-            executor.comment("")
-
+            _minor_heading("variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
             executor.setenv(prefix + "_VERSION", str(pkg.version))
             executor.setenv(prefix + "_BASE", pkg.base)
             executor.setenv(prefix + "_ROOT", pkg.root)
+            bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
+                                      variant=VariantBinding(pkg))
 
-            executor.bind('this',       VariantBinding(pkg))
-            executor.bind("version",    VersionBinding(pkg.version))
-            executor.bind('root',       pkg.root)
-            executor.bind('base',       pkg.base)
+        # commands
+        for attr in ("pre_commands", "commands", "post_commands"):
+            found = False
+            for pkg in resolved_pkgs:
+                commands = getattr(pkg, attr)
+                if commands is None:
+                    continue
+                if not found:
+                    found = True
+                    _heading(attr)
 
-            commands = pkg.commands
-            if commands:
-                error_class = Exception if config.catch_rex_errors else None
+                _minor_heading("%s from package %s" % (attr, pkg.qualified_name))
+                bindings_ = bindings[pkg.name]
+                executor.bind('this',       bindings_["variant"])
+                executor.bind("version",    bindings_["version"])
+                executor.bind('root',       pkg.root)
+                executor.bind('base',       pkg.base)
+
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
@@ -1284,6 +1299,7 @@ class ResolvedContext(object):
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
+        _heading("post system setup")
         # append suite path if there is an active parent suite
         if self.parent_suite_path:
             tools_path = os.path.join(self.parent_suite_path, "bin")
@@ -1291,3 +1307,6 @@ class ResolvedContext(object):
 
         # append system paths
         executor.append_system_paths()
+
+        # append rez path
+        executor.append_rez_path()

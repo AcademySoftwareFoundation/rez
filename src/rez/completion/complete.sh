@@ -7,7 +7,6 @@ _rez_complete_fn()
 complete -F _rez_complete_fn rez
 complete -F _rez_complete_fn rezolve
 complete -F _rez_complete_fn rez-bind
-complete -F _rez_complete_fn rez-bootstrap
 complete -F _rez_complete_fn rez-build
 complete -F _rez_complete_fn rez-config
 complete -F _rez_complete_fn rez-context
