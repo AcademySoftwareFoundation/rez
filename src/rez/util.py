@@ -43,6 +43,7 @@ except AttributeError:
     OrderedDict = backport.ordereddict.OrderedDict
 
 
+# TODO deprecate
 # use `yaml_literal` to wrap multi-line strings written to yaml files, to
 # get the nice pipe-style block formatting
 class yaml_literal(str):
@@ -89,6 +90,7 @@ class LazySingleton(object):
         return self.instance
 
 
+# TODO use distlib.ScriptMaker
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 

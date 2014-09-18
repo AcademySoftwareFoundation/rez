@@ -1243,7 +1243,6 @@ class ResolvedContext(object):
             executor.setenv("REZ_REQUEST", request_str_)
             executor.setenv("REZ_RESOLVE", resolve_str)
             executor.setenv("REZ_RAW_REQUEST", request_str_)
-            executor.setenv("REZ_PACKAGES_PATH", package_paths_str)
             executor.setenv("REZ_RESOLVE_MODE", "latest")
 
         executor.bind('request', RequirementsBinding(self._package_requests))

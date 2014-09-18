@@ -348,11 +348,10 @@ error_commands2: false
 #   -----               -----
 #   REZ_REQUEST         REZ_USED_REQUEST
 #   REZ_RESOLVE         REZ_USED_RESOLVE
-#   REZ_VERSION         not set
-#   REZ_PATH            not set
+#   REZ_VERSION         REZ_USED_VERSION
+#   REZ_PATH            REZ_USED
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
-#   REZ_PACKAGES_PATH   REZ_PACKAGES_PATH (but optional)
 rez_1_environment_variables: true
 
 # If True, override all compatibility-related settings so that Rez-1 support is

@@ -14,7 +14,6 @@ class ProcessTrackerThread(QtCore.QThread):
         self.lock = Lock()
 
         self.timer = QtCore.QTimer()
-        self.timer.setInterval(100)
         self.timer.timeout.connect(self._update)
 
     def run(self):

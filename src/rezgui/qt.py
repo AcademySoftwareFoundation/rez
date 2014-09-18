@@ -28,7 +28,7 @@ if USE_PYSIDE is None:
                 import PySide
                 USE_PYSIDE = True
             except ImportError:
-                raise Exception("rez gui tools require either PyQt4 or PySide; "
+                raise Exception("rez-gui requires either PyQt4 or PySide; "
                                 "neither package could be imported.")
 
 if USE_PYSIDE:

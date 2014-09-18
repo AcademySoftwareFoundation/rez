@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rezgui.util import get_timestamp_str, update_font
+from rezgui.util import get_timestamp_str, update_font, get_icon_widget, create_pane
 from rez.packages import iter_packages
 from rez.vendor.version.version import VersionRange
 
@@ -98,6 +98,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
             it = iter_packages(name=variant.name, paths=package_paths, range=range_)
             packages = sorted(it, key=lambda x: x.version, reverse=True)
+            timestamp = self.context().timestamp
 
             for i, package in enumerate(packages):
                 self.num_versions += 1
@@ -116,21 +117,25 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     if package.timestamp else '-'
 
                 if self.view_changelog:
-                    rows.append((version_str, path_str))
+                    if package.timestamp:
+                        path_str += " - %s" % release_str
+                        if package.timestamp > timestamp:
+                            path_str = ("clock_warning", path_str)
 
+                    rows.append((version_str, path_str))
                     if reference_version is not None and i == len(packages) - 1:
                         # don't include the last changelog when in reference mode,
                         # we are only interested in what is inbetween the versions.
                         continue
 
-                    if package.timestamp:
-                        path_str += " - %s" % release_str
                     if package.changelog:
                         changelog = package.changelog.rstrip() + '\n'
                     else:
                         changelog = "-"
                     rows.append(("", changelog))
                 else:
+                    if package.timestamp and package.timestamp > timestamp:
+                        path_str = ("clock_warning", path_str)
                     rows.append((version_str, path_str, release_str))
 
             pal = self.palette()
@@ -146,22 +151,35 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     update_font(item, bold=True, italic=True)
 
                 for j in range(len(row) - 1):
-                    item = QtGui.QTableWidgetItem(row[j + 1])
+                    value = row[j + 1]
+                    icon_name = None
+                    if isinstance(value, tuple):
+                        icon_name, value = value
+
+                    item = QtGui.QTableWidgetItem()
+                    label = QtGui.QLabel(value)
+
                     if self.view_changelog and not (i % 2):
                         brush = pal.brush(QtGui.QPalette.Active,
                                           QtGui.QPalette.Button)
                         item.setBackground(brush)
-                        brush = pal.brush(QtGui.QPalette.Active,
-                                          QtGui.QPalette.ButtonText)
-                        item.setForeground(brush)
-                        update_font(item, bold=True)
+                        update_font(label, bold=True)
                     else:
                         # gets rid of mouse-hover row highlighting
                         brush = pal.brush(QtGui.QPalette.Active,
                                           QtGui.QPalette.Base)
                         item.setBackground(brush)
 
+                    if icon_name:
+                        icon = get_icon_widget(
+                            icon_name, "package did not exist at time of resolve")
+                        widgets = [icon, label, None, 5]
+                    else:
+                        widgets = [label, None, 5]
+
+                    widget = create_pane(widgets, True, compact=True)
                     self.setItem(i, j, item)
+                    self.setCellWidget(i, j, widget)
 
             vh = self.verticalHeader()
             vh.setVisible(True)

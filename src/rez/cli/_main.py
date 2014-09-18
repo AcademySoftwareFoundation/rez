@@ -7,7 +7,7 @@ import pkgutil
 import textwrap
 from itertools import groupby
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
-from rez.cli._util import subcommands, LazyArgumentParser
+from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez import __version__
 
 
@@ -103,10 +103,10 @@ def run(command=None):
         arg_groups[-1].append(arg)
     opts = parser.parse_args(arg_groups[0])
 
-    if opts.debug or os.getenv("REZ_DEBUG", "").lower() in ("1", "true", "on", "yes"):
+    if opts.debug or _env_var_true("REZ_DEBUG"):
         from rez.util import set_rm_tmpdirs
-        exc_type = None
         set_rm_tmpdirs(False)
+        exc_type = None
     else:
         exc_type = Exception
 

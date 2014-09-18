@@ -12,19 +12,15 @@ class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
         ContextViewMixin.__init__(self, context_model)
         self.variant = None
 
-        self.label = QtGui.QLabel()
         self.edit = StreamableTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
         self.view_graph_btn = ViewGraphButton(context_model)
         btn_pane = create_pane([None, self.view_graph_btn], True, compact=True)
 
-        create_pane([self.label, self.edit, btn_pane], False, compact=True,
-                    parent_widget=self)
-
+        create_pane([self.edit, btn_pane], False, compact=True, parent_widget=self)
         self.clear()
 
     def clear(self):
-        self.label.setText("no package selected")
         self.edit.clear()
         self.setEnabled(False)
 
@@ -35,12 +31,6 @@ class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
         if variant is None:
             self.clear()
         else:
-            if isinstance(variant, Package):
-                label = str(variant)
-            else:
-                label = "%s@%s" % (variant.qualified_package_name, variant.search_path)
-            self.label.setText(label)
-
             self.setEnabled(True)
             self.edit.clear()
             variant.print_info(self.edit)

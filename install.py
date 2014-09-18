@@ -10,7 +10,7 @@ import textwrap
 import subprocess
 from optparse import OptionParser
 
-source_path = os.path.dirname(__file__)
+source_path = os.path.dirname(os.path.realpath(__file__))
 bin_path = os.path.join(source_path, "bin")
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
@@ -119,6 +119,8 @@ if __name__ == "__main__":
     # install rez from source
     py_executable = os.path.join(dest_dir, "bin", "python")
     args = [py_executable, "setup.py", "install"]
+    if opts.verbose:
+        print "running in %s: %s" % (source_path, " ".join(args))
     p = subprocess.Popen(args, cwd=source_path)
     p.wait()
 

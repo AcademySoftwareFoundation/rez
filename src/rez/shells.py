@@ -200,9 +200,6 @@ class UnixShell(Shell):
                 ex.info('')
                 if system.is_production_rez_install:
                     ex.command('rezolve context')
-                else:
-                    ex.info("Rez command line tools are not available.")
-                    ex.info("")
 
         def _write_shell(ex, filename):
             code = ex.get_output()

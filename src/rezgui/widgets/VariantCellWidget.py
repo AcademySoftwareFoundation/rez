@@ -24,11 +24,10 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         self.read_only = read_only
         self.icons = []  # 3-tuples: widget, name, tooltip
 
-        self.label = QtGui.QLabel(self.variant.qualified_package_name)
-        if self.variant.description:
-            desc = "%s@%s" % (self.variant.qualified_package_name,
-                              self.variant.search_path)
-            self.label.setToolTip(desc)
+        qname = self.variant.qualified_package_name
+        self.label = QtGui.QLabel(qname)
+        desc = "%s@%s" % (qname, self.variant.search_path)
+        self.label.setToolTip(desc)
 
         self.depends_icon = get_icon_widget("depends", "dependent package")
         self.depends_icon.hide()
@@ -84,8 +83,16 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
         else:
             access = self.context_model.package_depends_on(self.variant.name, variant.name)
 
-        update_font(self.label, underline=bool(access))
-        self.depends_icon.setVisible(access == 2)
+        update_font(self.label, underline=(access == 2))
+        self.depends_icon.setVisible(bool(access))
+        if access:
+            enable = (access == 2)
+            if access == 1:
+                desc = "%s indirectly requires %s"
+            else:
+                desc = "%s requires %s"
+            self.depends_icon.setToolTip(desc % (self.variant.name, variant.name))
+            self.depends_icon.setEnabled(enable)
 
     def _contextChanged(self, flags=0):
         self._set_stale(self.context_model.is_stale())
