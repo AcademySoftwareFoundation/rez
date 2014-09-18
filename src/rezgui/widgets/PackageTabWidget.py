@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import get_icon
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
+from rezgui.widgets.VariantHelpWidget import VariantHelpWidget
 from rezgui.widgets.VariantSummaryWidget import VariantSummaryWidget
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
 from rezgui.widgets.VariantToolsList import VariantToolsList
@@ -19,6 +20,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         self.tools_widget = VariantToolsList(self.context_model)
         self.variants_widget = VariantsList()
         self.details_widget = VariantDetailsWidget(self.context_model)
+        self.help_widget = VariantHelpWidget(self.context_model)
         if versions_tab:
             self.versions_widget = VariantVersionsWidget(self.context_model)
         else:
@@ -49,6 +51,11 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         icon = get_icon("info", as_qicon=True)
         self.addTab(self.details_widget, icon, "details")
         self.tabs["info"] = n
+        n += 1
+
+        icon = get_icon("help", as_qicon=True)
+        self.addTab(self.help_widget, icon, "help")
+        self.tabs["help"] = n
 
         self.setEnabled(False)
 
@@ -88,6 +95,13 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
             self.setTabEnabled(tab_index, False)
             disabled_tabs.add(tab_index)
         self.setTabText(tab_index, label)
+
+        tab_index = self.tabs["help"]
+        if self.help_widget.success:
+            self.setTabEnabled(tab_index, True)
+        else:
+            self.setTabEnabled(tab_index, False)
+            disabled_tabs.add(tab_index)
 
         if prev_index in disabled_tabs:
             self.setCurrentIndex(0)

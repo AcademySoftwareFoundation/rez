@@ -16,7 +16,7 @@ class ToolWidget(QtGui.QWidget):
         self.tool_name = tool_name
         self.process_tracker = process_tracker
 
-        self.tool_icon = get_icon_widget("spanner")
+        tool_icon = get_icon_widget("spanner")
         self.label = QtGui.QLabel(tool_name)
         self.instances_label = QtGui.QLabel("")
         self.instances_label.setEnabled(False)
@@ -32,7 +32,7 @@ class ToolWidget(QtGui.QWidget):
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(2)
         layout.setContentsMargins(2, 2, 2, 2)
-        layout.addWidget(self.tool_icon)
+        layout.addWidget(tool_icon)
         layout.addWidget(self.label, 1)
         layout.addWidget(self.instances_label)
         self.setLayout(layout)
