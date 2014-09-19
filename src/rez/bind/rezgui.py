@@ -16,7 +16,7 @@ import sys
 
 
 def setup_parser(parser):
-    parser.add_argument("--gui-lib", type=str, default="PyQt",
+    parser.add_argument("--gui-lib", type=str, default="PyQt-4",
                         help="manually specify the gui lib to use (PyQt or PySide).")
 
 
@@ -45,12 +45,20 @@ def bind(path, version_range=None, opts=None, parser=None):
     py_require_str = "python-%d.%d" % py_version
     requires = list(system.variant) + [py_require_str] + [gui_lib]
 
-    import pdb;pdb.set_trace()
+    tool_name = 'rez-gui'
+
+    # get tool content
+    bin_path = os.path.dirname(sys.argv[0])
+    tool_path = os.path.join(bin_path, tool_name)
+    with open(tool_path) as fid:
+        tool_content = fid.read()
+
     with make_py_package("rezgui", version, path) as pkg:
         pkg.set_requires("rez-%s" % rez_major_version)
         pkg.add_variant(*requires)
-        pkg.set_tools("rez-gui")
+        pkg.set_tools(tool_name)
         pkg.set_commands(commands)
+        pkg.add_python_tool(name=tool_name, body=tool_content, relpath=root("bin"))
         install_path = pkg.variant_path(0)
 
     # copy source
@@ -61,3 +69,5 @@ def bind(path, version_range=None, opts=None, parser=None):
     shutil.copytree(rezgui_path, os.path.join(install_path, "rezgui"))
 
     return ("rezgui", version)
+
+
