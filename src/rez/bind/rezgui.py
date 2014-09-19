@@ -6,8 +6,10 @@ import rez
 from rez.package_maker_ import make_py_package, code_provider, root
 from rez.bind_utils import check_version
 from rez.exceptions import RezBindError
+from rez.util import print_info
 from rez.system import system
 from rez.vendor.version.version import Version
+from rez.bind import rez as rezbind
 import shutil
 import os.path
 import sys
@@ -27,6 +29,14 @@ def commands():
 def bind(path, version_range=None, opts=None, parser=None):
     version = rez.__version__
     check_version(version, version_range)
+
+    # before we start, we need to make sure rez itself is bound
+    try:
+        (rez_pkg, verstion_str) = rezbind.bind(path, version_range, opts, parser)
+        print_info('created package %(rez_pkg)s-%(verstion_str)s in %(path)s'%locals())
+    except (IOError, os.error), why:
+        print_info('by-passing creation of rez-%(version)s'%locals())
+
     rez_version = Version(version)
     rez_major_version = str(rez_version.trim(1))
     gui_lib = getattr(opts, "gui_lib", "")
