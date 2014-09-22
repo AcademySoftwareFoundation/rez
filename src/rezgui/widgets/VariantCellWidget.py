@@ -5,6 +5,7 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
 from rez.resolved_context import PatchLock, get_lock_request
 from rez.vendor.version.requirement import Requirement, RequirementList
+from rez.vendor.version.version import VersionRange
 from functools import partial
 
 
@@ -113,9 +114,13 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
             package_paths = self.context_model.packages_path
             if self.variant.search_path in package_paths:
+                # find all >= version packages, so we can determine tick type
+                ge_range = VersionRange.from_version(self.variant.version, ">=")
                 packages = None
                 try:
-                    it = iter_packages(name=self.variant.name, paths=package_paths)
+                    it = iter_packages(name=self.variant.name, range=ge_range,
+                                       paths=package_paths)
+
                     packages = sorted(it, key=lambda x: x.version)
                 except:
                     pass

@@ -53,9 +53,9 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         self.tabs["info"] = n
         n += 1
 
-        icon = get_icon("help", as_qicon=True)
-        self.addTab(self.help_widget, icon, "help")
-        self.tabs["help"] = n
+        #icon = get_icon("help", as_qicon=True)
+        #self.addTab(self.help_widget, icon, "help")
+        #self.tabs["help"] = n
 
         self.setEnabled(False)
 
@@ -96,6 +96,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
             disabled_tabs.add(tab_index)
         self.setTabText(tab_index, label)
 
+        """
         tab_index = self.tabs["help"]
         if self.help_widget.success:
             self.setTabEnabled(tab_index, True)
@@ -105,3 +106,4 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
 
         if prev_index in disabled_tabs:
             self.setCurrentIndex(0)
+        """

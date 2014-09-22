@@ -51,24 +51,45 @@ class MainWindow(QtGui.QMainWindow):
     def cascade(self):
         self.mdi.cascadeSubWindows()
 
-    def new_context(self):
-        self._add_context_subwindow()
-
     def load_context(self, filepath):
+        context = None
+        busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
+
         with self._status("Loading %s..." % filepath):
+            QtGui.QApplication.setOverrideCursor(busy_cursor)
             try:
                 context = ResolvedContext.load(filepath)
             except ResolvedContextError as e:
                 QtGui.QMessageBox.critical(self, "Failed to load context", str(e))
-                return
+            finally:
+                QtGui.QApplication.restoreOverrideCursor()
 
-        self._add_context_subwindow(context)
+        if context:
+            with self._status("Validating %s..." % filepath):
+                QtGui.QApplication.setOverrideCursor(busy_cursor)
+                try:
+                    context.validate()
+                except ResolvedContextError as e:
+                    QtGui.QMessageBox.critical(self, "Context validation failure", str(e))
+                    context = None
+                finally:
+                    QtGui.QApplication.restoreOverrideCursor()
+
+        return context
+
+    def new_context(self):
+        self._add_context_subwindow()
+
+    def open_context(self, filepath):
+        context = self.load_context(filepath)
+        if context:
+            self._add_context_subwindow(context)
 
     def _open_context(self):
         filepath = QtGui.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
         if filepath:
-            self.load_context(str(filepath))
+            self.open_context(str(filepath))
 
     def _add_context_subwindow(self, context=None):
         subwindow = ContextSubWindow(context)

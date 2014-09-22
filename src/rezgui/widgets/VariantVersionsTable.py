@@ -51,6 +51,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         vh.setVisible(False)
         hh = self.horizontalHeader()
         hh.setVisible(False)
+        self.variant = None
 
     def get_reference_difference(self):
         if self.version_index == -1 or self.reference_version_index == -1:
@@ -63,9 +64,9 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.set_variant(variant)
 
     def set_variant(self, variant):
-        if variant == self.variant:
-            return
+        self._set_variant(variant)
 
+    def _set_variant(self, variant, preloaded_packages=None):
         self.clear()
 
         hh = self.horizontalHeader()
@@ -96,9 +97,16 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 versions = sorted([reference_version, variant.version])
                 range_ = VersionRange.as_span(*versions)
 
-            it = iter_packages(name=variant.name, paths=package_paths, range=range_)
-            packages = sorted(it, key=lambda x: x.version, reverse=True)
             timestamp = self.context().timestamp
+
+            if preloaded_packages is not None:
+                if range_ is None:
+                    packages = preloaded_packages
+                else:
+                    packages = [x for x in preloaded_packages if x.version in range_]
+            else:
+                it = iter_packages(name=variant.name, paths=package_paths, range=range_)
+                packages = sorted(it, key=lambda x: x.version, reverse=True)
 
             for i, package in enumerate(packages):
                 self.num_versions += 1

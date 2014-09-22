@@ -20,9 +20,11 @@ def run(opts=None, parser=None):
             open(path)  # raise IOError
 
     main_window = MainWindow()
+    app.set_main_window(main_window)
     main_window.show()
+
     for filepath in context_files:
-        main_window.load_context(filepath)
+        main_window.open_context(filepath)
     main_window.cascade()
 
     sys.exit(app.exec_())

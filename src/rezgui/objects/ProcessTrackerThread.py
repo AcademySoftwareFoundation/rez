@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtCore
 from threading import Lock
 
 

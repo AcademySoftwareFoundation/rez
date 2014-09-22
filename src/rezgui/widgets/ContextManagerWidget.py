@@ -265,7 +265,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
     def _diff_with_file(self, filepath):
         assert filepath
-        disk_context = ResolvedContext.load(filepath)
+        disk_context = app.load_context(filepath)
         model = ContextModel(disk_context)
         self.context_table.enter_diff_mode(model)
         self._change_diff_mode(True)

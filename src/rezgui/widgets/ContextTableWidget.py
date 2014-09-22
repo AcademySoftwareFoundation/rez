@@ -6,6 +6,7 @@ from rezgui.widgets.VariantCellWidget import VariantCellWidget
 from rezgui.widgets.IconButton import IconButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
+from rezgui.objects.App import app
 from rez.packages import Variant, iter_packages
 from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
@@ -376,7 +377,7 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
     def revert_to_disk(self):
         filepath = self.context_model.filepath()
         assert filepath
-        disk_context = ResolvedContext.load(filepath)
+        disk_context = app.load_context(filepath)
         self.context_model.set_context(disk_context)
 
     def get_title(self):
@@ -507,6 +508,11 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
                 widget.set_reference_sibling(None)
         for _, widget in self._iter_column_widgets(currentColumn, VariantCellWidget):
             widget.set_reference_sibling(self._current_variant)
+
+        # new selection is failing to cause a paint update sometimes?? This
+        # seems to help but does not 100% fix the problem.
+        self.update(self.model().index(previousRow, previousColumn))
+        self.update(self.model().index(currentRow, currentColumn))
 
         self.variantSelected.emit(self._current_variant)
 
