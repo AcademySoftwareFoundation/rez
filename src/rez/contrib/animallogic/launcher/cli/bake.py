@@ -6,7 +6,7 @@ from rez.contrib.animallogic.hessian import client
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.config import config
 from rez.vendor import argparse
@@ -26,7 +26,7 @@ def argparse_setting(string):
         if len(bits) == 2:
             setting_type = SettingType[bits[0]]
 
-        return Setting(name, value, setting_type)
+        return ValueSetting(name, value, setting_type)
 
     except:
         raise argparse.ArgumentTypeError("must be in the format type:name=value.")

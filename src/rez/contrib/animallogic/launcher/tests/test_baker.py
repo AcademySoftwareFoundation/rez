@@ -1,7 +1,7 @@
 from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.mode import Mode
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
 from rez.contrib.animallogic.launcher.exceptions import BakerError, RezResolverError
@@ -75,8 +75,8 @@ class TestBaker(unittest.TestCase):
         self.new_preset_path = '/presets/Rez/test_new'
         self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new'}
         self.package_requests = ['package_1-1.2.3', 'package_2', 'platform-CentOS']
-        self.resolved_package_settings = [Setting('package_1', '1.2.3', SettingType.package), Setting('package_2', '2.0.1', SettingType.package), Setting('platform', 'CentOS', SettingType.package)]
-        self.overrides = [Setting('string', '1.2.3', SettingType.string), Setting('override_2', '2.0.1', SettingType.string)]
+        self.resolved_package_settings = [ValueSetting('package_1', '1.2.3', SettingType.package), ValueSetting('package_2', '2.0.1', SettingType.package), ValueSetting('platform', 'CentOS', SettingType.package)]
+        self.overrides = [ValueSetting('string', '1.2.3', SettingType.string), ValueSetting('override_2', '2.0.1', SettingType.string)]
 
         launcher_service = LauncherHessianService(StubPresetProxy(settings=self.settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
         rez_service = StubRezService(self.resolved_package_settings)
@@ -117,7 +117,7 @@ class TestBaker(unittest.TestCase):
 
     def test_package_settings_do_not_resolve(self):
 
-        self.baker.settings = [Setting('conflict', '', SettingType.package), Setting('foo', '1', SettingType.package)]
+        self.baker.settings = [ValueSetting('conflict', '', SettingType.package), ValueSetting('foo', '1', SettingType.package)]
         self.assertRaises(BakerError, self.baker.resolve_package_settings)
 
     def test_filter_settings(self):

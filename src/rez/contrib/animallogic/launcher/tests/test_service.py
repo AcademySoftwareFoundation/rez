@@ -1,7 +1,7 @@
 from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.mode import Mode
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.exceptions import LauncherError
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy
@@ -90,7 +90,7 @@ class TestLauncherHessianService_AddSettingToPreset(BaseTestLauncherHessianServi
 
         BaseTestLauncherHessianService.setUp(self)
 
-        self.new_setting = Setting('new', 'value', SettingType.string)
+        self.new_setting = ValueSetting('new', 'value', SettingType.string)
 
     def test_add_setting_to_preset(self):
 
