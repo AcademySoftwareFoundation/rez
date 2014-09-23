@@ -45,11 +45,7 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def _create_reference_from_dict(self, dict_):
 
-        referenceSettings = ReferenceSetting(str(dict_['name']), str(dict_['presetId'][str('key')]))
-        referenceSettings.id = dict_['id']
-        referenceSettings.operating_system = OperatingSystem[dict_['opSystem']['name']] if dict_['opSystem'] else OperatingSystem['none']
-
-        return referenceSettings
+        return  ReferenceSetting(str(dict_['name']), dict_['presetId']['key'], dict_['id'])
 
 
     def _create_setting_from_dict(self, dict_):
@@ -109,6 +105,7 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return [self._create_reference_from_dict(reference) for reference in references]
 
+
     def add_reference_to_preset_path(self, path, referencePath, username=None, description=None):
         """
         Adds a preset reference to an existing preset path
@@ -117,7 +114,7 @@ class LauncherHessianService(LauncherServiceInterface):
         @param username: the user that triggered the change
         @param description: short description of the change
         """
-        self._preset_proxy.addReference(self._strip_prefix_from_path(path), self._strip_prefix_from_path(referencePath),
+        return self._preset_proxy.addReference(self._strip_prefix_from_path(path), self._strip_prefix_from_path(referencePath),
                                         username, description)
 
     def remove_reference_from_path(self, path, referencePath, username=None, description=None):
@@ -129,7 +126,7 @@ class LauncherHessianService(LauncherServiceInterface):
         @param description: short description of the change
         """
 
-        self._preset_proxy.removeReference(self._strip_prefix_from_path(path),
+        return self._preset_proxy.removeReference(self._strip_prefix_from_path(path),
                                            self._strip_prefix_from_path(referencePath), username, description)
 
     def get_settings_from_path(self, path, mode, username=None, operating_system=None, date=None):

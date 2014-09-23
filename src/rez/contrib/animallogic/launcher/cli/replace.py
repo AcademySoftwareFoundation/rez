@@ -1,19 +1,14 @@
 """
-Replace a launcher preset content with a different chunk .
+Replace a launcher preset references.
 """
-import getpass
 
 from rez.contrib.animallogic.hessian import client
+from rez.contrib.animallogic.launcher.replacer import Replacer
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.config import config
 from rez.vendor import argparse
-import logging
-
-
-logger = logging.getLogger(__name__)
-
 
 def argparse_setting(string):
     try:
@@ -55,17 +50,9 @@ def replace(newReference, destination, description):
 
     preset_proxy = client.HessianProxy(config.launcher_service_url + "/preset")
     toolset_proxy = client.HessianProxy(config.launcher_service_url + "/toolset")
-    username = getpass.getuser()
-
     launcher_service = LauncherHessianService(preset_proxy, toolset_proxy)
 
-    references = launcher_service.get_references_from_path(destination, username)
+    replacer = Replacer(launcher_service)
 
-    for reference in references:
-        referencePath = launcher_service.get_preset_full_path(reference.get_preset_id(), None)
-        logger.info('Removing reference %s from %s' % (referencePath, destination))
-        launcher_service.remove_reference_from_path(destination, referencePath, username, description)
-
-    logger.info('Adding %s reference to %s' % (newReference, destination))
-    launcher_service.add_reference_to_preset_path(destination, newReference, username, description)
+    replacer.replace(newReference, destination, description)
 

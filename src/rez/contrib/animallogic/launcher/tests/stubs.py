@@ -1,14 +1,21 @@
-from rez.contrib.animallogic.launcher.exceptions import LauncherError
+from rez.contrib.animallogic.launcher.setting import ReferenceSetting
+
 
 class StubPresetProxy(object):
 
     PRESETS_PREFIX = '/presets'
+    PRESET_REFERENCE_TABLE = {'/test/full/path': 1234, '/test/to/different/path/path': 9999,
+                              '/root/path' : 1111, '/test/path/replace': 7777}
 
     def __init__(self, settings={}, preset_path="", preset=None):
 
         self.settings = settings
         self.preset_path = self._strip_prefix_from_path(preset_path)
         self.preset = preset
+
+        self.root_preset = {'/root/path': [{u'id': 1, u'presetId': {u'key': 1234}, u'name': u'Test'},
+                                           {u'id': 2, u'presetId': {u'key': 9999}, u'name': u'base'}]}
+
 
     def _strip_prefix_from_path(self, path):
 
@@ -30,6 +37,54 @@ class StubPresetProxy(object):
             raise TypeError("")
 
         return name, value, type_
+
+    def addReference(self, destination_path, referencePath, username, description):
+
+        if not all([destination_path, referencePath, username]):
+            raise TypeError("")
+        for path in [destination_path, referencePath]:
+            if not self.PRESET_REFERENCE_TABLE.has_key(path):
+                raise Exception("Preset %s does not exists" % path)
+
+        newRef = {u'id': 1, u'presetId': {u'key': self.PRESET_REFERENCE_TABLE[referencePath]}, u'name': u'Test'}
+        self.root_preset[destination_path].append(newRef)
+
+        return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
+
+    def removeReference(self, destination_path, referencePath, username, description):
+
+        if not all([destination_path, referencePath, username]):
+            raise TypeError("")
+        for path in [destination_path, referencePath]:
+            if not self.PRESET_REFERENCE_TABLE.has_key(path):
+                raise Exception("Preset %s does not exists" % path)
+
+        for ref in self.root_preset[destination_path]:
+            if ref['presetId']['key'] == self.PRESET_REFERENCE_TABLE[referencePath]:
+                self.root_preset[destination_path].remove(ref)
+
+
+        return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
+
+    def resolveReferenceSettingsForPath(self, username, path, date):
+
+        if not all([path, username]):
+            raise TypeError("")
+
+        if not self.root_preset[self._strip_prefix_from_path(path)]:
+            raise Exception("Preset Does not exists")
+
+        return self.root_preset[self._strip_prefix_from_path(path)]
+
+    def getFullyQualifiedPresetName(self, presetId, date):
+
+        if not presetId:
+            raise TypeError("")
+        for path, preset_id in self.PRESET_REFERENCE_TABLE.iteritems():
+            if preset_id == presetId['key']:
+                return path
+
+        raise Exception("Preset ID does not exists")
 
     def createPreset(self, username, parent_id, name, description):
 

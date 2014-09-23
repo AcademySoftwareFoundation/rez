@@ -16,13 +16,13 @@ class Setting(object):
 
 class ReferenceSetting(Setting):
 
-    def __init__(self, name, presetId=None):
+    def __init__(self, name, presetId=None, id=None):
 
-        super(ReferenceSetting, self).__init__(name)
+        super(ReferenceSetting, self).__init__(name, id)
         self.preset_id = presetId
 
-    def get_preset_id(self):
-        return {u'key': int(self.preset_id)}
+    def get_preset_id_as_dict(self):
+        return {u'key': self.preset_id}
 
     def __repr__(self):
         return "<Reference setting name=%s, id=%s, presetId=%s>" % (self.name, self.id, self.preset_id)

@@ -1,10 +1,8 @@
-from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
-from rez.contrib.animallogic.launcher.mode import Mode
 from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.exceptions import BakerError, RezResolverError
+from rez.contrib.animallogic.launcher.exceptions import BakerError
 from rez.contrib.animallogic.launcher.cli.bake import argparse_setting
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService
 from rez.vendor import argparse
