@@ -1,6 +1,7 @@
 *.pyc
 .project
 .pydevproject
+.nfs*
 src/rez.egg-info/
 build/
 dist/

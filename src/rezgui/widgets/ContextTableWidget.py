@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import update_font, create_pane, get_icon_widget
+from rezgui.util import update_font, create_pane, get_icon_widget, interp_color
 from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
 from rezgui.widgets.VariantCellWidget import VariantCellWidget
@@ -174,6 +174,18 @@ class CellDelegate(QtGui.QStyledItemDelegate):
         self.path.cubicTo(0.6, 0, -0.2, 0.5, 1, 0.5)
         self.path.cubicTo(-0.2, 0.5, 0.6, 1, 0, 1)
 
+        highlight_color = pal.color(QtGui.QPalette.Highlight)
+        base_color = pal.color(QtGui.QPalette.Base)
+        c1 = interp_color(highlight_color, base_color, 0.3)
+        c2 = interp_color(highlight_color, base_color, 0.8)
+
+        grad = QtGui.QLinearGradient(0, 1, 0, 0)
+        grad.setCoordinateMode(QtGui.QGradient.ObjectBoundingMode)
+        grad.setColorAt(0, c1)
+        grad.setColorAt(0.95, c2)
+        grad.setColorAt(1, c1)
+        self.highlight_brush = QtGui.QBrush(grad)
+
     def paint(self, painter, option, index):
         row = index.row()
         column = index.column()
@@ -183,25 +195,24 @@ class CellDelegate(QtGui.QStyledItemDelegate):
         rect = option.rect
         oldbrush = painter.brush()
         oldpen = painter.pen()
+        pal = table.palette()
 
         def _setpen(to_stale):
             pen = self.stale_pen if stale and to_stale else self.pen
             painter.setPen(pen)
 
-        selected_cells = set((x.row(), x.column()) for x in table.selectedIndexes())
-        pal = table.palette()
-        highlight_color = pal.color(QtGui.QPalette.Highlight)
-
         # determine cell bg color and paint it
+        selected_cells = set((x.row(), x.column()) for x in table.selectedIndexes())
         bg_color = None
         if (row, column) in selected_cells:
-            bg_color = highlight_color
+            bg_color = self.highlight_brush
         elif cmp_widget and \
                 ((cmp_widget.left() and column == 1)
                  or (cmp_widget.right() and column == 3)):
             bg_color = cmp_widget.color
         else:
             bg_color = pal.color(QtGui.QPalette.Base)
+
         painter.fillRect(rect, bg_color)
 
         # draw grid lines
@@ -244,7 +255,7 @@ class CellDelegate(QtGui.QStyledItemDelegate):
                         pen.setWidthF(1.5)
                         painter.setPen(pen)
                     if (row, 1) in selected_cells:
-                        painter.setBrush(QtGui.QBrush(highlight_color))
+                        painter.setBrush(self.highlight_brush)
                     elif cmp_widget.color:
                         painter.setBrush(QtGui.QBrush(cmp_widget.color))
                     _draw_path()
@@ -253,7 +264,7 @@ class CellDelegate(QtGui.QStyledItemDelegate):
                     painter.translate(rect.topRight() - QtCore.QPoint(-1, 0.5))
                     painter.scale(-rect.width() / 2.5, rect.height())
                     if (row, 3) in selected_cells:
-                        painter.setBrush(QtGui.QBrush(highlight_color))
+                        painter.setBrush(self.highlight_brush)
                     elif cmp_widget.color:
                         painter.setBrush(QtGui.QBrush(cmp_widget.color))
                     _draw_path()

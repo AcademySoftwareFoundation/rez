@@ -5,14 +5,13 @@ from rezgui.widgets.ContextDetailsWidget import ContextDetailsWidget
 from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
-from rezgui.widgets.SettingsWidget import SettingsWidget
+from rezgui.widgets.ContextSettingsWidget import ContextSettingsWidget
 from rezgui.widgets.IconButton import IconButton
 from rezgui.widgets.ContextResolveTimeLabel import ContextResolveTimeLabel
 from rezgui.dialogs.ResolveDialog import ResolveDialog
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
-from rez.vendor.schema.schema import Schema, Or
 from rez.config import config
 from rez.resolved_context import ResolvedContext, PatchLock
 from rez.util import readable_time_duration
@@ -22,34 +21,12 @@ import time
 
 class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
-    settings_titles = {
-        "packages_path":        "Search path for Rez packages",
-        "implicit_packages":    "Packages that are implicitly added to the request",
-        "default_patch_lock":   "Locking to apply during a re-resolve"
-    }
-
-    settings_schema = Schema({
-        "packages_path":        [basestring],
-        "implicit_packages":    [basestring],
-        "default_patch_lock":   Or(*[x.name for x in PatchLock])
-    })
-
     resolved = QtCore.Signal()
     diffModeChanged = QtCore.Signal()
 
     def __init__(self, context_model=None, parent=None):
         super(ContextManagerWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
-
-        # context settings
-        settings = {
-            "packages_path":        config.packages_path,
-            "implicit_packages":    config.implicit_packages,
-            "default_patch_lock":   PatchLock.no_lock.name
-        }
-        self.settings = SettingsWidget(data=settings,
-                                       schema=self.settings_schema,
-                                       titles=self.settings_titles)
 
         # widgets
         self.context_table = ContextTableWidget(self.context_model)
@@ -165,6 +142,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
             context_splitter.setStretchFactor(0, 2)
             context_splitter.setStretchFactor(1, 1)
 
+        self.settings = ContextSettingsWidget(self.context_model)
         self.tools_list = ContextToolsWidget(self.context_model)
         self.resolve_details = ContextDetailsWidget(self.context_model)
 
@@ -188,9 +166,6 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.setLayout(layout)
 
         # signals
-        self.settings.settingsApplied.connect(self._settingsApplied)
-        self.settings.settingsChanged.connect(self._settingsChanged)
-        self.settings.settingsChangesDiscarded.connect(self._settingsChangesDiscarded)
         self.context_table.variantSelected.connect(self._variantSelected)
         self.shell_tbtn.clicked.connect(self._open_shell)
         self.undiff_tbtn.clicked.connect(self._leave_diff_mode)
@@ -292,38 +267,13 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
                                            and self.context_table.diff_from_source
                                            and not model.is_stale())
 
-    def _current_context_settings(self):
-        assert self.context
-        context = self.context
-        implicit_strs = [str(x) for x in context.implicit_packages]
-
-        return {
-            "packages_path":        context.package_paths,
-            "implicit_packages":    implicit_strs,
-            "default_patch_lock":   context.default_patch_lock.name
-        }
-
-    def _settingsApplied(self):
-        pass
-        #self.tab.setTabText(1, "settings*")
-        #self.context_table.refresh()
-        #self.package_tab.refresh()
-
-    def _settingsChanged(self):
-        pass
-        #self.tab.setTabText(1, "settings**")
-        #self._set_resolved(False)
-
-    def _settingsChangesDiscarded(self):
-        pass
-        #self.tab.setTabText(1, "settings*")
-
     def _contextChanged(self, flags=0):
         stale = self.context_model.is_stale()
         context = self.context()
         is_context = bool(context)
 
-        #self.diff_tbtn.setEnabled(self.diff_tbtn.isChecked() or not stale)
+        self.diff_action.setEnabled(not stale)
+        self.diff_tbtn.setEnabled(not stale)
         self.shell_tbtn.setEnabled(not stale)
         self.lock_tbtn.setEnabled(is_context)
 
@@ -332,7 +282,9 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         tab_text = "context*" if stale else "context"
         self.tab.setTabText(0, tab_text)
 
-        if flags & ContextModel.CONTEXT_CHANGED:
+        context_changed = (flags & ContextModel.CONTEXT_CHANGED)
+
+        if context_changed:
             if is_context and context.requested_timestamp:
                 t = time.localtime(context.requested_timestamp)
                 t_str = time.strftime("%a %b %d %H:%M:%S %Y", t)
@@ -341,6 +293,11 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
                 self.time_lock_tbtn_action.setVisible(True)
             else:
                 self.time_lock_tbtn_action.setVisible(False)
+
+        settings_modified = ((flags & ContextModel.PACKAGES_PATH_CHANGED)
+                             and not context_changed)
+        label = "settings*" if settings_modified else "settings"
+        self.tab.setTabText(1, label)
 
         if flags & (ContextModel.LOCKS_CHANGED | ContextModel.CONTEXT_CHANGED):
             lock_type = self.context_model.default_patch_lock

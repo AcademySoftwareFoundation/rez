@@ -98,6 +98,20 @@ def add_menu_action(menu, label, slot, icon_name=None, group=None):
     return action
 
 
+def interp_color(a, b, f):
+    """Interpolate between two colors.
+
+    Returns:
+        `QColor` object.
+    """
+    a_ = (a.redF(), a.greenF(), a.blueF())
+    b_ = (b.redF(), b.greenF(), b.blueF())
+    a_ = [x * (1 - f) for x in a_]
+    b_ = [x * f for x in b_]
+    c = [x + y for x, y in zip(a_, b_)]
+    return QtGui.QColor.fromRgbF(*c)
+
+
 def create_toolbutton(entries, parent=None):
     """Create a toolbutton.
 

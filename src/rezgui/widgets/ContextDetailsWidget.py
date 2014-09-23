@@ -44,7 +44,6 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.addTab(code_pane, "shell code")
         self.addTab(self.environ_widget, "environment")
 
-        #self.graph_btn.clicked.connect(self._view_graph)
         self.code_combo.currentIndexChanged.connect(self._update_code)
         self.currentChanged.connect(self._currentTabChanged)
 
@@ -57,28 +56,21 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         context = self.context()
         if not context:
             self.setEnabled(False)
-            #self.graph_btn.setEnabled(False)
             return
 
         self.code_pending = True
-        #self.graph_btn.setEnabled(True)
         context.print_info(buf=self.overview_edit, verbosity=1)
         self.overview_edit.moveCursor(QtGui.QTextCursor.Start)
         self.environ_widget.set_context(context)
 
     def _contextChanged(self, flags=0):
-        if not flags & (ContextModel.CONTEXT_CHANGED):
+        if not (flags & ContextModel.CONTEXT_CHANGED):
             return
         self.refresh()
 
     def _currentTabChanged(self, index):
         if index == 1 and self.code_pending:
             self._update_code()
-
-    #def _view_graph(self):
-    #    assert self.context()
-    #    graph_str = self.context().graph(as_dot=True)
-    #    view_graph(graph_str, self)
 
     def _update_code(self):
         self.code_edit.clear()

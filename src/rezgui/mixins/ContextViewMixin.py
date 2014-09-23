@@ -27,13 +27,6 @@ class ContextViewMixin(object):
         self._connect(False)
         self.context_model = context_model or ContextModel()
         self._connect(True)
-        """
-        if hasattr(self, "_contextChanged"):
-            self._contextChanged(ContextModel.CONTEXT_CHANGED |
-                                 ContextModel.REQUEST_CHANGED |
-                                 ContextModel.PACKAGES_PATH_CHANGED |
-                                 ContextModel.LOCKS_CHANGED)
-        """
 
     def _connect(self, b):
         if hasattr(self, "_contextChanged"):
