@@ -430,11 +430,7 @@ class EclipseProjectBuilder(object):
         self.pretty_print(cproject, '.cproject', prefix='<?fileVersion 4.0.0?>\n')
         logger.info('Build .cproject file for %r and %d variants.' % (self.name, len(self.variants)))
 
-    def build_pydevproject(self, variant_index=None):
-
-        if not variant_index:
-            variant_index = len(self.variants) - 1
-
+    def build_pydevproject(self, variant_index=0):
         variant = self.variants[variant_index]
         python_version = None
 
