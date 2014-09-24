@@ -30,7 +30,7 @@ class TempdirMixin(object):
     """Mixin that adds tmpdir create/delete."""
     @classmethod
     def setUpClass(cls):
-        cls.root = tempfile.mkdtemp(prefix="rez_test_")
+        cls.root = tempfile.mkdtemp(prefix="rez_selftest_")
 
     @classmethod
     def tearDownClass(cls):
@@ -49,11 +49,11 @@ def shell_dependent(fn):
 
 
 def install_dependent(fn):
-    """Function decorator that skips tests if not run via 'rez-test' tool."""
+    """Function decorator that skips tests if not run via 'rez-selftest' tool."""
     def _fn(self, *args, **kwargs):
-        if os.getenv("__REZ_TEST_RUNNING") and system.is_production_rez_install:
+        if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
             fn(self, *args, **kwargs)
         else:
-            print ("\nskipping test, must be run via 'rez-test' tool, from "
+            print ("\nskipping test, must be run via 'rez-selftest' tool, from "
                    "a PRODUCTION rez installation.")
     return _fn

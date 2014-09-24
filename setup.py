@@ -49,7 +49,7 @@ scripts = [
     "rez-context",
     "rez-suite",
     "rez-interpret",
-    "rez-test",
+    "rez-selftest",
     "rez-bind",
     "rez-search",
     "rez-status",

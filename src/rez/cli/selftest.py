@@ -55,7 +55,7 @@ def command(opts, parser, extra_arg_groups=None):
     import sys
     import os
 
-    os.environ["__REZ_TEST_RUNNING"] = "1"
+    os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
     suites = get_suites(opts)
     test_suite = unittest.TestSuite(suites)

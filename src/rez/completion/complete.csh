@@ -1,3 +1,4 @@
+# FIXME this is out of date
 complete rez 'C/*/`_rez-complete -t package -c COMMAND_LINE`/'
 complete rezolve 'C/*/`_rez-complete -t package -c COMMAND_LINE`/'
 complete rez-env 'C/*/`_rez-complete -t package -c COMMAND_LINE`/'

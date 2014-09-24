@@ -20,7 +20,7 @@ subcommands = [
     "search",
     "status",
     "suite",
-    "test",
+    "selftest",
     "gui"]
 
 

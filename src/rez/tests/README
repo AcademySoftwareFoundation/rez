@@ -2,9 +2,9 @@ The unit tests can be run in two different ways:
 
 
 
-rez-test
+rez-selftest
 --------------------------------------------------------------------------------
-Via the "rez-test" cli tool. This will run the unit tests even if the current
+Via the "rez-selftest" cli tool. This will run the unit tests even if the current
 environment is not configured for Rez (ie, Rez is not on PYTHONPATH). Useful
 for running the tests even if the user is in a rez-env'd environment. Some
 tests only run in this mode, since they rely on Rez being fully installed (and
