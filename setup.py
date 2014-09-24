@@ -49,6 +49,7 @@ scripts = [
     "rez-context",
     "rez-suite",
     "rez-interpret",
+    "rez-python",
     "rez-selftest",
     "rez-bind",
     "rez-search",

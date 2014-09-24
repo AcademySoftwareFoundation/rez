@@ -1,4 +1,6 @@
-"""Run the Rez GUI application."""
+"""
+Run the Rez GUI application.
+"""
 
 
 def setup_parser(parser, completions=False):

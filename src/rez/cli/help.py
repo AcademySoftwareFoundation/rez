@@ -1,7 +1,5 @@
 """
-Utility for displaying help for the given package. This is determined via the
-'help' entry in the package.yaml, if that entry does not exist then an error
-results.
+Utility for displaying help for the given package.
 """
 from rez.vendor.version.requirement import Requirement
 from rez.package_help import PackageHelp
