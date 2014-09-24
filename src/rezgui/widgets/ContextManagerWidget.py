@@ -274,6 +274,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
         self.diff_action.setEnabled(not stale)
         self.diff_tbtn.setEnabled(not stale)
+        self.undiff_tbtn.setEnabled(not stale)
         self.shell_tbtn.setEnabled(not stale)
         self.lock_tbtn.setEnabled(is_context)
 

@@ -14,6 +14,7 @@ class MainWindow(QtGui.QMainWindow):
         self.mdi = QtGui.QMdiArea(self)
         self.mdi.show()
         self.setCentralWidget(self.mdi)
+        self.statusBar().showMessage("")
 
         def _action(menu, label, slot=None):
             action = QtGui.QAction(label, self)
