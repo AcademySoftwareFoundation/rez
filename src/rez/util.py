@@ -6,26 +6,21 @@ import sys
 import atexit
 import os
 import os.path
-import shutil
 import copy
-import time
 import posixpath
 import ntpath
 import UserDict
 import re
 import shutil
-import subprocess
 import textwrap
 import tempfile
 import threading
 import time
-import subprocess as sp
 from collections import MutableMapping, defaultdict
 import logging
-from types import MethodType
 from string import Formatter
 from rez import module_root_path
-from rez.vendor import yaml
+from rez.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
 
 
@@ -41,18 +36,6 @@ try:
 except AttributeError:
     import backport.ordereddict
     OrderedDict = backport.ordereddict.OrderedDict
-
-
-# TODO deprecate
-# use `yaml_literal` to wrap multi-line strings written to yaml files, to
-# get the nice pipe-style block formatting
-class yaml_literal(str):
-    pass
-
-
-def yaml_literal_presenter(dumper, data):
-    return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
-yaml.add_representer(yaml_literal, yaml_literal_presenter)
 
 
 # TODO deprecate
@@ -107,7 +90,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     if kwargs:
         doc["kwargs"] = kwargs
 
-    content = yaml.dump(doc, default_flow_style=False)
+    content = dump_yaml(doc)
     with open(filepath, 'w') as f:
         # TODO make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
@@ -274,11 +257,11 @@ def pretty_dict(d):
         elif isinstance(value, list):
             value = [_lit(x) for x in value]
         elif isinstance(value, basestring) and '\n' in value:
-            value = yaml_literal(value)
+            value = value
         return value
 
     data = _lit(d)
-    txt = yaml.dump(data, default_flow_style=False)
+    txt = dump_yaml(data)
     return txt.strip()
 
 
