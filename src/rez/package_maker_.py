@@ -26,11 +26,11 @@ import os.path
 import stat
 
 
-
 class quoted(str):
     """Wrap a string in this class to force a quoted representation when written
     to the package definition file."""
     pass
+
 
 class literal(str):
     """Wrap a string in this class to force a (multi-line) representation when
@@ -40,6 +40,7 @@ class literal(str):
 # create a shortcut that is more rez-friendly
 rex = literal
 
+
 class base(object):
     """Describes a path relative to the base of a package. For example, to
     define a 'bin' path relative to a package base: base("bin")."""
@@ -48,6 +49,7 @@ class base(object):
 
     def __hash__(self):
         return hash(tuple(self.dirs))
+
 
 class root(object):
     """Describes a path relative to the root of a package variant. There are
@@ -66,17 +68,21 @@ class root(object):
     def __hash__(self):
         return hash((tuple(self.dirs), frozenset(self.variant_indices)))
 
+
 def quoted_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
 yaml.add_representer(quoted, quoted_presenter)
+
 
 def literal_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 yaml.add_representer(literal, literal_presenter)
 
+
 def ordered_dict_presenter(dumper, data):
     return dumper.represent_dict(data.items())
 yaml.add_representer(OrderedDict, ordered_dict_presenter)
+
 
 def _entab(text, spaces=4):
     return '\n'.join([(' ' * 4) + t for t in text.split('\n')])
@@ -88,10 +94,12 @@ class code_provider(object):
     """
     def __init__(self, fn):
         self._fn = fn
+
     def __call__(self, *args, **kwargs):
         raise RezSystemError("a code provider function was called directly")
 
-def _get_code(value):
+
+def get_code(value):
     n = 1
     if isinstance(value, code_provider):
         value = value._fn
@@ -240,7 +248,7 @@ class PackageMaker(object):
             if isinstance(body, basestring):
                 code = body
             else:
-                code = _get_code(body)
+                code = get_code(body)
                 assert(code is not None)
 
             # TODO windows
@@ -321,7 +329,7 @@ class PyPackageMaker(PackageMaker):
             if isinstance(value, rex):
                 text = 'def %s():\n%s\n' % (key, _entab(value))
             elif inspect.isfunction(value) or isinstance(value, code_provider):
-                code = _get_code(value)
+                code = get_code(value)
                 text = 'def %s():\n%s\n' % (key, _entab(code))
             else:
                 text = '%s = %r\n' % (key, value)
@@ -340,7 +348,7 @@ class YamlPackageMaker(PackageMaker):
         doc = OrderedDict()
         for key,value in self._get_metadata().iteritems():
             if inspect.isfunction(value) or isinstance(value, code_provider):
-                code = _get_code(value)
+                code = get_code(value)
                 value = rex(code)
             elif key == "commands" and not isinstance(value, rex):
                 value = rex(value)
