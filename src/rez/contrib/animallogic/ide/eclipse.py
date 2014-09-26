@@ -375,6 +375,14 @@ class EclipseProjectBuilder(object):
             input_type.set('id', 'cdt.managedbuild.tool.gnu.assembler.input.%d' % i)
             input_type.set('superClass', 'cdt.managedbuild.tool.gnu.assembler.input')
 
+            source_entries = etree.SubElement(configuration, "sourceEntries")
+            entry = etree.SubElement(source_entries, "entry")
+            entry.set('excluding', 'build')
+            entry.set('flags', 'VALUE_WORKSPACE_PATH|RESOLVED')
+            entry.set('kind', 'sourcePath')
+            entry.set('name', '')
+
+
         storage_module = etree.SubElement(cproject, "storageModule")
         storage_module.set('moduleId', 'cdtBuildSystem')
         storage_module.set('version', '4.0.0')
