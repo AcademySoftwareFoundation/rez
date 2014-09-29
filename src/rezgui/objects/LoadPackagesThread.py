@@ -5,11 +5,11 @@ from rez.packages import iter_packages
 class LoadPackagesThread(QtCore.QObject):
 
     progress = QtCore.Signal(int, int)
-    packagesLoaded = QtCore.Signal(object)
+    finished = QtCore.Signal(object)
 
     def __init__(self, package_paths, package_name, range_=None,
-                 package_attributes=None, callback=None, parent=None):
-        super(LoadPackagesThread, self).__init__(parent)
+                 package_attributes=None, callback=None):
+        super(LoadPackagesThread, self).__init__()
         self.stopped = False
         self.package_paths = package_paths
         self.package_name = package_name
@@ -39,4 +39,4 @@ class LoadPackagesThread(QtCore.QObject):
             self.progress.emit(i + 1, num_packages)
 
         if not self.stopped:
-            self.packagesLoaded.emit(packages)
+            self.finished.emit(packages)

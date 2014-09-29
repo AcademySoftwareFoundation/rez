@@ -245,7 +245,7 @@ class PackageMaker(object):
         os.makedirs(self.base_path)
 
         # make python tools
-        for (name,path),body in self.python_tools.iteritems():
+        for (name, path), body in self.python_tools.iteritems():
             if isinstance(body, basestring):
                 code = body
             else:
@@ -261,11 +261,11 @@ class PackageMaker(object):
                     f.write("#!/usr/bin/env python\n")
                     f.write(code)
 
-                os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | \
-                    stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+                os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                         | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
         # make symlinks
-        for (source,path) in self.links:
+        for (source, path) in self.links:
             for path_ in self._get_paths(path):
                 dir_ = os.path.dirname(path_)
                 if not os.path.exists(dir_):
@@ -323,10 +323,10 @@ class PackageMaker(object):
 class PyPackageMaker(PackageMaker):
     """Create a package.py-based package."""
     def flush(self):
-        super(PyPackageMaker,self).flush()
+        super(PyPackageMaker, self).flush()
 
         body = ""
-        for key,value in self._get_metadata().iteritems():
+        for key, value in self._get_metadata().iteritems():
             if isinstance(value, rex):
                 text = 'def %s():\n%s\n' % (key, _entab(value))
             elif inspect.isfunction(value) or isinstance(value, code_provider):
@@ -344,10 +344,10 @@ class PyPackageMaker(PackageMaker):
 class YamlPackageMaker(PackageMaker):
     """Create a package.yaml-based package."""
     def flush(self):
-        super(YamlPackageMaker,self).flush()
+        super(YamlPackageMaker, self).flush()
 
         doc = OrderedDict()
-        for key,value in self._get_metadata().iteritems():
+        for key, value in self._get_metadata().iteritems():
             if inspect.isfunction(value) or isinstance(value, code_provider):
                 code = get_code(value)
                 value = rex(code)
@@ -371,9 +371,11 @@ def _make_package(maker):
     # package that might have other variants. We could then reuse this code
     # if we end up with a rez-installer-type tool.
 
+
 @contextmanager
 def make_py_package(name, version, path):
     return _make_package(PyPackageMaker(name, version, path))
+
 
 @contextmanager
 def make_yaml_package(name, version, path):

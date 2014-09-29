@@ -52,11 +52,11 @@ def setup_parser(parser, completions=False):
                         help="interpret the context in an empty environment")
     diff_action = parser.add_argument(
         "--diff", type=str, metavar="RXT",
-        help="diff against the current context and the given context")
+        help="diff the current context against the given context")
     parser.add_argument(
-        "--peek", action="store_true",
-        help="diff against the current context and a re-resolved copy of the "
-        "current context, this shows how 'stale' the context is")
+        "--fetch", action="store_true",
+        help="diff the current context against a re-resolved copy of the "
+        "current context")
     RXT_action = parser.add_argument(
         "RXT", type=str, nargs='?',
         help="rez context file (current context if not supplied)")
@@ -99,12 +99,12 @@ def command(opts, parser, extra_arg_groups=None):
             rc.print_tools()
         elif opts.diff:
             rc_other = ResolvedContext.load(opts.diff)
-            rc.print_resolve_diff(rc_other)
-        elif opts.peek:
+            rc.print_resolve_diff(rc_other, True)
+        elif opts.fetch:
             rc_new = ResolvedContext(rc.requested_packages(),
                                      package_paths=rc.package_paths,
                                      verbosity=opts.verbose)
-            rc.print_resolve_diff(rc_new)
+            rc.print_resolve_diff(rc_new, heading=("current", "updated"))
         elif opts.which:
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)

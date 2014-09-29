@@ -500,6 +500,10 @@ class ResolvedContext(object):
     def get_resolve_diff(self, other):
         """Get the difference between the resolve in this context and another.
 
+        The difference is described from the point of view of the current context
+        - a newer package means that the package in `other` is newer than the
+        package in `self`.
+
         Diffs can only be compared if their package search paths match, an error
         is raised otherwise.
 
@@ -511,15 +515,15 @@ class ResolvedContext(object):
             - 'newer_packages': A dict containing items:
               - package name (str);
               - List of `Package` objects. These are the packages up to and
-                including the newer package in `other`, in ascending order.
+                including the newer package in `self`, in ascending order.
             - 'older_packages': A dict containing:
               - package name (str);
               - List of `Package` objects. These are the packages down to and
-                including the older package in `other`, in descending order.
-            - 'added_packages': Set of `Package` objects present in `other` but
-               not in this context;
-            - 'removed_packages': Set of `Package` objects present in this
-               context but not in `other`.
+                including the older package in `self`, in descending order.
+            - 'added_packages': Set of `Package` objects present in `self` but
+               not in `other`;
+            - 'removed_packages': Set of `Package` objects present in `other`,
+               but not in `self`.
 
             If any item ('added_packages' etc) is empty, it is not added to the
             resulting dict. Thus, an empty dict is returned if there is no
@@ -700,13 +704,31 @@ class ResolvedContext(object):
         for col, line in zip(colors, columnise(rows)):
             _pr(line, col)
 
-    def print_resolve_diff(self, other):
-        """Print the difference between the resolve of two contexts."""
+    def print_resolve_diff(self, other, heading=None):
+        """Print the difference between the resolve of two contexts.
+
+        Args:
+            other (`ResolvedContext`): Context to compare to.
+            heading: One of:
+                - None: Do not display a heading;
+                - True: Display the filename of each context as a heading, if
+                  both contexts have a filepath;
+                - 2-tuple: Use the given two strings as headings - the first is
+                  the heading for `self`, the second for `other`.
+        """
         d = self.get_resolve_diff(other)
         if not d:
             return
 
         rows = []
+        if heading is True and self.load_path and other.load_path:
+            a = os.path.basename(self.load_path)
+            b = os.path.basename(other.load_path)
+            heading = (a, b)
+        if isinstance(heading, tuple):
+            rows.append(list(heading) + [""])
+            rows.append(('-' * len(heading[0]), '-' * len(heading[1]), ""))
+
         newer_packages = d.get("newer_packages", {})
         older_packages = d.get("older_packages", {})
         added_packages = d.get("added_packages", set())
@@ -716,25 +738,27 @@ class ResolvedContext(object):
             for name, pkgs in newer_packages.iteritems():
                 this_pkg = pkgs[0]
                 other_pkg = pkgs[-1]
-                other_pkg_str = ("%s (+%d versions)"
-                                 % (other_pkg.qualified_name, len(pkgs) - 1))
-                rows.append((this_pkg.qualified_name, other_pkg_str))
+                diff_str = "(+%d versions)" % (len(pkgs) - 1)
+                rows.append((this_pkg.qualified_name,
+                            other_pkg.qualified_name,
+                            diff_str))
 
         if older_packages:
             for name, pkgs in older_packages.iteritems():
                 this_pkg = pkgs[0]
                 other_pkg = pkgs[-1]
-                other_pkg_str = ("%s (-%d versions)"
-                                 % (other_pkg.qualified_name, len(pkgs) - 1))
-                rows.append((this_pkg.qualified_name, other_pkg_str))
+                diff_str = "(-%d versions)" % (len(pkgs) - 1)
+                rows.append((this_pkg.qualified_name,
+                            other_pkg.qualified_name,
+                            diff_str))
 
         if added_packages:
             for pkg in sorted(added_packages, key=lambda x: x.name):
-                rows.append(("-", pkg.qualified_name))
+                rows.append(("-", pkg.qualified_name, ""))
 
         if removed_packages:
             for pkg in sorted(removed_packages, key=lambda x: x.name):
-                rows.append((pkg.qualified_name, "-"))
+                rows.append((pkg.qualified_name, "-", ""))
 
         print '\n'.join(columnise(rows))
 

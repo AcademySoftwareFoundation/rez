@@ -27,7 +27,8 @@
 # Paths
 ###############################################################################
 
-# The package search path.
+# The package search path. Rez uses this to find packages. A package with the
+# same name and version in an earlier path takes precedence.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
 - '~/.rez/packages/int'  # internally developed pkgs, deployed
@@ -172,8 +173,8 @@ catch_rex_errors: true
 # Build
 ###############################################################################
 
-# The default working directory for a package build, relative to the package root
-# directory (this is typically where temporary build files are written).
+# The default working directory for a package build, relative to the package
+# source directory (this is typically where temporary build files are written).
 build_directory: build
 
 
@@ -390,7 +391,7 @@ plugins:
         # A list of branches that a user is allowed to rez-release from. This
         # can be used to block releases from development or feature branches,
         # and support a workflow such as 'gitflow'.  Each branch name should be
-        # a regular expression that can be used with re.match, for example
+        # a regular expression that can be used with re.match(), for example
         # '^master$'.
         releasable_branches:
 

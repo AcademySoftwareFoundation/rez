@@ -115,7 +115,9 @@ To install Rez, download the source, and then from the source directory, run the
 
     python ./install.py -v DEST_DIR
 
-This performs a 'production' install - a standalone installation that ensures that the Rez command line tools are always available, even when within a resolved environment. You can also install Rez as a standard python package, although if you do this, the command line tools are only available some of the time. To install Rez as a standard python module:
+This performs a 'production' install - a standalone installation that ensures that the Rez command line tools are always available, even when within a resolved environment. This is the recommended installation procedure.
+
+You can also install Rez as a standard python package. If you do this however, the command line tools are only available some of the time. To install Rez as a standard python module:
 
     pip install rez
 

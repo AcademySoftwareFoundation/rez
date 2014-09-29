@@ -4,66 +4,13 @@ from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.widgets.TimestampWidget import TimestampWidget
 from rezgui.dialogs.WriteGraphDialog import view_graph
+from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
-from rez.exceptions import RezError
-from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 import tempfile
 import threading
 import StringIO
 import os
-
-
-class Resolver(QtCore.QObject):
-
-    finished = QtCore.Signal()
-
-    def __init__(self, context_model, verbosity=0, max_fails=-1, timestamp=None,
-                 show_package_loads=True, buf=None):
-        super(Resolver, self).__init__()
-        self.context_model = context_model
-        self.context = None
-        self.verbosity = verbosity
-        self.max_fails = max_fails
-        self.timestamp = timestamp
-        self.show_package_loads = show_package_loads
-        self.buf = buf
-        self.context = None
-        self.keep_going = True
-        self.abort_reason = None
-        self.error_message = None
-
-    def resolve(self):
-        package_load_callback = (self._package_load_callback
-                                 if self.show_package_loads else None)
-        try:
-            self.context = self.context_model.resolve_context(
-                verbosity=self.verbosity,
-                max_fails=self.max_fails,
-                timestamp=self.timestamp,
-                buf=self.buf,
-                callback=self._callback,
-                package_load_callback=package_load_callback)
-        except RezError as e:
-            self.error_message = str(e)
-
-        self.finished.emit()
-
-    def cancel(self):
-        self.keep_going = False
-        self.abort_reason = "Cancelled by user."
-
-    def success(self):
-        return bool(self.context and self.context.success)
-
-    def _callback(self, solver_state):
-        if self.buf and self.verbosity == 0:
-            print >> self.buf, "solve step %d..." % solver_state.num_solves
-        return self.keep_going, self.abort_reason
-
-    def _package_load_callback(self, package):
-        if self.buf:
-            print >> self.buf, "loading %s..." % str(package)
 
 
 class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
@@ -195,8 +142,9 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
 
         self.exec_()
         if self.started:
-            self.resolver.cancel()
-            self.thread.join()
+            self.resolver.stop()
+            self.thread.quit()
+            self.thread.wait()
             return self.resolver.success()
         return False
 
@@ -267,23 +215,25 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             if timestamp is not None:
                 timestamp = timestamp.toTime_t()
 
-        self.resolver = Resolver(self.context_model,
-                                 verbosity=verbosity,
-                                 max_fails=max_fails,
-                                 timestamp=timestamp,
-                                 show_package_loads=show_package_loads,
-                                 buf=self.edit)
+        self.resolver = ResolveThread(self.context_model,
+                                      verbosity=verbosity,
+                                      max_fails=max_fails,
+                                      timestamp=timestamp,
+                                      show_package_loads=show_package_loads,
+                                      buf=self.edit)
 
         self.resolver.finished.connect(self._resolve_finished)
 
-        self.thread = threading.Thread(target=self.resolver.resolve)
+        self.thread = QtCore.QThread()
+        self.resolver.moveToThread(self.thread)
+        self.thread.started.connect(self.resolver.run)
         self.thread.start()
 
     def _cancel_resolve(self):
         if self.started:
             self.cancel_btn.setText("Cancelling...")
             self.cancel_btn.setEnabled(False)
-            self.resolver.cancel()
+            self.resolver.stop()
 
     def _resolve_finished(self):
         self._finished = True

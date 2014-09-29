@@ -59,7 +59,7 @@ class PackageLoadingWidget(QtGui.QWidget):
                                          callback=callback)
         id_ = id(self.worker)
         self.worker.progress.connect(partial(self._progress, id_))
-        self.worker.packagesLoaded.connect(partial(self._packagesLoaded, id_))
+        self.worker.finished.connect(partial(self._packagesLoaded, id_))
 
         thread = QtCore.QThread()
         self.worker.moveToThread(thread)
@@ -89,6 +89,7 @@ class PackageLoadingWidget(QtGui.QWidget):
         for _, worker in self.threads:
             worker.stop()
         for th, _ in self.threads:
+            th.quit()
             th.wait()
 
     def _swap_to_loader(self, id_):
