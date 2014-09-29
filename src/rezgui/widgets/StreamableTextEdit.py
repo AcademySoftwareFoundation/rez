@@ -23,12 +23,15 @@ class StreamableTextEdit(QtGui.QTextEdit):
         return False
 
     def write(self, txt):
+        emit = False
         try:
             self.lock.acquire()
+            emit = not bool(self.buffer)
             self.buffer.append(str(txt))
         finally:
             self.lock.release()
-        self.written.emit()
+        if emit:
+            self.written.emit()
 
     def _consume(self):
         try:
@@ -37,7 +40,9 @@ class StreamableTextEdit(QtGui.QTextEdit):
             self.buffer = []
         finally:
             self.lock.release()
-        for txt in buffer_:
+
+        if buffer_:
+            txt = ''.join(buffer_)
             self._write(txt)
 
     def _write(self, txt):
