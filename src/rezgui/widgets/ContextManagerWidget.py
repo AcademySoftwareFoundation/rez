@@ -122,6 +122,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.shell_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.diff_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.revert_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         resolve_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
 
         btn_pane = create_pane([self.show_effective_request_checkbox,

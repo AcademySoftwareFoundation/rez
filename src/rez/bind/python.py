@@ -10,6 +10,8 @@ from rez.system import system
 import subprocess
 import sys
 
+# TODO in a prod install this will bind the venv python! Which is BAD!!
+
 
 def setup_parser(parser):
     parser.add_argument("--exe", type=str, metavar="PATH",

@@ -51,14 +51,23 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-b", "--bump", type=str, metavar="NAME",
         help="bump a context, making its tools higher priority than others")
+    find_request_action = parser.add_argument(
+        "--find-request", type=str, metavar="PKG",
+        help="find the contexts that contain the given package in the request")
+    find_resolve_action = parser.add_argument(
+        "--find-resolve", type=str, metavar="PKG",
+        help="find the contexts that contain the given package in the resolve")
     DIR_action = parser.add_argument(
         "DIR", type=str, nargs='?',
         help="directory of suite to create or manage")
 
     if completions:
-        from rez.cli._complete_util import FilesCompleter
+        from rez.cli._complete_util import FilesCompleter, PackageCompleter, \
+            PackageFamilyCompleter
         DIR_action.completer = FilesCompleter(dirs=True, files=False)
         add_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
+        find_request_action.completer = PackageFamilyCompleter
+        find_resolve_action = PackageCompleter
 
 
 def argname(attr):
@@ -97,6 +106,7 @@ def command(opts, parser, extra_arg_groups=None):
             if not all(getattr(opts, x, None) for x in requires):
                 parser.error("%s must be supplied when using %s"
                              % (argname(requires[0]), option))
+            break
 
     # interactive operations
     if opts.interactive:
@@ -114,15 +124,22 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             suites = status.suites
 
-        if opts.validate:
+        if opts.validate or opts.find_request or opts.find_resolve:
             if not opts.DIR:
-                parser.error("DIR must be supplied when using --validate")
-            try:
-                suite.validate()
-            except SuiteError as e:
-                print >> sys.stderr, "The suite is invalid:\n%s" % str(e)
-                sys.exit(1)
-            print "The suite is valid."
+                parser.error("DIR must be supplied for this operation")
+
+            if opts.validate:
+                try:
+                    suite.validate()
+                except SuiteError as e:
+                    print >> sys.stderr, "The suite is invalid:\n%s" % str(e)
+                    sys.exit(1)
+                print "The suite is valid."
+            else:
+                context_names = suite.find_contexts(in_request=opts.find_request,
+                                                    in_resolve=opts.find_resolve)
+                if context_names:
+                    print '\n'.join(context_names)
         elif opts.print_tools:
             for i, suite in enumerate(suites):
                 if not opts.DIR:

@@ -5,6 +5,7 @@ from rez.colorize import heading, warning, critical, local, Printer
 from rez.colorize import alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.vendor.version.requirement import Requirement
 from rez.yaml import dump_yaml
 from collections import defaultdict
 import os
@@ -64,6 +65,17 @@ class Suite(object):
         """
         return os.path.join(self.load_path, "bin") if self.load_path else None
 
+    def activation_shell_code(self, shell=None):
+        """Get shell code that should be run to activate this suite."""
+        from rez.shells import create_shell
+        from rez.rex import RexExecutor
+
+        executor = RexExecutor(interpreter=create_shell(shell),
+                               parent_variables=["PATH"],
+                               shebang=False)
+        executor.env.PATH.append(self.tools_path)
+        return executor.get_output().strip()
+
     def __str__(self):
         return "%s(%s)" % (self.__class__.__name__, " ".join(self.context_names))
 
@@ -109,6 +121,46 @@ class Suite(object):
                                    description=description,
                                    priority=self._next_priority)
         self._flush_tools()
+
+    def find_contexts(self, in_request=None, in_resolve=None):
+        """Find contexts in the suite based on search criteria.
+
+        Args:
+            in_request (str): Match contexts that contain the given package in
+                their request.
+            in_resolve (str or `Requirement`): Match contexts that contain the
+                given package in their resolve. You can also supply a conflict
+                requirement - '!foo' will match any contexts whos resolve does
+                not contain any version of package 'foo'.
+
+        Returns:
+            List of context names that match the search criteria.
+        """
+        names = self.context_names
+        if in_request:
+            def _in_request(name):
+                context = self.context(name)
+                packages = set(x.name for x in context.requested_packages(True))
+                return (in_request in packages)
+
+            names = [x for x in names if _in_request(x)]
+
+        if in_resolve:
+            if isinstance(in_resolve, basestring):
+                in_resolve = Requirement(in_resolve)
+
+            def _in_resolve(name):
+                context = self.context(name)
+                variant = context.get_resolved_package(in_resolve.name)
+                if variant:
+                    overlap = (variant.version in in_resolve.range)
+                    return ((in_resolve.conflict and not overlap)
+                            or (overlap and not in_resolve.conflict))
+                else:
+                    return in_resolve.conflict
+
+            names = [x for x in names if _in_resolve(x)]
+        return names
 
     def remove_context(self, name):
         """Remove a context from the suite.
