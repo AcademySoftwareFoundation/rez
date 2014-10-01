@@ -1,6 +1,7 @@
 #
 # Rez GUI configuration settings. Do not change this file.
 #
+
 layout:
     window:
         main:
@@ -40,3 +41,6 @@ resolve:
 
 # Split character in the environment table widget
 split_char: "None"
+
+# Number of 'most recent' file opens to remember
+max_most_recent_contexts: 10

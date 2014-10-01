@@ -1,8 +1,13 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.objects.App import app
+from rezgui.util import add_menu_action
 from rezgui.windows.ContextSubWindow import ContextSubWindow
 from rez.exceptions import ResolvedContextError
 from rez.resolved_context import ResolvedContext
+from rez.status import status
 from contextlib import contextmanager
+from functools import partial
+import os.path
 import time
 
 
@@ -16,23 +21,58 @@ class MainWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.mdi)
         self.statusBar().showMessage("")
 
+        """
         def _action(menu, label, slot=None):
             action = QtGui.QAction(label, self)
             menu.addAction(action)
             if slot:
                 action.triggered.connect(slot)
             return action
+        """
 
         file_menu = self.menuBar().addMenu('&File')
-        self.new_context_action = _action(file_menu, "&New Context",
-                                          self.new_context)
+        add_menu_action(file_menu, "&New Context", self.new_context)
+        add_menu_action(file_menu, "Open &Context...", self._open_context)
+        #_action(file_menu, "&New Context", self.new_context)
+        #_action(file_menu, "Open &Context...", self._open_context)
+        self.recent_contexts_menu = file_menu.addMenu("Open Recent Context")
+
+        """
+        most_recent = app.config.get_string_list("most_recent_contexts")
+        if most_recent:
+            menu = file_menu.addMenu("Open Recent Context")
+            for filepath in most_recent:
+                _action(menu, filepath, partial(self.open_context, filepath))
+        """
+
+        if status.context:
+            menu = file_menu.addMenu("Open Active Context")
+            filepath = context.load_path
+            #_action(menu, filepath, partial(self.open_context, filepath))
+            fn = partial(self.open_context, filepath)
+            add_menu_action(file_menu, filepath, fn)
+
+        suites = status.suites
+        if suites:
+            menu = file_menu.addMenu("Open Context From Active Suite")
+            for suite in suites:
+                menu2 = menu.addMenu(suite.load_path)
+                for context_name in suite.context_names:
+                    context = suite.context(context_name)
+                    filepath = context.load_path
+                    filename = os.path.basename(filepath)
+                    label = "%s (%s)" % (context_name, filename)
+                    #_action(menu2, label, partial(self.open_context, filepath))
+                    fn = partial(self.open_context, filepath)
+                    add_menu_action(menu2, label, fn)
+
+        #self.save_context_action = _action(file_menu, "&Save Context")
+        #self.save_context_as_action = _action(file_menu, "Save Context As...")
+        self.save_context_action = add_menu_action(file_menu, "&Save Context")
+        self.save_context_as_action = add_menu_action(file_menu, "Save Context As...")
         file_menu.addSeparator()
-        self.open_context_action = _action(file_menu, "Open &Context...",
-                                           self._open_context)
-        self.save_context_action = _action(file_menu, "&Save Context")
-        self.save_context_as_action = _action(file_menu, "Save Context As...")
-        file_menu.addSeparator()
-        self.quit_action = _action(file_menu, "Quit", self.close)
+        #self.quit_action = _action(file_menu, "Quit", self.close)
+        self.quit_action = add_menu_action(file_menu, "Quit", self.close)
 
         file_menu.aboutToShow.connect(self._update_file_menu)
 
@@ -76,6 +116,9 @@ class MainWindow(QtGui.QMainWindow):
                 finally:
                     QtGui.QApplication.restoreOverrideCursor()
 
+        if context:
+            app.config.prepend_string_list("most_recent_contexts", filepath,
+                                           "max_most_recent_contexts")
         return context
 
     def new_context(self):
@@ -111,6 +154,17 @@ class MainWindow(QtGui.QMainWindow):
 
         self.save_context_action.setEnabled(context_save)
         self.save_context_as_action.setEnabled(context_save_as)
+
+        menu = self.recent_contexts_menu
+        app.config.sync()
+        most_recent = app.config.get_string_list("most_recent_contexts")
+        menu.setEnabled(bool(most_recent))
+        if most_recent:
+            menu.clear()
+            for filepath in most_recent:
+                #_action(menu, filepath, partial(self.open_context, filepath))
+                fn = partial(self.open_context, filepath)
+                add_menu_action(menu, filepath, fn)
 
     @contextmanager
     def _status(self, txt):

@@ -37,7 +37,8 @@ class ToolWidget(QtGui.QWidget):
         layout.addWidget(self.instances_label)
         self.setLayout(layout)
 
-    def contextMenuEvent(self, event):
+    def mouseReleaseEvent(self, event):
+        super(ToolWidget, self).mouseReleaseEvent(event)
         if not self.context:
             return
 
@@ -45,6 +46,8 @@ class ToolWidget(QtGui.QWidget):
         run_action = menu.addAction("Run")
         run_term_action = menu.addAction("Run In Terminal")
         run_moniter_action = menu.addAction("Run And Moniter")
+        menu.addSeparator()
+        menu.addAction("Cancel")
 
         action = menu.exec_(self.mapToGlobal(event.pos()))
         self.clicked.emit()
@@ -54,15 +57,6 @@ class ToolWidget(QtGui.QWidget):
             self._launch_tool(terminal=True)
         elif action == run_moniter_action:
             self._launch_tool(moniter=True)
-
-    def mouseReleaseEvent(self, event):
-        super(ToolWidget, self).mouseReleaseEvent(event)
-        if not self.context:
-            return
-
-        self.clicked.emit()
-        if event.button() == QtCore.Qt.LeftButton:
-            self._launch_tool()
 
     def _launch_tool(self, terminal=False, moniter=False):
         buf = subprocess.PIPE if moniter else None

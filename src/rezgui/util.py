@@ -84,13 +84,19 @@ def get_timestamp_str(timestamp):
     return "%s (%s ago)" % (release_time_str, ago)
 
 
-def add_menu_action(menu, label, slot, icon_name=None, group=None):
-    nargs = [label, menu]
+def add_menu_action(menu, label, slot=None, icon_name=None, group=None,
+                    parent=None):
+    nargs = []
     if icon_name:
         icon = get_icon(icon_name, as_qicon=True)
-        nargs.insert(0, icon)
+        nargs.append(icon)
+    nargs += [label, menu]
+    if parent:
+        nargs.append(parent)
+
     action = QtGui.QAction(*nargs)
-    action.triggered.connect(slot)
+    if slot:
+        action.triggered.connect(slot)
     if group:
         action.setCheckable(True)
         group.addAction(action)

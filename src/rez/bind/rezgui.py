@@ -18,8 +18,8 @@ import sys
 
 def setup_parser(parser):
     parser.add_argument(
-        "--gui-lib", type=str, default="PyQt-4",
-        help="manually specify the gui lib to use (PyQt or PySide).")
+        "--gui-lib", type=str, default="PyQt-4", metavar="PKG",
+        help="manually specify the gui lib to use (default: %(default)s).")
 
 
 @code_provider

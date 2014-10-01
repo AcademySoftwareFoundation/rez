@@ -21,23 +21,48 @@ class Config(QtCore.QSettings):
         """
         if type_ is None:
             default = self._default_value(key)
-            val = super(Config, self).value(key, default)
-            if hasattr(val, "toPyObject"):
-                val = val.toPyObject()
+            val = self._value(key, default)
             if type(val) == type(default):
                 return val
             else:
                 return self._convert_value(val, type(default))
         else:
-            val = super(Config, self).value(key, None)
-            if hasattr(val, "toPyObject"):
-                val = val.toPyObject()
+            val = self._value(key, None)
             if val is None:
                 return None
             return self._convert_value(val, type_)
 
     def get(self, key, type_=None):
         return self.value(key, type_)
+
+    def get_string_list(self, key):
+        """Get a list of strings."""
+        strings = []
+        size = self.beginReadArray(key)
+        for i in range(size):
+            self.setArrayIndex(i)
+            entry = str(self._value("entry"))
+            strings.append(entry)
+        self.endArray()
+        return strings
+
+    def prepend_string_list(self, key, value, max_length_key):
+        """Prepend a fixed-length string list with a new string.
+
+        The oldest string will be removed from the list. If the string is
+        already in the list, it is shuffled to the top. Use this to implement
+        things like a 'most recent files' entry.
+        """
+        max_len = self.get(max_length_key)
+        strings = self.get_string_list(key)
+        strings = [value] + [x for x in strings if x != value]
+        strings = strings[:max_len]
+
+        self.beginWriteArray(key)
+        for i in range(len(strings)):
+            self.setArrayIndex(i)
+            self.setValue("entry", strings[i])
+        self.endArray()
 
     def attach(self, widget, key):
         if isinstance(widget, QtGui.QComboBox):
@@ -46,6 +71,12 @@ class Config(QtCore.QSettings):
             self._attach_checkbox(widget, key)
         else:
             raise NotImplementedError
+
+    def _value(self, key, defaultValue=None):
+        val = super(Config, self).value(key, defaultValue)
+        if hasattr(val, "toPyObject"):
+            val = val.toPyObject()
+        return val
 
     @classmethod
     def _convert_value(cls, value, type_):
