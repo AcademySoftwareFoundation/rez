@@ -2,8 +2,11 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.dialogs.ProcessDialog import ProcessDialog
 from rezgui.widgets.IconButton import IconButton
 from rezgui.objects.App import app
-from rezgui.util import get_icon_widget, update_font
+from rezgui.util import get_icon_widget, update_font, add_menu_action
+from rez.util import readable_time_duration
+from functools import partial
 import subprocess
+import time
 
 
 class ToolWidget(QtGui.QWidget):
@@ -15,6 +18,7 @@ class ToolWidget(QtGui.QWidget):
         self.context = context
         self.tool_name = tool_name
         self.process_tracker = process_tracker
+        self.process_start_times = {}
 
         tool_icon = get_icon_widget("spanner")
         self.label = QtGui.QLabel(tool_name)
@@ -25,9 +29,8 @@ class ToolWidget(QtGui.QWidget):
         if self.context:
             self.setCursor(QtCore.Qt.PointingHandCursor)
             if self.process_tracker:
-                nprocs = self.process_tracker.num_instances(self.context,
-                                                            self.tool_name)
-                self.set_instance_count(nprocs)
+                procs = self.get_processes()
+                self.set_instance_count(len(procs))
 
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(2)
@@ -37,26 +40,31 @@ class ToolWidget(QtGui.QWidget):
         layout.addWidget(self.instances_label)
         self.setLayout(layout)
 
+    def get_processes(self):
+        return self.process_tracker.running_instances(self.context, self.tool_name)
+
     def mouseReleaseEvent(self, event):
         super(ToolWidget, self).mouseReleaseEvent(event)
         if not self.context:
             return
 
         menu = QtGui.QMenu(self)
-        run_action = menu.addAction("Run")
-        run_term_action = menu.addAction("Run In Terminal")
-        run_moniter_action = menu.addAction("Run And Moniter")
-        menu.addSeparator()
-        menu.addAction("Cancel")
+        add_menu_action(menu, "Run", self._launch_tool)
+        fn = partial(self._launch_tool, terminal=True)
+        add_menu_action(menu, "Run In Terminal", fn)
+        fn = partial(self._launch_tool, moniter=True)
+        add_menu_action(menu, "Run And Moniter", fn)
 
-        action = menu.exec_(self.mapToGlobal(event.pos()))
+        procs = self.get_processes()
+        if procs:
+            menu.addSeparator()
+            add_menu_action(menu, "Running Processes...", self._list_processes)
+
+        menu.addSeparator()
+        add_menu_action(menu, "Cancel")
+
+        menu.exec_(self.mapToGlobal(event.pos()))
         self.clicked.emit()
-        if action == run_action:
-            self._launch_tool()
-        elif action == run_term_action:
-            self._launch_tool(terminal=True)
-        elif action == run_moniter_action:
-            self._launch_tool(moniter=True)
 
     def _launch_tool(self, terminal=False, moniter=False):
         buf = subprocess.PIPE if moniter else None
@@ -66,11 +74,33 @@ class ToolWidget(QtGui.QWidget):
                                  stdout=buf,
                                  stderr=buf)
 
+        self.process_start_times[proc.pid] = int(time.time())
         if self.process_tracker:
             self.process_tracker.add_instance(self.context, self.tool_name, proc)
         if moniter:
             dlg = ProcessDialog(proc, self.tool_name)
             dlg.exec_()
+
+    def _list_processes(self):
+        procs = self.get_processes()
+        now = int(time.time())
+        entries = []
+        for proc in procs:
+            age = now - self.process_start_times[proc.pid]
+            entries.append((age, proc.pid))
+
+        if entries:
+            entries = sorted(entries)
+            lines = []
+            for age, pid in entries:
+                t_str = readable_time_duration(age)
+                line = "Process #%d has been running for %s" % (pid, t_str)
+                lines.append(line)
+            txt = "\n".join(lines)
+        else:
+            txt = "There are no running processes."
+
+        QtGui.QMessageBox.information(self, "Processes", txt)
 
     def set_instance_count(self, nprocs):
         if nprocs:

@@ -18,6 +18,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.reference_version_index = -1
         self.view_changelog = False
 
+        self.setWordWrap(True)
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
@@ -161,6 +162,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 for j in range(len(row) - 1):
                     value = row[j + 1]
                     icon_name = None
+
                     if isinstance(value, tuple):
                         icon_name, value = value
 
@@ -182,12 +184,14 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                         icon = get_icon_widget(
                             icon_name, "package did not exist at time of resolve")
                         widgets = [icon, label, None, 5]
+                        widget = create_pane(widgets, True, compact=True)
+                        self.setCellWidget(i, j, widget)
+                    elif self.view_changelog and (i % 2):
+                        item.setText(value)
                     else:
-                        widgets = [label, None, 5]
+                        self.setCellWidget(i, j, label)
 
-                    widget = create_pane(widgets, True, compact=True)
                     self.setItem(i, j, item)
-                    self.setCellWidget(i, j, widget)
 
             vh = self.verticalHeader()
             vh.setVisible(True)

@@ -20,10 +20,11 @@ class ProcessTrackerThread(QtCore.QThread):
         self.timer.start()
         self.exec_()
 
-    def num_instances(self, context, process_name):
+    def running_instances(self, context, process_name):
         handle = (id(context), process_name)
-        procs = self.processes.get(handle, {})
-        return len(procs)
+        it = self.processes.get(handle, {}).itervalues()
+        procs = [x for x in it if x.poll() is None]
+        return procs
 
     def add_instance(self, context, process_name, process):
         try:
