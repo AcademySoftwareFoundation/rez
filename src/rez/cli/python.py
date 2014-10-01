@@ -23,7 +23,7 @@ def command(opts, parser, extra_arg_groups=None):
     if not opts.FILE:
         # run interactive interpreter
         import subprocess
-        p = subprocess.Popen([sys.executable])
+        p = subprocess.Popen([sys.executable, "-E"])
         p.wait()
         return
 
