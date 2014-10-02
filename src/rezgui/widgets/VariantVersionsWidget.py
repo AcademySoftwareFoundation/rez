@@ -142,14 +142,8 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
 
     def _apply_changelogs(self):
         if self.pending_changelog_packages:
-            busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
-            QtGui.QApplication.setOverrideCursor(busy_cursor)
-            try:
-                self.changelog_edit.clear()
-                self.changelog_edit.set_packages(self.pending_changelog_packages)
-                self.pending_changelog_packages = None
-            finally:
-                QtGui.QApplication.restoreOverrideCursor()
+            self.changelog_edit.set_packages(self.pending_changelog_packages)
+            self.pending_changelog_packages = None
 
     def _changelogStateChanged(self, state):
         self._view_changelogs(state == QtCore.Qt.Checked)

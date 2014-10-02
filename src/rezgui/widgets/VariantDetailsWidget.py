@@ -33,7 +33,7 @@ class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):
         else:
             self.setEnabled(True)
             self.edit.clear()
-            variant.print_info(self.edit)
+            variant.print_info(self.edit, skip_attributes=("changelog",))
             self.edit.moveCursor(QtGui.QTextCursor.Start)
             self.view_graph_btn.set_variant(variant)
 

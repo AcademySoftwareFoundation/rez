@@ -1,4 +1,3 @@
-import os.path
 from rez.util import Common, propertycache, dedup
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
@@ -8,6 +7,8 @@ from rez.config import config
 from rez.vendor.schema.schema import Schema, Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
+import os.path
+import sys
 
 
 def validate_package_name(pkg_name):
@@ -232,19 +233,25 @@ class _PackageBase(ResourceWrapper):
                                            path=self.path,
                                            resource_key=self._resource.key)
 
-    def print_info(self, buf=None):
+    def print_info(self, buf=None, skip_attributes=None):
         """Print the contents of the package, in yaml format."""
         from rez.yaml import dump_package_yaml
         data = self.validated_data.copy()
         data = dict((k, v) for k, v in data.iteritems()
                     if v is not None and not k.startswith('_'))
 
+        # attributes we don't want to see
         if "config_version" in data:
             del data["config_version"]
-        # TODO
         if "config" in data:
             del data["config"]
+
+        for attr in (skip_attributes or []):
+            if attr in data:
+                del data[attr]
+
         txt = dump_package_yaml(data)
+        buf = buf or sys.stdout
         print >> buf, txt
 
     def __str__(self):
