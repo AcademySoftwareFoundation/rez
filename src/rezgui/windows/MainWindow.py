@@ -2,6 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.objects.App import app
 from rezgui.util import add_menu_action
 from rezgui.windows.ContextSubWindow import ContextSubWindow
+from rezgui.dialogs.AboutDialog import AboutDialog
 from rez.exceptions import ResolvedContextError
 from rez.resolved_context import ResolvedContext
 from rez.status import status
@@ -21,6 +22,7 @@ class MainWindow(QtGui.QMainWindow):
         self.setCentralWidget(self.mdi)
         self.statusBar().showMessage("")
 
+        # -- file menu
         file_menu = self.menuBar().addMenu('&File')
         add_menu_action(file_menu, "&New Context", self.new_context)
         add_menu_action(file_menu, "Open &Context...", self._open_context)
@@ -52,6 +54,10 @@ class MainWindow(QtGui.QMainWindow):
 
         file_menu.aboutToShow.connect(self._update_file_menu)
 
+        # -- help menu
+        help_menu = self.menuBar().addMenu('&Help')
+        add_menu_action(help_menu, "&About", self.about)
+
     def closeEvent(self, event):
         # attempt to close modified contexts first
         subwindows = [x for x in self.mdi.subWindowList() if x.isWindowModified()]
@@ -67,6 +73,10 @@ class MainWindow(QtGui.QMainWindow):
 
     def cascade(self):
         self.mdi.cascadeSubWindows()
+
+    def about(self):
+        dlg = AboutDialog(self)
+        dlg.exec_()
 
     def load_context(self, filepath):
         context = None
