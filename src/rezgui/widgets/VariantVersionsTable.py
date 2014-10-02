@@ -7,7 +7,7 @@ from rez.vendor.version.version import VersionRange
 
 class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
     def __init__(self, context_model=None, reference_variant=None, parent=None):
-        super(VariantVersionsTable, self).__init__(0, 1, parent)
+        super(VariantVersionsTable, self).__init__(0, 2, parent)
         ContextViewMixin.__init__(self, context_model)
 
         self.variant = None
@@ -16,7 +16,6 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.num_versions = -1
         self.version_index = -1
         self.reference_version_index = -1
-        self.view_changelog = False
 
         self.setWordWrap(True)
         self.setGridStyle(QtCore.Qt.DotLine)
@@ -31,14 +30,6 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
         self.clear()
-
-    def set_view_changelog(self, enable):
-        """Enable changelog view.
-
-        Note that you still need to call refresh() after this call, to update
-        the view.
-        """
-        self.view_changelog = enable
 
     def selectionCommand(self, index, event=None):
         return QtGui.QItemSelectionModel.ClearAndSelect if self.allow_selection \
@@ -71,25 +62,16 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.clear()
 
         hh = self.horizontalHeader()
-        if self.view_changelog:
-            self.setColumnCount(1)
-            hh.setResizeMode(0, QtGui.QHeaderView.Stretch)
-            hh.setVisible(False)
-        else:
-            self.setColumnCount(2)
-            self.setHorizontalHeaderLabels(["path", "released"])
-            hh.setResizeMode(0, QtGui.QHeaderView.Interactive)
-            hh.setVisible(True)
+        self.setHorizontalHeaderLabels(["path", "released"])
+        hh.setResizeMode(0, QtGui.QHeaderView.Interactive)
+        hh.setStretchLastSection(True)
+        hh.setVisible(True)
 
         package_paths = self.context_model.packages_path
 
         if variant and variant.search_path in package_paths:
-            rows = []
-            self.num_versions = 0
             self.version_index = -1
             self.reference_version_index = -1
-            row_index = -1
-            reference_row_index = -1
             reference_version = None
             range_ = None
 
@@ -109,98 +91,60 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 it = iter_packages(name=variant.name, paths=package_paths, range=range_)
                 packages = sorted(it, key=lambda x: x.version, reverse=True)
 
-            for i, package in enumerate(packages):
-                self.num_versions += 1
+            self.setRowCount(len(packages))
+            brush = self.palette().brush(QtGui.QPalette.Active, QtGui.QPalette.Base)
+
+            for row, package in enumerate(packages):
+                version_str = str(package.version) + ' '
+                item = QtGui.QTableWidgetItem(version_str)
+                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+                self.setVerticalHeaderItem(row, item)
+
                 if package.version == variant.version:
-                    self.version_index = i
-                    row_index = len(rows)
+                    self.version_index = row
+                    update_font(item, bold=True)
 
                 if reference_version is not None \
                         and package.version == reference_version:
-                    self.reference_version_index = i
-                    reference_row_index = len(rows)
-
-                version_str = str(package.version) + ' '
-                path_str = package.path
-                release_str = get_timestamp_str(package.timestamp) \
-                    if package.timestamp else '-'
-
-                if self.view_changelog:
-                    if package.timestamp:
-                        path_str += " - %s" % release_str
-                        if package.timestamp > timestamp:
-                            path_str = ("clock_warning", path_str)
-
-                    rows.append((version_str, path_str))
-                    if reference_version is not None and i == len(packages) - 1:
-                        # don't include the last changelog when in reference mode,
-                        # we are only interested in what is inbetween the versions.
-                        continue
-
-                    if package.changelog:
-                        changelog = package.changelog.rstrip() + '\n'
-                    else:
-                        changelog = "-"
-                    rows.append(("", changelog))
-                else:
-                    if package.timestamp and package.timestamp > timestamp:
-                        path_str = ("clock_warning", path_str)
-                    rows.append((version_str, path_str, release_str))
-
-            pal = self.palette()
-            self.setRowCount(len(rows))
-
-            for i, row in enumerate(rows):
-                item = QtGui.QTableWidgetItem(row[0])
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
-                self.setVerticalHeaderItem(i, item)
-                if i == row_index:
-                    update_font(item, bold=True)
-                elif i == reference_row_index:
+                    self.reference_version_index = row
                     update_font(item, bold=True, italic=True)
 
-                for j in range(len(row) - 1):
-                    value = row[j + 1]
-                    icon_name = None
+                def _item():
+                    item_ = QtGui.QTableWidgetItem()
+                    item_.setBackground(brush)  # get rid of mouse-hover coloring
+                    return item_
 
-                    if isinstance(value, tuple):
-                        icon_name, value = value
+                if package.timestamp:
+                    release_str = get_timestamp_str(package.timestamp)
+                    in_future = (package.timestamp > timestamp)
+                else:
+                    release_str = '-'
+                    in_future = False
 
-                    item = QtGui.QTableWidgetItem()
-                    label = QtGui.QLabel(value)
+                item = _item()
+                txt = package.path + " "
+                if in_future:
+                    icon = get_icon_widget(
+                        "clock_warning", "package did not exist at time of resolve")
+                    label = QtGui.QLabel(txt)
+                    pane = create_pane([icon, label, None], True, compact=True)
+                    self.setCellWidget(row, 0, pane)
+                else:
+                    item.setText(txt)
+                self.setItem(row, 0, item)
 
-                    if self.view_changelog and not (i % 2):
-                        brush = pal.brush(QtGui.QPalette.Active,
-                                          QtGui.QPalette.Button)
-                        item.setBackground(brush)
-                        update_font(label, bold=True)
-                    else:
-                        # gets rid of mouse-hover row highlighting
-                        brush = pal.brush(QtGui.QPalette.Active,
-                                          QtGui.QPalette.Base)
-                        item.setBackground(brush)
-
-                    if icon_name:
-                        icon = get_icon_widget(
-                            icon_name, "package did not exist at time of resolve")
-                        widgets = [icon, label, None, 5]
-                        widget = create_pane(widgets, True, compact=True)
-                        self.setCellWidget(i, j, widget)
-                    elif self.view_changelog and (i % 2):
-                        item.setText(value)
-                    else:
-                        self.setCellWidget(i, j, label)
-
-                    self.setItem(i, j, item)
+                item = _item()
+                item.setText(release_str)
+                self.setItem(row, 1, item)
 
             vh = self.verticalHeader()
             vh.setVisible(True)
-            self.resizeRowsToContents()
             self.resizeColumnsToContents()
+            self.resizeRowsToContents()
             hh.setStretchLastSection(True)
 
             self.allow_selection = True
-            self.selectRow(row_index)
+            self.selectRow(self.version_index)
             self.allow_selection = False
 
         self.variant = variant

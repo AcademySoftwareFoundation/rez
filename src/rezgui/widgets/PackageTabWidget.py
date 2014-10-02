@@ -103,7 +103,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         else:
             self.setTabEnabled(tab_index, False)
             disabled_tabs.add(tab_index)
+        """
 
         if prev_index in disabled_tabs:
             self.setCurrentIndex(0)
-        """

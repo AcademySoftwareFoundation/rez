@@ -30,7 +30,7 @@ class MainWindow(QtGui.QMainWindow):
             menu = file_menu.addMenu("Open Active Context")
             filepath = status.context.load_path
             fn = partial(self.open_context, filepath)
-            add_menu_action(file_menu, filepath, fn)
+            add_menu_action(menu, filepath, fn)
 
         suites = status.suites
         if suites:

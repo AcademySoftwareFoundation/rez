@@ -3,7 +3,10 @@ from rez.packages import iter_packages
 
 
 class LoadPackagesThread(QtCore.QObject):
+    """Load packages in a separate thread.
 
+    Packages are loaded in decreasing version order.
+    """
     progress = QtCore.Signal(int, int)
     finished = QtCore.Signal(object)
 

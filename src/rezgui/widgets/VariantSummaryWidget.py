@@ -24,13 +24,6 @@ class VariantSummaryWidget(QtGui.QWidget):
         vh = self.table.verticalHeader()
         vh.setResizeMode(QtGui.QHeaderView.ResizeToContents)
 
-        """
-        layout = QtGui.QVBoxLayout()
-        layout.addWidget(self.label)
-        layout.addWidget(self.table)
-        self.setLayout(layout)
-        """
-
         create_pane([self.label, self.table], False, compact=True,
                     parent_widget=self)
 
@@ -61,7 +54,11 @@ class VariantSummaryWidget(QtGui.QWidget):
             rows = []
 
             if variant.description:
-                rows.append(("description: ", variant.description))
+                desc = variant.description
+                max_chars = 1000
+                if len(desc) > max_chars:
+                    desc = desc[:max_chars] + "..."
+                rows.append(("description: ", desc))
             if variant.path:
                 rows.append(("location: ", variant.path))
             if variant.timestamp:
@@ -85,14 +82,16 @@ class VariantSummaryWidget(QtGui.QWidget):
                 rows.append(("requires: ", txt))
 
             # if a package, show changelog.
-            if isinstance(variant, Package) and variant.changelog:
-                rows.append(("changelog: ", variant.changelog))
+            #if isinstance(variant, Package) and variant.changelog:
+            #if variant.changelog:
+            #    rows.append(("", ""))
+            #    rows.append(("changelog: ", variant.changelog))
 
             self.table.setRowCount(len(rows))
             for i, row in enumerate(rows):
                 label, value = row
                 item = QtGui.QTableWidgetItem(label)
-                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter)
+                item.setTextAlignment(QtCore.Qt.AlignRight | QtCore.Qt.AlignTop)
                 self.table.setVerticalHeaderItem(i, item)
                 item = QtGui.QTableWidgetItem(value)
                 self.table.setItem(i, 0, item)

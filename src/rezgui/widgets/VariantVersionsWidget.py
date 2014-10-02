@@ -2,8 +2,10 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, create_toolbutton
 from rezgui.widgets.VariantVersionsTable import VariantVersionsTable
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
+from rezgui.widgets.ChangelogEdit import ChangelogEdit
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.util import positional_number_string
+from rez.vendor.version.version import VersionRange
 
 
 class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
@@ -24,42 +26,44 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
 
         self.in_window = in_window
         self.variant = None
+        self.reference_variant = reference_variant
+        self.pending_changelog_packages = None
 
         self.label = QtGui.QLabel()
+        self.changelog_edit = ChangelogEdit()
         self.table = VariantVersionsTable(self.context_model,
                                           reference_variant=reference_variant)
-        buttons = [None]
 
+        self.tab = QtGui.QTabWidget()
+        self.tab.addTab(self.table, "list view")
+        self.tab.addTab(self.changelog_edit, "changelogs")
+        self.tab.currentChanged.connect(self._tabIndexChanged)
+
+        buttons = [None]
         if self.in_window:
-            self.changelog_btn = QtGui.QCheckBox("view changelogs")
-            self.changelog_btn.stateChanged.connect(self._changelogStateChanged)
-            self.changelog_btn.setCheckState(QtCore.Qt.Checked)
             close_btn = QtGui.QPushButton("Close")
-            buttons.append(self.changelog_btn)
             buttons.append(close_btn)
             close_btn.clicked.connect(self._close_window)
         else:
-            browse_versions_btn = QtGui.QPushButton("Browse Other Versions...")
-            browse_versions_btn.clicked.connect(self._browseOtherVersions)
+            browse_versions_btn = QtGui.QPushButton("Browse Versions...")
+            browse_versions_btn.clicked.connect(self._browseVersions)
             buttons.append(browse_versions_btn)
 
-            self.changelog_btn, _ = create_toolbutton(
-                [("View Changelogs", self._view_or_hide_changelogs),
-                 ("View In Window...", self._view_changelogs_window)],
-                self)
-            buttons.append(self.changelog_btn)
+            window_btn = QtGui.QPushButton("View In Window...")
+            window_btn.clicked.connect(self._view_changelogs_window)
+            buttons.append(window_btn)
 
         btn_pane = create_pane(buttons, True, compact=not self.in_window)
-        main_widget = create_pane([self.label, self.table, btn_pane], False,
-                                  compact=True)
+        pane = create_pane([self.label, self.tab, btn_pane], False, compact=True)
 
-        self.set_main_widget(main_widget)
+        self.set_main_widget(pane)
         self.set_loader_swap_delay(300)
         self.clear()
 
     def clear(self):
         self.label.setText("no package selected")
         self.table.clear()
+        self.pending_changelog_packages = None
         self.setEnabled(False)
 
     def refresh(self):
@@ -69,6 +73,7 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
 
     def set_variant(self, variant):
         self.stop_loading_packages()
+        self.tab.setCurrentIndex(0)
 
         self.variant = variant
         if self.variant is None:
@@ -83,14 +88,24 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
             return
 
         self.setEnabled(True)
+
+        range_ = None
+        if self.reference_variant and self.reference_variant.name == variant.name:
+            versions = sorted([variant.version, self.reference_variant.version])
+            range_ = VersionRange.as_span(*versions)
+
         self.load_packages(package_paths=package_paths,
                            package_name=variant.name,
+                           range_=range_,
                            package_attributes=("timestamp",))
 
     def set_packages(self, packages):
         self.table._set_variant(self.variant, packages)
-
+        self._update_label()
+        self._update_changelogs(packages)
         self.setEnabled(True)
+
+    def _update_label(self):
         diff_num = self.table.get_reference_difference()
         if diff_num is None:
             # normal mode
@@ -114,12 +129,27 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
 
         self.label.setText(txt)
 
-    def _view_changelogs(self, enable):
-        label = "Hide Changelogs" if enable else "View Changelogs"
-        self.table.set_view_changelog(enable)
-        self.changelog_btn.setText(label)
-        if isinstance(self.changelog_btn, QtGui.QToolButton):
-            self.changelog_btn.defaultAction().setText(label)
+    def _update_changelogs(self, packages):
+        # don't actually update until tab is selected - changelogs may get big,
+        # we don't want to block up the gui thread unless necessary
+        self.pending_changelog_packages = packages
+        if self.tab.currentIndex() == 1:
+            self._apply_changelogs()
+
+    def _tabIndexChanged(self, index):
+        if index == 1:
+            self._apply_changelogs()
+
+    def _apply_changelogs(self):
+        if self.pending_changelog_packages:
+            busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
+            QtGui.QApplication.setOverrideCursor(busy_cursor)
+            try:
+                self.changelog_edit.clear()
+                self.changelog_edit.set_packages(self.pending_changelog_packages)
+                self.pending_changelog_packages = None
+            finally:
+                QtGui.QApplication.restoreOverrideCursor()
 
     def _changelogStateChanged(self, state):
         self._view_changelogs(state == QtCore.Qt.Checked)
@@ -136,7 +166,7 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
                                     parent=self)
         dlg.exec_()
 
-    def _browseOtherVersions(self):
+    def _browseVersions(self):
         from rezgui.dialogs.BrowsePackageDialog import BrowsePackageDialog
         dlg = BrowsePackageDialog(context_model=self.context_model,
                                   package_text=self.variant.qualified_package_name,
