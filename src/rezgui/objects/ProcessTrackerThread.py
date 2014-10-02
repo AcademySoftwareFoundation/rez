@@ -1,5 +1,6 @@
 from rezgui.qt import QtCore
 from threading import Lock
+import time
 
 
 class ProcessTrackerThread(QtCore.QThread):
@@ -21,15 +22,26 @@ class ProcessTrackerThread(QtCore.QThread):
         self.exec_()
 
     def running_instances(self, context, process_name):
+        """Get a list of running instances.
+
+        Args:
+            context (`ResolvedContext`): Context the process is running in.
+            process_name (str): Name of the process.
+
+        Returns:
+            List of (`subprocess.Popen`, start-time) 2-tuples, where start_time
+            is the epoch time the process was added.
+        """
         handle = (id(context), process_name)
         it = self.processes.get(handle, {}).itervalues()
-        procs = [x for x in it if x.poll() is None]
-        return procs
+        entries = [x for x in it if x[0].poll() is None]
+        return entries
 
     def add_instance(self, context, process_name, process):
         try:
             self.lock.acquire()
-            self.pending_procs.append((id(context), process_name, process))
+            entry = (id(context), process_name, process, int(time.time()))
+            self.pending_procs.append(entry)
         finally:
             self.lock.release()
 
@@ -43,23 +55,26 @@ class ProcessTrackerThread(QtCore.QThread):
             finally:
                 self.lock.release()
 
-            for (context_id, process_name, process) in pending_procs:
+            for (context_id, process_name, process, start_time) in pending_procs:
                 handle = (context_id, process_name)
                 procs = self.processes.get(handle)
+                value = (process, start_time)
+
                 if procs is None:
-                    self.processes[handle] = {process.pid: process}
+                    self.processes[handle] = {process.pid: value}
                     nprocs = 1
                 else:
                     if process.pid not in procs:
-                        procs[process.pid] = process
+                        procs[process.pid] = value
                     nprocs = len(procs)
                 self.instanceCountChanged.emit(context_id, process_name, nprocs)
 
         # rebuild proc list to iterate over
         if self.processes and not self.proc_list:
             for (context_id, process_name), d in self.processes.iteritems():
-                for proc in d.itervalues():
-                    self.proc_list.append((context_id, process_name, proc))
+                for proc, _ in d.itervalues():
+                    entry = (context_id, process_name, proc)
+                    self.proc_list.append(entry)
 
         # poll a proc
         if self.proc_list:

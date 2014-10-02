@@ -18,7 +18,6 @@ class ToolWidget(QtGui.QWidget):
         self.context = context
         self.tool_name = tool_name
         self.process_tracker = process_tracker
-        self.process_start_times = {}
 
         tool_icon = get_icon_widget("spanner")
         self.label = QtGui.QLabel(tool_name)
@@ -29,8 +28,8 @@ class ToolWidget(QtGui.QWidget):
         if self.context:
             self.setCursor(QtCore.Qt.PointingHandCursor)
             if self.process_tracker:
-                procs = self.get_processes()
-                self.set_instance_count(len(procs))
+                entries = self.get_processes()
+                self.set_instance_count(len(entries))
 
         layout = QtGui.QHBoxLayout()
         layout.setSpacing(2)
@@ -55,8 +54,8 @@ class ToolWidget(QtGui.QWidget):
         fn = partial(self._launch_tool, moniter=True)
         add_menu_action(menu, "Run And Moniter", fn)
 
-        procs = self.get_processes()
-        if procs:
+        entries = self.get_processes()
+        if entries:
             menu.addSeparator()
             add_menu_action(menu, "Running Processes...", self._list_processes)
 
@@ -74,7 +73,6 @@ class ToolWidget(QtGui.QWidget):
                                  stdout=buf,
                                  stderr=buf)
 
-        self.process_start_times[proc.pid] = int(time.time())
         if self.process_tracker:
             self.process_tracker.add_instance(self.context, self.tool_name, proc)
         if moniter:
@@ -82,17 +80,17 @@ class ToolWidget(QtGui.QWidget):
             dlg.exec_()
 
     def _list_processes(self):
-        procs = self.get_processes()
+        entries = self.get_processes()
         now = int(time.time())
-        entries = []
-        for proc in procs:
-            age = now - self.process_start_times[proc.pid]
-            entries.append((age, proc.pid))
+        items = []
+        for proc, start_time in entries:
+            age = now - start_time
+            items.append((age, proc.pid))
 
-        if entries:
-            entries = sorted(entries)
+        if items:
+            items = sorted(items)
             lines = []
-            for age, pid in entries:
+            for age, pid in items:
                 t_str = readable_time_duration(age)
                 line = "Process #%d has been running for %s" % (pid, t_str)
                 lines.append(line)
