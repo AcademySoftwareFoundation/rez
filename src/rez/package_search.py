@@ -5,6 +5,10 @@ able to search packages much faster - for example, in a database-based package
 repository. The algorithms here serve as backup for those package repositories
 that do not provide an implementation.
 """
+
+import os
+import pickle
+
 from rez.config import config
 from rez.packages import iter_package_families, iter_packages
 from rez.exceptions import PackageRequestError
@@ -12,6 +16,29 @@ from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
 #from rez.vendor.progress.bar import Bar
 from collections import defaultdict
+
+
+def _get_cache_reverse_lookup():
+
+    """Try to returns a previously cached lookup dictionary
+
+    Returns:
+        defaultdict
+    """
+
+    cache_path = '/tmp/rez_reverse_lookup.dat'
+    if os.path.exists(cache_path):
+        with open(cache_path, 'r') as fh:
+            return pickle.load(fh)
+    return None
+
+
+def _save_reverse_lookup(lookup):
+
+    """Saves reverse lookup dictionary"""
+
+    with open('/tmp/rez_reverse_lookup.dat', 'w') as fh:
+        pickle.dump(lookup, fh)
 
 
 def get_reverse_dependency_tree(package_name, depth=None, paths=None):
@@ -52,23 +79,27 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
     nfams = len(fams)
     #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
-    lookup = defaultdict(set)
 
-    for i, fam in enumerate(fams):
-        bar.next()
-        it = iter_packages(name=fam.name, paths=paths)
-        try:
-            pkg = max(it, key=lambda x: x.version)
-        except ValueError:
-            continue
+    lookup = _get_cache_reverse_lookup()
+    if not lookup:
+        lookup = defaultdict(set)
 
-        requires = set(pkg.requires or [])
-        for req_list in (pkg.variants or []):
-            requires |= set(req_list)
+        for i, fam in enumerate(fams):
+            bar.next()
+            it = iter_packages(name=fam.name, paths=paths)
+            try:
+                pkg = max(it, key=lambda x: x.version)
+            except ValueError:
+                continue
 
-        for req in requires:
-            if not req.conflict:
-                lookup[req.name].add(fam.name)
+            requires = set(pkg.requires or [])
+            for req_list in (pkg.variants or []):
+                requires |= set(req_list)
+
+            for req in requires:
+                if not req.conflict:
+                    lookup[req.name].add(fam.name)
+        _save_reverse_lookup(lookup)
 
     # perform traversal
     bar.finish()
