@@ -96,7 +96,7 @@ setup(
             find_files('*.*', 'icons', root='rezgui')
     },
     classifiers = [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",
