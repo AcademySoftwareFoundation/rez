@@ -35,6 +35,10 @@ def setup_parser(parser, completions=False):
         '--include_all', dest='include_all', action='store_true', default=False,
         help='display all the reverse package dependencies (by default it only displays the anti-packages)'
     )
+    parser.add_argument(
+        '--use_cache', dest='use_cache', action='store_true', default=False,
+        help='use the cached record to speed up the process (note that the cache is discarded if it exists for more than 10 minutes)'
+    )
     PKG_action = parser.add_argument(
         "PKG", type=str,
         help="package that other packages depend on")
@@ -60,17 +64,17 @@ def command(opts, parser, extra_arg_groups=None):
     pkgs_list, g, lookup = get_reverse_dependency_tree(
         package_name=pkg_name,
         depth=opts.depth,
-        paths=pkg_paths)
+        paths=pkg_paths,
+        use_cache=opts.use_cache)
 
     if len(pkgs_list) <= 2:
         _pr('Can not find any package family depending on %s' % pkg_name)
         return 0
 
     if version_range_str:
-        #_present_version_dependencies(pkg_name, pkg_version_range, pkgs_list[1])
         collector = ReverseVersionDependenciesCollector(pkg_name, version_range_str, pkgs_list[1])
         printer = ReverseVersionDependenciesPrinter(_pr, opts.include_all)
-        printer.do_print(collector.iter_dependencies())
+        printer.do_print(collector.iter_dependencies(opts.include_all))
 
     elif opts.graph or opts.print_graph or opts.write_graph:
         gstr = write_dot(g)
@@ -96,54 +100,6 @@ def _extract_package_name_version(input_pkg):
     if len(name_and_version) != 2:
         return input_pkg, ''
     return name_and_version
-
-def _present_version_dependencies(package_name, package_version_range, package_families):
-
-    """Displays the package version reverse dependencies"""
-
-    printer = Printer()
-    printer('Getting version dependencies...... (family count: %s - the larger this value the longer it might take)'
-            % len(package_families))
-    version_dependencies = []
-    for package_family_name in package_families:
-        req_and_pkg_and_latest = _get_version_dependencies(package_name, package_version_range, package_family_name)
-        if req_and_pkg_and_latest:
-            version_dependencies.append(req_and_pkg_and_latest)
-    if not version_dependencies:
-        printer('Can not find any package depending on %s-%s' % (package_name, package_version_range))
-    else:
-        printer('List of upstream packages:')
-        printer('\n'.join([_format_info(flag, req, pkg, latest) for flag, req, pkg, latest in version_dependencies]))
-
-def _format_info(comp, requirement, pkg_obj, latest_version):
-    header = '' if comp else '----x----'
-    if pkg_obj.version == latest_version:
-        return ('%s%s-%s' % (header, pkg_obj.name, pkg_obj.version)).ljust(60) + str(requirement)
-    else:
-        return ('%s%s-%s(%s)' % (header, pkg_obj.name, pkg_obj.version, latest_version)).ljust(60) + str(requirement)
-
-def _get_version_dependencies(package_name, package_version_range, package_family_name):
-
-    """A helper function that checks the reverse dependency on the version-level.
-
-    It iterates the package-version objects of the given package family from the latest to the oldest, returning the
-     first object whose requirements contain the given required package object.
-    """
-
-    index = 0
-    latest_version = None
-    for pkg_obj in sorted(packages.iter_packages(package_family_name), reverse=True, key=lambda x: x.version):
-        if index == 0:
-            latest_version = pkg_obj.version
-        for requirement in pkg_obj.requires:
-            if requirement.name != package_name:
-                continue
-
-            # should also collect the "anti-versions"!!!
-            return requirement.range.issuperset(package_version_range), requirement, pkg_obj, latest_version
-
-        index += 1
-    return None
 
 
 class DisplayablePackage(object):

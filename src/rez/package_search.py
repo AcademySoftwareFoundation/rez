@@ -10,16 +10,14 @@ import os
 import pickle
 import time
 
-from rez.config import config
 from rez.packages import iter_package_families, iter_packages
 from rez.exceptions import PackageRequestError
 from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
-#from rez.vendor.progress.bar import Bar
 from collections import defaultdict
 
 
-def _get_cache_reverse_lookup(max_time_interval=10):
+def _get_cached_reverse_lookup(max_time_interval=10):
 
     """Try to returns a previously cached lookup dictionary
 
@@ -48,7 +46,7 @@ def _save_reverse_lookup(lookup):
         pickle.dump(lookup, fh)
 
 
-def get_reverse_dependency_tree(package_name, depth=None, paths=None):
+def get_reverse_dependency_tree(package_name, depth=None, paths=None, use_cache=False):
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -61,6 +59,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         depth (int): Tree depth limit, unlimited if None.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
+        use_cache: whether to search for a local cache file to speed up the look-up
 
     Returns:
         A 2-tuple:
@@ -87,7 +86,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
     #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
 
-    lookup = _get_cache_reverse_lookup()
+    lookup = None if not use_cache else _get_cached_reverse_lookup()
     if not lookup:
         lookup = defaultdict(set)
 
@@ -106,7 +105,8 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
             for req in requires:
                 if not req.conflict:
                     lookup[req.name].add(fam.name)
-        _save_reverse_lookup(lookup)
+        if use_cache:
+            _save_reverse_lookup(lookup)
 
     # perform traversal
     bar.finish()
