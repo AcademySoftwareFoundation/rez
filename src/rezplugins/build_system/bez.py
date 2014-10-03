@@ -2,7 +2,7 @@
 Built-in simple python build system.
 """
 from rez.vendor import yaml
-from rez.build_system import BuildSystem
+from rez.build_system import BuildSystem, ReleaseType
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
@@ -53,7 +53,7 @@ class BezBuildSystem(BuildSystem):
                                              build_args=build_args,
                                              child_build_args=child_build_args)
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False, release_type=ReleaseType.local):
         # communicate args to bez by placing in a file
         doc = dict(
             source_path=self.working_dir,

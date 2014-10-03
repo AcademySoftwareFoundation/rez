@@ -1,6 +1,7 @@
 from rez.exceptions import BuildSystemError
 from rez.packages import load_developer_package
 from rez.contrib.animallogic.util import filter_preferred_build_systems
+from rez.vendor.enum import Enum
 
 
 def get_buildsys_types():
@@ -54,6 +55,13 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
     else:
         raise BuildSystemError("No build system is associated with the path %s"
                                % working_dir)
+
+
+class ReleaseType(Enum):
+    """ Enum to represent the type of release."""
+
+    local = "local"
+    central = "central"
 
 
 class BuildSystem(object):
@@ -116,7 +124,7 @@ class BuildSystem(object):
         """
         pass
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False, release_type=ReleaseType.local):
         """Implement this method to perform the actual build.
 
         Args:
@@ -126,6 +134,7 @@ class BuildSystem(object):
                 to working_dir.
             install_path: Where to install the build, if the build is installed.
             install: If True, install the build.
+            release_type: a ReleaseType  i.e local or central
 
         Returns:
             A dict containing the following information:

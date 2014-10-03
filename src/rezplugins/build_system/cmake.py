@@ -1,7 +1,7 @@
 """
 CMake-based build system.
 """
-from rez.build_system import BuildSystem
+from rez.build_system import BuildSystem, ReleaseType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
@@ -11,7 +11,6 @@ from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
 import functools
-import os.path
 import sys
 import os
 
@@ -84,10 +83,11 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False, release_type=ReleaseType.local):
         def _pr(s):
             if self.verbose:
                 print s
+
 
         # find cmake binary
         if self.settings.cmake_binary:
@@ -117,7 +117,8 @@ class CMakeBuildSystem(BuildSystem):
 
         callback = functools.partial(self._add_build_actions,
                                      context=context,
-                                     package=self.package)
+                                     package=self.package,
+                                     release_type=release_type)
 
         # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
@@ -158,7 +159,7 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, package):
+    def _add_build_actions(executor, context, package, release_type):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
@@ -174,6 +175,9 @@ class CMakeBuildSystem(BuildSystem):
             (package.description or '').strip()
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.requested_packages(True))
+        executor.env.REZ_RELEASE_TYPE = release_type
+        if config.rez_1_environment_variables and release_type == ReleaseType.central:
+            executor.env.CENTRAL = True
 
 
 def get_current_variant_index(context, package):

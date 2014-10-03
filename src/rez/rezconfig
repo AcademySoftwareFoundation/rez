@@ -372,6 +372,7 @@ error_commands2: false
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
 #   REZ_PACKAGES_PATH   REZ_PACKAGES_PATH (but optional)
+#   CENTRAL             not set (see REZ_RELEASE_TYPE)
 rez_1_environment_variables: true
 
 # If True, override all compatibility-related settings so that Rez-1 support is
