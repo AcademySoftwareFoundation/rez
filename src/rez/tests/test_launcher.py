@@ -1,4 +1,4 @@
-from rez.contrib.animallogic.launcher.tests.test_replace import TestReplace
+from rez.contrib.animallogic.launcher.tests.test_update import TestUpdate
 from rez.contrib.animallogic.launcher.tests.test_setting import TestSetting
 from rez.contrib.animallogic.launcher.tests.test_settingtype import TestSettingType
 from rez.contrib.animallogic.launcher.tests.test_service import TestLauncherHessianService_GetSettings
@@ -19,7 +19,7 @@ def get_test_suites():
 
     tests = [TestSetting, TestSettingType, TestOperatingSystem, TestLauncherHessianService_GetSettings,
              TestLauncherHessianService_CreatePreset,
-             TestLauncherHessianService_AddSettingToPreset, TestBaker, TestBakerCLI, TestReplace,
+             TestLauncherHessianService_AddSettingToPreset, TestBaker, TestBakerCLI, TestUpdate,
              TestLauncherHessianService_AddReferenceToPreset,
              TestLauncherHessianService_RemoveReferenceToPreset,
              TestLauncherHessianService_GetReferenceFromPreset,

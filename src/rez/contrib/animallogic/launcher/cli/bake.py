@@ -11,6 +11,7 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.config import config
 from rez.vendor import argparse
 import logging
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
     description = opts.description
 
     if not description:
-        description = "Preset automatically baked by Rez from %s." % source
+        description = "Preset automatically baked by Rez from %s. The command used was %s" %(source, " ".join(sys.argv))
 
     bake(source, opts.destination, description, opts.overrides, opts.skip_resolve, 
             opts.max_fails, opts.preserve_system_settings, opts.only_packages)

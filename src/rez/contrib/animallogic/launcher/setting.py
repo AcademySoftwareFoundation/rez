@@ -21,11 +21,8 @@ class ReferenceSetting(Setting):
         super(ReferenceSetting, self).__init__(name, id)
         self.preset_id = presetId
 
-    def get_preset_id_as_dict(self):
-        return {u'key': self.preset_id}
-
     def __repr__(self):
-        return "<Reference setting name=%s, id=%s, presetId=%s>" % (self.name, self.id, self.preset_id)
+        return "<ReferenceSetting name=%s, id=%s, presetId=%s>" % (self.name, self.id, self.preset_id)
 
 
 class ValueSetting(Setting):
@@ -86,4 +83,4 @@ class ValueSetting(Setting):
 
     def __repr__(self):
 
-        return "<Setting name=%s, value=%s, type=%s>" % (self.name, self.value, self.setting_type.name)
+        return "<ValueSetting name=%s, value=%s, type=%s>" % (self.name, self.value, self.setting_type.name)

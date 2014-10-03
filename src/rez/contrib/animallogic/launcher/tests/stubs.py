@@ -4,7 +4,7 @@ from rez.contrib.animallogic.launcher.setting import ReferenceSetting
 class StubPresetProxy(object):
 
     PRESETS_PREFIX = '/presets'
-    PRESET_REFERENCE_TABLE = {'/test/full/path': 1234, '/test/to/different/path/path': 9999,
+    PRESET_REFERENCE_TABLE = {'/test/full/path': 1234, '/test/to/different/path/': 9999,
                               '/root/path' : 1111, '/test/path/replace': 7777}
 
     def __init__(self, settings={}, preset_path="", preset=None):
@@ -70,9 +70,6 @@ class StubPresetProxy(object):
 
         if not all([path, username]):
             raise TypeError("")
-
-        if not self.root_preset[self._strip_prefix_from_path(path)]:
-            raise Exception("Preset Does not exists")
 
         return self.root_preset[self._strip_prefix_from_path(path)]
 

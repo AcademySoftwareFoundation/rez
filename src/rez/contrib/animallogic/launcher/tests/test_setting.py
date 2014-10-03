@@ -37,8 +37,7 @@ class TestSetting(unittest.TestCase):
 
         name = 'bla'
         preset_id = 1234
-        preset_id_dict = {u'key': 1234}
 
         refSetting = ReferenceSetting(name, preset_id)
-        self.assertEqual(refSetting.get_preset_id_as_dict(), preset_id_dict)
+        self.assertEqual(refSetting.preset_id, preset_id)
 

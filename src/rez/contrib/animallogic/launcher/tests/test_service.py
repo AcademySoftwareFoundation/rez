@@ -147,13 +147,13 @@ class TestLauncherHessianService_GetPresetFullPath(BaseTestLauncherHessianServic
 
         BaseTestLauncherHessianService.setUp(self)
         self.launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy({}, ""))
-        self.known_presets_ids = {'/test/full/path':  {u'key': 1234}, '/test/to/different/path/path': {u'key': 9999}}
+        self.known_presets_ids = {'/test/full/path':  {u'key': 1234}, '/test/to/different/path/': {u'key': 9999}}
         self.unknown_presets_ids = {'/test/bla':  {u'key': 5555}, '/test/foo': {u'key': 4321}}
 
     def test_get_presets_full_path(self):
 
         for fullPresetPath, id, in self.known_presets_ids.iteritems():
-            self.assertEqual(self.launcher_service.get_preset_full_path(id), fullPresetPath)
+            self.assertEqual(self.launcher_service.get_preset_full_path(id['key']), fullPresetPath)
 
     def test_get_presets_full_path_for_unknown_preset(self):
         for fullPresetPath, id, in self.unknown_presets_ids.iteritems():

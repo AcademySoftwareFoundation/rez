@@ -43,12 +43,12 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return path.replace(self.PRESETS_PREFIX, '')
 
-    def _create_reference_from_dict(self, dict_):
+    def _create_reference_setting_from_dict(self, dict_):
 
         return  ReferenceSetting(str(dict_['name']), dict_['presetId']['key'], dict_['id'])
 
 
-    def _create_setting_from_dict(self, dict_):
+    def _create_value_setting_from_dict(self, dict_):
 
         setting_type = SettingType.create_from_launcher_type(dict_['type']['name'])
 
@@ -103,7 +103,7 @@ class LauncherHessianService(LauncherServiceInterface):
         else:
             raise LauncherError("Retrieve reference only valid for presets '%s' " % path)
 
-        return [self._create_reference_from_dict(reference) for reference in references]
+        return [self._create_reference_setting_from_dict(reference) for reference in references]
 
 
     def add_reference_to_preset_path(self, path, referencePath, username=None, description=None):
@@ -146,7 +146,7 @@ class LauncherHessianService(LauncherServiceInterface):
             settings = method(*args)
         except Exception, e:
             raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e))
-        return [self._create_setting_from_dict(setting) for setting in settings]
+        return [self._create_value_setting_from_dict(setting) for setting in settings]
 
     def add_setting_to_preset(self, setting, preset_path, username=None):
 
