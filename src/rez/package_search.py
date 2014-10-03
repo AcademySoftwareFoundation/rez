@@ -8,6 +8,7 @@ that do not provide an implementation.
 
 import os
 import pickle
+import time
 
 from rez.config import config
 from rez.packages import iter_package_families, iter_packages
@@ -18,9 +19,13 @@ from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
 
 
-def _get_cache_reverse_lookup():
+def _get_cache_reverse_lookup(max_time_interval=10):
 
     """Try to returns a previously cached lookup dictionary
+
+    max_time_interval:
+        measured in minutes, to determine whether the cache is out-dated, i.e. c_time - cache_file.st_mtime <= max_time_interval
+        default value is 10 (minutes)
 
     Returns:
         defaultdict
@@ -28,6 +33,8 @@ def _get_cache_reverse_lookup():
 
     cache_path = '/tmp/rez_reverse_lookup.dat'
     if os.path.exists(cache_path):
+        if (time.time() - os.stat(cache_path).st_mtime) / 60 >= max_time_interval:
+            return None
         with open(cache_path, 'r') as fh:
             return pickle.load(fh)
     return None
@@ -131,4 +138,4 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         working_set = working_set_
         n += 1
 
-    return pkgs_list, g
+    return pkgs_list, g, lookup
