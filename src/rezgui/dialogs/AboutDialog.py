@@ -25,8 +25,9 @@ class AboutDialog(QtGui.QDialog):
         btn_pane = create_pane([None, github_btn, close_btn], True, compact=True)
         create_pane([label, None, btn_pane], False, parent_widget=self)
 
-        close_btn.clicked.connect(self.close)
         github_btn.clicked.connect(self._goto_github)
+        close_btn.clicked.connect(self.close)
+        close_btn.setFocus()
 
     def sizeHint(self):
         return QtCore.QSize(300, 150)

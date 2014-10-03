@@ -21,7 +21,6 @@ import time
 
 class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
-    resolved = QtCore.Signal()
     diffModeChanged = QtCore.Signal()
 
     def __init__(self, context_model=None, parent=None):
@@ -193,7 +192,6 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def _resolve(self, advanced=False):
         dlg = ResolveDialog(self.context_model, parent=self, advanced=advanced)
         dlg.resolve()  # this updates the model on successful solve
-        self.resolved.emit()
 
     def _changes_prompt(self):
         ret = QtGui.QMessageBox.warning(

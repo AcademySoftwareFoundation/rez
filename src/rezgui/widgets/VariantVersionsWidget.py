@@ -72,17 +72,16 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
         self.set_variant(variant)
 
     def set_variant(self, variant):
-        self.stop_loading_packages()
         self.tab.setCurrentIndex(0)
+        self.stop_loading_packages()
+        self.clear()
 
         self.variant = variant
         if self.variant is None:
-            self.clear()
             return
 
         package_paths = self.context_model.packages_path
         if self.variant.search_path not in package_paths:
-            self.clear()
             txt = "not on the package search path"
             self.label.setText(txt)
             return

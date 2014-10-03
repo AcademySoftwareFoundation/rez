@@ -13,7 +13,6 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         widget = ContextManagerWidget(context_model)
-        widget.resolved.connect(self._resolved)
         widget.diffModeChanged.connect(self._diffModeChanged)
         self.setWidget(widget)
         self._update_window_title()
@@ -117,8 +116,3 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
     def _update_window_title(self):
         title = self.widget().get_title()
         self.setWindowTitle(title)
-
-    # for some reason the subwindow occasionally loses focus to another
-    # subwindow after a resolve - this slot gets the focus back.
-    def _resolved(self):
-        self.mdiArea().setActiveSubWindow(self)

@@ -412,6 +412,12 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         else:
             return _title(self.context_model)
 
+    # Stops focus loss when a widget inside the table is selected. In an MDI app
+    # this can cause the current subwindow to lose focus.
+    def clear(self):
+        self.setFocus()
+        super(ContextTableWidget, self).clear()
+
     def refresh(self):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 

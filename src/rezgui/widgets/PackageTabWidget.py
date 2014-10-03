@@ -24,7 +24,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         self.variants_widget = VariantsList()
         self.changelog_edit = VariantChangelogEdit()
         self.details_widget = VariantDetailsWidget(self.context_model)
-        #self.help_widget = VariantHelpWidget(self.context_model)
+        self.help_widget = VariantHelpWidget(self.context_model)
 
         if versions_tab:
             self.versions_widget = VariantVersionsWidget(self.context_model)
@@ -40,7 +40,7 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         if self.versions_widget:
             icon = get_icon("versions", as_qicon=True)
             self.addTab(self.versions_widget, icon, "versions")
-            self.tabs["versions"] = dict(index=n, lazy=False)
+            self.tabs["versions"] = dict(index=n, lazy=True)
             n += 1
 
         icon = get_icon("variant", as_qicon=True)
@@ -58,14 +58,14 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         self.tabs["changelog"] = dict(index=n, lazy=True)
         n += 1
 
+        icon = get_icon("help", as_qicon=True)
+        self.addTab(self.help_widget, icon, "help")
+        self.tabs["help"] = dict(index=n, lazy=True)
+        n += 1
+
         icon = get_icon("info", as_qicon=True)
         self.addTab(self.details_widget, icon, "details")
         self.tabs["info"] = dict(index=n, lazy=False)
-        n += 1
-
-        #icon = get_icon("help", as_qicon=True)
-        #self.addTab(self.help_widget, icon, "help")
-        #self.tabs["help"] = n
 
         self.currentChanged.connect(self._tabChanged)
         self.setEnabled(False)
@@ -82,9 +82,6 @@ class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):
         is_package = isinstance(variant, Package)
         prev_index = self.currentIndex()
         disabled_tabs = set()
-
-        #for i in range(self.count()):
-        #    self.widget(i).set_variant(variant)
 
         for d in self.tabs.itervalues():
             index = d["index"]

@@ -103,7 +103,8 @@ class MainWindow(QtGui.QMainWindow):
                     QtGui.QApplication.restoreOverrideCursor()
 
         if context:
-            app.config.prepend_string_list("most_recent_contexts", filepath,
+            path = os.path.realpath(filepath)
+            app.config.prepend_string_list("most_recent_contexts", path,
                                            "max_most_recent_contexts")
         return context
 
