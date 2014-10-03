@@ -23,9 +23,9 @@ class MainWindow(QtGui.QMainWindow):
         self.statusBar().showMessage("")
 
         # -- file menu
-        file_menu = self.menuBar().addMenu('&File')
-        add_menu_action(file_menu, "&New Context", self.new_context)
-        add_menu_action(file_menu, "Open &Context...", self._open_context)
+        file_menu = self.menuBar().addMenu('File')
+        add_menu_action(file_menu, "New Context", self.new_context)
+        add_menu_action(file_menu, "Open Context...", self._open_context)
         self.recent_contexts_menu = file_menu.addMenu("Open Recent Context")
 
         if status.context and status.context.load_path:
@@ -47,7 +47,7 @@ class MainWindow(QtGui.QMainWindow):
                     fn = partial(self.open_context, filepath)
                     add_menu_action(menu2, label, fn)
 
-        self.save_context_action = add_menu_action(file_menu, "&Save Context")
+        self.save_context_action = add_menu_action(file_menu, "Save Context")
         self.save_context_as_action = add_menu_action(file_menu, "Save Context As...")
         file_menu.addSeparator()
         self.quit_action = add_menu_action(file_menu, "Quit", self.close)
@@ -55,8 +55,8 @@ class MainWindow(QtGui.QMainWindow):
         file_menu.aboutToShow.connect(self._update_file_menu)
 
         # -- help menu
-        help_menu = self.menuBar().addMenu('&Help')
-        add_menu_action(help_menu, "&About", self.about)
+        help_menu = self.menuBar().addMenu('Help')
+        add_menu_action(help_menu, "About", self.about)
 
     def closeEvent(self, event):
         # attempt to close modified contexts first
@@ -78,41 +78,11 @@ class MainWindow(QtGui.QMainWindow):
         dlg = AboutDialog(self)
         dlg.exec_()
 
-    def load_context(self, filepath):
-        context = None
-        busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
-
-        with self._status("Loading %s..." % filepath):
-            QtGui.QApplication.setOverrideCursor(busy_cursor)
-            try:
-                context = ResolvedContext.load(filepath)
-            except ResolvedContextError as e:
-                QtGui.QMessageBox.critical(self, "Failed to load context", str(e))
-            finally:
-                QtGui.QApplication.restoreOverrideCursor()
-
-        if context:
-            with self._status("Validating %s..." % filepath):
-                QtGui.QApplication.setOverrideCursor(busy_cursor)
-                try:
-                    context.validate()
-                except ResolvedContextError as e:
-                    QtGui.QMessageBox.critical(self, "Context validation failure", str(e))
-                    context = None
-                finally:
-                    QtGui.QApplication.restoreOverrideCursor()
-
-        if context:
-            path = os.path.realpath(filepath)
-            app.config.prepend_string_list("most_recent_contexts", path,
-                                           "max_most_recent_contexts")
-        return context
-
     def new_context(self):
         self._add_context_subwindow()
 
     def open_context(self, filepath):
-        context = self.load_context(filepath)
+        context = app.load_context(filepath)
         if context:
             self._add_context_subwindow(context)
 

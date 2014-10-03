@@ -1,4 +1,4 @@
-from rezgui.qt import QtGui
+from rezgui.qt import QtCore, QtGui
 from rezgui.objects.Config import Config
 from rezgui.objects.ProcessTrackerThread import ProcessTrackerThread
 from rezgui import organisation_name, application_name
@@ -41,7 +41,34 @@ class App(QtGui.QApplication):
         self.main_window = window
 
     def load_context(self, filepath):
-        return self.main_window.load_context(filepath)
+        context = None
+        busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
+
+        with self.main_window._status("Loading %s..." % filepath):
+            QtGui.QApplication.setOverrideCursor(busy_cursor)
+            try:
+                context = ResolvedContext.load(filepath)
+            except ResolvedContextError as e:
+                QtGui.QMessageBox.critical(self, "Failed to load context", str(e))
+            finally:
+                QtGui.QApplication.restoreOverrideCursor()
+
+        if context:
+            with self.main_window._status("Validating %s..." % filepath):
+                QtGui.QApplication.setOverrideCursor(busy_cursor)
+                try:
+                    context.validate()
+                except ResolvedContextError as e:
+                    QtGui.QMessageBox.critical(self, "Context validation failure", str(e))
+                    context = None
+                finally:
+                    QtGui.QApplication.restoreOverrideCursor()
+
+        if context:
+            path = os.path.realpath(filepath)
+            self.config.prepend_string_list("most_recent_contexts", path,
+                                            "max_most_recent_contexts")
+        return context
 
     def execute_shell(self, context, command=None, terminal=False, **Popen_args):
 

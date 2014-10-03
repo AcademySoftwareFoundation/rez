@@ -54,21 +54,27 @@ class _ScriptMaker(ScriptMaker):
 
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
-    dest_bin_path = os.path.join(dest_dir, "bin")
-    venv_py_executable = os.path.join(dest_bin_path, "python")
+    venv_bin_path = os.path.join(dest_dir, "bin")
+    venv_py_executable = os.path.join(venv_bin_path, "python")
     assert os.path.exists(venv_py_executable)
+
+    # delete rez bin files written by setuptools
+    for name in bin_names:
+        filepath = os.path.join(venv_bin_path, name)
+        if os.path.exists(filepath):
+            os.remove(filepath)
+
+    # write patched bins instead. These go into 'bin/rez' subdirectory, which
+    # gives us a bin dir containing only rez binaries. This is what we want -
+    # we don't want resolved envs accidentally getting the venv's 'python'.
+    dest_bin_path = os.path.join(venv_bin_path, "rez")
+    os.makedirs(dest_bin_path)
 
     maker = _ScriptMaker(bin_path, dest_bin_path)
     maker.executable = venv_py_executable
     options = dict(interpreter_args=["-E"])
 
     for name in bin_names:
-        # delete bin file written by setuptools
-        filepath = os.path.join(dest_bin_path, name)
-        if os.path.exists(filepath):
-            os.remove(filepath)
-
-        # write patched bin instead
         entry = fake_entry(name)
         maker._make_script(entry, [], options=options)
 
@@ -131,14 +137,15 @@ if __name__ == "__main__":
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark venv as production rez install. Do not remove - rez uses this!
-    validation_file = os.path.join(dest_dir, "rez_production_install")
+    dest_bin_dir = os.path.join(dest_dir, "bin", "rez")
+    validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
-        pass
+        f.write(_rez_version)
 
     # done
     print
     print "SUCCESS! To activate Rez, add the following path to $PATH:"
-    print os.path.join(dest_dir, "bin")
+    print dest_bin_dir
 
     if completion_path:
         print "You may also want to source the relevant completion script from:"
