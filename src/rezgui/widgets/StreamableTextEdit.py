@@ -1,11 +1,12 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.widgets.SearchableTextEdit import SearchableTextEdit
 import threading
 
 
-class StreamableTextEdit(QtGui.QTextEdit):
+class StreamableTextEdit(SearchableTextEdit):
     """A QTextEdit that also acts like a write-only file object.
 
-    The object is threadsafe - write() etc can be called from any thread.
+    The object is threadsafe and can be written to from any thread.
     """
     written = QtCore.Signal()
 

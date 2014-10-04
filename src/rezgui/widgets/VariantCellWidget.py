@@ -194,6 +194,11 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                                          "package was latest within request, "
                                          "at time of resolve"))
                                     ticked = True
+
+                    # bring in the old man
+                    if not ticked:
+                        new_icons.append(
+                            ("old_man", "newer packages are/were available"))
             else:
                 new_icons.append(("error", "package is not in the search path"))
 

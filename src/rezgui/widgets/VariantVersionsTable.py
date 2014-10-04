@@ -139,7 +139,6 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
             vh = self.verticalHeader()
             vh.setVisible(True)
             self.resizeColumnsToContents()
-            self.resizeRowsToContents()
             hh.setStretchLastSection(True)
             self.update()
 

@@ -176,11 +176,11 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
         # shortcuts
         find_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
-        find_shortcut.activated.connect(self._find)
+        find_shortcut.activated.connect(self._search)
 
         # widget signals
         self.context_table.variantSelected.connect(self._variantSelected)
-        self.find_tbtn.clicked.connect(self._find_variant)
+        self.find_tbtn.clicked.connect(self._search_variant)
         self.shell_tbtn.clicked.connect(self._open_shell)
         self.undiff_tbtn.clicked.connect(self._leave_diff_mode)
         self.time_lock_tbtn.clicked.connect(self._timelockClicked)
@@ -343,17 +343,19 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
     def _removeExplicitLocks(self):
         self.context_model.remove_all_patch_locks()
 
-    def _find(self):
+    def _search(self):
         tab_index = self.tab.currentIndex()
         if tab_index == 0:
-            self._find_variant()
+            self._search_variant()
+        elif tab_index == 3:
+            self.resolve_details.search()
 
-    def _find_variant(self):
+    def _search_variant(self):
         context = self.context()
         if not context:
             return
 
         words = [x.name for x in context.resolved_packages]
-        self.popup = FindPopup(self.find_tbtn, words, parent=self)
+        self.popup = FindPopup(self.find_tbtn, "bottomLeft", words, parent=self)
         self.popup.find.connect(self.context_table.select_variant)
         self.popup.show()

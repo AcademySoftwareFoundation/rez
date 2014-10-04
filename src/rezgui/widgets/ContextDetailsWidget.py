@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rezgui.widgets.ContextEnvironWidget import ContextEnvironWidget
+from rezgui.widgets.SearchableTextEdit import SearchableTextEdit
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.widgets.ViewGraphButton import ViewGraphButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
@@ -23,7 +24,7 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         btn_pane = create_pane([None, self.graph_btn], True)
         overview_pane = create_pane([self.overview_edit, btn_pane], False)
 
-        self.code_edit = QtGui.QTextEdit()
+        self.code_edit = SearchableTextEdit()
         self.code_edit.setStyleSheet("font: 9pt 'Courier'")
 
         self.code_combo = QtGui.QComboBox()
@@ -62,6 +63,13 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         context.print_info(buf=self.overview_edit, verbosity=1)
         self.overview_edit.moveCursor(QtGui.QTextCursor.Start)
         self.environ_widget.set_context(context)
+
+    def search(self):
+        tab_index = self.currentIndex()
+        if tab_index == 0:
+            self.overview_edit.search()
+        elif tab_index == 1:
+            self.code_edit.search()
 
     def _contextChanged(self, flags=0):
         if not (flags & ContextModel.CONTEXT_CHANGED):
