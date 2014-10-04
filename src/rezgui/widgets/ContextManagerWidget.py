@@ -8,6 +8,7 @@ from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.ContextSettingsWidget import ContextSettingsWidget
 from rezgui.widgets.IconButton import IconButton
 from rezgui.widgets.ContextResolveTimeLabel import ContextResolveTimeLabel
+from rezgui.widgets.FindPopup import FindPopup
 from rezgui.dialogs.ResolveDialog import ResolveDialog
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
@@ -28,6 +29,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         ContextViewMixin.__init__(self, context_model)
 
         # widgets
+        self.popup = None
         self.context_table = ContextTableWidget(self.context_model)
         self.show_effective_request_checkbox = QtGui.QCheckBox("show effective request")
 
@@ -36,6 +38,11 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.time_lock_tbtn = QtGui.QToolButton()
         icon = get_icon("time_lock", as_qicon=True)
         self.time_lock_tbtn.setIcon(icon)
+
+        self.find_tbtn = QtGui.QToolButton()
+        self.find_tbtn.setToolTip("find resolved package")
+        icon = get_icon("find", as_qicon=True)
+        self.find_tbtn.setIcon(icon)
 
         self.shell_tbtn = QtGui.QToolButton()
         self.shell_tbtn.setToolTip("open shell")
@@ -108,6 +115,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         toolbar.addWidget(resolve_time_label)
         self.time_lock_tbtn_action = toolbar.addWidget(self.time_lock_tbtn)
         toolbar.addSeparator()
+        toolbar.addWidget(self.find_tbtn)
         toolbar.addWidget(self.shell_tbtn)
         self.diff_tbtn_action = toolbar.addWidget(self.diff_tbtn)
         self.undiff_tbtn_action = toolbar.addWidget(self.undiff_tbtn)
@@ -118,6 +126,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.undiff_tbtn_action.setVisible(False)
 
         self.time_lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
+        self.find_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.shell_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.diff_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
         self.lock_tbtn.setCursor(QtCore.Qt.PointingHandCursor)
@@ -165,8 +174,13 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         layout.addWidget(self.tab)
         self.setLayout(layout)
 
-        # signals
+        # shortcuts
+        find_shortcut = QtGui.QShortcut(QtGui.QKeySequence("Ctrl+F"), self)
+        find_shortcut.activated.connect(self._find)
+
+        # widget signals
         self.context_table.variantSelected.connect(self._variantSelected)
+        self.find_tbtn.clicked.connect(self._find_variant)
         self.shell_tbtn.clicked.connect(self._open_shell)
         self.undiff_tbtn.clicked.connect(self._leave_diff_mode)
         self.time_lock_tbtn.clicked.connect(self._timelockClicked)
@@ -276,6 +290,7 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
         self.undiff_tbtn.setEnabled(not stale)
         self.shell_tbtn.setEnabled(not stale)
         self.lock_tbtn.setEnabled(is_context)
+        self.find_tbtn.setEnabled(is_context)
 
         self.tab.setTabEnabled(2, is_context)
         self.tab.setTabEnabled(3, is_context)
@@ -327,3 +342,18 @@ class ContextManagerWidget(QtGui.QWidget, ContextViewMixin):
 
     def _removeExplicitLocks(self):
         self.context_model.remove_all_patch_locks()
+
+    def _find(self):
+        tab_index = self.tab.currentIndex()
+        if tab_index == 0:
+            self._find_variant()
+
+    def _find_variant(self):
+        context = self.context()
+        if not context:
+            return
+
+        words = [x.name for x in context.resolved_packages]
+        self.popup = FindPopup(self.find_tbtn, words, parent=self)
+        self.popup.find.connect(self.context_table.select_variant)
+        self.popup.show()

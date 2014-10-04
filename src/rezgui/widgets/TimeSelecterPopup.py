@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import update_font
+from rezgui.util import update_font, create_pane
 from rez.util import readable_time_duration
 import math
 
@@ -91,6 +91,7 @@ class TimeSelecterPopup(QtGui.QFrame):
     def __init__(self, pivot_widget, width=240, height=160, parent=None):
         super(TimeSelecterPopup, self).__init__(parent)
         self.setFrameStyle(QtGui.QFrame.Panel | QtGui.QFrame.Raised)
+        self.setWindowFlags(QtCore.Qt.Popup)
         self.seconds = None
 
         self.label = QtGui.QLabel("")
@@ -104,15 +105,9 @@ class TimeSelecterPopup(QtGui.QFrame):
         layout.addWidget(canvas)
         canvas_frame.setLayout(layout)
 
-        layout = QtGui.QVBoxLayout()
-        layout.setSpacing(2)
-        layout.setContentsMargins(2, 2, 2, 2)
-        layout.addWidget(self.label)
-        layout.addWidget(canvas_frame)
-        self.setLayout(layout)
+        create_pane([self.label, canvas_frame], False, compact=True,
+                    parent_widget=self)
         self.adjustSize()
-
-        self.setWindowFlags(QtCore.Qt.Popup)
 
         pt = pivot_widget.rect().topLeft()
         global_pt = pivot_widget.mapToGlobal(pt)

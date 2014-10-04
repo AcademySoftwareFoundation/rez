@@ -418,6 +418,12 @@ class ContextTableWidget(QtGui.QTableWidget, ContextViewMixin):
         self.setFocus()
         super(ContextTableWidget, self).clear()
 
+    def select_variant(self, name):
+        for row, widget in self._iter_column_widgets(1, VariantCellWidget):
+            if widget.variant.name == str(name):
+                self.setCurrentIndex(self.model().index(row, 1))
+                return
+
     def refresh(self):
         self._contextChanged(ContextModel.CONTEXT_CHANGED)
 
