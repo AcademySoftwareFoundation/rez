@@ -1,15 +1,19 @@
 from rezgui.qt import QtCore, QtGui
+from rezgui.objects.App import app
 from rezgui.widgets.ContextManagerWidget import ContextManagerWidget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
+from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.models.ContextModel import ContextModel
 import os.path
 
 
-class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
+class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
     def __init__(self, context=None, parent=None):
         super(ContextSubWindow, self).__init__(parent)
         context_model = ContextModel(context)
         ContextViewMixin.__init__(self, context_model)
+        config_key = "layout/window/context_manager"
+        StoreSizeMixin.__init__(self, app.config, config_key)
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
 
         widget = ContextManagerWidget(context_model)
@@ -23,6 +27,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin):
     def closeEvent(self, event):
         if self.can_close():
             super(ContextSubWindow, self).closeEvent(event)
+            StoreSizeMixin.closeEvent(self, event)
         else:
             event.ignore()
 

@@ -121,7 +121,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     in_future = False
 
                 item = _item()
-                txt = package.path + " "
+                txt = package.path + "  "
                 if in_future:
                     icon = get_icon_widget(
                         "clock_warning", "package did not exist at time of resolve")

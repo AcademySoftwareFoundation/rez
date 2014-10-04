@@ -81,12 +81,6 @@ class VariantSummaryWidget(QtGui.QWidget):
                 txt = "; ".join(var_strs)
                 rows.append(("requires: ", txt))
 
-            # if a package, show changelog.
-            #if isinstance(variant, Package) and variant.changelog:
-            #if variant.changelog:
-            #    rows.append(("", ""))
-            #    rows.append(("changelog: ", variant.changelog))
-
             self.table.setRowCount(len(rows))
             for i, row in enumerate(rows):
                 label, value = row

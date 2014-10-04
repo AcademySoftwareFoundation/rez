@@ -4,7 +4,10 @@
 
 layout:
     window:
-        main:
+        package_browser:
+            width: 800
+            height: 500
+        context_manager:
             width: 800
             height: 500
         resolve:

@@ -16,14 +16,28 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         "implicit_packages":    "Packages that are implicitly added to the request"
     }
 
-    schema = Schema({
+    schema_dict = {
         "packages_path":        [basestring],
         "implicit_packages":    [basestring]
-    })
+    }
 
-    def __init__(self, context_model=None, parent=None):
+    def __init__(self, context_model=None, attributes=None, parent=None):
+        """
+        Args:
+            attributes (list of str): Select only certain settings to expose. If
+                None, all settings are exposed.
+        """
         super(ContextSettingsWidget, self).__init__(parent)
         ContextViewMixin.__init__(self, context_model)
+
+        self.schema_keys = set(self.schema_dict.iterkeys())
+        if attributes:
+            self.schema_keys &= set(attributes)
+            assert self.schema_keys
+
+        schema_dict = dict((k, v) for k, v in self.schema_dict.iteritems()
+                           if k in self.schema_keys)
+        self.schema = Schema(schema_dict)
 
         self.edit = QtGui.QTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")
@@ -98,6 +112,9 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         implicits = [str(x) for x in config.implicit_packages]
         data = {"packages_path": packages_path,
                 "implicit_packages": implicits}
+        data = dict((k, v) for k, v in data.iteritems()
+                    if k in self.schema_keys)
+
         self._set_text(data)
         self.discard_btn.setEnabled(True)
         self.apply_btn.setEnabled(True)
@@ -107,6 +124,9 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         implicits = [str(x) for x in model.implicit_packages]
         data = {"packages_path": model.packages_path,
                 "implicit_packages": implicits}
+        data = dict((k, v) for k, v in data.iteritems()
+                    if k in self.schema_keys)
+
         self._set_text(data)
         self.discard_btn.setEnabled(False)
         self.apply_btn.setEnabled(False)

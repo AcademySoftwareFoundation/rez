@@ -17,7 +17,14 @@ class SearchableTextEdit(QtGui.QTextEdit):
         if not self.searchable:
             return
 
-        self.popup = FindPopup(self, "bottomLeft", close_on_find=False, parent=self)
+        txt = str(self.textCursor().selectedText()).strip()
+        if len(txt) < 32 and len(txt.split()) == 1:
+            initial_word = txt
+        else:
+            initial_word = None
+
+        self.popup = FindPopup(self, "bottomLeft", initial_word=initial_word,
+                               close_on_find=False, parent=self)
         self.popup.find.connect(self._find_text)
         self.popup.show()
 

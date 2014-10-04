@@ -2,8 +2,8 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, get_icon_widget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
-from rez.package_help import PackageHelp
 from rez.vendor.version.version import VersionRange
+from rez.package_help import PackageHelp
 from functools import partial
 
 
@@ -96,7 +96,7 @@ class VariantHelpWidget(PackageLoadingWidget, ContextViewMixin):
             self._apply_help(self.help_2, 1)
             label = "help for %s"
         if label:
-            self.tab.setTabText(1, label % self.variant.qualified_package_name)
+            self.tab.setTabText(1, label % self.help_2.package.qualified_name)
 
         if self.help_1.success or self.help_2.success:
             self.tab.show()

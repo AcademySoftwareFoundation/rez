@@ -9,7 +9,8 @@ from rez.vendor.version.requirement import Requirement, VersionedObject
 
 
 class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
-
+    """A widget for browsing rez packages.
+    """
     packageSelected = QtCore.Signal()
 
     def __init__(self, context_model=None, parent=None, lock_package=False,
@@ -50,12 +51,6 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
             package_name = str(txt)
             version_range = None
 
-        try:
-            obj = VersionedObject(str(txt))
-            self.versions_table.set_highlight_version(obj.version)
-        except:
-            pass
-
         self.edit.setText(package_name)
         self._set_package_name(package_name)
 
@@ -67,7 +62,6 @@ class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):
 
     def _set_package_name(self, package_name):
         self.versions_table.set_package_name(package_name)
-        self.versions_table.set_highlight_version(None)
         self.versions_table.setFocus()
 
     def _set_package(self):

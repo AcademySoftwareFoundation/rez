@@ -8,11 +8,13 @@ class EffectivePackageCellWidget(QtGui.QWidget):
         super(EffectivePackageCellWidget, self).__init__(parent)
 
         if type_ == "implicit":
+            icon_name = "cog"
             tooltip = "implicit package"
         else:
+            icon_name = type_
             tooltip = PatchLock[type_].description
 
-        icon_widget = get_icon_widget(type_, tooltip)
+        icon_widget = get_icon_widget(icon_name, tooltip)
         label = QtGui.QLabel(str(request))
         update_font(label, italic=True)
 

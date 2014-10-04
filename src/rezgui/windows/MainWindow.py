@@ -1,6 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.objects.App import app
 from rezgui.util import add_menu_action
+from rezgui.windows.BrowsePackageSubWindow import BrowsePackageSubWindow
 from rezgui.windows.ContextSubWindow import ContextSubWindow
 from rezgui.dialogs.AboutDialog import AboutDialog
 from rez.exceptions import ResolvedContextError
@@ -24,6 +25,11 @@ class MainWindow(QtGui.QMainWindow):
 
         # -- file menu
         file_menu = self.menuBar().addMenu('File')
+
+        add_menu_action(file_menu, "Open Package Browser...",
+                        self._open_package_browser)
+        file_menu.addSeparator()
+
         add_menu_action(file_menu, "New Context", self.new_context)
         add_menu_action(file_menu, "Open Context...", self._open_context)
         self.recent_contexts_menu = file_menu.addMenu("Open Recent Context")
@@ -77,6 +83,11 @@ class MainWindow(QtGui.QMainWindow):
     def about(self):
         dlg = AboutDialog(self)
         dlg.exec_()
+
+    def _open_package_browser(self):
+        subwindow = BrowsePackageSubWindow()
+        self.mdi.addSubWindow(subwindow)
+        subwindow.show()
 
     def new_context(self):
         self._add_context_subwindow()
