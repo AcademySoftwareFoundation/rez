@@ -32,12 +32,13 @@ def setup_parser(parser, completions=False):
         "--wg", "--write-graph", dest="write_graph", type=str, metavar='FILE',
         help="write the dependency tree to FILE")
     parser.add_argument(
-        '--include_all', dest='include_all', action='store_true', default=False,
+        '--include-all', dest='include_all', action='store_true', default=False,
         help='display all the reverse package dependencies (by default it only displays the anti-packages)'
     )
     parser.add_argument(
-        '--use_cache', dest='use_cache', action='store_true', default=False,
-        help='use the cached record to speed up the process (note that the cache is discarded if it exists for more than 10 minutes)'
+        '-f', '--force-update-cache', dest='force_update_cache', action='store_true', default=False,
+        help='force-update the cache that stores the reverse package-family dependencies (this cache is automatically '
+             'regenerated every 10 minutes by default.'
     )
     PKG_action = parser.add_argument(
         "PKG", type=str,
@@ -65,7 +66,7 @@ def command(opts, parser, extra_arg_groups=None):
         package_name=pkg_name,
         depth=opts.depth,
         paths=pkg_paths,
-        use_cache=opts.use_cache)
+        force_update_cache=opts.force_update_cache)
 
     if len(pkgs_list) <= 2:
         _pr('Can not find any package family depending on %s' % pkg_name)
@@ -134,7 +135,7 @@ class ReverseVersionDependenciesPrinter(object):
                     is_anti = pkg_.is_anti_package
                 self._print_package(pkg_)
         else:
-            self._print_header('incompatible packages')
+            self._print_header('Incompatible Packages')
             for pkg_ in sorted(displayable_packages, key=lambda x: x.name):
                 if not pkg_.is_anti_package:
                     continue

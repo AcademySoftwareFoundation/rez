@@ -7,6 +7,7 @@ that do not provide an implementation.
 """
 
 import os
+import sys
 import pickle
 import time
 
@@ -17,36 +18,44 @@ from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
 
 
-def _get_cached_reverse_lookup(max_time_interval=10):
+REVERSE_FAMILY_DEPENDENCIES_CACHE = '/tmp/rez_reverse_lookup.dat'
+MINUTES_BEFORE_CACHE_EXPIRY = 10
+
+
+def _get_cached_reverse_lookup(minutes_before_cache_expiry=MINUTES_BEFORE_CACHE_EXPIRY):
 
     """Try to returns a previously cached lookup dictionary
 
-    max_time_interval:
-        measured in minutes, to determine whether the cache is out-dated, i.e. c_time - cache_file.st_mtime <= max_time_interval
+    minutes_before_cache_expiry:
+        measured in minutes, to determine whether the cache is out-dated,
+        i.e. c_time - cache_file.st_mtime <= minutes_before_cache_expiry
         default value is 10 (minutes)
+        * the caller may pass in a negative value to force-update the cache
 
     Returns:
         defaultdict
     """
 
-    cache_path = '/tmp/rez_reverse_lookup.dat'
-    if os.path.exists(cache_path):
-        if (time.time() - os.stat(cache_path).st_mtime) / 60 >= max_time_interval:
-            return None
-        with open(cache_path, 'r') as fh:
-            return pickle.load(fh)
-    return None
+    if not os.path.exists(REVERSE_FAMILY_DEPENDENCIES_CACHE):
+        return None
+    if not os.access(REVERSE_FAMILY_DEPENDENCIES_CACHE, os.R_OK):
+        sys.stderr.write('\nYou do not have enough permission to read the cache: %s\n' % REVERSE_FAMILY_DEPENDENCIES_CACHE)
+        return None
+    if (time.time() - os.stat(REVERSE_FAMILY_DEPENDENCIES_CACHE).st_mtime) / 60 >= minutes_before_cache_expiry:
+        return None
+    with open(REVERSE_FAMILY_DEPENDENCIES_CACHE, 'r') as fh:
+        return pickle.load(fh)
 
 
 def _save_reverse_lookup(lookup):
 
     """Saves reverse lookup dictionary"""
 
-    with open('/tmp/rez_reverse_lookup.dat', 'w') as fh:
+    with open(REVERSE_FAMILY_DEPENDENCIES_CACHE, 'w') as fh:
         pickle.dump(lookup, fh)
 
 
-def get_reverse_dependency_tree(package_name, depth=None, paths=None, use_cache=False):
+def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_update_cache=False):
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -59,7 +68,8 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, use_cache=
         depth (int): Tree depth limit, unlimited if None.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
-        use_cache: whether to search for a local cache file to speed up the look-up
+        force_update_cache: whether to force-update the local cache file that stores the reverse family dependencies.
+                            by default this cache is updated every 10 minutes.
 
     Returns:
         A 2-tuple:
@@ -86,7 +96,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, use_cache=
     #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
 
-    lookup = None if not use_cache else _get_cached_reverse_lookup()
+    lookup = _get_cached_reverse_lookup(minutes_before_cache_expiry=-1 if force_update_cache else MINUTES_BEFORE_CACHE_EXPIRY)
     if not lookup:
         lookup = defaultdict(set)
 
@@ -105,8 +115,8 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, use_cache=
             for req in requires:
                 if not req.conflict:
                     lookup[req.name].add(fam.name)
-        if use_cache:
-            _save_reverse_lookup(lookup)
+
+        _save_reverse_lookup(lookup)
 
     # perform traversal
     bar.finish()
