@@ -131,7 +131,7 @@ class ReverseVersionDependenciesPrinter(object):
             is_anti = None
             for pkg_ in sorted(displayable_packages, key=lambda x: (x.is_anti_package, x.name)):
                 if is_anti != pkg_.is_anti_package:
-                    self._print_header('%s packages' % ('incompatible' if pkg_.is_anti_package else 'compatible'))
+                    self._print_header('%s packages' % ('Incompatible' if pkg_.is_anti_package else 'Compatible'))
                     is_anti = pkg_.is_anti_package
                 self._print_package(pkg_)
         else:
