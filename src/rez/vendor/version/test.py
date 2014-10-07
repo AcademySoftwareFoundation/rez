@@ -313,7 +313,7 @@ class TestVersionSchema(unittest.TestCase):
 
         # test range from version(s)
         v = Version("3")
-        self.assertTrue(VersionRange.from_version(v) == VersionRange("==3"))
+        self.assertTrue(VersionRange.from_version(v, "eq") == VersionRange("==3"))
         self.assertTrue(VersionRange.from_version(v, "gt") == VersionRange(">3"))
         self.assertTrue(VersionRange.from_version(v, "gte") == VersionRange("3+"))
         self.assertTrue(VersionRange.from_version(v, "lt") == VersionRange("<3"))
