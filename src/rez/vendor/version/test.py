@@ -275,8 +275,6 @@ class TestVersionSchema(unittest.TestCase):
         _eq("+<=", "==")    # equivalent to above
 
         invalid_range = [
-            "<",            # less than the empty version
-            "><",           # both greater and less than empty version
             "4+<2",         # lower bound greater than upper
             ">3<3",         # both greater and less than same version
             ">3<=3",        # greater and less or equal to same version
@@ -287,6 +285,8 @@ class TestVersionSchema(unittest.TestCase):
             self.assertRaises(VersionError, VersionRange, s)
 
         invalid_syntax = [
+            "<",            # less than the empty version
+            "><",           # both greater and less than empty version
             ">3>4",         # both are lower bounds
             "<3<4",         # both are upper bounds
             "<4>3",         # upper bound before lower
