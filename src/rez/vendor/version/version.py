@@ -468,33 +468,45 @@ class _VersionRangeParser(object):
         # followed by a non-capturing group of version separator followed by 
         # one or more version tokens.
         version_group = r"""
-        ([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)            # A Version Number
+        ([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)                # A Version Number
     """
-        s=dict(version_group=version_group)
 
         version_range_regex = r"""
-    ^(?P<ver>{version_group})$
-|                                                        # Or mmatch an exact version number (e.g. ==1.0.0)
-    ^(?P<ext_op>==)                                      # Required == operator
-    (?P<ext_ver>{version_group})?$
-|                                                        # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-    ^(?P<inc_low>{version_group})?
-    (?P<inc_op>\.\.)                                     # Required .. operator
-    (?P<inc_up>{version_group})?$
-|                                                        # Or match a lower bound (e.g. 1.0.0+)
-    ^(?P<exc_low>>|>=)?                                  # Bound is exclusive (> or >=)
-    (?P<low>{version_group})?
-    (?(exc_low)|(?P<exc_op>\+))$                         # + only if bound is not exclusive
-|                                                        # Or match an upper bound (e.g. <=1.0.0)
-    ^(?P<exc_up><(?={version_group})|<=)?                                   # Bound is exclusive (< or <=)
-    (?P<up>{version_group})?$
-|                                                        # Or match a lower and upper bound (e.g. 1.0.0+<2.0.0)
-    ^(?P<exc_low_bnd>>|>=)?                              # Lower bound is exclusive (> or >=)
-    (?P<low_bnd>{version_group})?
-    (?(exc_low_bnd)|\+)?                                 # + only if lower bound is not exclusive
-    (?(low_bnd),?|)                                      # , only if lower bound is found 
-    (?P<exc_up_bnd><(?={version_group})|<=)              # <= only if followed by a version group
-    (?P<up_bnd>{version_group})?$
+    ^(?P<version>{version_group})$
+|                                                            # Or match an exact version number (e.g. ==1.0.0)
+    ^(?P<exact_version>
+        ==                                                   # Required == operator
+        (?P<exact_version_group>{version_group})?
+    )$
+|                                                            # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
+    ^(?P<inclusive_bound>
+        (?P<inclusive_lower_version>{version_group})?
+        \.\.                                                 # Required .. operator
+        (?P<inclusive_upper_version>{version_group})?
+    )$
+|                                                            # Or match a lower bound (e.g. 1.0.0+)
+    ^(?P<lower_bound>
+        (?P<lower_bound_prefix>>|>=)?                        # Bound is exclusive?
+        (?P<lower_version>{version_group})?
+        (?(lower_bound_prefix)|\+)                           # + only if bound is not exclusive
+    )$
+|                                                            # Or match an upper bound (e.g. <=1.0.0)
+    ^(?P<upper_bound>
+        (?P<upper_bound_prefix><(?={version_group})|<=)?     # Bound is exclusive?
+        (?P<upper_version>{version_group})?
+    )$
+|                                                            # Or match a range (e.g. 1.0.0+<2.0.0)
+    ^(?P<range>
+        (?P<range_lower>
+            (?P<range_lower_prefix>>|>=)?                    # Lower bound is exclusive?
+            (?P<range_lower_version>{version_group})?
+            (?(range_lower_prefix)|\+)?                      # + only if lower bound is not exclusive
+        )(?P<range_upper>
+            (?(range_lower_version),?|)                      # , only if lower bound is found 
+            (?P<range_upper_prefix><(?={version_group})|<=)  # <= only if followed by a version group
+            (?P<range_upper_version>{version_group})?
+        )
+    )$
 """.format(version_group=version_group)
 
         self.regex = re.compile(version_range_regex, re_flags)
@@ -522,7 +534,7 @@ class _VersionRangeParser(object):
 
     @action
     def _act_version(self):
-        version = self._create_version_from_token(self._groups['ver'])
+        version = self._create_version_from_token(self._groups['version'])
         lower_bound = _LowerBound(version, True)
         upper_bound = _UpperBound(version.next(), False) if version else None
 
@@ -530,7 +542,7 @@ class _VersionRangeParser(object):
 
     @action
     def _act_exact_version(self):
-        version = self._create_version_from_token(self._groups['ext_ver'])
+        version = self._create_version_from_token(self._groups['exact_version_group'])
         lower_bound = _LowerBound(version, True)
         upper_bound = _UpperBound(version, True)
 
@@ -538,26 +550,26 @@ class _VersionRangeParser(object):
 
     @action
     def _act_bound(self):
-        lower_version = self._create_version_from_token(self._groups['inc_low'])
+        lower_version = self._create_version_from_token(self._groups['inclusive_lower_version'])
         lower_bound = _LowerBound(lower_version, True)
 
-        upper_version = self._create_version_from_token(self._groups['inc_up'])
+        upper_version = self._create_version_from_token(self._groups['inclusive_upper_version'])
         upper_bound = _UpperBound(upper_version, True)
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
     @action
     def _act_lower_bound(self):
-        version = self._create_version_from_token(self._groups['low'])
-        exclusive = self._is_lower_bound_exclusive(self._groups['exc_low'])
+        version = self._create_version_from_token(self._groups['lower_version'])
+        exclusive = self._is_lower_bound_exclusive(self._groups['lower_bound_prefix'])
         lower_bound = _LowerBound(version, not exclusive)
 
         self.bounds.append(_Bound(lower_bound, None))
 
     @action
     def _act_upper_bound(self):
-        version = self._create_version_from_token(self._groups['up'])
-        exclusive = self._is_upper_bound_exclusive(self._groups['exc_up'])
+        version = self._create_version_from_token(self._groups['upper_version'])
+        exclusive = self._is_upper_bound_exclusive(self._groups['upper_bound_prefix'])
         upper_bound = _UpperBound(version, not exclusive)
 
         self.bounds.append(_Bound(None, upper_bound))
@@ -567,14 +579,14 @@ class _VersionRangeParser(object):
         lower_bound = None
         upper_bound = None
 
-        if self._groups['low_bnd']:
-            version = self._create_version_from_token(self._groups['low_bnd'])
-            exclusive = self._is_lower_bound_exclusive(self._groups['exc_low_bnd'])
+        if self._groups['range_lower']:
+            version = self._create_version_from_token(self._groups['range_lower_version'])
+            exclusive = self._is_lower_bound_exclusive(self._groups['range_lower_prefix'])
             lower_bound = _LowerBound(version, not exclusive)
 
-        if self._groups['up_bnd'] or self._groups['exc_up_bnd']:
-            version = self._create_version_from_token(self._groups['up_bnd'])
-            exclusive = self._is_upper_bound_exclusive(self._groups['exc_up_bnd'])
+        if self._groups['range_upper']:
+            version = self._create_version_from_token(self._groups['range_upper_version'])
+            exclusive = self._is_upper_bound_exclusive(self._groups['range_upper_prefix'])
             upper_bound = _UpperBound(version, not exclusive)
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
@@ -599,22 +611,22 @@ class _VersionRangeParser(object):
                                      % part)
 
             self._groups = match.groupdict()
-            if self._groups['ver']:
+            if self._groups['version']:
                 self._act_version()
 
-            if self._groups['ext_op']:
+            if self._groups['exact_version']:
                 self._act_exact_version()
 
-            if self._groups['inc_op']:
+            if self._groups['inclusive_bound']:
                 self._act_bound()
 
-            if self._groups['low'] or self._groups['exc_low'] or self._groups['exc_op']:
+            if self._groups['lower_bound']:
                 self._act_lower_bound()
 
-            if self._groups['up'] or self._groups['exc_up']:
+            if self._groups['upper_bound']:
                 self._act_upper_bound()
 
-            if self._groups['low_bnd'] or self._groups['up_bnd'] or self._groups['exc_up_bnd']:
+            if self._groups['range']:
                 self._act_lower_and_upper_bound()
 
         return self.bounds
