@@ -1,3 +1,4 @@
+from rez.build_process import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages import load_developer_package
 from rez.util import which
@@ -115,7 +116,8 @@ class BuildSystem(object):
         """
         pass
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False,
+              build_type=BuildType.local):
         """Implement this method to perform the actual build.
 
         Args:
@@ -125,6 +127,7 @@ class BuildSystem(object):
                 to working_dir.
             install_path: Where to install the build, if the build is installed.
             install: If True, install the build.
+            build_type: A BuildType (i.e local or central).
 
         Returns:
             A dict containing the following information:

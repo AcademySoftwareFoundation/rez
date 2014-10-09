@@ -353,13 +353,23 @@ error_commands2: false
 #   REZ_PATH            REZ_USED
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
+#   REZ_IN_REZ_RELEASE  not set
 rez_1_environment_variables: true
+
+# If True, Rez will continue to generate the given CMake variables at build and
+# release time, even though their use has been deprecated in Rez-2.  The 
+# variables in question, and their Rez-2 equivalent (if any) are:
+#   REZ-1               REZ-2
+#   -----               -----
+#   CENTRAL             REZ_BUILD_TYPE
+rez_1_cmake_variables: true
 
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
 # * All warn/error settings in this section of the config will be set to
 #   warn=False, error=True;
 # * rez_1_environment_variables will be set to False.
+# * rez_1_cmake_variables will be set to False.
 # You should aim to do this - it will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
 disable_rez_1_compatibility: false
