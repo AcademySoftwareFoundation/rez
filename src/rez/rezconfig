@@ -72,7 +72,7 @@ resource_caching: true
 # A value of 0 has the same effect as setting resource_caching to false.  A 
 # value of -1 creates a cache of unlimited size.  Any other value introduces an
 # lru cache fixed at that size.
-resource_caching_maxsize: 10000
+resource_caching_maxsize: -1
 
 
 ###############################################################################

@@ -404,7 +404,7 @@ class Config(DataWrapper):
     def lru_cache(self, key, maxsize_key=None):
         def decorated(f):
             if self.get(key):
-                maxsize = self.get(maxsize_key) if maxsize_key else 10000
+                maxsize = self.get(maxsize_key) if maxsize_key else -1
                 maxsize = None if maxsize == -1 else maxsize
                 return lru_cache(maxsize)(f)
             else:
