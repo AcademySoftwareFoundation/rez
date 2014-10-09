@@ -84,7 +84,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = 3
+    serialize_version = (3, 0)
 
     class Callback(object):
         def __init__(self, verbose, max_fails, time_limit, callback, buf=None):
@@ -485,15 +485,7 @@ class ResolvedContext(object):
         with open(path) as f:
             doc = yaml.load(f.read())
 
-        load_ver = doc["serialize_version"]
-        curr_ver = ResolvedContext.serialize_version
-        if load_ver > curr_ver:
-            print >> sys.stderr, \
-                ("The context stored in %s was written by a newer version of "
-                 "Rez. The load may fail (serialize version %d > %d)"
-                 % (path, load_ver, curr_ver), critical)
-
-        r = cls.from_dict(doc)
+        r = cls.from_dict(doc, path)
         r.load_path = os.path.abspath(path)
         return r
 
@@ -1121,10 +1113,11 @@ class ResolvedContext(object):
         for pkg in (self._resolved_packages or []):
             resolved_packages.append(pkg.resource_handle.to_dict())
 
+        serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
 
         return dict(
-            serialize_version=ResolvedContext.serialize_version,
+            serialize_version=serialize_version,
 
             timestamp=self.timestamp,
             requested_timestamp=self.requested_timestamp,
@@ -1157,9 +1150,35 @@ class ResolvedContext(object):
             load_time=self.load_time)
 
     @classmethod
-    def from_dict(cls, d):
+    def from_dict(cls, d, identifier_str=None):
+        """Load a `ResolvedContext` from a dict.
+
+        Args:
+            d (dict): Dict containing context data.
+            identifier_str (str): String identifying the context, this is only
+                used to display in an error string if a serialization version 
+                mismatch is detected.
+
+        Returns:
+            `ResolvedContext` object.
+        """
+        # check serialization version
+        def _print_version(value):
+            return '.'.join(str(x) for x in value)
+
+        load_ver = [int(x) for x in str(d["serialize_version"]).split('.')]
+        curr_ver = ResolvedContext.serialize_version
+        if load_ver[0] > curr_ver[0]:
+            msg = ["The context"]
+            if identifier_str:
+                msg.append("in %s" % identifier_str)
+            msg.append("was written by a newer version of Rez. The load may "
+                       "fail (serialize version %d > %d)"
+                       % (_print_version(load_ver), _print_version(curr_ver)))
+            print >> sys.stderr, ' '.join(msg)
+
+        # create and init the context
         r = ResolvedContext.__new__(ResolvedContext)
-        sz_ver = d["serialize_version"]  # for backwards compatibility
         r.load_path = None
 
         r.timestamp = d["timestamp"]

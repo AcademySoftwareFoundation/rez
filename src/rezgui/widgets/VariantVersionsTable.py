@@ -17,6 +17,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         self.version_index = -1
         self.reference_version_index = -1
 
+        self.setWordWrap(False)
         self.setGridStyle(QtCore.Qt.DotLine)
         self.setFocusPolicy(QtCore.Qt.NoFocus)
         self.setSelectionMode(QtGui.QAbstractItemView.SingleSelection)
