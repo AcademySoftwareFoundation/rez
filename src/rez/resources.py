@@ -455,7 +455,6 @@ class Resource(object):
                 a package has a name and a version. Some of these variables may
                 have been used to construct `path`.
         """
-        super(Resource, self).__init__()
         self.variables = variables or {}
         self.path = path
 
