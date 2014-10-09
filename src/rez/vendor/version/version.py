@@ -171,7 +171,7 @@ class AlphanumericVersionToken(VersionToken):
                        for i in range(8)])
 
     def __str__(self):
-        return ''.join(str(x) for x in self.subtokens)
+        return ''.join(map(str, self.subtokens))
 
     def less_than(self, other):
         return (self.subtokens < other.subtokens)
@@ -904,7 +904,7 @@ class VersionRange(_Comparable):
         return None if inv is None else self.intersection(inv)
 
     def __str__(self):
-        return '|'.join(str(x) for x in self.bounds)
+        return '|'.join(map(str, self.bounds))
 
     def __eq__(self, other):
         return  isinstance(other, VersionRange) and self.bounds == other.bounds
