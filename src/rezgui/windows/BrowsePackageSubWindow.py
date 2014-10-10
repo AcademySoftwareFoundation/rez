@@ -10,6 +10,7 @@ class BrowsePackageSubWindow(QtGui.QMdiSubWindow, StoreSizeMixin):
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose, True)
         config_key = "layout/window/package_browser"
         StoreSizeMixin.__init__(self, app.config, config_key)
+        self.setWindowTitle("Browse Packages")
 
         widget = BrowsePackagePane()
         self.setWidget(widget)

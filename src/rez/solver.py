@@ -476,7 +476,7 @@ class _PackageVariantSlice(_Common):
                             fams = next_fams
                         else:
                             split_fams = fams
-                            nleading = 1+j
+                            nleading = 1 + j
                             break
 
             slice = self._copy(self.variants[-nleading:])
@@ -889,13 +889,13 @@ class _ResolvePhase(_Common):
                             self.pr("added %s" % str(scope))
 
                         m = len(new_reqs)
-                        for i in range(n, n+m):
-                            for j in range(n+m):
+                        for i in range(n, n + m):
+                            for j in range(n + m):
                                 if i != j:
                                     pending_reducts.add((i, j))
 
                         for i in range(n):
-                            for j in range(n, n+m):
+                            for j in range(n, n + m):
                                 pending_reducts.add((i, j))
                 else:
                     break
