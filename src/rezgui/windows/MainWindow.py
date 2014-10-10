@@ -58,11 +58,18 @@ class MainWindow(QtGui.QMainWindow):
         file_menu.addSeparator()
         self.quit_action = add_menu_action(file_menu, "Quit", self.close)
 
-        file_menu.aboutToShow.connect(self._update_file_menu)
+        # -- edit menu
+        edit_menu = self.menuBar().addMenu('Edit')
+        menu = edit_menu.addMenu("Copy To Clipboard")
+        self.copy_request_action = add_menu_action(menu, "Request")
+        self.copy_resolve_action = add_menu_action(menu, "Resolve")
 
         # -- help menu
         help_menu = self.menuBar().addMenu('Help')
         add_menu_action(help_menu, "About", self.about)
+
+        file_menu.aboutToShow.connect(self._update_file_menu)
+        edit_menu.aboutToShow.connect(self._update_edit_menu)
 
     def closeEvent(self, event):
         # attempt to close modified contexts first
@@ -97,6 +104,20 @@ class MainWindow(QtGui.QMainWindow):
         if context:
             self._add_context_subwindow(context)
 
+    @contextmanager
+    def status(self, txt):
+        t = time.time()
+        bar = self.statusBar()
+        bar.showMessage(txt)
+        yield
+
+        if bar.currentMessage() == txt:
+            bar.clearMessage()
+            milisecs = int(1000 * (time.time() - t))
+            min_display_time = 1000
+            if milisecs < min_display_time:
+                bar.showMessage(txt, min_display_time - milisecs)
+
     def _open_context(self):
         filepath = QtGui.QFileDialog.getOpenFileName(
             self, "Open Context", filter="Context files (*.rxt)")
@@ -108,6 +129,8 @@ class MainWindow(QtGui.QMainWindow):
         self.mdi.addSubWindow(subwindow)
         self.save_context_action.triggered.connect(subwindow.save_context)
         self.save_context_as_action.triggered.connect(subwindow.save_context_as)
+        self.copy_request_action.triggered.connect(subwindow.copy_request_to_clipboard)
+        self.copy_resolve_action.triggered.connect(subwindow.copy_resolve_to_clipboard)
         subwindow.show()
 
     def _update_file_menu(self):
@@ -133,16 +156,15 @@ class MainWindow(QtGui.QMainWindow):
                 fn = partial(self.open_context, filepath)
                 add_menu_action(menu, filepath, fn)
 
-    @contextmanager
-    def _status(self, txt):
-        t = time.time()
-        bar = self.statusBar()
-        bar.showMessage(txt)
-        yield
+    def _update_edit_menu(self):
+        copy_request = False
+        copy_resolve = False
 
-        if bar.currentMessage() == txt:
-            bar.clearMessage()
-            milisecs = int(1000 * (time.time() - t))
-            min_display_time = 1000
-            if milisecs < min_display_time:
-                bar.showMessage(txt, min_display_time - milisecs)
+        subwindow = self.mdi.activeSubWindow()
+        if subwindow:
+            if isinstance(subwindow, ContextSubWindow):
+                copy_request = True
+                copy_resolve = bool(subwindow.context())
+
+        self.copy_request_action.setEnabled(copy_request)
+        self.copy_resolve_action.setEnabled(copy_resolve)

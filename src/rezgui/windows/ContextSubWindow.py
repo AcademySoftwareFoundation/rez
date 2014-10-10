@@ -94,6 +94,23 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
             return
         self._save_context_as()
 
+    def copy_request_to_clipboard(self):
+        txt = " ".join(self.context_model.request)
+        clipboard = app.clipboard()
+        clipboard.setText(txt)
+        with app.status("Copied request to clipboard"):
+            pass
+
+    def copy_resolve_to_clipboard(self):
+        context = self.context()
+        assert context
+        strs = (x.qualified_package_name for x in context.resolved_packages)
+        txt = " ".join(strs)
+        clipboard = app.clipboard()
+        clipboard.setText(txt)
+        with app.status("Copied resolve to clipboard"):
+            pass
+
     def _save_context(self):
         assert self.filepath()
         with self.window()._status("Saving %s..." % self.filepath()):

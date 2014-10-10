@@ -5,6 +5,7 @@ from rezgui import organisation_name, application_name
 from rez.resolved_context import ResolvedContext
 from rez.util import propertycache
 from rez.vendor import yaml
+from contextlib import contextmanager
 import sys
 import os.path
 import os
@@ -37,6 +38,11 @@ class App(QtGui.QApplication):
         th.start()
         return th
 
+    @contextmanager
+    def status(self, txt):
+        with self.main_window.status(txt):
+            yield
+
     def set_main_window(self, window):
         self.main_window = window
 
@@ -44,7 +50,7 @@ class App(QtGui.QApplication):
         context = None
         busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
 
-        with self.main_window._status("Loading %s..." % filepath):
+        with self.status("Loading %s..." % filepath):
             QtGui.QApplication.setOverrideCursor(busy_cursor)
             try:
                 context = ResolvedContext.load(filepath)
@@ -54,7 +60,7 @@ class App(QtGui.QApplication):
                 QtGui.QApplication.restoreOverrideCursor()
 
         if context:
-            with self.main_window._status("Validating %s..." % filepath):
+            with self.status("Validating %s..." % filepath):
                 QtGui.QApplication.setOverrideCursor(busy_cursor)
                 try:
                     context.validate()

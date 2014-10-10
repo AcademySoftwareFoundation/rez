@@ -1,14 +1,10 @@
 from rezgui.objects.App import app
 from rezgui.windows.MainWindow import MainWindow
-#from rezgui.dialogs.test_dialog import TestDialog
 import os.path
 import sys
 
 
 def run(opts=None, parser=None):
-    #w = TestDialog()
-    #w.exec_()
-
     context_files = []
     for path in (opts.FILE or []):
         if os.path.exists(path):
