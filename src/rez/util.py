@@ -936,8 +936,8 @@ class propertycache(object):
             return None
 
         d = instance.__dict__.get('_cachedproperties', {})
-        name = d.get('name')
-        if name is None:
+        name = d.get(self.name)
+        if name is not None:
             return name
 
         try:
