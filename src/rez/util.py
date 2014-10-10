@@ -935,8 +935,9 @@ class propertycache(object):
             return None
 
         d = instance.__dict__.get('_cachedproperties', {})
-        if self.name in d:
-            return d[self.name]
+        name = d.get('name')
+        if name is None:
+            return name
 
         try:
             result = self.func(instance)
@@ -944,9 +945,7 @@ class propertycache(object):
             return e.default
 
         d = instance.__dict__
-        if '_cachedproperties' not in d:
-            d['_cachedproperties'] = {}
-        d['_cachedproperties'][self.name] = result
+        d.setdefault('_cachedproperties', {})[self.name] = result
         return result
 
     @classmethod
