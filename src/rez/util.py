@@ -22,6 +22,7 @@ from string import Formatter
 from rez import module_root_path
 from rez.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
+from rez.vendor.schema.schema import Schema, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -1357,7 +1358,6 @@ class _LazyAttributeValidator(type):
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
-        from rez.vendor.schema.schema import Schema, Optional
         schema = members.get('schema')
         keys = set()
 
@@ -1388,7 +1388,6 @@ class _LazyAttributeValidator(type):
     @classmethod
     def _make_getter(cls, key, optional, key_schema):
         def getter(self):
-            from rez.vendor.schema.schema import Schema
             if key not in self._data:
                 if optional:
                     return None
