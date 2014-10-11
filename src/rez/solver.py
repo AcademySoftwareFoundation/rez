@@ -293,55 +293,53 @@ class _PackageVariantList(_Common):
         self.variants = []
 
         it = iter_packages(self.package_name, paths=self.package_paths)
-        self.packages = sorted(it, key=lambda x: x.version)
-        if not self.packages:
+        entries = ([x.version, x] for x in it)
+        self.entries = sorted(entries, key=lambda x: x[0])
+        if not self.entries:
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
     def get_intersection(self, range):
-        if self.packages:
-            loaded_variants = []
-            indexes = []
-            for i, pkg in enumerate(self.packages):
+        variants = []
+        for entry in self.entries:
+            version, value = entry
+            if version not in range:
+                continue
+
+            if not isinstance(value, list):
+                package = value
                 if self.package_load_callback:
-                    self.package_load_callback(pkg)
+                    self.package_load_callback(package)
 
-                # checking version against range before timestamp is important
-                # - metadata needs to be loaded to determine package timestamp.
-                if pkg.version not in range:
-                    continue
-                if self.timestamp and pkg.timestamp > self.timestamp:
+                # access to timestamp causes a package load
+                if self.timestamp and package.timestamp > self.timestamp:
                     continue
 
-                indexes.append(i)
-                for var in pkg.iter_variants():
-                    requires = var.get_requires(
-                        build_requires=self.building)
+                value = []
+                for var in package.iter_variants():
+                    requires = var.get_requires(build_requires=self.building)
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
                                              requires=requires,
                                              index=var.index,
                                              userdata=var.resource_handle)
-                    loaded_variants.append(variant)
-
-            if loaded_variants:
-                self.variants = list(merge(self.variants, loaded_variants))
-                for i in reversed(indexes):
-                    del self.packages[i]
-
-        variants = []
-        for variant in self.variants:
-            if variant.version in range:
-                variants.append(variant)
+                    value.append(variant)
+                entry[1] = value
+            variants.extend(value)
         return variants or None
 
     def dump(self):
         print self.package_name
-        print '\n'.join(str(x) for x in self.variants)
+        for version, variants in self.entries:
+            print str(version)
+            for variant in variants:
+                print "    %s" % str(variant)
 
     def __str__(self):
-        return "%s[%s]" % (self.package_name,
-                           ' '.join(str(x) for x in self.variants))
+        strs = []
+        for _, variants in self.entries:
+            strs.append(','.join(str(x) for x in variants))
+        return "%s[%s]" % (self.package_name, ' '.join(strs))
 
 
 def _short_req_str(package_request):
@@ -745,7 +743,7 @@ def _get_dependency_order(g, node_list):
     """Return list of nodes as close as possible to the ordering in node_list,
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
-    deps = dict((k, set(v)-set([k])) for k, v in access_.iteritems())
+    deps = dict((k, set(v) - set([k])) for k, v in access_.iteritems())
     nodes = node_list + list(set(g.nodes()) - set(node_list))
     ordered_nodes = []
 
@@ -759,7 +757,7 @@ def _get_dependency_order(g, node_list):
         moved = False
         for i, n in enumerate(nodes[1:]):
             if n in n_deps:
-                nodes = [nodes[i+1]] + nodes[:i+1] + nodes[i+2:]
+                nodes = [nodes[i + 1]] + nodes[:i + 1] + nodes[i + 2:]
                 moved = True
                 break
 
@@ -905,16 +903,16 @@ class _ResolvePhase(_Common):
 
             # iteratively reduce until no more reductions possible
             self.pr.subheader("REDUCING:")
+
+            if not self.solver.optimised:
+                # check all variants for reduction regardless
+                pending_reducts = set()
+                for i in range(len(scopes)):
+                    for j in range(len(scopes)):
+                        if i != j:
+                            pending_reducts.add((i, j))
+
             while pending_reducts:
-
-                if not self.solver.optimised:
-                    # check all variants for reduction regardless
-                    pending_reducts = set()
-                    for i in range(len(scopes)):
-                        for j in range(len(scopes)):
-                            if i != j:
-                                pending_reducts.add((i, j))
-
                 # the sort here gives reproducible results, since order of
                 # reducts affects the result
                 for i, j in sorted(pending_reducts):
@@ -1153,7 +1151,7 @@ class _ResolvePhase(_Common):
 
                 for i, stmt in enumerate(fr.packages[:-1]):
                     str_a = str(stmt)
-                    str_b = str(fr.packages[i+1])
+                    str_b = str(fr.packages[i + 1])
                     failure_nodes.add(str_a)
                     failure_nodes.add(str_b)
                     _add_edge(str_a, str_b, "cycle")

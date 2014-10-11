@@ -464,8 +464,8 @@ class _VersionRangeParser(object):
 
         re_flags = re.VERBOSE | re.DEBUG if self.debug else re.VERBOSE
 
-        # The regular expression for a version - one or more version tokens 
-        # followed by a non-capturing group of version separator followed by 
+        # The regular expression for a version - one or more version tokens
+        # followed by a non-capturing group of version separator followed by
         # one or more version tokens.
         version_group = r"""
         ([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)                # A Version Number
@@ -502,7 +502,7 @@ class _VersionRangeParser(object):
             (?P<range_lower_version>{version_group})?
             (?(range_lower_prefix)|\+)?                      # + only if lower bound is not exclusive
         )(?P<range_upper>
-            (?(range_lower_version),?|)                      # , only if lower bound is found 
+            (?(range_lower_version),?|)                      # , only if lower bound is found
             (?P<range_upper_prefix><(?={version_group})|<=)  # <= only if followed by a version group
             (?P<range_upper_version>{version_group})?
         )

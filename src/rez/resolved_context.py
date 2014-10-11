@@ -199,7 +199,7 @@ class ResolvedContext(object):
         print_state = False
         if verbosity >= 1:
             print_state = True
-        if verbosity == 2:
+        if verbosity >= 2:
             verbose_ = True
 
         callback_ = self.Callback(verbose=print_state,
@@ -1156,7 +1156,7 @@ class ResolvedContext(object):
         Args:
             d (dict): Dict containing context data.
             identifier_str (str): String identifying the context, this is only
-                used to display in an error string if a serialization version 
+                used to display in an error string if a serialization version
                 mismatch is detected.
 
         Returns:
