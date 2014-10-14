@@ -1,15 +1,14 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
-    Required, metadata_loaders, load_resource, load_yaml
+    Required, metadata_loaders, iter_descendant_resources
 from rez.config import config, Config, create_config
-from rez.exceptions import ResourceError, ResourceNotFoundError, \
+from rez.exceptions import ResourceNotFoundError, \
     PackageMetadataError
 from rez.util import propertycache, deep_update, print_warning
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import Requirement
-import os.path
 import string
 import re
 
@@ -279,14 +278,12 @@ class BasePackageResource(FileResource):
     def _load_component(self, resource_key):
         variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in ("name", "version"))
-        try:
-            data = load_resource(
+        for resource in iter_descendant_resources(
+                parent_resource=self.parent_instance(),
                 resource_keys=resource_key,
-                search_path=self.variables['search_path'],
-                variables=variables)
-        except ResourceNotFoundError:
-            data = None
-        return data
+                variables=variables):
+            return resource.load()
+        return None
 
     # TODO move into variant
     def _load_timestamp(self):
