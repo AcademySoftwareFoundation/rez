@@ -1,40 +1,36 @@
-# from http://code.activestate.com/recipes/578078-py26-and-py30-backport-of-python-33s-lru-cache/
+"""
+This lru cache implementation is based on the backport of the pure python lru
+cache in Python 3 and found on the ActiveState website:
 
-from collections import namedtuple
+http://code.activestate.com/recipes/578078-py26-and-py30-backport-of-python-33s-lru-cache/
+
+It has been modified to remove the cache info (data on cache hits and misses)
+and implementt a simplified _make_key method.  Both of these give modest
+improvements in performance, reducing the time spent in the wrapper function by
+~30-40%.  Both of theses changes are based on discussions in the Python bug
+tracker:
+
+http://bugs.python.org/issue16389
+http://bugs.python.org/issue14373
+"""
+
+
 from functools import update_wrapper
 from threading import RLock
 
 
-_CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
-
-class _HashedSeq(list):
-    __slots__ = 'hashvalue'
-
-    def __init__(self, tup, hash=hash):
-        self[:] = tup
-        self.hashvalue = hash(tup)
-
-    def __hash__(self):
-        return self.hashvalue
-
-def _make_key(args, kwds, typed,
-             kwd_mark = (object(),),
-             fasttypes = set([int, str, frozenset, type(None)]),
-             sorted=sorted, tuple=tuple, type=type, len=len):
-    'Make a cache key from optionally typed positional and keyword arguments'
+def _make_key(args, kwds, typed, kwd_mark=(object(),)):
+    # build a cache key from positional and keyword args
     key = args
     if kwds:
-        sorted_items = sorted(kwds.items())
-        key += kwd_mark
-        for item in sorted_items:
-            key += item
+        sorted_items = tuple(sorted(kwds.items()))
+        key += kwd_mark + sorted_items
     if typed:
-        key += tuple(type(v) for v in args)
+        key += tuple([type(v) for v in args])
         if kwds:
-            key += tuple(type(v) for k, v in sorted_items)
-    elif len(key) == 1 and type(key[0]) in fasttypes:
-        return key[0]
-    return _HashedSeq(key)
+            key += tuple([type(v) for _, v in sorted_items])
+    return key
+
 
 def lru_cache(maxsize=100, typed=False):
     """Least-recently-used cache decorator.
@@ -64,8 +60,6 @@ def lru_cache(maxsize=100, typed=False):
     def decorating_function(user_function):
 
         cache = dict()
-        stats = [0, 0]                  # make statistics updateable non-locally
-        HITS, MISSES = 0, 1             # names for the stats fields
         make_key = _make_key
         cache_get = cache.get           # bound method to lookup key or return None
         _len = len                      # localize the global len() function
@@ -80,7 +74,6 @@ def lru_cache(maxsize=100, typed=False):
             def wrapper(*args, **kwds):
                 # no caching, just do a statistics update after a successful call
                 result = user_function(*args, **kwds)
-                stats[MISSES] += 1
                 return result
 
         elif maxsize is None:
@@ -90,11 +83,9 @@ def lru_cache(maxsize=100, typed=False):
                 key = make_key(args, kwds, typed)
                 result = cache_get(key, root)   # root used here as a unique not-found sentinel
                 if result is not root:
-                    stats[HITS] += 1
                     return result
                 result = user_function(*args, **kwds)
                 cache[key] = result
-                stats[MISSES] += 1
                 return result
 
         else:
@@ -114,7 +105,6 @@ def lru_cache(maxsize=100, typed=False):
                         last[NEXT] = root[PREV] = link
                         link[PREV] = last
                         link[NEXT] = root
-                        stats[HITS] += 1
                         return result
                 result = user_function(*args, **kwds)
                 with lock:
@@ -143,13 +133,7 @@ def lru_cache(maxsize=100, typed=False):
                         last = root[PREV]
                         link = [last, root, key, result]
                         last[NEXT] = root[PREV] = cache[key] = link
-                    stats[MISSES] += 1
                 return result
-
-        def cache_info():
-            """Report cache statistics"""
-            with lock:
-                return _CacheInfo(stats[HITS], stats[MISSES], maxsize, len(cache))
 
         def cache_clear():
             """Clear the cache and cache statistics"""
@@ -157,10 +141,8 @@ def lru_cache(maxsize=100, typed=False):
                 cache.clear()
                 root = nonlocal_root[0]
                 root[:] = [root, root, None, None]
-                stats[:] = [0, 0]
 
         wrapper.__wrapped__ = user_function
-        wrapper.cache_info = cache_info
         wrapper.cache_clear = cache_clear
         return update_wrapper(wrapper, user_function)
 
