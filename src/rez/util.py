@@ -22,6 +22,7 @@ from string import Formatter
 from rez import module_root_path
 from rez.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
+from rez.vendor.schema.schema import Schema, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -36,6 +37,11 @@ try:
 except AttributeError:
     import backport.ordereddict
     OrderedDict = backport.ordereddict.OrderedDict
+
+
+class _Missing:
+    pass
+_missing = _Missing()
 
 
 # TODO deprecate
@@ -935,8 +941,9 @@ class propertycache(object):
             return None
 
         d = instance.__dict__.get('_cachedproperties', {})
-        if self.name in d:
-            return d[self.name]
+        value = d.get(self.name, _missing)
+        if value is not _missing:
+            return value
 
         try:
             result = self.func(instance)
@@ -944,9 +951,7 @@ class propertycache(object):
             return e.default
 
         d = instance.__dict__
-        if '_cachedproperties' not in d:
-            d['_cachedproperties'] = {}
-        d['_cachedproperties'][self.name] = result
+        d.setdefault('_cachedproperties', {})[self.name] = result
         return result
 
     @classmethod
@@ -1358,7 +1363,6 @@ class _LazyAttributeValidator(type):
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
-        from rez.vendor.schema.schema import Schema, Optional
         schema = members.get('schema')
         keys = set()
 
@@ -1389,7 +1393,6 @@ class _LazyAttributeValidator(type):
     @classmethod
     def _make_getter(cls, key, optional, key_schema):
         def getter(self):
-            from rez.vendor.schema.schema import Schema
             if key not in self._data:
                 if optional:
                     return None
