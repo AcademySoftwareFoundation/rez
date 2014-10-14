@@ -492,6 +492,7 @@ class Resource(object):
             yield cls.parent_resource
 
     @classmethod
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def ancestors(cls):
         """Get a tuple of all the resources above this one, in descending order
         """
@@ -687,7 +688,12 @@ class FileSystemResource(Resource):
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def iter_instances(cls, parent_resource):
+        return list(cls._iter_instances(parent_resource))
+
+    @classmethod
+    def _iter_instances(cls, parent_resource):
         for name in _listdir(parent_resource.path, cls.is_file):
             match = _ResourcePathParser.parse_filepart(cls, name)
             if match is not None:
@@ -803,6 +809,7 @@ class ResourceWrapper(DataWrapper):
 # Main Entry Points
 # -----------------------------------------------------------------------------
 
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
 def list_resource_classes(keys=None):
     """List resource classes matching the search criteria.
 
