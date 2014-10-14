@@ -492,7 +492,7 @@ class Resource(object):
             yield cls.parent_resource
 
     @classmethod
-    #@config.lru_cache("resource_caching", "resource_caching_maxsize")
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def ancestors(cls):
         """Get a tuple of all the resources above this one, in descending order
         """
@@ -688,7 +688,7 @@ class FileSystemResource(Resource):
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
-    #@config.lru_cache("resource_caching", "resource_caching_maxsize")
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def iter_instances(cls, parent_resource):
         return list(cls._iter_instances(parent_resource))
 
@@ -809,7 +809,7 @@ class ResourceWrapper(DataWrapper):
 # Main Entry Points
 # -----------------------------------------------------------------------------
 
-#@config.lru_cache("resource_caching", "resource_caching_maxsize")
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
 def list_resource_classes(keys=None):
     """List resource classes matching the search criteria.
 
@@ -849,6 +849,11 @@ def list_common_resource_classes(root_key=None, keys=None):
     if root_key is None and not keys:
         raise ResourceError("Most provide root key or resource key(s)")
 
+    if isinstance(keys, basestring):
+        keys = (keys,)
+    elif isinstance(keys, list):
+        keys = tuple(keys)
+
     if root_key:
         clss = list_resource_classes(root_key)
         if len(clss) > 1:
@@ -858,16 +863,12 @@ def list_common_resource_classes(root_key=None, keys=None):
             raise ResourceError("Unknown root resource type %s" % root_key)
         root_class = clss[0]
         # if keys is none, will return all resource classes
-        #clss = list_resource_classes(tuple(keys))
         clss = list_resource_classes(keys)
         return root_class, [c for c in clss if c.topmost() == root_class]
     else:
         resource_classes = set()
-        #clss = list_resource_classes(tuple(keys))
         clss = list_resource_classes(keys)
         if not clss:
-            if isinstance(keys, basestring):
-                keys = [keys]
             msg = "no such resource type(s) %s" % ", ".join(keys)
             if root_key:
                 msg += " in resource hierarchy %s" % root_key
