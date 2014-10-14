@@ -17,7 +17,6 @@ from rez.vendor.enum import Enum
 from rez.packages import iter_packages
 from rez.util import columnise
 from rez.config import config
-from heapq import merge
 import os.path
 import copy
 import time
@@ -41,35 +40,39 @@ class SolverStatus(Enum):
 
 
 class _Printer(object):
-    def __init__(self, verbose, buf=None):
-        self.verbose = verbose
+    def __init__(self, verbosity, buf=None):
+        self.verbosity = verbosity
         self.buf = buf or sys.stdout
         self.pending_sub = None
         self.pending_br = False
         self.last_pr = True
 
     def header(self, txt):
-        if self.verbose:
-            self.pr()
-            self.pr('-' * 80)
+        if self.verbosity:
+            if self.verbosity > 2:
+                self.pr()
+                self.pr('-' * 80)
             self.pr(txt)
-            self.pr('-' * 80)
+            if self.verbosity > 2:
+                self.pr('-' * 80)
             self.pending_br = False
             self.pending_sub = None
             self.last_pr = False
 
     def subheader(self, txt):
-        self.pending_sub = txt
+        if self.verbosity > 2:
+            self.pending_sub = txt
 
-    def __call__(self, txt):
-        if self.verbose:
-            if self.pending_sub:
-                if self.last_pr:
+    def __call__(self, txt, level=3):
+        if self.verbosity >= level:
+            if self.verbosity > 2:
+                if self.pending_sub:
+                    if self.last_pr:
+                        self.pr()
+                    self.pr(self.pending_sub)
+                    self.pending_sub = None
+                elif self.pending_br:
                     self.pr()
-                self.pr(self.pending_sub)
-                self.pending_sub = None
-            elif self.pending_br:
-                self.pr()
 
             self.pr(txt)
             self.last_pr = True
@@ -82,7 +85,7 @@ class _Printer(object):
         print >> self.buf, txt
 
     def __nonzero__(self):
-        return self.verbose
+        return self.verbosity
 
 
 class SolverState(object):
@@ -294,17 +297,39 @@ class _PackageVariantList(_Common):
 
         it = iter_packages(self.package_name, paths=self.package_paths)
         entries = ([x.version, x] for x in it)
-        self.entries = sorted(entries, key=lambda x: x[0])
+        self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
         if not self.entries:
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
-    def get_intersection(self, range):
+    def get_intersection(self, range, max_packages=0):
+        """Get a list of variants that intersect with the given range.
+
+        Args:
+            range (`VersionRange`): Package version range.
+            max_packages (int): Load only the first N packages found, ignored
+                if zero.
+
+        Returns:
+            Two-tuple:
+            - List of `PackageVariant` objects;
+            - bool indicating whether there are packages still to be loaded. If
+                True, more packages could be loaded, if False then all packages
+                are loaded. This value can only be True when max_packages is
+                non-zero.
+        """
         variants = []
+        num_packages = 0
+        is_partial = False
+
         for entry in self.entries:
             version, value = entry
             if version not in range:
                 continue
+
+            if max_packages and (num_packages >= max_packages):
+                is_partial = True
+                break
 
             if not isinstance(value, list):
                 package = value
@@ -326,7 +351,9 @@ class _PackageVariantList(_Common):
                     value.append(variant)
                 entry[1] = value
             variants.extend(value)
-        return variants or None
+            num_packages += 1
+
+        return (variants or None), is_partial
 
     def dump(self):
         print self.package_name
@@ -372,6 +399,7 @@ class _PackageVariantSlice(_Common):
 
     @property
     def extractable(self):
+        """True if there are possible remaining extractions."""
         return bool(self.common_fams - self.extracted_fams)
 
     def intersect(self, range):
@@ -460,14 +488,15 @@ class _PackageVariantSlice(_Common):
         if len(self.variants) == 1:
             return None
         else:
-            latest_variant = self.variants[-1]
+            latest_variant = self.variants[0]
             split_fams = None
             nleading = 1
 
             if len(self.variants) > 2:
                 fams = latest_variant.request_fams - self.extracted_fams
                 if fams:
-                    other_variants = reversed(self.variants[:-1])
+                    #other_variants = reversed(self.variants[:-1])
+                    other_variants = self.variants[1:]
                     for j, variant in enumerate(other_variants):
                         next_fams = variant.request_fams & fams
                         if next_fams:
@@ -477,8 +506,10 @@ class _PackageVariantSlice(_Common):
                             nleading = 1 + j
                             break
 
-            slice = self._copy(self.variants[-nleading:])
-            next_slice = self._copy(self.variants[:-nleading])
+            #slice = self._copy(self.variants[-nleading:])
+            #next_slice = self._copy(self.variants[:-nleading])
+            slice = self._copy(self.variants[:nleading])
+            next_slice = self._copy(self.variants[nleading:])
 
             if self.pr:
                 s = "split %s into %s and %s " \
@@ -553,7 +584,7 @@ class _PackageVariantSlice(_Common):
         return s + strextr
 
 
-class _PackageVariantCache(object):
+class PackageVariantCache(object):
     def __init__(self, package_paths=None, timestamp=0, building=False,
                  package_load_callback=None):
         self.package_paths = (config.packages_path if package_paths is None
@@ -563,7 +594,24 @@ class _PackageVariantCache(object):
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range):
+    def get_variant_slice(self, package_name, range, max_packages=0):
+        """Get a list of variants from the cache.
+
+        Args:
+            package_name (str): Name of package.
+            range (`VersionRange`): Package version range.
+            max_packages (int): Load only the first N packages found, ignored
+                if zero. The return object's `is_partial` method indicates
+                whether more packages could have been loaded.
+
+        Returns:
+            Two-tuple containing:
+            - `_PackageVariantSlice` object;
+            - bool indicating whether there are packages still to be loaded. If
+                True, more packages could be loaded, if False then all packages
+                are loaded. This value can only be True when max_packages is
+                non-zero.
+        """
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
             variant_list = _PackageVariantList(
@@ -574,12 +622,12 @@ class _PackageVariantCache(object):
                 package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
-        variants = variant_list.get_intersection(range)
+        variants, is_partial = variant_list.get_intersection(range, max_packages)
         if not variants:
-            return None
+            return None, False
 
-        return _PackageVariantSlice(package_name,
-                                    variants=variants)
+        slice_ = _PackageVariantSlice(package_name, variants=variants)
+        return slice_, is_partial
 
 
 class _PackageScope(_Common):
@@ -816,7 +864,8 @@ class _ResolvePhase(_Common):
             phase.pending_reducts = set()
 
             if status is None:
-                phase.status = SolverStatus.solved if phase._is_solved() else SolverStatus.exhausted
+                phase.status = (SolverStatus.solved if phase._is_solved()
+                                else SolverStatus.exhausted)
             else:
                 phase.status = status
             return phase
@@ -1276,8 +1325,9 @@ class Solver(_Common):
     non-conflicting packages that include all dependencies.
     """
     def __init__(self, package_requests, package_paths=None, timestamp=0,
-                 callback=None, building=False, optimised=True, verbose=False,
-                 buf=None, package_load_callback=None):
+                 callback=None, building=False, optimised=True, verbosity=False,
+                 buf=None, package_load_callback=None, max_depth=0,
+                 package_cache=None):
         """Create a Solver.
 
         Args:
@@ -1296,14 +1346,22 @@ class Solver(_Common):
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
+            max_depth (int): If non-zero, this value limits the number of packages
+                that can be loaded for any given package name. This effectively
+                trims the search space - only the highest N package versions are
+                searched. See associated `is_partial` property.
+            package_cache (`PackageVariantCache`): Provided variant cache. The
+                `Resolver` may use this to share a single cache across several
+                `Solver` instances.
         """
         self.package_requests = package_requests
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
-        self.pr = _Printer(verbose, buf=buf)
+        self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
         self.timestamp = timestamp
         self.callback = callback
+        self.max_depth = max_depth
         self.request_list = None
 
         self.phase_stack = None
@@ -1314,13 +1372,17 @@ class Solver(_Common):
         self.solve_time = None
         self.load_time = None
         self.solve_begun = None
+        self._is_partial = False
         self._init()
 
-        self.package_cache = _PackageVariantCache(
-            self.package_paths,
-            timestamp=timestamp,
-            package_load_callback=package_load_callback,
-            building=building)
+        if package_cache:
+            self.package_cache = package_cache
+        else:
+            self.package_cache = PackageVariantCache(
+                self.package_paths,
+                timestamp=timestamp,
+                package_load_callback=package_load_callback,
+                building=building)
 
         # merge the request
         self.pr("request: %s" % ' '.join(str(x) for x in package_requests))
@@ -1358,14 +1420,28 @@ class Solver(_Common):
         if st == SolverStatus.cyclic:
             return SolverStatus.failed
         elif len(self.phase_stack) > 1:
-            return SolverStatus.solved if st == SolverStatus.solved else SolverStatus.unsolved
+            if st == SolverStatus.solved:
+                return SolverStatus.solved
+            else:
+                return SolverStatus.unsolved
+        elif st in (SolverStatus.pending, SolverStatus.exhausted):
+            return SolverStatus.unsolved
         else:
-            return SolverStatus.unsolved if st in (SolverStatus.pending, SolverStatus.exhausted) else st
+            return st
 
     @property
     def num_solves(self):
         """Return the number of solve steps that have been executed."""
         return self.solve_count
+
+    @property
+    def is_partial(self):
+        """Returns True if this solve is 'partial'.
+
+        This means that more packages could have been loaded during the solve,
+        but they were not, due to the value of `max_depth`.
+        """
+        return self._is_partial
 
     @property
     def num_fails(self):
@@ -1412,8 +1488,7 @@ class Solver(_Common):
         # iteratively solve phases
         while self.status == SolverStatus.unsolved:
             self.solve_step()
-            if self.status == SolverStatus.unsolved \
-                    and not self._do_callback():
+            if self.status == SolverStatus.unsolved and not self._do_callback():
                 break
 
     def solve_step(self):
@@ -1446,42 +1521,26 @@ class Solver(_Common):
             self.pr("phase failed to resolve")
             self._push_phase(new_phase)
             if len(self.phase_stack) == 1:
-                self.pr("FAIL: there is no solution")
+                self.pr.header("FAIL: there is no solution")
         elif new_phase.status == SolverStatus.solved:
             # solved, but there may be cyclic dependencies
             final_phase = new_phase.finalise()
             self._push_phase(final_phase)
 
             if final_phase.status == SolverStatus.cyclic:
-                self.pr("FAIL: a cyclic dependency was detected")
+                self.pr.header("FAIL: a cyclic dependency was detected")
             elif self.pr:
-                self.pr("SUCCESS")
+                self.pr.header("SUCCESS")
                 self.pr("solve time: %.2f seconds" % self.solve_time)
                 self.pr("load time: %.2f seconds" % self.load_time)
         else:
             assert(new_phase.status == SolverStatus.exhausted)
             self._push_phase(new_phase)
+            s = SolverState(self.num_solves, self.num_fails, new_phase)
+            self.pr(str(s), level=2)
 
         end_time = time.time()
         self.solve_time += (end_time - start_time)
-
-    # TODO this will go into a SatSolver subclass
-    """
-    def sat_solve_step(self):
-        self.solve_begun = True
-        if self.status != "unsolved":
-            return
-
-        # only run SAT on an exhausted phase, this first narrows the scope of
-        # possible packages to as small as possible.
-        if self.phase_stack[-1].status != "exhausted":
-            self.solve_step()
-        if self.status != "unsolved":
-            return
-
-        self.pr.header("SOLVE #%d (SAT)..." % (self.solve_count+1))
-        raise NotImplemented
-    """
 
     def failure_packages(self, failure_index=None):
         """Get packages involved in a failure.
@@ -1551,7 +1610,7 @@ class Solver(_Common):
     def dump(self):
         """Print a formatted summary of the current solve state."""
         rows = []
-        for i,phase in enumerate(self.phase_stack):
+        for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))
 
         print "status: %s (%s)" % (self.status.name, self.status.description)
@@ -1562,8 +1621,8 @@ class Solver(_Common):
 
         if self.failed_phase_list:
             rows = []
-            for i,phase in enumerate(self.failed_phase_list):
-                rows.append(("#%d"%i, phase.status, str(phase)))
+            for i, phase in enumerate(self.failed_phase_list):
+                rows.append(("#%d" % i, phase.status, str(phase)))
             print
             print "previous failures:"
             print '\n'.join(columnise(rows))
@@ -1600,9 +1659,14 @@ class Solver(_Common):
 
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
-        slice = self.package_cache.get_variant_slice(package_name, range)
+        slice, is_partial = self.package_cache.get_variant_slice(
+            package_name=package_name,
+            range=range,
+            max_packages=self.max_depth)
+
         if slice is not None:
             slice.pr = self.pr
+            self._is_partial |= is_partial
 
         end_time = time.time()
         self.load_time += (end_time - start_time)

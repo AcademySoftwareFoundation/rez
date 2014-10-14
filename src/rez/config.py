@@ -193,6 +193,8 @@ config_schema = Schema({
     "alias_fore":                       OptionalStr,
     "alias_back":                       OptionalStr,
     "resource_caching_maxsize":         Int,
+    "resolve_max_depth":                Int,
+    "resolve_start_depth":              Int,
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
