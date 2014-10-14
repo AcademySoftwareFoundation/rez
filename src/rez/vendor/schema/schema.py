@@ -12,12 +12,22 @@ class SchemaError(Exception):
 
     @property
     def code(self):
-        def uniq(seq):
-            seen = set()
-            seen_add = seen.add
-            return [x for x in seq if x not in seen and not seen_add(x)]
-        a = uniq(i for i in self.autos if i is not None)
-        e = uniq(i for i in self.errors if i is not None)
+        # It appears that the uniq method is attempting to return a unique list
+        # however this seems like a very heavy handed way of doing it.  The
+        # original implementation is left commented, with an optimised
+        # alternative provided instead.
+#        def uniq(seq):
+#            seen = set()
+#            seen_add = seen.add
+#            return [x for x in seq if x not in seen and not seen_add(x)]
+#        a = uniq(i for i in self.autos if i is not None)
+#        e = uniq(i for i in self.errors if i is not None)
+        a = set(self.autos)
+        e = set(self.errors)
+        if None in a:
+            a.remove(None)
+        if None in e:
+            e.remove(None)
         if e:
             return '\n'.join(e)
         return '\n'.join(a)
@@ -31,8 +41,9 @@ class And(object):
         self._error = kw.get('error')
 
     def __repr__(self):
+        # Switched to use a map operation instead of list comprehension.
         return '%s(%s)' % (self.__class__.__name__,
-                           ', '.join(repr(a) for a in self._args))
+                           ', '.join(map(repr, self._args)))
 
     def validate(self, data):
         for s in [Schema(s, error=self._error) for s in self._args]:
@@ -75,16 +86,19 @@ class Use(object):
 
 def priority(s):
     """Return priority for a give object."""
-    if type(s) in (list, tuple, set, frozenset):
+    # Previously this value was calculated in place many times which is
+    # expensive.  Do it once early.
+    type_of_s = type(s)
+    if type_of_s in (list, tuple, set, frozenset):
         return [6]
-    if type(s) is dict:
+    if type_of_s is dict:
         return [5]
     if hasattr(s, 'validate'):
         p = [4]
         if hasattr(s, "_schema"):
             p.extend(priority(s._schema))
         return p
-    if type(s) is type:
+    if type_of_s is type:
         return [3]
     if callable(s):
         return [2]
@@ -103,43 +117,95 @@ class Schema(object):
 
     def validate(self, data):
         s = self._schema
+        # Previously this value was calculated in place many times which is
+        # expensive.  Do it once early.
+        type_of_s = type(s)
         e = self._error
-        if type(s) in (list, tuple, set, frozenset):
-            data = Schema(type(s), error=e).validate(data)
-            return type(s)(Or(*s, error=e).validate(d) for d in data)
-        if type(s) is dict:
-            data = Schema(dict, error=e).validate(data)
+        if type_of_s in (list, tuple, set, frozenset):
+            data = Schema(type_of_s, error=e).validate(data)
+            return type_of_s(Or(*s, error=e).validate(d) for d in data)
+        if type_of_s is dict:
+            # Here we are validating that the data is an instance of the same
+            # type as the schema (a dict).  However creating a whole new
+            # instance of ourselves is wasteful.  Instead we inline the check
+            # that would have be undertaken.  The previous approach remains
+            # commented below.
+#            data = Schema(dict, error=e).validate(data)
+            if not isinstance(data, dict):
+                raise SchemaError('%r should be instance of %r' % (data, s), e)
             new = type(data)()  # new - is a dict of the validated values
             x = None
             coverage = set()  # non-optional schema keys that were matched
-            # for each key and value find a schema entry matching them, if any
-            sorted_skeys = list(sorted(s, key=priority))
+            # For each key and value find a schema entry matching them, if any.
+            # As there is not a one-to-one mapping between keys in the
+            # dictionary being validated and the schema this section would
+            # attempt to find the correct section of the schema to use by
+            # calling itself.  For example, to validate the following:
+            #
+            # schema = Schema({
+            #     Optional('foo'):int
+            #     Optional(basestring):int
+            # })
+            #
+            # data = {
+            #     'foo':1,
+            #     'bar':1,
+            # }
+            #
+            # a prioritised list of keys from the schema are validated against
+            # the current key being validated from the data. If that validation
+            # passes then the value from the schema is used to validate the
+            # value of the current key. This is very inefficient as every key
+            # in data is (potentially) being compared against every key in
+            # schema. This is expensive. Now, we use the same approach as
+            # rez.util._LazyAttributeValidator and try and build a mapping
+            # between schema keys and data keys, resorting to the original
+            # approach only in the (very) few cases where this map is
+            # insufficient.
+            sorted_skeys = None
+            schema_key_map = {}
+            for key in s:
+                key_name = key
+                while isinstance(key_name, Schema):
+                    key_name = key_name._schema
+                if isinstance(key_name, basestring):
+                    schema_key_map[key_name] = key
+
             for key, value in data.items():
-                valid = False
-                skey = None
-                for skey in sorted_skeys:
-                    svalue = s[skey]
-                    try:
-                        nkey = Schema(skey, error=e).validate(key)
-                    except SchemaError:
-                        pass
-                    else:
+                if key in schema_key_map:
+                    nkey = key
+                    svalue = s[schema_key_map[key]]
+                    skey = schema_key_map[key]
+                else:
+                    if not sorted_skeys:
+                        sorted_skeys = list(sorted(s, key=priority))
+                    for skey in sorted_skeys:
+                        svalue = s[skey]
                         try:
-                            nvalue = Schema(svalue, error=e).validate(value)
-                        except SchemaError as _x:
-                            x = _x
-                            raise
-                        else:
-                            coverage.add(skey)
-                            valid = True
-                            break
+                            nkey = Schema(skey, error=e).validate(key)
+                        except SchemaError:
+                            pass
+
+                try:
+                    nvalue = Schema(svalue, error=e).validate(value)
+                except SchemaError as _x:
+                    x = _x
+                    raise
+                else:
+                    # Only add to the set if the type of skey is not
+                    # Optional.  Previously this was done as a secondary
+                    # step (which remains commented out below).
+                    if type(skey) is not Optional:
+                        coverage.add(skey)
+                    valid = True
+                    #break
                 if valid:
                     new[nkey] = nvalue
                 elif skey is not None:
                     if x is not None:
                         raise SchemaError(['invalid value for key %r' % key] +
                                           x.autos, [e] + x.errors)
-            coverage = set(k for k in coverage if type(k) is not Optional)
+#            coverage = set(k for k in coverage if type(k) is not Optional)
             required = set(k for k in s if type(k) is not Optional)
             if coverage != required:
                 raise SchemaError('missed keys %r' % (required - coverage), e)
@@ -157,7 +223,7 @@ class Schema(object):
             except BaseException as x:
                 raise SchemaError('%r.validate(%r) raised %r' % (s, data, x),
                                   self._error)
-        if type(s) is type:
+        if type_of_s is type:
             if isinstance(data, s):
                 return data
             else:
