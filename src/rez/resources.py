@@ -28,12 +28,10 @@ from collections import defaultdict
 from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
-from rez.exceptions import ResourceError, ResourceNotFoundError, \
-    ResourceContentError
-from rez.backport.lru_cache import lru_cache
+from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.vendor import yaml
 # FIXME: handle this double-module business
-from rez.vendor.schema.schema import Schema, SchemaError, Optional
+from rez.vendor.schema.schema import Schema, SchemaError
 
 
 # dict of resource classes, keyed by resource key (eg 'package.versioned')
@@ -134,7 +132,7 @@ def load_python(stream, filepath=None):
         exec stream in g
     except Exception as e:
         import traceback
-        frames = traceback.extract_tb(sys.exc_traceback)
+        frames = traceback.extract_tb(sys.exc_info()[2])
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
         stack = ''.join(traceback.format_list(frames)).strip()
@@ -254,6 +252,7 @@ def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
     Resource._cached.cache_clear()
+    _ResourcePathParser._get_regex.cache_clear()
 
 
 # -----------------------------------------------------------------------------
@@ -323,7 +322,7 @@ class _ResourcePathParser(object):
         return pattern
 
     @classmethod
-    @lru_cache()
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def _get_regex(cls, resource_class, pattern, search_paths, parse_all):
         pattern = cls._expand_pattern(resource_class, pattern, search_paths)
         pattern = r'^' + pattern

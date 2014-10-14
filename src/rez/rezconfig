@@ -66,8 +66,13 @@ bind_module_path: []
 # debugging purposes.
 resource_caching: true
 
-# The size of the resource cache, measured in resources
-resource_caching_maxsize: 10000
+# The size of the resource cache. This is measured in the number of items in the
+# cache where each might be a resource, directory listing, of resource path 
+# parser regular expression: these all contribute to the resource cache.
+# A value of 0 has the same effect as setting resource_caching to false.  A 
+# value of -1 creates a cache of unlimited size.  Any other value introduces an
+# lru cache fixed at that size.
+resource_caching_maxsize: -1
 
 
 ###############################################################################
