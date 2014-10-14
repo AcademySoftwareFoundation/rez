@@ -67,9 +67,9 @@ bind_module_path: []
 resource_caching: true
 
 # The size of the resource cache. This is measured in the number of items in the
-# cache where each might be a resource, directory listing, of resource path 
+# cache where each might be a resource, directory listing, of resource path
 # parser regular expression: these all contribute to the resource cache.
-# A value of 0 has the same effect as setting resource_caching to false.  A 
+# A value of 0 has the same effect as setting resource_caching to false.  A
 # value of -1 creates a cache of unlimited size.  Any other value introduces an
 # lru cache fixed at that size.
 resource_caching_maxsize: -1
@@ -111,8 +111,8 @@ resolve_caching: true
 # Note that depth settings still work when resolving with a timestamp - the
 # latest N packages *at that time* will be used in the search.
 #
+resolve_start_depth: 1
 resolve_max_depth: 0
-resolve_start_depth: 0
 
 
 ###############################################################################

@@ -668,6 +668,8 @@ class ResolvedContext(object):
         if verbosity:
             _pr()
             _pr("resolve details:", heading)
+            _pr("start depth: %s" % (self.start_depth or '-'))
+            _pr("max depth: %s" % (self.max_depth or '-'))
             _pr("load time: %.02f secs" % self.load_time)
             actual_solve_time = self.solve_time - self.load_time
             _pr("solve time: %.02f secs" % actual_solve_time)
