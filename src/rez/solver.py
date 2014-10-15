@@ -400,7 +400,7 @@ class _PackageVariantSlice(_Common):
     @property
     def extractable(self):
         """True if there are possible remaining extractions."""
-        return bool(self.common_fams - self.extracted_fams)
+        return not self.extracted_fams.issuperset(self.common_fams)
 
     def intersect(self, range):
         """Remove variants whos version fall outside of the given range."""
@@ -464,48 +464,49 @@ class _PackageVariantSlice(_Common):
         Note that conflict dependencies are never extracted, they are always
         resolved via reduction.
         """
-        extractable = self.common_fams - self.extracted_fams
-        if extractable:
+        if self.extractable:
+            extractable = self.common_fams - self.extracted_fams
             fam = iter(extractable).next()
             ranges = []
 
             for variant in self.variants:
                 req = variant.get(fam)
-                ranges.append(req.range)
+                if not ranges or req.range != ranges[-1]:
+                    ranges.append(req.range)
 
-            slice = copy.copy(self)
-            slice.extracted_fams = self.extracted_fams | set([fam])
+            slice_ = copy.copy(self)
+            slice_.extracted_fams = self.extracted_fams | set([fam])
 
-            range = ranges[0].union(ranges[1:])
-            common_req = Requirement.construct(fam, range)
-            return (slice, common_req)
+            range_ = ranges[0].union(ranges[1:])
+            common_req = Requirement.construct(fam, range_)
+            return (slice_, common_req)
         else:
             return (self, None)
 
     def split(self):
         """Split the slice."""
-        assert(not self.extractable)
+        # assert(not self.extractable)
         if len(self.variants) == 1:
             return None
         else:
-            latest_variant = self.variants[0]
+            it = enumerate(self.variants)
+            latest_variant = it.next()[1]
             split_fams = None
             nleading = 1
 
             if len(self.variants) > 2:
                 fams = latest_variant.request_fams - self.extracted_fams
                 if fams:
-                    other_variants = self.variants[1:]
-                    for j, variant in enumerate(other_variants):
+                    for j, variant in it:
                         next_fams = variant.request_fams & fams
                         if next_fams:
                             fams = next_fams
                         else:
                             split_fams = fams
-                            nleading = 1 + j
+                            nleading = j
                             break
 
-            slice = self._copy(self.variants[:nleading])
+            slice_ = self._copy(self.variants[:nleading])
             next_slice = self._copy(self.variants[nleading:])
 
             if self.pr:
@@ -518,18 +519,18 @@ class _PackageVariantSlice(_Common):
                     a.extend([nleading, ", ".join(split_fams)])
                 self.pr(s, *a)
 
-            return (slice, next_slice)
+            return (slice_, next_slice)
 
     def dump(self):
         print self.package_name
         print '\n'.join(map(str, self.variants))
 
     def _copy(self, new_variants):
-        slice = copy.copy(self)
-        slice.variants = new_variants
-        slice.extracted_fams = set()
-        slice._update()
-        return slice
+        slice_ = copy.copy(self)
+        slice_.variants = new_variants
+        slice_.extracted_fams = set()
+        slice_._update()
+        return slice_
 
     def _update(self):
         # range

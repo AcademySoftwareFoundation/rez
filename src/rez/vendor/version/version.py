@@ -990,7 +990,7 @@ class VersionRange(_Comparable):
         return '|'.join(map(str, self.bounds))
 
     def __eq__(self, other):
-        return  isinstance(other, VersionRange) and self.bounds == other.bounds
+        return isinstance(other, VersionRange) and self.bounds == other.bounds
 
     def __lt__(self, other):
         return (self.bounds < other.bounds)
