@@ -30,6 +30,8 @@ def setup_parser(parser, completions=False):
                         help="test completions")
     parser.add_argument("--suites", action="store_true",
                         help="test suites")
+    parser.add_argument("--version", action="store_true",
+                        help="test versions")
 
 
 def get_suites(opts):
@@ -37,7 +39,7 @@ def get_suites(opts):
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
              "release", "context", "resources", "packages", "config",
-             "completion", "suites"]
+             "completion", "suites", "version"]
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
 

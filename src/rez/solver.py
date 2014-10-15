@@ -408,6 +408,9 @@ class _PackageVariantSlice(_Common):
         if self.pr:
             self.pr("intersecting %s wrt range '%s'...", self, range)
 
+        if range.is_any():
+            return self
+
         variants = []
         for version, variants_ in groupby(self.variants, lambda x: x.version):
             if version in range:

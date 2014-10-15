@@ -427,11 +427,25 @@ class _Bound(_Comparable):
         return (self.upper != _UpperBound.inf)
 
     def contains_version(self, version):
-        return (self.lower.contains_version(version)
-                and self.upper.contains_version(version))
+        return (self.version_containment(version) == 0)
+
+    def version_containment(self, version):
+        if not self.lower.contains_version(version):
+            return -1
+        if not self.upper.contains_version(version):
+            return 1
+        return 0
 
     def contains_bound(self, bound):
         return (self.lower <= bound.lower) and (self.upper >= bound.upper)
+
+    def intersects(self, other):
+        lower = max(self.lower, other.lower)
+        upper = min(self.upper, other.upper)
+
+        return (lower.version < upper.version) or \
+            ((lower.version == upper.version) and
+             (lower.inclusive and upper.inclusive))
 
     def intersection(self, other):
         lower = max(self.lower, other.lower)
@@ -932,22 +946,37 @@ class VersionRange(_Comparable):
 
     def contains_version(self, version):
         """Returns True if version is contained in this range."""
-        nbounds = len(self.bounds)
-        if nbounds < 5:
+        if len(self.bounds) < 5:
             # not worth overhead of binary search
             for bound in self.bounds:
                 if bound.contains_version(version):
                     return True
         else:
-            vbound = _Bound(_LowerBound(version, True))
-            i = bisect_left(self.bounds, vbound)
-            if i:
-                if self.bounds[i - 1].contains_version(version):
-                    return True
-            if (i < nbounds) and self.bounds[i].contains_version(version):
-                return True
+            _, contains = self._contains_version(version)
+            return contains
 
         return False
+
+    def contains_versions(self, iterable, key=None, descending=False):
+        """Performs containment tests on a sorted list of versions.
+
+        This is more optimal than performing separate containment tests on a
+        list of sorted versions.
+
+        Args:
+            iterable: An ordered sequence of versioned objects. If the list
+                is not sorted by version, behaviour is undefined.
+            key (callable): Function that returns a `Version` given an object
+                from `iterable`. If None, the identity function is used.
+            descending (bool): Set to True if `iterable` is in descending
+                version order.
+
+        Returns:
+            An iterator that returns (bool, object) tuples, where 'object' is
+            the original object in `iterable`, and the bool indicates whether
+            that version is contained in this range.
+        """
+        return _ContainsVersionIterator(self, iterable, key, descending)
 
     def span(self):
         """Return a contiguous range that is a superset of this range.
@@ -997,6 +1026,15 @@ class VersionRange(_Comparable):
 
     def __hash__(self):
         return hash(tuple(self.bounds))
+
+    def _contains_version(self, version):
+        vbound = _Bound(_LowerBound(version, True))
+        i = bisect_left(self.bounds, vbound)
+        if i and self.bounds[i - 1].contains_version(version):
+            return i - 1, True
+        if (i < len(self.bounds)) and self.bounds[i].contains_version(version):
+            return i, True
+        return i, False
 
     @classmethod
     def _union(cls, bounds):
@@ -1066,7 +1104,112 @@ class VersionRange(_Comparable):
     def _intersects(cls, bounds1, bounds2):
         for bound1 in bounds1:
             for bound2 in bounds2:
-                b = bound1.intersection(bound2)
-                if b:
+                if bound1.intersects(bound2):
                     return True
         return False
+
+
+class _ContainsVersionIterator(object):
+    def __init__(self, range_, iterable, key=None, descending=False):
+        self.range_ = range_
+        self.index = None
+        self.nbounds = len(self.range_.bounds)
+        self._constant = True if range_.is_any() else None
+        self.fn = self._descending if descending else self._ascending
+        self.it = iter(iterable)
+        if key is None:
+            key = lambda x: x
+        self.keyfunc = key
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        value = next(self.it)
+        if self._constant is not None:
+            return self._constant, value
+
+        version = self.keyfunc(value)
+        return self.fn(version), value
+
+    @property
+    def _bound(self):
+        if self.index < self.nbounds:
+            return self.range_.bounds[self.index]
+        else:
+            return None
+
+    def _ascending(self, version):
+        if self.index is None:
+            self.index, contains = self.range_._contains_version(version)
+            bound = self._bound
+            if contains:
+                if not bound.upper_bounded():
+                    self._constant = True
+                return True
+            elif bound is None:  # past end of last bound
+                self._constant = False
+                return False
+            else:
+                return False  # there are more bound(s) ahead
+        else:
+            bound = self._bound
+            j = bound.version_containment(version)
+            if j == 0:
+                return True
+            elif j == -1:
+                return False
+            else:
+                while True:
+                    self.index += 1
+                    bound = self._bound
+                    if bound is None:  # past end of last bound
+                        self._constant = False
+                        return False
+                    else:
+                        j = bound.version_containment(version)
+                        if j == 0:
+                            if not bound.upper_bounded():
+                                self._constant = True
+                            return True
+                        elif j == -1:
+                            return False
+
+    def _descending(self, version):
+        if self.index is None:
+            self.index, contains = self.range_._contains_version(version)
+            bound = self._bound
+            if contains:
+                if not bound.lower_bounded():
+                    self._constant = True
+                return True
+            elif bound is None:  # past end of last bound
+                self.index = self.nbounds - 1
+                return False
+            elif self.index == 0:  # before start of first bound
+                self._constant = False
+                return False
+            else:
+                self.index -= 1
+                return False
+        else:
+            bound = self._bound
+            j = bound.version_containment(version)
+            if j == 0:
+                return True
+            elif j == 1:
+                return False
+            else:
+                while self.index:
+                    self.index -= 1
+                    bound = self._bound
+                    j = bound.version_containment(version)
+                    if j == 0:
+                        if not bound.lower_bounded():
+                            self._constant = True
+                        return True
+                    elif j == 1:
+                        return False
+
+                self._constant = False  # before start of first bound
+                return False
