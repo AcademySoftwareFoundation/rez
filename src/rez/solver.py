@@ -17,6 +17,7 @@ from rez.vendor.enum import Enum
 from rez.packages import iter_packages
 from rez.util import columnise
 from rez.config import config
+from itertools import groupby
 import os.path
 import copy
 import time
@@ -312,7 +313,7 @@ class _PackageVariantList(_Common):
 
         Returns:
             Two-tuple:
-            - List of `PackageVariant` objects;
+            - List of `PackageVariant` objects, in descending version order;
             - bool indicating whether there are packages still to be loaded. If
                 True, more packages could be loaded, if False then all packages
                 are loaded. This value can only be True when max_packages is
@@ -406,7 +407,12 @@ class _PackageVariantSlice(_Common):
         """Remove variants whos version fall outside of the given range."""
         if self.pr:
             self.pr("intersecting %s wrt range '%s'...", self, range)
-        variants = [x for x in self.variants if x.version in range]
+
+        variants = []
+        for version, variants_ in groupby(self.variants, lambda x: x.version):
+            if version in range:
+                variants.extend(variants_)
+
         if not variants:
             return None
         elif len(variants) < len(self.variants):
@@ -432,24 +438,24 @@ class _PackageVariantSlice(_Common):
 
         variants = []
         reductions = []
+        name = package_request.name
 
-        for variant in self.variants:
-            req = variant.get(package_request.name)
+        for req, variants_ in groupby(self.variants, lambda x: x.get(name)):
             if req and req.conflicts_with(package_request):
-                red = Reduction(name=variant.name,
-                                version=variant.version,
-                                variant_index=variant.index,
-                                dependency=req,
-                                conflicting_request=package_request)
-                reductions.append(red)
-                if self.pr:
-                    self.pr("removed %s (dep(%s) <--!--> %s)",
-                            red.reducee_str(),
-                            red.dependency,
-                            red.conflicting_request)
-                continue
-
-            variants.append(variant)
+                for variant in variants_:
+                    red = Reduction(name=variant.name,
+                                    version=variant.version,
+                                    variant_index=variant.index,
+                                    dependency=req,
+                                    conflicting_request=package_request)
+                    reductions.append(red)
+                    if self.pr:
+                        self.pr("removed %s (dep(%s) <--!--> %s)",
+                                red.reducee_str(),
+                                red.dependency,
+                                red.conflicting_request)
+            else:
+                variants.extend(variants_)
 
         if not variants:
             return (None, reductions)
@@ -543,8 +549,8 @@ class _PackageVariantSlice(_Common):
 
         for variant in self.variants:
             self.common_fams &= variant.request_fams
-            self.fam_requires |= variant.request_fams
-            self.fam_requires |= variant.conflict_request_fams
+            self.fam_requires |= (variant.request_fams |
+                                  variant.conflict_request_fams)
 
     def __len__(self):
         return len(self.variants)
