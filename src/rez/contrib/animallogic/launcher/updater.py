@@ -20,7 +20,7 @@ class Updater(object):
     def update(self, target, reference_list, description, remove_all_references=False):
 
         if remove_all_references:
-            references = self.launcher_service.get_references_from_path(target, self.username)
+            references = self.launcher_service.get_references_from_path(target)
 
             for reference in references:
                 referencePath = self.launcher_service.get_preset_full_path(reference.preset_id, None)

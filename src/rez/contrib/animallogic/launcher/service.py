@@ -85,18 +85,16 @@ class LauncherHessianService(LauncherServiceInterface):
         """
         return self._preset_proxy.getFullyQualifiedPresetName(presetId, date)
 
-    def get_references_from_path(self, path, username=None, date=None):
+    def get_references_from_path(self, path, date=None):
         """
         Retrieves all preset references from  an existing preset path
         @param path: launcher preset path where the reference would be added
-        @param username: the user that triggered the change
         @param date: restrict the date from when the references are going to be retrieved.
                      default to None=latest version
         """
         if self._is_preset_path(path):
             try:
-                references = self._preset_proxy.resolveReferenceSettingsForPath(username,
-                                                                                self._strip_prefix_from_path(path),
+                references = self._preset_proxy.resolveReferenceSettingsForPath(self._strip_prefix_from_path(path),
                                                                                 date)
             except Exception, e:
                 raise LauncherError("Unable to retrieve references settings from '%s' - %s." % (path, e))

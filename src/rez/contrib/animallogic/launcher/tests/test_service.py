@@ -128,7 +128,7 @@ class TestLauncherHessianService_GetReferenceFromPreset(BaseTestLauncherHessianS
 
     def test_get_reference_setting_from_preset(self):
 
-        retrievedSettings = self.launcher_service.get_references_from_path("/presets/root/path", username=self.username)
+        retrievedSettings = self.launcher_service.get_references_from_path("/presets/root/path")
 
         for retrievedRefSetting, referenceSetting in zip(retrievedSettings, self.reference_settings):
             self.assertEqual(retrievedRefSetting.name, referenceSetting.name)
@@ -137,8 +137,7 @@ class TestLauncherHessianService_GetReferenceFromPreset(BaseTestLauncherHessianS
 
     def test_get_reference_setting_for_wrong_path(self):
 
-        self.assertRaises(Exception, self.launcher_service.get_references_from_path, "/a/wrong/preset/path",
-                          username=self.username)
+        self.assertRaises(Exception, self.launcher_service.get_references_from_path, "/a/wrong/preset/path")
 
 
 class TestLauncherHessianService_GetPresetFullPath(BaseTestLauncherHessianService):

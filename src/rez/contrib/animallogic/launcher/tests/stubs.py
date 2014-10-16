@@ -66,9 +66,9 @@ class StubPresetProxy(object):
 
         return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
 
-    def resolveReferenceSettingsForPath(self, username, path, date):
+    def resolveReferenceSettingsForPath(self, path, date):
 
-        if not all([path, username]):
+        if not all([path]):
             raise TypeError("")
 
         return self.root_preset[self._strip_prefix_from_path(path)]

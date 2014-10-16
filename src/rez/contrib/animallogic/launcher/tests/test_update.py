@@ -20,7 +20,7 @@ class TestUpdate(unittest.TestCase):
 
         self.updater.update(target_preset_path, reference_preset_path_list, 'nice description')
 
-        current_references = self.launcher_service.get_references_from_path(target_preset_path, 'username')
+        current_references = self.launcher_service.get_references_from_path(target_preset_path)
         full_path_list = [ self.launcher_service.get_preset_full_path(current_references[0].preset_id)]
         self.assertEqual(full_path_list, reference_preset_path_list)
 
@@ -30,7 +30,7 @@ class TestUpdate(unittest.TestCase):
 
         self.updater.update(target_preset_path, [], 'nice description', remove_all_references=True)
 
-        current_references = self.launcher_service.get_references_from_path(target_preset_path, 'username')
+        current_references = self.launcher_service.get_references_from_path(target_preset_path)
         self.assertEqual(len(current_references), 0)
 
     def test_update_reference(self):
@@ -40,7 +40,7 @@ class TestUpdate(unittest.TestCase):
         new_reference_path_list = ['/test/path/replace']
         old_references = ['/test/full/path', '/test/to/different/path/']
 
-        current_references = self.launcher_service.get_references_from_path(target_preset_path, 'username')
+        current_references = self.launcher_service.get_references_from_path(target_preset_path)
 
         for ref in current_references:
             full_path_list = self.launcher_service.get_preset_full_path(ref.preset_id)
@@ -48,6 +48,6 @@ class TestUpdate(unittest.TestCase):
 
         self.updater.update(target_preset_path, new_reference_path_list,  'nice description', remove_all_references=True)
 
-        current_references = self.launcher_service.get_references_from_path(target_preset_path, 'username')
+        current_references = self.launcher_service.get_references_from_path(target_preset_path)
         full_path_list = [self.launcher_service.get_preset_full_path(current_references[0].preset_id)]
         self.assertEqual(full_path_list, new_reference_path_list)
