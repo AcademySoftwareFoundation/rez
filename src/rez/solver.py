@@ -16,7 +16,6 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
 from rez.util import columnise
-from rez.config import config
 from itertools import groupby
 import os.path
 import copy
@@ -594,10 +593,9 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, package_paths=None, timestamp=0, building=False,
+    def __init__(self, package_paths, timestamp=0, building=False,
                  package_load_callback=None):
-        self.package_paths = (config.packages_path if package_paths is None
-                              else package_paths)
+        self.package_paths = package_paths
         self.timestamp = timestamp
         self.building = building
         self.package_load_callback = package_load_callback
@@ -1336,7 +1334,7 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, package_requests, package_paths=None, timestamp=0,
+    def __init__(self, package_requests, package_paths, timestamp=0,
                  callback=None, building=False, optimised=True, verbosity=0,
                  buf=None, package_load_callback=None, max_depth=0,
                  package_cache=None):
@@ -1345,8 +1343,7 @@ class Solver(_Common):
         Args:
             package_requests: List of Requirement objects representing the
                 request.
-            package_paths: List of paths to search for pkgs, defaults to
-                config.packages_path.
+            package_paths: List of paths to search for pkgs.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1367,8 +1364,7 @@ class Solver(_Common):
                 `Solver` instances.
         """
         self.package_requests = package_requests
-        self.package_paths = (config.packages_path if package_paths is None
-                              else package_paths)
+        self.package_paths = package_paths
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
         self.timestamp = timestamp
