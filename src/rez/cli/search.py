@@ -132,7 +132,7 @@ def command(opts, parser, extra_arg_groups=None):
     # packages/variants
     if type_ in ("package", "variant"):
         for name in family_names:
-            packages = iter_packages(name, version_range)
+            packages = iter_packages(name, version_range, paths=pkg_paths)
             if opts.sort or opts.latest:
                 packages = sorted(packages, key=lambda x: x.version)
                 if opts.latest and packages:
