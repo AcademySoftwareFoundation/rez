@@ -113,7 +113,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
 
     def _save_context(self):
         assert self.filepath()
-        with self.window()._status("Saving %s..." % self.filepath()):
+        with app.status("Saving %s..." % self.filepath()):
             self.context_model.save(self.filepath())
         return True
 
@@ -124,7 +124,7 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
 
         if filepath:
             filepath = str(filepath)
-            with self.window()._status("Saving %s..." % filepath):
+            with app.status("Saving %s..." % filepath):
                 self.context_model.save(filepath)
 
         return bool(filepath)
