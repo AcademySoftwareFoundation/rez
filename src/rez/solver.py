@@ -412,8 +412,10 @@ class _PackageVariantSlice(_Common):
             return self
 
         variants = []
-        for version, variants_ in groupby(self.variants, lambda x: x.version):
-            if version in range:
+        it = groupby(self.variants, lambda x: x.version)
+        it2 = range.contains_versions(it, key=lambda x: x[0], descending=True)
+        for contains, (_, variants_) in it2:
+            if contains:
                 variants.extend(variants_)
 
         if not variants:
@@ -441,9 +443,9 @@ class _PackageVariantSlice(_Common):
 
         variants = []
         reductions = []
-        name = package_request.name
+        fn = lambda x: x.get(package_request.name)
 
-        for req, variants_ in groupby(self.variants, lambda x: x.get(name)):
+        for req, variants_ in groupby(self.variants, fn):
             if req and req.conflicts_with(package_request):
                 for variant in variants_:
                     red = Reduction(name=variant.name,

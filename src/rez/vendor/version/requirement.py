@@ -26,7 +26,7 @@ class VersionedObject(_Common):
             i = m.start()
             self.name_ = s[:i]
             self.sep_ = s[i]
-            ver_str = s[i+1:]
+            ver_str = s[i + 1:]
             self.version_ = Version(ver_str)
         else:
             self.name_ = s

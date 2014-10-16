@@ -312,7 +312,7 @@ class Version(_Comparable):
 
     def __str__(self):
         return "[INF]" if self.tokens is None \
-            else ''.join(str(x)+y for x, y in zip(self.tokens, self.seps+['']))
+            else ''.join(str(x) + y for x, y in zip(self.tokens, self.seps + ['']))
 
 # internal use only
 Version.inf = Version()
@@ -746,16 +746,7 @@ class VersionRange(_Comparable):
     def issuperset(self, range):
         """Returns True if the VersionRange is contained within this range.
         """
-        for bound in range.bounds:
-            i = bisect_left(self.bounds, bound)
-            if i:
-                if self.bounds[i - 1].contains_bound(bound):
-                    continue
-            if (i < len(self.bounds)) and self.bounds[i].contains_bound(bound):
-                continue
-            return False
-
-        return True
+        return self._issuperset(self.bounds, range.bounds)
 
     def issubset(self, range):
         """Returns True if we are contained within the version range.
@@ -1101,11 +1092,40 @@ class VersionRange(_Comparable):
         return new_bounds
 
     @classmethod
+    def _issuperset(cls, bounds1, bounds2):
+        lo = 0
+        for bound2 in bounds2:
+            i = bisect_left(bounds1, bound2, lo=lo)
+            if i and bounds1[i - 1].contains_bound(bound2):
+                lo = i - 1
+                continue
+            if (i < len(bounds1)) and bounds1[i].contains_bound(bound2):
+                lo = i
+                continue
+            return False
+
+        return True
+
+    @classmethod
     def _intersects(cls, bounds1, bounds2):
+        bounds1, bounds2 = sorted((bounds1, bounds2), key=lambda x: len(x))
+        if len(bounds2) < 5:
+            # not worth overhead of binary search
+            for bound1 in bounds1:
+                for bound2 in bounds2:
+                    if bound1.intersects(bound2):
+                        return True
+            return False
+
+        lo = 0
         for bound1 in bounds1:
-            for bound2 in bounds2:
-                if bound1.intersects(bound2):
-                    return True
+            i = bisect_left(bounds2, bound1, lo=lo)
+            if i and bounds2[i - 1].intersects(bound1):
+                return True
+            if (i < len(bounds2)) and bounds2[i].intersects(bound1):
+                return True
+            lo = max(i - 1, 0)
+
         return False
 
 

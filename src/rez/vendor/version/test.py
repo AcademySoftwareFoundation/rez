@@ -154,6 +154,8 @@ class TestVersionSchema(unittest.TestCase):
             b_range = VersionRange(b)
 
             self.assertTrue(a_range == b_range)
+            self.assertTrue(a_range.issuperset(a_range))
+            self.assertTrue(a_range.issuperset(b_range))
             self.assertTrue(VersionRange(str(a_range)) == a_range)
             self.assertTrue(VersionRange(str(b_range)) == a_range)
             self.assertTrue(hash(a_range) == hash(b_range))
@@ -367,6 +369,8 @@ class TestVersionSchema(unittest.TestCase):
         numbers = [2, 3, 5, 10, 11, 13, 14]
         versions = [Version(str(x)) for x in numbers]
         rev_versions = list(reversed(versions))
+        composite_range = VersionRange.from_versions(versions)
+
         entries = [(VersionRange(""), 7),
                    (VersionRange("0+"), 7),
                    (VersionRange("5+"), 5),
@@ -397,6 +401,17 @@ class TestVersionSchema(unittest.TestCase):
 
             _test_it(range_.contains_versions(versions))
             _test_it(range_.contains_versions(rev_versions, descending=True))
+
+            # throw in an intersection test
+            self.assertEqual(composite_range.intersects(range_), (count != 0))
+            int_range = composite_range & range_
+            versions_ = [] if int_range is None else int_range.to_versions()
+            self.assertEqual(set(versions_), matches)
+
+            # throw in a superset test as well
+            self.assertEqual(range_.issuperset(composite_range), (count == 7))
+            if count:
+                self.assertTrue(composite_range.issuperset(int_range))
 
     def test_requirement_list(self):
         def _eq(reqs, expected_reqs):
