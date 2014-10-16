@@ -3,6 +3,7 @@ Test noninteractive invocation of each type of shell (bash etc), and ensure that
 their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 """
 
+from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 import rez.vendor.unittest2 as unittest
@@ -128,6 +129,7 @@ class TestShells(TestBase, TempdirMixin):
             os.remove(path)
 
     @shell_dependent
+    @install_dependent
     def test_rez_env_output(self):
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect. We use 'sh' because subprocess strips special
@@ -137,7 +139,10 @@ class TestShells(TestBase, TempdirMixin):
         if not echo_cmd:
             print "\nskipping test, 'echo' command not found."
             return
-        sh_out = sh.rez_env(["--", "echo", "hey"])
+
+        cmd = sh.Command(os.path.join(system.rez_bin_path, "rez-env"))
+        sh_out = cmd(["--", "echo", "hey"])
+        #sh_out = sh.rez_env(["--", "echo", "hey"])
         out = str(sh_out).strip()
         self.assertEqual(out, "hey")
 

@@ -17,12 +17,11 @@ version is used to denote unversioned objects. The empty version range, also
 known as the 'any' range, is used to refer to any version of an object.
 """
 from rez.vendor.version.util import VersionError, ParseException, _Common, \
-    total_ordering
+    total_ordering, dedup
 import rez.vendor.pyparsing.pyparsing as pp
 from bisect import bisect_left
 import copy
 import string
-import threading
 import re
 
 
@@ -462,68 +461,90 @@ _Bound.any = _Bound()
 
 
 class _VersionRangeParser(object):
-    parsers = {}
+    debug = False  # set to True to enable parser debugging
 
-    @classmethod
-    def parse(cls, s, make_token, debug=False):
-        id_ = id(threading.currentThread())
-        parser = cls.parsers.get(id_)
-        if parser is None:
-            parser = _VersionRangeParser()
-            cls.parsers[id_] = parser
-        return parser._parse(s, make_token=make_token, debug=debug)
+    re_flags = (re.VERBOSE | re.DEBUG) if debug else re.VERBOSE
 
-    def __init__(self):
-        self.debug = False
+    # The regular expression for a version - one or more version tokens
+    # followed by a non-capturing group of version separator followed by
+    # one or more version tokens.
+    version_group = r"([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)"  # A Version Number
 
-        re_flags = re.VERBOSE | re.DEBUG if self.debug else re.VERBOSE
+    version_range_regex = \
+        (r"    ^(?P<version>{version_group})$"
+         "|"  # Or match an exact version number (e.g. ==1.0.0)
+         "    ^(?P<exact_version>"
+         "        =="  # Required == operator
+         "        (?P<exact_version_group>{version_group})?"
+         "    )$"
+         "|"  # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
+         "    ^(?P<inclusive_bound>"
+         "        (?P<inclusive_lower_version>{version_group})?"
+         "        \.\."  # Required .. operator
+         "        (?P<inclusive_upper_version>{version_group})?"
+         "    )$"
+         "|"  # Or match a lower bound (e.g. 1.0.0+)
+         "    ^(?P<lower_bound>"
+         "        (?P<lower_bound_prefix>>|>=)?"  # Bound is exclusive?
+         "        (?P<lower_version>{version_group})?"
+         "        (?(lower_bound_prefix)|\+)"  # + only if bound is not exclusive
+         "    )$"
+         "|"  # Or match an upper bound (e.g. <=1.0.0)
+         "    ^(?P<upper_bound>"
+         "        (?P<upper_bound_prefix><(?={version_group})|<=)?"  # Bound is exclusive?
+         "        (?P<upper_version>{version_group})?"
+         "    )$"
+         "|"  # Or match a range (e.g. 1.0.0+<2.0.0)
+         "    ^(?P<range>"
+         "        (?P<range_lower>"
+         "           (?P<range_lower_prefix>>|>=)?"  # Lower bound is exclusive?
+         "           (?P<range_lower_version>{version_group})?"
+         "           (?(range_lower_prefix)|\+)?"  # + only if lower bound is not exclusive
+         "       )(?P<range_upper>"
+         "           (?(range_lower_version),?|)"  # , only if lower bound is found
+         "           (?P<range_upper_prefix><(?={version_group})|<=)"  # <= only if followed by a version group
+         "           (?P<range_upper_version>{version_group})?"
+         "       )"
+         "    )$").format(version_group=version_group)
 
-        # The regular expression for a version - one or more version tokens
-        # followed by a non-capturing group of version separator followed by
-        # one or more version tokens.
-        version_group = r"""
-        ([0-9a-zA-Z_]+(?:[.-][0-9a-zA-Z_]+)*)                # A Version Number
-    """
+    regex = re.compile(version_range_regex, re_flags)
 
-        version_range_regex = r"""
-    ^(?P<version>{version_group})$
-|                                                            # Or match an exact version number (e.g. ==1.0.0)
-    ^(?P<exact_version>
-        ==                                                   # Required == operator
-        (?P<exact_version_group>{version_group})?
-    )$
-|                                                            # Or match an inclusive bound (e.g. 1.0.0..2.0.0)
-    ^(?P<inclusive_bound>
-        (?P<inclusive_lower_version>{version_group})?
-        \.\.                                                 # Required .. operator
-        (?P<inclusive_upper_version>{version_group})?
-    )$
-|                                                            # Or match a lower bound (e.g. 1.0.0+)
-    ^(?P<lower_bound>
-        (?P<lower_bound_prefix>>|>=)?                        # Bound is exclusive?
-        (?P<lower_version>{version_group})?
-        (?(lower_bound_prefix)|\+)                           # + only if bound is not exclusive
-    )$
-|                                                            # Or match an upper bound (e.g. <=1.0.0)
-    ^(?P<upper_bound>
-        (?P<upper_bound_prefix><(?={version_group})|<=)?     # Bound is exclusive?
-        (?P<upper_version>{version_group})?
-    )$
-|                                                            # Or match a range (e.g. 1.0.0+<2.0.0)
-    ^(?P<range>
-        (?P<range_lower>
-            (?P<range_lower_prefix>>|>=)?                    # Lower bound is exclusive?
-            (?P<range_lower_version>{version_group})?
-            (?(range_lower_prefix)|\+)?                      # + only if lower bound is not exclusive
-        )(?P<range_upper>
-            (?(range_lower_version),?|)                      # , only if lower bound is found
-            (?P<range_upper_prefix><(?={version_group})|<=)  # <= only if followed by a version group
-            (?P<range_upper_version>{version_group})?
-        )
-    )$
-""".format(version_group=version_group)
+    def __init__(self, input_string, make_token):
+        self.make_token = make_token
+        self._groups = {}
+        self._input_string = input_string
+        self.bounds = []
 
-        self.regex = re.compile(version_range_regex, re_flags)
+        for part in input_string.split("|"):
+            if part == '':
+                version = self._create_version_from_token(part)
+                self.bounds.append(_Bound(version, None))
+                continue
+
+            match = re.search(self.regex, part)
+
+            if not match:
+                raise ParseException("Syntax error in version range '%s'"
+                                     % part)
+
+            self._groups = match.groupdict()
+            if self._groups['version']:
+                self._act_version()
+
+            if self._groups['exact_version']:
+                self._act_exact_version()
+
+            if self._groups['inclusive_bound']:
+                self._act_bound()
+
+            if self._groups['lower_bound']:
+                self._act_lower_bound()
+
+            if self._groups['upper_bound']:
+                self._act_upper_bound()
+
+            if self._groups['range']:
+                self._act_lower_and_upper_bound()
 
     def _is_lower_bound_exclusive(self, token):
         return True if token == ">" else False
@@ -605,46 +626,6 @@ class _VersionRangeParser(object):
 
         self.bounds.append(_Bound(lower_bound, upper_bound))
 
-    def _parse(self, input_string, make_token, debug):
-        self.make_token = make_token
-        self.debug = debug
-        self._groups = {}
-        self._input_string = input_string
-        self.bounds = []
-
-        for part in input_string.split("|"):
-            if part == '':
-                version = self._create_version_from_token(part)
-                self.bounds.append(_Bound(version, None))
-                continue
-
-            match = re.search(self.regex, part)
-
-            if not match:
-                raise ParseException("Syntax error in version range '%s'"
-                                     % part)
-
-            self._groups = match.groupdict()
-            if self._groups['version']:
-                self._act_version()
-
-            if self._groups['exact_version']:
-                self._act_exact_version()
-
-            if self._groups['inclusive_bound']:
-                self._act_bound()
-
-            if self._groups['lower_bound']:
-                self._act_lower_bound()
-
-            if self._groups['upper_bound']:
-                self._act_upper_bound()
-
-            if self._groups['range']:
-                self._act_lower_and_upper_bound()
-
-        return self.bounds
-
 
 class VersionRange(_Comparable):
     """Version range.
@@ -695,8 +676,7 @@ class VersionRange(_Comparable):
     with a comma, eg ">=2,<=6". The comma is purely cosmetic and is dropped in
     the string representation.
     """
-    def __init__(self, range_str='', make_token=AlphanumericVersionToken,
-                 debug_parsing=False):
+    def __init__(self, range_str='', make_token=AlphanumericVersionToken):
         """Create a VersionRange object.
 
         Args:
@@ -710,9 +690,8 @@ class VersionRange(_Comparable):
             return
 
         try:
-            bounds = _VersionRangeParser.parse(range_str,
-                                               make_token=make_token,
-                                               debug=debug_parsing)
+            parser = _VersionRangeParser(range_str, make_token)
+            bounds = parser.bounds
         except ParseException as e:
             raise VersionError("Syntax error in version range '%s': %s"
                                % (range_str, str(e)))
@@ -916,7 +895,7 @@ class VersionRange(_Comparable):
         """
         range = cls(None)
         range.bounds = []
-        for version in sorted(set(versions)):
+        for version in dedup(sorted(versions)):
             lower = _LowerBound(version, True)
             upper = _UpperBound(version, True)
             bound = _Bound(lower, upper)

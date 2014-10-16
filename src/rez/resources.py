@@ -252,7 +252,10 @@ def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
     Resource._cached.cache_clear()
+    Resource.ancestors.cache_clear()
     _ResourcePathParser._get_regex.cache_clear()
+    FileSystemResource.iter_instances.cache_clear()
+    list_resource_classes.cache_clear()
 
 
 # -----------------------------------------------------------------------------

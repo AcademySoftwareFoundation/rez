@@ -49,7 +49,8 @@ def shell_dependent(fn):
 
 
 def install_dependent(fn):
-    """Function decorator that skips tests if not run via 'rez-selftest' tool."""
+    """Function decorator that skips tests if not run via 'rez-selftest' tool,
+    from a production install"""
     def _fn(self, *args, **kwargs):
         if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
             fn(self, *args, **kwargs)

@@ -186,6 +186,7 @@ class System(object):
             if os.path.exists(rezolve_exe):
                 binpath = path
 
+        # TODO improve this, could still pick up non-production 'rezolve'
         if not binpath:
             path = which("rezolve")
             if path:
