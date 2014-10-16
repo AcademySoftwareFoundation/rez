@@ -104,7 +104,7 @@ class StandardBuildProcess(BuildProcess):
             verbose=verbose)
 
     def _build(self, install_path, build_path, clean=False, install=False,
-               variants=None):
+               release=False, variants=None):
         """Build all the variants of the package.
 
         Args:
@@ -116,6 +116,7 @@ class StandardBuildProcess(BuildProcess):
             clean: If True, clear any previous build first. Otherwise, rebuild
                 over the top of a previous build.
             install: If True, install the build.
+            release: If True, a central package release is occurring
 
         Returns:
             True if the build completed, False otherwise.
@@ -135,7 +136,8 @@ class StandardBuildProcess(BuildProcess):
         self._build(install_path=install_path,
                     build_path=base_build_path,
                     install=install,
-                    clean=clean, variants=variants)
+                    clean=clean,
+                    variants=variants)
 
     def release(self):
         assert(self.vcs)
@@ -210,6 +212,7 @@ class StandardBuildProcess(BuildProcess):
                 self._build(install_path=install_path,
                             build_path=base_build_path,
                             install=install,
+                            release=True,
                             clean=clean)
             except BuildError as e:
                 raise ReleaseError("The build failed: %s" % str(e))
@@ -300,13 +303,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current
     package, on the local host.
     """
-    def _use_existing_context_file(self, rxt_file):
-        return os.path.exists(rxt_file) \
-            and (os.path.getmtime(self.package.path)
-                 < os.path.getmtime(rxt_file))
-
     def _build(self, install_path, build_path, clean=False, install=False,
-               variants=None):
+               release=False, variants=None):
         base_install_path = self._get_base_install_path(install_path)
         build_env_scripts = []
         timestamp = int(time.time())
@@ -318,21 +316,27 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             invalid_variants = set(variants) - set(present_variants)
             if invalid_variants:
                 raise BuildError(
-                    "The following variants are not present: %s" \
+                    "The following variants are not present: %s"
                     % ", ".join(str(x) for x in sorted(invalid_variants)))
 
         # iterate over variants
         for i, variant in enumerate(self.package.iter_variants()):
             if variants and i not in variants:
-                self._hdr("Skipping %d/%d..." % (i+1, nvariants), 2)
+                self._hdr("Skipping %d/%d..." % (i + 1, nvariants), 2)
                 continue
 
-            self._hdr("Building %d/%d..." % (i+1, nvariants), 2)
+            self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
             subdir = variant.subpath
 
             # create build dir, possibly deleting previous build
             build_subdir = os.path.join(build_path, variant.subpath)
             install_path = os.path.join(base_install_path, variant.subpath)
+            rxt_file = os.path.join(build_subdir, "build.rxt")
+
+            if release:
+                packages_path = self.package.config.nonlocal_packages_path
+            else:
+                packages_path = self.package.config.packages_path
 
             if clean and os.path.exists(build_subdir):
                 shutil.rmtree(build_subdir)
@@ -340,22 +344,31 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if not os.path.exists(build_subdir):
                 os.makedirs(build_subdir)
 
-            # resolve build environment and save to file
-            rxt_path = os.path.join(build_subdir, "build.rxt")
-            if self._use_existing_context_file(rxt_path):
-                self._pr("Loading existing environment context...")
-                r = ResolvedContext.load(rxt_path)
-            else:
+            # resolve build environment and save to file, possibly reusing
+            # existing build context file
+            r = None
+            if os.path.exists(rxt_file) and os.path.getmtime(self.package.path) \
+                    < os.path.getmtime(rxt_file):
+                try:
+                    r_ = ResolvedContext.load(rxt_file)
+                    r_.validate()
+                    if r_.success and (r_.package_paths == packages_path):
+                        r = r_
+                except:
+                    pass
+
+            if r is None:
                 request = variant.get_requires(build_requires=True,
                                                private_build_requires=True)
                 self._pr("Resolving build environment: %s"
                          % ' '.join(str(x) for x in request))
                 r = ResolvedContext(request,
+                                    package_paths=packages_path,
                                     timestamp=timestamp,
                                     building=True)
-                r.print_info()
-                r.save(rxt_path)
+                r.save(rxt_file)
 
+            r.print_info()
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
@@ -371,7 +384,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 if script:
                     build_env_scripts.append(script)
 
-                extra_files = ret.get("extra_files", []) + [rxt_path]
+                extra_files = ret.get("extra_files", []) + [rxt_file]
                 if install and extra_files:
                     if not os.path.exists(install_path):
                         os.makedirs(install_path)
