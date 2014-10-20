@@ -37,7 +37,7 @@ class VersionBinding(Binding):
     @property
     def full(self):
         """Full version as a tuple (major, minor, patch)."""
-        return (self.major, self.minor, self.patch)
+        return (str(self.major), str(self.minor), str(self.patch))
 
     @property
     def major(self):
