@@ -1,7 +1,7 @@
 from rez.util import propertycache, create_forwarding_script, columnise
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, warning, critical, local, Printer
+from rez.colorize import warning, critical, Printer
 from rez.colorize import alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
@@ -100,14 +100,12 @@ class Suite(object):
         data["loaded"] = True
         return context
 
-    def add_context(self, name, context, description=None):
+    def add_context(self, name, context):
         """Add a context to the suite.
 
         Args:
             name (str): Name to store the context under.
             context (ResolvedContext): Context to add.
-            description (str): Optional description of the context, for example
-                "Maya for effects artists."
         """
         if name in self.contexts:
             raise SuiteError("Context already in suite: %r" % name)
@@ -118,7 +116,6 @@ class Suite(object):
                                    context=context.copy(),
                                    tool_aliases={},
                                    hidden_tools=set(),
-                                   description=description,
                                    priority=self._next_priority)
         self._flush_tools()
 
@@ -171,16 +168,6 @@ class Suite(object):
         _ = self._context(name)
         del self.contexts[name]
         self._flush_tools()
-
-    def set_context_description(self, name, description):
-        """Set a context's description.
-
-        Args:
-            name (str): Name of the context to prefix.
-            description (str): Description of context.
-        """
-        data = self._context(name)
-        data["description"] = description
 
     def set_context_prefix(self, name, prefix):
         """Set a context's prefix.
@@ -271,7 +258,7 @@ class Suite(object):
 
         Args:
             context_name (str): Context containing the tool.
-            tool_name (str): Name of tool to unhide.
+            tool_name (str): Name of tool to alias.
             tool_alias (str): Alias to give the tool.
         """
         data = self._context(context_name)
@@ -288,7 +275,7 @@ class Suite(object):
 
         Args:
             context_name (str): Context containing the tool.
-            tool_name (str): Name of tool to unhide.
+            tool_name (str): Name of tool to unalias.
         """
         data = self._context(context_name)
         aliases = data["tool_aliases"]
@@ -310,6 +297,26 @@ class Suite(object):
         """
         self._update_tools()
         return self.tools
+
+    def get_tool_filepath(self, tool_alias):
+        """Given a visible tool alias, return the full path to the executable.
+
+        Args:
+            tool_alias (str): Tool alias to search for.
+
+        Returns:
+            (str): Filepath of executable, or None if the tool is not in the
+                suite. May also return None because this suite has not been saved
+                to disk, so a filepath hasn't yet been established.
+        """
+        tools_dict = self.get_tools()
+        if tool_alias in tools_dict:
+            if self.tools_path is None:
+                return None
+            else:
+                return os.path.join(self.tools_path, tool_alias)
+        else:
+            return None
 
     def get_tool_context(self, tool_alias):
         """Given a visible tool alias, return the name of the context it
@@ -498,7 +505,7 @@ class Suite(object):
                     suites.append(suite)
         return suites
 
-    def print_info(self, buf=sys.stdout, verbosity=0):
+    def print_info(self, buf=sys.stdout, verbose=False):
         """Prints a message summarising the contents of the suite."""
         _pr = Printer(buf)
 
@@ -506,57 +513,47 @@ class Suite(object):
             _pr("Suite is empty.")
             return
 
+        context_names = sorted(self.contexts.iterkeys())
+        _pr("Suite contains %d contexts:" % len(context_names))
+
+        if not verbose:
+            _pr(' '.join(context_names))
+            return
+
         tools = self.get_tools().values()
-        context_names = set()
-        variants = set()
         context_tools = defaultdict(set)
         context_variants = defaultdict(set)
-
         for entry in tools:
             context_name = entry["context_name"]
-            variant = str(entry["variant"])
-            context_names.add(context_name)
-            variants.add(variant)
             context_tools[context_name].add(entry["tool_name"])
-            context_variants[context_name].add(variant)
-
-        _pr("Suite contains %d tools from %d contexts and %d packages."
-            % (len(tools), len(context_names), len(variants)))
+            context_variants[context_name].add(str(entry["variant"]))
 
         _pr()
-        _pr("contexts:", heading)
-        _pr()
-        rows = [["NAME", "VISIBLE TOOLS", "PATH", "DESCRIPTION"],
-                ["----", "-------------", "----", "-----------"]]
+        rows = [["NAME", "VISIBLE TOOLS", "PATH"],
+                ["----", "-------------", "----"]]
 
-        for data in self._sorted_contexts():
-            context_name = data["name"]
+        for context_name in context_names:
+            data = self.contexts[context_name]
             context_path = self._context_path(context_name) or '-'
-            description = data.get("description") or ""
-            ntools = len(context_tools[context_name])
-            nvariants = len(context_variants[context_name])
-            short_desc = "%d tools from %d packages" % (ntools, nvariants)
-            rows.append((context_name, short_desc, context_path, description))
+            ntools = len(context_tools.get(context_name, []))
+            if ntools:
+                nvariants = len(context_variants[context_name])
+                short_desc = "%d tools from %d packages" % (ntools, nvariants)
+            else:
+                short_desc = "no tools"
+            rows.append((context_name, short_desc, context_path))
+
         _pr("\n".join(columnise(rows)))
 
-        if verbosity:
-            _pr()
-            _pr("tools:", heading)
-            _pr()
-            self.print_tools(buf=buf, verbose=(verbosity >= 2))
+    def print_tools(self, buf=sys.stdout, verbose=False, context_name=None):
+        """Print table of tools available in the suite.
 
-    def print_tools(self, buf=sys.stdout, verbose=False):
-        """Print table of tools available in the suite."""
-        _pr = Printer(buf)
-
-        rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
-                ["----", "--------", "-------", "-------", ""]]
-        colors = [None, None]
-        tools = self.get_tools().values()
-        hidden_tools = self.get_hidden_tools()
-
+        Args:
+            context_name (str): If provided, only print the tools from this
+                context.
+        """
         def _get_row(entry):
-            context_name = entry["context_name"]
+            context_name_ = entry["context_name"]
             tool_alias = entry["tool_alias"]
             tool_name = entry["tool_name"]
             properties = []
@@ -583,47 +580,65 @@ class Suite(object):
                     col = alias_col
 
             msg = " ".join(properties)
-            row = [tool_alias, tool_name, package, context_name, msg]
+            row = [tool_alias, tool_name, package, context_name_, msg]
             return row, col
 
-        for data in self._sorted_contexts():
-            context_name = data["name"]
-            entries = [x for x in tools if x["context_name"] == context_name]
-            for entry in entries:
-                entry["hidden"] = False
+        if context_name:
+            self._context(context_name)  # check context exists
+            context_names = [context_name]
+        else:
+            context_names = sorted(self.contexts.iterkeys())
 
-            if verbose:
-                hidden_entries = [x for x in hidden_tools
-                                  if x["context_name"] == context_name]
-                for entry in hidden_entries:
-                    entry["hidden"] = True
-                entries.extend(hidden_entries)
+        rows = [["TOOL", "ALIASING", "PACKAGE", "CONTEXT", ""],
+                ["----", "--------", "-------", "-------", ""]]
+        colors = [None, None]
 
-            entries = sorted(entries, key=lambda x: x["tool_alias"])
+        entries_dict = defaultdict(list)
+        for d in self.get_tools().itervalues():
+            entries_dict[d["context_name"]].append(d)
 
-            for entry in entries:
-                if entry["hidden"]:
-                    row, _ = _get_row(entry)
-                    row[-1] = "(hidden)"
-                    rows.append(row)
-                    colors.append(warning)
-                else:
+        if verbose:
+            # add hidden entries
+            for d in self.hidden_tools:
+                d_ = d.copy()
+                d_["hidden"] = True
+                entries_dict[d["context_name"]].append(d_)
+
+            # add conflicting tools
+            for docs in self.tool_conflicts.itervalues():
+                for d in docs:
+                    d_ = d.copy()
+                    d_["conflicting"] = True
+                    entries_dict[d["context_name"]].append(d_)
+
+        for i, context_name in enumerate(context_names):
+            entries = entries_dict.get(context_name, [])
+            if entries:
+                if i:
+                    rows.append(('', '', '', '', ''))
+                    colors.append(None)
+
+                entries = sorted(entries, key=lambda x: x["tool_alias"].lower())
+                for entry in entries:
                     row, col = _get_row(entry)
-                    rows.append(row)
-                    colors.append(col)
+                    if "hidden" in entry:
+                        row[-1] = "(hidden)"
+                        rows.append(row)
+                        colors.append(warning)
+                    elif "conflicting" in entry:
+                        row[-1] = "(not visible)"
+                        rows.append(row)
+                        colors.append(warning)
+                    else:
+                        rows.append(row)
+                        colors.append(col)
 
-                    if verbose:
-                        tool_alias = row[0]
-                        conflicts = self.get_alias_conflicts(tool_alias)
-                        if conflicts:
-                            for conflict in conflicts:
-                                row, _ = _get_row(conflict)
-                                row[-1] = "(not visible)"
-                                rows.append(row)
-                                colors.append(warning)
-
-        for col, line in zip(colors, columnise(rows)):
-            _pr(line, col)
+        if rows:
+            _pr = Printer(buf)
+            for col, line in zip(colors, columnise(rows)):
+                _pr(line, col)
+        else:
+            _pr("No tools available.")
 
     def _context(self, name):
         data = self.contexts.get(name)
@@ -710,195 +725,13 @@ class Suite(object):
                         self.tools[alias] = entry
 
 
-class Alias(object):
-    """Main execution point of an 'alias' script in a suite.
-    """
-    def __init__(self, suite_path, context_name, context, tool_name, cli_args):
-        self.suite_path = suite_path
-        self.context_name = context_name
-        self.context = context
-        self.tool_name = tool_name
-        self.cli_args = cli_args
-
-    @propertycache
-    def suite(self):
-        return Suite.load(self.suite_path)
-
-    def run(self):
-        """Invoke the wrapped script.
-
-        Returns:
-            Return code of the command, or 0 if the command is not run.
-        """
-        from rez.config import config
-        from rez.vendor import argparse
-        from rez.status import status
-
-        prefix_char = config.suite_alias_prefix_char
-        parser = argparse.ArgumentParser(prog=self.tool_name,
-                                         prefix_chars=prefix_char)
-
-        def _add_argument(*nargs, **kwargs):
-            nargs_ = []
-            for narg in nargs:
-                nargs_.append(narg.replace('=', prefix_char))
-            parser.add_argument(*nargs_, **kwargs)
-
-        _add_argument(
-            "=a", "==about", action="store_true",
-            help="print information about the tool")
-        _add_argument(
-            "=i", "==interactive", action="store_true",
-            help="launch an interactive shell within the tool's configured "
-            "environment")
-        _add_argument(
-            "==versions", action="store_true",
-            help="list versions of package providing this tool")
-        _add_argument(
-            "=c", "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
-            help="read commands from string, rather than executing the tool")
-        _add_argument(
-            "=s", "==stdin", action="store_true",
-            help="read commands from standard input, rather than executing the tool")
-        _add_argument(
-            "=p", "==patch", type=str, nargs='*', metavar="PKG",
-            help="run the tool in a patched environment")
-        _add_argument(
-            "==strict", action="store_true",
-            help="strict patching. Ignored if ++patch is not present")
-        _add_argument(
-            "==nl", "==no-local", dest="no_local", action="store_true",
-            help="don't load local packages when patching")
-        _add_argument(
-            "==peek", action="store_true",
-            help="diff against the tool's context and a re-resolved copy - "
-            "this shows how 'stale' the context is")
-        _add_argument(
-            "=v", "==verbose", action="count", default=0,
-            help="verbose mode, repeat for more verbosity")
-        _add_argument(
-            "=q", "==quiet", action="store_true",
-            help="hide welcome message when entering interactive mode")
-
-        opts, tool_args = parser.parse_known_args(self.cli_args)
-
-        if opts.stdin:
-            # generally shells will behave as though the '-s' flag was not present
-            # when no stdin is available. So here we replicate this behaviour.
-            import select
-            if not select.select([sys.stdin], [], [], 0.0)[0]:
-                opts.stdin = False
-
-        context = self.context
-        _pr = Printer()
-
-        # peek
-        if opts.peek:
-            config.remove_override("quiet")
-            new_context = ResolvedContext(context.requested_packages(),
-                                          package_paths=context.package_paths,
-                                          verbosity=opts.verbose)
-            # reapply quiet mode (see cli.forward)
-            if "REZ_QUIET" not in os.environ:
-                config.override("quiet", True)
-
-            context.print_resolve_diff(new_context)
-            return 0
-
-        # patching
-        if opts.patch is not None:
-            new_request = opts.patch
-            request = context.get_patched_request(new_request, strict=opts.strict)
-            config.remove_override("quiet")
-            pkg_paths = (config.nonlocal_packages_path
-                         if opts.no_local else None)
-
-            context = ResolvedContext(request,
-                                      package_paths=pkg_paths,
-                                      verbosity=opts.verbose)
-
-            # reapply quiet mode (see cli.forward)
-            if "REZ_QUIET" not in os.environ:
-                config.override("quiet", True)
-
-        def _print_conflicting(variants):
-            vars_str = " ".join(x.qualified_package_name for x in variants)
-            msg = "Packages (in conflict): %s" % vars_str
-            _pr(msg, critical)
-
-        # print info
-        if opts.about:
-            print "Tool:     %s" % self.tool_name
-            print "Suite:    %s" % self.suite_path
-
-            msg = "%s (%r)" % (self.context.load_path, self.context_name)
-            if context.load_path is None:
-                msg += " (PATCHED)"
-            print "Context:  %s" % msg
-
-            variants = context.get_tool_variants(self.tool_name)
-            if variants:
-                if len(variants) > 1:
-                    _print_conflicting(variants)
-                else:
-                    variant = iter(variants).next()
-                    print "Package:  %s" % variant.qualified_package_name
-
-            if opts.verbose:
-                print
-                context.print_info(verbosity=opts.verbose - 1)
-            return 0
-        elif opts.versions:
-            variants = context.get_tool_variants(self.tool_name)
-            if variants:
-                if len(variants) > 1:
-                    _print_conflicting(variants)
-                    return 1
-                else:
-                    from rez.packages import iter_packages
-                    variant = iter(variants).next()
-                    it = iter_packages(name=variant.name)
-                    rows = []
-                    colors = []
-
-                    for pkg in sorted(it, key=lambda x: x.version, reverse=True):
-                        if pkg.version == variant.version:
-                            name = "* %s" % pkg.qualified_name
-                            col = heading
-                        else:
-                            name = "  %s" % pkg.qualified_name
-                            col = local if pkg.is_local else None
-
-                        label = "(local)" if pkg.is_local else ""
-                        rows.append((name, pkg.path, label))
-                        colors.append(col)
-
-                    for col, line in zip(colors, columnise(rows)):
-                        _pr(line, col)
-            return 0
-
-        # construct command
-        cmd = None
-        if opts.command:
-            cmd = opts.command
-        elif opts.interactive:
-            config.override("prompt", "%s>" % self.context_name)
-            cmd = None
-        else:
-            cmd = [self.tool_name] + tool_args
-
-        retcode, _, _ = context.execute_shell(command=cmd,
-                                              stdin=opts.stdin,
-                                              quiet=opts.quiet,
-                                              block=True)
-        return retcode
-
-
 def _FWD__invoke_suite_tool_alias(context_name, tool_name, _script, _cli_args):
     suite_path = os.path.dirname(os.path.dirname(_script))
     path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
     context = ResolvedContext.load(path)
 
-    alias = Alias(suite_path, context_name, context, tool_name, _cli_args)
-    retcode = alias.run()
+    from rez.wrapper import Wrapper
+    w = Wrapper.__new__(Wrapper)
+    w._init(suite_path, context_name, context, tool_name)
+    retcode = w.run(*_cli_args)
     sys.exit(retcode)

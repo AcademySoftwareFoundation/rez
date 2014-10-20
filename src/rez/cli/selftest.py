@@ -1,5 +1,5 @@
 '''
-Run unit tests
+Run unit tests.
 '''
 
 

@@ -26,7 +26,7 @@ def setup_parser(parser, completions=False):
     parser.add_argument("--res", "--print-resolve", dest="print_resolve",
                         action="store_true",
                         help="print only the resolve list")
-    parser.add_argument("-t", "--print-tools", dest="print_tools", action="store_true",
+    parser.add_argument("-t", "--tools", action="store_true",
                         help="print a list of the executables available in the context")
     parser.add_argument("--which", type=str, metavar="CMD",
                         help="locate a program within the context")
@@ -95,7 +95,7 @@ def command(opts, parser, extra_arg_groups=None):
             print " ".join(str(x) for x in rc.requested_packages(False))
         elif opts.print_resolve:
             print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
-        elif opts.print_tools:
+        elif opts.tools:
             rc.print_tools()
         elif opts.diff:
             rc_other = ResolvedContext.load(opts.diff)

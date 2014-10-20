@@ -6,7 +6,6 @@ from rezgui.windows.ContextSubWindow import ContextSubWindow
 from rezgui.dialogs.AboutDialog import AboutDialog
 from rez.exceptions import ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.status import status
 from contextlib import contextmanager
 from functools import partial
 import os.path
@@ -33,25 +32,6 @@ class MainWindow(QtGui.QMainWindow):
         add_menu_action(file_menu, "New Context", self.new_context)
         add_menu_action(file_menu, "Open Context...", self._open_context)
         self.recent_contexts_menu = file_menu.addMenu("Open Recent Context")
-
-        if status.context and status.context.load_path:
-            menu = file_menu.addMenu("Open Active Context")
-            filepath = status.context.load_path
-            fn = partial(self.open_context, filepath)
-            add_menu_action(menu, filepath, fn)
-
-        suites = status.suites
-        if suites:
-            menu = file_menu.addMenu("Open Context From Active Suite")
-            for suite in suites:
-                menu2 = menu.addMenu(suite.load_path)
-                for context_name in suite.context_names:
-                    context = suite.context(context_name)
-                    filepath = context.load_path
-                    filename = os.path.basename(filepath)
-                    label = "%s (%s)" % (context_name, filename)
-                    fn = partial(self.open_context, filepath)
-                    add_menu_action(menu2, label, fn)
 
         self.save_context_action = add_menu_action(file_menu, "Save Context")
         self.save_context_as_action = add_menu_action(file_menu, "Save Context As...")

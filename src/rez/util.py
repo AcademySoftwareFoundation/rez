@@ -256,6 +256,14 @@ def columnise(rows, padding=2):
     return strs
 
 
+def print_colored_columns(printer, rows, padding=2):
+    """Note: The last entry in each row is the row color."""
+    rows_ = [x[:-1] for x in rows]
+    colors = [x[-1] for x in rows]
+    for col, line in zip(colors, columnise(rows_, padding=padding)):
+        printer(line, col)
+
+
 def pretty_dict(d):
     def _lit(value):
         if isinstance(value, dict):
