@@ -1,28 +1,52 @@
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 
+
 class Setting(object):
 
-    SYSTEM_SETTING_NAMES = ("opSystem", 
-                            "username", 
-                            "AL_LAUNCHER_PRESET", 
-                            "AL_LAUNCHER_MODE", 
-                            "AL_LAUNCHER_TIMESTAMP", 
-                            "AL_DFS", 
-                            "al-dfs",)
-
-    SYSTEM_PACKAGE_SETTING_NAMES = ("CentOS", 
-                                    "platform", 
-                                    "arch", 
-                                    "os",)
-
-    def __init__(self, name, value, setting_type):
+    def __init__(self, name, id=None):
 
         self.name = name
+        self.id = id
+
+
+    def __repr__(self):
+
+        return "<Setting name=%s, id=%s>" % (self.name, self.id)
+
+
+class ReferenceSetting(Setting):
+
+    def __init__(self, name, presetId=None, id=None):
+
+        super(ReferenceSetting, self).__init__(name, id)
+        self.preset_id = presetId
+
+    def __repr__(self):
+        return "<ReferenceSetting name=%s, id=%s, presetId=%s>" % (self.name, self.id, self.preset_id)
+
+
+class ValueSetting(Setting):
+
+    SYSTEM_SETTING_NAMES = ("opSystem",
+                            "username",
+                            "AL_LAUNCHER_PRESET",
+                            "AL_LAUNCHER_MODE",
+                            "AL_LAUNCHER_TIMESTAMP",
+                            "AL_DFS",
+                            "al-dfs",)
+
+    SYSTEM_PACKAGE_SETTING_NAMES = ("CentOS",
+                                    "platform",
+                                    "arch",
+                                    "os",)
+
+    def __init__(self, name, value, setting_type, operating_system=None):
+
+        super(ValueSetting, self).__init__(name)
         self.value = value
         self.setting_type = setting_type
-        self.id = None
         self.source_preset_id = None
-        self.operating_system = None
+        self.operating_system = operating_system
 
     def get_setting_as_package_request(self):
         """
@@ -59,4 +83,4 @@ class Setting(object):
 
     def __repr__(self):
 
-        return "<Setting name=%s, value=%s, type=%s>" % (self.name, self.value, self.setting_type.name)
+        return "<ValueSetting name=%s, value=%s, type=%s>" % (self.name, self.value, self.setting_type.name)

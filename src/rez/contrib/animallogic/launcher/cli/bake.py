@@ -6,11 +6,12 @@ from rez.contrib.animallogic.hessian import client
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.config import config
 from rez.vendor import argparse
 import logging
+import sys
 
 
 logger = logging.getLogger(__name__)
@@ -26,7 +27,7 @@ def argparse_setting(string):
         if len(bits) == 2:
             setting_type = SettingType[bits[0]]
 
-        return Setting(name, value, setting_type)
+        return ValueSetting(name, value, setting_type)
 
     except:
         raise argparse.ArgumentTypeError("must be in the format type:name=value.")
@@ -67,7 +68,7 @@ def command(opts, parser, extra_arg_groups=None):
     description = opts.description
 
     if not description:
-        description = "Preset automatically baked by Rez from %s." % source
+        description = "Preset automatically baked by Rez from %s. The command used was %s" %(source, " ".join(sys.argv))
 
     bake(source, opts.destination, description, opts.overrides, opts.skip_resolve, 
             opts.max_fails, opts.preserve_system_settings, opts.only_packages)
