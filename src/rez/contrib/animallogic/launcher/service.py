@@ -83,7 +83,7 @@ class LauncherHessianService(LauncherServiceInterface):
         @param date: restrict the date from when the preset path is going to be retrieved.
         @return: s string with the full path to the preset
         """
-        return self._preset_proxy.getFullyQualifiedPresetName(presetId, date)
+        return self._preset_proxy.getFullyQualifiedPresetName({u'key': presetId}, date)
 
     def get_references_from_path(self, path, date=None):
         """
