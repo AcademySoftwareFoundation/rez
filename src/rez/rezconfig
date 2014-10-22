@@ -140,6 +140,9 @@ env_var_separators:
     ARENA_MODULE_PATH: ','
     ARTISTTOOLPALETTE_TOOLS: ','
     DOXYGEN_TAGFILES: ' '
+    AL_SHOTSETUP_BUILDER_LIST: ','
+    SHOTSETUP_PLUGIN_MODULES: ','
+    AL_RIGBITS_LIST: ','
 
 
 ###############################################################################
