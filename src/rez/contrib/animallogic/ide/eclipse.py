@@ -6,6 +6,7 @@ import functools
 
 import xml.etree.cElementTree as etree
 
+from rez.build_process import BuildType
 from rezplugins.build_system.cmake import CMakeBuildSystem
 from rez.packages import load_developer_package
 from rez.resolved_context import ResolvedContext
@@ -483,7 +484,8 @@ class EclipseProjectBuilder(object):
 
             callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                          context=context,
-                                         package=self.package)
+                                         package=self.package,
+                                         build_type=BuildType.local)
             
             tmp = tempfile.NamedTemporaryFile()
             context.execute_shell(block=True,
