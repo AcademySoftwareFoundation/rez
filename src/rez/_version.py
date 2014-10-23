@@ -1,1 +1,1 @@
-_rez_version = "2.0.BETA.12"
+_rez_version = "2.0.BETA.13"

@@ -56,10 +56,14 @@ scripts = [
     "rez-status",
     "rez-help",
     "rez-depends",
-    "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
-    "rez-gui"
+    # simple builtin python build system
+    "bez",
+    # rez gui
+    "rez-gui",
+    # rez software manager
+    "soma"
 ]
 
 

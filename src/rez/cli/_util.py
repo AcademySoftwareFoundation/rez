@@ -5,29 +5,28 @@ import signal
 from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS
 
 
-subcommands = [
-    "bind",
-    "build",
-    "config",
-    "context",
-    "complete",
-    "depends",
-    "env",
-    "forward",
-    "help",
-    "interpret",
-    "python",
-    "release",
-    "search",
-    "status",
-    "suite",
-    "selftest",
-    "gui"]
-
-
-hidden_subcommands = [
-    "complete",
-    "forward"]
+subcommands = dict(
+    rez=(["bind",
+          "build",
+          "config",
+          "context",
+          "complete",
+          "depends",
+          "env",
+          "forward",
+          "help",
+          "interpret",
+          "python",
+          "release",
+          "search",
+          "status",
+          "suite",
+          "selftest",
+          "gui"],
+         ["complete",
+          "forward"]),
+    soma=(["ls"],
+          []))
 
 
 class LazySubParsersAction(_SubParsersAction):

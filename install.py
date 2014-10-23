@@ -25,22 +25,26 @@ class fake_entry(object):
     code_template = textwrap.dedent(
         """
         from rez.cli.{module} import run
-        run({target})
+        run({nargs})
         """).strip() + '\n'
 
     def __init__(self, name):
         self.name = name
 
     def get_script_text(self):
+        nargs = ''
         module = "_main"
-        target = ""
-        if self.name == "bez":
+
+        if self.name == "soma":
+            nargs = "namespace='soma'"
+        elif self.name == "bez":
             module = "_bez"
         elif self.name == "_rez_fwd":  # TODO rename this binary
-            target = "'forward'"
+            nargs = "command='forward'"
         elif self.name not in ("rez", "rezolve"):
-            target = "'%s'" % self.name.split('-', 1)[-1]
-        return self.code_template.format(module=module, target=target)
+            nargs = "command='%s'" % self.name.split('-', 1)[-1]
+
+        return self.code_template.format(module=module, nargs=nargs)
 
 
 class _ScriptMaker(ScriptMaker):

@@ -6,7 +6,7 @@ import sys
 
 
 def setup_parser(parser, completions=False):
-    from rez.cli.build import setup_parser_common
+    from rez.cli.rez_cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
     vcs_types = get_release_vcs_types()
 
@@ -25,7 +25,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
-    from rez.cli.build import get_build_args
+    from rez.cli.rez_cli.build import get_build_args
 
     working_dir = os.getcwd()
 

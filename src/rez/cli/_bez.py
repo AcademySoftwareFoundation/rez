@@ -7,7 +7,7 @@ from rez.vendor import yaml, argparse
 
 
 def run():
-    parser = argparse.ArgumentParser( \
+    parser = argparse.ArgumentParser(
         description="Simple builtin Rez build system")
 
     parser.add_argument("TARGET", type=str, nargs='*',

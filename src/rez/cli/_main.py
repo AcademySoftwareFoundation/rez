@@ -67,9 +67,8 @@ class InfoAction(_StoreTrueAction):
         sys.exit(0)
 
 
-def run(command=None):
-    import rez.cli
-    parser = LazyArgumentParser("rez")
+def run(command=None, namespace="rez"):
+    parser = LazyArgumentParser(namespace)
 
     parser.add_argument("-i", "--info", action=InfoAction,
                         help="print information about rez and exit")
@@ -84,10 +83,12 @@ def run(command=None):
     #     "rez-build" - ie, this will work: "rez-build --debug"
     _add_common_args(parser)
 
+    subcommands_ = subcommands[namespace][0]
+
     # add lazy subparsers
     subparser = parser.add_subparsers(dest='cmd', metavar='COMMAND')
-    for subcommand in subcommands:
-        module_name = "rez.cli.%s" % subcommand
+    for subcommand in subcommands_:
+        module_name = "rez.cli.%s_cli.%s" % (namespace, subcommand)
         subparser.add_parser(
             subcommand,
             help='',  # required so that it can be setup later
