@@ -1,21 +1,24 @@
 from rez.packages import load_developer_package, iter_packages
 from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
-from rez.build_system import create_build_system
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import encode_filesystem_name, convert_dicts, AttrDictWrapper, \
-    print_debug, yaml_literal
+from rez.util import convert_dicts, AttrDictWrapper, print_debug, yaml_literal
 from rez.release_hook import create_release_hooks
-from rez.vendor.version.version import Version
 from rez import __version__
 from rez.vendor import yaml
+from rez.vendor.enum import Enum
 import getpass
 import shutil
-import os
 import os.path
-import sys
 import time
+
+
+class BuildType(Enum):
+    """ Enum to represent the type of build."""
+
+    local = 0
+    central = 1
 
 
 class BuildProcess(object):
@@ -50,7 +53,6 @@ class BuildProcess(object):
         self.vcs = vcs
         self.release_message = release_message
         self.ensure_latest = ensure_latest
-        self.buildsys = buildsys
 
         if vcs and (vcs.path != working_dir):
             raise RezError("BuildProcess was provided with mismatched VCS")
@@ -107,7 +109,7 @@ class StandardBuildProcess(BuildProcess):
             verbose=verbose)
 
     def _build(self, install_path, build_path, clean=False, install=False,
-               variants=None):
+               variants=None, build_type=BuildType.local):
         """Build all the variants of the package.
 
         Args:
@@ -119,6 +121,7 @@ class StandardBuildProcess(BuildProcess):
             clean: If True, clear any previous build first. Otherwise, rebuild
                 over the top of a previous build.
             install: If True, install the build.
+            build_type: The BuildType for the current build.
 
         Returns:
             True if the build completed, False otherwise.
@@ -138,7 +141,7 @@ class StandardBuildProcess(BuildProcess):
         self._build(install_path=install_path,
                     build_path=base_build_path,
                     install=install,
-                    clean=clean, variants=variants)
+                    clean=clean, variants=variants, build_type=BuildType.local)
 
     def release(self):
         assert(self.vcs)
@@ -213,7 +216,7 @@ class StandardBuildProcess(BuildProcess):
                 self._build(install_path=install_path,
                             build_path=base_build_path,
                             install=install,
-                            clean=clean)
+                            clean=clean, build_type=BuildType.central)
             except BuildError as e:
                 raise ReleaseError("The build failed: %s" % str(e))
 
@@ -309,7 +312,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                  < os.path.getmtime(rxt_file))
 
     def _build(self, install_path, build_path, clean=False, install=False,
-               variants=None):
+               variants=None, build_type=BuildType.local):
         base_install_path = self._get_base_install_path(install_path)
         build_env_scripts = []
         timestamp = int(time.time())
@@ -327,11 +330,10 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         # iterate over variants
         for i, variant in enumerate(self.package.iter_variants()):
             if variants and i not in variants:
-                self._hdr("Skipping %d/%d..." % (i+1, nvariants), 2)
+                self._hdr("Skipping %d/%d..." % (i + 1, nvariants), 2)
                 continue
 
-            self._hdr("Building %d/%d..." % (i+1, nvariants), 2)
-            subdir = variant.subpath
+            self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
 
             # create build dir, possibly deleting previous build
             build_subdir = os.path.join(build_path, variant.subpath)
@@ -367,7 +369,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             ret = self.buildsys.build(r,
                                       build_path=build_subdir,
                                       install_path=install_path,
-                                      install=install)
+                                      install=install,
+                                      build_type=build_type)
             if ret.get("success"):
                 num_built_variants += 1
                 script = ret.get("build_env_script")

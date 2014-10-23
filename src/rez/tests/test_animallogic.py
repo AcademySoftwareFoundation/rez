@@ -135,6 +135,11 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
         builder.build(install_path=cls.install_root, install=True, clean=True)
 
     @classmethod
+    def tearDownClass(cls):
+
+        TempdirMixin.tearDownClass()
+
+    @classmethod
     def _create_builder(cls, working_dir):
         buildsys = create_build_system(working_dir)
         return LocalSequentialBuildProcess(working_dir,

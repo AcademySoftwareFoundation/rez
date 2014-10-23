@@ -126,15 +126,24 @@ default_shell: ''
 # configured separator will be used.
 env_var_separators:
     CMAKE_MODULE_PATH: ';'
-    AL_MAYA_AUTO_PYEVAL: ' '
+    AL_MAYA_AUTO_EVAL: ' '
     AL_MAYA_AUTO_LOADVERSIONEDTOOL: ' '
+    AL_MAYA_AUTO_NEWSCENEEVENT: ' '
+    AL_MAYA_AUTO_OPENSCENEEVENT: ' '
+    AL_MAYA_AUTO_PRELOADMEL: ' '
+    AL_MAYA_AUTO_PYEVAL: ' '
     AL_PYAPPS_LIST: ','
     AL_PYLIBS_LIST: ','
     AL_PYTHON_LIBS_JOBS_LIST: ','
+    AL_SHOTSETUP_APPLICATION_LIST: ','
     AL_XSI_AUTO_LOADVERSIONEDTOOL: ','
     ARENA_MODULE_PATH: ','
     ARTISTTOOLPALETTE_TOOLS: ','
     DOXYGEN_TAGFILES: ' '
+    AL_SHOTSETUP_BUILDER_LIST: ','
+    SHOTSETUP_PLUGIN_MODULES: ','
+    AL_RIGBITS_LIST: ','
+
 
 ###############################################################################
 # Debugging
@@ -338,7 +347,7 @@ warn_nonstring_version: true
 error_nonstring_version: false
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
-warn_old_commands: true
+warn_old_commands: false
 error_old_commands: false
 
 # Print old commands and their converted rex equivalent. Note that this can
@@ -366,13 +375,23 @@ error_commands2: false
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
 #   REZ_PACKAGES_PATH   REZ_PACKAGES_PATH (but optional)
+#   REZ_IN_REZ_RELEASE  not set
 rez_1_environment_variables: true
+
+# If True, Rez will continue to generate the given CMake variables at build and
+# release time, even though their use has been deprecated in Rez-2.  The 
+# variables in question, and their Rez-2 equivalent (if any) are:
+#   REZ-1               REZ-2
+#   -----               -----
+#   CENTRAL             REZ_BUILD_TYPE
+rez_1_cmake_variables: true
 
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
 # * All warn/error settings in this section of the config will be set to
 #   warn=False, error=True;
 # * rez_1_environment_variables will be set to False.
+# * rez_1_cmake_variables will be set to False.
 # You should aim to do this - it will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
 disable_rez_1_compatibility: false
@@ -410,6 +429,8 @@ plugins:
             - '^master$'
             - '^AL_master$'
             - '^hotfix'
+            - '^release-'
+            - '^AL_2\.0$'
 
 
 ###############################################################################

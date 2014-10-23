@@ -1,0 +1,32 @@
+#
+# System initialization script for rez. Source this file in order to use rez. 
+# You probably want to do that in ~/.bashrc or equivalent startup script.
+#
+
+# Rez version.
+export REZ_VERSION=@REZ_VERSION@
+
+# Where Rez is installed.
+export REZ_PATH=@rez_path@
+
+# Add Rez to our environment.
+export PATH=${REZ_PATH}/bin:${PATH}
+export PYTHONPATH=${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
+
+# Tell Rez where our downloads live.
+export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
+
+# Add some alias for Rez to use.
+alias b='rez build --build-target RelWithDebInfo --install -- -- -j 16'
+alias b0='rez build --build-target RelWithDebInfo --variants 0 --install -- -- -j 16'
+alias b1='rez build --build-target RelWithDebInfo --variants 1 --install -- -- -j 16'
+alias b2='rez build --build-target RelWithDebInfo --variants 2 --install -- -- -j 16'
+alias b3='rez build --build-target RelWithDebInfo --variants 3 --install -- -- -j 16'
+alias b4='rez build --build-target RelWithDebInfo --variants 4 --install -- -- -j 16'
+alias bc=b
+alias bc0=b0
+alias bc1=b1
+alias bc2=b2
+alias bc3=b3
+alias bc4=b4
+

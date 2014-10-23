@@ -1,9 +1,13 @@
+import shutil
+import tempfile
+from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import itertools
 import os.path
+from rez.vendor.version.version import Version
 
 
 class TestSolver(TestBase):
@@ -188,6 +192,265 @@ class TestSolver(TestBase):
         self.assertFalse(isinstance(s.failure_reason(), Cycle))
 
 
+class TempdirMixin(object):
+    """Mixin that adds tmpdir create/delete."""
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tempfile.mkdtemp(prefix="rez_test_")
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.root):
+            shutil.rmtree(cls.root)
+
+
+class TestVariantResolutionOrder(TestBase, TempdirMixin):
+
+    class FakeArgParseOpts(object):
+
+        def __getattr__(self, key):
+            return None
+
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
+        path = os.path.dirname(__file__)
+        packages_path = os.path.join(path, "data", "solver", "packages")
+
+        cls.install_root = os.path.join(cls.root, "packages")
+
+        cls.settings = dict(
+            packages_path=[cls.install_root],
+            add_bootstrap_path=False,
+            resolve_caching=False,
+            warn_untimestamped=False,
+            implicit_packages=[])
+
+        shutil.copytree(packages_path, cls.install_root)
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
+    def _solve(self, request, expected_packages=[], non_expected_packages=[]):
+
+        resolved_context = ResolvedContext(request)
+        for package in expected_packages:
+            expected_package_name, package_version = package.split('-')
+            expected_package_version = Version(package_version)
+            resolved_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(resolved_context,
+                                                                                            expected_package_name)
+            self.assertEqual(resolved_package_version, expected_package_version,
+                             'wrong %s version selected' % expected_package_name )
+
+        for non_expected in non_expected_packages:
+            for package in resolved_context.resolved_packages:
+                self.assertNotEquals(package.name, non_expected,
+                                     '%s should not be in the resolved packages' % non_expected)
+
+        return resolved_context
+
+    def test_resolve_higher_to_lower_version_ordered_variants(self):
+        """
+        Test we pick the higher version of the dependant package when the variants are ordered from higher to lower
+         version range
+        """
+        request = ['multi_version_variant_higher_to_lower_version_order']
+        expected_packages = ['bar-4.8.5']
+        self._solve(request, expected_packages)
+
+    def test_resolve_lower_to_higher_version_ordered_variants(self):
+        """
+        Test we pick the higher version of the dependant package when the variants are ordered from lower to higher
+         version range
+        """
+
+        request = ['multi_version_variant_lower_to_higher_version_order']
+        expected_packages = ['bar-4.8.5']
+        self._solve(request, expected_packages)
+
+    def test_variant_selection_variant_default_order(self):
+        """
+        Test that we get the variant with the highest version of family with the highest weighted average of
+        where they appear in the variants
+        """
+
+        request = ['two_packages_in_variant_unsorted']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+
+    def test_variant_selection_requested_priority(self):
+        """
+        Test that the higher version of the package requested is selected first
+        """
+
+        request = ['two_packages_in_variant_unsorted', 'bah']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+        request = ['two_packages_in_variant_unsorted', 'eek']
+        expected_packages = ['bah-1.0.1', 'eek-2.0.0']
+        self._solve(request, expected_packages)
+
+
+    def test_variant_selection_requested_priority_3(self):
+        """
+        Test that a particular variant gets selected if it is part of the requirements and the package contains
+        diff packages with the same average positional weight
+        """
+
+        ###################### 1 #########################
+        request = ['variable_variant_package_in_single_column', 'bah']
+        expected_packages = ['foo-1.0.0', 'bah-1.0.1']
+        self._solve(request, expected_packages)
+
+        ###################### 2 #########################
+        request = ['variable_variant_package_in_single_column', 'eek']
+        expected_packages = ['foo-1.1.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+        ###################### 3 #########################
+        request = ['variable_variant_package_in_single_column', 'eek-2']
+        expected_packages = ['foo-1.0.0', 'bah-1.0.1', 'eek-2.0.0']
+        self._solve(request, expected_packages)
+
+        ###################### 4 #########################
+        request = ['variable_variant_package_in_single_column', 'eek-2', 'bah']
+        expected_packages = ['foo-1.0.0', 'bah-1.0.1', 'eek-2.0.0']
+        self._solve(request, expected_packages)
+
+
+    def test_variant_selection_resolved_priority(self):
+        """
+        Test that a particular variant gets selected by the fam with highest positional weight once it is sorted
+         by the fam_requires
+        """
+
+        request = ['two_packages_in_variant_unsorted', 'eek-1']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_variant_repeatable_ambiguous_selection(self):
+        """
+        Test the variant selection is repeatable when the selection is ambiguous
+        """
+
+        request = ['multi_packages_variant_sorted', 'bah']
+        context1 = self._solve(request)
+        contextToCompare1 = []
+        for resolve_package in context1.resolved_packages:
+            if resolve_package.name != 'multi_packages_variant_sorted':
+                contextToCompare1.append(resolve_package)
+
+        request = ['multi_packages_variant_unsorted', 'bah']
+        context2 = self._solve(request)
+        contextToCompare2 = []
+        for resolve_package in context2.resolved_packages:
+            if resolve_package.name != 'multi_packages_variant_unsorted':
+                contextToCompare2.append(resolve_package)
+
+        self.assertEqual(contextToCompare1, contextToCompare2, 'resolved packages differ not repeatable selection')
+
+    def test_variant_with_permuted_family_names(self):
+        """
+        Test that the Version range has more weight than the order of the packages on the variant for fam name in the
+         fam_requires
+        """
+
+        request = ['permuted_family_names', 'eek', 'bah']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+        request = ['permuted_family_names',  'bah', 'eek']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_variant_with_same_positional_weight(self):
+        """
+        Test that when we have a tie on positional average weight we pick the a fam name by alphabetical order
+        """
+
+        request = ['permuted_family_names_same_position_weight']
+        # All have the same positional average weight
+        # It should sort alphabetically first by bah then eek and then foo
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1', 'foo-1.0.0']
+        self._solve(request, expected_packages)
+
+
+    def test_asymmetric_variant_selection(self):
+        """
+        Test we can resolve packages that have asymmetric variants
+         variants with different number of packages
+        """
+
+        request = ['asymmetric_variants', 'eek']
+        expected_packages = ['bah-1.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+        request = ['asymmetric_variants',  'bah', 'eek']
+        expected_packages = ['bah-1.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+        request = ['asymmetric_variants',  'bah']
+        expected_packages = ['bah-2.0.0']
+        non_expected_packages = ['eek']
+        self._solve(request, expected_packages, non_expected_packages)
+
+    def test_variant_with_antipackage(self):
+        """
+        Test the antipackage does not show up in the resolved context
+        """
+
+        request = ['asymmetric_variants', '!eek', 'bah']
+        expected_packages = ['bah-2.0.0']
+        non_expected_packages = ['eek']
+        self._solve(request, expected_packages, non_expected_packages)
+
+        request = [ 'variant_with_antipackage', 'asymmetric_variants', 'bah']
+        expected_packages = ['bah-1.0.1', 'eek-1.0.0']
+        self._solve(request, expected_packages)
+
+        request = [ 'variant_with_antipackage', 'asymmetric_variants', 'eek']
+        expected_packages = ['bah-1.0.1', 'eek-1.0.0']
+        self._solve(request, expected_packages)
+
+        request = [ 'asymmetric_variants', 'variant_with_antipackage', 'eek', 'bah']
+        expected_packages = ['bah-1.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_variant_with_weak_packages(self):
+        """
+        Test that the variant with a weak package gets sorted at the end
+        """
+
+        request = ['variant_with_weak_package_in_variant', 'bah']
+        expected_packages = ['bah-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_package_name_in_require_and_variant(self):
+        """
+        Test weird but valid case where a package family name appears in the requires and also in the variants
+        """
+        request = ['package_name_in_require_and_variant']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.1']
+        self._solve(request, expected_packages)
+
+    def test_different_slices_sorting_respect_request_criteria(self):
+        """
+        Test that the sort of different variants slices get sorted with the same request criteria
+        """
+        request = ['python-2.7',  'eek', 'three_packages_in_variant']
+        expected_packages = ['bah-1.0.1', 'eek-2.0.0', 'python-2.7.0']
+        self._solve(request, expected_packages)
+
+    @staticmethod
+    def getResolvedPackageVersion(context, package_name):
+        for package in context.resolved_packages:
+            if package.name == package_name:
+                return package.version
+
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
@@ -200,6 +463,7 @@ def get_test_suites():
     suite.addTest(TestSolver("test_7"))
     suite.addTest(TestSolver("test_8"))
     suites.append(suite)
+    suites.append(unittest.TestLoader().loadTestsFromTestCase(TestVariantResolutionOrder))
     return suites
 
 if __name__ == '__main__':

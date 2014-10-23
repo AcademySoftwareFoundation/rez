@@ -4,11 +4,9 @@ Git version control
 from rez.release_vcs import ReleaseVCS
 from rez.util import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
-from rez.vendor.schema.schema import Or
 import functools
 import os.path
 import re
-import sys
 
 
 class GitReleaseVCSError(ReleaseVCSError):
@@ -35,7 +33,7 @@ class GitReleaseVCS(ReleaseVCS):
 
     @classmethod
     def is_valid_root(cls, path):
-        if os.path.join(path, '.git'):
+        if os.path.isdir(os.path.join(path, '.git')):
             return True
 
         while path != os.sep:
@@ -105,7 +103,6 @@ class GitReleaseVCS(ReleaseVCS):
         if releasable_branches:
             releasable = False
             current_branch_name = self.get_local_branch()
-
             for releasable_branch in releasable_branches:
                 if re.search(releasable_branch, current_branch_name):
                     releasable = True

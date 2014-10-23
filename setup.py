@@ -24,7 +24,7 @@ os.environ['__rez_is_installing'] = '1'
 
 def find_files(pattern, path=None, root="rez"):
     paths = []
-    basepath = os.path.realpath(os.path.join("src", root))
+    basepath = os.path.realpath(os.path.join("@relative_path@/src", root))
     path_ = basepath
     if path:
         path_ = os.path.join(path_, path)
@@ -37,7 +37,7 @@ def find_files(pattern, path=None, root="rez"):
     return paths
 
 
-with open("src/rez/__init__.py") as f:
+with open("@relative_path@/src/rez/__init__.py") as f:
     code = f.read()
 loc = code.split('\n')
 ver_loc = [x for x in loc if x.startswith("__version__")][0]
@@ -60,6 +60,7 @@ scripts = [
     "rez-bootstrap",
     "rez-help",
     "rez-depends",
+    "rez-launcher",
     "rez-unleash",
     "rez-ide",
     "bez",
@@ -112,10 +113,10 @@ setup(
     author_email="nerdvegas@gmail.com",
     license="LGPL",
     cmdclass={'install': install_},
-    scripts=[os.path.join('bin', x) for x in scripts],
+    scripts=[os.path.join('@relative_path@/bin', x) for x in scripts],
     include_package_data=True,
-    package_dir = {'': 'src'},
-    packages=find_packages('src', exclude=["tests"]),
+    package_dir = {'': '@relative_path@/src'},
+    packages=find_packages('@relative_path@/src', exclude=["tests"]),
     package_data = {
         'rez':
             ['rezconfig', 'logging.conf'] +

@@ -1,8 +1,8 @@
 import os
-import os.path
 import sys
 import signal
-from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS
+from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
+    ArgumentError
 
 
 subcommands = [
@@ -16,12 +16,15 @@ subcommands = [
     "env",
     "forward",
     "help",
+    "ide",
     "interpret",
+    "launcher",
     "release",
     "search",
     "status",
     "suite",
-    "test"]
+    "test",
+    "unleash"]
 
 
 hidden_subcommands = [

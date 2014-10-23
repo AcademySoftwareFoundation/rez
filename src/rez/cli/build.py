@@ -3,8 +3,7 @@ Build a package from source.
 '''
 import sys
 import os
-from rez.vendor import argparse
-
+import tempfile
 
 def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
@@ -44,11 +43,15 @@ def setup_parser(parser, completions=False):
     parser.add_argument("--fail-graph", action="store_true",
                         help="if the build environment fails to resolve due "
                         "to a conflict display the resolve graph as an image.")
+    parser.add_argument("--dora", action="store_true",
+                        help="if the build environment fails to resolve due"
+                             "to a conflict display the resolve graph in dora")
     parser.add_argument("-s", "--scripts", action="store_true",
                         help="create build scripts rather than performing the "
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
+
     setup_parser_common(parser)
 
 
@@ -100,11 +103,16 @@ def command(opts, parser, extra_arg_groups=None):
     except BuildContextResolveError as e:
         print >> sys.stderr, str(e)
 
+        if opts.dora:
+            from rez.contrib.animallogic.dora import launch_dora_from_context_file
+            _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
+            e.context.save(context_file_name)
+            launch_dora_from_context_file(context_file_name)
+
         if opts.fail_graph:
             if e.context.graph:
-                from rez.util import view_graph
-                g = e.context.graph(as_dot=True)
-                view_graph(g)
+                from rez.contrib.animallogic.viewdotgraph import view_graph_from_resolved_context
+                view_graph_from_resolved_context(e.context)
             else:
                 print >> sys.stderr, \
                     "the failed resolve context did not generate a graph."

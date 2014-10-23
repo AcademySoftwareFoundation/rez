@@ -1,7 +1,6 @@
 '''
 Manage a suite or print information about an existing suite.
 '''
-import os.path
 
 
 def setup_parser(parser, completions=False):

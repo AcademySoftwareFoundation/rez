@@ -2,19 +2,16 @@
 CMake-based build system.
 """
 from rez.build_system import BuildSystem
+from rez.build_process import BuildType
 from rez.resolved_context import ResolvedContext
-from rez.exceptions import BuildSystemError, RezError
+from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
 from rez.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
-from rez.vendor.version.requirement import Requirement
 import functools
-import subprocess
-import platform
-import os.path
 import sys
 import os
 
@@ -59,7 +56,6 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def bind_cli(cls, parser):
-        from rez.config import config
         settings = config.plugins.build_system.cmake
         parser.add_argument("--bt", "--build-target", dest="build_target",
                             type=str, choices=cls.build_targets,
@@ -88,7 +84,8 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False,
+              build_type=BuildType.local):
         def _pr(s):
             if self.verbose:
                 print s
@@ -111,7 +108,13 @@ class CMakeBuildSystem(BuildSystem):
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
+        cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
+
+        if config.rez_1_cmake_variables and \
+                not config.disable_rez_1_compatibility and \
+                build_type == BuildType.central:
+            cmd.append("-DCENTRAL=1")
 
         # execute cmake within the build env
         _pr("Executing: %s" % ' '.join(cmd))
@@ -121,7 +124,8 @@ class CMakeBuildSystem(BuildSystem):
 
         callback = functools.partial(self._add_build_actions,
                                      context=context,
-                                     package=self.package)
+                                     package=self.package,
+                                     build_type=build_type)
 
         # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
@@ -162,7 +166,7 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, package):
+    def _add_build_actions(executor, context, package, build_type):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
@@ -179,10 +183,15 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
             ' '.join(x.name for x in context.requested_packages(True))
 
+        if config.rez_1_environment_variables and \
+                not config.disable_rez_1_compatibility and \
+                build_type == BuildType.central:
+            executor.env.REZ_IN_REZ_RELEASE = 1
+
 
 def get_current_variant_index(context, package):
     current_variant_index = 0
-    current_request_without_implicit_packages = set(context.package_requests).difference(set(context.implicit_packages))
+    current_request_without_implicit_packages = set(context.requested_packages()).difference(set(context.implicit_packages))
 
     for index, variant in enumerate(package.iter_variants()):
         request = variant.get_requires(build_requires=True, private_build_requires=True)

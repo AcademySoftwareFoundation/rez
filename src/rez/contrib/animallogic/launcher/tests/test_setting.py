@@ -1,4 +1,5 @@
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
+from rez.contrib.animallogic.launcher.setting import ReferenceSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 import rez.vendor.unittest2 as unittest
 
@@ -10,7 +11,7 @@ class TestSetting(unittest.TestCase):
         value = '1.0.0+'
         expected = name + '-' + value
 
-        setting = Setting(name, value, SettingType.package)
+        setting = ValueSetting(name, value, SettingType.package)
         self.assertEqual(expected, setting.get_setting_as_package_request())
 
     def test_setting_as_package_request_without_value(self):
@@ -19,15 +20,24 @@ class TestSetting(unittest.TestCase):
         value = ''
         expected = name
 
-        setting = Setting(name, value, SettingType.package)
+        setting = ValueSetting(name, value, SettingType.package)
         self.assertEqual(expected, setting.get_setting_as_package_request())
 
         value = None
 
-        setting = Setting(name, value, SettingType.package)
+        setting = ValueSetting(name, value, SettingType.package)
         self.assertEqual(expected, setting.get_setting_as_package_request())
 
     def test_setting_as_package_request_of_wrong_type(self):
 
-        setting = Setting('foo', '1.0.0+', SettingType.string)
+        setting = ValueSetting('foo', '1.0.0+', SettingType.string)
         self.assertEqual(None, setting.get_setting_as_package_request())
+
+    def test_reference_setting(self):
+
+        name = 'bla'
+        preset_id = 1234
+
+        refSetting = ReferenceSetting(name, preset_id)
+        self.assertEqual(refSetting.preset_id, preset_id)
+

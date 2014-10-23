@@ -12,7 +12,6 @@ def setup_parser(parser, completions=False):
     from rez.vendor.argparse import SUPPRESS
     from rez.system import system
     from rez.shells import get_shell_types
-
     shells = get_shell_types()
 
     parser.add_argument("--shell", dest="shell", type=str, choices=shells,
@@ -156,7 +155,7 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             _, context_file_name = tempfile.mkstemp(prefix='rezContext_', suffix='.rxt')
 
-        rc.save(context_file_name)
+        context.save(context_file_name)
         launch_dora_from_context_file(context_file_name)
 
     if opts.output:

@@ -15,3 +15,10 @@ def safe_str(input_):
 
     return input_
 
+
+def filter_preferred_build_systems(valid_build_systems, preferred):
+
+    build_systems = filter(lambda x : x.name() in preferred, valid_build_systems)
+
+    return build_systems or valid_build_systems
+

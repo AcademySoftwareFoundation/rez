@@ -1,17 +1,10 @@
 import os
 import subprocess
 import sys
-import posixpath
-import ntpath
-from string import Formatter, Template
+from string import Formatter
 import re
 import UserDict
 import inspect
-import textwrap
-import pipes
-import time
-import getpass
-from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
@@ -525,7 +518,8 @@ class Python(ActionInterpreter):
         self.manager = manager
 
     def get_output(self, manager):
-        self.target_environ.update(manager.environ)
+        for key in manager.environ:
+            self.target_environ[key] = manager.environ[key].decode("string-escape")
         return manager.environ
 
     def setenv(self, key, value):

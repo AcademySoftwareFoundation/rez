@@ -1,7 +1,7 @@
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.resolver import ResolverStatus
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.exceptions import RezResolverError
 
@@ -17,7 +17,7 @@ class RezService(RezServiceInterface):
 
     def _create_setting_from_package(self, package):
 
-        setting = Setting(package.name, str(package.version), SettingType.package)
+        setting = ValueSetting(package.name, "==%s" % (package.version), SettingType.package)
 
         return setting
 
@@ -30,11 +30,11 @@ class RezService(RezServiceInterface):
 
         return settings
 
-    def get_resolved_settings_from_requirements(self, requirements, max_fails=-1):
+    def get_resolved_settings_from_requirements(self, requirements, timestamp=None, max_fails=-1):
 
         package_paths = [config.release_packages_path]
 
-        resolved_context = ResolvedContext(requirements, package_paths, max_fails=max_fails)
+        resolved_context = ResolvedContext(requirements, package_paths, timestamp=timestamp, max_fails=max_fails)
 
         if resolved_context.status == ResolverStatus.solved:
             return self._get_package_settings_from_resolved_context(resolved_context)

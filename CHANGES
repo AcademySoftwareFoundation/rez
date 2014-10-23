@@ -1,0 +1,6 @@
+
+CMake
+-----
+
+* The REZ_FILE_INSTALL_PERMISSIONS variable no longer exists.
+

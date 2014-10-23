@@ -51,7 +51,7 @@ macro (install_dirs_)
 		set(perms ${REZ_FILE_INSTALL_PERMISSIONS})
 	endif(INSTD_EXECUTABLE)
    
-    if(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
+    if(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTD_LOCAL_SYMLINK)
         install(DIRECTORY
             ${INSTD_DEFAULT_ARGS}
             DESTINATION ${dest_dir}
@@ -65,7 +65,7 @@ macro (install_dirs_)
             install(CODE "message (STATUS  \"Symlink : ${CMAKE_CURRENT_SOURCE_DIR}/${directory} -> ${CMAKE_INSTALL_PREFIX}${dest_dir}/${DIR_NAME}\" )" )
             install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/${directory} ${CMAKE_INSTALL_PREFIX}${dest_dir}/${DIR_NAME})" )
         endforeach(directory ${INSTD_DEFAULT_ARGS})
-    endif(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
+    endif()
 
 
 endmacro (install_dirs_)

@@ -1,0 +1,30 @@
+config_version : 0
+
+uuid: 97937642-3646-4966-ab9c-8f337bbbce6a
+
+name: rez
+
+version: 2.0.a.135.9
+
+authors: [ rez ]
+
+description: Rez is a suite of tools for resolving a list of 'packages' (versioned software) and their dependencies, into an environment that does not contain any version clashes. Rez also includes a cmake-based build system, which is integrated into the package resolution system, and a deployment system, for publishing new packages.
+
+help:
+- [ "Reference Guide", "$BROWSER http://nerdvegas.github.io/rez/" ]
+
+private_build_requires:
+- cmake-2.8
+
+requires:
+- setuptools
+
+variants:
+- [ python-2.6 ]
+- [ python-2.7 ]
+
+commands:
+- export PATH=!ROOT!/bin:$PATH
+- export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/:$PYTHONPATH
+- export REZ_EXE=!ROOT!/bin/rez
+

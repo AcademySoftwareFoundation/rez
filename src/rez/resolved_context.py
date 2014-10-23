@@ -2,10 +2,10 @@ from rez import __version__, module_root_path
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, error, heading, local, implicit, Printer
+from rez.colorize import critical, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
-from rez.util import columnise, convert_old_commands, shlex_join, \
-    mkdtemp_, rmdtemp, _add_bootstrap_pkg_path, dedup, timings
+from rez.util import columnise, shlex_join, \
+    mkdtemp_, _add_bootstrap_pkg_path, dedup, timings
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -15,13 +15,11 @@ from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name, iter_packages
-from rez.shells import create_shell, get_shell_types
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor import yaml
 import getpass
 import inspect
 import time
-import uuid
 import sys
 import os
 import os.path
@@ -494,7 +492,7 @@ class ResolvedContext(object):
             d["removed_packages"] = removed_packages
         return d
 
-    def print_info(self, buf=sys.stdout, verbosity=0):
+    def print_info(self, buf=sys.stdout, verbosity=0, sort=False):
         """Prints a message summarising the contents of the resolved context.
         """
         _pr = Printer(buf)
@@ -560,7 +558,13 @@ class ResolvedContext(object):
         _pr("resolved packages:", heading)
         rows = []
         colors = []
-        for pkg in (self.resolved_packages or []):
+
+        pkgs = (self.resolved_packages or [])
+        if sort:
+            pkgs = sorted(self.resolved_packages,
+                          key=lambda rpkg : rpkg.name.lower())
+
+        for pkg in pkgs:
             t = []
             col = None
             if not os.path.exists(pkg.root):

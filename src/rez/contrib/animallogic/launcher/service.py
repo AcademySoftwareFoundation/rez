@@ -1,6 +1,6 @@
 from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
 from rez.contrib.animallogic.launcher.settingtype import SettingType
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting, ReferenceSetting
 from rez.contrib.animallogic.launcher.preset import Preset
 from rez.contrib.animallogic.launcher.exceptions import LauncherError
 
@@ -43,16 +43,21 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return path.replace(self.PRESETS_PREFIX, '')
 
-    def _create_setting_from_dict(self, dict_):
+    def _create_reference_setting_from_dict(self, dict_):
+
+        return  ReferenceSetting(str(dict_['name']), dict_['presetId']['key'], dict_['id'])
+
+
+    def _create_value_setting_from_dict(self, dict_):
 
         setting_type = SettingType.create_from_launcher_type(dict_['type']['name'])
 
-        setting = Setting(str(dict_['name']), str(dict_['value']), setting_type)
-        setting.id = dict_['id']
-        setting.source_preset_id = dict_['sourcePresetId']['key'] if dict_['sourcePresetId'] else None
-        setting.operating_system = OperatingSystem[dict_['opSystem']['name']] if dict_['opSystem'] else OperatingSystem['none']
+        valueSetting = ValueSetting(str(dict_['name']), dict_['value'], setting_type)
+        valueSetting.id = dict_['id']
+        valueSetting.source_preset_id = dict_['sourcePresetId']['key'] if dict_['sourcePresetId'] else None
+        valueSetting.operating_system = OperatingSystem[dict_['opSystem']['name']] if dict_['opSystem'] else OperatingSystem['none']
 
-        return setting
+        return valueSetting
 
     def _create_preset_from_dict(self, dict_):
 
@@ -71,6 +76,57 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return {'name':operating_system.name}
 
+    def get_preset_full_path(self, presetId, date=None):
+        """
+        Return the full path to the preset given a presetIf
+        @param presetId: the Id of the preset
+        @param date: restrict the date from when the preset path is going to be retrieved.
+        @return: s string with the full path to the preset
+        """
+        return self._preset_proxy.getFullyQualifiedPresetName({u'key': presetId}, date)
+
+    def get_references_from_path(self, path, date=None):
+        """
+        Retrieves all preset references from  an existing preset path
+        @param path: launcher preset path where the reference would be added
+        @param date: restrict the date from when the references are going to be retrieved.
+                     default to None=latest version
+        """
+        if self._is_preset_path(path):
+            try:
+                references = self._preset_proxy.resolveReferenceSettingsForPath(self._strip_prefix_from_path(path),
+                                                                                date)
+            except Exception, e:
+                raise LauncherError("Unable to retrieve references settings from '%s' - %s." % (path, e))
+        else:
+            raise LauncherError("Retrieve reference only valid for presets '%s' " % path)
+
+        return [self._create_reference_setting_from_dict(reference) for reference in references]
+
+
+    def add_reference_to_preset_path(self, path, referencePath, username=None, description=None):
+        """
+        Adds a preset reference to an existing preset path
+        @param path: launcher preset path where the reference would be added
+        @param referencePath: a launcher preset path that would be added as a reference
+        @param username: the user that triggered the change
+        @param description: short description of the change
+        """
+        return self._preset_proxy.addReference(self._strip_prefix_from_path(path), self._strip_prefix_from_path(referencePath),
+                                        username, description)
+
+    def remove_reference_from_path(self, path, referencePath, username=None, description=None):
+        """
+        Removes a preset reference from  an existing preset path
+        @param path: launcher preset path where the reference would be added
+        @param referencePath: a launcher preset path that would be added as a reference
+        @param username: the user that triggered the change
+        @param description: short description of the change
+        """
+
+        return self._preset_proxy.removeReference(self._strip_prefix_from_path(path),
+                                           self._strip_prefix_from_path(referencePath), username, description)
+
     def get_settings_from_path(self, path, mode, username=None, operating_system=None, date=None):
 
         operating_system_dict = self._operating_system_to_dict(operating_system)
@@ -87,9 +143,8 @@ class LauncherHessianService(LauncherServiceInterface):
         try:
             settings = method(*args)
         except Exception, e:
-            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e.message['message']))
-
-        return [self._create_setting_from_dict(setting) for setting in settings]
+            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e))
+        return [self._create_value_setting_from_dict(setting) for setting in settings]
 
     def add_setting_to_preset(self, setting, preset_path, username=None):
 
