@@ -66,7 +66,7 @@ class TestSyncer(unittest.TestCase):
     def test_write_sync_file_without_head_and_tail(self):
 
         fd = open(self.temp_name, "w")
-        fd.writelines(["abc\n,def\n"])
+        fd.writelines(["abc\n"])
         fd.close()
 
         syncer = Syncer(self.launcher_service, self.rez_service, relative_path="/film/")

@@ -49,7 +49,7 @@ class Syncer(object):
                         relative_ext_link_path = self._get_relative_base_path(ext_link)
                         self.paths_to_sync.add(relative_ext_link_path)
 
-    def bake_rez_package(self):
+    def add_rez_package_path(self):
 
         logger.info("Finding rez package path.")
 
@@ -57,7 +57,7 @@ class Syncer(object):
         if rez_package_path:
             self.paths_to_sync.add(self._get_relative_base_path(rez_package_path))
 
-    def bake_system_packages(self):
+    def add_system_package_paths(self):
 
         logger.info("Finding system package paths.")
 
@@ -65,7 +65,7 @@ class Syncer(object):
         for system_package_path in system_package_paths:
             self.paths_to_sync.add(self._get_relative_base_path(system_package_path))
 
-    def update_sync_file(self, sync_file):
+    def log_paths_to_sync(self):
 
         logger.info("Paths to Sync:")
         for path in self.get_sorted_paths_to_sync():

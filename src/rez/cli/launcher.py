@@ -12,7 +12,7 @@ def setup_parser(parser, completions=False):
 
     run_parser = launcher_subparsers.add_parser('run', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.run"))
     bake_parser = launcher_subparsers.add_parser('bake', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.bake"))
-    bake_parser = launcher_subparsers.add_parser('sync', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.sync"))
+    sync_parser = launcher_subparsers.add_parser('sync', setup_subparser=SetupRezSubParser("rez.contrib.animallogic.launcher.cli.sync"))
 
 
 def get_command_function_from_module(module_name):

@@ -1,6 +1,7 @@
 """
-Bake a number launcher presets based on the resolution of a rez environment and 
-sync the resulting list of packages to another site (WAG or BB).
+Bake a number launcher presets based on the resolution of a rez environment and
+update a sync file with a superset of packages from all presets.  Another 
+process sync those packages to other sites (WAG or BB).
 """
 
 from rez.contrib.animallogic.hessian import client
@@ -21,7 +22,8 @@ def setup_parser(parser):
     parser.add_argument("presets", type=str, nargs='+',
         help="the source presets/toolsets to bake.")
     parser.add_argument("--sync-file", type=str, metavar="FILE",
-        help="update the given file with the list of packages.")
+        help="update the given file with the list of packages.  If not provided"
+        "the packages are printed to stdout.")
     parser.add_argument("--include-system-packages", default=False,
         action='store_true', help="automatically add system packages to the"
         "list to sync.")
@@ -69,17 +71,15 @@ def sync(presets, detect_ext_links=False, relative_path=None, max_fails=-1,
     syncer.bake_presets(presets, max_fails=max_fails, detect_ext_links=detect_ext_links)
 
     if include_rez_package:
-        syncer.bake_rez_package()
+        syncer.add_rez_package_path()
 
     if include_system_packages:
-        syncer.bake_system_packages()
+        syncer.add_system_package_paths()
 
     sorted_paths_to_sync = syncer.get_sorted_paths_to_sync()
 
     if sync_file:
-        logger.info("Paths to Sync:")
-        for path in sorted_paths_to_sync:
-            logger.info("\t%s" % (path))
+        update_sync_file.log_paths_to_sync()
 
         logger.info("Writing to sync file %s." % sync_file)
         update_sync_file(sync_file, sorted_paths_to_sync)
@@ -125,7 +125,7 @@ def update_existing_sync_file(sync_file, new_lines):
                             lines[tail_index:]
 
         except ValueError:
-            lines = new_lines
+            lines += ["\n"] + new_lines
 
         fd.seek(0)
         fd.writelines(lines)
