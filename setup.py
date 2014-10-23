@@ -124,6 +124,7 @@ setup(
             find_files('*.csh', '_sys') +
             find_files('*.sh', '_sys') +
             find_files('*', 'tests/data') +
+            find_files('*', 'contrib/animallogic/launcher/tests/data') +
             find_files('_unleasher', 'contrib/animallogic/unleash'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +

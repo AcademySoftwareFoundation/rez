@@ -64,16 +64,25 @@ class StubToolsetProxy(object):
         return self.settings
 
 
+class StubPackage(object):
+
+    def __init__(self, name, version, base=""):
+
+        self.name = name
+        self.version = version
+        self.base = base
+
+
 class StubRezService(object):
 
-    def __init__(self, settings):
+    def __init__(self, packages):
 
-        self.settings = settings
+        self.packages = packages
 
-    def get_resolved_settings_from_requirements(self, requirements, timestamp=None, max_fails=-1):
+    def get_resolved_packages_from_requirements(self, requirements, timestamp=None, max_fails=-1):
 
         if 'conflict' in requirements:
             raise Exception("The provided requirements are invalid.")
 
-        return self.settings
+        return self.packages
 

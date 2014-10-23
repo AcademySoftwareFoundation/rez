@@ -6,7 +6,7 @@ from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
 from rez.contrib.animallogic.launcher.exceptions import BakerError, RezResolverError
 from rez.contrib.animallogic.launcher.cli.bake import argparse_setting
-from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService
+from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService, StubPackage
 from rez.vendor import argparse
 import rez.vendor.unittest2 as unittest
 
@@ -76,10 +76,11 @@ class TestBaker(unittest.TestCase):
         self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new'}
         self.package_requests = ['package_1-1.2.3', 'package_2', 'platform-CentOS']
         self.resolved_package_settings = [Setting('package_1', '1.2.3', SettingType.package), Setting('package_2', '2.0.1', SettingType.package), Setting('platform', 'CentOS', SettingType.package)]
+        self.resolved_packages = [StubPackage('package_1', '1.2.3'), StubPackage('package_2', '2.0.1'), StubPackage('platform', 'CentOS')]
         self.overrides = [Setting('string', '1.2.3', SettingType.string), Setting('override_2', '2.0.1', SettingType.string)]
 
         launcher_service = LauncherHessianService(StubPresetProxy(settings=self.settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
-        rez_service = StubRezService(self.resolved_package_settings)
+        rez_service = StubRezService(self.resolved_packages)
         self.baker = Baker(launcher_service, rez_service)
 
     def assert_setting(self, expected, setting):
