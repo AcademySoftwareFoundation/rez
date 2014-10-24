@@ -136,7 +136,8 @@ def load_python(stream, filepath=None):
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
         stack = ''.join(traceback.format_list(frames)).strip()
-        raise ResourceError("%s:\n%s" % (str(e), stack))
+        message = "Error loading %s" % filepath
+        raise ResourceError("%s\n%s:\n%s" % (message, str(e), stack))
 
     result = {}
     excludes = set(['scope', '__builtins__'])
