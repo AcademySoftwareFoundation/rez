@@ -345,9 +345,6 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if not os.path.exists(build_subdir):
                 os.makedirs(build_subdir)
 
-            print "!! build_subdir", build_subdir
-            print "!! install_path", install_path
-
             # resolve build environment and save to file
             rxt_path = os.path.join(build_subdir, "build.rxt")
             if self._use_existing_context_file(rxt_path):
