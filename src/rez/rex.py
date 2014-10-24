@@ -27,6 +27,7 @@ class Action(object):
     _registry = []
 
     def __init__(self, *args):
+        self._variantBinding = None
         self.args = args
 
     def __repr__(self):
@@ -47,6 +48,14 @@ class Action(object):
     @classmethod
     def get_command_types(cls):
         return tuple(cls._registry)
+
+    @property
+    def variantBinding(self):
+        return self._variantBinding
+
+    @variantBinding.setter
+    def variantBinding(self, value):
+        self._variantBinding = value
 
 
 class EnvAction(Action):
@@ -162,7 +171,7 @@ class ActionManager(object):
     """
     def __init__(self, interpreter, output_style=OutputStyle.file,
                  parent_environ=None, parent_variables=None, formatter=None,
-                 verbose=False, env_sep_map=None):
+                 verbose=False, env_sep_map=None, exec_globals=None):
         '''
         interpreter: string or `ActionInterpreter`
             the interpreter to use when executing rex actions
@@ -183,6 +192,8 @@ class ActionManager(object):
             if True, causes commands to print additional feedback (using info()).
             can also be set to a list of strings matching command names to add
             verbosity to only those commands.
+        exec_globals: {}
+            To know globals in particular current variant binding
         '''
         self.interpreter = interpreter
         self.output_style = output_style
@@ -193,6 +204,7 @@ class ActionManager(object):
         self.environ = {}
         self.formatter = formatter or str
         self.actions = []
+        self.exec_globals = exec_globals
 
         self._env_sep_map = env_sep_map if env_sep_map is not None \
             else config.env_var_separators
@@ -268,7 +280,7 @@ class ActionManager(object):
         expanded_value = self._expand(unexpanded_value)
 
         # TODO: check if value has already been set by another package
-        self.actions.append(Setenv(unexpanded_key, unexpanded_value))
+        self.add_action(Setenv(unexpanded_key, unexpanded_value))
         self.environ[expanded_key] = expanded_value
 
         if self.interpreter.expand_env_vars:
@@ -280,7 +292,7 @@ class ActionManager(object):
     def unsetenv(self, key):
         unexpanded_key = self._format(key)
         expanded_key = self._expand(unexpanded_key)
-        self.actions.append(Unsetenv(unexpanded_key))
+        self.add_action(Unsetenv(unexpanded_key))
         if expanded_key in self.environ:
             del self.environ[expanded_key]
         if self.interpreter.expand_env_vars:
@@ -295,7 +307,7 @@ class ActionManager(object):
         expanded_key = self._expand(unexpanded_key)
         expanded_value = self._expand(unexpanded_value)
 
-        self.actions.append(Resetenv(unexpanded_key, unexpanded_value,
+        self.add_action(Resetenv(unexpanded_key, unexpanded_value,
                                      friends))
         self.environ[expanded_key] = expanded_value
 
@@ -328,14 +340,14 @@ class ActionManager(object):
 
         # *pend or setenv depending on whether this is first reference to the var
         if expanded_key in self.environ:
-            self.actions.append(action(unexpanded_key, unexpanded_value))
+            self.add_action(action(unexpanded_key, unexpanded_value))
             parts = self.environ[expanded_key].split(self._env_sep(expanded_key))
             unexpanded_values = self._env_sep(expanded_key).join( \
                 addfunc(unexpanded_value, [self._keytoken(expanded_key)]))
             expanded_values = self._env_sep(expanded_key).join(addfunc(expanded_value, parts))
             self.environ[expanded_key] = expanded_values
         else:
-            self.actions.append(Setenv(unexpanded_key, unexpanded_value))
+            self.add_action(Setenv(unexpanded_key, unexpanded_value))
             self.environ[expanded_key] = expanded_value
             expanded_values = expanded_value
             unexpanded_values = unexpanded_value
@@ -368,39 +380,44 @@ class ActionManager(object):
         self._pendenv(key, value, Appendenv, self.interpreter.appendenv,
                       lambda x, y: y + [x])
 
+    def add_action(self, action):
+        if 'this' in self.exec_globals:
+            action.variantBinding = self.exec_globals['this']
+        self.actions.append(action)
+
     def alias(self, key, value):
         key = self._format(key)
         value = self._format(value)
-        self.actions.append(Alias(key, value))
+        self.add_action(Alias(key, value))
         self.interpreter.alias(key, value)
 
     def info(self, value=''):
         value = self._format(value)
-        self.actions.append(Info(value))
+        self.add_action(Info(value))
         self.interpreter.info(value)
 
     def error(self, value):
         value = self._format(value)
-        self.actions.append(Error(value))
+        self.add_action(Error(value))
         self.interpreter.error(value)
 
     def command(self, value):
         value = self._format(value)
-        self.actions.append(Command(value))
+        self.add_action(Command(value))
         self.interpreter.command(value)
 
     def comment(self, value):
         value = self._format(value)
-        self.actions.append(Comment(value))
+        self.add_action(Comment(value))
         self.interpreter.comment(value)
 
     def source(self, value):
         value = self._format(value)
-        self.actions.append(Source(value))
+        self.add_action(Source(value))
         self.interpreter.source(value)
 
     def shebang(self):
-        self.actions.append(Shebang())
+        self.add_action(Shebang())
         self.interpreter.shebang()
 
 
@@ -777,7 +794,8 @@ class RexExecutor(object):
                                      formatter=self.expand,
                                      output_style=output_style,
                                      parent_environ=parent_environ,
-                                     parent_variables=parent_variables)
+                                     parent_variables=parent_variables,
+                                     exec_globals=self.globals)
 
         if isinstance(interpreter, Python):
             interpreter.set_manager(self.manager)
