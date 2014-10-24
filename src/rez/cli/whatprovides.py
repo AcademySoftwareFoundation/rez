@@ -29,11 +29,11 @@ class WhatProvidesRexExecutor(RexExecutor):
 
 class Provider(object):
 
-    def __init__(self, name, range_, action):
+    def __init__(self, name, search_path):
 
         self.name = name
-        self.range = version.VersionRange.from_version(range_)
-        self.action = action
+        self.search_path = search_path
+        self.actions = {}
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -53,14 +53,19 @@ def command(opts, parser, extra_arg_groups=None):
 
     def add_provider(package, action):
         name = package.name
-        range_ = package.version
+        range_ = version.VersionRange.from_version(package.version)
+        search_path = package.search_path
 
         for provider in providers:
-            if provider.name == name and provider.action == action:
-                provider.range = provider.range.union(version.VersionRange.from_version(range_))
-                break
+            if provider.name == name and provider.search_path == search_path:
+                for provider_action in provider.actions:
+                    if provider_action == action:
+                        provider.actions[provider_action].union(range_)
+                        break
         else:
-            providers.append(Provider(name, range_, action))
+            provider = Provider(name, search_path)
+            provider.actions[action] = range_
+            providers.append(provider)
 
     for family in families:
         progress_bar.next()
@@ -87,5 +92,7 @@ def command(opts, parser, extra_arg_groups=None):
         return 0
 
     for provider in providers:
-        _pr("%s (%s):" % (provider.name, provider.range), heading)
-        _pr("\t%s" % provider.action)
+        _pr("%s@%s:" % (provider.name, provider.search_path), heading)
+        for action, range_ in provider.actions.items():
+            _pr("    %s" % range_)
+            _pr("        %s" % action)
