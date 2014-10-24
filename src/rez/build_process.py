@@ -345,6 +345,9 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if not os.path.exists(build_subdir):
                 os.makedirs(build_subdir)
 
+            print "!! build_subdir", build_subdir
+            print "!! install_path", install_path
+
             # resolve build environment and save to file
             rxt_path = os.path.join(build_subdir, "build.rxt")
             if self._use_existing_context_file(rxt_path):
@@ -364,6 +367,9 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
+            if not os.path.exists(install_path):
+                os.makedirs(install_path)
+
             # run build system
             self._pr("\nInvoking %s build system..." % self.buildsys.name())
             ret = self.buildsys.build(r,
@@ -379,8 +385,6 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
                 extra_files = ret.get("extra_files", []) + [rxt_path]
                 if install and extra_files:
-                    if not os.path.exists(install_path):
-                        os.makedirs(install_path)
                     for file in extra_files:
                         shutil.copy(file, install_path)
             else:
