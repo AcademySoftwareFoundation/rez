@@ -34,32 +34,19 @@ def setup_parser(parser, completions=False):
                         help="test versions")
 
 
-def get_suites(opts):
-    from rez.backport.importlib import import_module
-
-    tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "release", "context", "resources", "packages", "config",
-             "completion", "suites", "version"]
-    suites = []
-    test_all = all(not getattr(opts, test) for test in tests)
-
-    for test in tests:
-        if test_all or getattr(opts, test):
-            module = import_module('rez.tests.test_%s' % test)
-            get_test_suites_func = getattr(module, 'get_test_suites')
-            suites += get_test_suites_func()
-
-    return suites
-
-
 def command(opts, parser, extra_arg_groups=None):
+    from rez.cli._util import get_test_suites
     import unittest
     import sys
     import os
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
-    suites = get_suites(opts)
+    tests = ["shells", "solver", "formatter", "commands", "rex", "build",
+             "release", "context", "resources", "packages", "config",
+             "completion", "suites", "version"]
+
+    suites = get_test_suites(opts, tests)
     test_suite = unittest.TestSuite(suites)
     result = unittest.TextTestRunner(verbosity=opts.verbose).run(test_suite)
     if not result.wasSuccessful():

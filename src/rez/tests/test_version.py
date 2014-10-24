@@ -12,13 +12,13 @@ class TestVersions(TestVersionSchema):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-    #suite.addTest(TestVersions("test_token_strict_weak_ordering"))
-    #suite.addTest(TestVersions("test_version_strict_weak_ordering"))
-    #suite.addTest(TestVersions("test_token_comparisons"))
-    #suite.addTest(TestVersions("test_version_comparisons"))
-    #suite.addTest(TestVersions("test_version_range"))
+    suite.addTest(TestVersions("test_token_strict_weak_ordering"))
+    suite.addTest(TestVersions("test_version_strict_weak_ordering"))
+    suite.addTest(TestVersions("test_token_comparisons"))
+    suite.addTest(TestVersions("test_version_comparisons"))
+    suite.addTest(TestVersions("test_version_range"))
     suite.addTest(TestVersions("test_containment"))
-    #suite.addTest(TestVersions("test_requirement_list"))
+    suite.addTest(TestVersions("test_requirement_list"))
     suites.append(suite)
     return suites
 

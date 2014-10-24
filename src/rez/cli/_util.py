@@ -25,7 +25,8 @@ subcommands = dict(
           "gui"],
          ["complete",
           "forward"]),
-    soma=(["ls"],
+    soma=(["ls",
+           "selftest"],
           []))
 
 
@@ -88,6 +89,19 @@ class LazyArgumentParser(ArgumentParser):
                     for parser_name, parser in action._name_parser_map.iteritems():
                         action._setup_subparser(parser_name, parser)
         return super(LazyArgumentParser, self).format_help()
+
+
+def get_test_suites(opts, test_names, namespace="rez"):
+    from rez.backport.importlib import import_module
+
+    suites = []
+    test_all = all(not getattr(opts, test) for test in test_names)
+
+    for test in test_names:
+        if test_all or getattr(opts, test):
+            module = import_module('%s.tests.test_%s' % (namespace, test))
+            suites += getattr(module, 'get_test_suites')()
+    return suites
 
 
 _handled_int = False
