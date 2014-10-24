@@ -66,7 +66,7 @@ class TestRex(TestBase):
 
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Shebang(),
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', 'bah'),
@@ -81,10 +81,10 @@ class TestRex(TestBase):
                        Error('oh noes'),
                        Command('runme --with --args'),
                        Source('./script.src')],
-                   expected_output = {
+                   expected_output={
                        'FOO': 'foo',
-                       'A': os.pathsep.join(["/data","/tmp"]),
-                       'B': os.pathsep.join(["/tmp","/data"])})
+                       'A': os.pathsep.join(["/data", "/tmp"]),
+                       'B': os.pathsep.join(["/tmp", "/data"])})
 
     def test_2(self):
         """Test simple setenvs and assignments."""
@@ -95,11 +95,11 @@ class TestRex(TestBase):
 
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', 'bah'),
                        Setenv('EEK', 'foo')],
-                   expected_output = {
+                   expected_output={
                        'FOO': 'foo',
                        'EEK': 'foo',
                        'BAH': 'bah'})
@@ -118,14 +118,14 @@ class TestRex(TestBase):
         # no parent variables enabled
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'test1'),
                        Appendenv('FOO', 'test2'),
                        Appendenv('FOO', 'test3'),
                        Setenv('BAH', 'A'),
                        Prependenv('BAH', 'B'),
                        Appendenv('BAH', 'C')],
-                   expected_output = {
+                   expected_output={
                        'FOO': os.pathsep.join(["test1","test2","test3"]),
                        'BAH': os.pathsep.join(["B","A","C"])})
 
@@ -140,7 +140,7 @@ class TestRex(TestBase):
         self._test(func=_rex,
                    env={},
                    expected_actions=expected_actions,
-                   expected_output = {
+                   expected_output={
                        'FOO': os.pathsep.join(["", "test1","test2","test3"]),
                        'BAH': os.pathsep.join(["B","A", "","C"])},
                    parent_variables=["FOO","BAH"])
@@ -150,7 +150,7 @@ class TestRex(TestBase):
                    env={"FOO": "tmp",
                         "BAH": "Z"},
                    expected_actions=expected_actions,
-                   expected_output = {
+                   expected_output={
                        'FOO': os.pathsep.join(["tmp", "test1","test2","test3"]),
                        'BAH': os.pathsep.join(["B","A", "Z","C"])},
                    parent_variables=["FOO","BAH"])
@@ -171,14 +171,14 @@ class TestRex(TestBase):
 
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', 'bah'),
                        Setenv('EEK', 'foo'),
                        Setenv('FOO_VALID', '1'),
                        Info('FOO validated'),
                        Comment('comparison ok')],
-                   expected_output = {
+                   expected_output={
                        'FOO': 'foo',
                        'BAH': 'bah',
                        'EEK': 'foo',
@@ -198,18 +198,18 @@ class TestRex(TestBase):
         # with EXT undefined
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('EXT_FOUND', '0'),
                        Info("undefined working as expected")],
-                   expected_output = {'EXT_FOUND': '0'})
+                   expected_output={'EXT_FOUND': '0'})
 
         # with EXT defined
         self._test(func=_rex,
                    env={"EXT": "alpha"},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('EXT_FOUND', '1'),
                        Setenv('EXT', 'beta')],
-                   expected_output = {
+                   expected_output={
                        'EXT_FOUND': '1',
                        'EXT': 'beta'})
 
@@ -228,12 +228,12 @@ class TestRex(TestBase):
         # with EXT undefined
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', '${FOO}'),
                        Setenv('EEK', '${BAH}'),
                        Info('expansions visible in control flow')],
-                   expected_output = {
+                   expected_output={
                        'FOO': 'foo',
                        'BAH': 'foo',
                        'EEK': 'foo'})
@@ -241,13 +241,13 @@ class TestRex(TestBase):
         # with EXT defined
         self._test(func=_rex,
                    env={"EXT": "alpha"},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'foo'),
                        Setenv('BAH', '${FOO}'),
                        Setenv('EEK', '${BAH}'),
                        Info('expansions visible in control flow'),
                        Setenv('FEE', '${EXT}')],
-                   expected_output = {
+                   expected_output={
                        'FOO': 'foo',
                        'BAH': 'foo',
                        'EEK': 'foo',
@@ -282,7 +282,7 @@ class TestRex(TestBase):
     def test_8(self):
         """Custom environment variable separators"""
 
-        config.override("env_var_separators", {"FOO":",", "BAH":" "})
+        config.override("env_var_separators", {"FOO": ",", "BAH": " "})
 
         def _rex():
             appendenv("FOO", "test1")
@@ -295,16 +295,16 @@ class TestRex(TestBase):
 
         self._test(func=_rex,
                    env={},
-                   expected_actions = [
+                   expected_actions=[
                        Setenv('FOO', 'test1'),
                        Appendenv('FOO', 'test2'),
                        Appendenv('FOO', 'test3'),
                        Setenv('BAH', 'A'),
                        Prependenv('BAH', 'B'),
                        Appendenv('BAH', 'C')],
-                   expected_output = {
-                       'FOO': ",".join(["test1","test2","test3"]),
-                       'BAH': " ".join(["B","A","C"])})
+                   expected_output={
+                       'FOO': ",".join(["test1", "test2", "test3"]),
+                       'BAH': " ".join(["B", "A", "C"])})
 
 
 def get_test_suites():

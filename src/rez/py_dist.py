@@ -6,16 +6,14 @@ from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil
 import sys
-import re
 import os
 import os.path
 import textwrap
 
 
-
 def convert_name(name):
     """ Convert a python distribution name into a rez-safe package name."""
-    return name.replace('-','_')
+    return name.replace('-', '_')
 
 
 # TODO change this when version submod is rewritten

@@ -1,7 +1,6 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.rex import NamespaceFormatter
-import sys
 
 
 class TestFormatter(TestBase):
@@ -48,12 +47,14 @@ class TestFormatter(TestBase):
         class C:
             def __init__(self, x=100):
                 self._x = x
+
             def __format__(self, spec):
                 return spec
 
         class D:
             def __init__(self, x):
                 self.x = x
+
             def __format__(self, spec):
                 return str(self.x)
 
@@ -61,6 +62,7 @@ class TestFormatter(TestBase):
         class E:
             def __init__(self, x):
                 self.x = x
+
             def __str__(self):
                 return 'E(' + self.x + ')'
 
@@ -68,6 +70,7 @@ class TestFormatter(TestBase):
         class F:
             def __init__(self, x):
                 self.x = x
+
             def __repr__(self):
                 return 'F(' + self.x + ')'
 
@@ -75,8 +78,10 @@ class TestFormatter(TestBase):
         class G:
             def __init__(self, x):
                 self.x = x
+
             def __str__(self):
                 return "string is " + self.x
+
             def __format__(self, format_spec):
                 if format_spec == 'd':
                     return 'G(' + self.x + ')'

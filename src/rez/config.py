@@ -138,7 +138,7 @@ class Dict(Setting):
         items = value.split(",")
         try:
             return UserDict([item.split(":") for item in items])
-        except ValueError as e:
+        except ValueError:
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
                 % value)

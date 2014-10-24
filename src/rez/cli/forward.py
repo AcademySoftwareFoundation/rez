@@ -1,6 +1,4 @@
 """See util.create_forwarding_script()."""
-import sys
-import os.path
 from rez.vendor import argparse
 
 __doc__ = argparse.SUPPRESS
@@ -39,7 +37,6 @@ def command(opts, parser, extra_arg_groups=None):
     func_name = doc["func_name"]
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
-    plugin_instance = None
 
     if isinstance(doc["module"], basestring):
         # refers to a rez module

@@ -2,7 +2,6 @@
 Build a package from source and deploy it.
 '''
 import os
-import sys
 
 
 def setup_parser(parser, completions=False):

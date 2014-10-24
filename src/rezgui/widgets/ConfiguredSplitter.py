@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 
 
 class ConfiguredSplitter(QtGui.QSplitter):

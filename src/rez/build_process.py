@@ -14,7 +14,6 @@ import os.path
 import time
 
 
-
 class BuildProcess(object):
     """A BuildProcess builds and possibly releases a package.
 

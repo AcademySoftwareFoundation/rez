@@ -3,7 +3,10 @@ from rez.colorize import heading, local, Printer
 from rez.util import propertycache, columnise
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.exceptions import RezSystemError
+from rez.exceptions import SuiteError
 import os.path
+import sys
 
 
 class Wrapper(object):

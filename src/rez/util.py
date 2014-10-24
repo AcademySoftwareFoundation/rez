@@ -418,6 +418,7 @@ def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     if errors:
         raise shutil.Error(errors)
 
+
 def movetree(src, dst):
     """
     Attempts a move, and falls back to a copy+delete if this fails
@@ -428,6 +429,7 @@ def movetree(src, dst):
         copytree(src, dst, symlinks=True, hardlinks=True)
         shutil.rmtree(src)
 
+
 def safe_chmod(path, mode):
     """
     set the permissions mode on path, but only if it differs from the current mode.
@@ -435,11 +437,14 @@ def safe_chmod(path, mode):
     if stat.S_IMODE(os.stat(path).st_mode) != mode:
         os.chmod(path, mode)
 
+
 def to_nativepath(path):
     return os.path.join(path.split('/'))
 
+
 def to_ntpath(path):
     return ntpath.sep.join(path.split(posixpath.sep))
+
 
 def to_posixpath(path):
     return posixpath.sep.join(path.split(ntpath.sep))
@@ -464,6 +469,7 @@ def render_template(template, **variables):
 
     # TODO support template plugins, probably using Jinja2
     return templ % variables
+
 
 def encode_filesystem_name(input_str):
     """Encodes an arbitrary unicode string to a generic filesystem-compatible

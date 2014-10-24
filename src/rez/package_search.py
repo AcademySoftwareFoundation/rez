@@ -5,12 +5,11 @@ able to search packages much faster - for example, in a database-based package
 repository. The algorithms here serve as backup for those package repositories
 that do not provide an implementation.
 """
-from rez.config import config
 from rez.packages import iter_package_families, iter_packages
 from rez.exceptions import PackageRequestError
 from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
-#from rez.vendor.progress.bar import Bar
+# from rez.vendor.progress.bar import Bar
 from collections import defaultdict
 
 
@@ -50,7 +49,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         return pkgs_list, g
 
     nfams = len(fams)
-    #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
+    # bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
     lookup = defaultdict(set)
 

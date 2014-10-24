@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.VariantVersionsWidget import VariantVersionsWidget
 from rezgui.objects.App import app
