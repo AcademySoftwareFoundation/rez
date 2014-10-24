@@ -16,6 +16,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--paths", type=str, default=None,
         help="set package search path.")
+    parser.add_argument("--nl", "--no-local", dest="no_local",
+        action="store_true", help="don't load local packages.  This option has"
+        "no effect if used with --paths.")
     parser.add_argument(
         "VAR", type=str,
         help="environment variable or alias to search for.")
@@ -47,6 +50,9 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.paths:
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
+
+    else:
+        pkg_paths = (config.nonlocal_packages_path if opts.no_local else None)
 
     families = list(iter_package_families(pkg_paths))
     progress_bar = ProgressBar("Searching", len(families))
