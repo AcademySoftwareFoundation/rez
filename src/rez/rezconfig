@@ -46,7 +46,7 @@ release_packages_path: '/film/tools/packages'
 
 # The path that Rez unleash will use as a local staging area before deploying to
 # the release packages path using Unleash.
-unleash_packages_path: '~/packages/.unleash'
+unleash_packages_path: '/var/tmp/rezunleash'
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system, for example linux distributions will probably set this to /tmp.
