@@ -1,6 +1,6 @@
 """
 Bake a number launcher presets based on the resolution of a rez environment and
-update a sync file with a superset of packages from all presets.  Another 
+update a sync file with a superset of packages from all presets.  Another
 process sync those packages to other sites (WAG or BB).
 """
 
@@ -9,7 +9,6 @@ from rez.contrib.animallogic.launcher.service import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.syncer import Syncer
 from rez.config import config
-import datetime
 import logging
 import os.path
 

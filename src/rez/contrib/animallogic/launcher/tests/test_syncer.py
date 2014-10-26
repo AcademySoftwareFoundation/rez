@@ -55,6 +55,8 @@ class TestSyncer(unittest.TestCase):
 
     def test_write_new_sync_file(self):
 
+        os.remove(self.temp_name)
+
         syncer = Syncer(self.launcher_service, self.rez_service, relative_path="/film/")
 
         syncer.bake_presets([self.preset_path])
@@ -91,8 +93,6 @@ class TestSyncer(unittest.TestCase):
         update_sync_file(self.temp_name, sorted_paths)
         self.assert_files_equal(os.path.join(os.path.dirname(__file__), "data", "sync_list_with_head_and_tail.txt"))
 
-
-
     def assert_files_equal(self, expected_name):
 
         fd = open(self.temp_name)
@@ -102,11 +102,3 @@ class TestSyncer(unittest.TestCase):
         expected_lines = fd.readlines()
 
         self.assertEqual(expected_lines, actual_lines)
-
-"""
-
-
-
-
-
-"""

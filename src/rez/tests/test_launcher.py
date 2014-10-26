@@ -27,7 +27,7 @@ def get_test_suites():
              TestLauncherHessianService_RemoveReferenceToPreset,
              TestLauncherHessianService_GetReferenceFromPreset,
              TestLauncherHessianService_GetPresetFullPath,
-			 TestUpdate
+             TestUpdate,
              TestBaker,
              TestBakerCLI,
              TestSyncer]

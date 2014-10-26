@@ -1,5 +1,5 @@
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.setting import Setting
+from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.packages import iter_package_families
 from rez.config import config
 import logging
@@ -71,8 +71,6 @@ class Syncer(object):
         for path in self.get_sorted_paths_to_sync():
             logger.info("\t%s" % (path))
 
-
-
     def get_sorted_paths_to_sync(self):
 
         return sorted(list(self.paths_to_sync))
@@ -85,7 +83,7 @@ class Syncer(object):
 
         paths = set()
 
-        for package_family_name in Setting.SYSTEM_PACKAGE_SETTING_NAMES:
+        for package_family_name in ValueSetting.SYSTEM_PACKAGE_SETTING_NAMES:
             package_family_path = self._find_package_family_path(package_family_name)
 
             if package_family_path:
