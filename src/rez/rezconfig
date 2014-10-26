@@ -85,6 +85,7 @@ resource_caching_maxsize: 10000
 # --no-implicit flag is used.
 implicit_packages:
 - '{system.os}'
+- 'ALBlacklist'
 - '~platform=={system.platform}'
 - '~arch=={system.arch}'
 - '~os=={system.os}'
