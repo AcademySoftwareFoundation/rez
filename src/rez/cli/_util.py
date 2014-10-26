@@ -24,7 +24,8 @@ subcommands = [
     "status",
     "suite",
     "test",
-    "unleash"]
+    "unleash",
+    "whatprovides"]
 
 
 hidden_subcommands = [
