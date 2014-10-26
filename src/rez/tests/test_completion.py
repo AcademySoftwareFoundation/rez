@@ -44,7 +44,17 @@ class TestCompletion(TestBase):
 
         _eq("zzz", [])
         _eq("", ["bahish", "nada", "nopy", "pybah", "pydad", "pyfoo", "pymum",
-                 "pyodd", "pyson", "pysplit", "python"])
+                 "pyodd", "pyson", "pysplit", "python", 'eek', 'bar', 'foo',
+                 'variable_variant_package_in_single_column', 'bah',
+                 'package_name_in_require_and_variant', 'asymmetric_variants',
+                'multi_version_variant_higher_to_lower_version_order',
+                'multi_version_variant_lower_to_higher_version_order',
+                'permuted_family_names_same_position_weight',
+                'multi_packages_variant_unsorted', 'permuted_family_names',
+                'variant_with_weak_package_in_variant',
+                'three_packages_in_variant', 'variant_with_antipackage',
+                'multi_packages_variant_sorted',
+                'two_packages_in_variant_unsorted'])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
             "pysplit", "python"])
         _eq("pys", ["pyson", "pysplit"])
