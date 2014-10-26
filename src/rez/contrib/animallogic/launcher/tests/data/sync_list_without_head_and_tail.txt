@@ -1,0 +1,7 @@
+abc
+
+# Start Rez Automated Package Sync List.
+tools/packages/package_1/1.2.3
+tools/packages/package_2/2.0.1
+tools/packages/platform/CentOS
+# End Rez Automated Package Sync List.

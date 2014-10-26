@@ -48,7 +48,7 @@ def setup_parser(parser):
                         help="this will preserve protected system settings provided"
                         "by Launcher.  This option is dangerous and should be used with caution.")
     parser.add_argument("--only-packages", default=False, action='store_true',
-                        help="discard all settings apare from those of type package.")
+                        help="discard all settings apart from those of type package.")
     parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
                         metavar="N",
                         help="abort if the number of failed configuration attempts"
