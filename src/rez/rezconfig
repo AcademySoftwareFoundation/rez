@@ -135,14 +135,17 @@ env_var_separators:
     AL_PYAPPS_LIST: ','
     AL_PYLIBS_LIST: ','
     AL_PYTHON_LIBS_JOBS_LIST: ','
+    AL_RIGBITS_LIST: ','
     AL_SHOTSETUP_APPLICATION_LIST: ','
+    AL_SHOTSETUP_BUILDER_LIST: ','
     AL_XSI_AUTO_LOADVERSIONEDTOOL: ','
     ARENA_MODULE_PATH: ','
+    ARENA_WORKSPACE_MAILING_LIST: ','
+    ARTISTTOOLPALETTE_SYNAPSE_TOOLS: ','
     ARTISTTOOLPALETTE_TOOLS: ','
     DOXYGEN_TAGFILES: ' '
-    AL_SHOTSETUP_BUILDER_LIST: ','
+    RIG_RELEASEUI_TO: ','
     SHOTSETUP_PLUGIN_MODULES: ','
-    AL_RIGBITS_LIST: ','
 
 
 ###############################################################################
