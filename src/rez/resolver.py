@@ -82,6 +82,7 @@ class Resolver(object):
         """Perform the solve."""
         package_cache = PackageVariantCache(
             self.package_paths,
+            package_requests=self.package_requests,
             timestamp=self.timestamp,
             package_load_callback=self.package_load_callback,
             building=self.building)
