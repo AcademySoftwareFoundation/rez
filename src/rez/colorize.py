@@ -4,7 +4,14 @@ from rez.vendor import colorama
 from rez.config import config
 
 
-colorama.init()
+_initialised = False
+
+
+def _init_colorama():
+    global _initialised
+    if not _initialised:
+        colorama.init()
+        _initialised = True
 
 
 def stream_is_tty(stream):
@@ -185,6 +192,12 @@ def _color(str_, fore_color=None, back_color=None, styles=None):
     """
     if not config.get("color_enabled", False):
         return str_
+
+    # lazily init colorama. This is important - we don't want to init at startup,
+    # because colorama prints a RESET_ALL character atexit. This in turn adds
+    # unexpected output when capturing the output of a command run in a
+    # ResolvedContext, for example.
+    _init_colorama()
 
     colored = ""
     if not styles:

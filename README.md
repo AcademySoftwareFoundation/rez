@@ -29,10 +29,6 @@ requested packages:
 
     resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 15:56:20 2014, using Rez v2.0.0
 
-    implicit packages:
-    platform-linux
-    arch-x86_64
-
     requested packages:
     requests-2.2+
     python-2.6
@@ -65,10 +61,6 @@ Resolved environments can also be created programmatically:
     >>>
     >>> r.print_info()
     resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 13:03:30 2014, using Rez v2.0.0
-
-    implicit packages:
-    platform-linux
-    arch-x86_64
 
     requested packages:
     houdini-12.5+
@@ -119,7 +111,13 @@ Resolved environments can also be created programmatically:
 
 ## Installation
 
-To install Rez, simply:
+To install Rez, download the source, and then from the source directory, run the following command (replacing DEST_DIR with your preferred installation path):
+
+    python ./install.py -v DEST_DIR
+
+This performs a 'production' install - a standalone installation that ensures that the Rez command line tools are always available, even when within a resolved environment. This is the recommended installation procedure.
+
+You can also install Rez as a standard python package. If you do this however, the command line tools are only available some of the time. To install Rez as a standard python module:
 
     pip install rez
 
@@ -127,10 +125,6 @@ Or, to install from source:
 
     python setup.py install
 
-To see that it's working:
-
-    ]$ rez-env -c 'hello_world' hello_world
-    Hello Rez World!
 
 ## Documentation
 

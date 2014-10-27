@@ -1,5 +1,11 @@
+from itertools import groupby
+
 
 class VersionError(Exception):
+    pass
+
+
+class ParseException(Exception):
     pass
 
 
@@ -86,3 +92,9 @@ def total_ordering(cls):
             opfunc.__doc__ = getattr(int, opname).__doc__
             setattr(cls, opname, opfunc)
     return cls
+
+
+def dedup(iterable):
+    """Removes duplicates from a sorted sequence."""
+    for e in groupby(iterable):
+        yield e[0]

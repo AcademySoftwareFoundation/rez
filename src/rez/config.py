@@ -176,6 +176,7 @@ config_schema = Schema({
     "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
+    "terminal_emulator_command":        OptionalStr,
     "editor":                           OptionalStr,
     "image_viewer":                     OptionalStr,
     "browser":                          OptionalStr,
@@ -198,7 +199,8 @@ config_schema = Schema({
     "alias_fore":                       OptionalStr,
     "alias_back":                       OptionalStr,
     "resource_caching_maxsize":         Int,
-    "add_bootstrap_path":               Bool,  # TODO deprecate
+    "resolve_max_depth":                Int,
+    "resolve_start_depth":              Int,
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
@@ -232,7 +234,11 @@ config_schema = Schema({
     "rez_1_environment_variables":      Bool,
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
-    "env_var_separators":               Dict
+    "env_var_separators":               Dict,
+
+    # GUI settings
+    "use_pyside":                       Bool,
+    "use_pyqt":                         Bool
 })
 
 
@@ -407,8 +413,8 @@ class Config(DataWrapper):
     def lru_cache(self, key, maxsize_key=None):
         def decorated(f):
             if self.get(key):
-                maxsize = self.get(maxsize_key) \
-                    if maxsize_key else 100
+                maxsize = self.get(maxsize_key) if maxsize_key else -1
+                maxsize = None if maxsize == -1 else maxsize
                 return lru_cache(maxsize)(f)
             else:
                 return f

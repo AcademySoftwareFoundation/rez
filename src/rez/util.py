@@ -20,8 +20,9 @@ from collections import MutableMapping, defaultdict
 import logging
 from string import Formatter
 from rez import module_root_path
-from rez.vendor import yaml
+from rez.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
+from rez.vendor.schema.schema import Schema, Optional
 
 
 logger = logging.getLogger(__name__)
@@ -38,27 +39,9 @@ except AttributeError:
     OrderedDict = backport.ordereddict.OrderedDict
 
 
-# use `yaml_literal` to wrap multi-line strings written to yaml files, to
-# get the nice pipe-style block formatting
-class yaml_literal(str):
+class _Missing:
     pass
-
-
-def yaml_literal_presenter(dumper, data):
-    tag = None
-    try:
-        data = unicode(data, 'ascii')
-        tag = u'tag:yaml.org,2002:str'
-    except UnicodeDecodeError:
-        try:
-            data = unicode(data, 'utf-8')
-            tag = u'tag:yaml.org,2002:str'
-        except UnicodeDecodeError:
-            data = data.encode('base64')
-            tag = u'tag:yaml.org,2002:binary'
-    return dumper.represent_scalar(tag, data, '|')
-
-yaml.add_representer(yaml_literal, yaml_literal_presenter)
+_missing = _Missing()
 
 
 # TODO deprecate
@@ -96,6 +79,7 @@ class LazySingleton(object):
         return self.instance
 
 
+# TODO use distlib.ScriptMaker
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 
@@ -112,7 +96,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     if kwargs:
         doc["kwargs"] = kwargs
 
-    content = yaml.dump(doc, default_flow_style=False)
+    content = dump_yaml(doc)
     with open(filepath, 'w') as f:
         # TODO make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
@@ -174,50 +158,6 @@ def set_rm_tmpdirs(enable):
     rm_tmdirs = enable
 
 
-def relative_path(from_path, to_path):
-    from_path = os.path.realpath(from_path)
-    to_path = os.path.realpath(to_path)
-    return os.path.relpath(from_path, to_path)
-
-
-def _get_rez_dist_path(dirname):
-    path = os.path.join(module_root_path, dirname)
-    if not os.path.exists(path):
-        # this will happen if we are the bootstrapped rez pkg
-        path = os.path.join(os.path.dirname(__file__), "..", "..", "..", "..")
-        path = os.path.realpath(path)
-        path = os.path.join(path, dirname)
-
-        # the dist may not be available - this happens when unit tests are
-        # run from source
-        if not os.path.exists(path):
-            return None
-
-    return path
-
-
-def get_bootstrap_path():
-    path = _get_rez_dist_path("packages/rez")
-    if path:
-        return os.path.dirname(path)
-    else:
-        return _get_rez_dist_path("packages")
-
-
-def get_script_path():
-    return _get_rez_dist_path("bin")
-
-
-def get_rez_install_path():
-    path = os.path.join(get_script_path(), "..")
-    return os.path.realpath(path)
-
-
-def _add_bootstrap_pkg_path(paths):
-    bootstrap_path = get_bootstrap_path()
-    return paths[:] + [bootstrap_path] if bootstrap_path else paths[:]
-
-
 def dedup(seq):
     """Remove duplicates from a list while keeping order."""
     seen = set()
@@ -246,6 +186,7 @@ def which(*programs):
         path = which_(prog)
         if path:
             return path
+    return None
 
 
 # case-insensitive fuzzy string match
@@ -315,6 +256,14 @@ def columnise(rows, padding=2):
     return strs
 
 
+def print_colored_columns(printer, rows, padding=2):
+    """Note: The last entry in each row is the row color."""
+    rows_ = [x[:-1] for x in rows]
+    colors = [x[-1] for x in rows]
+    for col, line in zip(colors, columnise(rows_, padding=padding)):
+        printer(line, col)
+
+
 def pretty_dict(d):
     def _lit(value):
         if isinstance(value, dict):
@@ -322,11 +271,11 @@ def pretty_dict(d):
         elif isinstance(value, list):
             value = [_lit(x) for x in value]
         elif isinstance(value, basestring) and '\n' in value:
-            value = yaml_literal(value)
+            value = value
         return value
 
     data = _lit(d)
-    txt = yaml.dump(data, default_flow_style=False)
+    txt = dump_yaml(data)
     return txt.strip()
 
 
@@ -335,11 +284,14 @@ def pretty_env_dict(d):
     return '\n'.join(columnise(rows))
 
 
-def readable_time_duration(secs, approx=True, approx_thresh=0.001):
-    divs = ((24 * 60 * 60, "days"),
-            (60 * 60, "hours"),
-            (60, "minutes"),
-            (1, "seconds"))
+def readable_time_duration(secs):
+    divs = ((365 * 24 * 3600, "years", 10),
+            (30 * 24 * 3600, "months", 12),
+            (7 * 24 * 3600, "weeks", 5),
+            (24 * 3600, "days", 7),
+            (3600, "hours", 8),
+            (60, "minutes", 5),
+            (1, "seconds", 60))
 
     if secs == 0:
         return "0 seconds"
@@ -347,20 +299,45 @@ def readable_time_duration(secs, approx=True, approx_thresh=0.001):
     if neg:
         secs = -secs
 
-    results = []
-    remainder = secs
-    for seconds, label in divs:
-        value, remainder = divmod(remainder, seconds)
-        if value:
-            results.append((value, label))
-            if approx and (float(remainder) / secs) >= approx_thresh:
-                # quit if remainder drops below threshold
-                break
-    s = ', '.join(['%d %s' % x for x in results])
+    for seconds, unit, threshold in divs:
+        if secs >= seconds:
+            f = secs / float(seconds)
+            rounding = 0 if f > threshold else 1
+            f = round(f, rounding)
+            f = int(f * 10) / 10.0
+            if f == 1.0:
+                unit = unit[:-1]
+            txt = "%g %s" % (f, unit)
+            break
 
     if neg:
-        s = '-' + s
-    return s
+        txt = '-' + txt
+    return txt
+
+
+positional_suffix = ("th", "st", "nd", "rd", "th", "th", "th", "th", "th", "th")
+
+
+def positional_number_string(n):
+    """Print the position string equivalent of a positive integer. Examples:
+    0: zeroeth
+    1: first
+    2: second
+    14: 14th
+    21: 21st
+    """
+    if n > 20:
+        suffix = positional_suffix(n % 10)
+        return "%d%s" % (n, suffix)
+    elif n > 3:
+        return "%dth" % n
+    elif n == 3:
+        return "third"
+    elif n == 2:
+        return "second"
+    elif n == 1:
+        return "first"
+    return "zeroeth"
 
 
 def get_epoch_time_from_str(s):
@@ -845,6 +822,18 @@ def expandvars(text, environ=None):
     return text
 
 
+def find_last_sublist(list_, sublist):
+    """Given a list, find the last occurance of a sublist within it.
+
+    Returns:
+        Index where the sublist starts, or None if there is no match.
+    """
+    for i in reversed(range(len(list_) - len(sublist) + 1)):
+        if list_[i] == sublist[0] and list_[i:i + len(sublist)] == sublist:
+            return i
+    return None
+
+
 def is_dict_subset(dict1, dict2):
     """Returns True if dict1 is a subset of dict2."""
     for k, v in dict1.iteritems():
@@ -949,11 +938,30 @@ class propertycache(object):
         self.name = name or func.__name__
 
     def __get__(self, instance, owner=None):
+        """
+        TODO: Fix this bug:
+
+        class Foo(object):
+            @propertycache
+            def bah(self): return True
+
+        class Bah(Foo):
+            @propertycache
+            def bah(self): return False
+
+        a = Bah()
+        super(Bah, a).bah()
+        True
+        a.bah()
+        True  # should be False
+        """
         if instance is None:
             return None
+
         d = instance.__dict__.get('_cachedproperties', {})
-        if self.name in d:
-            return d[self.name]
+        value = d.get(self.name, _missing)
+        if value is not _missing:
+            return value
 
         try:
             result = self.func(instance)
@@ -961,9 +969,7 @@ class propertycache(object):
             return e.default
 
         d = instance.__dict__
-        if '_cachedproperties' not in d:
-            d['_cachedproperties'] = {}
-        d['_cachedproperties'][self.name] = result
+        d.setdefault('_cachedproperties', {})[self.name] = result
         return result
 
     @classmethod
@@ -1375,7 +1381,6 @@ class _LazyAttributeValidator(type):
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
-        from rez.vendor.schema.schema import Schema, Optional
         schema = members.get('schema')
         keys = set()
 
@@ -1406,7 +1411,6 @@ class _LazyAttributeValidator(type):
     @classmethod
     def _make_getter(cls, key, optional, key_schema):
         def getter(self):
-            from rez.vendor.schema.schema import Schema
             if key not in self._data:
                 if optional:
                     return None
@@ -1446,7 +1450,9 @@ class DataWrapper(object):
     schema_error = Exception
     schema = None
 
-    # TODO deprecate
+    def __init__(self):
+        pass
+
     def get(self, key, default=None):
         """Get a key value by name."""
         return getattr(self, key, default)
@@ -1458,13 +1464,27 @@ class DataWrapper(object):
             problems because a DataWrapper instance can in some cases be
             incorrectly picked up by the Schema library as a schema validator.
         """
+        _ = self.validated_data
+
+    @propertycache
+    def validated_data(self):
+        """Return validated data.
+
+        Returns:
+            A dict containing all data for this object, or None if this class
+            does not provide a data schema.
+        """
         if self.schema:
+            d = {}
             for key in self._schema_keys:
-                getattr(self, key)  # forces validation of key
+                d[key] = getattr(self, key)
+            return d
+        else:
+            return None
 
     @property
     def _data(self):
-        """Load object data.
+        """Load raw object data.
 
         The data returned by this method should conform to the schema defined
         by the `schema` class attribute. You almost certainly want to decorate
@@ -1567,7 +1587,6 @@ def _atexit():
             rmdtemp(path)
 
     # print timings
-    print
     try:
         timings.dump()
     except:

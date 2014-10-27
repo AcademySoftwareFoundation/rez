@@ -154,6 +154,8 @@ class TestVersionSchema(unittest.TestCase):
             b_range = VersionRange(b)
 
             self.assertTrue(a_range == b_range)
+            self.assertTrue(a_range.issuperset(a_range))
+            self.assertTrue(a_range.issuperset(b_range))
             self.assertTrue(VersionRange(str(a_range)) == a_range)
             self.assertTrue(VersionRange(str(b_range)) == a_range)
             self.assertTrue(hash(a_range) == hash(b_range))
@@ -275,8 +277,6 @@ class TestVersionSchema(unittest.TestCase):
         _eq("+<=", "==")    # equivalent to above
 
         invalid_range = [
-            "<",            # less than the empty version
-            "><",           # both greater and less than empty version
             "4+<2",         # lower bound greater than upper
             ">3<3",         # both greater and less than same version
             ">3<=3",        # greater and less or equal to same version
@@ -287,6 +287,8 @@ class TestVersionSchema(unittest.TestCase):
             self.assertRaises(VersionError, VersionRange, s)
 
         invalid_syntax = [
+            "<",            # less than the empty version
+            "><",           # both greater and less than empty version
             ">3>4",         # both are lower bounds
             "<3<4",         # both are upper bounds
             "<4>3",         # upper bound before lower
@@ -313,7 +315,7 @@ class TestVersionSchema(unittest.TestCase):
 
         # test range from version(s)
         v = Version("3")
-        self.assertTrue(VersionRange.from_version(v) == VersionRange("==3"))
+        self.assertTrue(VersionRange.from_version(v, "eq") == VersionRange("==3"))
         self.assertTrue(VersionRange.from_version(v, "gt") == VersionRange(">3"))
         self.assertTrue(VersionRange.from_version(v, "gte") == VersionRange("3+"))
         self.assertTrue(VersionRange.from_version(v, "lt") == VersionRange("<3"))
@@ -346,7 +348,8 @@ class TestVersionSchema(unittest.TestCase):
         _eq2(set([b, c, e]) | set([c, d]), set([b, c, d, e]))
         _eq2(set([b, c]) & set([c, d]), set([c]))
 
-        # test containment
+    def test_containment(self):
+        # basic containment
         self.assertTrue(Version("3") in VersionRange("3+"))
         self.assertTrue(Version("5") in VersionRange("3..5"))
         self.assertTrue(Version("5_") not in VersionRange("3..5"))
@@ -361,6 +364,54 @@ class TestVersionSchema(unittest.TestCase):
         self.assertTrue(VersionRange("3.5+<3_") in VersionRange("3"))
         self.assertTrue(VersionRange("3") not in VersionRange("4+<6"))
         self.assertTrue(VersionRange("3+<10") not in VersionRange("4+<6"))
+
+        # iterating over sorted version list
+        numbers = [2, 3, 5, 10, 11, 13, 14]
+        versions = [Version(str(x)) for x in numbers]
+        rev_versions = list(reversed(versions))
+        composite_range = VersionRange.from_versions(versions)
+
+        entries = [(VersionRange(""), 7),
+                   (VersionRange("0+"), 7),
+                   (VersionRange("5+"), 5),
+                   (VersionRange("6+"), 4),
+                   (VersionRange("50+"), 0),
+                   (VersionRange(">5"), 4),
+                   (VersionRange("5"), 1),
+                   (VersionRange("6"), 0),
+                   (VersionRange("<5"), 2),
+                   (VersionRange("<6"), 3),
+                   (VersionRange("<50"), 7),
+                   (VersionRange("<=5"), 3),
+                   (VersionRange("<1"), 0),
+                   (VersionRange("2|9+"), 5),
+                   (VersionRange("3+<6|12+<13.5"), 3),
+                   (VersionRange("<1|20+"), 0),
+                   (VersionRange(">0<20"), 7)]
+
+        for range_, count in entries:
+            # brute-force containment tests
+            matches = set(x for x in versions if x in range_)
+            self.assertEqual(len(matches), count)
+
+            # more optimal containment tests
+            def _test_it(it):
+                matches_ = set(version for contains, version in it if contains)
+                self.assertEqual(matches_, matches)
+
+            _test_it(range_.contains_versions(versions))
+            _test_it(range_.contains_versions(rev_versions, descending=True))
+
+            # throw in an intersection test
+            self.assertEqual(composite_range.intersects(range_), (count != 0))
+            int_range = composite_range & range_
+            versions_ = [] if int_range is None else int_range.to_versions()
+            self.assertEqual(set(versions_), matches)
+
+            # throw in a superset test as well
+            self.assertEqual(range_.issuperset(composite_range), (count == 7))
+            if count:
+                self.assertTrue(composite_range.issuperset(int_range))
 
     def test_requirement_list(self):
         def _eq(reqs, expected_reqs):

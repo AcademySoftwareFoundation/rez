@@ -4,12 +4,17 @@ import re
 from rez import __version__
 from rez.platform_ import platform_
 from rez.exceptions import RezSystemError
-from rez.util import propertycache
+from rez.util import propertycache, which
 
 
 class System(object):
     """Access to underlying system data.
     """
+    @property
+    def rez_version(self):
+        """Returns the current version of Rez."""
+        return __version__
+
     @propertycache
     def platform(self):
         """Get the current platform.
@@ -49,11 +54,6 @@ class System(object):
         return ["platform-%s" % self.platform,
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
-
-    @property
-    def rez_version(self):
-        """Returns the current version of Rez."""
-        return __version__
 
     # TODO move shell detection into shell plugins
     @propertycache
@@ -171,6 +171,37 @@ class System(object):
         @returns The domain, eg 'somestudio.com'
         """
         return self.fqdn.split('.', 1)[1]
+
+    @propertycache
+    def rez_bin_path(self):
+        """Get path containing rez binaries, or None if no binaries are
+        available, or Rez is not a production install.
+        """
+        binpath = None
+        if sys.argv and sys.argv[0]:
+            executable = sys.argv[0]
+            path = os.path.dirname(executable)
+            rezolve_exe = os.path.join(path, "rezolve")
+            if os.path.exists(rezolve_exe):
+                binpath = path
+
+        # TODO improve this, could still pick up non-production 'rezolve'
+        if not binpath:
+            path = which("rezolve")
+            if path:
+                binpath = os.path.dirname(path)
+
+        if binpath:
+            validation_file = os.path.join(binpath, ".rez_production_install")
+            if os.path.exists(validation_file):
+                return os.path.realpath(binpath)
+
+        return None
+
+    @property
+    def is_production_rez_install(self):
+        """Return True if this is a production rez install."""
+        return bool(self.rez_bin_path)
 
     @classmethod
     def _make_safe_version_string(cls, s):

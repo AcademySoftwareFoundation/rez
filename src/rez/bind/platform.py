@@ -1,6 +1,7 @@
 """
 Creates the system platform package.
 """
+from __future__ import absolute_import
 from rez.package_maker_ import make_py_package
 from rez.exceptions import RezBindError
 from rez.vendor.version.version import Version

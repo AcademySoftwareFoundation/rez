@@ -7,7 +7,6 @@ from rez.vendor.argparse import _SubParsersAction, ArgumentParser, SUPPRESS, \
 
 subcommands = [
     "bind",
-    "bootstrap",
     "build",
     "config",
     "context",
@@ -19,13 +18,15 @@ subcommands = [
     "ide",
     "interpret",
     "launcher",
+    "python",
     "release",
     "search",
     "status",
     "suite",
-    "test",
+    "selftest",
     "unleash",
-    "whatprovides"]
+    "whatprovides",
+    "gui"]
 
 
 hidden_subcommands = [
@@ -98,6 +99,10 @@ _handled_int = False
 _handled_term = False
 
 
+def _env_var_true(name):
+    return (os.getenv(name, "").lower() in ("1", "true", "on", "yes"))
+
+
 def sigbase_handler(signum, frame):
     # show cursor - progress lib may have hidden it
     SHOW_CURSOR = '\x1b[?25h'
@@ -105,7 +110,9 @@ def sigbase_handler(signum, frame):
     sys.stdout.flush()
 
     # kill all child procs
-    os.killpg(os.getpgid(0), signum)
+    # FIXME this kills parent procs as well
+    if not _env_var_true("_REZ_NO_KILLPG"):
+        os.killpg(os.getpgid(0), signum)
     sys.exit(1)
 
 
@@ -114,7 +121,8 @@ def sigint_handler(signum, frame):
     global _handled_int
     if not _handled_int:
         _handled_int = True
-        print >> sys.stderr, "Interrupted by user"
+        if not _env_var_true("_REZ_QUIET_ON_SIG"):
+            print >> sys.stderr, "Interrupted by user"
         sigbase_handler(signum, frame)
 
 
@@ -123,7 +131,8 @@ def sigterm_handler(signum, frame):
     global _handled_term
     if not _handled_term:
         _handled_term = True
-        print >> sys.stderr, "Terminated by user"
+        if not _env_var_true("_REZ_QUIET_ON_SIG"):
+            print >> sys.stderr, "Terminated by user"
         sigbase_handler(signum, frame)
 
 

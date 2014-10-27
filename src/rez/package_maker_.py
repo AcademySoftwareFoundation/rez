@@ -18,6 +18,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
 from rez.vendor import yaml
 from rez.exceptions import PackageMetadataError, RezSystemError
 from rez.util import OrderedDict
+from rez.yaml import dump_package_yaml
 from contextlib import contextmanager
 import inspect
 import textwrap
@@ -26,11 +27,11 @@ import os.path
 import stat
 
 
-
 class quoted(str):
     """Wrap a string in this class to force a quoted representation when written
     to the package definition file."""
     pass
+
 
 class literal(str):
     """Wrap a string in this class to force a (multi-line) representation when
@@ -40,6 +41,7 @@ class literal(str):
 # create a shortcut that is more rez-friendly
 rex = literal
 
+
 class base(object):
     """Describes a path relative to the base of a package. For example, to
     define a 'bin' path relative to a package base: base("bin")."""
@@ -48,6 +50,7 @@ class base(object):
 
     def __hash__(self):
         return hash(tuple(self.dirs))
+
 
 class root(object):
     """Describes a path relative to the root of a package variant. There are
@@ -66,17 +69,21 @@ class root(object):
     def __hash__(self):
         return hash((tuple(self.dirs), frozenset(self.variant_indices)))
 
+
 def quoted_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
 yaml.add_representer(quoted, quoted_presenter)
+
 
 def literal_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 yaml.add_representer(literal, literal_presenter)
 
+
 def ordered_dict_presenter(dumper, data):
     return dumper.represent_dict(data.items())
 yaml.add_representer(OrderedDict, ordered_dict_presenter)
+
 
 def _entab(text, spaces=4):
     return '\n'.join([(' ' * 4) + t for t in text.split('\n')])
@@ -88,10 +95,12 @@ class code_provider(object):
     """
     def __init__(self, fn):
         self._fn = fn
+
     def __call__(self, *args, **kwargs):
         raise RezSystemError("a code provider function was called directly")
 
-def _get_code(value):
+
+def get_code(value):
     n = 1
     if isinstance(value, code_provider):
         value = value._fn
@@ -236,11 +245,11 @@ class PackageMaker(object):
         os.makedirs(self.base_path)
 
         # make python tools
-        for (name,path),body in self.python_tools.iteritems():
+        for (name, path), body in self.python_tools.iteritems():
             if isinstance(body, basestring):
                 code = body
             else:
-                code = _get_code(body)
+                code = get_code(body)
                 assert(code is not None)
 
             # TODO windows
@@ -252,11 +261,11 @@ class PackageMaker(object):
                     f.write("#!/usr/bin/env python\n")
                     f.write(code)
 
-                os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH | \
-                    stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+                os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                         | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
         # make symlinks
-        for (source,path) in self.links:
+        for (source, path) in self.links:
             for path_ in self._get_paths(path):
                 dir_ = os.path.dirname(path_)
                 if not os.path.exists(dir_):
@@ -314,14 +323,14 @@ class PackageMaker(object):
 class PyPackageMaker(PackageMaker):
     """Create a package.py-based package."""
     def flush(self):
-        super(PyPackageMaker,self).flush()
+        super(PyPackageMaker, self).flush()
 
         body = ""
-        for key,value in self._get_metadata().iteritems():
+        for key, value in self._get_metadata().iteritems():
             if isinstance(value, rex):
                 text = 'def %s():\n%s\n' % (key, _entab(value))
             elif inspect.isfunction(value) or isinstance(value, code_provider):
-                code = _get_code(value)
+                code = get_code(value)
                 text = 'def %s():\n%s\n' % (key, _entab(code))
             else:
                 text = '%s = %r\n' % (key, value)
@@ -335,12 +344,12 @@ class PyPackageMaker(PackageMaker):
 class YamlPackageMaker(PackageMaker):
     """Create a package.yaml-based package."""
     def flush(self):
-        super(YamlPackageMaker,self).flush()
+        super(YamlPackageMaker, self).flush()
 
         doc = OrderedDict()
-        for key,value in self._get_metadata().iteritems():
+        for key, value in self._get_metadata().iteritems():
             if inspect.isfunction(value) or isinstance(value, code_provider):
-                code = _get_code(value)
+                code = get_code(value)
                 value = rex(code)
             elif key == "commands" and not isinstance(value, rex):
                 value = rex(value)
@@ -349,7 +358,7 @@ class YamlPackageMaker(PackageMaker):
 
         metafile = os.path.join(self.base_path, "package.yaml")
         with open(metafile, 'w') as f:
-            yaml.dump(doc, f)
+            dump_package_yaml(doc, f)
 
 
 def _make_package(maker):
@@ -362,9 +371,11 @@ def _make_package(maker):
     # package that might have other variants. We could then reuse this code
     # if we end up with a rez-installer-type tool.
 
+
 @contextmanager
 def make_py_package(name, version, path):
     return _make_package(PyPackageMaker(name, version, path))
+
 
 @contextmanager
 def make_yaml_package(name, version, path):

@@ -16,5 +16,7 @@ from rez.tests.test_shells import TestShells
 from rez.tests.test_solver import TestSolver
 from rez.tests.test_resources import TestResources
 from rez.tests.test_packages import TestPackages
-from rez.tests.test_packages import TestConfig
-from rez.tests.test_packages import TestRelease
+from rez.tests.test_config import TestConfig
+from rez.tests.test_release import TestRelease
+from rez.tests.test_completion import TestCompletion
+from rez.tests.test_version import TestVersions

@@ -1,5 +1,4 @@
 from __future__ import with_statement
-from distutils.command.install import install as _install
 import fnmatch
 import os
 import os.path
@@ -8,7 +7,6 @@ import sys
 
 try:
     from setuptools import setup, find_packages
-    from setuptools.command.install import install
 except ImportError:
     print >> sys.stderr, "install failed - requires setuptools"
     sys.exit(1)
@@ -17,9 +15,6 @@ except ImportError:
 if sys.version_info < (2, 6):
     print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
-
-
-os.environ['__rez_is_installing'] = '1'
 
 
 def find_files(pattern, path=None, root="rez"):
@@ -37,11 +32,12 @@ def find_files(pattern, path=None, root="rez"):
     return paths
 
 
-with open("@relative_path@/src/rez/__init__.py") as f:
-    code = f.read()
-loc = code.split('\n')
-ver_loc = [x for x in loc if x.startswith("__version__")][0]
-version = ver_loc.split()[-1].replace('"','')
+# get version from source
+with open("@relative_path@/src/rez/_version.py") as f:
+    code = f.read().strip()
+exec(code)
+version = _rez_version
+
 
 scripts = [
     "rezolve",
@@ -53,11 +49,11 @@ scripts = [
     "rez-context",
     "rez-suite",
     "rez-interpret",
-    "rez-test",
+    "rez-python",
+    "rez-selftest",
     "rez-bind",
     "rez-search",
     "rez-status",
-    "rez-bootstrap",
     "rez-help",
     "rez-depends",
     "rez-launcher",
@@ -65,39 +61,9 @@ scripts = [
     "rez-ide",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
-    "_rez-complete"
+    "_rez-complete",
+    "rez-gui"
 ]
-
-# post install hook. Don't believe google - this is how you do it.
-class install_(install):
-    def run(self):
-        ret = None
-        if self.old_and_unmanageable or self.single_version_externally_managed:
-            ret = _install.run(self)
-        else:
-            caller = sys._getframe(2)
-            caller_module = caller.f_globals.get('__name__','')
-            caller_name = caller.f_code.co_name
-
-            if caller_module != 'distutils.dist' or caller_name!='run_commands':
-                _install.run(self)
-            else:
-                self.do_egg_install()
-
-        # add installed site to syspaths
-        for path in ('', '.', './'):
-            if path in sys.path:
-                sys.path.remove(path)
-        import site
-        site.addsitedir(self.install_lib)
-        sys.path.insert(0, self.install_lib)
-
-        # run post-install hook
-        from rez._sys._setup import post_install
-        post_install(install_base_dir=self.install_lib,
-                     install_scripts_dir=self.install_scripts,
-                     scripts=scripts)
-        return ret
 
 
 setup(
@@ -112,27 +78,30 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    cmdclass={'install': install_},
     scripts=[os.path.join('@relative_path@/bin', x) for x in scripts],
     include_package_data=True,
     package_dir = {'': '@relative_path@/src'},
-    packages=find_packages('@relative_path@/src', exclude=["tests"]),
+    packages=find_packages('@relative_path@/src', exclude=["build_utils",
+                                                           "build_utils.*",
+                                                           "tests"]),
     package_data = {
         'rez':
             ['rezconfig', 'logging.conf'] +
             ['README*'] +
-            find_files('*.csh', '_sys') +
-            find_files('*.sh', '_sys') +
-            find_files('*', 'tests/data') +
+            find_files('*.*', 'completion') +
+            find_files('*.*', 'tests/data') +
             find_files('*', 'contrib/animallogic/launcher/tests/data') +
             find_files('_unleasher', 'contrib/animallogic/unleash'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
             find_files('*.cmake', 'build_system', root='rezplugins') +
-            find_files('*.*', 'build_system/template_files', root='rezplugins')
+            find_files('*.*', 'build_system/template_files', root='rezplugins'),
+        'rezgui':
+            find_files('rezguiconfig', root='rezgui') +
+            find_files('*.*', 'icons', root='rezgui')
     },
     classifiers = [
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 4 - Beta",
         "License :: OSI Approved :: GNU Lesser General Public License v3 (LGPLv3)",
         "Intended Audience :: Developers",
         "Operating System :: OS Independent",

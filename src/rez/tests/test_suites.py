@@ -16,7 +16,6 @@ class TestRezSuites(TestBase, TempdirMixin):
         cls.settings = dict(
             packages_path=[packages_path],
             implicit_packages=[],
-            add_bootstrap_path=False,
             warn_untimestamped=False,
             resolve_caching=False)
 

@@ -3,10 +3,10 @@ from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import convert_dicts, AttrDictWrapper, print_debug, yaml_literal
+from rez.util import convert_dicts, AttrDictWrapper, print_debug
 from rez.release_hook import create_release_hooks
+from rez.yaml import dump_yaml
 from rez import __version__
-from rez.vendor import yaml
 from rez.vendor.enum import Enum
 import getpass
 import shutil
@@ -141,7 +141,9 @@ class StandardBuildProcess(BuildProcess):
         self._build(install_path=install_path,
                     build_path=base_build_path,
                     install=install,
-                    clean=clean, variants=variants, build_type=BuildType.local)
+                    clean=clean,
+                    variants=variants,
+                    build_type=BuildType.local)
 
     def release(self):
         assert(self.vcs)
@@ -216,7 +218,8 @@ class StandardBuildProcess(BuildProcess):
                 self._build(install_path=install_path,
                             build_path=base_build_path,
                             install=install,
-                            clean=clean, build_type=BuildType.central)
+                            clean=clean,
+                            build_type=BuildType.central)
             except BuildError as e:
                 raise ReleaseError("The build failed: %s" % str(e))
 
@@ -235,20 +238,20 @@ class StandardBuildProcess(BuildProcess):
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=yaml_literal(changelog))
+            changelog=changelog)
 
         if self.release_message:
             release_message = self.release_message.strip()
         else:
             release_message = "Rez-%s released %s" \
                 % (__version__, self.package.qualified_name)
-        release_info["release_message"] = yaml_literal(release_message)
+        release_info["release_message"] = release_message
 
         if last_pkg:
             release_info["previous_version"] = str(last_version)
             release_info["previous_revision"] = last_revision
 
-        release_content = yaml.dump(release_info, default_flow_style=False)
+        release_content = dump_yaml(release_info)
         with open(os.path.join(release_path, "release.yaml"), 'w') as f:
             f.write(release_content)
 
@@ -306,11 +309,6 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     """A BuildProcess that sequentially builds the variants of the current
     package, on the local host.
     """
-    def _use_existing_context_file(self, rxt_file):
-        return os.path.exists(rxt_file) \
-            and (os.path.getmtime(self.package.path)
-                 < os.path.getmtime(rxt_file))
-
     def _build(self, install_path, build_path, clean=False, install=False,
                variants=None, build_type=BuildType.local):
         base_install_path = self._get_base_install_path(install_path)
@@ -324,7 +322,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             invalid_variants = set(variants) - set(present_variants)
             if invalid_variants:
                 raise BuildError(
-                    "The following variants are not present: %s" \
+                    "The following variants are not present: %s"
                     % ", ".join(str(x) for x in sorted(invalid_variants)))
 
         # iterate over variants
@@ -334,10 +332,17 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 continue
 
             self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
+            subdir = variant.subpath
 
             # create build dir, possibly deleting previous build
             build_subdir = os.path.join(build_path, variant.subpath)
             install_path = os.path.join(base_install_path, variant.subpath)
+            rxt_file = os.path.join(build_subdir, "build.rxt")
+
+            if build_type == BuildType.central:
+                packages_path = self.package.config.nonlocal_packages_path
+            else:
+                packages_path = self.package.config.packages_path
 
             if clean and os.path.exists(build_subdir):
                 shutil.rmtree(build_subdir)
@@ -345,22 +350,31 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if not os.path.exists(build_subdir):
                 os.makedirs(build_subdir)
 
-            # resolve build environment and save to file
-            rxt_path = os.path.join(build_subdir, "build.rxt")
-            if self._use_existing_context_file(rxt_path):
-                self._pr("Loading existing environment context...")
-                r = ResolvedContext.load(rxt_path)
-            else:
+            # resolve build environment and save to file, possibly reusing
+            # existing build context file
+            r = None
+            if os.path.exists(rxt_file) and os.path.getmtime(self.package.path) \
+                    < os.path.getmtime(rxt_file):
+                try:
+                    r_ = ResolvedContext.load(rxt_file)
+                    r_.validate()
+                    if r_.success and (r_.package_paths == packages_path):
+                        r = r_
+                except:
+                    pass
+
+            if r is None:
                 request = variant.get_requires(build_requires=True,
                                                private_build_requires=True)
                 self._pr("Resolving build environment: %s"
                          % ' '.join(str(x) for x in request))
                 r = ResolvedContext(request,
+                                    package_paths=packages_path,
                                     timestamp=timestamp,
                                     building=True)
-                r.print_info()
-                r.save(rxt_path)
+                r.save(rxt_file)
 
+            r.print_info()
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
@@ -380,7 +394,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 if script:
                     build_env_scripts.append(script)
 
-                extra_files = ret.get("extra_files", []) + [rxt_path]
+                extra_files = ret.get("extra_files", []) + [rxt_file]
                 if install and extra_files:
                     for file in extra_files:
                         shutil.copy(file, install_path)

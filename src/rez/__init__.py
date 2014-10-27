@@ -1,8 +1,9 @@
+from rez._version import _rez_version
 import logging.config
 import os
 
 
-__version__ = "2.0.ALPHA.135"
+__version__ = _rez_version
 __author__ = "Allan Johns"
 __license__ = "LGPL"
 

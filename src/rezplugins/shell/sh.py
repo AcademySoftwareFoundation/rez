@@ -94,7 +94,7 @@ class SH(UnixShell):
             new_prompt = new_prompt % curr_prompt
             self._addline('export PS1="%s"' % new_prompt)
 
-        completion = os.path.join(module_root_path, "_sys", "complete.sh")
+        completion = os.path.join(module_root_path, "completion", "complete.sh")
         self.source(completion)
 
     def setenv(self, key, value):

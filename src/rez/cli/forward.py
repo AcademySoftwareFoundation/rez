@@ -13,7 +13,9 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
+    from rez.exceptions import RezSystemError
     from rez.vendor import yaml
+    from rez.vendor.yaml.error import YAMLError
     import inspect
     import os
 
@@ -27,7 +29,12 @@ def command(opts, parser, extra_arg_groups=None):
     cli_args = opts.ARG
 
     with open(yaml_file) as f:
-        doc = yaml.load(f.read())
+        content = f.read()
+    try:
+        doc = yaml.load(content)
+    except YAMLError as e:
+        raise RezSystemError("Invalid executable file %s: %s"
+                             % (yaml_file, str(e)))
 
     func_name = doc["func_name"]
     nargs = doc.get("nargs", [])

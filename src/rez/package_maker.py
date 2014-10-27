@@ -4,6 +4,7 @@ import inspect
 import textwrap
 from rez.util import OrderedDict
 from rez.vendor.version.requirement import VersionedObject
+from rez.yaml import dump_package_yaml
 from contextlib import contextmanager
 
 class quoted(str):
@@ -63,7 +64,7 @@ def _get_metadata(name):
 
 def write_package_yaml(metafile, metadata):
     with open(metafile, 'w') as f:
-        yaml.dump(metadata, f)
+        dump_package_yaml(metadata, f)
 
 def write_package_py(metafile, metadata):
     with open(metafile, 'w') as f:

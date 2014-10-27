@@ -10,51 +10,61 @@ import tempfile
 
 def setup_parser(parser, completions=False):
     from rez.vendor.argparse import SUPPRESS
+    from rez.config import config
     from rez.system import system
     from rez.shells import get_shell_types
-    shells = get_shell_types()
 
-    parser.add_argument("--shell", dest="shell", type=str, choices=shells,
-                        default=system.shell,
-                        help="target shell type (default: %(default)s)")
-    parser.add_argument("--rcfile", type=str,
-                        help="source this file instead of the target shell's "
-                        "standard startup scripts, if possible")
-    parser.add_argument("--norc", action="store_true",
-                        help="skip loading of startup scripts")
+    shells = get_shell_types()
+    depths = (config.resolve_start_depth, config.resolve_max_depth)
+    depths_str = ", ".join(map(str, depths))
+
+    parser.add_argument(
+        "--shell", dest="shell", type=str, choices=shells,
+        default=system.shell,
+        help="target shell type (default: %(default)s)")
+    parser.add_argument(
+        "--rcfile", type=str,
+        help="source this file instead of the target shell's standard startup "
+        "scripts, if possible")
+    parser.add_argument(
+        "--norc", action="store_true",
+        help="skip loading of startup scripts")
     command_action = parser.add_argument(
         "-c", "--command", type=str,
         help="read commands from string. Alternatively, list command arguments "
         "after a '--'")
-    parser.add_argument("-s", "--stdin", action="store_true",
-                        help="read commands from standard input")
-    parser.add_argument("--ni", "--no-implicit", dest="no_implicit",
-                        action="store_true",
-                        help="don't add implicit packages to the request")
-    parser.add_argument("--nl", "--no-local", dest="no_local", action="store_true",
-                        help="don't load local packages")
-    parser.add_argument("--paths", type=str, default=None,
-                        help="set package search path")
-    parser.add_argument("--nb", "--no-bootstrap", dest="no_bootstrap",
-                        action="store_true",
-                        help="don't load bootstrap packages")
-    parser.add_argument("-t", "--time", type=str,
-                        help="ignore packages released after the given time. "
-                        "Supported formats are: epoch time (eg 1393014494), "
-                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
-    parser.add_argument("--max-fails", type=int, default=-1, dest="max_fails",
-                        metavar='N',
-                        help="abort if the number of failed configuration "
-                        "attempts exceeds N")
-    parser.add_argument("--time-limit", type=int, default=-1,
-                        dest="time_limit", metavar='SECS',
-                        help="abort if the resolve time exceeds SECS")
-    parser.add_argument("-o", "--output", type=str, metavar="FILE",
-                        help="store the context into an rxt file, instead of "
-                        "starting an interactive shell. Note that this will "
-                        "also store a failed resolve")
+    parser.add_argument(
+        "-s", "--stdin", action="store_true",
+        help="read commands from standard input")
+    parser.add_argument(
+        "--ni", "--no-implicit", dest="no_implicit",
+        action="store_true",
+        help="don't add implicit packages to the request")
+    parser.add_argument(
+        "--nl", "--no-local", dest="no_local", action="store_true",
+        help="don't load local packages")
+    parser.add_argument(
+        "--paths", type=str, default=None,
+        help="set package search path")
+    parser.add_argument(
+        "-t", "--time", type=str,
+        help="ignore packages released after the given time. Supported formats "
+        "are: epoch time (eg 1393014494), or relative time (eg -10s, -5m, "
+        "-0.5h, -10d)")
+    parser.add_argument(
+        "--max-fails", type=int, default=-1, dest="max_fails",
+        metavar='N',
+        help="abort if the number of failed configuration attempts exceeds N")
+    parser.add_argument(
+        "--time-limit", type=int, default=-1,
+        dest="time_limit", metavar='SECS',
+        help="abort if the resolve time exceeds SECS")
+    parser.add_argument(
+        "-o", "--output", type=str, metavar="FILE",
+        help="store the context into an rxt file, instead of starting an "
+        "interactive shell. Note that this will also store a failed resolve")
     parser.add_argument("--dora", action="store_true",
-                        help="Open graph in dora")
+        help="Open graph in dora")
     input_action = parser.add_argument(
         "-i", "--input", type=str, metavar="FILE",
         help="use a previously saved context. Resolve settings, such as PKG, "
@@ -71,6 +81,17 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="run in quiet mode (hides welcome message)")
+    parser.add_argument(
+        "--new-session", action="store_true",
+        help="start the shell in a new process group")
+    parser.add_argument(
+        "--depth", type=int, nargs=2, metavar=("START", "MAX"),
+        help="set resolve start-depth and max-depth (default: %s)" % depths_str)
+    parser.add_argument(
+        "--detached", action="store_true",
+        help="open a separate terminal")
+    parser.add_argument(
+        "--pre-command", type=str, help=SUPPRESS)
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='*',
         help='packages to use in the target environment')
@@ -122,6 +143,8 @@ def command(opts, parser, extra_arg_groups=None):
         context.validate()
 
     if opts.patch:
+        # TODO patching is lagging behind in options, and needs to be updated
+        # anyway.
         if context is None:
             from rez.status import status
             context = status.context
@@ -135,15 +158,18 @@ def command(opts, parser, extra_arg_groups=None):
         context = None
 
     if context is None:
-        context = ResolvedContext(
-            request,
-            timestamp=t,
-            package_paths=pkg_paths,
-            add_implicit_packages=(not opts.no_implicit),
-            add_bootstrap_path=(not opts.no_bootstrap),
-            verbosity=opts.verbose,
-            max_fails=opts.max_fails,
-            time_limit=opts.time_limit)
+        kwargs = dict(package_requests=request,
+                      timestamp=t,
+                      package_paths=pkg_paths,
+                      add_implicit_packages=(not opts.no_implicit),
+                      verbosity=opts.verbose,
+                      max_fails=opts.max_fails,
+                      time_limit=opts.time_limit)
+        if opts.depth:
+            kwargs["start_depth"] = opts.depth[0]
+            kwargs["max_depth"] = opts.depth[1]
+
+        context = ResolvedContext(**kwargs)
 
     success = (context.status == ResolverStatus.solved)
     if not success:
@@ -171,11 +197,16 @@ def command(opts, parser, extra_arg_groups=None):
         opts.stdin = False
 
     quiet = opts.quiet or bool(command)
-    returncode, _, _ = context.execute_shell(shell=opts.shell,
-                                             rcfile=opts.rcfile,
-                                             norc=opts.norc,
-                                             command=command,
-                                             stdin=opts.stdin,
-                                             quiet=quiet,
-                                             block=True)
+    returncode, _, _ = context.execute_shell(
+        shell=opts.shell,
+        rcfile=opts.rcfile,
+        norc=opts.norc,
+        command=command,
+        stdin=opts.stdin,
+        quiet=quiet,
+        start_new_session=opts.new_session,
+        detached=opts.detached,
+        pre_command=opts.pre_command,
+        block=True)
+
     sys.exit(returncode)

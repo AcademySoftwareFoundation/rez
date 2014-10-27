@@ -27,7 +27,7 @@ class VersionedObject(_Common):
             i = m.start()
             self.name_ = s[:i]
             self.sep_ = s[i]
-            ver_str = s[i+1:]
+            ver_str = s[i + 1:]
             self.version_ = Version(ver_str)
         else:
             self.name_ = s
@@ -57,7 +57,8 @@ class VersionedObject(_Common):
         return self.version_
 
     def __eq__(self, other):
-        return ((self.name_ == other.name_)
+        return (isinstance(other, VersionedObject)
+                and (self.name_ == other.name_)
                 and (self.version_ == other.version_))
 
     def __hash__(self):
@@ -174,17 +175,6 @@ class Requirement(_Common):
         """
         return self.negate_
 
-    def make_conflict(self):
-        """Change the requirement into a conflict. If already conflict, this
-        has no effect."""
-        self.conflict_ = True
-
-    def make_weak(self):
-        """Change the requirement into a weak reference. If already weak, this
-        has no effect."""
-        self.conflict_ = True
-        self.negate_ = True
-
     def safe_str(self):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to
@@ -268,9 +258,10 @@ class Requirement(_Common):
                 return r
 
     def __eq__(self, other):
-        return (self.name_ == other.name_) \
-            and (self.range_ == other.range_) \
-            and (self.conflict_ == other.conflict_)
+        return (isinstance(other, Requirement)
+                and (self.name_ == other.name_)
+                and (self.range_ == other.range_)
+                and (self.conflict_ == other.conflict_))
 
     def __cmp__(self, other):
         """order from minor to mayor version"""
@@ -379,8 +370,9 @@ class RequirementList(_Common):
         return self.requirements_dict.get(name)
 
     def __eq__(self, other):
-        return (self.requirements_ == other.requirements_) \
-            and (self.conflict_ == other.conflict_)
+        return (isinstance(other, RequirementList)
+                and (self.requirements_ == other.requirements_)
+                and (self.conflict_ == other.conflict_))
 
     def __str__(self):
         if self.conflict_:

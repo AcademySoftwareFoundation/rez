@@ -28,12 +28,10 @@ from collections import defaultdict
 from rez.config import config
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
-from rez.exceptions import ResourceError, ResourceNotFoundError, \
-    ResourceContentError
-from rez.backport.lru_cache import lru_cache
+from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.vendor import yaml
 # FIXME: handle this double-module business
-from rez.vendor.schema.schema import Schema, SchemaError, Optional
+from rez.vendor.schema.schema import Schema, SchemaError
 
 
 # dict of resource classes, keyed by resource key (eg 'package.versioned')
@@ -134,7 +132,7 @@ def load_python(stream, filepath=None):
         exec stream in g
     except Exception as e:
         import traceback
-        frames = traceback.extract_tb(sys.exc_traceback)
+        frames = traceback.extract_tb(sys.exc_info()[2])
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
         stack = ''.join(traceback.format_list(frames)).strip()
@@ -254,6 +252,10 @@ def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
     Resource._cached.cache_clear()
+    Resource.ancestors.cache_clear()
+    _ResourcePathParser._get_regex.cache_clear()
+    FileSystemResource.iter_instances.cache_clear()
+    list_resource_classes.cache_clear()
 
 
 # -----------------------------------------------------------------------------
@@ -323,7 +325,7 @@ class _ResourcePathParser(object):
         return pattern
 
     @classmethod
-    @lru_cache()
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def _get_regex(cls, resource_class, pattern, search_paths, parse_all):
         pattern = cls._expand_pattern(resource_class, pattern, search_paths)
         pattern = r'^' + pattern
@@ -455,7 +457,6 @@ class Resource(object):
                 a package has a name and a version. Some of these variables may
                 have been used to construct `path`.
         """
-        super(Resource, self).__init__()
         self.variables = variables or {}
         self.path = path
 
@@ -494,6 +495,7 @@ class Resource(object):
             yield cls.parent_resource
 
     @classmethod
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def ancestors(cls):
         """Get a tuple of all the resources above this one, in descending order
         """
@@ -689,7 +691,12 @@ class FileSystemResource(Resource):
         return super(FileSystemResource, cls).from_path(path, search_paths)
 
     @classmethod
+    @config.lru_cache("resource_caching", "resource_caching_maxsize")
     def iter_instances(cls, parent_resource):
+        return list(cls._iter_instances(parent_resource))
+
+    @classmethod
+    def _iter_instances(cls, parent_resource):
         for name in _listdir(parent_resource.path, cls.is_file):
             match = _ResourcePathParser.parse_filepart(cls, name)
             if match is not None:
@@ -771,6 +778,7 @@ class ResourceWrapper(DataWrapper):
     """Base class for implementing a class that wraps a resource.
     """
     def __init__(self, resource):
+        super(ResourceWrapper, self).__init__()
         self._resource = resource
 
     @property
@@ -804,6 +812,7 @@ class ResourceWrapper(DataWrapper):
 # Main Entry Points
 # -----------------------------------------------------------------------------
 
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
 def list_resource_classes(keys=None):
     """List resource classes matching the search criteria.
 
@@ -843,6 +852,11 @@ def list_common_resource_classes(root_key=None, keys=None):
     if root_key is None and not keys:
         raise ResourceError("Most provide root key or resource key(s)")
 
+    if isinstance(keys, basestring):
+        keys = (keys,)
+    elif isinstance(keys, list):
+        keys = tuple(keys)
+
     if root_key:
         clss = list_resource_classes(root_key)
         if len(clss) > 1:
@@ -858,8 +872,6 @@ def list_common_resource_classes(root_key=None, keys=None):
         resource_classes = set()
         clss = list_resource_classes(keys)
         if not clss:
-            if isinstance(keys, basestring):
-                keys = [keys]
             msg = "no such resource type(s) %s" % ", ".join(keys)
             if root_key:
                 msg += " in resource hierarchy %s" % root_key

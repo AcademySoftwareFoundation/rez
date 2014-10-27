@@ -1,4 +1,4 @@
-#
+#------------------------------------------------------------------------------
 # Rez configuration settings. Do not change this file.
 #
 # Settings are determined in the following way:
@@ -20,22 +20,18 @@
 # expansions are supported:
 # - Any property of the system object: Eg '{system.platform}' (see system.py)
 # - Any environment variable: Eg '${HOME}'
-#
+#------------------------------------------------------------------------------
 
 
 ###############################################################################
 # Paths
 ###############################################################################
 
-# The package search path.
+# The package search path. Rez uses this to find packages. A package with the
+# same name and version in an earlier path takes precedence.
 packages_path:
 - '~/packages'           # locally installed pkgs, not yet deployed
 - '/film/tools/packages' # internally developed pkgs, deployed
-
-# The 'bootstrap' path is where Rez puts some automatically created packages at
-# install time. If this value is true, then the bootstrap path is always
-# implicitly appended to the packages path.
-add_bootstrap_path: false
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
@@ -73,12 +69,17 @@ bind_module_path: []
 # debugging purposes.
 resource_caching: true
 
-# The size of the resource cache, measured in resources
-resource_caching_maxsize: 10000
+# The size of the resource cache. This is measured in the number of items in the
+# cache where each might be a resource, directory listing, of resource path
+# parser regular expression: these all contribute to the resource cache.
+# A value of 0 has the same effect as setting resource_caching to false.  A
+# value of -1 creates a cache of unlimited size.  Any other value introduces an
+# lru cache fixed at that size.
+resource_caching_maxsize: -1
 
 
 ###############################################################################
-# Environment Resolution
+# Package Resolution
 ###############################################################################
 
 # Packages that are implicitly added to all package resolves, unless the
@@ -90,8 +91,38 @@ implicit_packages:
 - '~arch=={system.arch}'
 - '~os=={system.os}'
 
-# Use available caching mechanisms to speed up resolves.
+# Use available caching mechanisms to speed up resolves when applicable.
 resolve_caching: true
+
+# 'start_depth' and 'max_depth' are used to delay loading older packages until
+# necessary. More recent packages are searched first, and then if a solution is
+# not found, older packages may be searched in subsequent solves.
+#
+# This often results in faster solves, because generally speaking, older packages
+# are used less often. If 'start_depth' is specified, multiple solves are performed,
+# with the depth doubling until either all relevant packages are being loaded, or
+# a solution is found. Some examples of possible scenarios are:
+#
+# max_depth  start_depth  effect
+# ---------  -----------  ------
+# 0          0            All packages are loaded; one solve is performed.
+# N          0            Only the latest N packages are loaded; one solve is
+#                         performed.
+# 0          N            Multiple solves are performed, with the search depth N
+#                         doubling with each solve.
+# M          N            Multiple solves are performed, with the search depth N
+#                         doubling with each solve. The depth is truncated at M.
+#
+# Note that depth settings still work when resolving with a timestamp - the
+# latest N packages *at that time* will be used in the search.
+#
+resolve_start_depth: 1
+resolve_max_depth: 0
+
+
+###############################################################################
+# Environment Resolution
+###############################################################################
 
 # Rez's default behaviour is to overwrite variables on first reference. This
 # prevents unconfigured software from being used within the resolved environment.
@@ -120,6 +151,10 @@ all_resetting_variables: false
 # rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
 # current shell is used (for eg, 'bash').
 default_shell: ''
+
+# The command to use to launch a new Rez environment in a separate terminal (this
+# is enabled using rez-env's 'detached' option). If None, it is detected.
+terminal_emulator_command:
 
 # This setting can be used to override the separator used for environment
 # variables that represent a list of items. By default, the value of os.pathsep
@@ -198,8 +233,8 @@ catch_rex_errors: true
 # Build
 ###############################################################################
 
-# The default working directory for a package build, relative to the package root
-# directory (this is typically where temporary build files are written).
+# The default working directory for a package build, relative to the package
+# source directory (this is typically where temporary build files are written).
 build_directory: build
 
 
@@ -374,11 +409,10 @@ error_commands2: false
 #   -----               -----
 #   REZ_REQUEST         REZ_USED_REQUEST
 #   REZ_RESOLVE         REZ_USED_RESOLVE
-#   REZ_VERSION         not set
-#   REZ_PATH            not set
+#   REZ_VERSION         REZ_USED_VERSION
+#   REZ_PATH            REZ_USED
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
-#   REZ_PACKAGES_PATH   REZ_PACKAGES_PATH (but optional)
 #   REZ_IN_REZ_RELEASE  not set
 rez_1_environment_variables: true
 
@@ -427,7 +461,7 @@ plugins:
         # A list of branches that a user is allowed to rez-release from. This
         # can be used to block releases from development or feature branches,
         # and support a workflow such as 'gitflow'.  Each branch name should be
-        # a regular expression that can be used with re.match, for example
+        # a regular expression that can be used with re.match(), for example
         # '^master$'.
         releasable_branches:
             - '^master$'
@@ -462,3 +496,19 @@ unleash_flavour: package
 # The default Unleash target to use with rez-unleash.
 unleash_target: film_tools_packages
 
+
+
+###############################################################################
+###############################################################################
+# GUI
+###############################################################################
+###############################################################################
+
+# All of the settings listed here onwards apply only to the GUIs available in
+# the "rezgui" part of the module.
+
+# Setting either of these options to true will force rez to select that qt
+# binding. If both are false, the qt binding is detected. Setting both to true
+# will cause an error.
+use_pyside: false
+use_pyqt: false

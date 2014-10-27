@@ -2,8 +2,9 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.config import config
 from rez.util import which, shlex_join, print_warning
+from rez.config import config
+from rez.system import system
 import subprocess
 import os.path
 
@@ -77,24 +78,29 @@ class Shell(ActionInterpreter):
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
-                    **Popen_args):
-        """
-        Spawn a possibly interactive subshell.
-        @param context_file File that must be sourced in the new shell, this
-            configures the Rez environment.
-        @param tmpdir Tempfiles, if needed, should be created within this path.
-        @param rcfile Custom startup script.
-        @param norc Don't run startup scripts. Overrides rcfile.
-        @param stdin If True, read commands from stdin in a non-interactive shell.
-            If a different non-False value, such as subprocess.PIPE, the same
-            occurs, but stdin is also passed to the resulting subprocess.Popen object.
-        @param command If not None, execute this command in a non-interactive shell.
-        @param env Environ dict to execute the shell within; uses the current
-            environment if None.
-        @param quiet If True, don't show the configuration summary, and suppress
-            any stdout from startup scripts.
-        @param popen_args args to pass to the shell process object constructor.
-        @returns A subprocess.Popen object representing the shell process.
+                    pre_command=None, **Popen_args):
+        """Spawn a possibly interactive subshell.
+        Args:
+            context:_file File that must be sourced in the new shell, this
+                configures the Rez environment.
+            tmpdir: Tempfiles, if needed, should be created within this path.
+            rcfile: Custom startup script.
+            norc: Don't run startup scripts. Overrides rcfile.
+            stdin: If True, read commands from stdin in a non-interactive shell.
+                If a different non-False value, such as subprocess.PIPE, the same
+                occurs, but stdin is also passed to the resulting subprocess.Popen
+                object.
+            command: If not None, execute this command in a non-interactive shell.
+            env: Environ dict to execute the shell within; uses the current
+                environment if None.
+            quiet: If True, don't show the configuration summary, and suppress
+                any stdout from startup scripts.
+            pre_command: Command to inject before the shell command itself. This
+                is for internal use.
+            popen_args: args to pass to the shell process object constructor.
+
+        Returns:
+            A subprocess.Popen object representing the shell process.
         """
         raise NotImplementedError
 
@@ -167,7 +173,7 @@ class UnixShell(Shell):
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
-                    **Popen_args):
+                    pre_command=None, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         envvar = d["envvar"]
@@ -191,7 +197,8 @@ class UnixShell(Shell):
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
-                ex.command('rezolve context')
+                if system.is_production_rez_install:
+                    ex.command('rezolve context')
 
         def _write_shell(ex, filename):
             code = ex.get_output()
@@ -203,7 +210,6 @@ class UnixShell(Shell):
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
                                parent_environ={},
-                               bind_rez=False,
                                add_default_namespaces=False)
 
         executor = _create_ex()
@@ -287,8 +293,14 @@ class UnixShell(Shell):
         if d["stdin"] and stdin and (stdin is not True):
             Popen_args["stdin"] = stdin
 
-        p = subprocess.Popen([self.executable, self.norc_arg, target_file],
-                             env=env, **Popen_args)
+        cmd = []
+        if pre_command:
+            if isinstance(pre_command, basestring):
+                cmd = pre_command.strip().split()
+            else:
+                cmd = pre_command
+        cmd = cmd + [self.executable, self.norc_arg, target_file]
+        p = subprocess.Popen(cmd, env=env, **Popen_args)
         return p
 
     def resetenv(self, key, value, friends=None):

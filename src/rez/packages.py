@@ -1,5 +1,4 @@
-import os.path
-from rez.util import propertycache
+from rez.util import Common, propertycache, dedup
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageRequestError, \
@@ -8,6 +7,8 @@ from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement
+import os.path
+import sys
 
 
 def validate_package_name(pkg_name):
@@ -105,11 +106,13 @@ def load_developer_package(path):
     return package
 
 
-def get_completions(prefix, family_only=False):
+def get_completions(prefix, paths=None, family_only=False):
     """Get autocompletion options given a prefix string.
 
     Args:
         prefix (str): Prefix to match.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
         family_only (bool): If True, only match package names, do not include
             version component.
 
@@ -132,22 +135,25 @@ def get_completions(prefix, family_only=False):
             fam = prefix.split(ch)[0]
             break
 
-    words = set()
+    words = []
     if not fam:
-        words = set(x.name for x in iter_package_families()
-                    if x.name.startswith(prefix))
+        words = sorted(x.name for x in iter_package_families(paths=paths)
+                       if x.name.startswith(prefix))
+        words = list(dedup(words))
         if len(words) == 1:
-            fam = iter(words).next()
+            fam = words[0]
 
     if family_only:
         return words
 
     if fam:
-        words |= set(x.qualified_name for x in iter_packages(name=fam)
+        it = iter_packages(name=fam, paths=paths)
+        pkgs = sorted(it, key=lambda x: x.version)
+        words.extend(x.qualified_name for x in pkgs
                      if x.qualified_name.startswith(prefix))
 
     if op:
-        words = set(op + x for x in words)
+        words = [op + x for x in words]
     return words
 
 
@@ -201,16 +207,22 @@ class _PackageBase(ResourceWrapper):
         o = VersionedObject.construct(self.name, self.version)
         return str(o)
 
-    @propertycache
+    @property
     def config(self):
+        """Returns the config for this package.
+
+        Defaults to global config if this package did not provide a 'config'
+        section.
+        """
         return self._config or config
 
-    @propertycache
+    @property
     def is_local(self):
         """Returns True if this package is in the local packages path."""
         return (self.search_path == config.local_packages_path)
 
     def validate_data(self):
+        # TODO move compilation into per-key data validation
         super(_PackageBase, self).validate_data()
         if self.commands and isinstance(self.commands, basestring):
             from rez.rex import RexExecutor
@@ -220,6 +232,27 @@ class _PackageBase(ResourceWrapper):
                 raise PackageMetadataError(value=str(e),
                                            path=self.path,
                                            resource_key=self._resource.key)
+
+    def print_info(self, buf=None, skip_attributes=None):
+        """Print the contents of the package, in yaml format."""
+        from rez.yaml import dump_package_yaml
+        data = self.validated_data.copy()
+        data = dict((k, v) for k, v in data.iteritems()
+                    if v is not None and not k.startswith('_'))
+
+        # attributes we don't want to see
+        if "config_version" in data:
+            del data["config_version"]
+        if "config" in data:
+            del data["config"]
+
+        for attr in (skip_attributes or []):
+            if attr in data:
+                del data[attr]
+
+        txt = dump_package_yaml(data)
+        buf = buf or sys.stdout
+        print >> buf, txt
 
     def __str__(self):
         return "%s@%s" % (self.qualified_name, self.search_path)
@@ -280,16 +313,16 @@ class Variant(_PackageBase):
     def index(self):
         return self._resource.get("index")
 
-    @propertycache
+    @property
     def qualified_package_name(self):
         return super(Variant, self).qualified_name
 
-    @propertycache
+    @property
     def qualified_name(self):
         idxstr = '' if self.index is None else ("%d" % self.index)
         return "%s[%s]" % (self.qualified_package_name, idxstr)
 
-    @propertycache
+    @property
     def base(self):
         return os.path.dirname(self.path)
 
@@ -303,8 +336,7 @@ class Variant(_PackageBase):
         if self.index is None:
             return ''
         else:
-            dirs = [x.safe_str()
-                    for x in self._internal.get("variant_requires")]
+            dirs = [x.safe_str() for x in self.variant_requires()]
             return os.path.join(*dirs) if dirs else ''
 
     def get_requires(self, build_requires=False, private_build_requires=False):
@@ -324,6 +356,14 @@ class Variant(_PackageBase):
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
         return requires
+
+    def variant_requires(self):
+        """Get the requirements that have come from the variant part of the
+        package only."""
+        if self.index is None:
+            return []
+        else:
+            return self._internal.get("variant_requires", [])
 
     @propertycache
     def parent(self):

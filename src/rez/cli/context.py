@@ -21,7 +21,7 @@ def setup_parser(parser, completions=False):
     parser.add_argument("--res", "--print-resolve", dest="print_resolve",
                         action="store_true",
                         help="print only the resolve list")
-    parser.add_argument("-t", "--print-tools", dest="print_tools", action="store_true",
+    parser.add_argument("-t", "--tools", action="store_true",
                         help="print a list of the executables available in the context")
     parser.add_argument("--which", type=str, metavar="CMD",
                         help="locate a program within the context")
@@ -47,14 +47,14 @@ def setup_parser(parser, completions=False):
                         help="interpret the context in an empty environment")
     diff_action = parser.add_argument(
         "--diff", type=str, metavar="RXT",
-        help="diff against the current context and the given context")
+        help="diff the current context against the given context")
     parser.add_argument(
-        "--peek", action="store_true",
-        help="diff against the current context and a re-resolved copy of the "
-        "current context, this shows how 'stale' the context is")
+        "--fetch", action="store_true",
+        help="diff the current context against a re-resolved copy of the "
+        "current context")
     RXT_action = parser.add_argument(
         "RXT", type=str, nargs='?',
-        help="rex context file (current context if not supplied)")
+        help="rez context file (current context if not supplied)")
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
@@ -90,16 +90,16 @@ def command(opts, parser, extra_arg_groups=None):
             print " ".join(str(x) for x in rc.requested_packages(False))
         elif opts.print_resolve:
             print ' '.join(x.qualified_package_name for x in rc.resolved_packages)
-        elif opts.print_tools:
+        elif opts.tools:
             rc.print_tools()
         elif opts.diff:
             rc_other = ResolvedContext.load(opts.diff)
-            rc.print_resolve_diff(rc_other)
-        elif opts.peek:
+            rc.print_resolve_diff(rc_other, True)
+        elif opts.fetch:
             rc_new = ResolvedContext(rc.requested_packages(),
                                      package_paths=rc.package_paths,
                                      verbosity=opts.verbose)
-            rc.print_resolve_diff(rc_new)
+            rc.print_resolve_diff(rc_new, heading=("current", "updated"))
         elif opts.which:
             cmd = opts.which
             path = rc.which(cmd, parent_environ=parent_env)

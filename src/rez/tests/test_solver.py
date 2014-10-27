@@ -21,17 +21,17 @@ class TestSolver(TestBase):
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,
                     optimised=True,
-                    verbose=True)
+                    verbosity=Solver.max_verbosity)
         s2 = Solver(reqs,
                     optimised=False,
-                    verbose=False)
+                    verbosity=Solver.max_verbosity)
 
         s_perms = []
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
             s = Solver(reqs_,
                        optimised=True,
-                       verbose=False)
+                       verbosity=Solver.max_verbosity)
             s_perms.append(s)
 
         return (s1, s2, s_perms)

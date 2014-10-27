@@ -8,8 +8,7 @@ import inspect
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, get_script_path, which, \
-    expandvars
+from rez.util import AttrDictWrapper, shlex_join, which, expandvars
 from rez.vendor.enum import Enum
 
 
@@ -742,7 +741,7 @@ class RexExecutor(object):
     """
     def __init__(self, interpreter=None, globals_map=None, parent_environ=None,
                  parent_variables=None, output_style=OutputStyle.file,
-                 bind_rez=True, shebang=True, add_default_namespaces=True):
+                 shebang=True, add_default_namespaces=True):
         """
         interpreter: `ActionInterpreter` or None
             the interpreter to use when executing rex actions. If None, creates
@@ -756,8 +755,6 @@ class RexExecutor(object):
         parent_variables: List of variables to append/prepend to, rather than
             overwriting on first reference. If this is set to True instead of a
             list, all variables are treated as parent variables.
-        bind_rez: bool
-            if True, expose Rez cli tools in the target environment
         shebang: bool
             if True, apply a shebang to the result.
         add_default_namespaces: bool
@@ -784,15 +781,6 @@ class RexExecutor(object):
 
         self.environ = EnvironmentDict(self.manager)
         self.bind('env', AttrDictWrapper(self.environ))
-
-        if bind_rez:
-            script_path = get_script_path()
-            if not script_path:
-                binary = which("rezolve")
-                if binary:
-                    script_path = os.path.dirname(binary)
-            if script_path:
-                self.environ["PATH"] = script_path
 
         for cmd, func in self.manager.get_public_methods():
             self.bind(cmd, func)
@@ -827,6 +815,12 @@ class RexExecutor(object):
         paths = sh.get_syspaths()
         paths_str = os.pathsep.join(paths)
         self.env.PATH.append(paths_str)
+
+    def append_rez_path(self):
+        """Append rez path to $PATH, so that rez cli tools are available in
+        the generated environment."""
+        if system.rez_bin_path:
+            self.env.PATH.append(system.rez_bin_path)
 
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):

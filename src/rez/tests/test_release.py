@@ -9,6 +9,7 @@ import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.resources import clear_caches
+from rez.yaml import dump_package_yaml
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -30,7 +31,6 @@ class TestRelease(TestBase, TempdirMixin):
         cls.settings = dict(
             packages_path=[cls.install_root],
             release_packages_path=cls.install_root,
-            add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[])
@@ -66,7 +66,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         def _write_package():
             with open(packagefile, 'w') as f:
-                f.write(yaml.dump(package_data))
+                f.write(dump_package_yaml(package_data))
             clear_caches()
 
         # create the build system
