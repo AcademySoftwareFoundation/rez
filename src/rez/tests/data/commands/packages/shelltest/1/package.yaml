@@ -1,0 +1,5 @@
+name: shelltest
+version: '1'
+
+commands:
+  - export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"

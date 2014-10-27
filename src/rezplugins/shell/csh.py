@@ -99,7 +99,13 @@ class CSH(UnixShell):
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key,key))
 
+    def _escapeDoubleQuotes(self, value):
+        if '"' in value:
+            value = value.replace ( '"','"\\""' )
+        return value
+
     def setenv(self, key, value):
+        value = self._escapeDoubleQuotes(value)
         self._addline('setenv %s "%s"' % (key, value))
 
     def unsetenv(self, key):

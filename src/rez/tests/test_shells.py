@@ -2,9 +2,11 @@
 Test noninteractive invocation of each type of shell (bash etc), and ensure that
 their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 """
+import shutil
 
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
+from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
@@ -12,7 +14,6 @@ from rez.bind import hello_world
 import subprocess
 import tempfile
 import os
-import sys
 
 
 
@@ -141,6 +142,66 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(p.returncode, 0)
 
 
+class TestShellsCommands(TestBase, TempdirMixin):
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
+        path = os.path.dirname(__file__)
+        packages_path = os.path.join(path, "data", "commands", "packages")
+
+        cls.install_root = os.path.join(cls.root, "packages")
+
+        cls.settings = dict(
+            packages_path=[cls.install_root],
+            add_bootstrap_path=False,
+            resolve_caching=False,
+            warn_untimestamped=False,
+            implicit_packages=[])
+
+        shutil.copytree(packages_path, cls.install_root)
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
+
+    def _create_context(self, pkgs):
+        return ResolvedContext(pkgs,
+                               caching=False)
+
+    @shell_dependent
+    def test_escape_quoted_value(self):
+        """Test that a command which contains quotes in the value gets escaped properly different shells
+           ie. - export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"
+                 does not need any change in sh and bash but need to be escaped for tcsh and csh like
+                 setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"
+        """
+        sh_expected=r'export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"'
+        csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"'
+
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
+
+        context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
+
+        if command:
+            r = self._create_context(["shelltest"])
+
+            p = r.execute_shell(command="env", shell=current_shell, context_filepath=context_file)
+            p.wait()
+            self.assertEqual(p.returncode, 0)
+
+        with open(context_file, 'r') as f:
+            for line in f.readlines():
+                if line.find('VARIABLE_WITH_QUOTES') != -1 and not line.startswith('#'):
+                    if sh.name() in ['sh', 'bash']:
+                        self.assertEqual(sh_expected, line.strip())
+                    elif sh.name() in ['csh', 'tcsh']:
+                        self.assertEqual(csh_expected, line.strip())
+
+
+
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
@@ -151,6 +212,7 @@ def get_test_suites():
     suite.addTest(TestShells("test_stdin"))
     suite.addTest(TestShells("test_rcfile"))
     suite.addTest(TestShells("test_rez_command"))
+    suite.addTest(TestShellsCommands("test_escape_quoted_value"))
     suites.append(suite)
     return suites
 
