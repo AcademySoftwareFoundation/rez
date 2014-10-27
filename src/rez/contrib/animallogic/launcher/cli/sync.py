@@ -112,7 +112,7 @@ def write_sync_file(sync_file, lines):
 
 def update_existing_sync_file(sync_file, new_lines):
 
-    with open(sync_file, "r+") as fd:
+    with open(sync_file, "r") as fd:
         lines = fd.readlines()
 
         try:
@@ -126,5 +126,5 @@ def update_existing_sync_file(sync_file, new_lines):
         except ValueError:
             lines += ["\n"] + new_lines
 
-        fd.seek(0)
+    with open(sync_file, "w") as fd:
         fd.writelines(lines)
