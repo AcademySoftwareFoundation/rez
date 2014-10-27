@@ -988,11 +988,9 @@ class AttrDictWrapper(MutableMapping):
             d = self.__dict__
         else:
             d = self._data
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
+        if attr not in d:
+            self._data.__createitem__(attr)
+        return d[attr]
 
     def __setattr__(self, attr, value):
         # For things like '__class__', for instance

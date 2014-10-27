@@ -677,10 +677,15 @@ class EnvironmentDict(UserDict.DictMixin):
 
     def __getitem__(self, key):
         if key not in self._var_cache:
-            self._var_cache[key] = EnvironmentVariable(key, self)
+            raise KeyError(key)
         return self._var_cache[key]
 
+    def __createitem__(self, key):
+        self._var_cache[key] = EnvironmentVariable(key, self)
+    
     def __setitem__(self, key, value):
+        if key not in self._var_cache:
+            self.__createitem__(key)
         self[key].set(value)
 
     def __contains__(self, key):
