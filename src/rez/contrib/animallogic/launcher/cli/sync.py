@@ -78,7 +78,7 @@ def sync(presets, detect_ext_links=False, relative_path=None, max_fails=-1,
     sorted_paths_to_sync = syncer.get_sorted_paths_to_sync()
 
     if sync_file:
-        update_sync_file.log_paths_to_sync()
+        syncer.log_paths_to_sync()
 
         logger.info("Writing to sync file %s." % sync_file)
         update_sync_file(sync_file, sorted_paths_to_sync)
