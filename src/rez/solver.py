@@ -19,6 +19,7 @@ from rez.util import columnise, timings
 from rez.config import config
 from heapq import merge
 import copy
+import sys
 import time
 from operator import itemgetter
 from itertools import groupby
@@ -757,7 +758,7 @@ class _PackageVariantList(_Common):
 
                 indexes.append(i)
                 variants_to_sort = []
-                original_variants=[]
+                original_variants = []
                 for var in package.iter_variants():
                     requires = var.get_requires(
                         build_requires=self.building)
@@ -789,11 +790,6 @@ class _PackageVariantList(_Common):
                 # sort all now by version and variant
                 loaded_variants = sorted(value, key=lambda v: (v.version, v.index))
                 entry[1] = loaded_variants
-
-            if loaded_variants:
-                self.variants = list(merge(self.variants, loaded_variants))
-                for i in reversed(indexes):
-                    del self.packages[i]
 
             variants.extend(value)
             num_packages += 1
@@ -1041,7 +1037,7 @@ class PackageVariantCache(object):
     def __init__(self, package_paths, package_requests=None, timestamp=0,
                  building=False, package_load_callback=None):
         self.package_paths = package_paths
-        self.package_request = package_requests
+        self.package_requests = package_requests
         self.timestamp = timestamp
         self.building = building
         self.package_load_callback = package_load_callback
@@ -1069,7 +1065,7 @@ class PackageVariantCache(object):
         if variant_list is None:
             variant_list = _PackageVariantList(
                 package_name,
-                package_requests=self.package_request,
+                package_requests=self.package_requests,
                 package_paths=self.package_paths,
                 timestamp=self.timestamp,
                 building=self.building,
@@ -1838,6 +1834,7 @@ class Solver(_Common):
         else:
             self.package_cache = PackageVariantCache(
                 self.package_paths,
+                package_requests=self.package_requests,
                 timestamp=timestamp,
                 package_load_callback=package_load_callback,
                 building=building)
