@@ -17,6 +17,9 @@ else
     setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
 endif
 
+setenv REZ_PACKAGES_PATH `rez config packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
+setenv REZ_LOCAL_PACKAGES_PATH `rez config local_packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
+
 # Tell Rez where our downloads live.
 setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
 
