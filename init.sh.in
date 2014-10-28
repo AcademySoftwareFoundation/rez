@@ -15,6 +15,7 @@ export PYTHONPATH=${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VER
 
 export REZ_PACKAGES_PATH=`rez config packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
 export REZ_LOCAL_PACKAGES_PATH=`rez config local_packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
+export REZ_RELEASE_PACKAGES_PATH=`rez config release_packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
 
 # Tell Rez where our downloads live.
 export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
