@@ -199,7 +199,8 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
-                                 package=package)
+                                 package=package,
+                                 build_type=BuildType.local)
 
     retcode, _, _ = context.execute_shell(block=True,
                                           cwd=build_dir,
