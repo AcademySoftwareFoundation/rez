@@ -255,7 +255,8 @@ class PackageMaker(object):
                                            "conflict: %s" % str(reqlist))
 
         # make base dir. Variant dirs are created only if needed
-        os.makedirs(self.base_path)
+        if not os.path.exists(self.base_path):
+            os.makedirs(self.base_path)
 
         # make python tools
         for (name,path),body in self.python_tools.iteritems():
