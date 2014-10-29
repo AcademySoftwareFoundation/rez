@@ -50,7 +50,6 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         return pkgs_list, g
 
     nfams = len(fams)
-    #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
     lookup = defaultdict(set)
 

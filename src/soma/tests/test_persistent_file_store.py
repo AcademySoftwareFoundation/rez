@@ -1,6 +1,3 @@
-"""
-Test PersistentFileStore class.
-"""
 from rez.tests.util import TestBase, TempdirMixin
 import rez.vendor.unittest2 as unittest
 from soma.persistent_file_store import PersistentFileStore
@@ -43,6 +40,7 @@ class TestPersistentFileStore(TestBase, TempdirMixin):
         self.assertEqual(store.read("foo"), "hello")
         t2 = time.time()
         _write("foo", "greetings")
+        _write("bah", "hey")
         self.assertEqual(store.read("foo"), "greetings")
         t3 = time.time()
         _del("foo")
@@ -57,6 +55,12 @@ class TestPersistentFileStore(TestBase, TempdirMixin):
         self.assertEqual(store.read("foo", t3), "greetings")
         self.assertEqual(store.read("foo", t4), None)
         self.assertEqual(store.read("foo", t5), "I'm back!")
+
+        self.assertEqual(set(store.filenames(t1)), set())
+        self.assertEqual(set(store.filenames(t2)), set(["foo"]))
+        self.assertEqual(set(store.filenames(t3)), set(["foo", "bah"]))
+        self.assertEqual(set(store.filenames(t4)), set(["bah"]))
+        self.assertEqual(set(store.filenames(t5)), set(["foo", "bah"]))
 
 
 def get_test_suites():

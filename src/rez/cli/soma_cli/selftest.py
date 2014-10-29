@@ -4,8 +4,9 @@ Run unit tests.
 
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("--persistent-file-store", action="store_true",
-                        help="test persistent file store")
+    parser.add_argument(
+        "--persistent-file-store", action="store_true",
+        help="test persistent file store")
 
 
 def command(opts, parser, extra_arg_groups=None):

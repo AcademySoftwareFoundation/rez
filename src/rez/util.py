@@ -167,6 +167,14 @@ def dedup(seq):
             yield item
 
 
+def split_path(s):
+    """Given a path-like string, remove duplicates and empty entries, and
+    return as a list of strings."""
+    paths = s.split(os.pathsep)
+    paths = (x for x in paths if x)
+    return list(dedup(paths))
+
+
 def shlex_join(value):
     import pipes
 
@@ -237,6 +245,8 @@ def columnise(rows, padding=2):
     maxwidths = {}
 
     for row in rows:
+        if row is None:
+            continue
         for i, e in enumerate(row):
             se = str(e)
             nse = len(se)
@@ -246,12 +256,18 @@ def columnise(rows, padding=2):
 
     for row in rows:
         s = ''
-        for i, e in enumerate(row):
-            se = str(e)
-            if i < len(row) - 1:
-                n = maxwidths[i] + padding - len(se)
-                se += ' ' * n
-            s += se
+        if row is None:
+            for i, maxwidth in sorted(maxwidths.iteritems()):
+                s += '-' * maxwidth
+                if i < len(maxwidths) - 1:
+                    s += ' ' * padding
+        else:
+            for i, e in enumerate(row):
+                se = str(e)
+                if i < len(row) - 1:
+                    n = maxwidths[i] + padding - len(se)
+                    se += ' ' * n
+                s += se
         strs.append(s)
     return strs
 
