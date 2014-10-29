@@ -25,7 +25,8 @@ subcommands = [
     "suite",
     "test",
     "unleash",
-    "whatprovides"]
+    "whatprovides",
+    "yaml2py"]
 
 
 hidden_subcommands = [
