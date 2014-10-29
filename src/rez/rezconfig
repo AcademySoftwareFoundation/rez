@@ -35,7 +35,7 @@ packages_path:
 # The 'bootstrap' path is where Rez puts some automatically created packages at
 # install time. If this value is true, then the bootstrap path is always
 # implicitly appended to the packages path.
-add_bootstrap_path: false
+add_bootstrap_path: true
 
 # The path that Rez will locally install packages to when rez-build is used
 local_packages_path: '~/packages'
