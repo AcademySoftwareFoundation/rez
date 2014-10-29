@@ -735,6 +735,8 @@ class FileResource(FileSystemResource):
                     timings.start(k)
                     try:
                         data_ = self.schema.validate(data)
+                        # Keep file version in memory too
+                        data_['file_version'] = data['version']
                     finally:
                         timings.end(k)
                     return data_
