@@ -23,6 +23,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
 
+    verbose = opts.verbose
     force = opts.force
     path = opts.path if opts.path else os.getcwd()
 
@@ -41,9 +42,15 @@ def command(opts, parser, extra_arg_groups=None):
                                 "under %s." % path)
 
         package = convert_resource_to_package(yaml_resource)
+
+        if verbose:
+            print "Converting %s." % yaml_resource.path
         metafile = convert_package_to_py(package)
 
-        shutil.copy(metafile, os.path.dirname(yaml_resource.path))
+        destination = os.path.dirname(yaml_resource.path)
+        if verbose > 1:
+            print "Copying %s to %s" % (metafile, destination)
+        shutil.copy(metafile, destination)
 
 
 def convert_resource_to_package(resource):
