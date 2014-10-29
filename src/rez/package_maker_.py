@@ -360,10 +360,14 @@ class PyPackageMaker(PackageMaker):
             elif inspect.isfunction(value) or isinstance(value, code_provider):
                 code = _get_code(value)
                 text = 'def %s():\n%s\n' % (key, _entab(code))
-            elif isinstance(value, list) and key == "commands":
-                text = 'def %s():\n%s\n' % (key, _entab("\n".join(value)))
-            elif isinstance(value, list) and key in ["help", 'variants']:
-                text = '%s = [\n%s\n]\n' % (key, "\n".join(["    %r,"%v for v in value]))
+            elif isinstance(value, list):
+                if key == "commands":
+                    text = 'def %s():\n%s\n' % (key, _entab("\n".join(value)))
+                elif key in ["authors", "help", "private_build_requires", "build_requires", "requires", "variants"]:
+                    if len(value) == 1:
+                        text = '%s = %r\n' % (key, value)
+                    else:
+                        text = '%s = [\n%s\n]\n' % (key, "\n".join(["    %r," % item for item in value]))
             else:
                 text = '%s = %r\n' % (key, value)
             body += text + '\n'
