@@ -121,12 +121,19 @@ class PackageMaker(object):
         if isinstance(self.version, basestring):
             self.version = Version(self.version)
 
+        self.uuid = None
+        self.description = None
+        self.authors = None
+        self.help = None
+
         self.variants = None
         self.requires = None
         self.build_requires = None
         self.private_build_requires = None
+
         self.tools = None
         self.commands = None
+        self.custom = None
 
         self.python_tools = {}
         self.links = set()
@@ -157,6 +164,21 @@ class PackageMaker(object):
                   function is decorated with @code_provider
         """
         self.commands = body
+
+    def set_uuid(self, uuid):
+        self.uuid = uuid
+
+    def set_description(self, description):
+        self.description = description
+
+    def set_authors(self, authors):
+        self.authors = authors
+
+    def set_help(self, help):
+        self.help = help
+
+    def set_custom(self, custom):
+        self.custom = custom
 
     def add_variant(self, *requires):
         """Add a variant to the package.
@@ -265,16 +287,27 @@ class PackageMaker(object):
                 os.symlink(source, path_)
 
     def _get_metadata(self):
-        doc = OrderedDict(config_version=0,
-                          name=self.name,
-                          version=str(self.version))
+        doc = OrderedDict(config_version=0)
 
-        if self.requires:
-            doc["requires"] = [str(x) for x in self.requires]
-        if self.build_requires:
-            doc["build_requires"] = [str(x) for x in self.build_requires]
+        if self.uuid:
+            doc["uuid"] = self.uuid
+
+        doc["name"] = self.name
+        doc["version"] = str(self.version)
+
+        if self.description:
+            doc["description"] = self.description
+        if self.authors:
+            doc["authors"] = [str(x) for x in self.authors]
+        if self.help:
+            doc["help"] = self.help
+
         if self.private_build_requires:
             doc["private_build_requires"] = [str(x) for x in self.private_build_requires]
+        if self.build_requires:
+            doc["build_requires"] = [str(x) for x in self.build_requires]
+        if self.requires:
+            doc["requires"] = [str(x) for x in self.requires]
 
         if self.variants:
             variants = []
@@ -288,6 +321,9 @@ class PackageMaker(object):
 
         if self.commands:
             doc["commands"] = self.commands
+
+        if self.custom:
+            doc["custom"] = self.custom
 
         return doc
 
@@ -323,6 +359,10 @@ class PyPackageMaker(PackageMaker):
             elif inspect.isfunction(value) or isinstance(value, code_provider):
                 code = _get_code(value)
                 text = 'def %s():\n%s\n' % (key, _entab(code))
+            elif isinstance(value, list) and key == "commands":
+                text = 'def %s():\n%s\n' % (key, _entab("\n".join(value)))
+            elif isinstance(value, list) and key in ["help", 'variants']:
+                text = '%s = [\n%s\n]\n' % (key, "\n".join(["    %r,"%v for v in value]))
             else:
                 text = '%s = %r\n' % (key, value)
             body += text + '\n'
