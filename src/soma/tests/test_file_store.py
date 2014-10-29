@@ -1,11 +1,11 @@
 from rez.tests.util import TestBase, TempdirMixin
 import rez.vendor.unittest2 as unittest
-from soma.persistent_file_store import PersistentFileStore
+from soma.file_store import FileStore
 import time
 import os
 
 
-class TestPersistentFileStore(TestBase, TempdirMixin):
+class TestFileStore(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
         TempdirMixin.setUpClass()
@@ -16,7 +16,7 @@ class TestPersistentFileStore(TestBase, TempdirMixin):
         TempdirMixin.tearDownClass()
 
     def test_1(self):
-        store = PersistentFileStore(self.root)
+        store = FileStore(self.root)
 
         def _wait():
             time.sleep(1.1)  # git only has one-second resolution on commits
@@ -66,7 +66,7 @@ class TestPersistentFileStore(TestBase, TempdirMixin):
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
-    suite.addTest(TestPersistentFileStore("test_1"))
+    suite.addTest(TestFileStore("test_1"))
     suites.append(suite)
     return suites
 

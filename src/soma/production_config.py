@@ -2,7 +2,7 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.util import propertycache, split_path, columnise
 from soma.exceptions import SomaError
-from soma.persistent_file_store import PersistentFileStore
+from soma.file_store import FileStore
 from soma.profile import Profile
 from soma.util import print_columns, overrides_str
 import os.path
@@ -30,7 +30,7 @@ class ProductionConfig(object):
         for path in searchpath:
             if subpath:
                 path = os.path.join(path, subpath)
-            store = PersistentFileStore(path, include_patterns=["*.yaml"])
+            store = FileStore(path, include_patterns=["*.yaml"])
             self.stores.append(store)
 
     @propertycache

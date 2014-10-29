@@ -5,8 +5,8 @@ Run unit tests.
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
-        "--persistent-file-store", action="store_true",
-        help="test persistent file store")
+        "--file-store", action="store_true",
+        help="test file store")
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -17,7 +17,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
-    tests = ["persistent_file_store"]
+    tests = ["file_store"]
 
     suites = get_test_suites(opts, tests, "soma")
     test_suite = unittest.TestSuite(suites)

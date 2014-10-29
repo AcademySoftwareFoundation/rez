@@ -6,9 +6,9 @@ import os.path
 import os
 
 
-class PersistentFileStore(object):
+class FileStore(object):
     def __init__(self, path, include_patterns=None, ignore_patterns=None):
-        """A persistent file store.
+        """A file store.
 
         All files written to `path` have their change history stored permanently.
         You can retrieve the contents of a file at a certain point in time. Files
@@ -18,7 +18,7 @@ class PersistentFileStore(object):
         A file's state is not persisted until either `update` is called for that
         file (even if the file was deleted), or the file is accessed via `read`.
 
-            >>> store = PersistentFileStore("./test")
+            >>> store = FileStore("./test")
             >>> # user creates file foo.txt in test with contents 'hello'
             >>> store.read("foo.txt")
             hello
@@ -35,8 +35,7 @@ class PersistentFileStore(object):
         able to retrieve the state of the latest update in that sequence.
 
         Args:
-            path (str): Path to directory to store persistent files in. Must
-                already exist.
+            path (str): Path to directory to store files in. Must already exist.
             include_patterns (list of str): Filename patterns to include. If
                 None, all files are included by default.
             ignore_patterns (list of str): Filename patterns to ignore.
