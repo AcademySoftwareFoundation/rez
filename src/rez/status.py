@@ -190,7 +190,7 @@ class Status(object):
         headers = [["TOOL", "ALIASING", "PACKAGE", "SOURCE", "", None],
                    ["----", "--------", "-------", "------", "", None]]
         rows = headers + sorted(rows, key=lambda x: x[0].lower())
-        print_colored_columns(_pr, rows)
+        print_colored_columns(rows, _pr)
         return True
 
     def _print_tool_info(self, value, buf=sys.stdout, b=False):

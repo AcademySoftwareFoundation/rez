@@ -552,9 +552,9 @@ class _PackageVariantSlice(_Common):
         self.fam_requires = set()
 
         for variant in self.variants:
-            self.common_fams &= variant.request_fams
-            self.fam_requires |= (variant.request_fams |
-                                  variant.conflict_request_fams)
+            self.common_fams.intersection_update(variant.request_fams)
+            self.fam_requires.update(variant.request_fams)
+            self.fam_requires.update(variant.conflict_request_fams)
 
     def __len__(self):
         return len(self.variants)

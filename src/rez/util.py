@@ -241,11 +241,21 @@ def get_close_pkgs(pkg, pkgs, fuzziness=0.4):
 
 
 def columnise(rows, padding=2):
+    """Print columnised output of given text.
+
+    There are two special rows that can be used:
+    - None: Prints a header underline;
+    - False: Prints a blank line.
+
+    Args:
+        rows (list of list of str): Columns and rows to print. Each row should
+            have the same column count.
+    """
     strs = []
     maxwidths = {}
 
     for row in rows:
-        if row is None:
+        if not row:
             continue
         for i, e in enumerate(row):
             se = str(e)
@@ -261,6 +271,8 @@ def columnise(rows, padding=2):
                 s += '-' * maxwidth
                 if i < len(maxwidths) - 1:
                     s += ' ' * padding
+        elif row is False:
+            pass  # blank line
         else:
             for i, e in enumerate(row):
                 se = str(e)
@@ -272,10 +284,27 @@ def columnise(rows, padding=2):
     return strs
 
 
-def print_colored_columns(printer, rows, padding=2):
-    """Note: The last entry in each row is the row color."""
-    rows_ = [x[:-1] for x in rows]
-    colors = [x[-1] for x in rows]
+def print_colored_columns(rows, printer=None, padding=2):
+    """Note: The last entry in each row is the row color.
+
+    Use [None, color] for heading underline rows. Just use False for blank rows.
+    """
+    from rez.colorize import Printer  # here to avoid circular import
+
+    rows_ = []
+    colors = []
+    for row in rows:
+        if row is False:
+            rows_.append(False)
+            colors.append(None)
+        elif row[0] is None:
+            rows_.append(None)
+            colors.append(row[-1])
+        else:
+            rows_.append(row[:-1])
+            colors.append(row[-1])
+
+    printer = printer or Printer()
     for col, line in zip(colors, columnise(rows_, padding=padding)):
         printer(line, col)
 

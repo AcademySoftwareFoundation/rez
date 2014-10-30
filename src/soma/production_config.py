@@ -1,10 +1,12 @@
+from rez.colorize import alias as alias_color, heading, error
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
-from rez.util import propertycache, split_path, columnise
+from rez.util import propertycache, split_path, print_colored_columns
 from soma.exceptions import SomaError
 from soma.file_store import FileStore
 from soma.profile import Profile
-from soma.util import print_columns, overrides_str
+from soma.util import print_columns, overrides_str, alias_str
+from fnmatch import fnmatch
 import os.path
 import os
 
@@ -13,7 +15,7 @@ class ProductionConfig(object):
     """A production configuration.
 
     A production configuration is a configured environment where people do work.
-    It is the result of combining data from various override configuration files,
+    It is the result of combining data from various override configuration files
     found on a searchpath.
     """
     profiles_path_variable = "REZ_SOMA_PROFILES_PATH"
@@ -25,6 +27,7 @@ class ProductionConfig(object):
         self.num_levels = len(searchpath)
         self.subpath = subpath
         self.time_ = time_
+        self.profiles = {}
 
         self.stores = []
         for path in searchpath:
@@ -34,27 +37,21 @@ class ProductionConfig(object):
             self.stores.append(store)
 
     @propertycache
-    def profiles(self):
-        """Get the current profiles.
+    def profile_names(self):
+        """Get the current profile names.
 
         Returns:
-            dict: A dict containing items:
-            - str: Profile name;
-            - list: Ascending list of indices indicating where in the searchpath
-              the profile has overrides.
+            List of str: Profile names, in no particular order.
         """
-        d = {}
-        for i, store in enumerate(self.stores):
-            filenames = store.filenames(time=self.time_)
-            for filename in filenames:
-                name = os.path.splitext(filename)[0]
-                levels = d.setdefault(name, [])
-                levels.append(i)
-        return d
+        return self._profile_levels.keys()
 
     def profile(self, name):
         """Get a profile."""
-        levels = self.profiles.get(name)
+        profile_ = self.profiles.get(name)
+        if profile_ is not None:
+            return profile_
+
+        levels = self._profile_levels.get(name)
         if not levels:
             raise SomaError("No such profile %r" % name)
 
@@ -72,40 +69,21 @@ class ProductionConfig(object):
 
             overrides.append((i, data))
 
-        return Profile(name, self, overrides)
+        profile_ = Profile(name, self, overrides)
+        self.profiles[name] = profile_
+        return profile_
 
-    def print_info(self, list_mode=False, verbose=False):
-        profiles_ = self.profiles
+    def print_info(self, list_mode=False, tools=False, pattern=None,
+                   verbose=False):
+        """Print a summary of the ProductionConfig.
 
-        if list_mode:
-            rows = []
-            all_levels = set()
-
-            for name, levels in profiles_.iteritems():
-                all_levels |= set(levels)
-                row = [name]
-                row.append(self._overrides_str(levels))
-                if verbose:
-                    profile_ = self.profile(name)
-                    requires_str = " ".join(map(str, profile_.requires))
-                    row.append(requires_str)
-                rows.append(row)
-
-            rows = sorted(rows, key=lambda x: x[0])
-
-            levels_str = self._overrides_str(all_levels)
-            row = ["PROFILE", levels_str]
-            if verbose:
-                row.append("REQUIRES")
-            rows = [row, None] + rows
-
-            print '\n'.join(columnise(rows))
-        else:
-            entries = sorted(profiles_.iterkeys())
-            if verbose:
-                entries = [(x + self._overrides_str(profiles_[x])) for x in entries]
-
-            print_columns(entries)
+        Args:
+            list_mode (bool): Enable list mode.
+            tools (bool): Show tools rather than profiles.
+            pattern (str): Glob-like pattern to filter profiles/tools.
+        """
+        fn = self._print_tools if tools else self._print_profiles
+        fn(list_mode, pattern, verbose)
 
     def __str__(self):
         entries =[self.searchpath]
@@ -139,5 +117,99 @@ class ProductionConfig(object):
                                 subpath=subpath,
                                 time_=timestamp)
 
-    def _overrides_str(self, levels, ch='+', latest='+'):
-        return overrides_str(self.num_levels, levels, ch, latest)
+    @propertycache
+    def _profile_levels(self):
+        d = {}
+        for i, store in enumerate(self.stores):
+            filenames = store.filenames(time=self.time_)
+            for filename in filenames:
+                name = os.path.splitext(filename)[0]
+                levels = d.setdefault(name, [])
+                levels.append(i)
+        return d
+
+    def _print_tools(self, list_mode, pattern, verbose):
+        # create list of (alias, [profiles], command, print-color)
+        entries = {}
+
+        for name in self._profile_levels.iterkeys():
+            profile_ = self.profile(name)
+            tools = profile_.tools
+
+            for alias, command in tools.iteritems():
+                if pattern and not fnmatch(alias, pattern):
+                    continue
+                entry = entries.setdefault(alias, [alias, [], command, str])
+                entry[1].append(name)
+
+        entries = sorted(entries.itervalues(), key=lambda x: x[0])
+        for entry in entries:
+            alias, profiles, command = entry[:3]
+            if len(profiles) > 1:
+                entry[3] = error  # colorise tool conflict
+            elif alias != command:
+                entry[3] = alias_color  # colorise alias
+
+        if not entries:
+            return
+
+        # print
+        if list_mode:
+            rows = [["TOOL", "PROFILE", heading], (None, heading)]
+            for alias, profiles, command, color in entries:
+                row = [alias_str(alias, command),
+                       ", ".join(sorted(profiles)),
+                       color]
+                rows.append(row)
+            print_colored_columns(rows)
+        else:
+            entries_ = []
+            for alias, profiles, _, color in entries:
+                s = color(alias)
+                if verbose:
+                    s += "[%s]" % ", ".join(sorted(profiles))
+                entries_.append(s)
+            print_columns(entries_)
+
+    def _print_profiles(self, list_mode, pattern, verbose):
+        profiles_ = self._profile_levels
+        if pattern:
+            profiles_ = dict((k, v) for k, v in profiles_.iteritems()
+                             if fnmatch(k, pattern))
+            if not profiles_:
+                return
+
+        if list_mode:
+            rows = []
+            all_levels = set()
+
+            for name, levels in profiles_.iteritems():
+                all_levels |= set(levels)
+                row = [name]
+                row.append(self._overrides_str(levels))
+                if verbose:
+                    profile_ = self.profile(name)
+                    requires_str = " ".join(map(str, profile_.requires))
+                    row.append(requires_str)
+                row.append(None)
+                rows.append(row)
+
+            rows = sorted(rows, key=lambda x: x[0])
+
+            levels_str = self._overrides_str(all_levels)
+            row = ["PROFILE", levels_str]
+            if verbose:
+                row.append("REQUIRES")
+            row.append(heading)
+            rows = [row, (None, heading)] + rows
+
+            print_colored_columns(rows)
+        else:
+            entries = sorted(profiles_.iterkeys())
+            if verbose:
+                entries = [(x + self._overrides_str(profiles_[x])) for x in entries]
+
+            print_columns(entries)
+
+    def _overrides_str(self, levels):
+        return overrides_str(self.num_levels, levels)

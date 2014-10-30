@@ -1,16 +1,63 @@
-from rez.util import columnise, propertycache
+from rez.util import print_colored_columns, propertycache
+from rez.colorize import warning, heading, alias as alias_color, Printer
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
 from soma.exceptions import SomaError
-from soma.util import glob_transform
+from soma.util import glob_transform, alias_str
 import fnmatch
+import pipes
 import os.path
+import sys
 
 
 class Profile(object):
     """A Soma profile.
 
+    A profile is a sequence of 'overrides' - config data that are merged together
+    to produce a final list of package requests and tools. For example, consider
+    the following sequence of configs (shown as yaml)
+
+        # config #1
+        requires:
+        - foo-1
+        - eek
+        - utils-2.0.0
+
+        tools:
+        - fooify
+        - fooify_help: 'fooify -h'
+        - fooster
+
+        # config #2
+        requires:
+        - bah-2
+        - eek-4.3+
+        - ^utils  # a remove operation
+
+        tools:
+        - bahster
+        - ^fooify
+
+    This will produce the merged configuration::
+
+        # merged config
+        requires:
+        - foo-1
+        - eek-4.3+
+        - bah-2
+
+        tools:
+        - fooify_help : 'fooify -h'
+        - fooster
+        - bahster
+
+    Soma creates shell aliases for each of the tools in the configuration. When
+    run, these aliases resolve the configured environment, then run the command
+    within that environment.
+
+    See Soma documentation for a detailed overview of override features (not all
+    are shown in this comment).
     """
     schema = Schema({
         Optional("requires"): [basestring],
@@ -24,19 +71,12 @@ class Profile(object):
         """
         Args:
             parent (`ProductionConfig`).
-            overrides (list): List of (level, data) tuples.
+            overrides (list): List of (level, dict) tuples.
         """
         self.name = name
         self.parent = parent
-        self._requires = None
-        self._tools = None
-
-        # validate data
         self.overrides = [(level, self.schema.validate(data))
                           for (level, data) in overrides]
-
-        self._merge_requires()
-        self._merge_tools()
 
     @propertycache
     def requires(self):
@@ -65,54 +105,83 @@ class Profile(object):
                 alias_, command = entry
                 assert alias_ == alias
                 tools_[alias] = command
-
-        """
-        def _command(v):
-            v_ = v[-1][0]
-            return v_ if isinstance(v, basestring) else v_[-1]
-
-        return dict((k, _command(v)) for k, v in self._tools.iteritems())
-        """
+        return tools_
 
     def print_info(self, packages=True, tools=True, removals=False, verbose=False):
+        """Print summary of the profile.
+
+        Args:
+            packages (bool): Show package requirements.
+            tools (bool): Show tools.
+            removals (bool): Show overrides that have caused removal of a
+                package requirement or tool.
+        """
         all_levels = set()
         package_rows = []
         tool_rows = []
 
+        def _add_rows(rows, overrides, entry_printer=None, entry_color=None):
+            entry_printer = entry_printer or str
+            entry_color = entry_color or (lambda x: None)
+            color = None
+
+            entry, level = overrides[-1]
+            if self._is_removal(entry):
+                if removals:
+                    package_name = entry[1:]
+                    request_str = "(removed: %s)" % package_name
+                    color = warning
+                else:
+                    return
+            else:
+                request_str = entry_printer(entry)
+
+            row = [request_str]
+            levels = [x[-1] for x in overrides]
+            all_levels.update(levels)
+            row.append(self.parent._overrides_str(levels))
+            row.append(self.parent.searchpath[level])
+
+            if verbose:
+                for i in range(self.parent.num_levels):
+                    override = [x for x in overrides if x[1] == i]
+                    if override:
+                        entry = override[0][0]
+                        if self._is_removal(entry):
+                            s = str(entry)
+                        else:
+                            s = entry_printer(entry)
+                    else:
+                        s = ''
+                    row.append(s)
+
+            if color is None:
+                color = entry_color(entry)
+            row.append(color)
+            rows.append(row)
+
         # package requires
         if packages:
             for overrides in self._requires:
-                request, level = overrides[-1]
-                if self._is_removal(request):
-                    if removals:
-                        package_name = request[1:]
-                        request_str = "(removed: %s)" % package_name
-                    else:
-                        continue
-                else:
-                    request_str = str(request)
-
-                row = [request_str]
-                levels = [x[-1] for x in overrides]
-                all_levels |= set(levels)
-                row.append(self.parent._overrides_str(levels, 'x', '+'))
-                row.append(self.parent.searchpath[level])
-
-                if verbose:
-                    for i in range(self.parent.num_levels):
-                        override = [x for x in overrides if x[1] == i]
-                        if override:
-                            request, level = override[0]
-                            s = str(request)
-                        else:
-                            s = ''
-                        row.append(s)
-
-                package_rows.append(row)
+                _add_rows(package_rows, overrides)
 
         # tools
         if tools:
-            pass
+            def _print_tool_entry(entry):
+                alias, command = entry
+                return alias_str(alias, command)
+
+            def _tool_entry_color(entry):
+                alias, command = entry
+                if alias == command:
+                    return None
+                else:
+                    return alias_color
+
+            items = sorted(self._tools.iteritems(), key=lambda x: x[0])
+            tool_overrides = [x[1] for x in items]
+            for overrides in tool_overrides:
+                _add_rows(tool_rows, overrides, _print_tool_entry, _tool_entry_color)
 
         # header
         row = []
@@ -123,20 +192,24 @@ class Profile(object):
         if verbose:
             for i in range(self.parent.num_levels):
                 row.append(self.parent._overrides_str(i))
-        rows = [row, None]
+        row.append(heading)
+        rows = [row, (None, heading)]
         rows.extend(package_rows)
 
-        if packages and tool_rows:
-            row = ["TOOLS", "", ""]
-            if verbose:
-                for i in range(self.parent.num_levels):
-                    row.append("")
-            rows.extend([row, None])
+        if tool_rows:
+            if packages:
+                row = ["TOOLS", "", ""]
+                if verbose:
+                    for i in range(self.parent.num_levels):
+                        row.append("")
+                row.append(heading)
+                rows.extend([False, row, (None, heading)])
             rows.extend(tool_rows)
 
-        print '\n'.join(columnise(rows))
+        print_colored_columns(rows)
 
-    def _merge_requires(self):
+    @propertycache
+    def _requires(self):
         # each entry is a list of (request, level) 2-tuples. The last entry is
         # the active override.
         requires_ = {}
@@ -172,26 +245,42 @@ class Profile(object):
                 requires_list_.append((index, overrides))
 
         items = sorted(requires_list_, key=lambda x: x[0])
-        self._requires = [x[-1] for x in items]
+        result = [x[-1] for x in items]
+        return result
 
-    def _merge_tools(self):
+    @propertycache
+    def _tools(self):
         # keys are tool aliases, and each value is a list of ((alias, command), level)
         # 2-tuples. The last entry is the active override.
         i = 0
         tools_ = [{}, {}]
         curr_tools = None
         prev_tools = None
-
-        def _add_override(key, value, level, new_key=None):
-            entry = prev_tools.get(key, [])[:]
-            entry.append((value, level))
-            curr_tools[new_key or key] = entry
+        print_warning = Printer(style=warning)
 
         for level, data in self.overrides:
             tools_list = data.get("tools", [])
+            touched_aliases = set()
             curr_tools = tools_[i]
             prev_tools = tools_[1 - i]
+            curr_tools.clear()
             i = 1 - i
+
+            def _add_override(alias, value, level, new_alias=None):
+                entry = prev_tools.get(alias, [])[:]
+                entry.append((value, level))
+                curr_tools[new_alias or alias] = entry
+                touched_aliases.add(alias)
+                if new_alias:
+                    touched_aliases.add(new_alias)
+
+            def _do_removal(alias, level):
+                entry = prev_tools.get(alias)
+                touched_aliases.add(alias)
+                if entry:
+                    del prev_tools[alias]
+                    entry.append(('^' + alias, level))
+                    curr_tools[alias] = entry
 
             for tool_entry in tools_list:
                 aliased = isinstance(tool_entry, dict)
@@ -206,17 +295,19 @@ class Profile(object):
 
                 if remove_op:
                     if aliased:
-                        raise SomaError(
-                            "Invalid tool entry %r in %r: Using aliasing "
+                        print_warning(
+                            "Invalid tool entry %r in %r: uses aliasing "
                             "syntax with removal syntax"
                             % (tool_entry, self._filepath(level)))
+                        continue
                     alias = alias[1:]
                 elif rename_op:
                     if not aliased:
-                        raise SomaError(
-                            "Invalid tool entry %r in %r: Using renaming "
-                            "syntax with no target name"
+                        print_warning(
+                            "Invalid tool entry %r in %r: uses "
+                            "renaming syntax with no target name"
                             % (tool_entry, self._filepath(level)))
+                        continue
                     alias = alias[1:]
 
                 if '*' in alias:
@@ -224,24 +315,24 @@ class Profile(object):
                     if remove_op:
                         # a remove op in the form '^*', '^*_fx' etc
                         for alias_ in aliases:
-                            _add_override(alias_, '^' + alias, level)
+                            _do_removal(alias_, level)
                     elif aliased:
                         # a rename op in the form '*': '*_fx'
                         rename_op = True
                         new_alias = command
                         if '*' not in new_alias:
-                            raise SomaError(
-                                "Invalid tool entry %r in %r: Wildcarded alias "
+                            print_warning(
+                                "Invalid tool entry %r in %r: wildcarded alias "
                                 "rename must have wildcarded target name, for "
                                 "example ('*': '*_fx')"
                                 % (tool_entry, self._filepath(level)))
+                            continue
 
                         for alias_ in aliases:
                             entry = prev_tools[alias_]
                             prev_value = entry[-1][0]
                             if self._is_removal(prev_value):
-                                # renaming a deleted entry - silent fail
-                                continue
+                                continue  # renaming a deleted tool - silent skip
                             else:
                                 assert isinstance(prev_value, tuple)
                                 new_alias_ = glob_transform(alias, new_alias, alias_)
@@ -249,40 +340,50 @@ class Profile(object):
                                 value = (new_alias_, prev_command)
                                 _add_override(alias_, value, level, new_alias_)
                     else:
-                        raise SomaError(
-                            "Invalid tool entry %r in %r: Wildcarded alias "
+                        print_warning(
+                            "Invalid tool entry %r in %r: wildcarded alias "
                             "must either be a rename or remove operation - "
                             "valid examples include ('*': '*_fx'), '^foo*'"
                             % (tool_entry, self._filepath(level)))
+                        continue
+                elif remove_op:
+                    # a remove op in the form '^foo'
+                    _do_removal(alias, level)
                 elif rename_op:
                     # a rename op in the form '@old_name': 'new_name'
                     new_alias = command
                     entry = prev_tools.get(alias)
                     if not entry:
-                        continue
+                        continue  # renaming a nonexistent tool - silent skip
                     prev_value = entry[-1][0]
                     if self._is_removal(prev_value):
-                        # renaming a deleted entry - silent fail
-                        continue
+                        continue  # renaming a deleted entry - silent skip
                     else:
-                        assert isinstance(prev_value, tuple)
                         prev_command = prev_value[-1]
                         value = (new_alias, prev_command)
                         _add_override(alias, value, level, new_alias)
                 else:
-                    # a normal tool entry in the form 'name': 'command'
+                    # a normal tool entry in the form 'name' or 'name': 'command'
                     value = (alias, command)
                     _add_override(alias, value, level)
 
-        _tools = tools_[i - 1]
-        self._tools = {}
-        for alias, entries in _tools.iteritems():
+            # inherit unchanged tools
+            prev_keys = set(prev_tools.iterkeys())
+            curr_keys = set(curr_tools.iterkeys())
+            unchanged_keys = prev_keys - curr_keys - touched_aliases
+            for key in unchanged_keys:
+                curr_tools[key] = prev_tools[key]
+
+        tools_ = tools_[i - 1]
+        result = {}
+        for alias, entries in tools_.iteritems():
             # skip tools that are only a stack of removal operations
             if any(isinstance(x[0], tuple) for x in entries):
-                self._tools[alias] = entries
+                result[alias] = entries
+        return result
 
     def _filepath(self, level):
-        path = self.parent.store[level].path
+        path = self.parent.stores[level].path
         return os.path.join(path, "%s.yaml" % self.name)
 
     @classmethod

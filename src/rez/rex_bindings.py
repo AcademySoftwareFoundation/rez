@@ -41,6 +41,8 @@ class VersionBinding(Binding):
     def patch(self):
         return self[2]
 
+    # TODO add 'within_range' type method
+
     def __attr_error(self, attr):
         raise AttributeError("version object has no attribute '%s'" % attr)
 
@@ -48,7 +50,7 @@ class VersionBinding(Binding):
         try:
             s = str(self.__version[i])
         except IndexError:
-            return ""
+            return None
         if s.isdigit() and s[0] != '0':
             return int(s)
         else:
@@ -80,11 +82,13 @@ class VariantBinding(Binding):
 
 
 class VariantsBinding(Binding):
-    """Binds a list of packages.Variant objects, under the package name of
+    """Binds a dict of packages.Variant objects, under the package name of
     each variant."""
     def __init__(self, variants):
         self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
         super(VariantsBinding, self).__init__(self.__variants)
+
+    # TODO add getitem
 
     def __attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
@@ -94,7 +98,7 @@ class VariantsBinding(Binding):
 
 
 class RequirementsBinding(Binding):
-    """Binds a list of version.Requirement objects."""
+    """Binds a dict of version.Requirement objects."""
     def __init__(self, requirements):
         self.__requirements = dict((x.name, str(x)) for x in requirements)
         super(RequirementsBinding, self).__init__(self.__requirements)

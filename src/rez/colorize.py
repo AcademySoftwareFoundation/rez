@@ -281,14 +281,16 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
 
 class Printer(object):
-    def __init__(self, buf=sys.stdout):
+    def __init__(self, buf=sys.stdout, style=None):
         self.buf = buf
+        self.style = style
         self.tty = stream_is_tty(buf)
 
     def __call__(self, msg='', style=None):
         print >> self.buf, self.get(msg, style)
 
     def get(self, msg, style=None):
-        if style and self.tty:
-            msg = style(msg)
+        style_ = style or self.style
+        if style_ and self.tty:
+            msg = style_(msg)
         return msg

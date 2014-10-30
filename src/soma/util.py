@@ -1,19 +1,22 @@
 import sys
 import re
+import pipes
 
 
-def overrides_str(nlevels, levels, ch='+', latest='+'):
+def alias_str(alias, command=None):
+    if command is None or command == alias:
+        return alias
+    else:
+        return "%s:%s" % (alias, pipes.quote(command))
+
+
+def overrides_str(nlevels, levels):
     s = ''
     if isinstance(levels, int):
         levels = [levels]
-    else:
-        levels = sorted(list(levels))
     for i in range(nlevels):
         if i in levels:
-            if levels[-1] == i:
-                s += latest
-            else:
-                s += ch
+            s += '+'
         else:
             s += '-'
     return '[' + s + ']'
@@ -59,7 +62,7 @@ def print_columns(items):
         console_width = 80
 
     def _w(col):
-        return max(len(x) for x in col)+2
+        return max(len(x) for x in col) + 2
 
     table = [items]
     prevtable = table
