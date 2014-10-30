@@ -214,6 +214,15 @@ build_directory: build
 # rezplugins/release_hook.
 release_hooks: []
 
+# Limit the size of the changelog that is written to the release.yaml file. A
+# large changelog (especially one stretching to many megabytes) can 
+# significantly hurt the performance of Rez at runtime as time is lost parsing 
+# the yaml file.  Note this will only affect the size of the changelog in the 
+# release.yaml file, it will not affect the changelog that appears in post-
+# release emails.  The size is measured in.  A value of -1 denotes an unbound
+# changelog.
+changelog_maxsize: 5
+
 
 ###############################################################################
 # Suites

@@ -198,6 +198,7 @@ config_schema = Schema({
     "alias_fore":                       OptionalStr,
     "alias_back":                       OptionalStr,
     "resource_caching_maxsize":         Int,
+    "changelog_maxsize":                Int,
     "add_bootstrap_path":               Bool,  # TODO deprecate
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
