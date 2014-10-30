@@ -1265,7 +1265,7 @@ class _ResolvePhase(_Common):
                     g.add_edge_attribute(e, ("fontcolor", "red"))
 
         # prune nodes not related to failure
-        if failure_nodes:
+        if failure_nodes and config.prune_conflict_graph:
             access_dict = accessibility(g)
             del_nodes = set()
 
