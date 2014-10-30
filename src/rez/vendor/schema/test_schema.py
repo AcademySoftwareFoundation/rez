@@ -1,6 +1,7 @@
 from __future__ import with_statement
 import rez.vendor.unittest2 as unittest
 import os
+import tempfile
 
 
 from schema import Schema, Use, And, Or, Optional, SchemaError
@@ -21,6 +22,16 @@ def se(_):
 
 
 class TestSchema(unittest.TestCase):
+
+    @classmethod
+    def setUpClass(cls):
+        cls.test_file_fd, cls.test_file_name = tempfile.mkstemp(suffix='LICENSE-MIT')
+        os.write(cls.test_file_fd, "Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
+
+    @classmethod
+    def tearDownClass(cls):
+        if os.path.exists(cls.test_file_name):
+            os.remove(cls.test_file_name)
 
     def test_schema(self):
 
@@ -45,12 +56,12 @@ class TestSchema(unittest.TestCase):
 
     def test_validate_file(self):
         assert Schema(
-                Use(open)).validate('LICENSE-MIT').read().startswith('Copyright')
+                Use(open)).validate(self.test_file_name).read().startswith('Copyright')
         self.assertRaises(SchemaError, Schema(Use(open)).validate, 'NON-EXISTENT')
 
         assert Schema(os.path.exists).validate('.') == '.'
         self.assertRaises(SchemaError, Schema(os.path.exists).validate, './non-existent/')
-        assert Schema(os.path.isfile).validate('LICENSE-MIT') == 'LICENSE-MIT'
+        assert Schema(os.path.isfile).validate(self.test_file_name) == self.test_file_name
         self.assertRaises(SchemaError, Schema(os.path.exists).validate, 'NON-EXISTENT')
 
     def test_and(self):
@@ -141,7 +152,7 @@ class TestSchema(unittest.TestCase):
         s = Schema({'<file>': And([Use(open)], lambda l: len(l)),
                     '<path>': os.path.exists,
                     Optional('--count'): And(int, lambda n: 0 <= n <= 5)})
-        data = s.validate({'<file>': ['./LICENSE-MIT'], '<path>': './'})
+        data = s.validate({'<file>': [self.test_file_name], '<path>': './'})
         assert len(data) == 2
         assert len(data['<file>']) == 1
         assert data['<file>'][0].read().startswith('Copyright')
@@ -283,11 +294,11 @@ class TestSchema(unittest.TestCase):
         except SchemaError as e:
             assert e.code == 'Error:\n--count should be integer 0 < n < 5'
         try:
-            s.validate({'<files>': [], '<path>': './hai', '--count': '2'})
+            s.validate({'<files>': [], '<path>': self.test_file_name, '--count': '2'})
         except SchemaError as e:
             assert e.code == 'Error:\n<path> should exist%s'
         try:
-            s.validate({'<files>': ['hai'], '<path>': './', '--count': '2'})
+            s.validate({'<files>': [self.test_file_name], '<path>': './', '--count': '2'})
         except SchemaError as e:
             assert e.code == 'Error:\n<files> should be readable'
 
