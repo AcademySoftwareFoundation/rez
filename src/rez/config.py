@@ -214,6 +214,7 @@ config_schema = Schema({
     "debug_resources":                  Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
+    "prune_conflict_graph":             Bool,
     "quiet":                            Bool,
     "show_progress":                    Bool,
     "catch_rex_errors":                 Bool,
