@@ -1,7 +1,9 @@
 from rez.vendor.sh import sh
 from soma.exceptions import SomaError
+from soma.util import time_as_epoch
 from datetime import datetime
 from fnmatch import fnmatch
+import time
 import os.path
 import os
 
@@ -89,60 +91,86 @@ class FileStore(object):
         except sh.ErrorReturnCode as e:
             self._error("Error committing file %s to %s" % (filename, self.path), e)
 
-    def read(self, filename, time=None):
+    def read(self, filename, time_=None):
         """Read a file.
 
         This operation also updates the given file.
 
         Args:
-            time (`DateTime` or int): Get the file contents as they were at
+            time_ (`DateTime` or int): Get the file contents as they were at
                 the given time. If int, `time` is interpreted as linux epoch
                 time. If None, present time is used.
 
         Returns:
-            str: The contents of the file, or None if the file does not/
-                did not exist.
+            None if the file does not/did not exist, or a 3-tuple containing:
+            - str: Contents of the file;
+            - str: File handle;
+            - int: Epoch time of the file commit;
+            - str: Author name.
         """
         self.update(filename)
 
-        if time is None:
-            filepath = os.path.join(self.path, filename)
-            if os.path.isfile(filepath):
-                with open(filepath) as f:
-                    return f.read()
-            else:
-                return None
+        if time_ is None:
+            time_ = int(time.time())
 
-        epoch = self._as_epoch(time)
-        commit_hash = self._most_recent_commit(epoch, filename)
-        if not commit_hash:
+        epoch = time_as_epoch(time_)
+        commits = self._file_commits(filename=filename, limit=1, until=epoch)
+        if commits:
+            commit_hash, commit_time, author = commits[0]
+            commit_time = int(commit_time)
+        else:
             return None  # file was not committed at or before this time
 
         try:
             proc = self.git.show("%s:%s" % (commit_hash, filename))
         except sh.ErrorReturnCode:
             return None  # file did not exist at this time
-        return proc.stdout
 
-    def filenames(self, time=None):
+        contents = proc.stdout
+        handle = commit_hash
+        return contents, handle, commit_time, author
+
+    def file_logs(self, filename, limit=None, since=None, until=None):
+        """Get a list of log entries for a file.
+
+        Args:
+            filename (str): Name of file.
+            limit (int): Maximum number of entries to return.
+            since (`DateTime` or int): Only return entries at or after this time.
+            until (`DateTime` or int): Only return entries at or before this time.
+
+        Returns:
+            List of 3-tuples where each contains:
+            - str: File handle;
+            - int: Epoch time of the file commit;
+            - str: Author name.
+
+            The list is ordered from most recent commit to last.
+        """
+        return self._file_commits(limit=limit, since=since, until=until,
+                                  filename=filename)
+
+    def filenames(self, time_=None):
         """Get the filenames stored at the given time.
 
         Args:
-            time (`DateTime` or int): Get the file list as it was at the given
+            time_ (`DateTime` or int): Get the file list as it was at the given
                 time. If int, `time` is interpreted as linux epoch time. If None,
                 present time is used.
 
         Returns:
             list of str: List of filenames.
         """
-        if time is None:  # just a listdir in this case
+        if time_ is None:  # just a listdir in this case
             return [x for x in os.listdir(self.path)
                     if os.path.isfile(os.path.join(self.path, x))
                     and self._valid_filename(x)]
         else:
-            epoch = self._as_epoch(time)
-            commit_hash = self._most_recent_commit(epoch)
-            if not commit_hash:
+            epoch = time_as_epoch(time_)
+            commits = self._file_commits(limit=1, until=epoch)
+            if commits:
+                commit_hash = commits[0][0]
+            else:
                 return []
 
             try:
@@ -161,28 +189,33 @@ class FileStore(object):
                 return False
         return True
 
-    def _most_recent_commit(self, epoch, filename=None):
-        nargs = ["-n1",
-                 "--format=%H",
-                 "--until=%d" % epoch]
+    def _file_commits(self, limit=None, since=None, until=None, filename=None):
+        # returns [(commit_hash, commit_epoch, author_name)]
+        nargs = ["--format=%H %at %an"]
+        if limit:
+            nargs.append("-n%d" % limit)
+        if since is not None:
+            nargs.append("--since=%d" % since)
+        if until is not None:
+            nargs.append("--until=%d" % until)
         if filename:
             nargs.extend(["--", filename])
 
         try:
-            proc = self.git.log(*nargs)
+            proc = self.git.log(*nargs, _iter=True)
         except sh.ErrorReturnCode as e:
             self._error("Error getting git log", e)
 
-        commit_hash = proc.stdout.strip()
-        return commit_hash or None
+        results = []
+        for out in proc:
+            out = out.strip()
+            if not out:
+                continue
 
-    @classmethod
-    def _as_epoch(cls, time_):
-        if isinstance(time_, datetime):
-            epoch = datetime.utcfromtimestamp(0)
-            return int((time_ - epoch).total_seconds())
-        else:
-            return int(time_)
+            commit_hash, commit_time, author = out.split(None, 2)
+            results.append((commit_hash, int(commit_time), author))
+
+        return results
 
     @classmethod
     def _error(cls, msg, e):

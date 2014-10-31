@@ -2,7 +2,7 @@ from rez.colorize import alias as alias_color, heading, error
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.util import propertycache, split_path, print_colored_columns
-from soma.exceptions import SomaError
+from soma.exceptions import SomaError, SomaNotFoundError
 from soma.file_store import FileStore
 from soma.profile import Profile
 from soma.util import print_columns, overrides_str, alias_str
@@ -23,6 +23,15 @@ class ProductionConfig(object):
     timestamp_variable = "REZ_SOMA_TIMESTAMP"
 
     def __init__(self, searchpath, subpath=None, time_=None):
+        """Create a production config.
+
+        Args:
+            searchpath (list of str): Paths to find profile overrides.
+            subpath (str): If provided, override files are stored under this
+                subpath within each searchpath.
+            time_ (`DateTime` or int): Ignore profile updates and package
+                releases after the given time.
+        """
         self.searchpath = searchpath
         self.num_levels = len(searchpath)
         self.subpath = subpath
@@ -45,33 +54,71 @@ class ProductionConfig(object):
         """
         return self._profile_levels.keys()
 
+    def copy(self, time_):
+        """Create a copy of this config, at a different time.
+
+        Returns:
+            `ProductionConfig`.
+        """
+        return ProductionConfig(searchpath=self.searchpath,
+                                subpath=self.subpath,
+                                time_=time_)
+
     def profile(self, name):
         """Get a profile."""
         profile_ = self.profiles.get(name)
         if profile_ is not None:
             return profile_
 
-        levels = self._profile_levels.get(name)
-        if not levels:
-            raise SomaError("No such profile %r" % name)
-
-        overrides = []
         filename = "%s.yaml" % name
+        overrides = self.raw_profile(name)
+        overrides_ = []
 
-        for i in levels:
-            store = self.stores[i]
-            content = store.read(filename)
+        for level, content, _, _, _ in overrides:
+            store = self.stores[level]
             try:
                 data = yaml.load(content)
             except YAMLError as e:
                 filepath = os.path.join(store.path, filename)
                 raise SomaError("Invalid override file %r:\n%s"  (filepath, str(e)))
 
-            overrides.append((i, data))
+            overrides_.append((level, data))
 
-        profile_ = Profile(name, self, overrides)
+        profile_ = Profile(name, self, overrides_)
         self.profiles[name] = profile_
         return profile_
+
+    def raw_profile(self, name):
+        """Return the raw file contents used to create a profile.
+
+        Note this this is not cached. Generally a raw profile is only viewed
+        for debugging purposes.
+
+        Returns:
+            A list of tuples with each tuple containing:
+            - int: Level of the override;
+            - str: Contents of the override file;
+            - str: Handle of the commit;
+            - int: Epoch time of the commit;
+            - str: Author.
+
+            The list is is ascending level order.
+        """
+        levels = self._profile_levels.get(name)
+        if not levels:
+            raise SomaNotFoundError("No such profile %r" % name)
+
+        overrides = []
+        filename = "%s.yaml" % name
+
+        for i in levels:
+            store = self.stores[i]
+            content, handle, commit_time, author \
+                = store.read(filename, time_=self.time_)
+            override = (i, content.strip(), handle, commit_time, author)
+            overrides.append(override)
+
+        return overrides
 
     def print_info(self, list_mode=False, tools=False, pattern=None,
                    verbose=False):
@@ -100,28 +147,29 @@ class ProductionConfig(object):
         return str(self)
 
     @classmethod
-    def get_current_config(cls):
+    def get_current_config(cls, time_=None):
         subpath = os.getenv(cls.profiles_subpath_variable)
         paths_str = os.getenv(cls.profiles_path_variable, '')
         paths = split_path(paths_str)
 
-        timestamp = os.getenv(cls.timestamp_variable)
-        if timestamp:
-            try:
-                timestamp = int(timestamp)
-            except:
-                raise SomaError("Invalid timestamp in $%s: %s"
-                                % (cls.timestamp_variable, timestamp))
+        if time_ is None:
+            time_ = os.getenv(cls.timestamp_variable)
+            if time_:
+                try:
+                    time_ = int(time_)
+                except:
+                    raise SomaError("Invalid timestamp in $%s: %s"
+                                    % (cls.timestamp_variable, time_))
 
         return ProductionConfig(searchpath=paths,
                                 subpath=subpath,
-                                time_=timestamp)
+                                time_=time_)
 
     @propertycache
     def _profile_levels(self):
         d = {}
         for i, store in enumerate(self.stores):
-            filenames = store.filenames(time=self.time_)
+            filenames = store.filenames(time_=self.time_)
             for filename in filenames:
                 name = os.path.splitext(filename)[0]
                 levels = d.setdefault(name, [])

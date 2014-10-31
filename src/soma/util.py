@@ -1,6 +1,26 @@
 import sys
 import re
 import pipes
+import time
+from datetime import datetime
+from rez.util import readable_time_duration
+
+
+def time_as_epoch(time_):
+    if isinstance(time_, datetime):
+        epoch = datetime.utcfromtimestamp(0)
+        return int((time_ - epoch).total_seconds())
+    else:
+        return int(time_)
+
+
+# TODO put in rez.util
+def get_timestamp_str(timestamp):
+    now = int(time.time())
+    release_time = time.localtime(timestamp)
+    release_time_str = time.strftime('%d %b %Y %H:%M:%S', release_time)
+    ago = readable_time_duration(now - timestamp)
+    return "%s (%s ago)" % (release_time_str, ago)
 
 
 def alias_str(alias, command=None):

@@ -1,7 +1,6 @@
 """
-List current profiles.
+List profiles and tools.
 """
-from soma.production_config import ProductionConfig
 
 
 def setup_parser(parser, completions=False):
@@ -12,31 +11,23 @@ def setup_parser(parser, completions=False):
         "-t", "--tools", action="store_true",
         help="list tools")
     parser.add_argument(
-        "-p", "--packages", action="store_true",
-        help="list a profile's package requests")
+        "--time", type=str,
+        help="ignore profile updates after the given time. Supported formats "
+        "are: epoch time (eg 1393014494), or relative time (eg -10s, -5m, "
+        "-0.5h, -10d)")
     parser.add_argument(
-        "-r", "--removals", action="store_true",
-        help="list a profile's removals")
-    parser.add_argument(
-        "NAME", nargs='?',
-        help="either profile name, or glob-like pattern for profiles or tools")
+        "PATTERN", nargs='?',
+        help="filter results with glob-like pattern")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    pc = ProductionConfig.get_current_config()
+    from rez.util import get_epoch_time_from_str
+    from soma.production_config import ProductionConfig
 
-    profile_name = None
-    if opts.NAME and '*' not in opts.NAME:
-        profile_name = opts.NAME
+    time_ = get_epoch_time_from_str(opts.time) if opts.time else None
+    pc = ProductionConfig.get_current_config(time_=time_)
 
-    if profile_name:
-        profile = pc.profile(profile_name)
-        profile.print_info(packages=(opts.packages or not opts.tools),
-                           tools=opts.tools,
-                           removals=opts.removals,
-                           verbose=opts.verbose)
-    else:
-        pc.print_info(list_mode=opts.list_,
-                      tools=opts.tools,
-                      pattern=opts.NAME,
-                      verbose=opts.verbose)
+    pc.print_info(list_mode=opts.list_,
+                  tools=opts.tools,
+                  pattern=opts.PATTERN,
+                  verbose=opts.verbose)

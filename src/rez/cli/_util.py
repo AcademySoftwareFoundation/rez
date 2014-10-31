@@ -26,6 +26,8 @@ subcommands = dict(
          ["complete",
           "forward"]),
     soma=(["ls",
+           "view",
+           "log",
            "selftest"],
           []))
 

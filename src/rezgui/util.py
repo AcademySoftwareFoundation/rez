@@ -76,6 +76,7 @@ def get_icon_widget(filename, tooltip=None):
     return icon_label
 
 
+# TODO put in rez.util
 def get_timestamp_str(timestamp):
     now = int(time.time())
     release_time = time.localtime(timestamp)

@@ -88,8 +88,6 @@ class VariantsBinding(Binding):
         self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
         super(VariantsBinding, self).__init__(self.__variants)
 
-    # TODO add getitem
-
     def __attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
 

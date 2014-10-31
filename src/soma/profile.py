@@ -1,10 +1,13 @@
-from rez.util import print_colored_columns, propertycache
+from rez.util import print_colored_columns, propertycache, \
+    readable_time_duration
 from rez.colorize import warning, heading, alias as alias_color, Printer
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
-from soma.exceptions import SomaError
-from soma.util import glob_transform, alias_str
+from soma.exceptions import SomaError, SomaNotFoundError
+from soma.util import glob_transform, alias_str, time_as_epoch, \
+    get_timestamp_str, print_columns
+import time
 import fnmatch
 import pipes
 import os.path
@@ -60,6 +63,7 @@ class Profile(object):
     are shown in this comment).
     """
     schema = Schema({
+        Optional("new"): Or([basestring], None),
         Optional("requires"): [basestring],
         Optional("tools"): [Or(basestring,
                                And(Schema({basestring: basestring}),
@@ -75,12 +79,13 @@ class Profile(object):
         """
         self.name = name
         self.parent = parent
-        self.overrides = [(level, self.schema.validate(data))
-                          for (level, data) in overrides]
+        self._overrides = [(level, self.schema.validate(data))
+                           for (level, data) in overrides]
 
     @propertycache
     def requires(self):
-        """
+        """Get the package requirements of the profile.
+
         Returns:
             List of `Requirement`: Merged requirements of the profile.
         """
@@ -93,7 +98,8 @@ class Profile(object):
 
     @propertycache
     def tools(self):
-        """
+        """Get the tools provided by this profile.
+
         Returns:
             Dict of (alias, command) tuples. Where no aliasing is used, `alias`
             and `command` are the same string.
@@ -106,6 +112,226 @@ class Profile(object):
                 assert alias_ == alias
                 tools_[alias] = command
         return tools_
+
+    def __eq__(self, other):
+        return (isinstance(other, Profile)
+                and self.name == other.name
+                and self.requires == other.requires
+                and self.tools == other.tools)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def overrides(self):
+        """Get the overrides that were merged to create this profile.
+
+        Returns:
+            A list of tuples with each tuple containing:
+            - int: Level of the override;
+            - dict: The override configuration data.
+
+            The list is is ascending level order.
+        """
+        return self._overrides
+
+    def raw_overrides(self):
+        """Get the overrides that were merged to create this profile.
+
+        Unlike `overrides`, this function returns information about the actual
+        files that were committed that define the overrides.
+
+        Returns:
+            A list of tuples with each tuple containing:
+            - int: Level of the override;
+            - str: Contents of the override file;
+            - str: Handle of the commit;
+            - int: Epoch time of the commit;
+            - str: Author.
+
+            The list is is ascending level order.
+        """
+        return self.parent.raw_profile(self.name)
+
+    def logs(self, limit=None, since=None, until=None):
+        """Return a list of log entries of files that may affect this profile.
+
+        This effectively provides a list of all updates that have occurred to
+        this profile since it was created.
+
+        Args:
+            limit (int): Maximum number of entries to return.
+            since (`DateTime` or int): Only return entries at or after this time.
+            until (`DateTime` or int): Only return entries at or before this time.
+
+        Returns:
+            List of 4-tuples where each contains:
+            - int: Level of the override;
+            - str: File handle;
+            - int: Epoch time of the file commit;
+            - str: Author name.
+
+            The list is ordered from most recent commit to last.
+        """
+        filename = "%s.yaml" % self.name
+        all_entries = []
+
+        for level, _ in self._overrides:
+            store = self.parent.stores[level]
+            entries = store.file_logs(filename=filename, limit=limit,
+                                      since=since, until=until)
+            entries = (tuple([level] + list(x) for x in entries))
+            all_entries.extend(entries)
+
+        entries = sorted(all_entries, key=lambda x: x[2], reverse=True)
+        if limit:
+            entries = entries[:limit]
+        return entries
+
+    def effective_logs(self, limit=None, since=None, until=None, callback=None,
+                       progress_callback=None):
+        """Return effective log entries.
+
+        This is the same as `logs`, except that the entries returned are only
+        those that affected the profile. Overrides earlier in the searchpath
+        may not affect a profile because of further overrides later in the
+        searchpath.
+
+        In order to identify the effective log entries, an entire `Profile`
+        needs to be constructed for every commit to see if that commit had an
+        effect.
+
+        Note:
+            This is an expensive operation.
+
+        Args:
+            limit (int): Maximum number of entries to return.
+            since (`DateTime` or int): Only return entries at or after this time.
+            until (`DateTime` or int): Only return entries at or before this time.
+            callback (callable): Called each time an effective entry is found,
+                and is passed 3 args:
+                - list of log entries: The same that is returned from `logs`;
+                - int: index into log entries;
+                - `Profile`: the effective profile.
+                If this returns Falsey, the search is stopped.
+            progress_callback (callable): Called each time a log entry is tested.
+                If this returns Falsey, the search is stopped. Takes the
+                following args:
+                - i (int): Current index into log entries;
+                - num_logs (int): Total number of log entries;
+
+        Returns:
+            A 2-tuple containing:
+            - list of log entries: The same that is returned from `logs`.
+            - list of 2-tuples (the 'effective' list), each containing:
+                - int: indes into the log entries list;
+                - `Profile`: The effective profile.
+
+            Note:
+                Some entries may have a None profile. This means that all
+                override files were deleted during that time, so the profile did
+                not exist then.
+
+            Note:
+                Some entries may have a -1 profile (int). This means that the
+                profile was broken - probably invalid data or a syntax error in
+                a config file(s).
+
+            Note:
+                If an empty effective list is returned, this means that not
+                enough entries were read to find an effective entry. For example
+                if limit=N and the first N entries produce the same profile, the
+                effective log must be earlier.
+        """
+        logs_ = self.logs(limit=limit, since=since, until=until)
+        effective_logs_ = self._effective_logs(logs_, limit, since, until,
+                                               callback, progress_callback)
+        return logs_, effective_logs
+
+    def print_logs(self, limit=None, since=None, until=None, verbose=False):
+        """Print file logs.
+
+        Args:
+            limit (int): Maximum number of entries to return.
+            since (`DateTime` or int): Only return entries at or after this time.
+            until (`DateTime` or int): Only return handles at or before this time.
+        """
+        logs_ = self.logs(limit=limit, since=since, until=until)
+        if not logs_:
+            return
+        rows = self._get_log_rows(logs_, verbose=verbose)
+        print_colored_columns(rows)
+
+    def print_effective_logs(self, limit=None, since=None, until=None,
+                             verbose=False):
+        logs_ = self.logs(limit=limit, since=since, until=until)
+        if not logs_:
+            return
+
+        # calc width formatting
+        rows = self._get_log_rows(logs_, verbose=verbose)
+        rows = rows[:1] + rows[2:]  # ditch header underline
+        maxwidths = []
+
+        for i in range(len(rows[0]) - 1):
+            w = max(len(x[i]) for x in rows)
+            maxwidths.append(w)
+
+        def _print_row(row, status):
+            row_ = [status]
+            for i, txt in enumerate(row):
+                if i < len(row) - 1:
+                    padding = (maxwidths[i] - len(txt)) * ' '
+                    row_.append(txt + padding)
+                else:
+                    row_.append(txt)
+            print_colored_columns([row_])
+
+        def _callback(_1, index, profile_):
+            if profile_ is None:
+                status = '?'
+            elif profile_ == -1:
+                status = '!'
+            else:
+                status = 'P'
+            _print_row(rows[index], status)
+
+        _print_row(rows[0], ' ')  # heading
+        underline_row = ['-' * x for x in maxwidths] + [heading]
+        _print_row(underline_row, ' ')
+        rows = rows[1:]
+
+        self._effective_logs(logs_, limit, since, until, callback=_callback)
+
+    def print_brief_info(self, packages=True, tools=True, verbose=False):
+        """Print a brief summary of the profile.
+
+        Args:
+            packages (bool): Show package requirements.
+            tools (bool): Show tools.
+        """
+        print_ = Printer()
+        if packages and tools:
+            print_("REQUIRES", header)
+        if packages:
+            entries = map(str, self.requires)
+            print_columns(entries)
+
+        if packages and tools:
+            print_()
+            print_("TOOLS", header)
+        if tools:
+            entries = []
+            for alias, command in self.tools.iteritems():
+                if command == alias:
+                    entry = alias
+                else:
+                    if verbose:
+                        entry = alias_str(alias, command)
+                    else:
+                        entry = alias
+                    entry = alias_color(entry)
+                entries.append(entry)
+            print_columns(entries)
 
     def print_info(self, packages=True, tools=True, removals=False, verbose=False):
         """Print summary of the profile.
@@ -208,6 +434,40 @@ class Profile(object):
 
         print_colored_columns(rows)
 
+    def dump(self, verbose=False):
+        """Print the contents of each of the override config files."""
+        overrides = self.raw_overrides()
+        now = int(time.time())
+
+        titles = []
+        for level, _, handle, commit_time, author in overrides:
+            levels_str = self.parent._overrides_str(level)
+            readable_time = readable_time_duration(now - commit_time)
+            time_str = "(%s, %s ago)" % (author, readable_time)
+
+            if verbose:
+                filepath = self._filepath(level)
+                title = "%s %s [%s]" % (levels_str, filepath, handle)
+            else:
+                path = self.parent.searchpath[level]
+                title = "%s %s" % (levels_str, path)
+
+            titles.append((title, time_str))
+
+        maxwidth = max((len(x) + len(y) + 2) for x, y in titles)
+        print_ = Printer()
+        br = '-' * maxwidth
+
+        for i, (_, content, _, _, _) in enumerate(overrides):
+            title, time_str = titles[i]
+            spacer = (maxwidth - len(title) - len(time_str)) * ' '
+            print_(title + spacer + time_str, heading)
+
+            print_(br, heading)
+            print_(content)
+            if i < len(overrides) - 1:
+                print_()
+
     @propertycache
     def _requires(self):
         # each entry is a list of (request, level) 2-tuples. The last entry is
@@ -218,8 +478,9 @@ class Profile(object):
             entry = requires_.setdefault(key, (len(requires_), []))
             entry[1].append((value, level))
 
-        for level, data in self.overrides:
-            requires_list = data.get("requires", [])
+        overrides = self._get_overrides("requires")
+
+        for level, requires_list in overrides:
             for request_str in requires_list:
                 if request_str.startswith('^'):  # removal operator
                     key = request_str[1:]
@@ -258,8 +519,9 @@ class Profile(object):
         prev_tools = None
         print_warning = Printer(style=warning)
 
-        for level, data in self.overrides:
-            tools_list = data.get("tools", [])
+        overrides = self._get_overrides("tools")
+
+        for level, tools_list in overrides:
             touched_aliases = set()
             curr_tools = tools_[i]
             prev_tools = tools_[1 - i]
@@ -381,6 +643,83 @@ class Profile(object):
             if any(isinstance(x[0], tuple) for x in entries):
                 result[alias] = entries
         return result
+
+    def _get_log_rows(self, logs_, verbose=False):
+        all_levels = set(x[0] for x in logs_)
+        levels_str = self.parent._overrides_str(all_levels)
+
+        rows = []
+        row = [levels_str, "LEVEL"]
+        if verbose:
+            row.append("HANDLE")
+        row.extend(["AUTHOR", "DATE", heading])
+        rows.extend([row, [None, heading]])
+
+        for level, handle, commit_time, author in logs_:
+            level_str = self.parent._overrides_str(level)
+            path = self.parent.searchpath[level]
+            time_str = "%d - %s" % (commit_time, get_timestamp_str(commit_time))
+
+            row = [level_str, path]
+            if verbose:
+                row.append(handle)
+            row.extend([author, time_str, None])
+            rows.append(row)
+
+        return rows
+
+    def _effective_logs(self, logs_, limit=None, since=None, until=None,
+                        callback=None, progress_callback=None):
+        if not logs_:
+            return []
+
+        entries = []
+        prev_profile = None
+        nlogs = len(logs_)
+
+        for i, (level, handle, commit_time, author) in enumerate(logs_):
+            if progress_callback and not progress_callback(i, nlogs):
+                return entries
+
+            config_ = self.parent.copy(commit_time)
+            try:
+                profile_ = config_.profile(self.name)
+            except SomaNotFoundError:
+                # profile was missing at this time, all config files deleted
+                profile_ = None
+            except SomaError as e:
+                # broken profile, probably invalid data in config file
+                profile_ = -1
+
+            def _add(i_, p):
+                entries.append((i_, p))
+                if callback and not callback(logs_, i_, p):
+                    return entries
+
+            if i and (profile_ != prev_profile):
+                # an effective log entry
+                _add(i - 1, prev_profile)
+
+            if limit is None and since is None and i == nlogs - 1:
+                # first ever log entry
+                _add(i, profile_)
+
+            prev_profile = profile_
+
+        return entries
+
+    def _get_overrides(self, namespace):
+        overrides = []
+        for level, data in reversed(self._overrides):
+            value = data.get(namespace)
+            if value:
+                overrides.append((level, value))
+
+            new_ = (namespace in data.get("new", []))
+            if new_:
+                break
+
+        return list(reversed(overrides))
 
     def _filepath(self, level):
         path = self.parent.stores[level].path
