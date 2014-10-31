@@ -99,7 +99,22 @@ class SH(UnixShell):
         completion = os.path.join(module_root_path, "completion", "complete.sh")
         self.source(completion)
 
+    def _needs_escaping(self, value):
+        if '"' in value:
+            try:
+                if value[value.index('"')-1] == '\\':
+                    return False
+            except:
+                return True
+        return True
+
+    def _escapeDoubleQuotes(self, value):
+        if self._needs_escaping(value):
+            value = value.replace ( '"','\\"' )
+        return value
+
     def setenv(self, key, value):
+        value = self._escapeDoubleQuotes(value)
         self._addline('export %s="%s"' % (key, value))
 
     def unsetenv(self, key):

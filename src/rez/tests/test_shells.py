@@ -20,7 +20,7 @@ import os
 
 
 def _stdout(proc):
-    out_, _ = proc.communicate()
+    out_,_ = proc.communicate()
     return out_.strip()
 
 
@@ -36,6 +36,7 @@ class TestShells(TestBase, TempdirMixin):
         cls.settings = dict(
             packages_path=[packages_path],
             implicit_packages=[],
+            add_bootstrap_path=False,
             warn_untimestamped=False,
             resolve_caching=False)
 
@@ -49,83 +50,96 @@ class TestShells(TestBase, TempdirMixin):
 
     @shell_dependent
     def test_no_output(self):
-        sh = create_shell()
-        _, _, _, command = sh.startup_capabilities(command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world -q",
-                                stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE,
+                                shell=current_shell)
 
-            self.assertEqual(
-                _stdout(p), '',
+            self.assertEqual(_stdout(p), '', \
                 "This test and others will fail, because one or more of your "
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
 
     @shell_dependent
     def test_command(self):
-        sh = create_shell()
-        _, _, _, command = sh.startup_capabilities(command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world",
-                                stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE,
+                                shell=current_shell)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @shell_dependent
     def test_command_returncode(self):
-        sh = create_shell()
-        _, _, _, command = sh.startup_capabilities(command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
             command = "hello_world -q -r 66"
             commands = (command, command.split())
             for cmd in commands:
-                p = r.execute_shell(command=cmd, stdout=subprocess.PIPE)
+                p = r.execute_shell(command=cmd, 
+                                    stdout=subprocess.PIPE,
+                                    shell=current_shell)
                 p.wait()
                 self.assertEqual(p.returncode, 66)
 
     @shell_dependent
     def test_norc(self):
-        sh = create_shell()
-        _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,norc,_,command = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(norc=True,
                                 command="hello_world",
-                                stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE,
+                                shell=current_shell)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @shell_dependent
     def test_stdin(self):
-        sh = create_shell()
-        _, _, stdin, _ = sh.startup_capabilities(stdin=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,stdin,_ = sh.startup_capabilities(stdin=True)
 
         if stdin:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(stdout=subprocess.PIPE,
-                                stdin=subprocess.PIPE)
-            stdout, _ = p.communicate(input="hello_world\n")
+                                stdin=subprocess.PIPE,
+                                norc=True,
+                                shell=current_shell)
+            stdout,_ = p.communicate(input="hello_world\n")
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
     @shell_dependent
     def test_rcfile(self):
-        sh = create_shell()
-        rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        rcfile,_,_,command = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
-            f, path = tempfile.mkstemp()
+            f,path = tempfile.mkstemp()
             os.write(f, "hello_world\n")
             os.close(f)
 
             r = self._create_context(["hello_world"])
             p = r.execute_shell(rcfile=path,
                                 command="hello_world -q",
-                                stdout=subprocess.PIPE)
+                                stdout=subprocess.PIPE,
+                                shell=current_shell)
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
@@ -150,16 +164,17 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     @install_dependent
     def test_rez_command(self):
-        sh = create_shell()
-        _, _, _, command = sh.startup_capabilities(command=True)
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context([])
-            p = r.execute_shell(command="rezolve -h")
+            p = r.execute_shell(command="rezolve -h", shell=current_shell)
             p.wait()
             self.assertEqual(p.returncode, 0)
 
-            p = r.execute_shell(command="rez-env -h")
+            p = r.execute_shell(command="rez-env -h", shell=current_shell)
             p.wait()
             self.assertEqual(p.returncode, 0)
 
@@ -192,8 +207,9 @@ class TestShellsCommands(TestBase, TempdirMixin):
                                caching=False)
 
     @shell_dependent
-    def test_escape_quoted_value(self):
+    def test_escape_quoted_value_old_command(self):
         """Test that a command which contains quotes in the value gets escaped properly different shells
+           from a old style resource definition (package.yaml) compatible with rez1
            ie. - export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"
                  does not need any change in sh and bash but need to be escaped for tcsh and csh like
                  setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"
@@ -222,6 +238,48 @@ class TestShellsCommands(TestBase, TempdirMixin):
                     elif sh.name() in ['csh', 'tcsh']:
                         self.assertEqual(csh_expected, line.strip())
 
+    @shell_dependent
+    def test_escape_quoted_value_new_command(self):
+        """Test that a command which contains quotes in the value gets escaped properly different shells
+           from a new style resource definition (package.py)
+           ie. - setenv("VARIABLE_WITH_QUOTES", 'loadPlugin("mayaPlugin")')
+                 in sh and bash should end up like
+                 export VARIABLE_ESCAPED_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"
+                 and in tcsh anc csh
+                 setenv VARIABLE_ESCAPED_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"
+
+        """
+        sh_expected=r'export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"'
+        escpaed_sh_expected=r'export VARIABLE_ESCAPED_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"'
+
+        csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"'
+        escpaed_csh_expected=r'setenv VARIABLE_ESCAPED_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"'
+
+        current_shell = config.get('default_shell')
+        sh = create_shell(shell=current_shell)
+        _,_,_,command = sh.startup_capabilities(command=True)
+
+        context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
+
+        if command:
+            r = self._create_context(["shelltest2"])
+
+            p = r.execute_shell(command="env", shell=current_shell, context_filepath=context_file)
+            p.wait()
+            self.assertEqual(p.returncode, 0)
+
+        with open(context_file, 'r') as f:
+            for line in f.readlines():
+                if line.find('VARIABLE_WITH_QUOTES') != -1 and not line.startswith('#'):
+                    if sh.name() in ['sh', 'bash']:
+                        self.assertEqual(sh_expected, line.strip())
+                    elif sh.name() in ['csh', 'tcsh']:
+                        self.assertEqual(csh_expected, line.strip())
+                if line.find('VARIABLE_ESCAPED_WITH_QUOTES') != -1 and not line.startswith('#'):
+                    if sh.name() in ['sh', 'bash']:
+                        self.assertEqual(escpaed_sh_expected, line.strip())
+                    elif sh.name() in ['csh', 'tcsh']:
+                        self.assertEqual(escpaed_csh_expected, line.strip())
 
 
 def get_test_suites():
@@ -235,7 +293,8 @@ def get_test_suites():
     suite.addTest(TestShells("test_rcfile"))
     suite.addTest(TestShells("test_rez_env_output"))
     suite.addTest(TestShells("test_rez_command"))
-    suite.addTest(TestShellsCommands("test_escape_quoted_value"))
+    suite.addTest(TestShellsCommands("test_escape_quoted_value_old_command"))
+    suite.addTest(TestShellsCommands("test_escape_quoted_value_new_command"))
     suites.append(suite)
     return suites
 
