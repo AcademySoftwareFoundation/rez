@@ -28,6 +28,7 @@ subcommands = dict(
     soma=(["ls",
            "view",
            "log",
+           "diff",
            "selftest"],
           []))
 

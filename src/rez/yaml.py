@@ -116,7 +116,7 @@ def dump_yaml(data, Dumper=_Dumper):
     return yaml.dump(data, default_flow_style=False, Dumper=Dumper)
 
 
-def dump_package_yaml(data, Dumper=_Dumper):
+def dump_package_yaml(data):
     """Convenience function for dumping with PackageOrderedDumper."""
     return yaml.dump(data, default_flow_style=False, Dumper=PackageOrderedDumper)
 

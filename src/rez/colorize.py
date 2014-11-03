@@ -294,3 +294,6 @@ class Printer(object):
         if style_ and self.tty:
             msg = style_(msg)
         return msg
+
+    def isatty(self):
+        return stream_is_tty(self.buf)

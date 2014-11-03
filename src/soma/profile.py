@@ -6,7 +6,7 @@ from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
 from soma.exceptions import SomaError, SomaNotFoundError
 from soma.util import glob_transform, alias_str, time_as_epoch, \
-    get_timestamp_str, print_columns
+    get_timestamp_str, print_columns, dump_profile_yaml
 import time
 import fnmatch
 import pipes
@@ -238,13 +238,11 @@ class Profile(object):
 
             Note:
                 If an empty effective list is returned, this means that not
-                enough entries were read to find an effective entry. For example
-                if limit=N and the first N entries produce the same profile, the
-                effective log must be earlier.
+                enough entries were read to find an effective entry.
         """
-        logs_ = self.logs(limit=limit, since=since, until=until)
-        effective_logs_ = self._effective_logs(logs_, limit, since, until,
-                                               callback, progress_callback)
+        logs_ = self.logs(since=since, until=until)
+        effective_logs_ = self._effective_logs(logs_, limit, since, callback,
+                                               progress_callback)
         return logs_, effective_logs
 
     def print_logs(self, limit=None, since=None, until=None, verbose=False):
@@ -263,7 +261,7 @@ class Profile(object):
 
     def print_effective_logs(self, limit=None, since=None, until=None,
                              verbose=False):
-        logs_ = self.logs(limit=limit, since=since, until=until)
+        logs_ = self.logs(since=since, until=until)
         if not logs_:
             return
 
@@ -294,13 +292,27 @@ class Profile(object):
             else:
                 status = 'P'
             _print_row(rows[index], status)
+            return True
 
         _print_row(rows[0], ' ')  # heading
         underline_row = ['-' * x for x in maxwidths] + [heading]
         _print_row(underline_row, ' ')
         rows = rows[1:]
 
-        self._effective_logs(logs_, limit, since, until, callback=_callback)
+        self._effective_logs(logs_, limit, since, callback=_callback)
+
+    def print_simple_info(self, buf=sys.stdout):
+        """Print a 'simple' style summary, this is useful for diffing."""
+        requires_strs = map(str, self.requires)
+        tools_strs = []
+        for alias, command in self.tools.iteritems():
+            tools_strs.append(alias_str(alias, command))
+
+        data = dict(requires=requires_strs,
+                    tools=tools_strs)
+        content = dump_profile_yaml(data).strip()
+        print_ = Printer(buf)
+        print_(content)
 
     def print_brief_info(self, packages=True, tools=True, verbose=False):
         """Print a brief summary of the profile.
@@ -311,14 +323,14 @@ class Profile(object):
         """
         print_ = Printer()
         if packages and tools:
-            print_("REQUIRES", header)
+            print_("REQUIRES", heading)
         if packages:
             entries = map(str, self.requires)
             print_columns(entries)
 
         if packages and tools:
             print_()
-            print_("TOOLS", header)
+            print_("TOOLS", heading)
         if tools:
             entries = []
             for alias, command in self.tools.iteritems():
@@ -334,7 +346,7 @@ class Profile(object):
             print_columns(entries)
 
     def print_info(self, packages=True, tools=True, removals=False, verbose=False):
-        """Print summary of the profile.
+        """Print a summary of the profile.
 
         Args:
             packages (bool): Show package requirements.
@@ -434,7 +446,7 @@ class Profile(object):
 
         print_colored_columns(rows)
 
-    def dump(self, verbose=False):
+    def dump(self, buf=sys.stdout, verbose=False):
         """Print the contents of each of the override config files."""
         overrides = self.raw_overrides()
         now = int(time.time())
@@ -454,16 +466,23 @@ class Profile(object):
 
             titles.append((title, time_str))
 
-        maxwidth = max((len(x) + len(y) + 2) for x, y in titles)
-        print_ = Printer()
-        br = '-' * maxwidth
+        print_ = Printer(buf)
+        do_formatting = print_.isatty()
+        if do_formatting:
+            maxwidth = max((len(x) + len(y) + 2) for x, y in titles)
+            br = '-' * maxwidth
 
         for i, (_, content, _, _, _) in enumerate(overrides):
             title, time_str = titles[i]
-            spacer = (maxwidth - len(title) - len(time_str)) * ' '
-            print_(title + spacer + time_str, heading)
+            if do_formatting:
+                spacer = (maxwidth - len(title) - len(time_str)) * ' '
+                print_(title + spacer + time_str, heading)
+                print_(br, heading)
+            else:
+                txt = "%s %s" % (title, time_str)
+                print_(txt, heading)
+                print_(len(txt) * '-', heading)
 
-            print_(br, heading)
             print_(content)
             if i < len(overrides) - 1:
                 print_()
@@ -668,8 +687,8 @@ class Profile(object):
 
         return rows
 
-    def _effective_logs(self, logs_, limit=None, since=None, until=None,
-                        callback=None, progress_callback=None):
+    def _effective_logs(self, logs_, limit=None, since=None, callback=None,
+                        progress_callback=None):
         if not logs_:
             return []
 
@@ -694,15 +713,17 @@ class Profile(object):
             def _add(i_, p):
                 entries.append((i_, p))
                 if callback and not callback(logs_, i_, p):
-                    return entries
+                    return False
+                if limit and (len(entries) >= limit):
+                    return False
+                return True
 
             if i and (profile_ != prev_profile):
-                # an effective log entry
-                _add(i - 1, prev_profile)
+                if not _add(i - 1, prev_profile):  # an effective log entry
+                    return entries
 
             if limit is None and since is None and i == nlogs - 1:
-                # first ever log entry
-                _add(i, profile_)
+                _add(i, profile_)  # first ever log entry
 
             prev_profile = profile_
 

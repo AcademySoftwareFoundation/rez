@@ -158,6 +158,42 @@ def set_rm_tmpdirs(enable):
     rm_tmdirs = enable
 
 
+def diff_content(content_a, content_b, name_a=None, name_b = None):
+    """Invoke the configured diff tool to show the diff between content."""
+    from rez.config import config
+
+    def _to_file(content, name=None):
+        prefix = name + '_' if name else "diff_"
+        f, filepath = tempfile.mkstemp("_rez", prefix)
+        os.write(f, content)
+        os.close(f)
+        return filepath
+
+    diff_tool = config.diff_tool
+    if diff_tool is None:
+        import webbrowser
+        from difflib import HtmlDiff
+
+        differ = HtmlDiff()
+        content = differ.make_file(content_a.split('\n'), content_b.split('\n'),
+                                   fromdesc=name_a, todesc=name_b)
+        filepath = _to_file(content)
+        url = "file://%s" % filepath
+        webbrowser.open_new(url)
+    else:
+        filepaths = []
+        for content, name in ((content_a, name_a), (content_b, name_b)):
+            filepath = _to_file(content, name)
+            filepaths.append(filepath)
+
+        from rez.vendor.sh.sh import Command, ErrorReturnCode
+        cmd = Command(diff_tool)
+        try:
+            cmd(*filepaths)
+        except ErrorReturnCode:
+            pass  # some diff tools return 1 if files differ
+
+
 def dedup(seq):
     """Remove duplicates from a list while keeping order."""
     seen = set()

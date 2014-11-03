@@ -258,6 +258,10 @@ image_viewer:
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
 browser:
 
+# The diff program used to diff content. On osx, set this to "open -a <your-app>"
+# if you want to use a specific app.
+diff_tool:
+
 # The default image format that dot-graphs are rendered to.
 dot_image_format: png
 

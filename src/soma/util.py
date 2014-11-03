@@ -4,6 +4,18 @@ import pipes
 import time
 from datetime import datetime
 from rez.util import readable_time_duration
+from rez.yaml import OrderedDumper, dump_yaml
+
+
+class ProfileOrderedDumper(OrderedDumper):
+    order = [
+        'requires',
+        'tools']
+
+
+def dump_profile_yaml(data):
+    """Convenience function for dumping with ProfileOrderedDumper."""
+    return dump_yaml(data, ProfileOrderedDumper)
 
 
 def time_as_epoch(time_):

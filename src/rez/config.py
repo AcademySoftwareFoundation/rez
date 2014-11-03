@@ -174,6 +174,7 @@ config_schema = Schema({
     "editor":                           OptionalStr,
     "image_viewer":                     OptionalStr,
     "browser":                          OptionalStr,
+    "diff_tool":                        OptionalStr,
     "critical_fore":                    OptionalStr,
     "critical_back":                    OptionalStr,
     "error_fore":                       OptionalStr,
@@ -496,6 +497,10 @@ class Config(DataWrapper):
     def _get_editor(self):
         from rez.platform_ import platform_
         return platform_.editor
+
+    def _get_diff_tool(self):
+        from rez.platform_ import platform_
+        return platform_.diff_tool
 
 
 class _PluginConfigs(object):

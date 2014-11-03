@@ -11,14 +11,17 @@ def setup_parser(parser, completions=False):
         "-p", "--packages", action="store_true",
         help="list package requests")
     parser.add_argument(
-        "-b", "--brief", action="store_true",
-        help="print in brief mode")
-    parser.add_argument(
         "-r", "--removals", action="store_true",
         help="list package or tool removals")
     parser.add_argument(
+        "-b", "--brief", action="store_true",
+        help="print in brief mode")
+    parser.add_argument(
+        "-s", "--simple", action="store_true",
+        help="print in simple mode (good for diffing)")
+    parser.add_argument(
         "-e", "--expanded", action="store_true",
-        help="show in expanded mode. This mode dumps the file contents of each "
+        help="print in expanded mode. This mode dumps the file contents of each "
         "override")
     parser.add_argument(
         "-a", "--all", action="store_true",
@@ -49,6 +52,8 @@ def command(opts, parser, extra_arg_groups=None):
     profile = pc.profile(opts.PROFILE)
     if opts.expanded:
         profile.dump(verbose=opts.verbose)
+    elif opts.simple:
+        profile.print_simple_info()
     elif opts.brief:
         profile.print_brief_info(packages=(opts.packages or not opts.tools),
                                  tools=opts.tools,

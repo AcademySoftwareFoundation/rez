@@ -55,6 +55,11 @@ class Platform(object):
         raise NotImplementedError
 
     @property
+    def diff_tool(self):
+        """Returns the system default diffing tool."""
+        raise NotImplementedError
+
+    @property
     def tmpdir(self):
         """Return system default temporary directory path."""
         raise NotImplementedError
@@ -188,6 +193,11 @@ class LinuxPlatform(_UnixPlatform):
             from rez.util import which
             ed = which("xdg-open", "vim", "vi")
         return ed
+
+    @propertycache
+    def diff_tool(self):
+        from rez.util import which
+        return which("kdiff3", "meld")
 
 
 # -----------------------------------------------------------------------------
