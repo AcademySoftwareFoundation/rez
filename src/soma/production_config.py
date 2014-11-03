@@ -2,7 +2,7 @@ from rez.colorize import alias as alias_color, heading, error
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.util import propertycache, split_path, print_colored_columns
-from soma.exceptions import SomaError, SomaNotFoundError
+from soma.exceptions import SomaError, SomaNotFoundError, SomaDataError
 from soma.file_store import FileStore
 from soma.profile import Profile
 from soma.util import print_columns, overrides_str, alias_str
@@ -80,7 +80,8 @@ class ProductionConfig(object):
                 data = yaml.load(content)
             except YAMLError as e:
                 filepath = os.path.join(store.path, filename)
-                raise SomaError("Invalid override file %r:\n%s"  (filepath, str(e)))
+                raise SomaDataError("Invalid override file %r:\n%s"
+                                    % (filepath, str(e)))
 
             overrides_.append((level, data))
 

@@ -48,8 +48,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     time_ = get_epoch_time_from_str(opts.time) if opts.time else None
     pc = ProductionConfig.get_current_config(time_=time_)
-
     profile = pc.profile(opts.PROFILE)
+
     if opts.expanded:
         profile.dump(verbose=opts.verbose)
     elif opts.simple:

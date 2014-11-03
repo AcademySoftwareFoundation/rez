@@ -1,10 +1,12 @@
 from rez.util import print_colored_columns, propertycache, \
     readable_time_duration
-from rez.colorize import warning, heading, alias as alias_color, Printer
+from rez.config import config
+from rez.resolved_context import ResolvedContext
+from rez.colorize import warning, heading, critical, alias as alias_color, Printer
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
-from soma.exceptions import SomaError, SomaNotFoundError
+from soma.exceptions import SomaNotFoundError, SomaDataError
 from soma.util import glob_transform, alias_str, time_as_epoch, \
     get_timestamp_str, print_columns, dump_profile_yaml
 import time
@@ -79,8 +81,15 @@ class Profile(object):
         """
         self.name = name
         self.parent = parent
-        self._overrides = [(level, self.schema.validate(data))
-                           for (level, data) in overrides]
+
+        self._overrides = []
+        for level, data in overrides:
+            try:
+                data_ = self.schema.validate(data)
+                self._overrides.append((level, data_))
+            except SchemaError as e:
+                raise SomaDataError("Invalid data in %r: %s"
+                                    % (self._filepath(level), str(e)))
 
     @propertycache
     def requires(self):
@@ -112,6 +121,26 @@ class Profile(object):
                 assert alias_ == alias
                 tools_[alias] = command
         return tools_
+
+    def context(self, include_local=False, verbosity=0):
+        """Get the context for the profile.
+
+        Args:
+            include_local (bool): If True, include local packages in the resolve.
+
+        Returns:
+            `ResolvedContext`.
+        """
+        pkg_paths = None if include_local else config.nonlocal_packages_path
+        time_ = self.parent.time_
+        if time_ is not None:
+            time_ = time_as_epoch(time_)
+
+        context = ResolvedContext(self.requires,
+                                  package_paths=pkg_paths,
+                                  verbosity=verbosity,
+                                  timestamp=time_)
+        return context
 
     def __eq__(self, other):
         return (isinstance(other, Profile)
@@ -274,7 +303,7 @@ class Profile(object):
             w = max(len(x[i]) for x in rows)
             maxwidths.append(w)
 
-        def _print_row(row, status):
+        def _print_row(row, status, color):
             row_ = [status]
             for i, txt in enumerate(row):
                 if i < len(row) - 1:
@@ -282,21 +311,25 @@ class Profile(object):
                     row_.append(txt + padding)
                 else:
                     row_.append(txt)
+            row_[-1] = color
             print_colored_columns([row_])
 
         def _callback(_1, index, profile_):
+            color=None
             if profile_ is None:
                 status = '?'
+                color = warning
             elif profile_ == -1:
                 status = '!'
+                color = critical
             else:
                 status = 'P'
-            _print_row(rows[index], status)
+            _print_row(rows[index], status, color)
             return True
 
-        _print_row(rows[0], ' ')  # heading
+        _print_row(rows[0], ' ', heading)  # heading
         underline_row = ['-' * x for x in maxwidths] + [heading]
-        _print_row(underline_row, ' ')
+        _print_row(underline_row, ' ', heading)
         rows = rows[1:]
 
         self._effective_logs(logs_, limit, since, callback=_callback)
@@ -509,8 +542,8 @@ class Profile(object):
                     try:
                         request = Requirement(request_str)
                     except VersionError as e:
-                        raise SomaError("Invalid request string %r in %r"
-                                        % (request_str, self._filepath(level)))
+                        raise SomaDataError("Invalid request string %r in %r"
+                                            % (request_str, self._filepath(level)))
 
                     key = request.name
                     if request.conflict:
@@ -706,7 +739,7 @@ class Profile(object):
             except SomaNotFoundError:
                 # profile was missing at this time, all config files deleted
                 profile_ = None
-            except SomaError as e:
+            except SomaDataError as e:
                 # broken profile, probably invalid data in config file
                 profile_ = -1
 

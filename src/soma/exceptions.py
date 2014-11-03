@@ -12,3 +12,8 @@ class SomaError(RezError):
 class SomaNotFoundError(SomaError):
     """A resource was not found."""
     pass
+
+
+class SomaDataError(SomaError):
+    """Invalid config data was read."""
+    pass

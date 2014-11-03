@@ -26,11 +26,13 @@ subcommands = dict(
          ["complete",
           "forward"]),
     soma=(["ls",
+           "env",
            "view",
            "log",
            "diff",
+           "wrap",
            "selftest"],
-          []))
+          ["wrap"]))
 
 
 class LazySubParsersAction(_SubParsersAction):

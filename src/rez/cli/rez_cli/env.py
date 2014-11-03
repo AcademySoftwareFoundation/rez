@@ -167,15 +167,14 @@ def command(opts, parser, extra_arg_groups=None):
 
         context = ResolvedContext(**kwargs)
 
-    success = (context.status == ResolverStatus.solved)
-    if not success:
+    if not context.success:
         context.print_info(buf=sys.stderr)
 
     if opts.output:
         context.save(opts.output)
-        sys.exit(0 if success else 1)
+        sys.exit(0 if context.success else 1)
 
-    if not success:
+    if not context.success:
         sys.exit(1)
 
     # generally shells will behave as though the '-s' flag was not present when
