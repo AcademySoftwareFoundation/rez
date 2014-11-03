@@ -1308,6 +1308,7 @@ class ResolvedContext(object):
         executor.bind('request', RequirementsBinding(self._package_requests))
         executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
+        executor.bind('user', self.user)
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
 
         #
