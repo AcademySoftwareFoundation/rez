@@ -89,7 +89,7 @@ setup(
             ['rezconfig', 'logging.conf'] +
             ['README*'] +
             find_files('*.*', 'completion') +
-            find_files('*.*', 'tests/data') +
+            find_files('*', 'tests/data') +
             find_files('*', 'contrib/animallogic/launcher/tests/data') +
             find_files('_unleasher', 'contrib/animallogic/unleash'),
         'rezplugins':

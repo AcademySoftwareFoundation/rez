@@ -247,8 +247,7 @@ class StandardBuildProcess(BuildProcess):
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=yaml_literal(_trim_changelog(changelog,
-                                                   changelog_maxsize)))
+            changelog=_trim_changelog(changelog, changelog_maxsize))
 
         if self.release_message:
             release_message = self.release_message.strip()

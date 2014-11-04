@@ -84,7 +84,6 @@ class TestRex(TestBase):
 
         return RexExecutor(interpreter=interp,
                            parent_environ=env,
-                           bind_rez=False,
                            shebang=False,
                            **kwargs)
 
@@ -155,6 +154,7 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
     def test_multiple_build_systems_without_cmake(self):
 
         working_dir = os.path.join(self.src_root, "multiple_build_systems_without_cmake")
+        print "!!!!", working_dir
         self.assertRaises(BuildSystemError, create_build_system, working_dir, opts=TestCMakeBuildSystem.FakeArgParseOpts())
 
     def test_current_variant_index_with_variants(self):

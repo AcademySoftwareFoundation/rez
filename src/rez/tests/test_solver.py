@@ -472,9 +472,6 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
                 return package.version
 
 def get_test_suites():
-    register_resource(VersionlessPackageResource)
-    register_resource(VersionlessVariantResource)
-
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestSolver("test_1"))

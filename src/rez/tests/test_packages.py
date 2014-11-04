@@ -24,15 +24,15 @@ ALL_PACKAGES = set([
     'single_unversioned',
     'single_versioned-3.5',
     'multi-1.0', 'multi-1.1', 'multi-1.2','bah-2.0.0',
-    'multi_packages_variant_sorted', 'asymmetric_variants', 'bar-4.5.3',
-    'permuted_family_names_same_position_weight', 'eek-1.0.1', 'bar-4.8.5',
-    'multi_packages_variant_unsorted', 'package_name_in_require_and_variant',
-    'multi_version_variant_lower_to_higher_version_order', 'bar-4.8.2',
-    'variable_variant_package_in_single_column', 'three_packages_in_variant',
-    'multi_version_variant_higher_to_lower_version_order', 'eek-2.0.0',
-    'two_packages_in_variant_unsorted', 'variant_with_weak_package_in_variant',
+    'multi_packages_variant_sorted-1', 'asymmetric_variants-1', 'bar-4.5.3',
+    'permuted_family_names_same_position_weight-1', 'eek-1.0.1', 'bar-4.8.5',
+    'multi_packages_variant_unsorted-1', 'package_name_in_require_and_variant-1',
+    'multi_version_variant_lower_to_higher_version_order-1', 'bar-4.8.2',
+    'variable_variant_package_in_single_column-1', 'three_packages_in_variant-1',
+    'multi_version_variant_higher_to_lower_version_order-1', 'eek-2.0.0',
+    'two_packages_in_variant_unsorted-1', 'variant_with_weak_package_in_variant-1',
     'foo-1.1.0', 'eek-1.0.0', 'bah-1.0.0', 'bah-1.0.1', 'foo-1.0.0',
-    'permuted_family_names', 'variant_with_antipackage'])
+    'permuted_family_names-1', 'variant_with_antipackage-1'])
 
 
 ALL_FAMILIES = set(x.split('-')[0] for x in ALL_PACKAGES)
