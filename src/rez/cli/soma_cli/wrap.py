@@ -15,6 +15,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from soma.production_config import ProductionConfig
+    from soma.exceptions import SomaNotFoundError
     from soma.wrapper import Wrapper
     import sys
 
@@ -27,7 +28,12 @@ def command(opts, parser, extra_arg_groups=None):
         _error()
 
     pc = ProductionConfig.get_current_config()
-    profile = pc.profile(opts.PROFILE)
+
+    try:
+        profile = pc.profile(opts.PROFILE)
+    except SomaNotFoundError:
+        print >> sys.stderr, "The tool's profile %r does not exist" % opts.PROFILE
+        sys.exit(112)  # reserved for stale tool error code
 
     command = extra_arg_groups[0]
     args = extra_arg_groups[1]

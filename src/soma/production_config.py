@@ -121,6 +121,32 @@ class ProductionConfig(object):
 
         return overrides
 
+    def shell_code(self, shell=None):
+        """Return shell code which, when sourced, creates the configured Soma
+        environment.
+
+        This basically involves creating shell aliases / functions for the tools
+        available in all the profiles.
+        """
+        from rez.shells import create_shell
+        from rez.rex import RexExecutor, OutputStyle
+        from shlex import split as shlex_split
+
+        executor = RexExecutor(interpreter=create_shell(shell),
+                               output_style=OutputStyle.eval,
+                               shebang=False)
+
+        for name in self.profile_names:
+            profile = self.profile(name)
+            tools = profile.tools
+            for tool_name, tool_command in tools.iteritems():
+                if isinstance(tool_command, basestring):
+                    tool_command = shlex_split(tool_command)
+                command = ["soma", "wrap", name, "--"] + tool_command + ["--"]
+                executor.alias(tool_name, command)
+
+        return executor.get_output()
+
     def print_info(self, list_mode=False, tools=False, pattern=None,
                    verbose=False):
         """Print a summary of the ProductionConfig.
@@ -149,8 +175,11 @@ class ProductionConfig(object):
 
     @classmethod
     def get_current_config(cls, time_=None):
+        paths_str = os.getenv(cls.profiles_path_variable)
+        if not paths_str:
+            raise SomaError("$%s not set" % cls.profiles_path_variable)
+
         subpath = os.getenv(cls.profiles_subpath_variable)
-        paths_str = os.getenv(cls.profiles_path_variable, '')
         paths = split_path(paths_str)
 
         if time_ is None:

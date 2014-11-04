@@ -5,6 +5,7 @@ import sys
 import select
 import os
 import os.path
+import pipes
 import subprocess
 from rez.config import config
 from rez import module_root_path
@@ -106,8 +107,16 @@ class SH(UnixShell):
         self._addline("unset %s" % key)
 
     def alias(self, key, value):
+        if hasattr(value, "__iter__"):
+            value = ' '.join(map(pipes.quote, value))
+        value += ' "$@"'
+
         cmd = "function {key}() {{ {value}; }};export -f {key};"
         self._addline(cmd.format(key=key, value=value))
+
+    def unalias(self, key):
+        cmd = "unset -f {key}"
+        self._addline(cmd.format(key=key))
 
     def _saferefenv(self, key):
         pass

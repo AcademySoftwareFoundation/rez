@@ -6,9 +6,9 @@ import sys
 import pkgutil
 import textwrap
 from itertools import groupby
-from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
+from rez.backport.importlib import import_module
+from rez.vendor.argparse import SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
-from rez import __version__
 
 
 class SetupRezSubParser(object):
@@ -56,24 +56,14 @@ def _add_common_args(parser):
                         help=SUPPRESS)
 
 
-class InfoAction(_StoreTrueAction):
-    def __call__(self, parser, args, values, option_string=None):
-        print
-        print "Rez %s" % __version__
-        print
-        from rez.plugin_managers import plugin_manager
-        print plugin_manager.get_summary_string()
-        print
-        sys.exit(0)
-
-
 def run(command=None, namespace="rez"):
     parser = LazyArgumentParser(namespace)
 
-    parser.add_argument("-i", "--info", action=InfoAction,
-                        help="print information about rez and exit")
-    parser.add_argument("-V", "--version", action="version",
-                        version="Rez %s" % __version__)
+    # top-level-only arguments
+    module = import_module("rez.cli.%s_cli" % namespace)
+    fn = getattr(module, "add_top_level_arguments", None)
+    if fn:
+        fn(parser)
 
     # add args common to all subcommands... we add them both to the top parser,
     # AND to the subparsers, for two reasons:

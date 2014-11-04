@@ -1032,8 +1032,9 @@ class ResolvedContext(object):
                 return immediately. If None, will default to blocking if the
                 shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
-                the user append custom actions to the context, such as setting
-                extra environment variables.
+                the user add custom actions to the context, such as setting
+                extra environment variables. These actions are run before package
+                actions.
             context_filepath: If provided, the context file will be written
                 here, rather than to the default location (which is in a
                 tempdir). If you use this arg, you are responsible for cleaning
