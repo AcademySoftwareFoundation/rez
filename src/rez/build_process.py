@@ -154,9 +154,6 @@ class StandardBuildProcess(BuildProcess):
                                        self.package.config.build_directory,
                                        "release")
 
-        if not os.path.exists(install_path):
-            raise ReleaseError("Release path does not exist: %r" % install_path)
-
         print "Checking state of repository..."
         self.vcs.validate_repostate()
         release_path = self._get_base_install_path(install_path)
