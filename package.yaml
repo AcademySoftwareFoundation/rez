@@ -4,7 +4,7 @@ uuid: 97937642-3646-4966-ab9c-8f337bbbce6a
 
 name: rez
 
-version: 2.0.b.12.0
+version: 2.0.b.12.1
 
 authors: [ rez ]
 
@@ -20,8 +20,8 @@ requires:
 - setuptools
 
 variants:
-- [ python-2.6 ]
-- [ python-2.7 ]
+- [ CentOS-6.2+<7, python-2.6 ]
+- [ CentOS-6.2+<7, python-2.7 ]
 
 commands:
 - export PATH=!ROOT!/bin:$PATH

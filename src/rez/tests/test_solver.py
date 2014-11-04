@@ -1,5 +1,7 @@
 import shutil
 import tempfile
+from rez.package_resources import VersionlessPackageResource, VersionlessVariantResource
+from rez.resources import register_resource
 from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
@@ -8,7 +10,6 @@ from rez.tests.util import TestBase
 import itertools
 import os.path
 from rez.vendor.version.version import Version
-
 
 class TestSolver(TestBase):
     @classmethod
@@ -19,17 +20,17 @@ class TestSolver(TestBase):
             packages_path=[packages_path])
 
     def _create_solvers(self, reqs):
-        s1 = Solver(reqs,
+        s1 = Solver(reqs, TestSolver.settings['packages_path'],
                     optimised=True,
                     verbosity=Solver.max_verbosity)
-        s2 = Solver(reqs,
+        s2 = Solver(reqs, TestSolver.settings['packages_path'],
                     optimised=False,
                     verbosity=Solver.max_verbosity)
 
         s_perms = []
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
-            s = Solver(reqs_,
+            s = Solver(reqs_, TestSolver.settings['packages_path'],
                        optimised=True,
                        verbosity=Solver.max_verbosity)
             s_perms.append(s)
@@ -233,9 +234,12 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    def _solve(self, request, expected_packages=[], non_expected_packages=[]):
+    def _solve(self, request, expected_packages=[], non_expected_packages=[], fails_to_resolve=False):
 
         resolved_context = ResolvedContext(request)
+        if fails_to_resolve:
+            self.assertIsNone(resolved_context.resolved_packages)
+            return
         for package in expected_packages:
             expected_package_name, package_version = package.split('-')
             expected_package_version = Version(package_version)
@@ -301,12 +305,12 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         diff packages with the same average positional weight
         """
 
-        ###################### 1 #########################
-        request = ['variable_variant_package_in_single_column', 'bah']
+        ##################### 1 #########################
+        request = ['variable_variant_package_in_single_column', 'bah-1.0.1']
         expected_packages = ['foo-1.0.0', 'bah-1.0.1']
         self._solve(request, expected_packages)
 
-        ###################### 2 #########################
+        ##################### 2 #########################
         request = ['variable_variant_package_in_single_column', 'eek']
         expected_packages = ['foo-1.1.0', 'eek-1.0.1']
         self._solve(request, expected_packages)
@@ -420,12 +424,28 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         expected_packages = ['bah-1.0.0', 'eek-1.0.1']
         self._solve(request, expected_packages)
 
+        request = [ 'asymmetric_variants', 'variant_with_antipackage', 'eek', 'bah-2']
+        self._solve(request, [], fails_to_resolve=True)
+
+
     def test_variant_with_weak_packages(self):
         """
         Test that the variant with a weak package gets sorted at the end
         """
 
+        request = ['variant_with_weak_package_in_variant', 'bah-1']
+        expected_packages = ['bah-1.0.1']
+        self._solve(request, expected_packages)
+
         request = ['variant_with_weak_package_in_variant', 'bah']
+        expected_packages = ['bah-1.0.1']
+        self._solve(request, expected_packages)
+
+        request = ['variant_with_weak_package_in_variant', 'bah-2']
+        expected_packages = ['bah-2.0.0']
+        self._solve(request, expected_packages)
+
+        request = ['variant_with_weak_package_in_variant']
         expected_packages = ['bah-1.0.1']
         self._solve(request, expected_packages)
 
@@ -452,6 +472,9 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
                 return package.version
 
 def get_test_suites():
+    register_resource(VersionlessPackageResource)
+    register_resource(VersionlessVariantResource)
+
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestSolver("test_1"))

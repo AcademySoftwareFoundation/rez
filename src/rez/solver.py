@@ -333,7 +333,7 @@ class VariantSorter(object):
         intersection_weight_dict = self._weight_variants_against_family_request()
 
         ordered_variants = []
-        for weight in sorted(intersection_weight_dict.keys()):  # Sorted, so we start adding the least weight first
+        for weight in sorted(intersection_weight_dict.keys(), reverse=True):  # Reversed, so we start adding the heaviest first
             variants_slice = intersection_weight_dict[weight]
             variants_sorted_by_version_range = self._sort_variants_by_version_range(variants_slice,
                                                                                     self.fam_requires[:])
@@ -395,7 +395,7 @@ class VariantSorter(object):
             fam_name = None
             groups = self.group_by_number_of_packages(variants_slice)
 
-        for _, tied_variants in sorted(groups.items(), key=itemgetter(0)):
+        for _, tied_variants in sorted(groups.items(), key=itemgetter(0), reverse=True):
             if len(tied_variants) == 1:
                 # we broke the tie append
                 ordered_variant_list.append(tied_variants[0])
@@ -788,8 +788,8 @@ class _PackageVariantList(_Common):
                     value.append(variant)
 
                 # sort all now by version and variant
-                loaded_variants = sorted(value, key=lambda v: (v.version, v.index))
-                entry[1] = loaded_variants
+                value = sorted(value, key=lambda v: (v.version, v.index))
+                entry[1] = value
 
             variants.extend(value)
             num_packages += 1
