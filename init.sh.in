@@ -13,9 +13,25 @@ export REZ_PATH=@rez_path@
 export PATH=${REZ_PATH}/bin:${PATH}
 export PYTHONPATH=${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
 
-export REZ_PACKAGES_PATH=`rez config packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
-export REZ_LOCAL_PACKAGES_PATH=`rez config local_packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
-export REZ_RELEASE_PACKAGES_PATH=`rez config release_packages_path | sed 's/- //' | sed 'N;s/\n/:/' | sed 's/:$//'`
+# where rez will publish local packages to (ie those installed with rez-build -- -- install)
+if [ "$REZ_LOCAL_PACKAGES_PATH" == "" ]; then
+	export REZ_LOCAL_PACKAGES_PATH=$HOME/packages
+fi
+
+# where unleash will publish packages to (ie those released with rez-unleash)
+if [ "$REZ_UNLEASH_PACKAGES_PATH" == "" ]; then
+	export REZ_UNLEASH_PACKAGES_PATH=/var/tmp/rezunleash/
+fi
+
+# where rez will publish packages to (ie those released with rez-release)
+if [ "$REZ_RELEASE_PACKAGES_PATH" == "" ]; then
+	export REZ_RELEASE_PACKAGES_PATH=/film/tools/packages
+fi
+
+# where rez searches for packages
+if [ "$REZ_PACKAGES_PATH" == "" ]; then
+	export REZ_PACKAGES_PATH=$REZ_LOCAL_PACKAGES_PATH:$REZ_RELEASE_PACKAGES_PATH
+fi
 
 # Tell Rez where our downloads live.
 export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
