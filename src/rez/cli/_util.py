@@ -26,7 +26,8 @@ subcommands = [
     "selftest",
     "unleash",
     "whatprovides",
-    "gui"]
+    "gui",
+    "yaml2py"]
 
 
 hidden_subcommands = [
