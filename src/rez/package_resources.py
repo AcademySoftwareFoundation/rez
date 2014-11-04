@@ -1,6 +1,7 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
-    Required, metadata_loaders, iter_descendant_resources
+    Required, metadata_loaders, iter_descendant_resources, _listdir, \
+    _ResourcePathParser
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceNotFoundError, \
     PackageMetadataError
@@ -9,6 +10,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import Requirement
+import os.path
 import string
 import re
 
@@ -367,6 +369,23 @@ class VersionedPackageResource(BasePackageResource):
     variable_keys = ["ext"]
     variable_regex = dict(ext=_or_regex(metadata_loaders.keys()))
     versioned = True
+
+    @classmethod
+    def iter_instances(cls, parent_resource):
+        instances = []
+        for name in _listdir(parent_resource.path, cls.is_file):
+            match = _ResourcePathParser.parse_filepart(cls, name)
+            if match is not None:
+                variables = match[1]
+                variables.update(parent_resource.variables)
+                filepath = os.path.join(parent_resource.path, name)
+                instances.append(cls(filepath, variables))
+
+        ext_sort_order = ['py', 'yaml', 'txt']
+        if instances:
+            instances.sort(
+                key=lambda x: ext_sort_order.index(x.variables['ext']))
+            yield instances[0]
 
     def convert_version(self, value):
         """Deals with two errors:
