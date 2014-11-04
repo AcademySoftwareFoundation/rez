@@ -38,4 +38,6 @@ def command(opts, parser, extra_arg_groups=None):
 
     content_before = _content(opts.BEFORE)
     content_after = _content(opts.AFTER)
-    diff_content(content_before, content_after, "BEFORE", "AFTER")
+    before_label = "BEFORE_%s" % opts.BEFORE
+    after_label = ("AFTER_%s" % opts.AFTER) if opts.AFTER else "NOW"
+    diff_content(content_before, content_after, before_label, after_label)

@@ -1,4 +1,5 @@
 from rez.vendor.sh import sh
+from rez.vendor.enum import Enum
 from soma.exceptions import SomaError
 from soma.util import time_as_epoch
 from datetime import datetime
@@ -6,6 +7,16 @@ from fnmatch import fnmatch
 import time
 import os.path
 import os
+
+
+class FileStatus(Enum):
+    """Enum to represent the status of a file in the store."""
+    added = ('A',)
+    modified = ('M',)
+    deleted = ('D',)
+
+    def __init__(self, abbrev):
+        self.abbrev = abbrev
 
 
 class FileStore(object):
@@ -80,14 +91,15 @@ class FileStore(object):
         if not toks:
             return
 
-        if toks[0] == "??":
+        status = toks[0]
+        if status == "??":
             try:
                 proc = self.git.add(filename)
             except sh.ErrorReturnCode as e:
                 self._error("Error adding file %s to %s" % (filename, self.path), e)
 
         try:
-            proc = self.git.commit(filename, m="", allow_empty_message=True)
+            proc = self.git.commit(filename, m=status)
         except sh.ErrorReturnCode as e:
             self._error("Error committing file %s to %s" % (filename, self.path), e)
 
@@ -97,16 +109,18 @@ class FileStore(object):
         This operation also updates the given file.
 
         Args:
+            filename (str): Name of file to read.
             time_ (`DateTime` or int): Get the file contents as they were at
                 the given time. If int, `time` is interpreted as linux epoch
                 time. If None, present time is used.
 
         Returns:
-            None if the file does not/did not exist, or a 3-tuple containing:
+            None if the file does not/did not exist, or a 5-tuple containing:
             - str: Contents of the file;
             - str: File handle;
             - int: Epoch time of the file commit;
-            - str: Author name.
+            - str: Author name;
+            - `FileStatus` object.
         """
         self.update(filename)
 
@@ -116,19 +130,47 @@ class FileStore(object):
         epoch = time_as_epoch(time_)
         commits = self._file_commits(filename=filename, limit=1, until=epoch)
         if commits:
-            commit_hash, commit_time, author = commits[0]
-            commit_time = int(commit_time)
+            commit_hash, commit_time, author, file_status = commits[0]
         else:
             return None  # file was not committed at or before this time
 
-        try:
-            proc = self.git.show("%s:%s" % (commit_hash, filename))
-        except sh.ErrorReturnCode:
-            return None  # file did not exist at this time
-
-        contents = proc.stdout
         handle = commit_hash
-        return contents, handle, commit_time, author
+        contents = self._file_contents(filename, handle)
+        return contents, handle, commit_time, author, file_status
+
+    def read_from_handle(self, filename, handle):
+        """Read a file given a commit handle.
+
+        Args:
+            filename (str): Name of file to read.
+            handle (str): Commit handle of file.
+
+        Returns:
+            A 4-tuple containing:
+            - str: Contents of the file (or None if the file is deleted);
+            - int: Epoch time of the file commit;
+            - str: Author name;
+            - `FileStatus` object.
+        """
+        try:
+            format_arg = "--format=%H %at [%s] %an"
+            proc = self.git.log(format_arg, "-n1", handle, "--", filename)
+        except sh.ErrorReturnCode_128 as e:
+            words = proc.stderr.split()
+            if "bad" in words and "object" in words:
+                self._error("Invalid file handle:", handle)
+            else:
+                self._error("Error getting git log", e)
+        except sh.ErrorReturnCode as e:
+            self._error("Error getting git log", e)
+
+        _, commit_epoch, author_name, file_status = self._parse_log_line(proc.stdout)
+        if file_status == FileStatus.deleted:
+            contents = None
+        else:
+            contents = self._file_contents(filename, handle)
+
+        return contents, commit_epoch, author_name, file_status
 
     def file_logs(self, filename, limit=None, since=None, until=None):
         """Get a list of log entries for a file.
@@ -140,10 +182,11 @@ class FileStore(object):
             until (`DateTime` or int): Only return entries at or before this time.
 
         Returns:
-            List of 3-tuples where each contains:
+            List of 4-tuples where each contains:
             - str: File handle;
             - int: Epoch time of the file commit;
-            - str: Author name.
+            - str: Author name;
+            - `FileStatus` object.
 
             The list is ordered from most recent commit to last.
         """
@@ -189,9 +232,21 @@ class FileStore(object):
                 return False
         return True
 
+    def _parse_log_line(self, line):
+        # returns (commit_hash, commit_epoch, author_name, file_status)
+        commit_hash, commit_time, file_status, author = line.split(None, 3)
+        file_status = file_status[1:-1]
+        if file_status == "??":
+            file_status = FileStatus.added
+        elif file_status == 'D':
+            file_status = FileStatus.deleted
+        else:
+            file_status = FileStatus.modified
+        return commit_hash, int(commit_time), author, file_status
+
     def _file_commits(self, limit=None, since=None, until=None, filename=None):
-        # returns [(commit_hash, commit_epoch, author_name)]
-        nargs = ["--format=%H %at %an"]
+        # returns [(commit_hash, commit_epoch, author_name, file_status)]
+        nargs = ["--format=%H %at [%s] %an"]
         if limit:
             nargs.append("-n%d" % limit)
         if since is not None:
@@ -211,12 +266,19 @@ class FileStore(object):
             out = out.strip()
             if not out:
                 continue
-
-            commit_hash, commit_time, author = out.split(None, 2)
-            results.append((commit_hash, int(commit_time), author))
+            entry = self._parse_log_line(out)
+            results.append(entry)
 
         return results
 
+    def _file_contents(self, filename, handle):
+        try:
+            proc = self.git.show("%s:%s" % (handle, filename))
+        except sh.ErrorReturnCode:
+            return None  # file did not exist at this time
+        return proc.stdout
+
     @classmethod
     def _error(cls, msg, e):
-        raise SomaError("%s\n%s" % (msg, str(e)))
+        raise SomaError("Error in file store at %r:\n%s\n%s"
+                        % (self.path, msg, str(e)))

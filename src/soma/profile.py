@@ -175,11 +175,41 @@ class Profile(object):
             - str: Contents of the override file;
             - str: Handle of the commit;
             - int: Epoch time of the commit;
-            - str: Author.
+            - str: Author;
+            - `FileStatus` object.
 
             The list is is ascending level order.
         """
         return self.parent.raw_profile(self.name)
+
+    def file_log(self, handle):
+        """Get the log entry for a particular file commit.
+
+        Unlike `logs`, the content of the file is returned.
+
+        Args:
+            handle (str): File handle.
+
+        Returns:
+            A 5-tuple containing:
+            - int: Level of the override;
+            - str: Contents of the file (or None if the file is deleted);
+            - int: Epoch time of the file commit;
+            - str: Author name;
+            - `FileStatus` object.
+        """
+        logs_ = self.logs()
+        logs_ = [x for x in logs_ if x[1] == handle]
+        if not logs_:
+            raise SomaNotFoundError("Unknown file handle %r in profile %r"
+                                    % (handle, self.name))
+        level, _, commit_time, author_name, file_status = logs_[0]
+
+        filename = "%s.yaml" % self.name
+        store = self.parent.stores[level]
+        content, _, _, _ = store.read_from_handle(filename, handle)
+
+        return level, content, commit_time, author_name, file_status
 
     def logs(self, limit=None, since=None, until=None):
         """Return a list of log entries of files that may affect this profile.
@@ -193,18 +223,22 @@ class Profile(object):
             until (`DateTime` or int): Only return entries at or before this time.
 
         Returns:
-            List of 4-tuples where each contains:
+            List of 5-tuples where each contains:
             - int: Level of the override;
             - str: File handle;
             - int: Epoch time of the file commit;
-            - str: Author name.
+            - str: Author name;
+            - `FileStatus` object.
 
             The list is ordered from most recent commit to last.
         """
         filename = "%s.yaml" % self.name
         all_entries = []
 
-        for level, _ in self._overrides:
+        # note that all levels have to be checked, not just those currently
+        # containing overrides, because a deleted override is just as important
+        # in the log as a changed one
+        for level in range(self.parent.num_levels):
             store = self.parent.stores[level]
             entries = store.file_logs(filename=filename, limit=limit,
                                       since=since, until=until)
@@ -304,13 +338,15 @@ class Profile(object):
             maxwidths.append(w)
 
         def _print_row(row, status, color):
-            row_ = [status]
+            row_ = []
             for i, txt in enumerate(row):
                 if i < len(row) - 1:
                     padding = (maxwidths[i] - len(txt)) * ' '
                     row_.append(txt + padding)
                 else:
                     row_.append(txt)
+
+            row_[0] = status
             row_[-1] = color
             print_colored_columns([row_])
 
@@ -323,7 +359,7 @@ class Profile(object):
                 status = '!'
                 color = critical
             else:
-                status = 'P'
+                status = ' '
             _print_row(rows[index], status, color)
             return True
 
@@ -485,7 +521,7 @@ class Profile(object):
         now = int(time.time())
 
         titles = []
-        for level, _, handle, commit_time, author in overrides:
+        for level, _, handle, commit_time, author, _ in overrides:
             levels_str = self.parent._overrides_str(level)
             readable_time = readable_time_duration(now - commit_time)
             time_str = "(%s, %s ago)" % (author, readable_time)
@@ -505,7 +541,7 @@ class Profile(object):
             maxwidth = max((len(x) + len(y) + 2) for x, y in titles)
             br = '-' * maxwidth
 
-        for i, (_, content, _, _, _) in enumerate(overrides):
+        for i, (_, content, _, _, _, _) in enumerate(overrides):
             title, time_str = titles[i]
             if do_formatting:
                 spacer = (maxwidth - len(title) - len(time_str)) * ' '
@@ -701,18 +737,18 @@ class Profile(object):
         levels_str = self.parent._overrides_str(all_levels)
 
         rows = []
-        row = [levels_str, "LEVEL"]
+        row = ["OP", levels_str, "LEVEL"]
         if verbose:
             row.append("HANDLE")
         row.extend(["AUTHOR", "DATE", heading])
         rows.extend([row, [None, heading]])
 
-        for level, handle, commit_time, author in logs_:
+        for level, handle, commit_time, author, file_status in logs_:
             level_str = self.parent._overrides_str(level)
             path = self.parent.searchpath[level]
             time_str = "%d - %s" % (commit_time, get_timestamp_str(commit_time))
 
-            row = [level_str, path]
+            row = [file_status.abbrev, level_str, path]
             if verbose:
                 row.append(handle)
             row.extend([author, time_str, None])
@@ -729,7 +765,7 @@ class Profile(object):
         prev_profile = None
         nlogs = len(logs_)
 
-        for i, (level, handle, commit_time, author) in enumerate(logs_):
+        for i, (level, handle, commit_time, author, file_status) in enumerate(logs_):
             if progress_callback and not progress_callback(i, nlogs):
                 return entries
 

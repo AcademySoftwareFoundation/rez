@@ -74,7 +74,7 @@ class ProductionConfig(object):
         overrides = self.raw_profile(name)
         overrides_ = []
 
-        for level, content, _, _, _ in overrides:
+        for level, content, _, _, _, _ in overrides:
             store = self.stores[level]
             try:
                 data = yaml.load(content)
@@ -101,7 +101,8 @@ class ProductionConfig(object):
             - str: Contents of the override file;
             - str: Handle of the commit;
             - int: Epoch time of the commit;
-            - str: Author.
+            - str: Author;
+            - `FileStatus` object.
 
             The list is is ascending level order.
         """
@@ -114,10 +115,13 @@ class ProductionConfig(object):
 
         for i in levels:
             store = self.stores[i]
-            content, handle, commit_time, author \
-                = store.read(filename, time_=self.time_)
-            override = (i, content.strip(), handle, commit_time, author)
-            overrides.append(override)
+            r = store.read(filename, time_=self.time_)
+            if r:
+                content, handle, commit_time, author, file_status = r
+                if content is not None:
+                    content = content.strip()
+                override = (i, content, handle, commit_time, author, file_status)
+                overrides.append(override)
 
         return overrides
 

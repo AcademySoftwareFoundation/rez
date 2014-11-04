@@ -16,6 +16,7 @@ class Wrapper(object):
         """Run the command with the given args."""
         from rez.config import config
         from rez.vendor import argparse
+        from rez.exceptions import ErrorCode
 
         prefix_char = config.suite_alias_prefix_char
         parser = argparse.ArgumentParser(prefix_chars=prefix_char)
@@ -63,7 +64,7 @@ class Wrapper(object):
             context.save(filepath)
             print >> sys.stderr, ("The tool's environment failed to resolve. The "
                                   "context has been saved to %s" % filepath)
-            sys.exit(111)  # reserved code indicating failed resolve in wrapper
+            sys.exit(ErrorCode.failed_wrapper_resolve.value)
 
         if opts.interactive:
             config.override("prompt", "%s>" % self.profile.name)
