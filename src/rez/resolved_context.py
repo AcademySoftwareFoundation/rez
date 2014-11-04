@@ -1202,7 +1202,7 @@ class ResolvedContext(object):
             if identifier_str:
                 msg.append("in %s" % identifier_str)
             msg.append("was written by a newer version of Rez. The load may "
-                       "fail (serialize version %d > %d)"
+                       "fail (serialize version %s > %s)"
                        % (_print_version(load_ver), _print_version(curr_ver)))
             print >> sys.stderr, ' '.join(msg)
 
