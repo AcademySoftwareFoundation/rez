@@ -17,6 +17,26 @@ else
     setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
 endif
 
+# where rez will publish local packages to (ie those installed with rez-build -- -- install)
+if (! $?REZ_LOCAL_PACKAGES_PATH ) then
+    setenv REZ_LOCAL_PACKAGES_PATH $HOME/packages
+endif
+
+# where unleash will publish packages to (ie those released with rez-unleash)
+if (! $?REZ_UNLEASH_PACKAGES_PATH ) then
+    setenv REZ_UNLEASH_PACKAGES_PATH /var/tmp/rezunleash/
+endif
+
+# where rez will publish packages to (ie those released with rez-release)
+if (! $?REZ_RELEASE_PACKAGES_PATH ) then
+    setenv REZ_RELEASE_PACKAGES_PATH /film/tools/packages
+endif
+
+# where rez searches for packages
+if (! $?REZ_PACKAGES_PATH ) then
+    setenv REZ_PACKAGES_PATH ${REZ_LOCAL_PACKAGES_PATH}:${REZ_RELEASE_PACKAGES_PATH}
+endif
+
 # Tell Rez where our downloads live.
 setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
 

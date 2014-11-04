@@ -148,12 +148,13 @@ class StandardBuildProcess(BuildProcess):
     def release(self):
         assert(self.vcs)
         install_path = self.package.config.release_packages_path
+
+        if not os.path.exists(install_path):
+            os.mkdir(install_path)
+
         base_build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory,
                                        "release")
-
-        if not os.path.exists(install_path):
-            raise ReleaseError("Release path does not exist: %r" % install_path)
 
         print "Checking state of repository..."
         self.vcs.validate_repostate()
@@ -234,11 +235,20 @@ class StandardBuildProcess(BuildProcess):
         self._hdr("Releasing %s..." % self.package.qualified_name)
         _do_build(install=True, clean=False)
 
+        def _trim_changelog(changelog, maxsize):
+            if maxsize == -1:
+                return changelog
+
+            lines = changelog.split("\n")
+            return "\n".join(lines[:maxsize])
+
         # write release info (changelog etc) into release path
+        changelog_maxsize = self.package.config.changelog_maxsize
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=changelog)
+            changelog=yaml_literal(_trim_changelog(changelog,
+                                                   changelog_maxsize)))
 
         if self.release_message:
             release_message = self.release_message.strip()

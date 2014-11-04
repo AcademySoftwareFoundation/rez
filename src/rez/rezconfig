@@ -222,6 +222,9 @@ debug_all: false
 # Turn off all debugging messages. This overrides debug_all.
 debug_none: false
 
+# Prune unnecessary nodes in a graph that contains conflicts
+prune_conflict_graph: false
+
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
 # generally not interesting to the package author. If set to False, rex errors
@@ -248,6 +251,16 @@ build_directory: build
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
 release_hooks: []
+
+# Limit the size of the changelog that is written to the release.yaml file. A
+# large changelog (especially one stretching to many megabytes) can
+# significantly hurt the performance of Rez at runtime as time is lost parsing
+# the yaml file.  Note this will only affect the size of the changelog in the
+# release.yaml file, it will not affect the changelog that appears in post-
+# release emails or elsewhere in the system.  No care is taken to ensure the
+# log is truncated gracefully so sentences may be cut off midway etc.
+# The size is measured in lines.  A value of -1 denotes an unbound changelog.
+changelog_maxsize: 0
 
 
 ###############################################################################

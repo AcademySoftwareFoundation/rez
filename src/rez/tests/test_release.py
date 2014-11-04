@@ -91,10 +91,6 @@ class TestRelease(TestBase, TempdirMixin):
 
         # do a release
         builder = _create_builder()
-        with self.assertRaises(ReleaseError):
-            builder.release()
-
-        os.mkdir(self.install_root)
         builder.release()
 
         # check a file to see the release made it
