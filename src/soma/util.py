@@ -81,6 +81,9 @@ def glob_transform(src_pattern, dest_pattern, txt):
 
 
 def print_columns(items):
+    if not items:
+        return
+
     if not sys.stdout.isatty():
         print '\n'.join(str(x) for x in items)
         return

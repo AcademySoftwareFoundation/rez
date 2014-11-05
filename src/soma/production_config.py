@@ -30,7 +30,8 @@ class ProductionConfig(object):
             subpath (str): If provided, override files are stored under this
                 subpath within each searchpath.
             time_ (`DateTime` or int): Ignore profile updates and package
-                releases after the given time.
+                releases after the given time. If specified, this will also
+                ignore any locks.
         """
         self.searchpath = searchpath
         self.num_levels = len(searchpath)
@@ -42,7 +43,8 @@ class ProductionConfig(object):
         for path in searchpath:
             if subpath:
                 path = os.path.join(path, subpath)
-            store = FileStore(path, include_patterns=["*.yaml"])
+            store = FileStore(path, include_patterns=("*.yaml",),
+                              ignore_patterns=("_*",))
             self.stores.append(store)
 
     @propertycache

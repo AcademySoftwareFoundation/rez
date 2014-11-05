@@ -19,16 +19,24 @@ def setup_parser(parser, completions=False):
         help="read commands from string. Alternatively, list command arguments "
         "after a '--'")
     parser.add_argument(
+        "--time", type=str,
+        help="ignore profile updates and package releases after the given time. "
+        "Supported formats are: epoch time (eg 1393014494), or relative time "
+        "(eg -10s, -5m, -0.5h, -10d)")
+    parser.add_argument(
         "PROFILE",
         help="name of profile")
 
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
+    from rez.util import get_epoch_time_from_str
     from soma.production_config import ProductionConfig
     import sys
 
-    pc = ProductionConfig.get_current_config()
+    time_ = get_epoch_time_from_str(opts.time) if opts.time else None
+    pc = ProductionConfig.get_current_config(time_=time_)
+
     profile = pc.profile(opts.PROFILE)
 
     context = profile.context(include_local=opts.local,

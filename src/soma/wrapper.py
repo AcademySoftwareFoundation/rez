@@ -16,7 +16,7 @@ class Wrapper(object):
         """Run the command with the given args."""
         from rez.config import config
         from rez.vendor import argparse
-        from rez.exceptions import ErrorCode
+        from soma.exceptions import ErrorCode
 
         prefix_char = config.suite_alias_prefix_char
         parser = argparse.ArgumentParser(prefix_chars=prefix_char)

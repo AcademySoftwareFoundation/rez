@@ -63,7 +63,8 @@ class FileStore(object):
 
         if not os.path.exists(os.path.join(self.path, ".git")):
             try:
-                proc = self.git.init()
+                self.git.init()
+                self.git.commit(message="init", allow_empty=True)
             except sh.ErrorReturnCode as e:
                 self._error("Error initialising git repo at %s" % self.path, e)
 
@@ -155,14 +156,12 @@ class FileStore(object):
         try:
             format_arg = "--format=%H %at [%s] %an"
             proc = self.git.log(format_arg, "-n1", handle, "--", filename)
-        except sh.ErrorReturnCode_128 as e:
+        except sh.ErrorReturnCode as e:
             words = proc.stderr.split()
             if "bad" in words and "object" in words:
                 self._error("Invalid file handle:", handle)
             else:
                 self._error("Error getting git log", e)
-        except sh.ErrorReturnCode as e:
-            self._error("Error getting git log", e)
 
         _, commit_epoch, author_name, file_status = self._parse_log_line(proc.stdout)
         if file_status == FileStatus.deleted:
@@ -223,14 +222,10 @@ class FileStore(object):
             return proc.stdout.strip().split()
 
     def _valid_filename(self, filename):
-        if self.include_patterns and (not any(fnmatch(filename, x)
-                                      for x in self.include_patterns)):
+        if self.include_patterns and \
+                not any(fnmatch(filename, x) for x in self.include_patterns):
             return False
-
-        for pattern in self.ignore_patterns:
-            if fnmatch(filename, pattern):
-                return False
-        return True
+        return not any(fnmatch(filename, x) for x in self.ignore_patterns)
 
     def _parse_log_line(self, line):
         # returns (commit_hash, commit_epoch, author_name, file_status)
@@ -256,13 +251,23 @@ class FileStore(object):
         if filename:
             nargs.extend(["--", filename])
 
-        try:
-            proc = self.git.log(*nargs, _iter=True)
-        except sh.ErrorReturnCode as e:
-            self._error("Error getting git log", e)
+        # this doesn't run the command until iteration starts
+        proc = self.git.log(*nargs, _iter=True)
+
+        def _iter():
+            while True:
+                try:
+                    out = proc.next()
+                    yield out
+                except sh.ErrorReturnCode as e:
+                    words = proc.stderr.split()
+                    if "bad" in words and "default" in words and "revision" in words:
+                        return  # this is ok, just an empty git repo
+                    else:
+                        self._error("Error getting git log", e)
 
         results = []
-        for out in proc:
+        for out in _iter():
             out = out.strip()
             if not out:
                 continue
@@ -278,7 +283,6 @@ class FileStore(object):
             return None  # file did not exist at this time
         return proc.stdout
 
-    @classmethod
-    def _error(cls, msg, e):
+    def _error(self, msg, e):
         raise SomaError("Error in file store at %r:\n%s\n%s"
                         % (self.path, msg, str(e)))
