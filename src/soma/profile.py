@@ -6,9 +6,10 @@ from rez.colorize import warning, heading, critical, alias as alias_color, Print
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
+from soma.file_store import FileStatus
 from soma.exceptions import SomaNotFoundError, SomaDataError
-from soma.util import glob_transform, alias_str, time_as_epoch, \
-    get_timestamp_str, print_columns, dump_profile_yaml
+from soma.util import glob_transform, alias_str, get_timestamp_str, \
+    print_columns, dump_profile_yaml
 import time
 import fnmatch
 import pipes
@@ -66,6 +67,7 @@ class Profile(object):
     """
     schema = Schema({
         Optional("new"): Or([basestring], None),
+        Optional("locked"): int,
         Optional("requires"): [basestring],
         Optional("tools"): [Or(basestring,
                                And(Schema({basestring: basestring}),
@@ -90,6 +92,20 @@ class Profile(object):
             except SchemaError as e:
                 raise SomaDataError("Invalid data in %r: %s"
                                     % (self._filepath(level), str(e)))
+
+    @propertycache
+    def lock(self):
+        """Get the active lock on the profile, if any.
+
+        Returns:
+            None if there is no active lock, or an epoch time representing the
+            time this profile is locked to.
+        """
+        locks_ = self._locks
+        if locks_:
+            return locks_[-1][0]
+        else:
+            return None
 
     @propertycache
     def requires(self):
@@ -132,17 +148,27 @@ class Profile(object):
             `ResolvedContext`.
         """
         pkg_paths = None if include_local else config.nonlocal_packages_path
-        time_ = self.parent.time_
-        if time_ is not None:
-            time_ = time_as_epoch(time_)
-
         context = ResolvedContext(self.requires,
                                   package_paths=pkg_paths,
                                   verbosity=verbosity,
-                                  timestamp=time_)
+                                  timestamp=self.parent.time_)
         return context
 
+    def lock_overrides(self):
+        """Return the lock overrides.
+
+        This is the list of locks present in the profile's overrides. The last
+        lock determines the actual lock time.
+
+        Returns:
+            List of (time, level) 2-tuples, where `time` is the epoch time of
+            the lock.
+        """
+        return self._locks
+
     def __eq__(self, other):
+        """Profiles are equal if they represent equivalent environments - ie
+        their tools and package requests are the same."""
         return (isinstance(other, Profile)
                 and self.name == other.name
                 and self.requires == other.requires
@@ -372,35 +398,58 @@ class Profile(object):
 
     def print_simple_info(self, buf=sys.stdout):
         """Print a 'simple' style summary, this is useful for diffing."""
-        requires_strs = map(str, self.requires)
-        tools_strs = []
-        for alias, command in self.tools.iteritems():
-            tools_strs.append(alias_str(alias, command))
+        data = {}
 
-        data = dict(requires=requires_strs,
-                    tools=tools_strs)
+        if self.requires:
+            requires_strs = map(str, self.requires)
+            data["requires"] = requires_strs
+
+        if self.tools:
+            tools_strs = []
+            for alias, command in self.tools.iteritems():
+                tools_strs.append(alias_str(alias, command))
+            data["tools"] = tools_strs
+
         content = dump_profile_yaml(data).strip()
         print_ = Printer(buf)
         print_(content)
 
-    def print_brief_info(self, packages=True, tools=True, verbose=False):
+    def print_brief_info(self, packages=True, tools=True, lock=True, verbose=False):
         """Print a brief summary of the profile.
 
         Args:
             packages (bool): Show package requirements.
             tools (bool): Show tools.
+            locks (bool): Show locks.
         """
         print_ = Printer()
-        if packages and tools:
-            print_("REQUIRES", heading)
-        if packages:
+        spacer = [False]
+        print_headers = ((bool(packages and self.requires),
+                          bool(tools and self.tools),
+                          bool(lock and self.lock)).count(True) > 1)
+
+        def print_header(title):
+            if print_headers:
+                if spacer[0]:
+                    print_()
+                print_(title, heading)
+                spacer[0] = True
+
+        if lock and self.lock:
+            print_header("LOCK")
+            if verbose:
+                t_str = get_timestamp_str(self.lock)
+                print "%d - %s" % (self.lock, t_str)
+            else:
+                print self.lock
+
+        if packages and self.requires:
+            print_header("REQUIRES")
             entries = map(str, self.requires)
             print_columns(entries)
 
-        if packages and tools:
-            print_()
-            print_("TOOLS", heading)
-        if tools:
+        if tools and self.tools:
+            print_header("TOOLS")
             entries = []
             for alias, command in self.tools.iteritems():
                 if command == alias:
@@ -414,7 +463,8 @@ class Profile(object):
                 entries.append(entry)
             print_columns(entries)
 
-    def print_info(self, packages=True, tools=True, removals=False, verbose=False):
+    def print_info(self, packages=True, tools=True, lock=True, removals=False,
+                   verbose=False):
         """Print a summary of the profile.
 
         Args:
@@ -426,6 +476,7 @@ class Profile(object):
         all_levels = set()
         package_rows = []
         tool_rows = []
+        lock_rows = []
 
         def _add_rows(rows, overrides, entry_printer=None, entry_color=None):
             entry_printer = entry_printer or str
@@ -467,12 +518,18 @@ class Profile(object):
             row.append(color)
             rows.append(row)
 
-        # package requires
+        if lock:
+            def _print_lock_entry(entry):
+                lock_time = entry
+                t_str = get_timestamp_str(lock_time, short=True)
+                return "%d(%s)" % (lock_time, t_str)
+
+            _add_rows(lock_rows, self._locks, _print_lock_entry)
+
         if packages:
             for overrides in self._requires:
                 _add_rows(package_rows, overrides)
 
-        # tools
         if tools:
             def _print_tool_entry(entry):
                 alias, command = entry
@@ -490,28 +547,40 @@ class Profile(object):
             for overrides in tool_overrides:
                 _add_rows(tool_rows, overrides, _print_tool_entry, _tool_entry_color)
 
-        # header
-        row = []
-        levels_str = self.parent._overrides_str(all_levels)
-        row.append("REQUIRES" if packages else "TOOLS")
-        row.append(levels_str)
-        row.append("LEVEL")
-        if verbose:
-            for i in range(self.parent.num_levels):
-                row.append(self.parent._overrides_str(i))
-        row.append(heading)
-        rows = [row, (None, heading)]
-        rows.extend(package_rows)
+        # do the printing
+        rows = []
+        first_header = [True]
 
-        if tool_rows:
-            if packages:
-                row = ["TOOLS", "", ""]
+        def add_header(title):
+            row = [title]
+            if first_header[0]:
+                levels_str = self.parent._overrides_str(all_levels)
+                row.extend([levels_str, "LEVEL"])
+                if verbose:
+                    for i in range(self.parent.num_levels):
+                        row.append(self.parent._overrides_str(i))
+                row.append(heading)
+                rows.extend([row, (None, heading)])
+                first_header[0] = False
+            else:
+                row.extend(["", ""])
                 if verbose:
                     for i in range(self.parent.num_levels):
                         row.append("")
                 row.append(heading)
                 rows.extend([False, row, (None, heading)])
+
+        if package_rows:
+            add_header("REQUIRES")
+            rows.extend(package_rows)
+
+        if tool_rows:
+            add_header("TOOLS")
             rows.extend(tool_rows)
+
+        if lock_rows:
+            add_header("LOCK")
+            rows.extend(lock_rows)
 
         print_colored_columns(rows)
 
@@ -557,9 +626,20 @@ class Profile(object):
                 print_()
 
     @propertycache
+    def _locks(self):
+        # a list of (epoch, level) 2-tuples. The last entry is the active lock.
+        return [(y, x) for x, y in self._get_overrides("locked")]
+
+    @propertycache
     def _requires(self):
-        # each entry is a list of (request, level) 2-tuples. The last entry is
-        # the active override.
+        # a list where each entry is a list of (request, level) 2-tuples. The
+        # last entry of each list is the active override.
+
+        # locking can cause an earlier profile to be used
+        actual_profile = self._actual_profile
+        if actual_profile:
+            return actual_profile._requires
+
         requires_ = {}
 
         def _add_override(key, value, level):
@@ -601,6 +681,12 @@ class Profile(object):
     def _tools(self):
         # keys are tool aliases, and each value is a list of ((alias, command), level)
         # 2-tuples. The last entry is the active override.
+
+        # locking can cause an earlier profile to be used
+        actual_profile = self._actual_profile
+        if actual_profile:
+            return actual_profile._tools
+
         i = 0
         tools_ = [{}, {}]
         curr_tools = None
@@ -737,21 +823,24 @@ class Profile(object):
         levels_str = self.parent._overrides_str(all_levels)
 
         rows = []
-        row = ["OP", levels_str, "LEVEL"]
+        row = ['', levels_str, "LEVEL"]
         if verbose:
             row.append("HANDLE")
         row.extend(["AUTHOR", "DATE", heading])
         rows.extend([row, [None, heading]])
 
         for level, handle, commit_time, author, file_status in logs_:
+            color = None
             level_str = self.parent._overrides_str(level)
             path = self.parent.searchpath[level]
             time_str = "%d - %s" % (commit_time, get_timestamp_str(commit_time))
 
             row = [file_status.abbrev, level_str, path]
+            if file_status == FileStatus.deleted:
+                color = warning
             if verbose:
                 row.append(handle)
-            row.extend([author, time_str, None])
+            row.extend([author, time_str, color])
             rows.append(row)
 
         return rows
@@ -797,6 +886,32 @@ class Profile(object):
             prev_profile = profile_
 
         return entries
+
+    @propertycache
+    def _actual_profile(self):
+        """Get the 'actual' profile.
+
+        The current profile may be locked to an earlier time. In this case the
+        contents of the current profile are ignored, and instead a profile is
+        constructed at the locked time - this is the 'actual' profile.
+
+        Returns:
+            `Profile` object, or None if the current profile is also the
+            actual profile.
+        """
+        actual_profile = None
+        lock_time = self.lock
+
+        if lock_time is not None and lock_time != self.parent.time_:
+            config_ = self.parent.copy(lock_time)
+            try:
+                actual_profile = config_.profile(self.name)
+            except SomaNotFoundError as e:
+                raise SomaNotFoundError(
+                    "Locked profile %r failed to load profile at time %d: %s"
+                    % (self.name, lock_time, str(e)))
+
+        return actual_profile
 
     def _get_overrides(self, namespace):
         overrides = []

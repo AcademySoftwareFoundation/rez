@@ -365,22 +365,22 @@ def pretty_env_dict(d):
     return '\n'.join(columnise(rows))
 
 
-def readable_time_duration(secs):
-    divs = ((365 * 24 * 3600, "years", 10),
-            (30 * 24 * 3600, "months", 12),
-            (7 * 24 * 3600, "weeks", 5),
-            (24 * 3600, "days", 7),
-            (3600, "hours", 8),
-            (60, "minutes", 5),
-            (1, "seconds", 60))
+def readable_time_duration(secs, short=False):
+    divs = ((365 * 24 * 3600, "years", 'Y', 10),
+            (30 * 24 * 3600, "months", 'M', 12),
+            (7 * 24 * 3600, "weeks", 'w', 5),
+            (24 * 3600, "days", 'd', 7),
+            (3600, "hours", 'h', 8),
+            (60, "minutes", 'm', 5),
+            (1, "seconds", 's', 60))
 
     if secs == 0:
-        return "0 seconds"
+        return "0s" if short else "0 seconds"
     neg = (secs < 0)
     if neg:
         secs = -secs
 
-    for seconds, unit, threshold in divs:
+    for seconds, unit, short_unit, threshold in divs:
         if secs >= seconds:
             f = secs / float(seconds)
             rounding = 0 if f > threshold else 1
@@ -388,7 +388,11 @@ def readable_time_duration(secs):
             f = int(f * 10) / 10.0
             if f == 1.0:
                 unit = unit[:-1]
-            txt = "%g %s" % (f, unit)
+
+            if short:
+                txt = "%g%s" % (f, short_unit)
+            else:
+                txt = "%g %s" % (f, unit)
             break
 
     if neg:

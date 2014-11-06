@@ -11,6 +11,9 @@ def setup_parser(parser, completions=False):
         "-p", "--packages", action="store_true",
         help="list package requests")
     parser.add_argument(
+        "-L", "--lock", action="store_true",
+        help="show active lock, if any")
+    parser.add_argument(
         "-r", "--removals", action="store_true",
         help="list package or tool removals")
     parser.add_argument(
@@ -25,7 +28,7 @@ def setup_parser(parser, completions=False):
         "override")
     parser.add_argument(
         "-a", "--all", action="store_true",
-        help="shortcut for -tprv")
+        help="shortcut for -tpLrv")
     parser.add_argument(
         "--time", type=str,
         help="ignore profile updates after the given time. Supported formats "
@@ -43,6 +46,7 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.all:
         opts.tools = True
         opts.packages = True
+        opts.lock = True
         opts.removals = True
         opts.verbose = 1
 
@@ -54,12 +58,18 @@ def command(opts, parser, extra_arg_groups=None):
         profile.dump(verbose=opts.verbose)
     elif opts.simple:
         profile.print_simple_info()
-    elif opts.brief:
-        profile.print_brief_info(packages=(opts.packages or not opts.tools),
-                                 tools=opts.tools,
-                                 verbose=opts.verbose)
     else:
-        profile.print_info(packages=(opts.packages or not opts.tools),
-                           tools=opts.tools,
-                           removals=opts.removals,
-                           verbose=opts.verbose)
+        nada = ((opts.packages, opts.tools, opts.lock).count(True) == 0)
+        packages = opts.packages or nada
+
+        if opts.brief:
+            profile.print_brief_info(packages=packages,
+                                     tools=opts.tools,
+                                     lock=opts.lock,
+                                     verbose=opts.verbose)
+        else:
+            profile.print_info(packages=packages,
+                               tools=opts.tools,
+                               lock=opts.lock,
+                               removals=opts.removals,
+                               verbose=opts.verbose)

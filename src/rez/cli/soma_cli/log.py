@@ -9,8 +9,7 @@ def setup_parser(parser, completions=False):
         help="only show the first N log entries.")
     parser.add_argument(
         "--since", type=str,
-        help="only show log entries starting with the most recent before the "
-        "given time.")
+        help="only show log entries at or after the given time.")
     parser.add_argument(
         "--until", type=str,
         help="only show log entries at or before the given time.")

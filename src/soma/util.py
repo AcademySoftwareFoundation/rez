@@ -27,12 +27,15 @@ def time_as_epoch(time_):
 
 
 # TODO put in rez.util
-def get_timestamp_str(timestamp):
+def get_timestamp_str(timestamp, short=False):
     now = int(time.time())
-    release_time = time.localtime(timestamp)
-    release_time_str = time.strftime('%d %b %Y %H:%M:%S', release_time)
-    ago = readable_time_duration(now - timestamp)
-    return "%s (%s ago)" % (release_time_str, ago)
+    duration = readable_time_duration(now - timestamp, short=short)
+    if short:
+        return "-%s" % duration
+    else:
+        time_ = time.localtime(timestamp)
+        time_str = time.strftime('%d %b %Y %H:%M:%S', time_)
+        return "%s (%s ago)" % (time_str, duration)
 
 
 def alias_str(alias, command=None):
@@ -85,7 +88,7 @@ def print_columns(items):
         return
 
     if not sys.stdout.isatty():
-        print '\n'.join(str(x) for x in items)
+        print '\n'.join(map(str, items))
         return
 
     try:

@@ -1,11 +1,12 @@
-from rez.colorize import alias as alias_color, heading, error
+from rez.colorize import alias as alias_color, heading, error, warning
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.util import propertycache, split_path, print_colored_columns
 from soma.exceptions import SomaError, SomaNotFoundError, SomaDataError
 from soma.file_store import FileStore
 from soma.profile import Profile
-from soma.util import print_columns, overrides_str, alias_str
+from soma.util import print_columns, overrides_str, alias_str, \
+    get_timestamp_str, time_as_epoch
 from fnmatch import fnmatch
 import os.path
 import os
@@ -36,8 +37,11 @@ class ProductionConfig(object):
         self.searchpath = searchpath
         self.num_levels = len(searchpath)
         self.subpath = subpath
-        self.time_ = time_
         self.profiles = {}
+
+        self.time_ = time_
+        if time_ is not None:
+            self.time_ = time_as_epoch(time_)
 
         self.stores = []
         for path in searchpath:
@@ -82,8 +86,8 @@ class ProductionConfig(object):
                 data = yaml.load(content)
             except YAMLError as e:
                 filepath = os.path.join(store.path, filename)
-                raise SomaDataError("Invalid override file %r:\n%s"
-                                    % (filepath, str(e)))
+                raise SomaDataError("Invalid override file %r%s:\n%s"
+                                    % (filepath, self._at_time_str(), str(e)))
 
             overrides_.append((level, data))
 
@@ -108,12 +112,22 @@ class ProductionConfig(object):
 
             The list is is ascending level order.
         """
-        levels = self._profile_levels.get(name)
-        if not levels:
-            raise SomaNotFoundError("No such profile %r" % name)
-
         overrides = []
         filename = "%s.yaml" % name
+        levels = self._profile_levels.get(name)
+
+        # update the status of files that aren't present - they may have been
+        # deleted. This is necessary otherwise this profile couldn't be
+        # replicated at some point in future, because the fact the files were
+        # deleted would not have been stored.
+        other_levels = set(range(self.num_levels)) - set(levels)
+        for i in other_levels:
+            store = self.stores[i]
+            store.update(filename)
+
+        if not levels:
+            msg = "No such profile %r" % name
+            raise SomaNotFoundError(msg + self._at_time_str())
 
         for i in levels:
             store = self.stores[i]
@@ -153,17 +167,31 @@ class ProductionConfig(object):
 
         return executor.get_output()
 
-    def print_info(self, list_mode=False, tools=False, pattern=None,
-                   verbose=False):
-        """Print a summary of the ProductionConfig.
+    def print_profiles(self, list_mode=False, pattern=None, verbose=False):
+        """Print a summary of profiles in the ProductionConfig.
 
         Args:
             list_mode (bool): Enable list mode.
-            tools (bool): Show tools rather than profiles.
             pattern (str): Glob-like pattern to filter profiles/tools.
         """
-        fn = self._print_tools if tools else self._print_profiles
-        fn(list_mode, pattern, verbose)
+        self._print_profiles(list_mode, pattern, verbose)
+
+    def print_tools(self, list_mode=False, pattern=None, verbose=False):
+        """Print a summary of tools in the ProductionConfig.
+
+        Args:
+            list_mode (bool): Enable list mode.
+            pattern (str): Glob-like pattern to filter profiles/tools.
+        """
+        self._print_tools(list_mode, pattern, verbose)
+
+    def print_locks(self, list_mode=False, verbose=False):
+        """Print a summary of locks in the ProductionConfig.
+
+        Args:
+            list_mode (bool): Enable list mode.
+        """
+        self._print_locks(list_mode, verbose)
 
     def __str__(self):
         entries =[self.searchpath]
@@ -212,6 +240,81 @@ class ProductionConfig(object):
                 levels.append(i)
         return d
 
+    def _print_locks(self, list_mode, verbose):
+        locks = {}
+        for name in self._profile_levels.iterkeys():
+            profile_ = self.profile(name)
+            locks[name] = profile_.lock
+
+        if not locks:
+            return
+
+        if list_mode:
+            if verbose:
+                profiles = [k for k, v in locks.iteritems() if v is not None]
+                all_levels = set()
+
+                for name in profiles:
+                    profile_ = self.profile(name)
+                    overrides = profile_.lock_overrides()
+                    all_levels.update(x[-1] for x in overrides)
+
+                levels_str = self._overrides_str(all_levels)
+                row = ["PROFILE", "LOCK", levels_str, "LEVEL"]
+                for i in range(self.num_levels):
+                    row.append(self._overrides_str(i))
+                row.append(heading)
+
+                rows = [row, (None, heading)]
+                for name in sorted(profiles):
+                    profile_ = self.profile(name)
+                    t_str = get_timestamp_str(profile_.lock)
+                    lock_str = "%d - %s" % (profile_.lock, t_str)
+                    row = [name, lock_str]
+
+                    overrides = profile_.lock_overrides()
+                    levels = set(x[-1] for x in overrides)
+                    levels_str = self._overrides_str(levels)
+                    row.append(levels_str)
+
+                    level = overrides[-1][1]
+                    row.append(self.searchpath[level])
+
+                    for i in range(self.num_levels):
+                        override = [x for x in overrides if x[1] == i]
+                        if override:
+                            lock_time = override[0][0]
+                            t_str = get_timestamp_str(lock_time, short=True)
+                            s = "%d(%s)" % (lock_time, t_str)
+                        else:
+                            s = ''
+                        row.append(s)
+
+                    row.append(None)
+                    rows.append(row)
+            else:
+                entries = sorted(locks.iteritems())
+                rows = [["PROFILE", "LOCK", heading], (None, heading)]
+                for name, lock_time in entries:
+                    if lock_time is None:
+                        lock_str = '-'
+                    else:
+                        t_str = get_timestamp_str(lock_time)
+                        lock_str = "%d - %s" % (lock_time, t_str)
+                    rows.append((name, lock_str, None))
+
+            print_colored_columns(rows)
+        else:
+            entries = []
+            for name, lock_time in sorted(locks.iteritems()):
+                if lock_time is not None:
+                    if verbose:
+                        t_str = get_timestamp_str(lock_time, short=True)
+                        entries.append("%s(%s)" % (name, t_str))
+                    else:
+                        entries.append(name)
+            print_columns(entries)
+
     def _print_tools(self, list_mode, pattern, verbose):
         # create list of (alias, [profiles], command, print-color)
         entries = {}
@@ -241,9 +344,12 @@ class ProductionConfig(object):
         if list_mode:
             rows = [["TOOL", "PROFILE", heading], (None, heading)]
             for alias, profiles, command, color in entries:
-                row = [alias_str(alias, command),
-                       ", ".join(sorted(profiles)),
-                       color]
+                if verbose:
+                    entry = alias_str(alias, command)
+                else:
+                    entry = alias
+                profiles_str = ", ".join(sorted(profiles))
+                row = [entry, profiles_str, color]
                 rows.append(row)
             print_colored_columns(rows)
         else:
@@ -268,14 +374,23 @@ class ProductionConfig(object):
             all_levels = set()
 
             for name, levels in profiles_.iteritems():
+                color = None
                 all_levels |= set(levels)
+
+                profile_ = self.profile(name)
+                if profile_.lock:
+                    color = warning
+                    if verbose:
+                        name += "[LOCKED]"
+
                 row = [name]
                 row.append(self._overrides_str(levels))
+
                 if verbose:
-                    profile_ = self.profile(name)
                     requires_str = " ".join(map(str, profile_.requires))
                     row.append(requires_str)
-                row.append(None)
+
+                row.append(color)
                 rows.append(row)
 
             rows = sorted(rows, key=lambda x: x[0])
@@ -289,11 +404,26 @@ class ProductionConfig(object):
 
             print_colored_columns(rows)
         else:
-            entries = sorted(profiles_.iterkeys())
-            if verbose:
-                entries = [(x + self._overrides_str(profiles_[x])) for x in entries]
+            entries = []
+            for name, levels in sorted(profiles_.iteritems(), key=lambda x:x[0]):
+                profile_ = self.profile(name)
+                entry = name
+                if profile_.lock:
+                    if verbose:
+                        entry += "[LOCKED]"
+                    entry = warning(entry)
+                if verbose:
+                    levels_str = self._overrides_str(levels)
+                    entry += levels_str
+                entries.append(entry)
 
             print_columns(entries)
 
     def _overrides_str(self, levels):
         return overrides_str(self.num_levels, levels)
+
+    def _at_time_str(self):
+        if self.time_ is None:
+            return ''
+        else:
+            return " at time %d" % self.time_
