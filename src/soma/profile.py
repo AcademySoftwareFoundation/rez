@@ -2,7 +2,8 @@ from rez.util import print_colored_columns, propertycache, \
     readable_time_duration
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.colorize import warning, heading, critical, alias as alias_color, Printer
+from rez.colorize import warning, heading, critical, alias as alias_color, \
+    combine, bright, Printer
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
@@ -189,11 +190,15 @@ class Profile(object):
         """
         return self._overrides
 
-    def raw_overrides(self):
+    def raw_overrides(self, blame=False):
         """Get the overrides that were merged to create this profile.
 
         Unlike `overrides`, this function returns information about the actual
         files that were committed that define the overrides.
+
+        Args:
+            blame (bool): If True, each line of the file contents will be
+                prefixed with git blame information.
 
         Returns:
             A list of tuples with each tuple containing:
@@ -204,9 +209,9 @@ class Profile(object):
             - str: Author;
             - `FileStatus` object.
 
-            The list is is ascending level order.
+            The list is in ascending level order.
         """
-        return self.parent.raw_profile(self.name)
+        return self.parent.raw_profile(self.name, blame=blame)
 
     def file_log(self, handle):
         """Get the log entry for a particular file commit.
@@ -276,7 +281,8 @@ class Profile(object):
             entries = entries[:limit]
         return entries
 
-    def effective_logs(self, limit=None, since=None, until=None, callback=None,
+    def effective_logs(self, packages=True, tools=True, include_ineffective=False,
+                       limit=None, since=None, until=None, callback=None,
                        progress_callback=None):
         """Return effective log entries.
 
@@ -293,15 +299,25 @@ class Profile(object):
             This is an expensive operation.
 
         Args:
+            packages (bool): Show log entries that caused the package requirements
+                to change.
+            tools (bool): Show log entries that caused the tools to change.
+            include_ineffective (bool): If True, entries that did NOT cause a
+                change are also included. Note that if (for eg) `packages` is
+                True and `tools` is False, entries that only change tools will
+                also be listed as ineffective.
             limit (int): Maximum number of entries to return.
             since (`DateTime` or int): Only return entries at or after this time.
             until (`DateTime` or int): Only return entries at or before this time.
             callback (callable): Called each time an effective entry is found,
-                and is passed 3 args:
+                and is passed 4 args:
                 - list of log entries: The same that is returned from `logs`;
                 - int: index into log entries;
-                - `Profile`: the effective profile.
-                If this returns Falsey, the search is stopped.
+                - `Profile`: the effective profile;
+                - set(str): Set of profile sections that have changed.
+                If this returns Falsey, the search is stopped. Note that if
+                `include_ineffective` is True, the callback may be called with
+                an empty change set, signifying an ineffective entry.
             progress_callback (callable): Called each time a log entry is tested.
                 If this returns Falsey, the search is stopped. Takes the
                 following args:
@@ -311,9 +327,13 @@ class Profile(object):
         Returns:
             A 2-tuple containing:
             - list of log entries: The same that is returned from `logs`.
-            - list of 2-tuples (the 'effective' list), each containing:
-                - int: indes into the log entries list;
-                - `Profile`: The effective profile.
+            - list of 3-tuples (the 'effective' list), each containing:
+                - int: index into the log entries list;
+                - `Profile`: The effective profile;
+                - set(str): Set of changed profile sections - valid items are
+                  "requires" and "tools". If this is empty then the entry is
+                  ineffective, and was included because `include_ineffective`
+                  is True.
 
             Note:
                 Some entries may have a None profile. This means that all
@@ -329,30 +349,67 @@ class Profile(object):
                 If an empty effective list is returned, this means that not
                 enough entries were read to find an effective entry.
         """
+        assert packages or tools
         logs_ = self.logs(since=since, until=until)
-        effective_logs_ = self._effective_logs(logs_, limit, since, callback,
-                                               progress_callback)
-        return logs_, effective_logs
+        effective_logs_ = self._effective_logs(
+            logs_, packages, tools, include_ineffective, limit, since, callback,
+            progress_callback)
+        return logs_, effective_logs_
 
-    def print_logs(self, limit=None, since=None, until=None, verbose=False):
+    # -- printing functions
+
+    def print_logs(self, limit=None, since=None, until=None, handle=None,
+                   highlight_handle=False, verbose=False):
         """Print file logs.
 
         Args:
             limit (int): Maximum number of entries to return.
-            since (`DateTime` or int): Only return entries at or after this time.
-            until (`DateTime` or int): Only return handles at or before this time.
+            since (`DateTime` or int): Only print entries at or after this time.
+            until (`DateTime` or int): Only print entries at or before this time.
+            handle (str): Only print the entry matching this handle, if found.
+            highlight_handle (bool): If True, and `handle` is specified, print
+                all entries instead of just that matching `handle`, but
+                highlight that entry.
         """
         logs_ = self.logs(limit=limit, since=since, until=until)
+        if handle and not highlight_handle:
+            logs_ = [x for x in logs_ if x[1] == handle]
         if not logs_:
             return
+
+        highlight_index = None
+        if highlight_handle:
+            indexes = [i for i, x in enumerate(logs_) if x[1] == handle]
+            if indexes:
+                highlight_index = indexes[0]
+
         rows = self._get_log_rows(logs_, verbose=verbose)
+        if highlight_index is not None:
+            row = rows[highlight_index + 2]  # skip header
+            color = row[-1]
+            if color is None:
+                color = bright
+            else:
+                color = combine(color, bright)
+            row[-1] = color
+
         print_colored_columns(rows)
 
-    def print_effective_logs(self, limit=None, since=None, until=None,
-                             verbose=False):
+    def print_effective_logs(self, packages=True, tools=True, handle=None,
+                             highlight_handle=False, include_ineffective=False,
+                             limit=None, since=None, until=None, verbose=False):
+        """Print effective logs."""
         logs_ = self.logs(since=since, until=until)
+        if handle and not highlight_handle:
+            logs_ = [x for x in logs_ if x[1] == handle]
         if not logs_:
             return
+
+        highlight_index = None
+        if highlight_handle:
+            indexes = [i for i, x in enumerate(logs_) if x[1] == handle]
+            if indexes:
+                highlight_index = indexes[0]
 
         # calc width formatting
         rows = self._get_log_rows(logs_, verbose=verbose)
@@ -363,7 +420,7 @@ class Profile(object):
             w = max(len(x[i]) for x in rows)
             maxwidths.append(w)
 
-        def _print_row(row, status, color):
+        def _print_row(row, status, lock, color):
             row_ = []
             for i, txt in enumerate(row):
                 if i < len(row) - 1:
@@ -373,28 +430,65 @@ class Profile(object):
                     row_.append(txt)
 
             row_[0] = status
-            row_[-1] = color
+            if verbose:
+                # add trailing LOCK column
+                row_[-1] = lock
+                row_.append(color)
+            else:
+                row_[-1] = color
+
             print_colored_columns([row_])
 
-        def _callback(_1, index, profile_):
+        def _callback(_1, index, profile_, changed):
             color=None
             if profile_ is None:
-                status = '?'
-                color = warning
-            elif profile_ == -1:
-                status = '!'
+                status = "??"
                 color = critical
+            elif profile_ == -1:
+                status = "!!"
+                color = critical
+            elif not changed:  # an ineffective entry
+                status = " -"
+                color = warning
             else:
-                status = ' '
-            _print_row(rows[index], status, color)
+                s = ''
+                if "requires" in changed:
+                    s += 'P'
+                if "tools" in changed:
+                    s += 'T'
+                if len(s) < 2:
+                    s = ' ' + s
+                status = s
+
+            if profile_.lock:
+                t_str = get_timestamp_str(profile_.lock, short=True)
+                lock = "%d(%s)" % (profile_.lock, t_str)
+            else:
+                lock = '-'
+
+            if index == highlight_index:
+                if color is None:
+                    color = bright
+                else:
+                    color = combine(color, bright)
+
+            _print_row(rows[index], status, lock, color)
             return True
 
-        _print_row(rows[0], ' ', heading)  # heading
-        underline_row = ['-' * x for x in maxwidths] + [heading]
-        _print_row(underline_row, ' ', heading)
-        rows = rows[1:]
+        if verbose:
+            # adds a trailing LOCK column
+            _print_row(rows[0], '  ', "LOCK", heading)  # heading
+            underline_row = ['-' * x for x in maxwidths] + [heading]
+            lock_width = len("1415300567")  # just a random epoch string
+            _print_row(underline_row, '--', '-' * lock_width, heading)
+        else:
+            _print_row(rows[0], '  ', '', heading)  # heading
+            underline_row = ['-' * x for x in maxwidths] + [heading]
+            _print_row(underline_row, '--', '', heading)
 
-        self._effective_logs(logs_, limit, since, callback=_callback)
+        rows = rows[1:]
+        self._effective_logs(logs_, packages, tools, include_ineffective, limit,
+                             since, callback=_callback)
 
     def print_simple_info(self, buf=sys.stdout):
         """Print a 'simple' style summary, this is useful for diffing."""
@@ -584,9 +678,15 @@ class Profile(object):
 
         print_colored_columns(rows)
 
-    def dump(self, buf=sys.stdout, verbose=False):
-        """Print the contents of each of the override config files."""
-        overrides = self.raw_overrides()
+    def dump(self, buf=sys.stdout, blame=False, verbose=False):
+        """Print the contents of each of the override config files.
+
+        Args:
+            buf (file-like object): Where to print to.
+            blame (bool): If True, each line of each file will be prefixed with
+                git blame information.
+        """
+        overrides = self.raw_overrides(blame=blame)
         now = int(time.time())
 
         titles = []
@@ -845,10 +945,19 @@ class Profile(object):
 
         return rows
 
-    def _effective_logs(self, logs_, limit=None, since=None, callback=None,
-                        progress_callback=None):
+    def _effective_logs(self, logs_, packages=True, tools=True,
+                        include_ineffective=False, limit=None, since=None,
+                        callback=None, progress_callback=None):
         if not logs_:
             return []
+
+        def _compare(p1, p2):
+            changed = set()
+            if packages and (p1.requires != p2.requires):
+                changed.add("requires")
+            if tools and (p1.tools != p2.tools):
+                changed.add("tools")
+            return changed
 
         entries = []
         prev_profile = None
@@ -868,20 +977,27 @@ class Profile(object):
                 # broken profile, probably invalid data in config file
                 profile_ = -1
 
-            def _add(i_, p):
-                entries.append((i_, p))
-                if callback and not callback(logs_, i_, p):
+            def _add(i_, p, changed):
+                entries.append((i_, p, changed))
+                if callback and not callback(logs_, i_, p, changed):
                     return False
                 if limit and (len(entries) >= limit):
                     return False
                 return True
 
-            if i and (profile_ != prev_profile):
-                if not _add(i - 1, prev_profile):  # an effective log entry
-                    return entries
+            if i:
+                changed = _compare(profile_, prev_profile)
+                if changed or include_ineffective:
+                    if not _add(i - 1, prev_profile, changed):  # an effective log entry
+                        return entries
 
             if limit is None and since is None and i == nlogs - 1:
-                _add(i, profile_)  # first ever log entry
+                # compare to empty profile
+                empty_profile = Profile(self.name, self.parent, [])
+                changed = _compare(empty_profile, profile_)
+
+                if changed or include_ineffective:
+                    _add(i, profile_, changed)  # first ever log entry
 
             prev_profile = profile_
 

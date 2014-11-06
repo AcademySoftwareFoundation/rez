@@ -27,6 +27,10 @@ def setup_parser(parser, completions=False):
         help="print in expanded mode. This mode dumps the file contents of each "
         "override")
     parser.add_argument(
+        "--blame", action="store_true",
+        help="when in expanded mode, prefix each line of each file with git "
+        "blame information")
+    parser.add_argument(
         "-a", "--all", action="store_true",
         help="shortcut for -tpLrv")
     parser.add_argument(
@@ -43,6 +47,9 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.util import get_epoch_time_from_str
     from soma.production_config import ProductionConfig
 
+    if opts.blame and not opts.expanded:
+        parser.error("--blame can only be used with --expanded")
+
     if opts.all:
         opts.tools = True
         opts.packages = True
@@ -55,7 +62,8 @@ def command(opts, parser, extra_arg_groups=None):
     profile = pc.profile(opts.PROFILE)
 
     if opts.expanded:
-        profile.dump(verbose=opts.verbose)
+        profile.dump(blame=opts.blame,
+                     verbose=opts.verbose)
     elif opts.simple:
         profile.print_simple_info()
     else:

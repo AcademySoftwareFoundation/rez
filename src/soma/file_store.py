@@ -104,7 +104,7 @@ class FileStore(object):
         except sh.ErrorReturnCode as e:
             self._error("Error committing file %s to %s" % (filename, self.path), e)
 
-    def read(self, filename, time_=None):
+    def read(self, filename, time_=None, blame=False):
         """Read a file.
 
         This operation also updates the given file.
@@ -114,6 +114,8 @@ class FileStore(object):
             time_ (`DateTime` or int): Get the file contents as they were at
                 the given time. If int, `time` is interpreted as linux epoch
                 time. If None, present time is used.
+            blame (bool): If True, each line of the file's contents will be
+                prefixed with git blame information.
 
         Returns:
             None if the file does not/did not exist, or a 5-tuple containing:
@@ -136,15 +138,17 @@ class FileStore(object):
             return None  # file was not committed at or before this time
 
         handle = commit_hash
-        contents = self._file_contents(filename, handle)
+        contents = self._file_contents(filename, handle, blame=blame)
         return contents, handle, commit_time, author, file_status
 
-    def read_from_handle(self, filename, handle):
+    def read_from_handle(self, filename, handle, blame=False):
         """Read a file given a commit handle.
 
         Args:
             filename (str): Name of file to read.
             handle (str): Commit handle of file.
+            blame (bool): If True, each line of the file's contents will be
+                prefixed with git blame information.
 
         Returns:
             A 4-tuple containing:
@@ -167,7 +171,7 @@ class FileStore(object):
         if file_status == FileStatus.deleted:
             contents = None
         else:
-            contents = self._file_contents(filename, handle)
+            contents = self._file_contents(filename, handle, blame=blame)
 
         return contents, commit_epoch, author_name, file_status
 
@@ -276,12 +280,28 @@ class FileStore(object):
 
         return results
 
-    def _file_contents(self, filename, handle):
+    def _file_contents(self, filename, handle, blame=False):
+        if blame:
+            cmd = self.git.blame
+            nargs = ["-l", "--root", handle, "--", filename]
+        else:
+            cmd = self.git.show
+            nargs = ["%s:%s" % (handle, filename)]
+
+        try:
+            proc = cmd(*nargs)
+        except sh.ErrorReturnCode:
+            return None  # file did not exist at this time
+
+        return proc.stdout
+
+        """
         try:
             proc = self.git.show("%s:%s" % (handle, filename))
         except sh.ErrorReturnCode:
             return None  # file did not exist at this time
         return proc.stdout
+        """
 
     def _error(self, msg, e):
         raise SomaError("Error in file store at %r:\n%s\n%s"

@@ -83,7 +83,7 @@ class ProductionConfig(object):
         for level, content, _, _, _, _ in overrides:
             store = self.stores[level]
             try:
-                data = yaml.load(content)
+                data = yaml.load(content) or {}
             except YAMLError as e:
                 filepath = os.path.join(store.path, filename)
                 raise SomaDataError("Invalid override file %r%s:\n%s"
@@ -95,11 +95,16 @@ class ProductionConfig(object):
         self.profiles[name] = profile_
         return profile_
 
-    def raw_profile(self, name):
+    def raw_profile(self, name, blame=False):
         """Return the raw file contents used to create a profile.
 
         Note this this is not cached. Generally a raw profile is only viewed
         for debugging purposes.
+
+        Args:
+            name (str): Profile name.
+            blame (bool): If True, each line of the file contents will be
+                prefixed with git blame information.
 
         Returns:
             A list of tuples with each tuple containing:
@@ -131,7 +136,7 @@ class ProductionConfig(object):
 
         for i in levels:
             store = self.stores[i]
-            r = store.read(filename, time_=self.time_)
+            r = store.read(filename, time_=self.time_, blame=blame)
             if r:
                 content, handle, commit_time, author, file_status = r
                 if content is not None:
@@ -166,32 +171,6 @@ class ProductionConfig(object):
                 executor.alias(tool_name, command)
 
         return executor.get_output()
-
-    def print_profiles(self, list_mode=False, pattern=None, verbose=False):
-        """Print a summary of profiles in the ProductionConfig.
-
-        Args:
-            list_mode (bool): Enable list mode.
-            pattern (str): Glob-like pattern to filter profiles/tools.
-        """
-        self._print_profiles(list_mode, pattern, verbose)
-
-    def print_tools(self, list_mode=False, pattern=None, verbose=False):
-        """Print a summary of tools in the ProductionConfig.
-
-        Args:
-            list_mode (bool): Enable list mode.
-            pattern (str): Glob-like pattern to filter profiles/tools.
-        """
-        self._print_tools(list_mode, pattern, verbose)
-
-    def print_locks(self, list_mode=False, verbose=False):
-        """Print a summary of locks in the ProductionConfig.
-
-        Args:
-            list_mode (bool): Enable list mode.
-        """
-        self._print_locks(list_mode, verbose)
 
     def __str__(self):
         entries =[self.searchpath]
@@ -228,6 +207,34 @@ class ProductionConfig(object):
         return ProductionConfig(searchpath=paths,
                                 subpath=subpath,
                                 time_=time_)
+
+    # -- printing functions
+
+    def print_profiles(self, list_mode=False, pattern=None, verbose=False):
+        """Print a summary of profiles in the ProductionConfig.
+
+        Args:
+            list_mode (bool): Enable list mode.
+            pattern (str): Glob-like pattern to filter profiles/tools.
+        """
+        self._print_profiles(list_mode, pattern, verbose)
+
+    def print_tools(self, list_mode=False, pattern=None, verbose=False):
+        """Print a summary of tools in the ProductionConfig.
+
+        Args:
+            list_mode (bool): Enable list mode.
+            pattern (str): Glob-like pattern to filter profiles/tools.
+        """
+        self._print_tools(list_mode, pattern, verbose)
+
+    def print_locks(self, list_mode=False, verbose=False):
+        """Print a summary of locks in the ProductionConfig.
+
+        Args:
+            list_mode (bool): Enable list mode.
+        """
+        self._print_locks(list_mode, verbose)
 
     @propertycache
     def _profile_levels(self):
