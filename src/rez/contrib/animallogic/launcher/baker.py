@@ -10,12 +10,12 @@ import time
 
 class Baker(object):
 
-    def __init__(self, launcher_service, rez_service):
+    def __init__(self, launcher_service, rez_service, epoch=None):
 
         self.launcher_service = launcher_service
         self.rez_service = rez_service
 
-        self.now = datetime.datetime.now()
+        self.epoch = epoch if epoch else datetime.datetime.now()
         self.username = getpass.getuser()
         self.mode = Mode.shell
         self.operating_system = OperatingSystem.get_current_operating_system()
@@ -28,7 +28,7 @@ class Baker(object):
                                                                      self.mode,
                                                                      username=self.username,
                                                                      operating_system=self.operating_system,
-                                                                     date=self.now)
+                                                                     date=self.epoch)
 
         if not preserve_system_settings:
             self._strip_system_settings()
@@ -111,7 +111,7 @@ class Baker(object):
     def _get_resolved_packages_from_settings(self, max_fails=-1):
 
         package_requests = self.get_package_requests_from_settings()
-        timestamp = int(time.mktime(self.now.timetuple()))
+        timestamp = int(time.mktime(self.epoch.timetuple()))
 
         try:
             return self.rez_service.get_resolved_packages_from_requirements(package_requests,

@@ -1,3 +1,6 @@
+import datetime
+from rez.util import get_epoch_time_from_str
+
 
 FILESYSTEM_CHARACTER_MAPPING = (
     ("!", "_not_"),
@@ -22,3 +25,17 @@ def filter_preferred_build_systems(valid_build_systems, preferred):
 
     return build_systems or valid_build_systems
 
+
+def get_epoch_datetime_from_str(s, format_="%Y-%m-%d %H:%M:%S"):
+
+    try:
+        # First try and get the time from rez.util, which assumes either the 
+        # value of s is an int, or a relative time such as -1d.
+        epoch = get_epoch_time_from_str(s)
+        return datetime.datetime.fromtimestamp(epoch)
+    except ValueError, e:
+        # If that doesn't work, try and parse the time based on a particular 
+        #format.
+        return datetime.datetime.strptime(s, format_)
+
+    raise ValueError("'%s' is an unrecognised time format." % s)
