@@ -24,7 +24,7 @@ variants:
 - [ CentOS-6.2+<7, python-2.7 ]
 
 commands:
-- export PATH=!ROOT!/bin:$PATH
+- export PATH=!ROOT!/bin/rez/:$PATH
 - export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/:$PYTHONPATH
-- export REZ_EXE=!ROOT!/bin/rez
+- export REZ_EXE=!ROOT!/bin/rez/rez
 
