@@ -47,7 +47,6 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return  ReferenceSetting(str(dict_['name']), dict_['presetId']['key'], dict_['id'])
 
-
     def _create_value_setting_from_dict(self, dict_):
 
         setting_type = SettingType.create_from_launcher_type(dict_['type']['name'])
