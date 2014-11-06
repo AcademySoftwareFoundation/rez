@@ -8,7 +8,6 @@ class Setting(object):
         self.name = name
         self.id = id
 
-
     def __repr__(self):
 
         return "<Setting name=%s, id=%s>" % (self.name, self.id)
