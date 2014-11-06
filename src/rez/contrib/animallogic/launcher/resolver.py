@@ -21,7 +21,8 @@ class RezService(RezServiceInterface):
 
         package_paths = [config.release_packages_path]
 
-        resolved_context = ResolvedContext(requirements, package_paths,
+        resolved_context = ResolvedContext(requirements,
+                                           package_paths=package_paths,
                                            timestamp=timestamp,
                                            max_fails=max_fails)
 
