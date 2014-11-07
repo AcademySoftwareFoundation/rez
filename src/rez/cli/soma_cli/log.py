@@ -27,9 +27,6 @@ def setup_parser(parser, completions=False):
         help="when using any of -e/-p/-t, this option will also show entries "
         "that did NOT cause a change")
     parser.add_argument(
-        "-L", "--lock", action="store_true",
-        help="only show entries that changed the locking")
-    parser.add_argument(
         "-a", "--all", action="store_true",
         help="shortcut for -eiv")
     parser.add_argument(
@@ -71,9 +68,6 @@ def command(opts, parser, extra_arg_groups=None):
             opts.handle = opts.highlight_handle
             highlight_handle = True
 
-    if opts.lock and (opts.tools or opts.packages):
-        parser.error("--lock is not compatible with --packages or --tools")
-
     since = get_epoch_time_from_str(opts.since) if opts.since else None
     until = get_epoch_time_from_str(opts.until) if opts.until else None
 
@@ -87,8 +81,6 @@ def command(opts, parser, extra_arg_groups=None):
             sys.exit(ErrorCode.no_such_file_handle.value)
         else:
             print content.strip()
-    elif opts.lock:
-        pass
     elif opts.packages or opts.tools:
         profile.print_effective_logs(packages=opts.packages,
                                      tools=opts.tools,

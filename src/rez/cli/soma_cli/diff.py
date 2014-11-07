@@ -15,6 +15,9 @@ def setup_parser(parser, completions=False):
         "-e", "--expanded", action="store_true",
         help="diff in expanded mode")
     parser.add_argument(
+        "--il", "--ignore-locks", dest="ignore_locks", action="store_true",
+        help="ignore any active locks")
+    parser.add_argument(
         "PROFILE",
         help="name of profile to view")
 
@@ -30,7 +33,7 @@ def command(opts, parser, extra_arg_groups=None):
     def _content(arg):
         time_ = get_epoch_time_from_str(arg) if arg else None
         pc = ProductionConfig.get_current_config(time_=time_)
-        profile = pc.profile(opts.PROFILE)
+        profile = pc.profile(opts.PROFILE, ignore_locks=opts.ignore_locks)
 
         buf = StringIO()
         if opts.expanded:

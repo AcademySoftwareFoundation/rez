@@ -866,7 +866,6 @@ class _ResolvePhase(_Common):
             phase.scopes = scopes
             phase.failure_reason = failure_reason
             phase.extractions = extractions
-            phase.extractions = extractions
             phase.pending_reducts = set()
 
             if status is None:
@@ -924,6 +923,7 @@ class _ResolvePhase(_Common):
                                     req, scope.package_request)
                                 failure_reason = DependencyConflicts([conflict])
                                 return _create_phase(SolverStatus.failed)
+                            # TODO this may have no effect...
                             elif scope_ is not scope:
                                 scopes[i] = scope_
                                 for j in range(len(scopes)):

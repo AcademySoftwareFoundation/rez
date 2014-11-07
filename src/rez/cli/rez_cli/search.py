@@ -1,15 +1,6 @@
 """
 Search for packages.
 """
-from rez.config import config
-from rez.exceptions import RezError
-from rez.util import print_error, get_epoch_time_from_str
-from rez.packages import iter_package_families, iter_packages
-from rez.vendor.version.version import VersionRange
-from rez.vendor.version.requirement import Requirement
-import os.path
-import fnmatch
-import sys
 
 
 def setup_parser(parser, completions=False):
@@ -56,6 +47,16 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.config import config
+    from rez.exceptions import RezError
+    from rez.util import print_error, get_epoch_time_from_str, safe_print
+    from rez.packages import iter_package_families, iter_packages
+    from rez.vendor.version.version import VersionRange
+    from rez.vendor.version.requirement import Requirement
+    import os.path
+    import fnmatch
+    import sys
+
     error_class = None if opts.debug else RezError
 
     before_time = 0
@@ -123,7 +124,8 @@ def command(opts, parser, extra_arg_groups=None):
                 return
         if opts.format:
             try:
-                print r.format(opts.format, pretty=True, expand='unchanged')
+                txt = r.format(opts.format, pretty=True, expand='unchanged')
+                safe_print(txt)
             except error_class as e:
                 _handle(e)
         else:

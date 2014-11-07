@@ -1,5 +1,5 @@
 from rez.util import print_colored_columns, propertycache, \
-    readable_time_duration
+    readable_time_duration, _missing
 from rez.config import config
 from rez.resolved_context import ResolvedContext
 from rez.colorize import warning, heading, critical, alias as alias_color, \
@@ -66,9 +66,8 @@ class Profile(object):
     See Soma documentation for a detailed overview of override features (not all
     are shown in this comment).
     """
-    schema = Schema({
+    profile_schema = Schema({
         Optional("new"): Or([basestring], None),
-        Optional("locked"): int,
         Optional("requires"): [basestring],
         Optional("tools"): [Or(basestring,
                                And(Schema({basestring: basestring}),
@@ -76,23 +75,45 @@ class Profile(object):
                             )]
     })
 
-    def __init__(self, name, parent, overrides):
-        """
-        Args:
-            parent (`ProductionConfig`).
-            overrides (list): List of (level, dict) tuples.
-        """
+    lock_schema = Schema({"locked": Or(None, int)})
+
+    def __init__(self, name, parent, overrides, lock_overrides=None):
+        """Do not create directly, """
         self.name = name
         self.parent = parent
 
+        # profile overrides
+        self._levels = []
         self._overrides = []
         for level, data in overrides:
+            self._levels.append(level)
             try:
-                data_ = self.schema.validate(data)
+                data_ = self.profile_schema.validate(data)
                 self._overrides.append((level, data_))
             except SchemaError as e:
                 raise SomaDataError("Invalid data in %r: %s"
                                     % (self._filepath(level), str(e)))
+
+        # lock overrides
+        self._lock_overrides = []
+        for level, data in (lock_overrides or []):
+            try:
+                data_ = self.lock_schema.validate(data)
+                self._lock_overrides.append((level, data_))
+            except SchemaError as e:
+                raise SomaDataError("Invalid data in %r: %s"
+                                    % (self._lock_filepath(level), str(e)))
+
+    @property
+    def levels(self):
+        """The levels that the profile has overrides in.
+
+        Zero is the first path in the configured searchpath.
+
+        Returns:
+            list of str: Override levels.
+        """
+        return self._levels
 
     @propertycache
     def lock(self):
@@ -441,30 +462,30 @@ class Profile(object):
 
         def _callback(_1, index, profile_, changed):
             color=None
+            lock = '-'
             if profile_ is None:
                 status = "??"
                 color = critical
             elif profile_ == -1:
                 status = "!!"
                 color = critical
-            elif not changed:  # an ineffective entry
-                status = " -"
-                color = warning
             else:
-                s = ''
-                if "requires" in changed:
-                    s += 'P'
-                if "tools" in changed:
-                    s += 'T'
-                if len(s) < 2:
-                    s = ' ' + s
-                status = s
+                if changed:
+                    s = ''
+                    if "requires" in changed:
+                        s += 'P'
+                    if "tools" in changed:
+                        s += 'T'
+                    if len(s) < 2:
+                        s = ' ' + s
+                    status = s
+                else:  # an ineffective entry
+                    status = " -"
+                    color = warning
 
-            if profile_.lock:
-                t_str = get_timestamp_str(profile_.lock, short=True)
-                lock = "%d(%s)" % (profile_.lock, t_str)
-            else:
-                lock = '-'
+                if profile_.lock:
+                    t_str = get_timestamp_str(profile_.lock, short=True)
+                    lock = "%d(%s)" % (profile_.lock, t_str)
 
             if index == highlight_index:
                 if color is None:
@@ -612,7 +633,7 @@ class Profile(object):
             row.append(color)
             rows.append(row)
 
-        if lock:
+        if lock and self._locks:
             def _print_lock_entry(entry):
                 lock_time = entry
                 t_str = get_timestamp_str(lock_time, short=True)
@@ -620,11 +641,11 @@ class Profile(object):
 
             _add_rows(lock_rows, self._locks, _print_lock_entry)
 
-        if packages:
+        if packages and self._requires:
             for overrides in self._requires:
                 _add_rows(package_rows, overrides)
 
-        if tools:
+        if tools and self._tools:
             def _print_tool_entry(entry):
                 alias, command = entry
                 return alias_str(alias, command)
@@ -728,7 +749,7 @@ class Profile(object):
     @propertycache
     def _locks(self):
         # a list of (epoch, level) 2-tuples. The last entry is the active lock.
-        return [(y, x) for x, y in self._get_overrides("locked")]
+        return [(y, x) for x, y in self._get_lock_overrides()]
 
     @propertycache
     def _requires(self):
@@ -953,10 +974,19 @@ class Profile(object):
 
         def _compare(p1, p2):
             changed = set()
-            if packages and (p1.requires != p2.requires):
-                changed.add("requires")
-            if tools and (p1.tools != p2.tools):
-                changed.add("tools")
+
+            if packages:
+                p1_requires = getattr(p1, "requires", None)
+                p2_requires = getattr(p2, "requires", None)
+                if p1_requires != p2_requires:
+                    changed.add("requires")
+
+            if tools:
+                p1_tools = getattr(p1, "tools", None)
+                p2_tools = getattr(p2, "tools", None)
+                if p1_tools != p2_tools:
+                    changed.add("tools")
+
             return changed
 
         entries = []
@@ -1042,9 +1072,26 @@ class Profile(object):
 
         return list(reversed(overrides))
 
+    def _get_lock_overrides(self):
+        overrides = []
+        for level, data in reversed(self._lock_overrides):
+            value = data.get("locked", _missing)
+            if value is _missing:
+                continue
+            elif value is None:
+                break  # stops inheritence, like 'new' in profile.yamls
+            else:
+                overrides.append((level, value))
+
+        return list(reversed(overrides))
+
     def _filepath(self, level):
         path = self.parent.stores[level].path
         return os.path.join(path, "%s.yaml" % self.name)
+
+    def _lock_filepath(self, level):
+        path = self.parent.stores[level].path
+        return os.path.join(path, ".%s.lock.yaml" % self.name)
 
     @classmethod
     def _is_removal(cls, value):

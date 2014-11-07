@@ -106,6 +106,14 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
              | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
+def safe_print(msg, buf=sys.stdout):
+    # http://stackoverflow.com/questions/492483/setting-the-correct-encoding-when-piping-stdout-in-python
+    try:
+        print >> buf, msg
+    except UnicodeEncodeError:
+        print >> buf, msg.encode("utf-8")
+
+
 def print_debug(msg):
     logger.debug(msg)
 
@@ -1395,11 +1403,14 @@ class ObjectStringFormatter(Formatter):
         self.expand = expand
 
     def convert_field(self, value, conversion):
+        def _str(x):
+            return x if isinstance(x, unicode) else str(x)
+
         if self.pretty:
             if value is None:
                 return ''
             elif isinstance(value, list):
-                return ' '.join(str(x) for x in value)
+                return ' '.join(map(_str, value))
         return Formatter.convert_field(self, value, conversion)
 
     def get_field(self, field_name, args, kwargs):
@@ -1408,15 +1419,17 @@ class ObjectStringFormatter(Formatter):
         try:
             return Formatter.get_field(self, field_name, args, kwargs)
         except (AttributeError, KeyError, TypeError):
-            reg = re.compile("[^\.\[]+")
-            try:
-                key = reg.match(field_name).group()
-            except:
-                key = field_name
-            if self.expand == 'empty':
-                return ('', key)
-            else:
-                return ("{%s}" % field_name, key)
+            pass
+
+        reg = re.compile("[^\.\[]+")
+        try:
+            key = reg.match(field_name).group()
+        except:
+            key = field_name
+        if self.expand == 'empty':
+            return ('', key)
+        else:
+            return ("{%s}" % field_name, key)
 
     def get_value(self, key, args, kwds):
         if isinstance(key, str):

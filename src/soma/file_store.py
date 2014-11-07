@@ -20,7 +20,8 @@ class FileStatus(Enum):
 
 
 class FileStore(object):
-    def __init__(self, path, include_patterns=None, ignore_patterns=None):
+    def __init__(self, path, include_patterns=None, ignore_patterns=None,
+                 read_only=False):
         """A file store.
 
         All files written to `path` have their change history stored permanently.
@@ -42,16 +43,23 @@ class FileStore(object):
             >>> store.read("foo.txt", t1)
             hello
 
-        Note that changes are only stored to one second resolution (a local git
-        repo underlies the file store, and it has this limitation). This means
-        that if several file updates happen in rapid succession, you may only be
-        able to retrieve the state of the latest update in that sequence.
+        Note:
+            If `read_only` is True, files are never updated. New files or file
+            changes that have not been committed will not be visible.
+
+        Note:
+            Changes are only stored to one second resolution (a local git repo
+            underlies the file store, and it has this limitation). This means
+            that if several file updates happen in rapid succession, you may
+            only be able to retrieve the state of the latest update in that
+            sequence.
 
         Args:
             path (str): Path to directory to store files in. Must already exist.
             include_patterns (list of str): Filename patterns to include. If
                 None, all files are included by default.
             ignore_patterns (list of str): Filename patterns to ignore.
+            read_only (bool): If True, files are never updated.
         """
         if not os.path.isdir(path):
             open(path)  # raises IOError
@@ -59,6 +67,8 @@ class FileStore(object):
         self.path = os.path.abspath(path)
         self.include_patterns = include_patterns or []
         self.ignore_patterns = ignore_patterns or []
+        self.read_only = read_only
+
         self.git = sh.git.bake(_tty_out=False, _cwd=path)
 
         if not os.path.exists(os.path.join(self.path, ".git")):
@@ -84,8 +94,11 @@ class FileStore(object):
         Args:
             filename (str): Name of file to update. If None, update all files.
         """
+        if self.read_only:
+            return
+
         if not self._valid_filename(filename):
-            raise SomaError("File in ignore list: %r" % filename)
+            raise SomaError("File in ignore / not in include list: %r" % filename)
 
         proc = self.git.status(filename, short=True, porcelain=True)
         toks = proc.stdout.strip().split()
@@ -294,14 +307,6 @@ class FileStore(object):
             return None  # file did not exist at this time
 
         return proc.stdout
-
-        """
-        try:
-            proc = self.git.show("%s:%s" % (handle, filename))
-        except sh.ErrorReturnCode:
-            return None  # file did not exist at this time
-        return proc.stdout
-        """
 
     def _error(self, msg, e):
         raise SomaError("Error in file store at %r:\n%s\n%s"

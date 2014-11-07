@@ -7,7 +7,7 @@ from soma.file_store import FileStore
 from soma.profile import Profile
 from soma.util import print_columns, overrides_str, alias_str, \
     get_timestamp_str, time_as_epoch
-from fnmatch import fnmatch
+import fnmatch
 import os.path
 import os
 
@@ -47,8 +47,7 @@ class ProductionConfig(object):
         for path in searchpath:
             if subpath:
                 path = os.path.join(path, subpath)
-            store = FileStore(path, include_patterns=("*.yaml",),
-                              ignore_patterns=("_*",))
+            store = FileStore(path, include_patterns=("*.yaml",))
             self.stores.append(store)
 
     @propertycache
@@ -58,7 +57,7 @@ class ProductionConfig(object):
         Returns:
             List of str: Profile names, in no particular order.
         """
-        return self._profile_levels.keys()
+        return self._profile_names()
 
     def copy(self, time_):
         """Create a copy of this config, at a different time.
@@ -70,28 +69,48 @@ class ProductionConfig(object):
                                 subpath=self.subpath,
                                 time_=time_)
 
-    def profile(self, name):
-        """Get a profile."""
+    def profile(self, name, ignore_locks=False):
+        """Get a profile.
+
+        Args:
+            ignore_locks (bool): If True, locks on the profile, if present,
+                will be ignored.
+
+        Returns:
+            `Profile` object.
+        """
         profile_ = self.profiles.get(name)
         if profile_ is not None:
             return profile_
 
-        filename = "%s.yaml" % name
-        overrides = self.raw_profile(name)
-        overrides_ = []
-
-        for level, content, _, _, _, _ in overrides:
-            store = self.stores[level]
+        def _read_yaml(filepath, content):
             try:
                 data = yaml.load(content) or {}
+                return data
             except YAMLError as e:
-                filepath = os.path.join(store.path, filename)
                 raise SomaDataError("Invalid override file %r%s:\n%s"
                                     % (filepath, self._at_time_str(), str(e)))
 
-            overrides_.append((level, data))
+        def _read_overrides(filename, overrides):
+            overrides_ = []
+            for level, content, _, _, _, _ in overrides:
+                filepath = os.path.join(self.stores[level].path, filename)
+                data = _read_yaml(filepath, content)
+                overrides_.append((level, data))
+            return overrides_
 
-        profile_ = Profile(name, self, overrides_)
+        # read profile overrides
+        filename = "%s.yaml" % name
+        overrides = self.raw_profile(name)
+        profile_overrides_ = _read_overrides(filename, overrides)
+
+        # read lock overrides
+        filename = ".%s.lock.yaml" % name
+        overrides = self._lock_overrides(name)
+        lock_overrides_ = _read_overrides(filename, overrides)
+
+        # create profile
+        profile_ = Profile(name, self, profile_overrides_, lock_overrides_)
         self.profiles[name] = profile_
         return profile_
 
@@ -115,36 +134,9 @@ class ProductionConfig(object):
             - str: Author;
             - `FileStatus` object.
 
-            The list is is ascending level order.
+            The list is in ascending level order.
         """
-        overrides = []
-        filename = "%s.yaml" % name
-        levels = self._profile_levels.get(name)
-
-        # update the status of files that aren't present - they may have been
-        # deleted. This is necessary otherwise this profile couldn't be
-        # replicated at some point in future, because the fact the files were
-        # deleted would not have been stored.
-        other_levels = set(range(self.num_levels)) - set(levels)
-        for i in other_levels:
-            store = self.stores[i]
-            store.update(filename)
-
-        if not levels:
-            msg = "No such profile %r" % name
-            raise SomaNotFoundError(msg + self._at_time_str())
-
-        for i in levels:
-            store = self.stores[i]
-            r = store.read(filename, time_=self.time_, blame=blame)
-            if r:
-                content, handle, commit_time, author, file_status = r
-                if content is not None:
-                    content = content.strip()
-                override = (i, content, handle, commit_time, author, file_status)
-                overrides.append(override)
-
-        return overrides
+        return self._profile_overrides(name, blame=blame)
 
     def shell_code(self, shell=None):
         """Return shell code which, when sourced, creates the configured Soma
@@ -236,20 +228,41 @@ class ProductionConfig(object):
         """
         self._print_locks(list_mode, verbose)
 
-    @propertycache
-    def _profile_levels(self):
-        d = {}
+    def _profile_names(self):
+        names = set()
         for i, store in enumerate(self.stores):
             filenames = store.filenames(time_=self.time_)
             for filename in filenames:
-                name = os.path.splitext(filename)[0]
-                levels = d.setdefault(name, [])
-                levels.append(i)
-        return d
+                if not filename.endswith(".lock.yaml"):
+                    name = os.path.splitext(filename)[0]
+                    names.add(name)
+        return names
+
+    def _profile_overrides(self, name, blame=False):
+        filename = "%s.yaml" % name
+        return self._get_overrides(filename, blame)
+
+    def _lock_overrides(self, name):
+        filename = ".%s.lock.yaml" % name
+        return self._get_overrides(filename)
+
+    def _get_overrides(self, filename, blame=False):
+        overrides = []
+        for i in range(self.num_levels):
+            store = self.stores[i]
+            r = store.read(filename, time_=self.time_, blame=blame)
+            if r:
+                content, handle, commit_time, author, file_status = r
+                if content is not None:
+                    content = content.strip()
+                override = (i, content, handle, commit_time, author, file_status)
+                overrides.append(override)
+
+        return overrides
 
     def _print_locks(self, list_mode, verbose):
         locks = {}
-        for name in self._profile_levels.iterkeys():
+        for name in self.profile_names:
             profile_ = self.profile(name)
             locks[name] = profile_.lock
 
@@ -326,12 +339,12 @@ class ProductionConfig(object):
         # create list of (alias, [profiles], command, print-color)
         entries = {}
 
-        for name in self._profile_levels.iterkeys():
+        for name in self.profile_names:
             profile_ = self.profile(name)
             tools = profile_.tools
 
             for alias, command in tools.iteritems():
-                if pattern and not fnmatch(alias, pattern):
+                if pattern and not fnmatch.fnmatch(alias, pattern):
                     continue
                 entry = entries.setdefault(alias, [alias, [], command, str])
                 entry[1].append(name)
@@ -369,29 +382,26 @@ class ProductionConfig(object):
             print_columns(entries_)
 
     def _print_profiles(self, list_mode, pattern, verbose):
-        profiles_ = self._profile_levels
+        names = sorted(self.profile_names)
         if pattern:
-            profiles_ = dict((k, v) for k, v in profiles_.iteritems()
-                             if fnmatch(k, pattern))
-            if not profiles_:
-                return
+            names = (x for x in names if fnmatch.fnmatch(x, pattern))
 
         if list_mode:
             rows = []
             all_levels = set()
 
-            for name, levels in profiles_.iteritems():
+            for name in names:
                 color = None
-                all_levels |= set(levels)
-
                 profile_ = self.profile(name)
+                all_levels.update(profile_.levels)
+
                 if profile_.lock:
                     color = warning
                     if verbose:
                         name += "[LOCKED]"
 
                 row = [name]
-                row.append(self._overrides_str(levels))
+                row.append(self._overrides_str(profile_.levels))
 
                 if verbose:
                     requires_str = " ".join(map(str, profile_.requires))
@@ -412,7 +422,7 @@ class ProductionConfig(object):
             print_colored_columns(rows)
         else:
             entries = []
-            for name, levels in sorted(profiles_.iteritems(), key=lambda x:x[0]):
+            for name in names:
                 profile_ = self.profile(name)
                 entry = name
                 if profile_.lock:
@@ -420,7 +430,7 @@ class ProductionConfig(object):
                         entry += "[LOCKED]"
                     entry = warning(entry)
                 if verbose:
-                    levels_str = self._overrides_str(levels)
+                    levels_str = self._overrides_str(profile_.levels)
                     entry += levels_str
                 entries.append(entry)
 

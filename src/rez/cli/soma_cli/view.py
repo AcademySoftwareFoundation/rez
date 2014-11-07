@@ -39,6 +39,9 @@ def setup_parser(parser, completions=False):
         "are: epoch time (eg 1393014494), or relative time (eg -10s, -5m, "
         "-0.5h, -10d)")
     parser.add_argument(
+        "--il", "--ignore-locks", dest="ignore_locks", action="store_true",
+        help="ignore any active locks")
+    parser.add_argument(
         "PROFILE",
         help="name of profile to view")
 
@@ -59,7 +62,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     time_ = get_epoch_time_from_str(opts.time) if opts.time else None
     pc = ProductionConfig.get_current_config(time_=time_)
-    profile = pc.profile(opts.PROFILE)
+    profile = pc.profile(opts.PROFILE, ignore_locks=opts.ignore_locks)
 
     if opts.expanded:
         profile.dump(blame=opts.blame,
