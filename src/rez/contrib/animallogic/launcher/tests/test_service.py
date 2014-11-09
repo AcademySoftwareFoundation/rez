@@ -3,6 +3,7 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.mode import Mode
 from rez.contrib.animallogic.launcher.setting import ValueSetting, ReferenceSetting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
+from rez.contrib.animallogic.launcher.service import SettingsResolver
 from rez.contrib.animallogic.launcher.exceptions import LauncherError
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy
 import rez.vendor.unittest2 as unittest
@@ -220,5 +221,87 @@ class TestLauncherHessianService_RemoveReferenceToPreset(BaseTestLauncherHessian
         self.assertRaises(Exception, self.launcher_service.remove_reference_from_path, "/presets/root/path",
                           '/nonexistent/preset/path', username=self.username)
 
+
+class TestSettingsResolver(unittest.TestCase):
+    
+    def setUp(self):
+        self.settings_resolver = SettingsResolver()
+
+    def assertSettings(self, expected_settings, actual_settings):
+        for expected, actual in zip(expected_settings, actual_settings):
+            self.assertEqual(expected.name, actual.name)
+            self.assertEqual(expected.value, actual.value)
+            self.assertEqual(expected.setting_type, actual.setting_type)
+
+    def test_empty_settings_list(self):
+        self.assertEqual([], self.settings_resolver.resolve_settings([]))
+
+    def test_setting_without_reference(self):
+        setting = ValueSetting("name", "value", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+    def test_setting_with_undefined_reference(self):
+        setting = ValueSetting("name", "${value}", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+        setting = ValueSetting("name", "pre ${value} post", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+    def test_settings_with_simple_self_reference(self):
+        settings = [
+                    ValueSetting("name", "value", SettingType.string),
+                    ValueSetting("name", "${name}", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+        settings = [
+                    ValueSetting("name", "${name}", SettingType.string),
+                    ValueSetting("name", "value", SettingType.string),
+                    ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_prepend_self_reference(self):
+
+        settings = [
+                    ValueSetting("name", "${name}value1", SettingType.string),
+                    ValueSetting("name", "${name}value2", SettingType.string),
+                    ValueSetting("name", "${name}value3", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1value2value3", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_overwrite_self_reference(self):
+
+        settings = [
+                    ValueSetting("name", "${name}value1", SettingType.string),
+                    ValueSetting("name", "${name}value2", SettingType.string),
+                    ValueSetting("name", "value3", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value3", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
 
 
