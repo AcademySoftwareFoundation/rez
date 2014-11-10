@@ -16,7 +16,6 @@ class StubPresetProxy(object):
         self.root_preset = {'/root/path': [{u'id': 1, u'presetId': {u'key': 1234}, u'name': u'Test'},
                                            {u'id': 2, u'presetId': {u'key': 9999}, u'name': u'base'}]}
 
-
     def _strip_prefix_from_path(self, path):
 
         return path.replace(self.PRESETS_PREFIX, '')
@@ -63,7 +62,6 @@ class StubPresetProxy(object):
             if ref['presetId']['key'] == self.PRESET_REFERENCE_TABLE[referencePath]:
                 self.root_preset[destination_path].remove(ref)
 
-
         return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
 
     def resolveReferenceSettingsForPath(self, path, date):
@@ -96,6 +94,16 @@ class StubPresetProxy(object):
         name = self.preset['fullyQualifiedName'].split('/')[-2]
 
         return [{'name':name, 'id':id}]
+
+    def getFlattenedSettingListForPath(self, path, operating_system, date):
+
+        if not all([path, operating_system, date]):
+            raise TypeError("")
+
+        if self.preset_path != path:
+            raise Exception({'message':"The provided preset is invalid."})
+
+        return  self.settings
 
 
 class StubToolsetProxy(object):
