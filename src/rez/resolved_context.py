@@ -1,4 +1,5 @@
 from rez import __version__, module_root_path
+from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
@@ -95,16 +96,17 @@ class ResolvedContext(object):
             self.buf = buf or sys.stdout
 
         def __call__(self, state):
-            if self.max_fails != -1 and state.num_fails > self.max_fails:
-                return False, ("fail limit reached: aborted after %d failures"
-                               % state.num_fails)
+            if self.max_fails != -1 and state.num_fails >= self.max_fails:
+                reason = ("fail limit reached: aborted after %d failures"
+                          % state.num_fails)
+                return SolverCallbackReturn.fail, reason
             if self.time_limit != -1:
                 secs = time.time() - self.start_time
                 if secs > self.time_limit:
-                    return False, "time limit exceeded"
+                    return SolverCallbackReturn.abort, "time limit exceeded"
             if self.callback:
                 return self.callback(state)
-            return True, ''
+            return SolverCallbackReturn.keep_going, ''
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
@@ -128,14 +130,10 @@ class ResolvedContext(object):
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
-                greater than this number. If -1, does not abort.
+                greater or equal to this number. If -1, does not abort.
             time_limit (int): Abort the resolve if it takes longer than this
                 many seconds. If -1, there is no time limit.
-            callback: If not None, this callable will be called after each
-                solve step. It is passed a `SolverState` object. It must return
-                a 2-tuple:
-                - bool: If True, continue the solve, otherwise abort;
-                - str: Reason for solve abort, ignored if solve not aborted.
+            callback: See `Solver`.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.

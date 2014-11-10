@@ -4,6 +4,117 @@ The dependency resolving module.
 This gives direct access to the solver. You should use the resolve() function
 in resolve.py instead, which will use cached data where possible to provide you
 with a faster resolve.
+
+
+A 'phase' is a current state of the solve. It contains a list of 'scopes'.
+
+A 'scope' is a package request. If the request isn't a conflict, then a scope
+also contains the actual list of variants that match the request.
+
+The solve loop performs 5 different types of operations:
+
+* EXTRACTION. This happens when a common dependency is found in all the variants
+  in a scope. For example if every version of pkg 'foo' depends on some version
+  of python, the 'extracted' dependency might be "python-2.6|2.7". An extraction
+  then results in either an INTERSECT or an ADD.
+
+* INTERSECT: This happens when an extracted dependency overlaps with an existing
+  scope. For example "python-2" might be a current scope. Pkg foo's common dependency
+  python-2.6|2.7 would be 'intersected' with this scope. This might result in a
+  conflict, which would cause the whole phase to fail (and possibly the whole solve).
+  Or, as in this case, it narrows an existing scope to 'python-2.6|2.7'.
+
+* ADD: This happens when an extraction is a new pkg request. A new scope is
+  created and added to the current list of scopes.
+
+* REDUCE: This is when a scope iterates over all of its variants and removes those
+  that conflict with another scope. If this removes all the variants in the scope,
+  the phase has failed - this is called a "total reduction". This type of failure
+  is not common - usually it's a conflicting INTERSECT that causes a failure.
+
+* SPLIT: Once a phase has been extracted/intersected/added/reduced as much as
+  possible (this is called 'exhausted'), we are left with either a solution (each
+  scope contains only a single variant), or an unsolved phase. This is when the
+  algorithm needs to recurse (although it doesn't actually recurse, it uses a stack
+  instead). A SPLIT occurs at this point. The first scope with more than one
+  variant is found. This scope is split in two (let us say ScopeA and ScopeB),
+  where ScopeA has at least one common dependency (worst case scenario, ScopeA
+  contains a single variant). This is done because it guarantees a later extraction,
+  which hopefully gets us closer to a solution. Now, two phases are created (let us
+  say PhaseA and PhaseB) - identical to the current phase, except that PhaseA has
+  ScopeA instead of the original, and PhaseB has ScopeB instead of the original.
+  Now, we attempt to solve PhaseA, and if that fails, we attempt to solve PhaseB.
+
+The pseudocode for a solve looks like this::
+
+    def solve(requests):
+        phase = create_initial_phase(requests)
+        phase_stack = stack()
+        phase_stack.push(phase)
+
+        while not solved():
+            phase = phase_stack.pop()
+            if phase.failed:
+                phase = phase_stack.pop()  # discard previous failed phase
+
+            if phase.exhausted:
+                phase, next_phase = phase.split()
+                phase_stack.push(next_phase)
+
+            new_phase = solve_phase(phase)
+            if new_phase.failed:
+                phase_stack.push(new_phase)  # we keep last fail on the stack
+            elif new_phase.solved:
+                # some housekeeping here, like checking for cycles
+                final_phase = finalise_phase(new_phase)
+                phase_stack.push(final_phase)
+            else:
+                phase_stack.push(new_phase)  # phase is exhausted
+
+    def solve_phase(phase):
+        while True:
+            while True:
+                foreach phase.scope as x:
+                    extractions |= collect_extractions(x)
+
+                if extractions_present:
+                    foreach phase.scope as x:
+                        intersect(x, extractions)
+                        if failed(x):
+                            set_fail()
+                            return
+                        elif intersected(x):
+                            reductions |= add_reductions_involving(x)
+
+                    foreach new_request in extractions:
+                        scope = new_scope(new_request)
+                        reductions |= add_reductions_involving(scope)
+                        phase.add(scope)
+                else:
+                    break
+
+            if no intersections and no adds:
+                break
+
+            foreach scope_a, scope_b in reductions:
+                scope_b.reduce_by(scope_a)
+                if totally_reduced(scope_b):
+                    set_fail()
+                    return
+
+There are 2 notable points missing from the pseudocode, related to optimisations:
+
+* Scopes keep a set of package families so that they can quickly skip unnecessary
+  reductions. For example, all 'foo' pkgs may depend only on the set (python, bah),
+  so when reduced against 'maya', this becomes basically a no-op.
+
+* Objects in the solver (phases, scopes etc) are immutable. Whenever a change
+  occurs - such as a scope being narrowed as a result of an intersect - what
+  actually happens is that a new object is created, often based on a shallow copy
+  of the previous object. This is basically implementing copy-on-demand - lots of
+  scopes are shared between phases in the stack, if objects were not immutable
+  then creating a new phase would involve a deep copy of the entire state of the
+  solver.
 """
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
@@ -24,7 +135,7 @@ import sys
 
 
 class SolverStatus(Enum):
-    """ Enum to represent the current state of a solver instance.  The enum
+    """Enum to represent the current state of a solver instance.  The enum
     also includes a human readable description of what the state represents.
     """
 
@@ -37,6 +148,14 @@ class SolverStatus(Enum):
 
     def __init__(self, description):
         self.description = description
+
+
+class SolverCallbackReturn(Enum):
+    """Enum returned by the `callback` callable passed to a `Solver` instance.
+    """
+    keep_going = ("Continue the solve",)
+    abort = ("Abort the solve",)
+    fail = ("Stop the solve and set to most recent failure")
 
 
 class _Printer(object):
@@ -424,7 +543,7 @@ class _PackageVariantSlice(_Common):
         else:
             return self
 
-    def reduce(self, package_request):
+    def reduce_by(self, package_request):
         """Remove variants whos dependencies conflict with the given package
         request.
 
@@ -696,7 +815,7 @@ class _PackageScope(_Common):
         else:
             return self
 
-    def reduce(self, package_request):
+    def reduce_by(self, package_request):
         """Reduce this scope wrt a package request.
 
         Returns:
@@ -705,7 +824,7 @@ class _PackageScope(_Common):
             reductions, or None if the slice was completely reduced.
         """
         if not self.package_request.conflict:
-            new_slice, reductions = self.variant_slice.reduce(package_request)
+            new_slice, reductions = self.variant_slice.reduce_by(package_request)
 
             if new_slice is None:
                 if self.pr:
@@ -970,10 +1089,12 @@ class _ResolvePhase(_Common):
                             pending_reducts.add((i, j))
 
             while pending_reducts:
+                new_pending_reducts = set()
+
                 # the sort here gives reproducible results, since order of
                 # reducts affects the result
                 for i, j in sorted(pending_reducts):
-                    new_scope, reductions = scopes[j].reduce(
+                    new_scope, reductions = scopes[j].reduce_by(
                         scopes[i].package_request)
                     if new_scope is None:
                         failure_reason = TotalReduction(reductions)
@@ -982,9 +1103,9 @@ class _ResolvePhase(_Common):
                         scopes[j] = new_scope
                         for i in range(len(scopes)):
                             if i != j:
-                                pending_reducts.add((j, i))
+                                new_pending_reducts.add((j, i))
 
-                    pending_reducts -= set([(i, j)])
+                pending_reducts = new_pending_reducts
 
         return _create_phase()
 
@@ -1350,8 +1471,11 @@ class Solver(_Common):
             callback: If not None, this callable will be called after each
                 solve step. It is passed a `SolverState` object. It must return
                 a 2-tuple:
-                - bool: If True, continue the solve, otherwise abort;
+                - `SolverCallbackReturn` object indicating what to do next;
                 - str: Reason for solve abort, ignored if solve not aborted.
+                If the callable returns `SolverCallbackReturn.fail`, but there
+                has not been a failure, the solver will ignore the callback and
+                continue on with the solve.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
@@ -1375,6 +1499,7 @@ class Solver(_Common):
         self.phase_stack = None
         self.failed_phase_list = None
         self.abort_reason = None
+        self.callback_return = None
         self.solve_count = None
         self.depth_counts = None
         self.solve_time = None
@@ -1426,6 +1551,11 @@ class Solver(_Common):
         if self.request_list.conflict:
             return SolverStatus.failed
 
+        if self.callback_return == SolverCallbackReturn.fail:
+            # the solve has failed because a callback has nominated the most
+            # recent failure as the reason.
+            return SolverStatus.failed
+
         st = self.phase_stack[-1].status
         if st == SolverStatus.cyclic:
             return SolverStatus.failed
@@ -1445,15 +1575,6 @@ class Solver(_Common):
         return self.solve_count
 
     @property
-    def is_partial(self):
-        """Returns True if this solve is 'partial'.
-
-        This means that more packages could have been loaded during the solve,
-        but they were not, due to the value of `max_depth`.
-        """
-        return self._is_partial
-
-    @property
     def num_fails(self):
         """Return the number of failed solve steps that have been executed.
         Note that num_solves is inclusive of failures."""
@@ -1466,6 +1587,15 @@ class Solver(_Common):
     def cyclic_fail(self):
         """Return True if the solve failed due to a cycle, False otherwise."""
         return (self.phase_stack[-1].status == SolverStatus.cyclic)
+
+    @property
+    def is_partial(self):
+        """Returns True if this solve is 'partial'.
+
+        This means that more packages could have been loaded during the solve,
+        but they were not, due to the value of `max_depth`.
+        """
+        return self._is_partial
 
     @property
     def resolved_packages(self):
@@ -1556,43 +1686,55 @@ class Solver(_Common):
         end_time = time.time()
         self.solve_time += (end_time - start_time)
 
-    def failure_packages(self, failure_index=None):
-        """Get packages involved in a failure.
-
-        Args:
-            failure_index: Index of the fail to return the graph for (can be
-                negative). If None, the most appropriate failure is chosen -
-                this is the last fail if cyclic, or the first fail otherwise.
-
-        Returns:
-            A list of Requirement objects.
-        """
-        phase = self._get_failed_phase(failure_index)
-        fr = phase.failure_reason
-        return fr.involved_requirements() if fr else None
-
     def failure_reason(self, failure_index=None):
         """Get the reason for a failure.
 
         Args:
             failure_index: Index of the fail to return the graph for (can be
-                negative). If None, the most appropriate failure is chosen -
-                this is the last fail if cyclic, or the first fail otherwise.
+                negative). If None, the most appropriate failure is chosen
+                according to these rules:
+                - If the fail is cyclic, the most recent fail (the one containing
+                  the cycle) is used;
+                - If a callback has caused a failure, the most recent fail is used;
+                - Otherwise, the first fail is used.
 
         Returns:
-            A FailureReason subclass instance describing the failure.
+            A `FailureReason` subclass instance describing the failure.
         """
-        phase = self._get_failed_phase(failure_index)
+        phase, _ = self._get_failed_phase(failure_index)
         return phase.failure_reason
+
+    def failure_description(self, failure_index=None):
+        """Get a description of the failure.
+
+        This differs from `failure_reason` - in some cases, such as when a
+        callback forces a failure, there is more information in the description
+        than there is from `failure_reason`.
+        """
+        _, description = self._get_failed_phase(failure_index)
+        return description
+
+    def failure_packages(self, failure_index=None):
+        """Get packages involved in a failure.
+
+        Args:
+            failure_index: See `failure_reason`.
+
+        Returns:
+            A list of Requirement objects.
+        """
+        phase, _ = self._get_failed_phase(failure_index)
+        fr = phase.failure_reason
+        return fr.involved_requirements() if fr else None
 
     def get_graph(self):
         """Returns the most recent solve graph.
 
         This gives a graph showing the latest state of the solve. The specific
-        graph returned depends on the solve status. When status is...
+        graph returned depends on the solve status. When status is:
         unsolved: latest unsolved graph is returned;
         solved:   final solved graph is returned;
-        failed:   first failure graph is returned;
+        failed:   most appropriate failure graph is returned (see `failure_reason`);
         cyclic:   last failure is returned (contains cycle).
 
         Returns:
@@ -1600,25 +1742,21 @@ class Solver(_Common):
         """
         st = self.status
         if st in (SolverStatus.solved, SolverStatus.unsolved):
-            phase = self._latest_unsolved_phase()
+            phase = self._latest_nonfailed_phase()
             return phase.get_graph()
         else:
-            i = -1 if self.cyclic_fail else 0
-            return self.get_fail_graph(i)
+            return self.get_fail_graph()
 
     def get_fail_graph(self, failure_index=None):
         """Returns a graph showing a solve failure.
 
         Args:
-            failure_index: Index of the fail to return the graph for (can be
-                negative). Set to -1 to get the most recent failure. If None,
-                the most appropriate failure is chosen - this is the last fail
-                if cyclic, or the first fail otherwise.
+            failure_index: See `failure_reason`
 
         Returns:
             A pygraph.digraph object.
         """
-        phase = self._get_failed_phase(failure_index)
+        phase, _ = self._get_failed_phase(failure_index)
         return phase.get_graph()
 
     def dump(self):
@@ -1650,7 +1788,7 @@ class Solver(_Common):
         self.load_time = 0.0
         self.solve_begun = False
 
-    def _latest_unsolved_phase(self):
+    def _latest_nonfailed_phase(self):
         if self.status == SolverStatus.failed:
             return None
 
@@ -1662,13 +1800,21 @@ class Solver(_Common):
     def _do_callback(self):
         keep_going = True
         if self.callback:
-            phase = self._latest_unsolved_phase()
+            phase = self._latest_nonfailed_phase()
             if phase:
                 s = SolverState(self.num_solves, self.num_fails, phase)
-                keep_going, abort_reason = self.callback(s)
-                if not keep_going:
+                value, abort_reason = self.callback(s)
+                if value == SolverCallbackReturn.abort:
                     self.pr("solve aborted: %s", abort_reason)
                     self.abort_reason = abort_reason
+                    keep_going = False
+                elif value == SolverCallbackReturn.fail:
+                    if self.num_fails:
+                        self.abort_reason = abort_reason
+                        self.pr("solve failed: %s", abort_reason)
+                        self.callback_return = value
+                        keep_going = False
+
         return keep_going
 
     def _get_variant_slice(self, package_name, range):
@@ -1703,18 +1849,33 @@ class Solver(_Common):
             self.pr("popped %s: %s", dlabel, phase)
         return phase
 
-    def _get_failed_phase(self, index):
+    def _get_failed_phase(self, index=None):
+        # returns (phase, fail_description)
+        prepend_abort_reason = False
         fails = self.failed_phase_list
         st = self.phase_stack[-1].status
         if st in (SolverStatus.failed, SolverStatus.cyclic):
             fails = fails + self.phase_stack[-1:]
 
         if index is None:
-            index = -1 if st == SolverStatus.cyclic else 0
+            if st == SolverStatus.cyclic:
+                index = -1
+            elif self.callback_return == SolverCallbackReturn.fail:
+                prepend_abort_reason = True
+                index = -1
+            else:
+                index = 0
+
         try:
-            return fails[index]
+            phase = fails[index]
         except IndexError:
             raise IndexError("failure index out of range")
+
+        fail_description = phase.failure_reason.description()
+        if prepend_abort_reason and self.abort_reason:
+            fail_description = "%s:\n%s" % (self.abort_reason, fail_description)
+
+        return phase, fail_description
 
     def _depth_label(self, depth=None):
         if depth is None:
