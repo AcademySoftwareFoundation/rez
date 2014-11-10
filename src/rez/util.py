@@ -323,6 +323,9 @@ def columnise(rows, padding=2):
                 if i < len(row) - 1:
                     n = maxwidths[i] + padding - len(se)
                     se += ' ' * n
+                else:
+                    n = maxwidths[i] - len(se)
+                    se += ' ' * n
                 s += se
         strs.append(s)
     return strs

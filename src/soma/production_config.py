@@ -1,4 +1,5 @@
-from rez.colorize import alias as alias_color, heading, error, warning
+from rez.colorize import alias as alias_color, heading, error, warning, \
+    soma_lock
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.util import propertycache, split_path, print_colored_columns
@@ -106,7 +107,10 @@ class ProductionConfig(object):
 
         # read lock overrides
         filename = ".%s.lock.yaml" % name
-        overrides = self._lock_overrides(name)
+        if ignore_locks:
+            overrides = []
+        else:
+            overrides = self._lock_overrides(name)
         lock_overrides_ = _read_overrides(filename, overrides)
 
         # create profile
@@ -255,8 +259,8 @@ class ProductionConfig(object):
                 content, handle, commit_time, author, file_status = r
                 if content is not None:
                     content = content.strip()
-                override = (i, content, handle, commit_time, author, file_status)
-                overrides.append(override)
+                    override = (i, content, handle, commit_time, author, file_status)
+                    overrides.append(override)
 
         return overrides
 
@@ -317,11 +321,13 @@ class ProductionConfig(object):
                 rows = [["PROFILE", "LOCK", heading], (None, heading)]
                 for name, lock_time in entries:
                     if lock_time is None:
+                        color = None
                         lock_str = '-'
                     else:
+                        color = soma_lock
                         t_str = get_timestamp_str(lock_time)
                         lock_str = "%d - %s" % (lock_time, t_str)
-                    rows.append((name, lock_str, None))
+                    rows.append((name, lock_str, color))
 
             print_colored_columns(rows)
         else:
@@ -396,7 +402,7 @@ class ProductionConfig(object):
                 all_levels.update(profile_.levels)
 
                 if profile_.lock:
-                    color = warning
+                    color = soma_lock
                     if verbose:
                         name += "[LOCKED]"
 
@@ -428,7 +434,7 @@ class ProductionConfig(object):
                 if profile_.lock:
                     if verbose:
                         entry += "[LOCKED]"
-                    entry = warning(entry)
+                    entry = soma_lock(entry)
                 if verbose:
                     levels_str = self._overrides_str(profile_.levels)
                     entry += levels_str

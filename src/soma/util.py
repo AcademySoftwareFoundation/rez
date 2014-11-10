@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from rez.util import readable_time_duration
 from rez.yaml import OrderedDumper, dump_yaml
+from rez.colorize import combine as color_combine
 
 
 class ProfileOrderedDumper(OrderedDumper):
@@ -18,6 +19,15 @@ def dump_profile_yaml(data):
     return dump_yaml(data, ProfileOrderedDumper)
 
 
+def combine(color1, color2):
+    if color1 is None:
+        return color2
+    elif color2 is None:
+        return color1
+    else:
+        return color_combine(color1, color2)
+
+
 def time_as_epoch(time_):
     if isinstance(time_, datetime):
         epoch = datetime.utcfromtimestamp(0)
@@ -29,13 +39,13 @@ def time_as_epoch(time_):
 # TODO put in rez.util
 def get_timestamp_str(timestamp, short=False):
     now = int(time.time())
-    duration = readable_time_duration(now - timestamp, short=short)
+    duration = readable_time_duration(now - timestamp, short=True)
     if short:
         return "-%s" % duration
     else:
         time_ = time.localtime(timestamp)
         time_str = time.strftime('%d %b %Y %H:%M:%S', time_)
-        return "%s (%s ago)" % (time_str, duration)
+        return "%s (-%s)" % (time_str, duration)
 
 
 def alias_str(alias, command=None):

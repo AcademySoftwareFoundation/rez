@@ -340,6 +340,11 @@ alias_fore: cyan
 alias_back:
 alias_styles:
 
+# A soma lock
+soma_lock_fore:
+soma_lock_back: blue
+soma_lock_styles:
+
 
 ###############################################################################
 # Rez-1 Compatibility

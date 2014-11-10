@@ -2,14 +2,14 @@ from rez.util import print_colored_columns, propertycache, \
     readable_time_duration, _missing
 from rez.config import config
 from rez.resolved_context import ResolvedContext
-from rez.colorize import warning, heading, critical, alias as alias_color, \
-    combine, bright, Printer
+from rez.colorize import warning, heading, error, alias as alias_color, \
+    bright, soma_lock, Printer
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.util import VersionError
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And
 from soma.file_store import FileStatus
 from soma.exceptions import SomaNotFoundError, SomaDataError
-from soma.util import glob_transform, alias_str, get_timestamp_str, \
+from soma.util import glob_transform, alias_str, get_timestamp_str, combine, \
     print_columns, dump_profile_yaml
 import time
 import fnmatch
@@ -255,9 +255,12 @@ class Profile(object):
         if not logs_:
             raise SomaNotFoundError("Unknown file handle %r in profile %r"
                                     % (handle, self.name))
-        level, _, commit_time, author_name, file_status = logs_[0]
+        level, _, commit_time, author_name, file_status, is_profile = logs_[0]
+        if is_profile:
+            filename = "%s.yaml" % self.name
+        else:
+            filename = ".%s.lock.yaml" % self.name
 
-        filename = "%s.yaml" % self.name
         store = self.parent.stores[level]
         content, _, _, _ = store.read_from_handle(filename, handle)
 
@@ -275,16 +278,18 @@ class Profile(object):
             until (`DateTime` or int): Only return entries at or before this time.
 
         Returns:
-            List of 5-tuples where each contains:
+            List of 6-tuples where each contains:
             - int: Level of the override;
             - str: File handle;
             - int: Epoch time of the file commit;
             - str: Author name;
-            - `FileStatus` object.
+            - `FileStatus` object;
+            - bool: True if this is a profile commit, False if a lock commit.
 
             The list is ordered from most recent commit to last.
         """
         filename = "%s.yaml" % self.name
+        lock_filename = ".%s.lock.yaml" % self.name
         all_entries = []
 
         # note that all levels have to be checked, not just those currently
@@ -292,9 +297,17 @@ class Profile(object):
         # in the log as a changed one
         for level in range(self.parent.num_levels):
             store = self.parent.stores[level]
+
+            # profile commits
             entries = store.file_logs(filename=filename, limit=limit,
                                       since=since, until=until)
-            entries = (tuple([level] + list(x) for x in entries))
+            entries = (tuple(([level] + list(x) + [True]) for x in entries))
+            all_entries.extend(entries)
+
+            # lock commits
+            entries = store.file_logs(filename=lock_filename, limit=limit,
+                                      since=since, until=until)
+            entries = (tuple(([level] + list(x) + [False]) for x in entries))
             all_entries.extend(entries)
 
         entries = sorted(all_entries, key=lambda x: x[2], reverse=True)
@@ -407,11 +420,7 @@ class Profile(object):
         rows = self._get_log_rows(logs_, verbose=verbose)
         if highlight_index is not None:
             row = rows[highlight_index + 2]  # skip header
-            color = row[-1]
-            if color is None:
-                color = bright
-            else:
-                color = combine(color, bright)
+            color = combine(row[-1], bright)
             row[-1] = color
 
         print_colored_columns(rows)
@@ -433,6 +442,7 @@ class Profile(object):
                 highlight_index = indexes[0]
 
         # calc width formatting
+        lock_width = 18  # eg '1415403190(-26m)'
         rows = self._get_log_rows(logs_, verbose=verbose)
         rows = rows[:1] + rows[2:]  # ditch header underline
         maxwidths = []
@@ -453,22 +463,22 @@ class Profile(object):
             row_[0] = status
             if verbose:
                 # add trailing LOCK column
-                row_[-1] = lock
+                row_[-1] = lock + (' ' * (lock_width - len(lock)))
                 row_.append(color)
             else:
                 row_[-1] = color
 
             print_colored_columns([row_])
 
-        def _callback(_1, index, profile_, changed):
+        def _callback(_logs, index, profile_, changed):
             color=None
             lock = '-'
             if profile_ is None:
-                status = "??"
-                color = critical
+                status = '  ??'
+                color = error
             elif profile_ == -1:
-                status = "!!"
-                color = critical
+                status = '  !!'
+                color = error
             else:
                 if changed:
                     s = ''
@@ -476,36 +486,37 @@ class Profile(object):
                         s += 'P'
                     if "tools" in changed:
                         s += 'T'
-                    if len(s) < 2:
-                        s = ' ' + s
                     status = s
                 else:  # an ineffective entry
-                    status = " -"
+                    status = '-'
                     color = warning
+
+                log_entry = _logs[index]
+                if not log_entry[-1]:
+                    status += 'L'
+                status += log_entry[4].abbrev
+                status = ((4 - len(status)) * ' ') + status
 
                 if profile_.lock:
                     t_str = get_timestamp_str(profile_.lock, short=True)
                     lock = "%d(%s)" % (profile_.lock, t_str)
+                    color = combine(color, soma_lock)
 
             if index == highlight_index:
-                if color is None:
-                    color = bright
-                else:
-                    color = combine(color, bright)
+                color = combine(color, bright)
 
             _print_row(rows[index], status, lock, color)
             return True
 
         if verbose:
             # adds a trailing LOCK column
-            _print_row(rows[0], '  ', "LOCK", heading)  # heading
+            _print_row(rows[0], '    ', "LOCK", heading)  # heading
             underline_row = ['-' * x for x in maxwidths] + [heading]
-            lock_width = len("1415300567")  # just a random epoch string
-            _print_row(underline_row, '--', '-' * lock_width, heading)
+            _print_row(underline_row, '----', '-' * lock_width, heading)
         else:
-            _print_row(rows[0], '  ', '', heading)  # heading
+            _print_row(rows[0], '    ', '', heading)  # heading
             underline_row = ['-' * x for x in maxwidths] + [heading]
-            _print_row(underline_row, '--', '', heading)
+            _print_row(underline_row, '----', '', heading)
 
         rows = rows[1:]
         self._effective_logs(logs_, packages, tools, include_ineffective, limit,
@@ -950,15 +961,23 @@ class Profile(object):
         row.extend(["AUTHOR", "DATE", heading])
         rows.extend([row, [None, heading]])
 
-        for level, handle, commit_time, author, file_status in logs_:
+        for level, handle, commit_time, author, file_status, is_profile in logs_:
             color = None
             level_str = self.parent._overrides_str(level)
             path = self.parent.searchpath[level]
             time_str = "%d - %s" % (commit_time, get_timestamp_str(commit_time))
 
-            row = [file_status.abbrev, level_str, path]
+            if not is_profile:
+                color = combine(color, soma_lock)
+
+            if is_profile:
+                status = ' ' + file_status.abbrev
+            else:
+                status = 'L' + file_status.abbrev
+
+            row = [status, level_str, path]
             if file_status == FileStatus.deleted:
-                color = warning
+                color = combine(color, warning)
             if verbose:
                 row.append(handle)
             row.extend([author, time_str, color])
@@ -993,7 +1012,8 @@ class Profile(object):
         prev_profile = None
         nlogs = len(logs_)
 
-        for i, (level, handle, commit_time, author, file_status) in enumerate(logs_):
+        for i, log_entry in enumerate(logs_):
+            level, handle, commit_time, author, file_status, is_profile = log_entry
             if progress_callback and not progress_callback(i, nlogs):
                 return entries
 

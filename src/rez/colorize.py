@@ -186,6 +186,19 @@ def alias(str_):
     return _color_level(str_, 'alias')
 
 
+def soma_lock(str_):
+    """ Return the string wrapped with the appropriate styling to display a
+    soma lock.  The styling will be determined based on the rez configuration.
+
+    Args:
+      str_ (str): The string to be wrapped.
+
+    Returns:
+      str: The string styled with the appropriate escape sequences.
+    """
+    return _color_level(str_, 'soma_lock')
+
+
 # -- internals
 
 def _color_level(str_, level):
