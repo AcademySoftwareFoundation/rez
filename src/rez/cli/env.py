@@ -61,7 +61,8 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-o", "--output", type=str, metavar="FILE",
         help="store the context into an rxt file, instead of starting an "
-        "interactive shell. Note that this will also store a failed resolve")
+        "interactive shell. Note that this will also store a failed resolve. "
+        "If you use the special value '-', the context is written to stdout.")
     input_action = parser.add_argument(
         "-i", "--input", type=str, metavar="FILE",
         help="use a previously saved context. Resolve settings, such as PKG, "
@@ -172,7 +173,10 @@ def command(opts, parser, extra_arg_groups=None):
         context.print_info(buf=sys.stderr)
 
     if opts.output:
-        context.save(opts.output)
+        if opts.output == '-':  # print to stdout
+            context.write_to_buffer(sys.stdout)
+        else:
+            context.save(opts.output)
         sys.exit(0 if success else 1)
 
     if not success:

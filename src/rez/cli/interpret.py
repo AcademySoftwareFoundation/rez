@@ -7,16 +7,15 @@ def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
     from rez.system import system
 
-    formats = get_shell_types() + ['dict', 'actions']
+    formats = get_shell_types() + ['dict', 'table']
 
-    parser.add_argument("-f", "--format", type=str, choices=formats,
-                        help="print output in the given format. If None, the "
-                        "current shell language (%s) is used. If 'dict', a "
-                        "dictionary of the resulting environment is printed. "
-                        "If 'actions', an agnostic list of actions is printed."
-                        % system.shell)
-    parser.add_argument("--no-env", dest="no_env", action="store_true",
-                        help="interpret the code in an empty environment")
+    parser.add_argument(
+        "-f", "--format", type=str, choices=formats,
+        help="print output in the given format. If None, the current shell "
+        "language (%s) is used" % system.shell)
+    parser.add_argument(
+        "--no-env", dest="no_env", action="store_true",
+        help="interpret the code in an empty environment")
     pv_action = parser.add_argument(
         "--pv", "--parent-variables", dest="parent_vars", type=str,
         metavar='VAR', nargs='+',
@@ -39,6 +38,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.shells import create_shell
     from rez.util import pretty_env_dict
     from rez.rex import RexExecutor, Python
+    from pprint import pformat
 
     with open(opts.FILE) as f:
         code = f.read()
@@ -46,7 +46,7 @@ def command(opts, parser, extra_arg_groups=None):
     interp = None
     if opts.format is None:
         interp = create_shell()
-    elif opts.format in ('dict', 'actions'):
+    elif opts.format in ('dict', 'table'):
         interp = Python(passive=True)
     else:
         interp = create_shell(opts.format)
@@ -64,12 +64,11 @@ def command(opts, parser, extra_arg_groups=None):
 
     ex.execute_code(code, filename=opts.FILE)
 
-    if opts.format == 'actions':
-        for action in ex.actions:
-            print str(action)
-    else:
-        o = ex.get_output()
-        if isinstance(o, dict):
+    o = ex.get_output()
+    if isinstance(o, dict):
+        if opts.table:
             print pretty_env_dict(o)
         else:
-            print o
+            print pformat(o)
+    else:
+        print o
