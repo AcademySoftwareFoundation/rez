@@ -28,8 +28,7 @@ class Baker(object):
                                                                            operating_system=self.operating_system,
                                                                            date=self.now)
 
-
-        self.settings = self.launcher_service.resolve_sesttings(settings, only_packages=True)
+        self.settings = self.launcher_service.resolve_settings(settings, only_packages=True)
 
         if not preserve_system_settings:
             self._strip_system_settings()

@@ -164,7 +164,7 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return [self._create_value_setting_from_dict(setting) for setting in settings]
 
-    def resolve_sesttings(self, settings, only_packages=False):
+    def resolve_settings(self, settings, only_packages=False):
 
         return SettingsResolver().resolve_settings(settings, only_packages=only_packages)
 
@@ -201,6 +201,11 @@ class LauncherHessianService(LauncherServiceInterface):
 
 
 class SettingsResolver(object):
+    """
+    Class to resolve the settings returned by the Launcher service.  This class
+    can be used to resolve the ${...} style references Launcher provides when
+    not fully resolving the variables internally.
+    """
 
     def resolve_settings(self, settings, only_packages=False):
 
