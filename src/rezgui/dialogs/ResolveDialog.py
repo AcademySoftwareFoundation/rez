@@ -73,10 +73,10 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             label = QtGui.QLabel("maximum fails:")
             self.max_fails_combo = QtGui.QComboBox()
             self.max_fails_combo.setEditable(True)
-            self.max_fails_combo.addItem("None")
-            self.max_fails_combo.addItem("0")
+            self.max_fails_combo.addItem("-")
             self.max_fails_combo.addItem("1")
             self.max_fails_combo.addItem("2")
+            self.max_fails_combo.addItem("3")
             app.config.attach(self.max_fails_combo, "resolve/max_fails")
             max_fails_pane = create_pane([None, label, self.max_fails_combo], True)
 
@@ -277,7 +277,7 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         if self.max_fails_combo is None:
             return -1
         txt = str(self.max_fails_combo.currentText())
-        if txt == "None":
+        if txt == "-":
             return -1
         try:
             i = int(txt)

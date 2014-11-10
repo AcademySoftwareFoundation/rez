@@ -24,7 +24,7 @@ import sys
 
 
 class SolverStatus(Enum):
-    """ Enum to represent the current state of a solver instance.  The enum
+    """Enum to represent the current state of a solver instance.  The enum
     also includes a human readable description of what the state represents.
     """
 
@@ -37,6 +37,14 @@ class SolverStatus(Enum):
 
     def __init__(self, description):
         self.description = description
+
+
+class SolverCallbackReturn(Enum):
+    """Enum returned by the `callback` callable passed to a `Solver` instance.
+    """
+    keep_going = ("Continue the solve",)
+    abort = ("Abort the solve",)
+    fail = ("Stop the solve and set to most recent failure")
 
 
 class _Printer(object):
@@ -1350,8 +1358,11 @@ class Solver(_Common):
             callback: If not None, this callable will be called after each
                 solve step. It is passed a `SolverState` object. It must return
                 a 2-tuple:
-                - bool: If True, continue the solve, otherwise abort;
+                - `SolverCallbackReturn` object indicating what to do next;
                 - str: Reason for solve abort, ignored if solve not aborted.
+                If the callable returns `SolverCallbackReturn.fail`, but there
+                has not been a failure, the solver will ignore the callback and
+                continue on with the solve.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
@@ -1375,6 +1386,7 @@ class Solver(_Common):
         self.phase_stack = None
         self.failed_phase_list = None
         self.abort_reason = None
+        self.callback_return = None
         self.solve_count = None
         self.depth_counts = None
         self.solve_time = None
@@ -1426,6 +1438,11 @@ class Solver(_Common):
         if self.request_list.conflict:
             return SolverStatus.failed
 
+        if self.callback_return == SolverCallbackReturn.fail:
+            # the solve has failed because a callback has nominated the most
+            # recent failure as the reason.
+            return SolverStatus.failed
+
         st = self.phase_stack[-1].status
         if st == SolverStatus.cyclic:
             return SolverStatus.failed
@@ -1445,15 +1462,6 @@ class Solver(_Common):
         return self.solve_count
 
     @property
-    def is_partial(self):
-        """Returns True if this solve is 'partial'.
-
-        This means that more packages could have been loaded during the solve,
-        but they were not, due to the value of `max_depth`.
-        """
-        return self._is_partial
-
-    @property
     def num_fails(self):
         """Return the number of failed solve steps that have been executed.
         Note that num_solves is inclusive of failures."""
@@ -1466,6 +1474,15 @@ class Solver(_Common):
     def cyclic_fail(self):
         """Return True if the solve failed due to a cycle, False otherwise."""
         return (self.phase_stack[-1].status == SolverStatus.cyclic)
+
+    @property
+    def is_partial(self):
+        """Returns True if this solve is 'partial'.
+
+        This means that more packages could have been loaded during the solve,
+        but they were not, due to the value of `max_depth`.
+        """
+        return self._is_partial
 
     @property
     def resolved_packages(self):
@@ -1556,43 +1573,55 @@ class Solver(_Common):
         end_time = time.time()
         self.solve_time += (end_time - start_time)
 
-    def failure_packages(self, failure_index=None):
-        """Get packages involved in a failure.
-
-        Args:
-            failure_index: Index of the fail to return the graph for (can be
-                negative). If None, the most appropriate failure is chosen -
-                this is the last fail if cyclic, or the first fail otherwise.
-
-        Returns:
-            A list of Requirement objects.
-        """
-        phase = self._get_failed_phase(failure_index)
-        fr = phase.failure_reason
-        return fr.involved_requirements() if fr else None
-
     def failure_reason(self, failure_index=None):
         """Get the reason for a failure.
 
         Args:
             failure_index: Index of the fail to return the graph for (can be
-                negative). If None, the most appropriate failure is chosen -
-                this is the last fail if cyclic, or the first fail otherwise.
+                negative). If None, the most appropriate failure is chosen
+                according to these rules:
+                - If the fail is cyclic, the most recent fail (the one containing
+                  the cycle) is used;
+                - If a callback has caused a failure, the most recent fail is used;
+                - Otherwise, the first fail is used.
 
         Returns:
-            A FailureReason subclass instance describing the failure.
+            A `FailureReason` subclass instance describing the failure.
         """
-        phase = self._get_failed_phase(failure_index)
+        phase, _ = self._get_failed_phase(failure_index)
         return phase.failure_reason
+
+    def failure_description(self, failure_index=None):
+        """Get a description of the failure.
+
+        This differs from `failure_reason` - in some cases, such as when a
+        callback forces a failure, there is more information in the description
+        than there is from `failure_reason`.
+        """
+        _, description = self._get_failed_phase(failure_index)
+        return description
+
+    def failure_packages(self, failure_index=None):
+        """Get packages involved in a failure.
+
+        Args:
+            failure_index: See `failure_reason`.
+
+        Returns:
+            A list of Requirement objects.
+        """
+        phase, _ = self._get_failed_phase(failure_index)
+        fr = phase.failure_reason
+        return fr.involved_requirements() if fr else None
 
     def get_graph(self):
         """Returns the most recent solve graph.
 
         This gives a graph showing the latest state of the solve. The specific
-        graph returned depends on the solve status. When status is...
+        graph returned depends on the solve status. When status is:
         unsolved: latest unsolved graph is returned;
         solved:   final solved graph is returned;
-        failed:   first failure graph is returned;
+        failed:   most appropriate failure graph is returned (see `failure_reason`);
         cyclic:   last failure is returned (contains cycle).
 
         Returns:
@@ -1600,25 +1629,21 @@ class Solver(_Common):
         """
         st = self.status
         if st in (SolverStatus.solved, SolverStatus.unsolved):
-            phase = self._latest_unsolved_phase()
+            phase = self._latest_nonfailed_phase()
             return phase.get_graph()
         else:
-            i = -1 if self.cyclic_fail else 0
-            return self.get_fail_graph(i)
+            return self.get_fail_graph()
 
     def get_fail_graph(self, failure_index=None):
         """Returns a graph showing a solve failure.
 
         Args:
-            failure_index: Index of the fail to return the graph for (can be
-                negative). Set to -1 to get the most recent failure. If None,
-                the most appropriate failure is chosen - this is the last fail
-                if cyclic, or the first fail otherwise.
+            failure_index: See `failure_reason`
 
         Returns:
             A pygraph.digraph object.
         """
-        phase = self._get_failed_phase(failure_index)
+        phase, _ = self._get_failed_phase(failure_index)
         return phase.get_graph()
 
     def dump(self):
@@ -1650,7 +1675,7 @@ class Solver(_Common):
         self.load_time = 0.0
         self.solve_begun = False
 
-    def _latest_unsolved_phase(self):
+    def _latest_nonfailed_phase(self):
         if self.status == SolverStatus.failed:
             return None
 
@@ -1662,13 +1687,21 @@ class Solver(_Common):
     def _do_callback(self):
         keep_going = True
         if self.callback:
-            phase = self._latest_unsolved_phase()
+            phase = self._latest_nonfailed_phase()
             if phase:
                 s = SolverState(self.num_solves, self.num_fails, phase)
-                keep_going, abort_reason = self.callback(s)
-                if not keep_going:
+                value, abort_reason = self.callback(s)
+                if value == SolverCallbackReturn.abort:
                     self.pr("solve aborted: %s", abort_reason)
                     self.abort_reason = abort_reason
+                    keep_going = False
+                elif value == SolverCallbackReturn.fail:
+                    if self.num_fails:
+                        self.abort_reason = abort_reason
+                        self.pr("solve failed: %s", abort_reason)
+                        self.callback_return = value
+                        keep_going = False
+
         return keep_going
 
     def _get_variant_slice(self, package_name, range):
@@ -1703,18 +1736,33 @@ class Solver(_Common):
             self.pr("popped %s: %s", dlabel, phase)
         return phase
 
-    def _get_failed_phase(self, index):
+    def _get_failed_phase(self, index=None):
+        # returns (phase, fail_description)
+        prepend_abort_reason = False
         fails = self.failed_phase_list
         st = self.phase_stack[-1].status
         if st in (SolverStatus.failed, SolverStatus.cyclic):
             fails = fails + self.phase_stack[-1:]
 
         if index is None:
-            index = -1 if st == SolverStatus.cyclic else 0
+            if st == SolverStatus.cyclic:
+                index = -1
+            elif self.callback_return == SolverCallbackReturn.fail:
+                prepend_abort_reason = True
+                index = -1
+            else:
+                index = 0
+
         try:
-            return fails[index]
+            phase = fails[index]
         except IndexError:
             raise IndexError("failure index out of range")
+
+        fail_description = phase.failure_reason.description()
+        if prepend_abort_reason and self.abort_reason:
+            fail_description = "%s:\n%s" % (self.abort_reason, fail_description)
+
+        return phase, fail_description
 
     def _depth_label(self, depth=None):
         if depth is None:
