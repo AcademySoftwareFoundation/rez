@@ -8,8 +8,10 @@ from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin
 from rez.util import convert_old_commands
 from rez.vendor.version.requirement import Requirement
+from rez.contrib.animallogic.util import get_epoch_datetime_from_str
 from rezplugins.build_system.cmake import get_current_variant_index
 import rez.vendor.unittest2 as unittest
+import datetime
 import os
 import shutil
 
@@ -182,10 +184,40 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
             self.assertEqual(get_current_variant_index(context, package), 0)
 
 
+class TestGetEpochDatetimeFromStr(TestBase):
+
+    def test_timestamp(self):
+
+        epoch = get_epoch_datetime_from_str("1415237983")
+        expected = datetime.datetime.strptime("2014-11-06 12:39:43", "%Y-%m-%d %H:%M:%S")
+        self.assertEqual(expected, epoch)
+
+    def test_relative(self):
+
+        epoch = get_epoch_datetime_from_str("-1d")
+        expected = datetime.datetime.now() - datetime.timedelta(1)
+        self.assertEqual(expected.year, epoch.year)
+        self.assertEqual(expected.month, epoch.month)
+        self.assertEqual(expected.day, epoch.day)
+        self.assertEqual(expected.hour, epoch.hour)
+        # We can't compare more than this as execution time is different.
+
+    def test_exact(self):
+
+        epoch = get_epoch_datetime_from_str("2014-11-06 12:39:43")
+        expected = datetime.datetime.strptime("2014-11-06 12:39:43", "%Y-%m-%d %H:%M:%S")
+        self.assertEqual(expected, epoch)
+
+        epoch = get_epoch_datetime_from_str("2014_11_06_12_39_43", format_="%Y_%m_%d_%H_%M_%S")
+        expected = datetime.datetime.strptime("2014-11-06 12:39:43", "%Y-%m-%d %H:%M:%S")
+        self.assertEqual(expected, epoch)
+
+
 def get_test_suites():
 
     suites = []
-    tests = [TestConvertingOldStyleCommands, TestRex, TestVariantPathMunging, TestCMakeBuildSystem]
+    tests = [TestConvertingOldStyleCommands, TestRex, TestVariantPathMunging,
+             TestCMakeBuildSystem, TestGetEpochDatetimeFromStr]
 
     for test in tests:
         suites.append(unittest.TestLoader().loadTestsFromTestCase(test))

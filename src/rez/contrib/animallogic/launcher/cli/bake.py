@@ -8,6 +8,7 @@ from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.baker import Baker
 from rez.contrib.animallogic.launcher.setting import ValueSetting
 from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.util import get_epoch_datetime_from_str
 from rez.config import config
 from rez.vendor import argparse
 import logging
@@ -53,29 +54,36 @@ def setup_parser(parser):
                         metavar="N",
                         help="abort if the number of failed configuration attempts"
                         "exceeds N")
-    parser.add_argument("--overrides", default=[], nargs='+', metavar='type:name=value', 
+    parser.add_argument("--overrides", default=[], nargs='+', metavar='type:name=value',
                         type=argparse_setting,
                         help='overrides that can be applied to the settings retrieved'
                         'from Launcher.  Each override must be of the form type:name=value'
                         'however if type is not specified the setting will be created'
                         'as type string.  Note these overrides apply *after* the settings'
                         'have been retrieved from Launcher, and not before.')
+    parser.add_argument("-t", "--time", type=str,
+                        help="ignore packages released after the given time. "
+                        "Supported formats are: epoch time (eg 1393014494), "
+                        "relative time (eg -10s, -5m, -0.5h, -10d), or an"
+                        "exact time (eg 'YYYY_mm_dd_HH_MM_SS').")
 
 
 def command(opts, parser, extra_arg_groups=None):
 
     source = opts.source
     description = opts.description
+    format = "%Y_%m_%d_%H_%M_%S"
+    epoch = get_epoch_datetime_from_str(opts.time.strip(), format) if opts.time else None
 
     if not description:
         description = "Preset automatically baked by Rez from %s. The command used was %s" %(source, " ".join(sys.argv))
 
-    bake(source, opts.destination, description, opts.overrides, opts.skip_resolve, 
-            opts.max_fails, opts.preserve_system_settings, opts.only_packages)
+    bake(source, opts.destination, description, opts.overrides, opts.skip_resolve,
+            opts.max_fails, opts.preserve_system_settings, opts.only_packages, epoch)
 
 
-def bake(source, destination, description, overrides, skip_resolve, 
-            max_fails, preserve_system_settings, only_packages):
+def bake(source, destination, description, overrides, skip_resolve,
+            max_fails, preserve_system_settings, only_packages, epoch):
 
     preset_proxy = client.HessianProxy(config.launcher_service_url + "/preset")
     toolset_proxy = client.HessianProxy(config.launcher_service_url + "/toolset")
@@ -83,7 +91,7 @@ def bake(source, destination, description, overrides, skip_resolve,
     launcher_service = LauncherHessianService(preset_proxy, toolset_proxy)
     rez_service = RezService()
 
-    baker = Baker(launcher_service, rez_service)
+    baker = Baker(launcher_service, rez_service, epoch=epoch)
 
     logger.info("Retrieving settings from Launcher %s." % source)
     baker.set_settings_from_launcher(source, preserve_system_settings=preserve_system_settings)
