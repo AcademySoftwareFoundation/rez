@@ -198,6 +198,10 @@ debug_all: false
 # Turn off all debugging messages. This overrides debug_all.
 debug_none: false
 
+# Prune unnecessary nodes in a graph that contains conflicts
+prune_conflict_graph: true
+
+
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
 # generally not interesting to the package author. If set to False, rex errors
