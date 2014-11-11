@@ -76,14 +76,14 @@ def command(opts, parser, extra_arg_groups=None):
     epoch = get_epoch_datetime_from_str(opts.time.strip(), format) if opts.time else None
 
     if not description:
-        description = "Preset automatically baked by Rez from %s. The command used was %s" %(source, " ".join(sys.argv))
+        description = "Preset automatically baked by Rez from %s. The command used was %s" % (source, " ".join(sys.argv))
 
     bake(source, opts.destination, description, opts.overrides, opts.skip_resolve,
             opts.max_fails, opts.only_packages, epoch)
 
 
 def bake(source, destination, description, overrides, skip_resolve,
-            max_fails, preserve_system_settings, only_packages, epoch):
+            max_fails, only_packages, epoch):
 
     preset_proxy = client.HessianProxy(config.launcher_service_url + "/preset")
     toolset_proxy = client.HessianProxy(config.launcher_service_url + "/toolset")

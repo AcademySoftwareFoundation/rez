@@ -43,6 +43,7 @@ class TestBaker(unittest.TestCase):
                                         {'name':'package_1', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 1, 'sourcePresetId':{'key':999}},
                                         {'name':'package_2', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
                                         {'name':'platform', 'value':'CentOS', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 3, 'sourcePresetId':{'key':999}},
+                                        {'name':'!maya', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 3, 'sourcePresetId':{'key':999}},
                                        ]
 
         self.preset_settings = [
@@ -63,6 +64,7 @@ class TestBaker(unittest.TestCase):
                                          {'name':'package_1', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 1, 'sourcePresetId':{'key':999}},
                                          {'name':'package_2', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
                                          {'name':'platform', 'value':'CentOS', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 2, 'sourcePresetId':{'key':999}},
+                                         {'name':'!maya', 'value':'', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 3, 'sourcePresetId':{'key':999}},
                                          {'name':'string', 'value':'1.2.3', 'opSystem':None, 'type':{'name':'tString'}, 'id': 3, 'sourcePresetId':{'key':999}},
                                          {'name':'int', 'value':123, 'opSystem':None, 'type':{'name':'tInt'}, 'id': 4, 'sourcePresetId':{'key':999}},
                                          {'name':'override_2', 'value':'2.0.1', 'opSystem':None, 'type':{'name':'tString'}, 'id': 3, 'sourcePresetId':{'key':999}},

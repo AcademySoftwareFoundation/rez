@@ -83,7 +83,7 @@ class Baker(object):
 
         return package_requests
 
-    def resolve_package_settings(self, max_fails=-1, 
+    def resolve_package_settings(self, max_fails=-1,
                                  preserve_system_package_settings=False):
 
         self.packages = self._get_resolved_packages_from_settings(max_fails=max_fails)
@@ -96,8 +96,17 @@ class Baker(object):
 
     def _strip_package_and_version_settings(self):
 
-        self.filter_settings(lambda x: x.setting_type not in (SettingType.package,
-                                                              SettingType.version))
+        def func(x):
+            if x.setting_type not in (SettingType.package, SettingType.version):
+                return True
+
+            if x.setting_type == SettingType.package:
+                if x.name.startswith("!") or x.name.startswith("~"):
+                    return True
+
+            return False
+
+        self.filter_settings(func)
 
     def _get_settings_for_resolved_packages(self):
 
