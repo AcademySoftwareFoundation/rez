@@ -5,6 +5,7 @@ import re
 import os.path
 import subprocess
 import tempfile
+from rez.config import config
 from rez.package_resources import PACKAGE_NAME_REGSTR
 from rez.vendor.pydot import pydot
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
@@ -111,26 +112,10 @@ def view_graph(graph_str, dest_file=None):
 
 def _write_graph(graph_str, dest_file=None):
     if not dest_file:
-        from rez.status import status
-        from rez.config import config
-
-        tmp_dir = None
-        fmt = config.dot_image_format
-
-        if status.context_file:
-            tmp_dir = os.path.dirname(status.context_file)
-            if not os.path.exists(tmp_dir):
-                tmp_dir = None
-
-        if tmp_dir:
-            # hijack current env's tmpdir, so we don't have to clean up
-            from uuid import uuid4
-            name = "resolve-dot-%s.%s" % (uuid4().hex, fmt)
-            dest_file = os.path.join(tmp_dir, name)
-        else:
-            tmpf = tempfile.mkstemp(prefix='resolve-dot-', suffix='.' + fmt)
-            os.close(tmpf[0])
-            dest_file = tmpf[1]
+        tmpf = tempfile.mkstemp(prefix='resolve-dot-',
+                                suffix='.' + config.dot_image_format)
+        os.close(tmpf[0])
+        dest_file = tmpf[1]
 
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file)

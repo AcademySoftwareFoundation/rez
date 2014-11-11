@@ -617,7 +617,7 @@ def convert_old_command_expansions(command):
     command = command.replace("!MINOR_VERSION!", "{version.minor}")
     command = command.replace("!BASE!",          "{base}")
     command = command.replace("!ROOT!",          "{root}")
-    command = command.replace("!USER!",          "{user}")
+    command = command.replace("!USER!",          "{system.user}")
     return command
 
 
