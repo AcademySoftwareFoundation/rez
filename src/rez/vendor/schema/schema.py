@@ -170,8 +170,8 @@ class Schema(object):
                     key_name = key_name._schema
                 if isinstance(key_name, basestring):
                     schema_key_map[key_name] = key
-
             for key, value in data.items():
+                nkey = None
                 if key in schema_key_map:
                     nkey = key
                     svalue = s[schema_key_map[key]]
@@ -185,7 +185,8 @@ class Schema(object):
                             nkey = Schema(skey, error=e).validate(key)
                         except SchemaError:
                             pass
-
+                if not nkey:
+                    continue
                 try:
                     nvalue = Schema(svalue, error=e).validate(value)
                 except SchemaError as _x:
