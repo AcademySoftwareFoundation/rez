@@ -34,10 +34,7 @@ class Resolver(object):
             package_paths: List of paths to search for pkgs.
             caching: If True, utilise cache(s) in order to speed up the
                 resolve.
-            callback: If not None, this callable will be called prior to each
-                solve step. It is passed a single argument - a string showing
-                the current solve state. If the return value of the callable is
-                truthy, the solve continues, otherwise the solve is stopped.
+            callback: See `Solver`.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
@@ -167,7 +164,7 @@ class Resolver(object):
             self.failure_description = solver.abort_reason
         elif st == SolverStatus.failed:
             self.status_ = ResolverStatus.failed
-            self.failure_description = solver.failure_reason().description()
+            self.failure_description = solver.failure_description()
         elif st == SolverStatus.solved:
             self.status_ = ResolverStatus.solved
             pkgs = solver.resolved_packages
