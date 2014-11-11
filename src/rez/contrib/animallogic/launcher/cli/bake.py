@@ -79,7 +79,7 @@ def command(opts, parser, extra_arg_groups=None):
         description = "Preset automatically baked by Rez from %s. The command used was %s" %(source, " ".join(sys.argv))
 
     bake(source, opts.destination, description, opts.overrides, opts.skip_resolve,
-            opts.max_fails, opts.preserve_system_settings, opts.only_packages, epoch)
+            opts.max_fails, opts.only_packages, epoch)
 
 
 def bake(source, destination, description, overrides, skip_resolve,
@@ -94,7 +94,7 @@ def bake(source, destination, description, overrides, skip_resolve,
     baker = Baker(launcher_service, rez_service, epoch=epoch)
 
     logger.info("Retrieving settings from Launcher %s." % source)
-    baker.set_settings_from_launcher(source, preserve_system_settings=preserve_system_settings)
+    baker.set_settings_from_launcher(source, preserve_system_settings=False)
 
     logger.info("Found settings:")
     display_settings(baker.settings)
