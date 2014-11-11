@@ -36,7 +36,7 @@ def command(opts, parser=None, extra_arg_groups=None):
     help_ = PackageHelp(request.name, request.range, verbose=opts.verbose)
     if not help_.success:
         print >> sys.stderr, ("Could not find a package with help for %s."
-                              % requirement)
+                              % request)
         sys.exit(1)
 
     package = help_.package
