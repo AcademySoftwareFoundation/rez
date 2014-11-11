@@ -99,16 +99,16 @@ class PackageHelp(object):
     @classmethod
     def open_rez_manual(cls):
         """Open the Rez user manual."""
-        self._open_url(config.documentation_url)
+        cls._open_url(config.documentation_url)
 
     @classmethod
     def _open_url(cls, url):
         if config.browser:
             cmd = [config.browser, url]
-            if self._verbose:
+            if not config.quiet:
                 print "running command: %s" % " ".join(cmd)
             subprocess.Popen(cmd).communicate()
         else:
-            if self._verbose:
+            if not config.quiet:
                 print "opening URL in browser: %s" % url
             webbrowser.open_new(url)
