@@ -24,7 +24,26 @@ class Binding(object):
 
 
 class VersionBinding(Binding):
-    """Binds a version.Version object."""
+    """Binds a version.Version object.
+
+        >>> v = VersionBinding(Version("1.2.3alpha"))
+        >>> v.major
+        1
+        >>> v.patch
+        '3alpha'
+        >>> len(v)
+        3
+        >>> v[1]
+        2
+        >>> v[:3]
+        (1, 2, '3alpha')
+        >>> str(v)
+        '1.2.3alpha'
+        >>> print v[5]
+        None
+        >>> v.as_tuple():
+        (1, 2, '3alpha')
+    """
     def __init__(self, version):
         super(VersionBinding, self).__init__()
         self.__version = version
@@ -41,18 +60,31 @@ class VersionBinding(Binding):
     def patch(self):
         return self[2]
 
+    def as_tuple(self):
+        return self[:len(self)]
+
     def __attr_error(self, attr):
         raise AttributeError("version object has no attribute '%s'" % attr)
 
     def __getitem__(self, i):
         try:
-            s = str(self.__version[i])
+            return self.__getitem(i)
         except IndexError:
-            return ""
-        if s.isdigit() and s[0] != '0':
-            return int(s)
+            return None
+
+    def __getitem(self, i):
+        def _convert(t):
+            s = str(t)
+            if s.isdigit() and s[0] != '0':
+                return int(s)
+            else:
+                return s
+
+        tokens = self.__version[i]
+        if hasattr(tokens, "__iter__"):
+            return tuple(map(_convert, tokens))
         else:
-            return s
+            return _convert(tokens)
 
     def __len__(self):
         return len(self.__version)

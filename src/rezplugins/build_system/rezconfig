@@ -3,7 +3,7 @@ cmake:
     # eclipse, make, xcode and codeblocks.
     build_system: make
 
-    # The name of the CMake build target to use, valid options are Debug, 
+    # The name of the CMake build target to use, valid options are Debug,
     # Release and RelWithDebInfo.
     build_target: Release
 
@@ -11,6 +11,5 @@ cmake:
     cmake_args:
     - '-DCMAKE_SKIP_RPATH=1'
 
-    # You can optionally point at a cmake executable to use for building. Note
-    # that 'cmake_package' still takes preference if specified.
+    # Optionally specify an explicit cmake executable to use for building.
     cmake_binary:
