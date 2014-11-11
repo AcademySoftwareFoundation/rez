@@ -6,12 +6,13 @@ include(ExternalProject)
 rez_find_packages(PREFIX pkgs AUTO)
 
 if (CENTRAL)
-    set(rez_path /film/tools/packages/rez/${REZ_VERSION}/python-${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION})
+    set(rez_path /film/tools/packages/rez/${REZ_VERSION}/CentOS-${CENTOS_VERSION}/python-${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION})
 else ()
     set(rez_path ${CMAKE_INSTALL_PREFIX})
 endif ()
 
 set(python_library_dir ${CMAKE_INSTALL_PREFIX}/lib/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/site-packages)
+
 
 get_filename_component(relative_path_to_setup ${CMAKE_SOURCE_DIR}/setup.py  PATH)
 file(RELATIVE_PATH relative_path ${CMAKE_CURRENT_BINARY_DIR} ${relative_path_to_setup})

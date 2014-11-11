@@ -17,9 +17,12 @@ if sys.version_info < (2, 6):
     sys.exit(1)
 
 
+source_dir=os.path.join('@relative_path@', 'src')
+bin_dir=os.path.join('@relative_path@', 'bin')
+
 def find_files(pattern, path=None, root="rez"):
     paths = []
-    basepath = os.path.realpath(os.path.join("src", root))
+    basepath = os.path.realpath(os.path.join(source_dir, root))
     path_ = basepath
     if path:
         path_ = os.path.join(path_, path)
@@ -33,7 +36,8 @@ def find_files(pattern, path=None, root="rez"):
 
 
 # get version from source
-with open("src/rez/_version.py") as f:
+version_file=os.path.join(source_dir, 'rez/_version.py')
+with open(version_file) as f:
     code = f.read().strip()
 exec(code)
 version = _rez_version
@@ -78,10 +82,10 @@ setup(
     author="Allan Johns",
     author_email="nerdvegas@gmail.com",
     license="LGPL",
-    scripts=[os.path.join('bin', x) for x in scripts],
+    scripts=[os.path.join(bin_dir, x) for x in scripts],
     include_package_data=True,
-    package_dir = {'': 'src'},
-    packages=find_packages('src', exclude=["build_utils",
+    package_dir = {'': source_dir},
+    packages=find_packages(source_dir, exclude=["build_utils",
                                            "build_utils.*",
                                            "tests"]),
     package_data = {
