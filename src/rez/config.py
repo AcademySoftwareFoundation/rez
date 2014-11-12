@@ -226,6 +226,7 @@ config_schema = Schema({
     "warn_commands2":                   Bool,
     "error_commands2":                  Bool,
     "rez_1_environment_variables":      Bool,
+    "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
     "env_var_separators":               Dict,
 

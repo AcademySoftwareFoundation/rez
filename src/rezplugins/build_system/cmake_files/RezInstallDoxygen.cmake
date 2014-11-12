@@ -137,11 +137,11 @@ macro (rez_install_doxygen)
 			COMMENT "Generating doxygen content in ${dest_dir}/${doxydir}..."
 		)
 
-		if(CENTRAL OR INSTDOX_FORCE)
+		if(REZ_BUILD_TYPE STREQUAL "central" OR INSTDOX_FORCE)
 			# only install docs when installing centrally
 			add_custom_target(_install_${label} ALL DEPENDS ${label})
 			install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${doxydir} DESTINATION ${dest_dir})
-		endif(CENTRAL OR INSTDOX_FORCE)
+		endif()
 	else(DOXYGEN_EXECUTABLE)
 		message(WARNING "RezInstallDoxygen cannot find Doxygen - documentation was not built.")
 	endif(DOXYGEN_EXECUTABLE)

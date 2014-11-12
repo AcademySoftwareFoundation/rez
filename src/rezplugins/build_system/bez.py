@@ -2,6 +2,7 @@
 Built-in simple python build system.
 """
 from rez.build_system import BuildSystem
+from rez.build_process import BuildType
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
 from rez.packages import Package
@@ -52,7 +53,8 @@ class BezBuildSystem(BuildSystem):
                                              build_args=build_args,
                                              child_build_args=child_build_args)
 
-    def build(self, context, build_path, install_path, install=False):
+    def build(self, context, build_path, install_path, install=False,
+              build_type=BuildType.local):
         # communicate args to bez by placing in a file
         doc = dict(
             source_path=self.working_dir,

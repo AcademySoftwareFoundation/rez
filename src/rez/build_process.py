@@ -7,12 +7,18 @@ from rez.util import convert_dicts, AttrDictWrapper, print_debug
 from rez.release_hook import create_release_hooks
 from rez.yaml import dump_yaml
 from rez import __version__
+from rez.vendor.enum import Enum
 import getpass
 import shutil
 import os
 import os.path
 import time
 
+
+class BuildType(Enum):
+    """ Enum to represent the type of build."""
+    local = 0
+    central = 1
 
 
 class BuildProcess(object):
@@ -47,7 +53,6 @@ class BuildProcess(object):
         self.vcs = vcs
         self.release_message = release_message
         self.ensure_latest = ensure_latest
-        self.buildsys = buildsys
 
         if vcs and (vcs.path != working_dir):
             raise RezError("BuildProcess was provided with mismatched VCS")
@@ -104,19 +109,19 @@ class StandardBuildProcess(BuildProcess):
             verbose=verbose)
 
     def _build(self, install_path, build_path, clean=False, install=False,
-               release=False, variants=None):
+               variants=None, build_type=BuildType.local):
         """Build all the variants of the package.
 
         Args:
-            install_path: The path to install the package to, if installing.
+            install_path (str): The path to install the package to, if installing.
                 Note that the actual path for the package install becomes
                 {install_path}/{pkg_name}/{pkg_version}. If None, defaults
                 to the local packages path setting.
-            build_path: The directory to build into.
-            clean: If True, clear any previous build first. Otherwise, rebuild
-                over the top of a previous build.
-            install: If True, install the build.
-            release: If True, a central package release is occurring
+            build_path (str): The directory to build into.
+            clean (bool): If True, clear any previous build first. Otherwise,
+                rebuild over the top of a previous build.
+            install (bool): If True, install the build.
+            build_type (bool): The BuildType for the current build.
 
         Returns:
             True if the build completed, False otherwise.
@@ -137,7 +142,8 @@ class StandardBuildProcess(BuildProcess):
                     build_path=base_build_path,
                     install=install,
                     clean=clean,
-                    variants=variants)
+                    variants=variants,
+                    build_type=BuildType.local)
 
     def release(self):
         assert(self.vcs)
@@ -212,8 +218,8 @@ class StandardBuildProcess(BuildProcess):
                 self._build(install_path=install_path,
                             build_path=base_build_path,
                             install=install,
-                            release=True,
-                            clean=clean)
+                            clean=clean,
+                            build_type=BuildType.central)
             except BuildError as e:
                 raise ReleaseError("The build failed: %s" % str(e))
 
@@ -304,7 +310,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
     package, on the local host.
     """
     def _build(self, install_path, build_path, clean=False, install=False,
-               release=False, variants=None):
+               variants=None, build_type=BuildType.local):
         base_install_path = self._get_base_install_path(install_path)
         build_env_scripts = []
         timestamp = int(time.time())
@@ -326,17 +332,16 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 continue
 
             self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
-            subdir = variant.subpath
 
             # create build dir, possibly deleting previous build
             build_subdir = os.path.join(build_path, variant.subpath)
             install_path = os.path.join(base_install_path, variant.subpath)
             rxt_file = os.path.join(build_subdir, "build.rxt")
 
-            if release:
-                packages_path = self.package.config.nonlocal_packages_path
-            else:
+            if build_type == BuildType.local:
                 packages_path = self.package.config.packages_path
+            else:
+                packages_path = self.package.config.nonlocal_packages_path
 
             if clean and os.path.exists(build_subdir):
                 shutil.rmtree(build_subdir)
@@ -377,7 +382,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             ret = self.buildsys.build(r,
                                       build_path=build_subdir,
                                       install_path=install_path,
-                                      install=install)
+                                      install=install,
+                                      build_type=build_type)
             if ret.get("success"):
                 num_built_variants += 1
                 script = ret.get("build_env_script")
@@ -408,3 +414,4 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
+
