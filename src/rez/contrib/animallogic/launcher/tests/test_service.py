@@ -383,3 +383,31 @@ class TestSettingsResolver(unittest.TestCase):
 
         resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
         self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_mixed_references(self):
+        settings = [
+                    ValueSetting("a", "${path}:/tmp", SettingType.string),
+                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("a", "/var/tmp::/scratch:/tmp", SettingType.string),
+                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_mixed_references_only_packages(self):
+        settings = [
+                    ValueSetting("a", "${path}:/tmp", SettingType.string),
+                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("a", "${path}:/tmp", SettingType.string),
+                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
+        self.assertSettings(expected_settings, resolved_settings)
