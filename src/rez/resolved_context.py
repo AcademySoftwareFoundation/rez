@@ -789,6 +789,7 @@ class ResolvedContext(object):
         The dependency graph is a simpler subset of the resolve graph. It
         contains package name nodes connected directly to their dependencies.
         Weak references and conflict requests are not included in the graph.
+        The dependency graph does not show conflicts.
 
         Returns:
             `pygraph.digraph` object.

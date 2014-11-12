@@ -239,7 +239,7 @@ class Reduction(_Common):
 
     def reducee_str(self):
         stmt = VersionedObject.construct(self.name, self.version)
-        idx_str = '' if self.variant_index is None \
+        idx_str = "[]" if self.variant_index is None \
             else "[%d]" % self.variant_index
         return str(stmt) + idx_str
 
@@ -264,6 +264,11 @@ class DependencyConflict(_Common):
     """A common dependency shared by all variants in a scope, conflicted with
     another scope in the current phase."""
     def __init__(self, dependency, conflicting_request):
+        """
+        Args:
+            dependency (`Requirement`): Merged requirement from a set of variants.
+            conflicting_request (`Requirement`): The request they conflict with.
+        """
         self.dependency = dependency
         self.conflicting_request = conflicting_request
 
@@ -640,7 +645,7 @@ class _PackageVariantSlice(_Common):
 
             if self.pr:
                 s = "split %s into %s and %s"
-                a = [self, slice, next_slice]
+                a = [self, slice_, next_slice]
                 if split_fams is None:
                     s += " on leading variant"
                 else:
@@ -778,6 +783,10 @@ class _PackageScope(_Common):
                 raise PackageNotFoundError("Package could not be found: %s"
                                            % str(req))
             self._update()
+
+    @property
+    def is_conflict(self):
+        return self.package_request and self.package_request.conflict
 
     def intersect(self, range):
         """Intersect this scope with a package range.
@@ -984,7 +993,6 @@ class _ResolvePhase(_Common):
             phase = copy.copy(self)
             phase.scopes = scopes
             phase.failure_reason = failure_reason
-            phase.extractions = extractions
             phase.extractions = extractions
             phase.pending_reducts = set()
 
@@ -1214,6 +1222,213 @@ class _ResolvePhase(_Common):
         Returns:
             A pygraph.digraph object.
         """
+        g = digraph()
+        scopes = dict((x.package_name, x) for x in self.scopes)
+        failure_nodes = set()
+        request_nodes = {}  # (request, node_id)
+        scope_nodes = {}  # (package_name, node_id)
+
+        # -- graph creation basics
+
+        REQUEST = 0
+        REQUIRES = 1
+        node_color = "#F6F6F6"
+        request_color = "#FFFFAA"
+        solved_color = "#AAFFAA"
+        node_fontsize = 10
+        counter = [1]
+
+
+        def _uid():
+            id_ = counter[0]
+            counter[0] += 1
+            return "_%d" % id_
+
+
+        def _add_edge(id1, id2, arrowsize=0.5):
+            e = (id1, id2)
+            if g.has_edge(e):
+                g.del_edge(e)
+            g.add_edge(e)
+            g.add_edge_attribute(e, ("arrowsize", str(arrowsize)))
+            return e
+
+
+        def _add_extraction_merge_edge(id1, id2):
+            e = _add_edge(id1, id2, 1)
+            g.add_edge_attribute(e, ("arrowhead", "odot"))
+
+
+        def _add_conflict_edge(id1, id2):
+            e = _add_edge(id1, id2, 1)
+            g.set_edge_label(e, "CONFLICT")
+            g.add_edge_attribute(e, ("style", "bold"))
+            g.add_edge_attribute(e, ("color", "red"))
+            g.add_edge_attribute(e, ("fontcolor", "red"))
+
+
+        def _add_reduct_edge(id1, id2, label):
+            e = _add_edge(id1, id2, 1)
+            g.set_edge_label(e, label)
+            g.add_edge_attribute(e, ("fontsize", node_fontsize))
+
+
+        def _add_node(label, color, style):
+            attrs = [("label", label),
+                     ("fontsize", node_fontsize),
+                     ("fillcolor", color),
+                     ("style", '"%s"' % style)]
+            id_ = _uid()
+            g.add_node(id_, attrs=attrs)
+            return id_
+
+
+        def _add_request_node(request, initial_request=False):
+            id_ = request_nodes.get(request)
+            if id_ is not None:
+                return id_
+
+            label = str(request)
+            if initial_request:
+                color = request_color
+            else:
+                color = node_color
+
+            id_ = _add_node(label, color, "filled,dashed")
+            request_nodes[request] = id_
+            return id_
+
+
+        def _add_scope_node(scope):
+            id_ = scope_nodes.get(scope.package_name)
+            if id_ is not None:
+                return id_
+
+            variant = scope._get_solved_variant()
+            if variant:
+                label = str(variant)
+                color = solved_color
+                style = "filled"
+            elif scope.is_conflict:
+                label = str(scope)
+                color = node_color
+                style = "filled,dashed"
+            else:
+                label = str(scope)
+                color = node_color
+                style = "filled"
+
+            id_ = _add_node(label, color, style)
+            scope_nodes[scope.package_name] = id_
+            return id_
+
+
+        def _add_reduct_node(request):
+            return _add_node(str(request), node_color, "filled,dashed")
+
+
+        # -- generate the graph
+
+        # create initial request nodes
+        for request in self.package_requests:
+            _add_request_node(request, True)
+
+        # create scope nodes
+        for scope in self.scopes:
+            if scope.is_conflict:
+                id1 = request_nodes.get(scope.package_request)
+                if id1 is not None:
+                    # special case - a scope that matches an initial conflict request,
+                    # we switch nodes so the request node becomes a scope node
+                    scope_nodes[scope.package_name] = id1
+                    del request_nodes[scope.package_request]
+                    continue
+
+            _add_scope_node(scope)
+
+        # create (initial request -> scope) edges
+        for request in self.package_requests:
+            id1 = request_nodes.get(request)
+            if id1 is not None:
+                id2 = scope_nodes.get(request.name)
+                if id2 is not None:
+                    _add_edge(id1, id2)
+
+        # for solved scopes, create (scope -> requirement) edge
+        for scope in self.scopes:
+            variant = scope._get_solved_variant()
+            if variant:
+                id1 = scope_nodes[scope.package_name]
+
+                for request in variant.requires_list.requirements:
+                    id2 = _add_request_node(request)
+                    _add_edge(id1, id2)
+
+        # add extractions
+        for (src_fam, _), dest_req in self.extractions.iteritems():
+            id1 = scope_nodes.get(src_fam)
+            if id1 is not None:
+                id2 = _add_request_node(dest_req)
+                _add_edge(id1, id2)
+
+        # add extraction intersections
+        extracted_fams = set(x[1] for x in self.extractions.iterkeys())
+        for fam in extracted_fams:
+            requests = [v for k, v in self.extractions.iteritems() if k[1] == fam]
+            if len(requests) > 1:
+                reqlist = RequirementList(requests)
+                if not reqlist.conflict:
+                    merged_request = reqlist.get(fam)
+                    for request in requests:
+                        if merged_request != request:
+                            id1 = _add_request_node(request)
+                            id2 = _add_request_node(merged_request)
+                            _add_extraction_merge_edge(id1, id2)
+
+        # add conflicts
+        fr = self.failure_reason
+        if fr:
+            if isinstance(fr, DependencyConflicts):
+                for conflict in fr.conflicts:
+                    id1 = _add_request_node(conflict.dependency)
+                    failure_nodes.add(id1)
+
+                    id2 = scope_nodes.get(conflict.conflicting_request.name)
+                    if id2 is None:
+                        id2 = _add_request_node(conflict.conflicting_request)
+                    failure_nodes.add(id2)
+                    _add_conflict_edge(id1, id2)
+            elif isinstance(fr, TotalReduction):
+                if len(fr.reductions) == 1:
+                    # special case - singular total reduction
+                    reduct = fr.reductions[0]
+                    id1 = scope_nodes[reduct.name]
+                    id2 = _add_request_node(reduct.dependency)
+                    id3 = scope_nodes[reduct.conflicting_request.name]
+                    _add_edge(id1, id2)
+                    _add_conflict_edge(id2, id3)
+                else:
+                    for reduct in fr.reductions:
+                        id1 = scope_nodes[reduct.name]
+                        id2 = _add_reduct_node(reduct.dependency)
+                        id3 = scope_nodes[reduct.conflicting_request.name]
+                        _add_reduct_edge(id1, id2, reduct.reducee_str())
+                        _add_conflict_edge(id2, id3)
+            elif isinstance(fr, Cycle):
+                pass  # TODO
+
+        # connect leaf-node requests to a matching scope, if any
+        for request, id1 in request_nodes.iteritems():
+            if not g.neighbors(id1):  # leaf node
+                id2 = scope_nodes.get(request.name)
+                if id2 is not None:
+                    scope = scopes.get(request.name)
+                    if not request.conflicts_with(scope.package_request):
+                        _add_edge(id1, id2)
+
+        return g
+
+        """
         edges = set()
         edge_types = {}
         src_nodes = set()
@@ -1398,6 +1613,7 @@ class _ResolvePhase(_Common):
                 g.del_node(n)
 
         return g
+    """
 
     def _get_minimal_graph(self):
         if not self._is_solved():
