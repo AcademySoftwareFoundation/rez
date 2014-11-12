@@ -3,7 +3,7 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, error, heading, local, implicit, Printer
+from rez.colorize import critical, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, mkdtemp_, \
     dedup, timings
@@ -930,7 +930,6 @@ class ResolvedContext(object):
                 defaults to os.environ if None.
             style (): Style to format shell code in.
         """
-        from rez.shells import create_shell
         executor = self._create_executor(interpreter=create_shell(shell),
                                          parent_environ=parent_environ,
                                          style=style)
@@ -1083,7 +1082,6 @@ class ResolvedContext(object):
             block = not (command or stdin)
 
         # create the shell
-        from rez.shells import create_shell
         sh = create_shell(shell)
 
         # context and rxt files

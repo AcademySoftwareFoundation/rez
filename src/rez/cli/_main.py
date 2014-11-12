@@ -3,9 +3,6 @@ The main command-line entry point.
 """
 import os
 import sys
-import pkgutil
-import textwrap
-from itertools import groupby
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez import __version__

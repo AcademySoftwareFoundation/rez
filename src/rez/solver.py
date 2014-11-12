@@ -126,9 +126,7 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import columnise
 from itertools import groupby
-import os.path
 import copy
 import time
 import sys
@@ -1761,6 +1759,8 @@ class Solver(_Common):
 
     def dump(self):
         """Print a formatted summary of the current solve state."""
+        from rez.util import columnise
+
         rows = []
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))

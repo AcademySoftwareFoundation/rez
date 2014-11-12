@@ -7,7 +7,6 @@ from rez.config import config
 from rez.system import system
 import subprocess
 import os.path
-import sys
 
 
 def get_shell_types():

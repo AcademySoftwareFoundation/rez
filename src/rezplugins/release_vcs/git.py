@@ -4,11 +4,9 @@ Git version control
 from rez.release_vcs import ReleaseVCS
 from rez.util import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
-from rez.vendor.schema.schema import Or
 import functools
 import os.path
 import re
-import sys
 
 
 class GitReleaseVCSError(ReleaseVCSError):

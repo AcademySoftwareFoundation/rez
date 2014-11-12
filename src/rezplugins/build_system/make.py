@@ -2,7 +2,6 @@
 Make-based build system.
 """
 from rez.build_system import BuildSystem
-from rez.exceptions import BuildSystemError
 import os.path
 
 

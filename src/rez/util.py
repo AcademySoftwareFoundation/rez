@@ -621,6 +621,14 @@ def convert_old_command_expansions(command):
     return command
 
 
+def convert_old_environment_variable_references(input_):
+
+    def repl(matchobj):
+        return "{env.%s}" % matchobj.groupdict()['variable']
+
+    return re.sub("\$\{?(?P<variable>[a-zA-Z][_a-zA-Z0-9]*)\}?", repl, input_)
+
+
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     from rez.config import config
@@ -667,10 +675,12 @@ def convert_old_commands(commands, annotate=True):
                 if idx in (0, len(parts) - 1):
                     func = "appendenv" if idx == 0 else "prependenv"
                     parts = parts[1:] if idx == 0 else parts[:-1]
-                    val = os.pathsep.join(parts)
+                    val = separator.join(parts)
+                    val = convert_old_environment_variable_references(val)
                     loc.append("%s('%s', '%s')" % (func, var, _en(val)))
                     continue
 
+            value = convert_old_environment_variable_references(value)
             loc.append("setenv('%s', '%s')" % (var, _en(value)))
         elif toks[0].startswith('#'):
             loc.append("comment('%s')" % _en(' '.join(toks[1:])))

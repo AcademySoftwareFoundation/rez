@@ -3,17 +3,14 @@ CMake-based build system.
 """
 from rez.build_system import BuildSystem
 from rez.resolved_context import ResolvedContext
-from rez.exceptions import BuildSystemError, RezError
+from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
 from rez.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
-from rez.vendor.version.requirement import Requirement
 import functools
-import subprocess
-import platform
 import os.path
 import sys
 import os
@@ -59,7 +56,6 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def bind_cli(cls, parser):
-        from rez.config import config
         settings = config.plugins.build_system.cmake
         parser.add_argument("--bt", "--build-target", dest="build_target",
                             type=str, choices=cls.build_targets,

@@ -1,7 +1,7 @@
 import os
 import os.path
-import sys
 import re
+import sys
 from rez import __version__
 from rez.platform_ import platform_
 from rez.exceptions import RezSystemError

@@ -5,7 +5,6 @@ from rez.config import config
 from rez.exceptions import RezError
 from rez.util import print_error, get_epoch_time_from_str
 from rez.packages import iter_package_families, iter_packages
-from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import Requirement
 import os.path
 import fnmatch

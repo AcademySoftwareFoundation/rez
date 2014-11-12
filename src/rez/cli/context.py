@@ -2,12 +2,7 @@
 Print information about the current rez context, or a given context file.
 '''
 
-import os.path
 import sys
-import time
-import tempfile
-import subprocess
-from uuid import uuid4
 from rez.rex import OutputStyle
 from rez.dot import save_graph, view_graph, prune_graph
 from rez.vendor.version.requirement import Requirement

@@ -1,5 +1,4 @@
 from rez.exceptions import ReleaseVCSError
-from rez.vendor.version.version import Version
 from rez.packages import load_developer_package
 from rez.util import which, print_debug
 import subprocess
