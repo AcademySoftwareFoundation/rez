@@ -10,7 +10,7 @@ import textwrap
 import subprocess
 from optparse import OptionParser
 
-source_path = os.path.dirname(os.path.realpath(__file__))
+source_path = os.path.realpath('@relative_path_to_install@')
 bin_path = os.path.join(source_path, "bin")
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)

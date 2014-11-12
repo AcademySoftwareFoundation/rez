@@ -17,17 +17,20 @@ set(python_library_dir ${CMAKE_INSTALL_PREFIX}/lib/python${PYTHON_MAJOR_VERSION}
 get_filename_component(relative_path_to_setup ${CMAKE_SOURCE_DIR}/setup.py  PATH)
 file(RELATIVE_PATH relative_path ${CMAKE_CURRENT_BINARY_DIR} ${relative_path_to_setup})
 
+get_filename_component(relative_path_to_install ${CMAKE_SOURCE_DIR}/install.py  PATH)
+
 configure_file(init.csh.in init.csh @ONLY)
 configure_file(init.sh.in init.sh @ONLY)
 configure_file(setup.py setup.py @ONLY)
 configure_file(install.sh install.sh @ONLY)
+configure_file(install.py install.py @ONLY)
 
-set(setup_py ${CMAKE_CURRENT_BINARY_DIR}/setup.py)
+set(install_py ${CMAKE_CURRENT_BINARY_DIR}/install.py)
 set(depends ${CMAKE_CURRENT_SOURCE_DIR}/src/rez/__init__.py)
 set(output ${CMAKE_CURRENT_BINARY_DIR}/build/lib/rez/__init__.py)
 
 add_custom_command(OUTPUT ${output}
-    COMMAND $ENV{PYTHON_EXE} ${setup_py} build
+    COMMAND $ENV{PYTHON_EXE} ${install_py} ${rez_path}
     COMMAND ${CMAKE_COMMAND} -E touch ${output}
     DEPENDS ${depends}
 )
