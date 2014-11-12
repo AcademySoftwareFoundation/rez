@@ -57,7 +57,7 @@ import threading
 import time
 import zlib
 
-import six
+import rez.vendor.six.six as six
 
 
 def cmemcache_hash(key):
