@@ -24,11 +24,11 @@ class Baker(object):
 
     def set_settings_from_launcher(self, source, preserve_system_settings=False):
 
-        self.settings = self.launcher_service.get_settings_from_path(source,
-                                                                     self.mode,
-                                                                     username=self.username,
-                                                                     operating_system=self.operating_system,
-                                                                     date=self.epoch)
+        settings = self.launcher_service.get_unresolved_settings_from_path(source,
+                                                                           operating_system=self.operating_system,
+                                                                           date=self.epoch)
+
+        self.settings = self.launcher_service.resolve_settings(settings, only_packages=True)
 
         if not preserve_system_settings:
             self._strip_system_settings()

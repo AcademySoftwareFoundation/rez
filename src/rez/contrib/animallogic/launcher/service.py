@@ -102,7 +102,6 @@ class LauncherHessianService(LauncherServiceInterface):
 
         return [self._create_reference_setting_from_dict(reference) for reference in references]
 
-
     def add_reference_to_preset_path(self, path, referencePath, username=None, description=None):
         """
         Adds a preset reference to an existing preset path
@@ -143,7 +142,26 @@ class LauncherHessianService(LauncherServiceInterface):
             settings = method(*args)
         except Exception, e:
             raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e))
+
         return [self._create_value_setting_from_dict(setting) for setting in settings]
+
+    def get_unresolved_settings_from_path(self, path, operating_system=None, date=None):
+
+        operating_system_dict = self._operating_system_to_dict(operating_system)
+
+        if not self._is_preset_path(path):
+            raise LauncherError("This method is not support for toolset paths.")
+
+        try:
+            settings = self._preset_proxy.getFlattenedSettingListForPath(self._strip_prefix_from_path(path), operating_system_dict, date)
+        except Exception, e:
+            raise LauncherError("Unable to retrieve settings from '%s' - %s." % (path, e))
+
+        return [self._create_value_setting_from_dict(setting) for setting in settings]
+
+    def resolve_settings(self, settings, only_packages=False):
+
+        return SettingsResolver().resolve_settings(settings, only_packages=only_packages)
 
     def add_setting_to_preset(self, setting, preset_path, username=None):
 
@@ -175,3 +193,84 @@ class LauncherHessianService(LauncherServiceInterface):
         for preset_group_member in self._preset_proxy.getPresetGroupMembersByPath(parent_path, date, clear_dates_for_python):
             if preset_group_member['name'] == name:
                 return preset_group_member['id']
+
+
+class SettingsResolver(object):
+    """
+    Class to resolve the settings returned by the Launcher service.  This class
+    can be used to resolve the ${...} style references Launcher provides when
+    not fully resolving the variables internally.
+    """
+
+    def resolve_settings(self, settings, only_packages=False):
+
+        resolved_settings = []
+
+        for setting in settings:
+            self._add_setting(resolved_settings, setting)
+
+        return self._resolve_setting_values(resolved_settings, only_packages=only_packages)
+
+    def _add_setting(self, settings, setting):
+        replaced = False
+
+        for i, next_ in enumerate(settings):
+            if next_.name == setting.name:
+                setting = self._check_for_reference_to_self(setting, next_.value)
+                settings[i] = setting
+
+                replaced = True
+                break
+
+        if not replaced:
+            setting = self._check_for_reference_to_self(setting, "")
+            settings.append(setting)
+
+    def _check_for_reference_to_self(self, setting, old_value):
+
+        if setting.value:
+            name_reference = "${" + setting.name + "}"
+            if name_reference in str(setting.value):
+                setting.value = setting.value.replace(name_reference, old_value)
+
+        return setting
+
+    def _resolve_setting_values(self, settings, only_packages=False):
+        resolved_settings = []
+
+        for setting in settings:
+            if only_packages and setting.setting_type != SettingType.package:
+                resolved_settings.append(setting)
+                continue
+
+            modified = False
+            value = setting.value
+
+            if value:
+                index = value.find("${", 0)
+                while index >= 0:
+                    end = value.find("}", index + 2)
+                    if (end > index):
+                        reference = value[index + 2:end]
+                        reference_value = self._find_setting_value(settings, reference)
+                        if reference_value and "${" + reference + "}" not in reference_value:
+                            value = value[0:index] + reference_value + value[end + 1:]
+                            modified = True
+                        else:
+                            index = end
+
+                    index = value.find("${", index)
+
+            if modified:
+                setting.value = value
+                resolved_settings.append(setting)
+
+            else:
+                resolved_settings.append(setting)
+
+        return resolved_settings
+
+    def _find_setting_value(self, settings, name):
+        for setting in settings:
+            if setting.name == name:
+                return setting.value

@@ -3,6 +3,7 @@ from rez.contrib.animallogic.launcher.settingtype import SettingType
 from rez.contrib.animallogic.launcher.mode import Mode
 from rez.contrib.animallogic.launcher.setting import ValueSetting, ReferenceSetting
 from rez.contrib.animallogic.launcher.service import LauncherHessianService
+from rez.contrib.animallogic.launcher.service import SettingsResolver
 from rez.contrib.animallogic.launcher.exceptions import LauncherError
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy
 import rez.vendor.unittest2 as unittest
@@ -28,7 +29,7 @@ class BaseTestLauncherHessianService(unittest.TestCase):
 
         self.assertEqual(expected['name'], setting.name)
         self.assertEqual(expected['value'], setting.value)
-        
+
         if expected['opSystem']:
             self.assertEqual(expected['opSystem']['name'], setting.operating_system.value)
         else:
@@ -82,6 +83,20 @@ class TestLauncherHessianService_GetSettings(BaseTestLauncherHessianService):
         launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy(self.toolset_settings, self.toolset_path))
 
         self.assertRaises(LauncherError, launcher_service.get_settings_from_path, "/path/does/not/exist", self.mode, username=self.username, operating_system=self.operating_system, date=self.now)
+
+    def test_get_unresolved_settings_from_path(self):
+
+        preset_settings = [{'name':'preset_setting', 'value':'${abc}', 'opSystem':None, 'type':{'name':'tPackage'}, 'id': 123, 'sourcePresetId':{'key':999}}]
+        preset_path = '/presets/Rez/test'
+        toolset_settings = [{'name':'toolset_setting', 'value':'${abc}', 'opSystem':{'name':'linux'}, 'type':{'name':'tVersion'}, 'id': 456, 'sourcePresetId':{'key':998}}]
+        toolset_path = '/toolsets/Rez/test'
+
+        launcher_service = LauncherHessianService(StubPresetProxy(preset_settings, preset_path), StubToolsetProxy(toolset_settings, toolset_path))
+
+        settings = launcher_service.get_unresolved_settings_from_path(preset_path, operating_system=self.operating_system, date=self.now)
+        self.assert_settings(preset_settings, settings)
+
+        self.assertRaises(LauncherError, launcher_service.get_unresolved_settings_from_path, toolset_path, operating_system=self.operating_system, date=self.now)
 
 
 class TestLauncherHessianService_AddSettingToPreset(BaseTestLauncherHessianService):
@@ -174,15 +189,12 @@ class TestLauncherHessianService_AddReferenceToPreset(BaseTestLauncherHessianSer
         self.assertEqual(self.new_reference_setting.name, refSetting.name)
         self.assertEqual(self.new_reference_setting.preset_id, refSetting.preset_id)
 
-
-
     def test_add_reference_setting_with_preset_path(self):
 
         refSetting = self.launcher_service.add_reference_to_preset_path("/presets/root/path", '/presets/test/full/path',
                                                                         username=self.username)
         self.assertEqual(self.new_reference_setting.name, refSetting.name)
         self.assertEqual(self.new_reference_setting.preset_id, refSetting.preset_id)
-
 
     def test_add_bad_reference_setting_to_preset(self):
 
@@ -214,11 +226,188 @@ class TestLauncherHessianService_RemoveReferenceToPreset(BaseTestLauncherHessian
         self.assertEqual(self.new_reference_setting.name, refSetting.name)
         self.assertEqual(self.new_reference_setting.preset_id, refSetting.preset_id)
 
-
     def test_add_bad_reference_setting_to_preset(self):
 
         self.assertRaises(Exception, self.launcher_service.remove_reference_from_path, "/presets/root/path",
                           '/nonexistent/preset/path', username=self.username)
 
 
+class TestSettingsResolver(unittest.TestCase):
 
+    def setUp(self):
+        self.settings_resolver = SettingsResolver()
+
+    def assertSettings(self, expected_settings, actual_settings):
+        for expected, actual in zip(expected_settings, actual_settings):
+            self.assertEqual(expected.name, actual.name)
+            self.assertEqual(expected.value, actual.value)
+            self.assertEqual(expected.setting_type, actual.setting_type)
+
+    def test_empty_settings_list(self):
+        self.assertEqual([], self.settings_resolver.resolve_settings([]))
+
+    def test_setting_without_reference(self):
+        setting = ValueSetting("name", "value", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+    def test_setting_with_undefined_reference(self):
+        setting = ValueSetting("name", "${value}", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+        setting = ValueSetting("name", "pre ${value} post", SettingType.string)
+
+        resolved_settings = self.settings_resolver.resolve_settings([setting])
+        self.assertSettings([setting], resolved_settings)
+
+    def test_settings_with_simple_self_reference(self):
+        settings = [
+                    ValueSetting("name", "value", SettingType.string),
+                    ValueSetting("name", "${name}", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+        settings = [
+                    ValueSetting("name", "${name}", SettingType.string),
+                    ValueSetting("name", "value", SettingType.string),
+                    ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_prepend_self_reference(self):
+        settings = [
+                    ValueSetting("name", "${name}value1", SettingType.string),
+                    ValueSetting("name", "${name}value2", SettingType.string),
+                    ValueSetting("name", "${name}value3", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1value2value3", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_overwrite_self_reference(self):
+        settings = [
+                    ValueSetting("name", "${name}value1", SettingType.string),
+                    ValueSetting("name", "${name}value2", SettingType.string),
+                    ValueSetting("name", "value3", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value3", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_reference_and_self_reference(self):
+        settings = [
+                    ValueSetting("name", "value1", SettingType.string),
+                    ValueSetting("spam", "ham", SettingType.string),
+                    ValueSetting("name", "${name} bar ${spam}", SettingType.string),
+                    ValueSetting("package", "${name}", SettingType.package),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1 bar ham", SettingType.string),
+                             ValueSetting("spam", "ham", SettingType.string),
+                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_reference_and_self_reference_only_packages(self):
+        settings = [
+                    ValueSetting("name", "value1", SettingType.string),
+                    ValueSetting("spam", "ham", SettingType.string),
+                    ValueSetting("name", "${name} bar ${spam}", SettingType.string),
+                    ValueSetting("package", "${name}", SettingType.package),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1 bar ${spam}", SettingType.string),
+                             ValueSetting("spam", "ham", SettingType.string),
+                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_nested_references(self):
+        settings = [
+                    ValueSetting("name", "value1", SettingType.string),
+                    ValueSetting("spam", "ham", SettingType.string),
+                    ValueSetting("eggs", "${spam}", SettingType.string),
+                    ValueSetting("name", "${name} bar ${eggs}", SettingType.string),
+                    ValueSetting("package", "${name}", SettingType.package),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1 bar ham", SettingType.string),
+                             ValueSetting("spam", "ham", SettingType.string),
+                             ValueSetting("eggs", "ham", SettingType.string),
+                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_nested_references_only_packages(self):
+        settings = [
+                    ValueSetting("name", "value1", SettingType.string),
+                    ValueSetting("spam", "ham", SettingType.string),
+                    ValueSetting("eggs", "${spam}", SettingType.string),
+                    ValueSetting("name", "${name} bar ${eggs}", SettingType.string),
+                    ValueSetting("package", "${name}", SettingType.package),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("name", "value1 bar ${eggs}", SettingType.string),
+                             ValueSetting("spam", "ham", SettingType.string),
+                             ValueSetting("eggs", "${spam}", SettingType.string),
+                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_mixed_references(self):
+        settings = [
+                    ValueSetting("a", "${path}:/tmp", SettingType.string),
+                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("a", "/var/tmp::/scratch:/tmp", SettingType.string),
+                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings)
+        self.assertSettings(expected_settings, resolved_settings)
+
+    def test_settings_with_mixed_references_only_packages(self):
+        settings = [
+                    ValueSetting("a", "${path}:/tmp", SettingType.string),
+                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ]
+
+        expected_settings = [
+                             ValueSetting("a", "${path}:/tmp", SettingType.string),
+                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ]
+
+        resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
+        self.assertSettings(expected_settings, resolved_settings)
