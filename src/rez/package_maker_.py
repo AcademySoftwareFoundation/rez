@@ -13,7 +13,7 @@ To see more examples of making packages, look at the builtin 'bind modules',
 in the rez/bind/ subdirectory.
 """
 from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import VersionedObject, Requirement, \
+from rez.vendor.version.requirement import Requirement, \
     RequirementList
 from rez.vendor import yaml
 from rez.exceptions import PackageMetadataError, RezSystemError

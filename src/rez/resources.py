@@ -1157,9 +1157,6 @@ def load_resource(filepath=None, resource_keys=None, search_path=None,
                         root_resource_key).load()
 
 
-
-
-
 #    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
 #
 #    This file is part of Rez.

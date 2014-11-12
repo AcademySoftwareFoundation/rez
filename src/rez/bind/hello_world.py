@@ -26,7 +26,7 @@ def hello_world_tool():
         help="quiet mode")
     p.add_option("-r", dest="retcode", type="int", default=0,
         help="exit with a non-zero return code")
-    opts,args = p.parse_args()
+    opts, args = p.parse_args()
 
     if not opts.quiet:
         print "Hello Rez World!"

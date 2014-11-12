@@ -244,7 +244,7 @@ class Locator(object):
                             'python-version': ', '.join(
                                 ['.'.join(list(v[2:])) for v in wheel.pyver]),
                         }
-            except Exception as e:
+            except Exception:
                 logger.warning('invalid path for wheel: %s', path)
         elif path.endswith(self.downloadable_extensions):
             path = filename = posixpath.basename(path)

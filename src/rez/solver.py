@@ -128,7 +128,6 @@ from rez.vendor.enum import Enum
 from rez.packages import iter_packages
 from rez.util import columnise
 from itertools import groupby
-import os.path
 import copy
 import time
 import sys
@@ -1881,7 +1880,7 @@ class Solver(_Common):
         if depth is None:
             depth = len(self.phase_stack) - 1
         count = self.depth_counts[depth]
-        return "{%d,%d}" % (depth,count)
+        return "{%d,%d}" % (depth, count)
 
     def __str__(self):
         return "%s %s %s" % (self.status,

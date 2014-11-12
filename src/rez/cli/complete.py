@@ -11,7 +11,6 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.vendor.argcomplete.completers import ChoicesCompleter
     from rez.cli._util import subcommands, hidden_subcommands
     from rez.util import timings
     import os

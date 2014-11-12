@@ -1,27 +1,20 @@
 import os
 import subprocess
 import sys
-import posixpath
-import ntpath
-from string import Formatter, Template
+from string import Formatter
 import re
 import UserDict
 import inspect
-import textwrap
-import pipes
-import time
-import getpass
-from rez import module_root_path
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars
+from rez.util import AttrDictWrapper, shlex_join, expandvars
 from rez.vendor.enum import Enum
 
 
-#===============================================================================
+# ===============================================================================
 # Actions
-#===============================================================================
+# ===============================================================================
 
 class Action(object):
     _registry = []
@@ -145,9 +138,9 @@ class Shebang(Action):
 Shebang.register()
 
 
-#===============================================================================
+# ===============================================================================
 # Action Manager
-#===============================================================================
+# ===============================================================================
 
 class OutputStyle(Enum):
     """ Enum to represent the style of code output when using Rex.
@@ -318,7 +311,7 @@ class ActionManager(object):
 
         # expose env-vars from parent env if explicitly told to do so
         if (expanded_key not in self.environ) and \
-            ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
+                ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
             self.environ[expanded_key] = self.parent_environ.get(expanded_key, '')
             if self.interpreter.expand_env_vars:
                 key_ = expanded_key
@@ -330,7 +323,7 @@ class ActionManager(object):
         if expanded_key in self.environ:
             self.actions.append(action(unexpanded_key, unexpanded_value))
             parts = self.environ[expanded_key].split(self._env_sep(expanded_key))
-            unexpanded_values = self._env_sep(expanded_key).join( \
+            unexpanded_values = self._env_sep(expanded_key).join(
                 addfunc(unexpanded_value, [self._keytoken(expanded_key)]))
             expanded_values = self._env_sep(expanded_key).join(addfunc(expanded_value, parts))
             self.environ[expanded_key] = expanded_values
@@ -404,9 +397,9 @@ class ActionManager(object):
         self.interpreter.shebang()
 
 
-#===============================================================================
+# ===============================================================================
 # Interpreters
-#===============================================================================
+# ===============================================================================
 
 class ActionInterpreter(object):
     """
@@ -595,9 +588,9 @@ class Python(ActionInterpreter):
         pass
 
 
-#===============================================================================
+# ===============================================================================
 # Rex Execution Namespace
-#===============================================================================
+# ===============================================================================
 class NamespaceFormatter(Formatter):
     ENV_VAR_REGEX = re.compile("\${(?P<var>.+?)}")
 
@@ -626,9 +619,9 @@ class NamespaceFormatter(Formatter):
             return Formatter.get_value(self, key, args, kwds)
 
 
-#===============================================================================
+# ===============================================================================
 # Environment Classes
-#===============================================================================
+# ===============================================================================
 
 class EnvironmentDict(UserDict.DictMixin):
     """
@@ -731,9 +724,9 @@ class EnvironmentVariable(object):
         return not self == value
 
 
-#===============================================================================
+# ===============================================================================
 # Executors
-#===============================================================================
+# ===============================================================================
 
 class RexExecutor(object):
     """

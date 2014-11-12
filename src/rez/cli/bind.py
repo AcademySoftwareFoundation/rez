@@ -58,7 +58,7 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             for file in os.listdir(path):
                 fpath = os.path.join(path, file)
-                fname,ext = os.path.splitext(file)
+                fname, ext = os.path.splitext(file)
                 if os.path.isfile(fpath) and ext == ".py":
                     bindnames[fname] = fpath
 
@@ -87,7 +87,7 @@ def command(opts, parser, extra_arg_groups=None):
     exec stream in namespace
 
     # parse bind module params
-    bind_parser = argparse.ArgumentParser(prog = "rez bind %s" % name,
+    bind_parser = argparse.ArgumentParser(prog="rez bind %s" % name,
                                           description="%s bind module" % name)
     parserfunc = namespace.get("setup_parser")
     if parserfunc:
@@ -102,10 +102,10 @@ def command(opts, parser, extra_arg_groups=None):
     if not bindfunc:
         raise RezBindError("'bind' function missing in %s" % bindfile)
 
-    name,version = bindfunc(path=install_path,
-                            version_range=version_range,
-                            opts=bind_opts,
-                            parser=bind_parser)
+    name, version = bindfunc(path=install_path,
+                             version_range=version_range,
+                             opts=bind_opts,
+                             parser=bind_parser)
 
     o = VersionedObject.construct(name, version)
     print "created package '%s' in %s" % (str(o), install_path)

@@ -1,12 +1,12 @@
-from rez.util import Common, propertycache, dedup
+from rez.util import propertycache, dedup
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageRequestError
+from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
-from rez.vendor.schema.schema import Schema, Optional
-from rez.vendor.version.version import Version, VersionRange
-from rez.vendor.version.requirement import VersionedObject, Requirement
+from rez.vendor.version.version import Version
+from rez.vendor.version.requirement import VersionedObject
 import os.path
 import sys
 

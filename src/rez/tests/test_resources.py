@@ -1,14 +1,12 @@
 from rez.resources import iter_resources, iter_descendant_resources, \
-    iter_child_resources, load_resource, get_resource, ResourceError, Resource
+    iter_child_resources, load_resource, get_resource, ResourceError
 from rez.package_resources import PackagesRoot, PackageFamilyFolder, \
     PackageVersionFolder, VersionlessPackageResource, \
     VersionedPackageResource, CombinedPackageFamilyResource, \
     CombinedPackageResource, DeveloperPackagesRoot, DeveloperPackageResource
 from rez.exceptions import PackageMetadataError
-from rez.config import config
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
-from rez.vendor.schema.schema import SchemaError
 from rez.tests.util import TestBase
 import rez.vendor.unittest2 as unittest
 import os.path

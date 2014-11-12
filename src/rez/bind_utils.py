@@ -60,12 +60,12 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
     """
     if isinstance(version_arg, basestring):
         version_arg = [version_arg]
-    args =[exepath] + version_arg
+    args = [exepath] + version_arg
 
     log("running: %s" % ' '.join(args))
     p = subprocess.Popen(args, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE)
-    stdout,stderr = p.communicate()
+    stdout, stderr = p.communicate()
     if p.returncode:
         raise RezBindError("failed to execute %s: %s\n(error code %d)"
                            % (exepath, stderr, p.returncode))
@@ -75,7 +75,7 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
 
     try:
         strver = stdout.split()[word_index]
-        toks = strver.replace('.',' ').replace('-',' ').split()
+        toks = strver.replace('.', ' ').replace('-', ' ').split()
         strver = '.'.join(toks[:version_rank])
         version = Version(strver)
     except Exception as e:

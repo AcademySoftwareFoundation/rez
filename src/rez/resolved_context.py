@@ -3,20 +3,19 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, error, heading, local, implicit, Printer
+from rez.colorize import critical, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
-from rez.util import columnise, convert_old_commands, shlex_join, mkdtemp_, \
+from rez.util import columnise, shlex_join, mkdtemp_, \
     dedup, timings
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name, iter_packages
-from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
-from rez.vendor.version.requirement import Requirement, VersionedObject
+from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml

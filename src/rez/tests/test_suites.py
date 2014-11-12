@@ -33,7 +33,6 @@ class TestRezSuites(TestBase, TempdirMixin):
 
     def test_1(self):
         """Test empty suite."""
-        path = os.path.join(self.root, "suite1")
         s = Suite()
         tools = s.get_tools()
         self.assertEqual(tools, {})

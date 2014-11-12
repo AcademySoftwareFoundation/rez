@@ -1,9 +1,10 @@
 """
 Functions for manipulating dot-based resolve graphs.
 """
-import re
 import os.path
+import re
 import subprocess
+import sys
 import tempfile
 from rez.config import config
 from rez.package_resources import PACKAGE_NAME_REGSTR
