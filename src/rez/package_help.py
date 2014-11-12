@@ -1,7 +1,9 @@
 from rez.packages import iter_packages
 from rez.config import config
+from rez.rex_bindings import VersionBinding
 from rez.util import AttrDictWrapper, ObjectStringFormatter, \
     convert_old_command_expansions
+from rez.system import system
 import subprocess
 import webbrowser
 import os.path
@@ -54,7 +56,9 @@ class PackageHelp(object):
                 base = variant.base
                 root = variant.root
 
-            namespace = dict(base=base, root=root, config=config)
+            namespace = dict(base=base, root=root, config=config,
+                             version=VersionBinding(package.version),
+                             system=system)
             formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
                                               expand='unchanged')
 
@@ -99,16 +103,16 @@ class PackageHelp(object):
     @classmethod
     def open_rez_manual(cls):
         """Open the Rez user manual."""
-        self._open_url(config.documentation_url)
+        cls._open_url(config.documentation_url)
 
     @classmethod
     def _open_url(cls, url):
         if config.browser:
             cmd = [config.browser, url]
-            if self._verbose:
+            if not config.quiet:
                 print "running command: %s" % " ".join(cmd)
             subprocess.Popen(cmd).communicate()
         else:
-            if self._verbose:
+            if not config.quiet:
                 print "opening URL in browser: %s" % url
             webbrowser.open_new(url)
