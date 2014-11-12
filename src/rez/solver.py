@@ -1212,17 +1212,12 @@ class _ResolvePhase(_Common):
         next_phase.scopes = next_scopes
         return (phase, next_phase)
 
-    def get_graph(self, prune_unfailed=True):
+    def get_graph(self):
         """Get the resolve graph.
 
         The resolve graph shows what packages were resolved, and the
         relationships between them. A failed phase also has a graph, which
         will shows the conflict(s) that caused the resolve to fail.
-
-        Args:
-            prune_unfailed (bool): If the solve failed, and `prune_unfailed` is
-                True, any packages unrelated to the conflict are removed from
-                the graph.
 
         Returns:
             A pygraph.digraph object.
@@ -1453,7 +1448,7 @@ class _ResolvePhase(_Common):
                         _add_edge(id1, id2)
 
         # prune nodes not related to failure
-        if prune_unfailed and failure_nodes:
+        if self.solver.prune_unfailed and failure_nodes:
             access_dict = accessibility(g)
             del_nodes = set()
 
@@ -1525,7 +1520,7 @@ class Solver(_Common):
     def __init__(self, package_requests, package_paths, timestamp=0,
                  callback=None, building=False, optimised=True, verbosity=0,
                  buf=None, package_load_callback=None, max_depth=0,
-                 package_cache=None):
+                 package_cache=None, prune_unfailed=True):
         """Create a Solver.
 
         Args:
@@ -1553,6 +1548,9 @@ class Solver(_Common):
             package_cache (`PackageVariantCache`): Provided variant cache. The
                 `Resolver` may use this to share a single cache across several
                 `Solver` instances.
+            prune_unfailed (bool): If the solve failed, and `prune_unfailed` is
+                True, any packages unrelated to the conflict are removed from
+                the graph.
         """
         self.package_requests = package_requests
         self.package_paths = package_paths
@@ -1561,6 +1559,7 @@ class Solver(_Common):
         self.timestamp = timestamp
         self.callback = callback
         self.max_depth = max_depth
+        self.prune_unfailed = prune_unfailed
         self.request_list = None
 
         self.phase_stack = None
