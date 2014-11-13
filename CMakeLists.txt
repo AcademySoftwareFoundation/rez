@@ -5,11 +5,7 @@ include(ExternalProject)
 
 rez_find_packages(PREFIX pkgs AUTO)
 
-if (CENTRAL)
-    set(rez_path /film/tools/packages/rez/${REZ_VERSION}/CentOS-${CENTOS_VERSION}/python-${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION})
-else ()
-    set(rez_path ${CMAKE_INSTALL_PREFIX})
-endif ()
+set(rez_path ${CMAKE_INSTALL_PREFIX})
 
 set(python_library_dir ${CMAKE_INSTALL_PREFIX}/lib/python${PYTHON_MAJOR_VERSION}.${PYTHON_MINOR_VERSION}/site-packages)
 
