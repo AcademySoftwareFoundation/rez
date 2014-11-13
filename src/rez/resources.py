@@ -229,7 +229,7 @@ def load_file(filepath, loader=None):
 # Resource related functions
 # -----------------------------------------------------------------------------
 
-def register_resource(resource_class):
+def register_resource(resource_class, force=False):
     """Register a `Resource` class.
 
     This informs rez where to find a resource relative to the
@@ -240,7 +240,7 @@ def register_resource(resource_class):
     """
     assert resource_class.key is not None, \
         "Resource class must implement the 'key' attribute"
-    if resource_class.key in _resource_classes:
+    if resource_class.key in _resource_classes and not force:
         raise ResourceError("resource class already registered: %r"
                             % resource_class.key)
     _resource_classes[resource_class.key] = resource_class

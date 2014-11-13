@@ -12,8 +12,8 @@ import itertools
 import os.path
 from rez.vendor.version.version import Version
 
-register_resource(VersionlessPackageResource)
-register_resource(VersionlessVariantResource)
+register_resource(VersionlessPackageResource, force=True)
+register_resource(VersionlessVariantResource, force=True)
 
 
 class TestSolver(TestBase):

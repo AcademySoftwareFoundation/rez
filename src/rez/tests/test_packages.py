@@ -7,10 +7,10 @@ from rez.vendor.version.version import VersionRange
 import rez.vendor.unittest2 as unittest
 import os.path
 
-register_resource(VersionlessPackageResource)
-register_resource(VersionlessVariantResource)
-register_resource(CombinedPackageFamilyResource)
-register_resource(CombinedPackageResource)
+register_resource(VersionlessPackageResource, force=True)
+register_resource(VersionlessVariantResource, force=True)
+register_resource(CombinedPackageFamilyResource, force=True)
+register_resource(CombinedPackageResource, force=True)
 
 ALL_PACKAGES = set([
     # solver packages
