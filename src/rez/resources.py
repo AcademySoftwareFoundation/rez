@@ -705,6 +705,15 @@ class FileSystemResource(Resource):
                 filepath = os.path.join(parent_resource.path, name)
                 yield cls(filepath, variables)
 
+    @classmethod
+    def _iter_instance(cls, parent_resource):
+        filepath = os.path.join(parent_resource.path, cls.path_pattern)
+        is_test = os.path.isfile if cls.is_file else os.path.isdir
+        if is_test(filepath):
+            variables = {}
+            variables.update(parent_resource.variables)
+            yield cls(filepath, variables)
+
 
 class FolderResource(FileSystemResource):
     """A resource representing a directory on disk"""
