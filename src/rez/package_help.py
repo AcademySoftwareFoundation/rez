@@ -1,7 +1,9 @@
 from rez.packages import iter_packages
 from rez.config import config
+from rez.rex_bindings import VersionBinding
 from rez.util import AttrDictWrapper, ObjectStringFormatter, \
     convert_old_command_expansions
+from rez.system import system
 import subprocess
 import webbrowser
 import os.path
@@ -54,7 +56,9 @@ class PackageHelp(object):
                 base = variant.base
                 root = variant.root
 
-            namespace = dict(base=base, root=root, config=config)
+            namespace = dict(base=base, root=root, config=config,
+                             version=VersionBinding(package.version),
+                             system=system)
             formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
                                               expand='unchanged')
 
