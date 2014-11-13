@@ -514,17 +514,24 @@ unleash_target: film_tools_packages
 # Memcache
 ###############################################################################
 
+# Use memcache to cache the files loaded by the resource system.  This will
+# cache the file content (not the Rez objects), reducing the need to contact
+# the file server.  This cache layer is indendent of 'resource_caching' and as
+# such can be enabled/disabled separated.
 memcache_enabled: true
 
+# A list of servers that form the memcache cluster.
 memcache_servers:
 - 127.0.0.1:11211
 
-memcache_debug: false
+# The default time to live of all objects entered into the cache.  This time is
+# measured in seconds.  The current default is to cache for one hour.
+memcache_ttl: 3600
 
-memcache_paths:
-- '/film/tools/packages' # internally developed pkgs, deployed
-
-
+# Only cache resources found on this search path.  This allows us to not cache
+# files from a developers local packages path.
+memcache_search_paths:
+- '/film/tools/packages'
 
 ###############################################################################
 ###############################################################################

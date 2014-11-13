@@ -725,6 +725,16 @@ class FileResource(FileSystemResource):
     is_file = True
     loader = None
 
+    def _load_file(self):
+        if os.path.isfile(self.path):
+            data = load_file(self.path, self.loader)
+            return data
+        else:
+            msg = "not a file" if os.path.exists(self.path) \
+                else "file does not exist"
+            raise ResourceError("Could not load %s from %s: %s"
+                                % (self.key, self.path, msg))
+
     @Resource.cached
     def load(self):
         """load the resource data.
@@ -738,40 +748,32 @@ class FileResource(FileSystemResource):
         schema), for example, changing the name of keys, or grafting on data
         loaded from other reources.
         """
-#        print self.variables['search_path']
- #       print config.memcache()
-  #      print config.memcache_paths
-   #     print self.variables['search_path'] in config.memcache_paths
-        
-        if os.path.isfile(self.path):
-            try:
-                mc = config.memcache()
-                data = None
-                if mc:
-                    data = mc.get(self.path)
-                if not data:
-                    data = load_file(self.path, self.loader)
-                    if mc:
-                        mc.set(self.path, data)
-                if self.schema:
-                    k = "resources.validate.%s" % self.__class__.__name__
-                    timings.start(k)
-                    try:
-                        data_ = self.schema.validate(data)
-                    finally:
-                        timings.end(k)
-                    return data_
-            except SchemaError as e:
-                error_cls = self._contents_exception_type()
-                raise error_cls(value=str(e),
-                                path=self.path,
-                                resource_key=self.key)
-            return data
+        connection = config.memcache()
+        search_path = self.variables.get("search_path", "")
+
+        if connection and search_path in config.memcache_paths:
+            data = connection.get(self.path)
+            if not data:
+                data = self._load_file()
+                connection.set(self.path, data, time=config.memcache_ttl)
         else:
-            msg = "not a file" if os.path.exists(self.path) \
-                else "file does not exist"
-            raise ResourceError("Could not load %s from %s: %s"
-                                % (self.key, self.path, msg))
+            data = self._load_file()
+
+        try:
+            if self.schema:
+                k = "resources.validate.%s" % self.__class__.__name__
+                timings.start(k)
+                try:
+                    data_ = self.schema.validate(data)
+                finally:
+                    timings.end(k)
+                return data_
+        except SchemaError as e:
+            error_cls = self._contents_exception_type()
+            raise error_cls(value=str(e),
+                            path=self.path,
+                            resource_key=self.key)
+        return data
 
 
 class SearchPath(FolderResource):

@@ -7,6 +7,7 @@ from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+import rez.vendor.memcached.memcache as memcache
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 import os
@@ -148,7 +149,7 @@ config_schema = Schema({
     "packages_path":                    PathList,
     "plugin_path":                      PathList,
     "bind_module_path":                 PathList,
-    "memcache_paths":                   PathList,
+    "memcache_search_paths":            PathList,
     "implicit_packages":                StrList,
     "parent_variables":                 StrList,
     "resetting_variables":              StrList,
@@ -204,6 +205,7 @@ config_schema = Schema({
     "resolve_max_depth":                Int,
     "resolve_start_depth":              Int,
     "changelog_maxsize":                Int,
+    "memcache_ttl":                     Int,
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
@@ -238,7 +240,6 @@ config_schema = Schema({
     "rez_1_environment_variables":      Bool,
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
-    "memcache_debug":                   Bool,
     "memcache_enabled":                 Bool,
     "env_var_separators":               Dict,
 
@@ -351,6 +352,7 @@ class Config(DataWrapper):
         self.filepaths = filepaths
         self.overrides = overrides or {}
         self.locked = locked
+        self._memcache_connection = None
 
     def override(self, key, value):
         """Set a setting to the given value.
@@ -427,14 +429,12 @@ class Config(DataWrapper):
         return decorated
 
     def memcache(self):
-        import rez.vendor.memcached.memcache as memcache
-        
-        if self.memcache_enabled:
-            servers = self.memcache_servers
-            debug = int(self.memcache_debug)
-            return memcache.Client(servers, debug=debug)
 
-        return None
+        if self.memcache_enabled and not self._memcache_connection:
+            self._memcache_connection = memcache.Client(self.memcache_servers,
+                                                        debug=0)
+
+        return self._memcache_connection
 
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):
