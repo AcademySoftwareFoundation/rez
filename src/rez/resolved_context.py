@@ -85,7 +85,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (3, 1)
+    serialize_version = (3, 2)
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
