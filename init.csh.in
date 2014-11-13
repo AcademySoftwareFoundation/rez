@@ -10,7 +10,7 @@ setenv REZ_VERSION @REZ_VERSION@
 setenv REZ_PATH @rez_path@
 
 # Add Rez to our environment.
-setenv PATH ${REZ_PATH}/bin:${PATH}
+setenv PATH ${REZ_PATH}/bin/rez:${PATH}
 if (! $?PYTHONPATH ) then
     setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages
 else
@@ -39,6 +39,8 @@ endif
 
 # Tell Rez where our downloads live.
 setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
+
+source ${REZ_PATH}/completion/complete.csh
 
 # Add some alias for Rez to use.
 alias b 'rez build --build-target RelWithDebInfo --install -- -- -j 16'

@@ -17,6 +17,8 @@ if sys.version_info < (2, 6):
     sys.exit(1)
 
 
+
+
 def find_files(pattern, path=None, root="rez"):
     paths = []
     basepath = os.path.realpath(os.path.join("src", root))
