@@ -510,6 +510,21 @@ unleash_flavour: package
 unleash_target: film_tools_packages
 
 
+###############################################################################
+# Memcache
+###############################################################################
+
+memcache_enabled: true
+
+memcache_servers:
+- 127.0.0.1:11211
+
+memcache_debug: false
+
+memcache_paths:
+- '/film/tools/packages' # internally developed pkgs, deployed
+
+
 
 ###############################################################################
 ###############################################################################
@@ -525,3 +540,5 @@ unleash_target: film_tools_packages
 # will cause an error.
 use_pyside: false
 use_pyqt: false
+
+

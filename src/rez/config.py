@@ -148,10 +148,12 @@ config_schema = Schema({
     "packages_path":                    PathList,
     "plugin_path":                      PathList,
     "bind_module_path":                 PathList,
+    "memcache_paths":                   PathList,
     "implicit_packages":                StrList,
     "parent_variables":                 StrList,
     "resetting_variables":              StrList,
     "release_hooks":                    StrList,
+    "memcache_servers":                 StrList,
     "critical_styles":                  OptionalStrList,
     "error_styles":                     OptionalStrList,
     "warning_styles":                   OptionalStrList,
@@ -236,6 +238,8 @@ config_schema = Schema({
     "rez_1_environment_variables":      Bool,
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
+    "memcache_debug":                   Bool,
+    "memcache_enabled":                 Bool,
     "env_var_separators":               Dict,
 
     # GUI settings
@@ -421,6 +425,16 @@ class Config(DataWrapper):
             else:
                 return f
         return decorated
+
+    def memcache(self):
+        import rez.vendor.memcached.memcache as memcache
+        
+        if self.memcache_enabled:
+            servers = self.memcache_servers
+            debug = int(self.memcache_debug)
+            return memcache.Client(servers, debug=debug)
+
+        return None
 
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):

@@ -738,9 +738,21 @@ class FileResource(FileSystemResource):
         schema), for example, changing the name of keys, or grafting on data
         loaded from other reources.
         """
+#        print self.variables['search_path']
+ #       print config.memcache()
+  #      print config.memcache_paths
+   #     print self.variables['search_path'] in config.memcache_paths
+        
         if os.path.isfile(self.path):
             try:
-                data = load_file(self.path, self.loader)
+                mc = config.memcache()
+                data = None
+                if mc:
+                    data = mc.get(self.path)
+                if not data:
+                    data = load_file(self.path, self.loader)
+                    if mc:
+                        mc.set(self.path, data)
                 if self.schema:
                     k = "resources.validate.%s" % self.__class__.__name__
                     timings.start(k)
