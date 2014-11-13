@@ -384,7 +384,7 @@ class VersionedPackageResource(BasePackageResource):
 
     @classmethod
     def _iter_instances(cls, parent_resource):
-        for ext in ['py', 'yaml', 'txt']:
+        for ext in ['yaml', 'py', 'txt']:
             filepath = os.path.join(parent_resource.path, "package." + ext)
             if os.path.isfile(filepath):
                 variables = {"ext": ext}
@@ -573,11 +573,11 @@ register_resource(PackageFamilyFolder)
 register_resource(PackageVersionFolder)
 register_resource(VersionedPackageResource)
 register_resource(VersionedVariantResource)
-register_resource(VersionlessPackageResource)
-register_resource(VersionlessVariantResource)
+#register_resource(VersionlessPackageResource)
+#register_resource(VersionlessVariantResource)
 register_resource(ReleaseDataResource)
-register_resource(CombinedPackageFamilyResource)
-register_resource(CombinedPackageResource)
+#register_resource(CombinedPackageFamilyResource)
+#register_resource(CombinedPackageResource)
 # deprecated
 register_resource(MetadataFolder)
 register_resource(ReleaseTimestampResource)
