@@ -42,9 +42,9 @@ class TestShells(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    def _create_context(self, pkgs):
-        return ResolvedContext(pkgs,
-                               caching=False)
+    @classmethod
+    def _create_context(cls, pkgs):
+        return ResolvedContext(pkgs, caching=False)
 
     @shell_dependent
     def test_no_output(self):

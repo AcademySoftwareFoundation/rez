@@ -393,7 +393,7 @@ error_commands2: false
 rez_1_environment_variables: true
 
 # If True, Rez will continue to generate the given CMake variables at build and
-# release time, even though their use has been deprecated in Rez-2.  The 
+# release time, even though their use has been deprecated in Rez-2.  The
 # variables in question, and their Rez-2 equivalent (if any) are:
 #   REZ-1               REZ-2
 #   -----               -----

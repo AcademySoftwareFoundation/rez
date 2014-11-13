@@ -5,12 +5,12 @@ import os.path
 import subprocess
 from rez.config import config
 from rez.shells import UnixShell
-from rez import module_root_path
 
 
 class CSH(UnixShell):
     executable = UnixShell.find_executable('csh')
     norc_arg = '-f'
+    last_command_status = '$status'
     histfile = "~/.history"
     histvar = "histfile"
 
@@ -93,9 +93,6 @@ class CSH(UnixShell):
             new_prompt = new_prompt % curr_prompt
             self._addline('set prompt="%s"' % new_prompt)
 
-        completion = os.path.join(module_root_path, "completion", "complete.csh")
-        self.source(completion)
-
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
@@ -107,6 +104,9 @@ class CSH(UnixShell):
 
     def alias(self, key, value):
         self._addline("alias %s '%s';" % (key, value))
+
+    def source(self, value):
+        self._addline('source "%s"' % os.path.expanduser(value))
 
 
 def register_plugin():

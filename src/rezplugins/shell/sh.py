@@ -5,13 +5,13 @@ import os
 import os.path
 import subprocess
 from rez.config import config
-from rez import module_root_path
 from rez.shells import UnixShell
 
 
 class SH(UnixShell):
     executable = UnixShell.find_executable('sh')
     norc_arg = '--noprofile'
+    debug_arg = "-x"
     histfile = "~/.bash_history"
     histvar = "HISTFILE"
 
@@ -94,9 +94,6 @@ class SH(UnixShell):
             new_prompt = new_prompt % curr_prompt
             self._addline('export PS1="%s"' % new_prompt)
 
-        completion = os.path.join(module_root_path, "completion", "complete.sh")
-        self.source(completion)
-
     def setenv(self, key, value):
         self._addline('export %s="%s"' % (key, value))
 
@@ -106,6 +103,9 @@ class SH(UnixShell):
     def alias(self, key, value):
         cmd = "function {key}() {{ {value}; }};export -f {key};"
         self._addline(cmd.format(key=key, value=value))
+
+    def source(self, value):
+        self._addline('. "%s"' % os.path.expanduser(value))
 
     def _saferefenv(self, key):
         pass
