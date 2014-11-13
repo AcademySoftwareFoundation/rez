@@ -61,13 +61,16 @@ def patch_rez_binaries(dest_dir):
     # delete rez bin files written by setuptools
     for name in bin_names:
         filepath = os.path.join(venv_bin_path, name)
-        if os.path.exists(filepath):
+        #if os.path.exists(filepath):
+        if os.path.isfile(filepath):
             os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
     # we don't want resolved envs accidentally getting the venv's 'python'.
     dest_bin_path = os.path.join(venv_bin_path, "rez")
+    if os.path.exists(dest_bin_path):
+        shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
 
     maker = _ScriptMaker(bin_path, dest_bin_path)
@@ -90,6 +93,8 @@ def copy_completion_scripts(dest_dir):
 
     if completion_path:
         dest_path = os.path.join(dest_dir, "completion")
+        if os.path.exists(dest_path):
+            shutil.rmtree(dest_path)
         shutil.copytree(completion_path, dest_path)
         return dest_path
 
@@ -124,7 +129,8 @@ if __name__ == "__main__":
 
     # install rez from source
     py_executable = os.path.join(dest_dir, "bin", "python")
-    args = [py_executable, "setup.py", "install"]
+    setup_file=os.path.join('@CMAKE_CURRENT_BINARY_DIR@','setup.py')
+    args = [py_executable, setup_file, "install"]
     if opts.verbose:
         print "running in %s: %s" % (source_path, " ".join(args))
     p = subprocess.Popen(args, cwd=source_path)

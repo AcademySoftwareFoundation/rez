@@ -10,7 +10,7 @@ export REZ_VERSION=@REZ_VERSION@
 export REZ_PATH=@rez_path@
 
 # Add Rez to our environment.
-export PATH=${REZ_PATH}/bin:${PATH}
+export PATH=${REZ_PATH}/bin/rez:${PATH}
 export PYTHONPATH=${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
 
 # where rez will publish local packages to (ie those installed with rez-build -- -- install)
@@ -35,6 +35,8 @@ fi
 
 # Tell Rez where our downloads live.
 export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
+
+source ${REZ_PATH}/completion/complete.sh
 
 # Add some alias for Rez to use.
 alias b='rez build --build-target RelWithDebInfo --install -- -- -j 16'

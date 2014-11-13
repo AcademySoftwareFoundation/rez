@@ -1,0 +1,17 @@
+#!/bin/tcsh
+
+# For each path in REZ_PACKAGES_PATH, find all packages and versions as a 
+# package/version string.  Strip out the leading path name and replace the /
+# to make a rez style package-version string that can then be used on the rez
+# command line (with rez env etc).
+
+set packages=""
+
+foreach path (`echo ${REZ_PACKAGES_PATH} | /usr/bin/tr ":" " "`) 
+    if ( -d $path ) then
+        set packages="$packages `/bin/ls --directory $path/*/*/ | /bin/sed 's;$path/;;g' | /usr/bin/tr '/' '-' | /bin/sed 's/\(.*\)./\1/'`"
+    endif
+end
+
+echo $packages | /usr/bin/tr ' ' '\n' | /bin/sort -u
+
