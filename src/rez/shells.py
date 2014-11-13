@@ -3,10 +3,12 @@ Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import which, shlex_join, print_warning
+from rez.exceptions import RezSystemError
 from rez.config import config
 from rez.system import system
 import subprocess
 import os.path
+import pipes
 
 
 def get_shell_types():
@@ -19,8 +21,10 @@ def create_shell(shell=None, **kwargs):
     """Returns a Shell of the given type, or the current shell type if shell
     is None."""
     if not shell:
-        from rez.system import system
-        shell = system.shell
+        shell = config.default_shell
+        if not shell:
+            from rez.system import system
+            shell = system.shell
 
     from rez.plugin_managers import plugin_manager
     return plugin_manager.create_instance('shell', shell, **kwargs)
@@ -112,10 +116,12 @@ class UnixShell(Shell):
     executable = None
     rcfile_arg = None
     norc_arg = None
+    debug_arg = None
     histfile = None
     histvar = None
     command_arg = '-c'
     stdin_arg = '-s'
+    last_command_status = '$?'
     syspaths = None
 
     #
@@ -281,12 +287,10 @@ class UnixShell(Shell):
                     executor.source(context_file)
 
         executor.command(shell_command)
-        # TODO this could be more cross-shell...
-        executor.command("exit $?")
+        executor.command("exit %s" % self.last_command_status)
 
         code = executor.get_output()
-        target_file = os.path.join(tmpdir, "rez-shell.%s"
-                                   % self.file_extension())
+        target_file = os.path.join(tmpdir, "rez-shell.%s" % self.file_extension())
         with open(target_file, 'w') as f:
             f.write(code)
 
@@ -299,8 +303,14 @@ class UnixShell(Shell):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command
-        cmd = cmd + [self.executable, self.norc_arg, target_file]
-        p = subprocess.Popen(cmd, env=env, **Popen_args)
+        cmd.extend([self.executable, target_file])
+
+        try:
+            p = subprocess.Popen(cmd, env=env, **Popen_args)
+        except Exception as e:
+            cmd_str = ' '.join(map(pipes.quote, cmd))
+            raise RezSystemError("Error running command:\n%s\n%s"
+                                 % (cmd_str, str(e)))
         return p
 
     def resetenv(self, key, value, friends=None):
@@ -321,9 +331,6 @@ class UnixShell(Shell):
     def comment(self, value):
         for line in value.split('\n'):
             self._addline('# %s' % line)
-
-    def source(self, value):
-        self._addline('source "%s"' % os.path.expanduser(value))
 
     def shebang(self):
         self._addline("#!%s" % self.executable)

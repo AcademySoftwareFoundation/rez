@@ -5,6 +5,7 @@ import os
 import os.path
 from rez.shells import UnixShell
 from rezplugins.shell.sh import SH
+from rez import module_root_path
 
 
 class Bash(SH):
@@ -70,6 +71,11 @@ class Bash(SH):
                 "~/.bashrc"),
             source_bind_files=True
         )
+
+    def _bind_interactive_rez(self):
+        super(Bash, self)._bind_interactive_rez()
+        completion = os.path.join(module_root_path, "completion", "complete.sh")
+        self.source(completion)
 
 
 def register_plugin():
