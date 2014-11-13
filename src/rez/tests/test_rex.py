@@ -1,8 +1,10 @@
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv
+from rez.rex_bindings import VersionBinding
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import rez.vendor.unittest2 as unittest
+from rez.vendor.version.version import Version
 from rez.tests.util import TestBase
 from rez.util import convert_old_commands
 import inspect
@@ -307,6 +309,7 @@ class TestRex(TestBase):
                        'FOO': ",".join(["test1","test2","test3"]),
                        'BAH': " ".join(["B","A","C"])})
 
+
     def test_9(self):
         """Convert old style commands to rex"""
 
@@ -340,6 +343,20 @@ class TestRex(TestBase):
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
 
+    def test_version_binding(self):
+        """Test the Rex binding of the Version class."""
+        v = VersionBinding(Version("1.2.3alpha"))
+        self.assertEqual(v.major, 1)
+        self.assertEqual(v.minor, 2)
+        self.assertEqual(v.patch, "3alpha")
+        self.assertEqual(len(v), 3)
+        self.assertEqual(v[1], 2)
+        self.assertEqual(v[:2], (1, 2))
+        self.assertEqual(str(v), "1.2.3alpha")
+        self.assertEqual(v[5], None)
+        self.assertEqual(v.as_tuple(), (1, 2, "3alpha"))
+
+
 
 def get_test_suites():
     suites = []
@@ -353,6 +370,8 @@ def get_test_suites():
     suite.addTest(TestRex("test_7"))
     suite.addTest(TestRex("test_8"))
     suite.addTest(TestRex("test_9"))
+    suite.addTest(TestRex("test_version_binding"))
+
     suites.append(suite)
     return suites
 

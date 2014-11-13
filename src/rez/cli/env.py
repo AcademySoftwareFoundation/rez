@@ -62,7 +62,8 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-o", "--output", type=str, metavar="FILE",
         help="store the context into an rxt file, instead of starting an "
-        "interactive shell. Note that this will also store a failed resolve")
+        "interactive shell. Note that this will also store a failed resolve. "
+        "If you use the special value '-', the context is written to stdout.")
     parser.add_argument("--dora", action="store_true",
         help="Open graph in dora")
     input_action = parser.add_argument(
@@ -185,7 +186,10 @@ def command(opts, parser, extra_arg_groups=None):
         launch_dora_from_context_file(context_file_name)
 
     if opts.output:
-        context.save(opts.output)
+        if opts.output == '-':  # print to stdout
+            context.write_to_buffer(sys.stdout)
+        else:
+            context.save(opts.output)
         sys.exit(0 if success else 1)
 
     if not success:

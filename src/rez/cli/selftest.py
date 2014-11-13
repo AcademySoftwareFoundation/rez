@@ -37,6 +37,8 @@ def setup_parser(parser, completions=False):
                         help="test launcher")
     parser.add_argument("--unleash", action="store_true",
                         help="test unleash")
+    parser.add_argument("--schema", action="store_true",
+                        help="test schema validation")
 
 
 def get_suites(opts):
@@ -44,8 +46,8 @@ def get_suites(opts):
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
              "release", "context", "resources", "packages", "config",
-             "completion", "suites", "version", "animallogic", "launcher",
-             "unleash"]
+             "completion", "suites", "version", "schema", "animallogic", 
+             "launcher", "unleash"]
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
 

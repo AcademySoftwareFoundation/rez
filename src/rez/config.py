@@ -205,6 +205,7 @@ config_schema = Schema({
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,
+    "prune_failed_graph":               Bool,
     "all_parent_variables":             Bool,
     "all_resetting_variables":          Bool,
     "warn_shell_startup":               Bool,

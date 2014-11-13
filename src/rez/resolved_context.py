@@ -482,27 +482,38 @@ class ResolvedContext(object):
 
     def save(self, path):
         """Save the resolved context to file."""
+        with open(path, 'w') as f:
+            self.write_to_buffer(f)
+
+    def write_to_buffer(self, buf):
+        """Save the context to a buffer."""
         doc = self.to_dict()
         content = dump_yaml(doc)
-        with open(path, 'w') as f:
-            f.write(content)
+        buf.write(content)
 
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
-        try:
-            return cls._load(path)
-        except Exception as e:
-            raise ResolvedContextError("Failed to load context from %r: %s: %s"
-                                       % (path, e.__class__.__name__, str(e)))
+        with open(path) as f:
+            return cls.read_from_buffer(f, path)
 
     @classmethod
-    def _load(cls, path):
-        with open(path) as f:
-            doc = yaml.load(f.read())
+    def read_from_buffer(cls, buf, identifier_str=None):
+        """Load the context from a buffer."""
+        try:
+            return cls._read_from_buffer(buf, identifier_str)
+        except Exception as e:
+            exc_name = e.__class__.__name__
+            msg = "Failed to load context"
+            if identifier_str:
+                msg += " from %s" % identifier_str
+            raise ResolvedContextError("%s: %s: %s" % (msg, exc_name, str(e)))
 
-        r = cls.from_dict(doc, path)
-        r.load_path = os.path.abspath(path)
+    @classmethod
+    def _read_from_buffer(cls, buf, identifier_str=None):
+        content = buf.read()
+        doc = yaml.load(content)
+        r = cls.from_dict(doc, identifier_str)
         return r
 
     def get_resolve_diff(self, other):
@@ -794,6 +805,7 @@ class ResolvedContext(object):
         The dependency graph is a simpler subset of the resolve graph. It
         contains package name nodes connected directly to their dependencies.
         Weak references and conflict requests are not included in the graph.
+        The dependency graph does not show conflicts.
 
         Returns:
             `pygraph.digraph` object.
