@@ -96,6 +96,8 @@ class Shell(ActionInterpreter):
                 occurs, but stdin is also passed to the resulting subprocess.Popen
                 object.
             command: If not None, execute this command in a non-interactive shell.
+                If an empty string, don't run a command, but don't open an
+                interactive shell either.
             env: Environ dict to execute the shell within; uses the current
                 environment if None.
             quiet: If True, don't show the configuration summary, and suppress
@@ -226,7 +228,7 @@ class UnixShell(Shell):
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 
-        if d["command"]:
+        if d["command"] is not None:
             _record_shell(executor, files=files)
             shell_command = d["command"]
         else:
@@ -287,7 +289,8 @@ class UnixShell(Shell):
                             "in the parent process instead." % self.name())
                     executor.source(context_file)
 
-        executor.command(shell_command)
+        if shell_command:  # an empty string means 'run no command and exit'
+            executor.command(shell_command)
         executor.command("exit %s" % self.last_command_status)
 
         code = executor.get_output()
