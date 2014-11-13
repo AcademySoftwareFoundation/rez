@@ -66,7 +66,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     o = ex.get_output()
     if isinstance(o, dict):
-        if opts.table:
+        if opts.format == "table":
             print pretty_env_dict(o)
         else:
             print pformat(o)

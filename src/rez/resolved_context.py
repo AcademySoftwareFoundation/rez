@@ -999,6 +999,11 @@ class ResolvedContext(object):
         shell-specific commands such as aliases will not be applied. To execute
         a command within a subshell instead, use execute_shell().
 
+        Warning:
+            This runs a command in a configured environ dict only, not in a true
+            shell. To do that, call `execute_shell` using the `command` keyword
+            argument.
+
         Args:
             args: Command arguments, can be a string.
             parent_environ: Environment to interpret the context within,
@@ -1017,6 +1022,36 @@ class ResolvedContext(object):
         return interpreter.subprocess(args, **subprocess_kwargs)
 
     @_on_success
+    def execute_rex_code(self, code, filename=None, shell=None,
+                         parent_environ=None, **Popen_args):
+        """Run some rex code in the context.
+
+        Note:
+            This is just a convenience form of `execute_shell`.
+
+        Args:
+            code (str): Rex code to execute.
+            filename (str): Filename to report if there are syntax errors.
+            shell: Shell type, for eg 'bash'. If None, the current shell type
+                is used.
+            parent_environ: Environment to run the shell process in, if None
+                then the current environment is used.
+            Popen_args: args to pass to the shell process object constructor.
+
+        Returns:
+            `subprocess.Popen` object for the shell process.
+        """
+        def _actions_callback(executor):
+            executor.execute_code(code, filename=filename)
+
+        return self.execute_shell(shell=shell,
+                                  parent_environ=parent_environ,
+                                  command='',  # don't run any command
+                                  block=False,
+                                  actions_callback=_actions_callback,
+                                  **Popen_args)
+
+    @_on_success
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
@@ -1033,8 +1068,9 @@ class ResolvedContext(object):
             norc: If True, skip shell startup files, if possible.
             stdin: If True, read commands from stdin, in a non-interactive
                 shell.
-            command: If not None, execute this command in a non-interactive
-                shell. Can be a list of args.
+            command: If not None, execute this command in a non-interactive shell.
+                If an empty string or list, don't run a command, but don't open
+                an interactive shell either. Can be a list of args.
             quiet: If True, skip the welcome message in interactive shells.
             block: If True, block until the shell is terminated. If False,
                 return immediately. If None, will default to blocking if the

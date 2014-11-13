@@ -48,7 +48,7 @@ class CSH(UnixShell):
                              command=False):
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
-        if command:
+        if command is not None:
             cls._overruled_option('stdin', 'command', stdin)
             stdin = False
         return (rcfile, norc, stdin, command)
@@ -97,7 +97,7 @@ class CSH(UnixShell):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
     def setenv(self, key, value):
-        self._addline('setenv %s "%s"' % (key, value))
+        self._addline('setenv %s %s' % (key, value))
 
     def unsetenv(self, key):
         self._addline("unsetenv %s" % key)
@@ -106,7 +106,8 @@ class CSH(UnixShell):
         self._addline("alias %s '%s';" % (key, value))
 
     def source(self, value):
-        self._addline('source "%s"' % os.path.expanduser(value))
+        value = os.path.expanduser(value)
+        self._addline('source %s' % value)
 
 
 def register_plugin():

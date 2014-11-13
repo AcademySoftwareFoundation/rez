@@ -49,7 +49,7 @@ class SH(UnixShell):
                              command=False):
         cls._unsupported_option('rcfile', rcfile)
         rcfile = False
-        if command:
+        if command is not None:
             cls._overruled_option('stdin', 'command', stdin)
             stdin = False
         return (rcfile, norc, stdin, command)
@@ -62,7 +62,7 @@ class SH(UnixShell):
         envvar = None
         files = []
 
-        if not (command or stdin):
+        if not ((command is not None) or stdin):
             if not norc:
                 for file in ("~/.profile",):
                     if os.path.exists(os.path.expanduser(file)):
@@ -95,7 +95,7 @@ class SH(UnixShell):
             self._addline('export PS1="%s"' % new_prompt)
 
     def setenv(self, key, value):
-        self._addline('export %s="%s"' % (key, value))
+        self._addline('export %s=%s' % (key, value))
 
     def unsetenv(self, key):
         self._addline("unset %s" % key)
@@ -105,7 +105,8 @@ class SH(UnixShell):
         self._addline(cmd.format(key=key, value=value))
 
     def source(self, value):
-        self._addline('. "%s"' % os.path.expanduser(value))
+        value = os.path.expanduser(value)
+        self._addline('. %s' % value)
 
     def _saferefenv(self, key):
         pass

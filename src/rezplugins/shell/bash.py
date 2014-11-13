@@ -23,7 +23,7 @@ class Bash(SH):
         if norc:
             cls._overruled_option('rcfile', 'norc', rcfile)
             rcfile = False
-        if command:
+        if command is not None:
             cls._overruled_option('stdin', 'command', stdin)
             cls._overruled_option('rcfile', 'command', rcfile)
             stdin = False
@@ -42,7 +42,7 @@ class Bash(SH):
         envvar = None
         do_rcfile = False
 
-        if command or stdin:
+        if (command is not None) or stdin:
             envvar = 'BASH_ENV'
             path = os.getenv(envvar)
             if path and os.path.isfile(os.path.expanduser(path)):

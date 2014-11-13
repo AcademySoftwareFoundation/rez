@@ -1,10 +1,12 @@
 import os
 import subprocess
 import sys
-from string import Formatter
+import pipes
 import re
 import UserDict
 import inspect
+from string import Formatter
+from functools import partial
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
@@ -218,17 +220,38 @@ class ActionManager(object):
             return bool(self.verbose)
 
     def _format(self, value):
-        """Format a string value."""
         # note that the default formatter is just str()
+        def _fn(value_):
+            return _escaped_string(value_).formatted(self.formatter)
+
         if hasattr(value, '__iter__'):
-            return type(value)(self.formatter(v) for v in value)
+            return type(value)(map(_fn, value))
         else:
-            return self.formatter(value)
+            return _fn(value)
 
     def _expand(self, value):
-        value = expandvars(value, self.environ)
-        value = expandvars(value, self.parent_environ)
-        return os.path.expanduser(value)
+        def _fn(str_):
+            str_ = expandvars(str_, self.environ)
+            str_ = expandvars(str_, self.parent_environ)
+            return os.path.expanduser(str_)
+
+        return _escaped_string(value).formatted(_fn)
+
+    def _escape(self, value):
+        return value.escaped(self.interpreter)
+
+    def _key(self, key):
+        # returns (unexpanded, expanded) forms of key
+        unexpanded_key = str(self._format(key))
+        expanded_key = str(self._expand(unexpanded_key))
+        return unexpanded_key, expanded_key
+
+    def _value(self, value):
+        # returns (unexpanded, expanded) forms of value
+        unexpanded_value = self._format(value)
+        expanded_value = self._escape(self._expand(unexpanded_value))
+        unexpanded_value = self._escape(unexpanded_value)
+        return unexpanded_value, expanded_value
 
     def get_output(self):
         return self.interpreter.get_output(self)
@@ -236,8 +259,7 @@ class ActionManager(object):
     # -- Commands
 
     def undefined(self, key):
-        unexpanded_key = self._format(key)
-        expanded_key = self._expand(unexpanded_key)
+        _, expanded_key = self._key(key)
         return (expanded_key not in self.environ
                 and expanded_key not in self.parent_environ)
 
@@ -245,8 +267,7 @@ class ActionManager(object):
         return not self.undefined(key)
 
     def getenv(self, key):
-        unexpanded_key = self._format(key)
-        expanded_key = self._expand(unexpanded_key)
+        _, expanded_key = self._key(key)
         try:
             return self.environ[expanded_key] if expanded_key in self.environ \
                 else self.parent_environ[expanded_key]
@@ -255,10 +276,8 @@ class ActionManager(object):
                 "Referenced undefined environment variable: %s" % expanded_key)
 
     def setenv(self, key, value):
-        unexpanded_key = self._format(key)
-        unexpanded_value = self._format(value)
-        expanded_key = self._expand(unexpanded_key)
-        expanded_value = self._expand(unexpanded_value)
+        unexpanded_key, expanded_key = self._key(key)
+        unexpanded_value, expanded_value = self._value(value)
 
         # TODO: check if value has already been set by another package
         self.actions.append(Setenv(unexpanded_key, unexpanded_value))
@@ -271,9 +290,9 @@ class ActionManager(object):
         self.interpreter.setenv(key, value)
 
     def unsetenv(self, key):
-        unexpanded_key = self._format(key)
-        expanded_key = self._expand(unexpanded_key)
+        unexpanded_key, expanded_key = self._key(key)
         self.actions.append(Unsetenv(unexpanded_key))
+
         if expanded_key in self.environ:
             del self.environ[expanded_key]
         if self.interpreter.expand_env_vars:
@@ -283,13 +302,11 @@ class ActionManager(object):
         self.interpreter.unsetenv(key)
 
     def resetenv(self, key, value, friends=None):
-        unexpanded_key = self._format(key)
-        unexpanded_value = self._format(value)
-        expanded_key = self._expand(unexpanded_key)
-        expanded_value = self._expand(unexpanded_value)
+        unexpanded_key, expanded_key = self._key(key)
+        unexpanded_value, expanded_value = self._value(value)
 
-        self.actions.append(Resetenv(unexpanded_key, unexpanded_value,
-                                     friends))
+        action = Resetenv(unexpanded_key, unexpanded_value, friends)
+        self.actions.append(action)
         self.environ[expanded_key] = expanded_value
 
         if self.interpreter.expand_env_vars:
@@ -304,10 +321,8 @@ class ActionManager(object):
         return "${%s}" % key
 
     def _pendenv(self, key, value, action, interpfunc, addfunc):
-        unexpanded_key = self._format(key)
-        unexpanded_value = self._format(value)
-        expanded_key = self._expand(unexpanded_key)
-        expanded_value = self._expand(unexpanded_value)
+        unexpanded_key, expanded_key = self._key(key)
+        unexpanded_value, expanded_value = self._value(value)
 
         # expose env-vars from parent env if explicitly told to do so
         if (expanded_key not in self.environ) and \
@@ -362,33 +377,33 @@ class ActionManager(object):
                       lambda x, y: y + [x])
 
     def alias(self, key, value):
-        key = self._format(key)
-        value = self._format(value)
+        key = str(self._format(key))
+        value = str(self._format(value))
         self.actions.append(Alias(key, value))
         self.interpreter.alias(key, value)
 
     def info(self, value=''):
-        value = self._format(value)
+        value = str(self._format(value))
         self.actions.append(Info(value))
         self.interpreter.info(value)
 
     def error(self, value):
-        value = self._format(value)
+        value = str(self._format(value))
         self.actions.append(Error(value))
         self.interpreter.error(value)
 
     def command(self, value):
-        value = self._format(value)
+        value = str(self._format(value))
         self.actions.append(Command(value))
         self.interpreter.command(value)
 
     def comment(self, value):
-        value = self._format(value)
+        value = str(self._format(value))
         self.actions.append(Comment(value))
         self.interpreter.comment(value)
 
     def source(self, value):
-        value = self._format(value)
+        value = str(self._format(value))
         self.actions.append(Source(value))
         self.interpreter.source(value)
 
@@ -472,6 +487,16 @@ class ActionInterpreter(object):
 
     # --- internal commands, not exposed to public rex API
 
+    def _saferefenv(self, key):
+        '''
+        make the var safe to reference, even if it does not yet exist. This is
+        needed because of different behaviours in shells - eg, tcsh will fail
+        on ref to undefined var, but sh will expand to the empty string.
+        '''
+        raise NotImplementedError
+
+    # --- internal functions
+
     def _bind_interactive_rez(self):
         '''
         apply changes to the env needed to expose rez in an interactive shell,
@@ -480,13 +505,19 @@ class ActionInterpreter(object):
         '''
         raise NotImplementedError
 
-    def _saferefenv(self, key):
-        '''
-        make the var safe to reference, even if it does not yet exist. This is
-        needed because of different behaviours in shells - eg, tcsh will fail
-        on ref to undefined var, but sh will expand to the empty string.
-        '''
-        raise NotImplementedError
+    def _escape_string(self, value):
+        """Return a string escaped for expansion, usually within double quotes.
+        """
+        value = value.replace('"', '\\"')
+        return '"%s"' % value
+
+    def _escape_literal_string(self, value):
+        """Return a string escaped as a literal, usually within single quotes.
+        """
+        value = pipes.quote(value)
+        if not value.startswith("'"):
+            value = "'%s'" % value
+        return value
 
 
 class Python(ActionInterpreter):
@@ -586,6 +617,110 @@ class Python(ActionInterpreter):
 
     def shebang(self):
         pass
+
+
+#===============================================================================
+# String manipulation
+#===============================================================================
+
+class EscapedString(object):
+    """Class for constructing literal or expandable strings, or a combination
+    of both.
+
+    This determines how a string is escaped in an interpreter. For example,
+    the following rex commands may result in the bash code shown:
+
+        >>> env.FOO = literal('oh "noes"')
+        >>> env.BAH = expandable('oh "noes"')
+        export FOO='oh "noes"'
+        export BAH="oh \"noes\""
+
+    You do not need to use `expandable` - a string by default is interpreted as
+    expandable. However you can mix literals and expandables together, like so:
+
+        >>> env.FOO = literal("hello").expandable(" ${DUDE}")
+        export FOO='hello'" ${DUDE}"
+
+    Shorthand methods `e` and `l` are also supplied, for better readability:
+
+        >>> env.FOO = literal("hello").e(" ${DUDE}").l(", and welcome!")
+        export FOO='hello'" ${DUDE}"', and welcome!'
+
+    Note:
+        Don't create an instance of this class directly, instead use the
+        `literal` and `expandable` free functions.
+    """
+    def __init__(self, value, is_literal=False):
+        self.strings = [(is_literal, value)]
+
+    def literal(self, value):
+        self.strings.append((True, value))
+        return self
+
+    def expandable(self, value):
+        self.strings.append((False, value))
+        return self
+
+    def l(self, value):
+        return self.literal(value)
+
+    def e(self, value):
+        return self.expandable(value)
+
+    def __str__(self):
+        """Return the string unescaped."""
+        return ''.join(x[1] for x in self.strings)
+
+    def escaped(self, interpreter):
+        """Return the string escaped by an interpreter.
+
+        Returns:
+            str: Escaped string.
+        """
+        strs = []
+        for is_literal, value in self.strings:
+            if is_literal:
+                str_ = interpreter._escape_literal_string(value)
+            else:
+                str_ = interpreter._escape_string(value)
+            strs.append(str_)
+        return ''.join(strs)
+
+    def formatted(self, func):
+        """Return the string with non-literal parts formatted.
+
+        Args:
+            func (callable): Callable that translates a string into a
+                formatted string.
+
+        Returns:
+            `EscapedString` object.
+        """
+        other = EscapedString.__new__(EscapedString)
+        other.strings = []
+
+        for is_literal, value in self.strings:
+            if not is_literal:
+                value = func(value)
+            other.strings.append((is_literal, value))
+        return other
+
+
+def literal(value):
+    """Creates a literal string."""
+    return EscapedString(value, True)
+
+
+def expandable(value):
+    """Creates an expandable string."""
+    return EscapedString(value, False)
+
+
+def _escaped_string(value):
+    if isinstance(value, EscapedString):
+        return value
+    else:
+        return EscapedString(value)
 
 
 #===============================================================================
@@ -761,7 +896,10 @@ class RexExecutor(object):
         """
         self.globals = globals_map or {}
         self.formatter = NamespaceFormatter(self.globals)
+
         self.bind('format', self.expand)
+        self.bind('literal', literal)
+        self.bind('expandable', expandable)
 
         if interpreter is None:
             interpreter = Python(target_environ={})
@@ -870,7 +1008,12 @@ class RexExecutor(object):
         return pyc
 
     def execute_code(self, code, filename=None):
-        """Execute code within the execution context."""
+        """Execute code within the execution context.
+
+        Args:
+            code (str): Rex code to execute.
+            filename (str): Filename to report if there are syntax errors.
+        """
         self.compile_code(code=code,
                           filename=filename,
                           exec_namespace=self.globals)

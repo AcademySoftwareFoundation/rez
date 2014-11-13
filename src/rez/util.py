@@ -633,13 +633,13 @@ def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     from rez.config import config
 
-    def _en(s):
+    def _encode(s):
         return s.encode("string-escape")
 
     loc = []
     for cmd in commands:
         if annotate:
-            loc.append("comment('OLD COMMAND: %s')" % _en(cmd))
+            loc.append("comment('OLD COMMAND: %s')" % _encode(cmd))
 
         cmd = convert_old_command_expansions(cmd)
         toks = cmd.strip().split()
@@ -677,13 +677,13 @@ def convert_old_commands(commands, annotate=True):
                     parts = parts[1:] if idx == 0 else parts[:-1]
                     val = separator.join(parts)
                     val = convert_old_environment_variable_references(val)
-                    loc.append("%s('%s', '%s')" % (func, var, _en(val)))
+                    loc.append("%s('%s', '%s')" % (func, var, _encode(val)))
                     continue
 
             value = convert_old_environment_variable_references(value)
-            loc.append("setenv('%s', '%s')" % (var, _en(value)))
+            loc.append("setenv('%s', '%s')" % (var, _encode(value)))
         elif toks[0].startswith('#'):
-            loc.append("comment('%s')" % _en(' '.join(toks[1:])))
+            loc.append("comment('%s')" % _encode(' '.join(toks[1:])))
         elif toks[0] == "alias":
             match = re.search("alias (?P<key>.*?)=(?P<value>.*)", cmd)
             key = match.groupdict()['key'].strip()
@@ -691,10 +691,10 @@ def convert_old_commands(commands, annotate=True):
             if (value.startswith('"') and value.endswith('"')) or \
                     (value.startswith("'") and value.endswith("'")):
                 value = value[1:-1]
-            loc.append("alias('%s', '%s')" % (key, _en(value)))
+            loc.append("alias('%s', '%s')" % (key, _encode(value)))
         else:
             # assume we can execute this as a straight command
-            loc.append("command('%s')" % _en(cmd))
+            loc.append("command('%s')" % _encode(cmd))
 
     rex_code = '\n'.join(loc)
     if config.debug("old_commands"):
@@ -1582,9 +1582,9 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
 @atexit.register
 def _atexit():
     # remove temp dirs
-    if rm_tmdirs:
-        for path in _tmpdirs:
-            rmdtemp(path)
+    #if rm_tmdirs:
+    #    for path in _tmpdirs:
+    #        rmdtemp(path)
 
     # print timings
     try:

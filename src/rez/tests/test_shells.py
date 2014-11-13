@@ -6,6 +6,7 @@ their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
+from rez.rex import RexExecutor
 import rez.vendor.unittest2 as unittest
 from rez.vendor.sh import sh
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
@@ -14,6 +15,8 @@ from rez.util import which
 from rez.bind import hello_world
 import subprocess
 import tempfile
+import inspect
+import textwrap
 import os
 import sys
 
@@ -142,7 +145,6 @@ class TestShells(TestBase, TempdirMixin):
 
         cmd = sh.Command(os.path.join(system.rez_bin_path, "rez-env"))
         sh_out = cmd(["--", "echo", "hey"])
-        #sh_out = sh.rez_env(["--", "echo", "hey"])
         out = str(sh_out).strip()
         self.assertEqual(out, "hey")
 
@@ -162,6 +164,31 @@ class TestShells(TestBase, TempdirMixin):
             p.wait()
             self.assertEqual(p.returncode, 0)
 
+    @shell_dependent
+    def test_rex_code(self):
+        """Test that Rex code run in the shell creates the environment variable
+        values that we expect."""
+        def _execute_code(func, expected_output):
+            loc = inspect.getsourcelines(func)[0][1:]
+            code = textwrap.dedent('\n'.join(loc))
+            r = self._create_context([])
+            p = r.execute_rex_code(code, stdout=subprocess.PIPE)
+
+            out, _ = p.communicate()
+            self.assertEqual(p.returncode, 0)
+            output = out.strip().split('\n')
+            self.assertEqual(output, expected_output)
+
+        def _rex_code():
+            env.FOO = "hello"
+            info(env.FOO)
+
+        expected_output = [
+            "hello"
+        ]
+
+        _execute_code(_rex_code, expected_output)
+
 
 def get_test_suites():
     suites = []
@@ -174,6 +201,7 @@ def get_test_suites():
     suite.addTest(TestShells("test_rcfile"))
     suite.addTest(TestShells("test_rez_env_output"))
     suite.addTest(TestShells("test_rez_command"))
+    suite.addTest(TestShells("test_rex_code"))
     suites.append(suite)
     return suites
 
