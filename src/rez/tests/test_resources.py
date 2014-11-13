@@ -3,7 +3,8 @@ from rez.resources import iter_resources, iter_descendant_resources, \
 from rez.package_resources import PackagesRoot, PackageFamilyFolder, \
     PackageVersionFolder, VersionlessPackageResource, \
     VersionedPackageResource, CombinedPackageFamilyResource, \
-    CombinedPackageResource, DeveloperPackagesRoot, DeveloperPackageResource
+    CombinedPackageResource, DeveloperPackagesRoot, DeveloperPackageResource, \
+    VersionlessVariantResource, register_resource
 from rez.exceptions import PackageMetadataError
 from rez.config import config
 from rez.vendor.version.version import Version
@@ -13,6 +14,10 @@ from rez.tests.util import TestBase
 import rez.vendor.unittest2 as unittest
 import os.path
 
+register_resource(VersionlessPackageResource)
+register_resource(VersionlessVariantResource)
+register_resource(CombinedPackageFamilyResource)
+register_resource(CombinedPackageResource)
 
 here = os.path.abspath(os.path.dirname(__file__))
 data_root = os.path.join(here, "data", "resources")

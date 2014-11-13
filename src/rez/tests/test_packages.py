@@ -1,9 +1,16 @@
 from rez.packages import iter_package_families, iter_packages
+from rez.package_resources import VersionlessPackageResource, \
+    VersionlessVariantResource, register_resource, \
+    CombinedPackageFamilyResource, CombinedPackageResource
 from rez.tests.util import TestBase
 from rez.vendor.version.version import VersionRange
 import rez.vendor.unittest2 as unittest
 import os.path
 
+register_resource(VersionlessPackageResource)
+register_resource(VersionlessVariantResource)
+register_resource(CombinedPackageFamilyResource)
+register_resource(CombinedPackageResource)
 
 ALL_PACKAGES = set([
     # solver packages
