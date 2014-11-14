@@ -634,6 +634,7 @@ def convert_old_commands(commands, annotate=True):
     from rez.config import config
 
     def _encode(s):
+        s = s.replace('\\"', '"')
         return s.encode("string-escape")
 
     loc = []

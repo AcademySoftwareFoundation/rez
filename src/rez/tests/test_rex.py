@@ -336,6 +336,11 @@ class TestRex(TestBase):
         rez_commands = convert_old_commands(["export A=B:$C"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
+        expected = "setenv('A', 'hey \"there\"')"
+        rez_commands = convert_old_commands(['export A="hey \\"there\\""'],
+                                            annotate=False)
+        self.assertEqual(rez_commands, expected)
+
         expected = "appendenv('A', 'B')"
         rez_commands = convert_old_commands(["export A=$A:B"], annotate=False)
         self.assertEqual(rez_commands, expected)
