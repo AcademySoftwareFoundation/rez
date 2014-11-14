@@ -184,12 +184,61 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(output, expected_output)
 
         def _rex_code():
-            env.FOO = "hello"
-            info(env.FOO)
+            def _print(value):
+                env.FOO = value
+                info("${FOO}")
+
+            env.GREET = "hi"
+            env.WHO = "Gary"
+
+            _print("ello")
+            _print(literal("ello"))
+            _print(expandable("ello"))
+            _print("\\")
+            _print("\\'")
+            _print("\\\"")
+            _print(literal("\\"))
+            _print(literal("\\'"))
+            _print(literal("\\\""))
+            _print("\\path1\\path2\\path3")
+            _print(literal("\\path1").e("\\path2\\path3"))
+            _print("hello world")
+            _print("hello 'world'")
+            _print('hello "world"')
+            _print(literal("hello world"))
+            _print(literal("hello 'world'"))
+            _print(literal('hello "world"'))
+            _print("hey $WHO")
+            _print("hey ${WHO}")
+            _print(expandable("${GREET} ").e("$WHO"))
+            _print(expandable("${GREET} ").l("$WHO"))
+            _print(literal("${WHO}"))
+            _print(literal("${WHO}").e(" $WHO"))
 
         expected_output = [
-            "hello"
-        ]
+            "ello",
+            "ello",
+            "ello",
+            "\\",
+            "\\'",
+            "\\\"",
+            "\\",
+            "\\'",
+            "\\\"",
+            "\\path1\\path2\\path3",
+            "\\path1\\path2\\path3",
+            "hello world",
+            "hello 'world'",
+            'hello "world"',
+            "hello world",
+            "hello 'world'",
+            'hello "world"',
+            "hey Gary",
+            "hey Gary",
+            "hi Gary",
+            "hi $WHO",
+            "${WHO}",
+            "${WHO} Gary"]
 
         _execute_code(_rex_code, expected_output)
 

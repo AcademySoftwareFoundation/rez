@@ -119,7 +119,6 @@ class UnixShell(Shell):
     executable = None
     rcfile_arg = None
     norc_arg = None
-    debug_arg = None
     histfile = None
     histvar = None
     command_arg = '-c'
@@ -322,11 +321,11 @@ class UnixShell(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
-            self._addline('echo "%s"' % line)
+            self._addline('echo %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
-            self._addline('echo "%s" 1>&2' % line)
+            self._addline('echo %s 1>&2' % line)
 
     def command(self, value):
         value = shlex_join(value)

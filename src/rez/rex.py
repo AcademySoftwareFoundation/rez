@@ -253,8 +253,7 @@ class ActionManager(object):
     def _value(self, value):
         # returns (unexpanded, expanded) forms of value
         unexpanded_value = self._format(value)
-        expanded_value = self._escape(self._expand(unexpanded_value))
-        unexpanded_value = self._escape(unexpanded_value)
+        expanded_value = self._expand(unexpanded_value)
         return unexpanded_value, expanded_value
 
     def get_output(self):
@@ -284,13 +283,13 @@ class ActionManager(object):
         unexpanded_value, expanded_value = self._value(value)
 
         # TODO: check if value has already been set by another package
-        self.actions.append(Setenv(unexpanded_key, unexpanded_value))
-        self.environ[expanded_key] = expanded_value
+        self.actions.append(Setenv(unexpanded_key, str(unexpanded_value)))
+        self.environ[expanded_key] = str(expanded_value)
 
         if self.interpreter.expand_env_vars:
-            key, value = expanded_key, expanded_value
+            key, value = expanded_key, self._escape(expanded_value)
         else:
-            key, value = unexpanded_key, unexpanded_value
+            key, value = unexpanded_key, self._escape(unexpanded_value)
         self.interpreter.setenv(key, value)
 
     def unsetenv(self, key):
@@ -309,14 +308,14 @@ class ActionManager(object):
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
 
-        action = Resetenv(unexpanded_key, unexpanded_value, friends)
+        action = Resetenv(unexpanded_key, str(unexpanded_value), friends)
         self.actions.append(action)
-        self.environ[expanded_key] = expanded_value
+        self.environ[expanded_key] = str(expanded_value)
 
         if self.interpreter.expand_env_vars:
-            key, value = expanded_key, expanded_value
+            key, value = expanded_key, self._escape(expanded_value)
         else:
-            key, value = unexpanded_key, unexpanded_value
+            key, value = unexpanded_key, self._escape(unexpanded_value)
         self.interpreter.resetenv(key, value)
 
     # we assume that ${THIS} is a valid variable ref in all shells
@@ -340,25 +339,32 @@ class ActionManager(object):
 
         # *pend or setenv depending on whether this is first reference to the var
         if expanded_key in self.environ:
-            self.actions.append(action(unexpanded_key, unexpanded_value))
-            parts = self.environ[expanded_key].split(self._env_sep(expanded_key))
-            unexpanded_values = self._env_sep(expanded_key).join( \
-                addfunc(unexpanded_value, [self._keytoken(expanded_key)]))
-            expanded_values = self._env_sep(expanded_key).join(addfunc(expanded_value, parts))
-            self.environ[expanded_key] = expanded_values
+            env_sep = self._env_sep(expanded_key)
+            self.actions.append(action(unexpanded_key, str(unexpanded_value)))
+            parts = self.environ[expanded_key].split(env_sep)
+
+            unexpanded_values = env_sep.join( \
+                addfunc(self._escape(unexpanded_value),
+                        [self._keytoken(expanded_key)]))
+
+            expanded_values = env_sep.join( \
+                addfunc(self._escape(expanded_value), parts))
+
+            self.environ[expanded_key] = \
+                env_sep.join(addfunc(str(expanded_value), parts))
         else:
-            self.actions.append(Setenv(unexpanded_key, unexpanded_value))
-            self.environ[expanded_key] = expanded_value
-            expanded_values = expanded_value
-            unexpanded_values = unexpanded_value
+            self.actions.append(Setenv(unexpanded_key, str(unexpanded_value)))
+            self.environ[expanded_key] = str(expanded_value)
+            unexpanded_values = self._expand(unexpanded_value)
+            expanded_values = self._expand(expanded_value)
             interpfunc = None
 
         applied = False
         if interpfunc:
             if self.interpreter.expand_env_vars:
-                key, value = expanded_key, expanded_value
+                key, value = expanded_key, self._escape(expanded_value)
             else:
-                key, value = unexpanded_key, unexpanded_value
+                key, value = unexpanded_key, self._escape(unexpanded_value)
             try:
                 interpfunc(key, value)
                 applied = True
@@ -387,14 +393,14 @@ class ActionManager(object):
         self.interpreter.alias(key, value)
 
     def info(self, value=''):
-        value = str(self._format(value))
-        self.actions.append(Info(value))
-        self.interpreter.info(value)
+        value = self._format(value)
+        self.actions.append(Info(str(value)))
+        self.interpreter.info(self._escape(value))
 
     def error(self, value):
-        value = str(self._format(value))
-        self.actions.append(Error(value))
-        self.interpreter.error(value)
+        value = self._format(value)
+        self.actions.append(Error(str(value)))
+        self.interpreter.error(self._escape(value))
 
     def command(self, value):
         # Note: Value is deliberately not formatted in commands
@@ -512,6 +518,7 @@ class ActionInterpreter(object):
     def _escape_string(self, value):
         """Return a string escaped for expansion, usually within double quotes.
         """
+        value = value.replace('\\', '\\\\')
         value = value.replace('"', '\\"')
         return '"%s"' % value
 
