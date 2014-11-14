@@ -85,13 +85,17 @@ class CSH(UnixShell):
             stored_prompt = os.getenv("$REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("$prompt", "[%m %c]%# ")
             if not stored_prompt:
-                self.setenv("REZ_STORED_PROMPT", curr_prompt)
+                self.setenv("REZ_STORED_PROMPT", '"%s"' % curr_prompt)
 
             new_prompt = "$REZ_ENV_PROMPT"
             new_prompt = (new_prompt + " %s") if config.prefix_prompt \
                 else ("%s " + new_prompt)
             new_prompt = new_prompt % curr_prompt
             self._addline('set prompt="%s"' % new_prompt)
+
+    def _escape_string(self, value):
+        value = value.replace('"', '"\\""')
+        return '"%s"' % value
 
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
