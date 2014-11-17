@@ -85,6 +85,7 @@ def memcached():
                     if value is None:
                         value = function(path, is_file=is_file)
                         memcache.set(key, value)
+                    memcache.disconnect()
                     return value
             else:
                 return function(path, is_file=is_file)
@@ -92,14 +93,14 @@ def memcached():
     return decorator
 
 
-@memcached()
+#@memcached()
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _findpath(path, is_file=None):
     is_test = os.path.isfile if is_file else os.path.isdir
     return is_test(path)
 
 
-@memcached()
+#@memcached()
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []
@@ -787,6 +788,8 @@ class FileResource(FileSystemResource):
             if cacheable:
                 memcache.set(key, data)
 
+        memcache.disconnect()
+
         try:
             if self.schema:
                 k = "resources.validate.%s" % self.__class__.__name__
@@ -974,8 +977,6 @@ def _iter_resources(parent_resource, child_resource_classes=None,
                                                    variables,
                                                    _depth + 1):
                     yield grand_child
-
-    memcache.disconnect()
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
