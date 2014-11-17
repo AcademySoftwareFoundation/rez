@@ -240,6 +240,7 @@ config_schema = Schema({
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
     "memcache_enabled":                 Bool,
+    "memcache_debug":                   Bool,
     "env_var_separators":               Dict,
 
     # GUI settings
