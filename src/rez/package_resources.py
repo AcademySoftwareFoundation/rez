@@ -1,7 +1,7 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
     Required, metadata_loaders, iter_descendant_resources, _listdir, \
-    _ResourcePathParser
+    _ResourcePathParser, _findpath
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceNotFoundError, \
     PackageMetadataError
@@ -386,7 +386,7 @@ class VersionedPackageResource(BasePackageResource):
     def _iter_instances(cls, parent_resource):
         for ext in ['py', 'yaml', 'txt']:
             filepath = os.path.join(parent_resource.path, "package." + ext)
-            if os.path.isfile(filepath):
+            if _findpath(filepath, is_file=cls.is_file):
                 variables = {"ext": ext}
                 variables.update(parent_resource.variables)
                 yield cls(filepath, variables)
