@@ -38,9 +38,10 @@ def setup_parser(parser):
 
     parser.add_argument("--source", required=True, 
                         help="the source preset/toolset to bake.")
-    parser.add_argument("--destination", required=True, 
-                        help="the destination preset in which to store the result.")
-    parser.add_argument("--description", 
+    parser.add_argument("--destination",
+                        help="the destination preset in which to store the result. "
+                             "If not provided the settings are printed to stdout.")
+    parser.add_argument("--description",
                         help="a description for the new preset that is created.")
     parser.add_argument("--skip-resolve", default=False, action='store_true',
                         help="do not resolve packages found in the source setting."
@@ -115,9 +116,27 @@ def bake(source, destination, description, overrides, skip_resolve,
         logger.info("Resolved settings:")
         display_settings(baker.settings)
 
-    logger.info("Creating new preset %s from settings." % destination)
-    baker.create_new_preset_from_settings(destination, description=description)
+    if destination:
+        logger.info("Creating new preset %s from settings." % destination)
+        baker.create_new_preset_from_settings(destination, description=description)
+    else:
+        print_settings(baker.settings)
 
+
+def print_settings(settings):
+    packages = []
+    for setting in settings:
+        separator = ''
+        if setting.setting_type == SettingType.package:
+            if not setting.value.startswith('=='):
+                separator = '-'
+            packages.append(setting.name + separator + str(setting.value))
+            continue
+        else:
+            separator = '='
+            print setting.name + separator + "'" + str(setting.value) + "'"
+
+    print "REZ_PACKAGES='%s'" % ' '.join(packages)
 
 def display_settings(settings):
 
