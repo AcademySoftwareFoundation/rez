@@ -26,6 +26,7 @@ import re
 import fnmatch
 from collections import defaultdict
 from rez.config import config
+from rez.contrib.animallogic import memcache
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
 from rez.exceptions import ResourceError, ResourceNotFoundError
@@ -71,6 +72,34 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # File Loading
 # -----------------------------------------------------------------------------
 
+def memcached():
+    def decorator(function):
+        def wrapper(*args, **kwargs):
+            path = args[0]
+            is_file = kwargs['is_file']
+            key = '%s(%s,%s)' % (function.__name__, path, is_file)
+
+            for search_path in config.memcache_search_paths:
+                if path.startswith(search_path):
+                    value = memcache.get(key)
+                    if value is None:
+                        value = function(path, is_file=is_file)
+                        memcache.set(key, value)
+                    return value
+            else:
+                return function(path, is_file=is_file)
+        return wrapper
+    return decorator
+
+
+@memcached()
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
+def _findpath(path, is_file=None):
+    is_test = os.path.isfile if is_file else os.path.isdir
+    return is_test(path)
+
+
+@memcached()
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []
@@ -251,6 +280,7 @@ def register_resource(resource_class):
 def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
+    _findpath.cache_clear()
     Resource._cached.cache_clear()
     Resource.ancestors.cache_clear()
     _ResourcePathParser._get_regex.cache_clear()
@@ -697,7 +727,7 @@ class FileSystemResource(Resource):
 
     @classmethod
     def _iter_instances(cls, parent_resource):
-        for name in _listdir(parent_resource.path, cls.is_file):
+        for name in _listdir(parent_resource.path, is_file=cls.is_file):
             match = _ResourcePathParser.parse_filepart(cls, name)
             if match is not None:
                 variables = match[1]
@@ -708,8 +738,7 @@ class FileSystemResource(Resource):
     @classmethod
     def _iter_instance(cls, parent_resource):
         filepath = os.path.join(parent_resource.path, cls.path_pattern)
-        is_test = os.path.isfile if cls.is_file else os.path.isdir
-        if is_test(filepath):
+        if _findpath(filepath, is_file=cls.is_file):
             variables = {}
             variables.update(parent_resource.variables)
             yield cls(filepath, variables)
@@ -748,16 +777,15 @@ class FileResource(FileSystemResource):
         schema), for example, changing the name of keys, or grafting on data
         loaded from other reources.
         """
-        connection = config.memcache()
-        search_path = self.variables.get("search_path", "")
+        key = "load(%s)" % self.path
+        cacheable = self.variables.get("search_path", "") in config.memcache_search_paths
 
-        if connection and search_path in config.memcache_paths:
-            data = connection.get(self.path)
-            if not data:
-                data = self._load_file()
-                connection.set(self.path, data, time=config.memcache_ttl)
-        else:
+        data = memcache.get(key) if cacheable else None
+        if data is None:
             data = self._load_file()
+
+            if cacheable:
+                memcache.set(key, data)
 
         try:
             if self.schema:
@@ -946,6 +974,8 @@ def _iter_resources(parent_resource, child_resource_classes=None,
                                                    variables,
                                                    _depth + 1):
                     yield grand_child
+
+    memcache.disconnect()
 
 
 def _iter_filtered_resources(parent_resource, resource_classes, variables):
