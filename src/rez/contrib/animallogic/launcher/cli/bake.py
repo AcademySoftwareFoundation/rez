@@ -136,7 +136,7 @@ def print_settings(settings):
             separator = '='
             print setting.name + separator + "'" + str(setting.value) + "'"
 
-    print "REZ_PACKAGES='%s'" % ' '.join(packages)
+    print "REZ_PACKAGES_REQUEST='%s'" % ' '.join(packages)
 
 def display_settings(settings):
 
