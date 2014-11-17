@@ -217,7 +217,7 @@ debug_bind_modules: false
 debug_resources: false
 
 # print debugging info when communicating with the memcache server.
-debug_memcache: true
+debug_memcache: false
 
 # Turn on all debugging messages
 debug_all: false
