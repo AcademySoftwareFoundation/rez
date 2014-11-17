@@ -7,7 +7,6 @@ from rez.system import system
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
-import rez.vendor.memcached.memcache as memcache
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 import os
@@ -352,7 +351,6 @@ class Config(DataWrapper):
         self.filepaths = filepaths
         self.overrides = overrides or {}
         self.locked = locked
-        self._memcache_connection = None
 
     def override(self, key, value):
         """Set a setting to the given value.
@@ -428,13 +426,7 @@ class Config(DataWrapper):
                 return f
         return decorated
 
-    def memcache(self):
 
-        if self.memcache_enabled and not self._memcache_connection:
-            self._memcache_connection = memcache.Client(self.memcache_servers,
-                                                        debug=0)
-
-        return self._memcache_connection
 
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):

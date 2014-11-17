@@ -522,7 +522,11 @@ memcache_enabled: true
 
 # A list of servers that form the memcache cluster.
 memcache_servers:
-- 127.0.0.1:11211
+- memcache.al.com.au:11211
+
+# Debug memcache connections - display error messages when a server can't be
+# contacted.
+memcache_debug: true
 
 # The default time to live of all objects entered into the cache.  This time is
 # measured in seconds.  The current default is to cache for one hour.
@@ -532,6 +536,8 @@ memcache_ttl: 3600
 # files from a developers local packages path.
 memcache_search_paths:
 - '/film/tools/packages'
+
+
 
 ###############################################################################
 ###############################################################################
