@@ -218,6 +218,7 @@ config_schema = Schema({
     "debug_package_release":            Bool,
     "debug_bind_modules":               Bool,
     "debug_resources":                  Bool,
+    "debug_memcache":                   Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "prune_conflict_graph":             Bool,
@@ -240,7 +241,7 @@ config_schema = Schema({
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
     "memcache_enabled":                 Bool,
-    "memcache_debug":                   Bool,
+    "memcache_client_debug":            Bool,
     "env_var_separators":               Dict,
 
     # GUI settings

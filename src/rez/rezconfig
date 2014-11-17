@@ -216,6 +216,9 @@ debug_bind_modules: false
 # Print debugging info when searching and loading resources.
 debug_resources: false
 
+# print debugging info when communicating with the memcache server.
+debug_memcache: true
+
 # Turn on all debugging messages
 debug_all: false
 
@@ -526,7 +529,7 @@ memcache_servers:
 
 # Debug memcache connections - display error messages when a server can't be
 # contacted.
-memcache_debug: true
+memcache_client_debug: true
 
 # The default time to live of all objects entered into the cache.  This time is
 # measured in seconds.  The current default is to cache for one hour.
