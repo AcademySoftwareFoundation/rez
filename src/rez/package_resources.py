@@ -122,6 +122,10 @@ class MetadataFolder(FolderResource):
     path_pattern = '.metadata'
     parent_resource = PackageVersionFolder
 
+    @classmethod
+    def _iter_instances(cls, parent_resource):
+        return cls._iter_instance(parent_resource)
+
 
 class ReleaseTimestampResource(FileResource):
     # Deprecated
@@ -129,6 +133,10 @@ class ReleaseTimestampResource(FileResource):
     path_pattern = 'release_time.txt'
     parent_resource = MetadataFolder
     schema = Use(int)
+
+    @classmethod
+    def _iter_instances(cls, parent_resource):
+        return cls._iter_instance(parent_resource)
 
 
 class ChangelogResource(FileResource):
@@ -181,6 +189,10 @@ class ReleaseDataResource(FileResource):
         Optional('previous_revision'): object,
         Optional(basestring): object
     })
+
+    @classmethod
+    def _iter_instances(cls, parent_resource):
+        return cls._iter_instance(parent_resource)
 
 
 class BasePackageResource(FileResource):
@@ -371,21 +383,14 @@ class VersionedPackageResource(BasePackageResource):
     versioned = True
 
     @classmethod
-    def iter_instances(cls, parent_resource):
-        instances = []
-        for name in _listdir(parent_resource.path, cls.is_file):
-            match = _ResourcePathParser.parse_filepart(cls, name)
-            if match is not None:
-                variables = match[1]
+    def _iter_instances(cls, parent_resource):
+        for ext in ['yaml', 'py', 'txt']:
+            filepath = os.path.join(parent_resource.path, "package." + ext)
+            if os.path.isfile(filepath):
+                variables = {"ext": ext}
                 variables.update(parent_resource.variables)
-                filepath = os.path.join(parent_resource.path, name)
-                instances.append(cls(filepath, variables))
-
-        ext_sort_order = ['py', 'yaml', 'txt']
-        if instances:
-            instances.sort(
-                key=lambda x: ext_sort_order.index(x.variables['ext']))
-            yield instances[0]
+                yield cls(filepath, variables)
+                break
 
     def convert_version(self, value):
         """Deals with two errors:
@@ -568,11 +573,11 @@ register_resource(PackageFamilyFolder)
 register_resource(PackageVersionFolder)
 register_resource(VersionedPackageResource)
 register_resource(VersionedVariantResource)
-register_resource(VersionlessPackageResource)
-register_resource(VersionlessVariantResource)
+#register_resource(VersionlessPackageResource)
+#register_resource(VersionlessVariantResource)
 register_resource(ReleaseDataResource)
-register_resource(CombinedPackageFamilyResource)
-register_resource(CombinedPackageResource)
+#register_resource(CombinedPackageFamilyResource)
+#register_resource(CombinedPackageResource)
 # deprecated
 register_resource(MetadataFolder)
 register_resource(ReleaseTimestampResource)
