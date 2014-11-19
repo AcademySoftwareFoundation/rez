@@ -18,6 +18,7 @@ subcommands = [
     "ide",
     "interpret",
     "launcher",
+    "lint",
     "python",
     "release",
     "search",
