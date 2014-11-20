@@ -1,5 +1,6 @@
 '''
-
+Sanity check envrionment variables in the current environment to check for paths
+which are empty, paths which don't exist etc.
 '''
 
 from rez.colorize import heading, critical, error, warning, info, Printer
