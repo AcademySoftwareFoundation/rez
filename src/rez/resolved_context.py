@@ -6,7 +6,7 @@ from rez.config import config
 from rez.colorize import critical, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, mkdtemp_, \
-    dedup, timings
+    dedup, timings, print_debug
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -986,7 +986,8 @@ class ResolvedContext(object):
         """
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
-        self._execute(executor)
+        tmpdir = mkdtemp_()
+        self._execute(executor, tmpdir=tmpdir)
         executor.get_output()
 
     @_on_success
@@ -1032,7 +1033,8 @@ class ResolvedContext(object):
         """
         interpreter = Python(target_environ={})
         executor = self._create_executor(interpreter, parent_environ)
-        self._execute(executor)
+        tmpdir = mkdtemp_()
+        self._execute(executor, tmpdir=tmpdir)
         return interpreter.subprocess(args, **subprocess_kwargs)
 
     @_on_success
@@ -1123,7 +1125,7 @@ class ResolvedContext(object):
         if actions_callback:
             actions_callback(executor)
 
-        self._execute(executor)
+        self._execute(executor, tmpdir=tmpdir)
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
@@ -1287,7 +1289,7 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
-    def _execute(self, executor):
+    def _execute(self, executor, tmpdir=None):
         br = '#' * 80
         br_minor = '-' * 80
 
@@ -1386,6 +1388,9 @@ class ResolvedContext(object):
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
+        if tmpdir and config.flatten_env:
+            self._flatten_environment(executor, tmpdir)
+
         _heading("post system setup")
         # append suite path if there is an active parent suite
         if self.parent_suite_path:
@@ -1397,3 +1402,61 @@ class ResolvedContext(object):
 
         # append rez path
         executor.append_rez_path()
+
+    def _flatten_environment(self, executor, tmpdir):
+        variables = config.flatten_env_vars
+        for variable in variables:
+            if variable in executor.env.keys():
+                consumed = []
+
+                separator = config.env_var_separators.get(variable, os.pathsep)
+                paths = executor.env.get(variable).value().split(separator)
+
+                tmpdir_for_variable = os.path.join(tmpdir, variable)
+                os.makedirs(tmpdir_for_variable)
+
+                executor.setenv(variable, tmpdir_for_variable)
+
+                if config.debug("flatten"):
+                    print_debug("Flattening the contents of '%s' to '%s'." % (variable, tmpdir_for_variable))
+
+                for path in paths:
+                    if not path.strip():
+                        continue
+
+                    if os.path.exists(path):
+                        if os.path.isdir(path):
+                            for item in os.listdir(path):
+                                if item not in consumed:
+                                    source = os.path.join(path, item)
+                                    target = os.path.join(tmpdir_for_variable, item)
+
+                                    if config.debug("flatten"):
+                                        print_debug("Linking to '%s'." % source)
+                                    os.symlink(source, target)
+
+                                    consumed.append(item)
+
+                                else:
+                                    if config.debug("flatten"):
+                                        print_debug("The item '%s' has already appeared earlier in the path for '%s'." % (item, variable))
+
+                        else:
+                            source = path
+                            basename = os.path.basename(path)
+                            target = os.path.join(tmpdir_for_variable, basename)
+
+                            os.symlink(source, target)
+                            if config.debug("flatten"):
+                                print_debug("Linking to '%s'." % source)
+
+                            consumed.append(basename)
+                            executor.appendenv(variable, target)
+
+                    else:
+                        if config.debug("flatten"):
+                            print_debug("The path '%s' in '%s' does not exist." % (path, variable))
+
+            else:
+                if config.debug("flatten"):
+                    print_debug("The variable '%s' does not exist in this environment to flatten." % variable)
