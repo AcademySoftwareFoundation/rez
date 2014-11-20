@@ -190,6 +190,13 @@ env_var_separators:
     RIG_RELEASEUI_TO: ','
     SHOTSETUP_PLUGIN_MODULES: ','
 
+# These environment variables are used with the 'rez lint' command for basic 
+# sanity checking purposes.
+lint_variables:
+- PYTHONPATH
+- LD_LIBRARY_PATH
+- PATH
+
 
 ###############################################################################
 # Debugging
