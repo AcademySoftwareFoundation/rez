@@ -11,11 +11,6 @@ setenv REZ_PATH @rez_path@
 
 # Add Rez to our environment.
 setenv PATH ${REZ_PATH}/bin/rez:${PATH}
-if (! $?PYTHONPATH ) then
-    setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages
-else
-    setenv PYTHONPATH ${REZ_PATH}/lib/python@PYTHON_MAJOR_VERSION@.@PYTHON_MINOR_VERSION@/site-packages:${PYTHONPATH}
-endif
 
 # where rez will publish local packages to (ie those installed with rez-build -- -- install)
 if (! $?REZ_LOCAL_PACKAGES_PATH ) then
