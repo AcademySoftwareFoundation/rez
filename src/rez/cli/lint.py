@@ -1,8 +1,12 @@
 '''
-Sanity check envrionment variables in the current environment to check for paths
-which are empty, paths which don't exist etc.
+Sanity check envrionment variables in the current environment.  For path based
+variables, the following tests are performed:
+    * not null - to check an empty string (e.g. '   ') has not been used.
+    * duplicate - check for paths that appear more than once.
+    * not found - check the path exists on the current system.
+    * empty - check the path is not empty.
+    * file - the path is a single file (a folder is expected).
 '''
-
 from rez.colorize import heading, critical, error, warning, info, Printer
 from rez.config import config
 from rez.exceptions import RezError
@@ -11,7 +15,7 @@ from operator import attrgetter
 import os
 
 
-priority_mapping = {
+PRIORITY_MAPPING = {
      50: critical,
      40: error,
      30: warning,
@@ -21,8 +25,8 @@ priority_mapping = {
 
 def setup_parser(parser, completions=False):
 
-    parser.add_argument("--report-issues", action="store_true",
-        help="only report paths that contain an issue.")
+    parser.add_argument("--errors-only", action="store_true",
+        help="only report paths that contain a problem.")
     ENVVARS_action = parser.add_argument(
         "ENVVARS", type=str, nargs='*',
         help='variables in the environment to test')
@@ -35,12 +39,12 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
 
     evironment_variables = opts.ENVVARS
-    show_all = not opts.report_issues
+    errors_only = not opts.errors_only
 
-    lint(variables=evironment_variables, show_all=show_all)
+    lint(variables=evironment_variables, errors_only=errors_only)
 
 
-def lint(variables=None, show_all=True):
+def lint(variables=None, errors_only=False):
     if not variables:
         variables = config.lint_variables
 
@@ -58,14 +62,14 @@ def lint(variables=None, show_all=True):
             continue
 
         for path, issues in results:
-            if not show_all and not issues:
+            if errors_only and not issues:
                 continue
 
             tags = '(%s)' % ', '.join(map(str, issues)) if issues else '(ok)'
             cols = sorted(issues, key=attrgetter('priority'), reverse=True)
 
             rows.append(("  %s" % path, tags))
-            colours.append(priority_mapping[cols[0].priority] if cols else info)
+            colours.append(PRIORITY_MAPPING[cols[0].priority] if cols else info)
 
     _pr = Printer()
 
