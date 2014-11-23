@@ -217,7 +217,7 @@ config_schema = Schema({
     "debug_package_release":            Bool,
     "debug_bind_modules":               Bool,
     "debug_resources":                  Bool,
-    "debug_flatten":                    Bool,
+    "debug_flatten_env":                Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,
