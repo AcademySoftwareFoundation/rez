@@ -51,6 +51,8 @@ def _add_common_args(parser):
                         help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
                         help=SUPPRESS)
+    parser.add_argument("--debug-tmpdir", dest="debug_tmpdir",
+                        action="store_true", help=SUPPRESS)
 
 
 class InfoAction(_StoreTrueAction):
@@ -101,11 +103,13 @@ def run(command=None):
     opts = parser.parse_args(arg_groups[0])
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
-        from rez.util import set_rm_tmpdirs
-        set_rm_tmpdirs(False)
         exc_type = None
     else:
         exc_type = Exception
+
+    if opts.debug_tmpdir or _env_var_true("REZ_DEBUG_TMPDIR"):
+        from rez.util import set_rm_tmpdirs
+        set_rm_tmpdirs(False)
 
     try:
         returncode = opts.func(opts, opts.parser, arg_groups[1:])
