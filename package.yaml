@@ -4,7 +4,7 @@ uuid: 97937642-3646-4966-ab9c-8f337bbbce6a
 
 name: rez
 
-version: 2.0.b.12.3
+version: 2.0.b.14.0
 
 authors: [ rez ]
 
@@ -25,6 +25,6 @@ variants:
 
 commands:
 - export PATH=!ROOT!/bin/rez/:$PATH
-- export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/:$PYTHONPATH
+- export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/rez-{version.major}.{version.minor}.BETA.{version[3]}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.egg:$PYTHONPATH
 - export REZ_EXE=!ROOT!/bin/rez/rez
 
