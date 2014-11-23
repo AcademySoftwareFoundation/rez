@@ -39,7 +39,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
 
     evironment_variables = opts.ENVVARS
-    errors_only = not opts.errors_only
+    errors_only = opts.errors_only
 
     lint(variables=evironment_variables, errors_only=errors_only)
 
