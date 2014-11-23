@@ -9,6 +9,9 @@ export REZ_VERSION=@REZ_VERSION@
 # Where Rez is installed.
 export REZ_PATH=@rez_path@
 
+# Set debug mode by default.
+export REZ_DEBUG=1
+
 # Add Rez to our environment.
 export PATH=${REZ_PATH}/bin/rez:${PATH}
 

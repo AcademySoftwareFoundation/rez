@@ -9,6 +9,9 @@ setenv REZ_VERSION @REZ_VERSION@
 # Where Rez is installed.
 setenv REZ_PATH @rez_path@
 
+# Set debug mode by default.
+setenv REZ_DEBUG 1
+
 # Add Rez to our environment.
 setenv PATH ${REZ_PATH}/bin/rez:${PATH}
 
