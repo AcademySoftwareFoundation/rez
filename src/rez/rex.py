@@ -8,7 +8,8 @@ import inspect
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars
+from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
+    print_debug
 from rez.vendor.enum import Enum
 
 
@@ -935,3 +936,63 @@ class RexExecutor(object):
         else:
             raise RexError("Error in rex code: %s - %s\n%s"
                            % (e.__class__.__name__, str(e), stack))
+
+    def flatten(self, tmpdir, variables=None):
+        variables = config.flatten_env_vars if not variables else variables
+        debug = config.debug("flatten_env")
+
+        for variable in variables:
+            if variable in self.env.keys():
+                consumed = []
+
+                separator = config.env_var_separators.get(variable, os.pathsep)
+                paths = self.env.get(variable).value().split(separator)
+
+                tmpdir_for_variable = os.path.join(tmpdir, variable)
+                os.makedirs(tmpdir_for_variable)
+
+                self.setenv(variable, tmpdir_for_variable)
+
+                if config.debug("flatten"):
+                    print_debug("Flattening the contents of '%s' to '%s'." % (variable, tmpdir_for_variable))
+
+                for path in paths:
+                    if not path.strip():
+                        continue
+
+                    if os.path.exists(path):
+                        if os.path.isdir(path):
+                            for item in os.listdir(path):
+                                if item not in consumed:
+                                    source = os.path.join(path, item)
+                                    target = os.path.join(tmpdir_for_variable, item)
+
+                                    if debug:
+                                        print_debug("Linking to '%s'." % source)
+                                    os.symlink(source, target)
+
+                                    consumed.append(item)
+
+                                else:
+                                    if config.debug("flatten"):
+                                        print_debug("The item '%s' has already appeared earlier in the path for '%s'." % (item, variable))
+
+                        else:
+                            source = path
+                            basename = os.path.basename(path)
+                            target = os.path.join(tmpdir_for_variable, basename)
+
+                            os.symlink(source, target)
+                            if config.debug("flatten"):
+                                print_debug("Linking to '%s'." % source)
+
+                            consumed.append(basename)
+                            self.appendenv(variable, target)
+
+                    else:
+                        if config.debug("flatten"):
+                            print_debug("The path '%s' in '%s' does not exist." % (path, variable))
+
+            else:
+                if config.debug("flatten"):
+                    print_debug("The variable '%s' does not exist in this environment to flatten." % variable)

@@ -6,7 +6,7 @@ from rez.config import config
 from rez.colorize import critical, heading, local, implicit, Printer
 from rez.resources import ResourceHandle
 from rez.util import columnise, convert_old_commands, shlex_join, mkdtemp_, \
-    dedup, timings, print_debug
+    dedup, timings
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -153,6 +153,7 @@ class ResolvedContext(object):
                 to stdout.
         """
         self.load_path = None
+        self.tmpdir = mkdtemp_()
 
         # resolving settings
         self.requested_timestamp = timestamp
@@ -986,8 +987,7 @@ class ResolvedContext(object):
         """
         interpreter = Python(target_environ=os.environ)
         executor = self._create_executor(interpreter, parent_environ)
-        tmpdir = mkdtemp_()
-        self._execute(executor, tmpdir=tmpdir)
+        self._execute(executor)
         executor.get_output()
 
     @_on_success
@@ -1033,8 +1033,7 @@ class ResolvedContext(object):
         """
         interpreter = Python(target_environ={})
         executor = self._create_executor(interpreter, parent_environ)
-        tmpdir = mkdtemp_()
-        self._execute(executor, tmpdir=tmpdir)
+        self._execute(executor)
         return interpreter.subprocess(args, **subprocess_kwargs)
 
     @_on_success
@@ -1107,16 +1106,14 @@ class ResolvedContext(object):
         sh = create_shell(shell)
 
         # context and rxt files
-        tmpdir = mkdtemp_()
-
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path
         else:
-            rxt_file = os.path.join(tmpdir, "context.rxt")
+            rxt_file = os.path.join(self.tmpdir, "context.rxt")
             self.save(rxt_file)
 
         context_file = context_filepath or \
-            os.path.join(tmpdir, "context.%s" % sh.file_extension())
+            os.path.join(self.tmpdir, "context.%s" % sh.file_extension())
 
         # interpret this context and write out the native context file
         executor = self._create_executor(sh, parent_environ)
@@ -1125,14 +1122,14 @@ class ResolvedContext(object):
         if actions_callback:
             actions_callback(executor)
 
-        self._execute(executor, tmpdir=tmpdir)
+        self._execute(executor)
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
 
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
-                           tmpdir,
+                           self.tmpdir,
                            rcfile=rcfile,
                            norc=norc,
                            stdin=stdin,
@@ -1289,7 +1286,7 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
-    def _execute(self, executor, tmpdir=None):
+    def _execute(self, executor):
         br = '#' * 80
         br_minor = '-' * 80
 
@@ -1388,8 +1385,8 @@ class ResolvedContext(object):
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
 
-        if tmpdir and config.flatten_env:
-            self._flatten_environment(executor, tmpdir)
+        if config.flatten_env:
+            executor.flatten(self.tmpdir)
 
         _heading("post system setup")
         # append suite path if there is an active parent suite
@@ -1402,61 +1399,3 @@ class ResolvedContext(object):
 
         # append rez path
         executor.append_rez_path()
-
-    def _flatten_environment(self, executor, tmpdir):
-        variables = config.flatten_env_vars
-        for variable in variables:
-            if variable in executor.env.keys():
-                consumed = []
-
-                separator = config.env_var_separators.get(variable, os.pathsep)
-                paths = executor.env.get(variable).value().split(separator)
-
-                tmpdir_for_variable = os.path.join(tmpdir, variable)
-                os.makedirs(tmpdir_for_variable)
-
-                executor.setenv(variable, tmpdir_for_variable)
-
-                if config.debug("flatten"):
-                    print_debug("Flattening the contents of '%s' to '%s'." % (variable, tmpdir_for_variable))
-
-                for path in paths:
-                    if not path.strip():
-                        continue
-
-                    if os.path.exists(path):
-                        if os.path.isdir(path):
-                            for item in os.listdir(path):
-                                if item not in consumed:
-                                    source = os.path.join(path, item)
-                                    target = os.path.join(tmpdir_for_variable, item)
-
-                                    if config.debug("flatten"):
-                                        print_debug("Linking to '%s'." % source)
-                                    os.symlink(source, target)
-
-                                    consumed.append(item)
-
-                                else:
-                                    if config.debug("flatten"):
-                                        print_debug("The item '%s' has already appeared earlier in the path for '%s'." % (item, variable))
-
-                        else:
-                            source = path
-                            basename = os.path.basename(path)
-                            target = os.path.join(tmpdir_for_variable, basename)
-
-                            os.symlink(source, target)
-                            if config.debug("flatten"):
-                                print_debug("Linking to '%s'." % source)
-
-                            consumed.append(basename)
-                            executor.appendenv(variable, target)
-
-                    else:
-                        if config.debug("flatten"):
-                            print_debug("The path '%s' in '%s' does not exist." % (path, variable))
-
-            else:
-                if config.debug("flatten"):
-                    print_debug("The variable '%s' does not exist in this environment to flatten." % variable)
