@@ -93,14 +93,12 @@ def memcached():
     return decorator
 
 
-#@memcached()
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _findpath(path, is_file=None):
     is_test = os.path.isfile if is_file else os.path.isdir
     return is_test(path)
 
 
-#@memcached()
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []

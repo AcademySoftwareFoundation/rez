@@ -428,8 +428,6 @@ class Config(DataWrapper):
                 return f
         return decorated
 
-
-
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):
             from rez.util import get_object_completions

@@ -519,7 +519,7 @@ unleash_target: film_tools_packages
 
 # Use memcache to cache the files loaded by the resource system.  This will
 # cache the file content (not the Rez objects), reducing the need to contact
-# the file server.  This cache layer is indendent of 'resource_caching' and as
+# the file server.  This cache layer is independent of 'resource_caching' and as
 # such can be enabled/disabled separated.
 memcache_enabled: true
 
@@ -556,5 +556,3 @@ memcache_search_paths:
 # will cause an error.
 use_pyside: false
 use_pyqt: false
-
-
