@@ -203,10 +203,7 @@ flatten_env: true
 # have it's contents flattened into a single directory in tmpdir (generally 
 # alongside the resulting context).
 flatten_env_vars:
-- PATH
-- PYTHONPATH
 - LD_LIBRARY_PATH
-- FOOBIE
 
 
 ###############################################################################
