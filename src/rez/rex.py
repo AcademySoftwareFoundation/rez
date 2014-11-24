@@ -9,7 +9,7 @@ from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
-    print_debug
+    print_debug, print_warning
 from rez.vendor.enum import Enum
 
 
@@ -938,61 +938,73 @@ class RexExecutor(object):
                            % (e.__class__.__name__, str(e), stack))
 
     def flatten(self, tmpdir, variables=None):
+        def _debug(s):
+            if config.debug("flatten_env"):
+                print_debug(s)
+
         variables = config.flatten_env_vars if not variables else variables
-        debug = config.debug("flatten_env")
 
         for variable in variables:
-            if variable in self.env.keys():
-                consumed = []
-
+            if self.defined(variable):
                 separator = config.env_var_separators.get(variable, os.pathsep)
                 paths = self.env.get(variable).value().split(separator)
 
-                tmpdir_for_variable = os.path.join(tmpdir, variable)
-                os.makedirs(tmpdir_for_variable)
+                target_root = os.path.join(tmpdir, variable)
+                os.makedirs(target_root)
+                _debug("%s flattening contents to %s." % (variable, target_root))
 
-                self.setenv(variable, tmpdir_for_variable)
+                self.setenv(variable, target_root)
 
-                if config.debug("flatten"):
-                    print_debug("Flattening the contents of '%s' to '%s'." % (variable, tmpdir_for_variable))
-
-                for path in paths:
+                for i, path in enumerate(paths):
                     if not path.strip():
                         continue
 
-                    if os.path.exists(path):
-                        if os.path.isdir(path):
-                            for item in os.listdir(path):
-                                if item not in consumed:
-                                    source = os.path.join(path, item)
-                                    target = os.path.join(tmpdir_for_variable, item)
+                    _debug("  %s-- %s." % ("`" if i == len(paths) - 1 else "|", path))
+                    prefix = " " if i == len(paths) - 1 else "|"
 
-                                    if debug:
-                                        print_debug("Linking to '%s'." % source)
-                                    os.symlink(source, target)
+                    result = self._flatten_path(path, target_root, prefix)
+                    if result:
+                        self.appendenv(variable, result)
 
-                                    consumed.append(item)
-
-                                else:
-                                    if config.debug("flatten"):
-                                        print_debug("The item '%s' has already appeared earlier in the path for '%s'." % (item, variable))
-
-                        else:
-                            source = path
-                            basename = os.path.basename(path)
-                            target = os.path.join(tmpdir_for_variable, basename)
-
-                            os.symlink(source, target)
-                            if config.debug("flatten"):
-                                print_debug("Linking to '%s'." % source)
-
-                            consumed.append(basename)
-                            self.appendenv(variable, target)
-
-                    else:
-                        if config.debug("flatten"):
-                            print_debug("The path '%s' in '%s' does not exist." % (path, variable))
+                _debug("%s is now set to %s." % (variable, self.env.get(variable).value()))
 
             else:
-                if config.debug("flatten"):
-                    print_debug("The variable '%s' does not exist in this environment to flatten." % variable)
+                _debug("Unable to flatten %s, it is not defined in the current environment." % variable)
+
+    def _flatten_path(self, path, target_root, prefix):
+        def _debug(s):
+            if config.debug("flatten_env"):
+                print_debug(s)
+
+        result = None
+        if os.path.exists(path):
+            if os.path.isdir(path):
+                contents = os.listdir(path)
+                for j, item in enumerate(contents):
+                    source = os.path.join(path, item)
+                    target = os.path.join(target_root, item)
+                    suffix = "`" if j == len(contents) - 1 else "|"
+
+                    self._flatten_symlink(source, target, item, "  %s   %s--" % (prefix, suffix))
+            else:
+                basename = os.path.basename(path)
+                source = path
+                target = os.path.join(target_root, basename)
+
+                self._flatten_symlink(source, target, basename, "  %s   `--" % (prefix))
+                result = target
+        else:
+            _debug("  %s   `-- does not exist to flatten, skipping." % (prefix, path))
+
+        return result
+
+    def _flatten_symlink(self, source, target, item, prefix):
+        def _debug(s):
+            if config.debug("flatten_env"):
+                print_debug(s)
+
+        if os.path.exists(target):
+            _debug("%s (skipping) %s seen in %s" % (prefix, item, os.readlink(target)))
+        else:
+            _debug("%s %s" % (prefix, item))
+            os.symlink(source, target)

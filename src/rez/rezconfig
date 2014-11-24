@@ -206,6 +206,7 @@ flatten_env_vars:
 - PATH
 - PYTHONPATH
 - LD_LIBRARY_PATH
+- FOOBIE
 
 
 ###############################################################################
