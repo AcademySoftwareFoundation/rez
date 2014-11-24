@@ -938,10 +938,6 @@ class RexExecutor(object):
                            % (e.__class__.__name__, str(e), stack))
 
     def flatten(self, tmpdir, variables=None):
-        def _debug(s):
-            if config.debug("flatten_env"):
-                print_debug(s)
-
         variables = config.flatten_env_vars if not variables else variables
 
         for variable in variables:
@@ -950,12 +946,12 @@ class RexExecutor(object):
                 paths = self.env.get(variable).value()
 
                 if not paths:
-                    _debug("Unable to flatten %s, no paths defined." % variable)
+                    _debug("flatten_env", "Unable to flatten %s, no paths defined." % variable)
                     continue
 
                 target_root = os.path.join(tmpdir, variable)
                 os.makedirs(target_root)
-                _debug("%s flattening contents to %s." % (variable, target_root))
+                _debug("flatten_env", "%s flattening contents to %s." % (variable, target_root))
 
                 self.setenv(variable, target_root)
 
@@ -964,29 +960,25 @@ class RexExecutor(object):
                         continue
 
                     pp = paths.split(separator)
-                    _debug("  %s-- %s." % ("`" if i == len(pp) - 1 else "|", path))
+                    _debug("flatten_env", "  %s-- %s." % ("`" if i == len(pp) - 1 else "|", path))
                     prefix = " " if i == len(pp)-1 else "|"
 
                     result = self._flatten_path(path, target_root, prefix)
                     if result is not None:
                         self.appendenv(variable, result)
 
-                _debug("%s is now set to %s." % (variable, self.env.get(variable).value()))
+                _debug("flatten_env", "%s is now set to %s." % (variable, self.env.get(variable).value()))
 
             else:
-                _debug("Unable to flatten %s, it is not defined in the current environment." % variable)
+                _debug("flatten_env", "Unable to flatten %s, it is not defined in the current environment." % variable)
 
     def _flatten_path(self, path, target_root, prefix):
-        def _debug(s):
-            if config.debug("flatten_env"):
-                print_debug(s)
-
         if os.path.exists(path):
             if os.path.isdir(path):
                 contents = os.listdir(path)
 
                 if not contents:
-                    _debug("  %s   `-- (skipping - is empty)" % prefix)
+                    _debug("flatten_env", "  %s   `-- (skipping - is empty)" % prefix)
 
                 for j, item in enumerate(contents):
                     source = os.path.join(path, item)
@@ -1001,18 +993,18 @@ class RexExecutor(object):
 
                 return self._flatten_symlink(source, target, basename, "  %s   `--" % (prefix))
         else:
-            _debug("  %s   `-- (skipping - does not exist to flatten)" % prefix)
+            _debug("flatten_env", "  %s   `-- (skipping - does not exist to flatten)" % prefix)
 
     def _flatten_symlink(self, source, target, item, prefix):
-        def _debug(s):
-            if config.debug("flatten_env"):
-                print_debug(s)
-
         if os.path.exists(target):
-            _debug("%s %s (skipping - seen in %s)" % (prefix, item, os.readlink(target)))
+            _debug("flatten_env", "%s %s (skipping - seen in %s)" % (prefix, item, os.readlink(target)))
             return None
 
         else:
-            _debug("%s %s" % (prefix, item))
+            _debug("flatten_env", "%s %s" % (prefix, item))
             os.symlink(source, target)
             return target
+
+def _debug(module, s):
+    if config.debug(module):
+        print_debug(s)

@@ -275,7 +275,6 @@ class TestRexFlattenEnvironment(TestBase):
         test_file2 = os.path.join(item2, "test3.sh")
         self._touch(os.path.join(item2, "test3.sh"))
 
-
         self.executor.setenv(self.variable, test_file1 + os.pathsep + item1 + os.pathsep + item2 + os.pathsep + item3 + os.pathsep + test_file2)
         self.assertDefined()
 
