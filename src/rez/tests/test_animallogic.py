@@ -14,6 +14,7 @@ import rez.vendor.unittest2 as unittest
 import datetime
 import os
 import shutil
+import tempfile
 
 
 class TestConvertingOldStyleCommands(TestBase):
@@ -56,6 +57,243 @@ class TestConvertingOldStyleCommands(TestBase):
         command = "export BAR=!ROOT!/cmake,$BAR"
         expected = "prependenv('BAR', '{root}/cmake')"
         self.assertEqual(expected, convert_old_commands([command], annotate=False))
+
+
+class TestRexFlattenEnvironment(TestBase):
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.settings = dict(flatten_env_vars=[])
+
+    def setUp(self):
+
+        self.root = tempfile.mkdtemp(prefix="rez_selftest_")
+        self.variable = "env_var_to_flatten"
+        self.executor = self._create_executor({})
+
+    def tearDown(self):
+
+        if os.path.exists(self.root):
+            shutil.rmtree(self.root)
+
+    def _touch(self, filepath):
+
+        fd = open(filepath, "w")
+        fd.write("Hello, World!")
+        fd.close()
+
+    def _makedirs(self, directorypath):
+
+        os.makedirs(directorypath)
+
+    def _create_executor(self, env, **kwargs):
+
+        interp = Python(target_environ={}, passive=True)
+
+        return RexExecutor(interpreter=interp,
+                           parent_environ=env,
+                           shebang=False,
+                           **kwargs)
+
+    def assertUndefined(self):
+
+        self.assertFalse(self.executor.defined(self.variable))
+
+    def assertDefined(self):
+
+        self.assertTrue(self.executor.defined(self.variable))
+
+    def assertValue(self, expected=None):
+
+        expected = os.path.join(self.root, self.variable) if expected is None else expected
+        self.assertEquals(expected, self.executor.env.get(self.variable).value())
+
+    def assertIsLink(self, target):
+
+        self.assertTrue(os.path.islink(os.path.join(self.root, self.variable, target)))
+
+    def assertReadlink(self, link, target):
+
+        self.assertEqual(os.readlink(os.path.join(self.root, self.variable, link)), target)
+
+    def assertNumberOfContents(self, expected, target=None):
+
+        target = os.path.join(self.root, self.variable) if target is None else target
+        self.assertEqual(expected, len(os.listdir(target)))
+
+    def test_variable_undefined(self):
+
+        self.assertUndefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertUndefined()
+
+    def test_variable_defined_but_empty(self):
+
+        self.executor.setenv(self.variable, "")
+
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue("")
+
+    def test_variable_defined_containing_missing_path(self):
+
+        self.executor.setenv(self.variable, "/this/path/does/not/exist")
+
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue()
+        self.assertNumberOfContents(0)
+
+    def test_variable_defined_containing_empty_path(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+
+        self.executor.setenv(self.variable, item)
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue()
+        self.assertNumberOfContents(0)
+
+    def test_variable_defined_containing_path_with_single_file(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+
+        self._touch(os.path.join(item, "test.sh"))
+
+        self.executor.setenv(self.variable, item)
+
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.sh")
+        self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
+
+    def test_variable_defined_containing_path_with_single_directory(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        self._makedirs(os.path.join(item, "test"))
+
+        self.executor.setenv(self.variable, item)
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test")
+        self.assertReadlink("test", os.path.join(item, "test"))
+
+    def test_variable_defined_containing_paths_duplicate_files(self):
+
+        item1 = os.path.join(self.root, "item1")
+        self._makedirs(item1)
+
+        self._touch(os.path.join(item1, "test1.sh"))
+
+        item2 = os.path.join(self.root, "item2")
+        self._makedirs(item2)
+
+        self._touch(os.path.join(item2, "test1.sh"))
+        self._touch(os.path.join(item2, "test2.sh"))
+
+        self.executor.setenv(self.variable, item1 + os.pathsep + item2)
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue()
+        self.assertNumberOfContents(2)
+        self.assertIsLink("test1.sh")
+        self.assertReadlink("test1.sh", os.path.join(item1, "test1.sh"))
+        self.assertIsLink("test2.sh")
+        self.assertReadlink("test2.sh", os.path.join(item2, "test2.sh"))
+
+    def test_variable_defined_containing_path_which_is_single_file(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+
+        test_file = os.path.join(item, "test.sh")
+        self._touch(test_file)
+
+        self.executor.setenv(self.variable, test_file)
+
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test.sh"))
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.sh")
+        self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
+
+    def test_variable_defined_containing_complex_mixture(self):
+
+        item1 = os.path.join(self.root, "item1")
+        self._makedirs(item1)
+
+        self._touch(os.path.join(item1, "test1.sh"))
+
+        test_file1 = os.path.join(item1, "test3.sh")
+        self._touch(os.path.join(item1, "test3.sh"))
+
+        item2 = os.path.join(self.root, "item2")
+        self._makedirs(item2)
+
+        self._touch(os.path.join(item2, "test1.sh"))
+        self._touch(os.path.join(item2, "test2.sh"))
+        self._makedirs(os.path.join(item2, "test1"))
+
+        item3 = os.path.join(self.root, "item3")
+        self._makedirs(item3)
+        self._makedirs(os.path.join(item3, "test1"))
+        self._makedirs(os.path.join(item3, "test2"))
+
+        test_file2 = os.path.join(item2, "test3.sh")
+        self._touch(os.path.join(item2, "test3.sh"))
+
+
+        self.executor.setenv(self.variable, test_file1 + os.pathsep + item1 + os.pathsep + item2 + os.pathsep + item3 + os.pathsep + test_file2)
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test3.sh"))
+        self.assertNumberOfContents(5)
+        self.assertIsLink("test1.sh")
+        self.assertReadlink("test1.sh", os.path.join(item1, "test1.sh"))
+        self.assertIsLink("test2.sh")
+        self.assertReadlink("test2.sh", os.path.join(item2, "test2.sh"))
+        self.assertIsLink("test1")
+        self.assertReadlink("test1", os.path.join(item2, "test1"))
+        self.assertIsLink("test2")
+        self.assertReadlink("test2", os.path.join(item3, "test2"))
+        self.assertIsLink("test3.sh")
+        self.assertReadlink("test3.sh", os.path.join(item1, "test3.sh"))
 
 
 class TestRex(TestBase):

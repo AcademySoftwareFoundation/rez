@@ -947,7 +947,11 @@ class RexExecutor(object):
         for variable in variables:
             if self.defined(variable):
                 separator = config.env_var_separators.get(variable, os.pathsep)
-                paths = self.env.get(variable).value().split(separator)
+                paths = self.env.get(variable).value()
+
+                if not paths:
+                    _debug("Unable to flatten %s, no paths defined." % variable)
+                    continue
 
                 target_root = os.path.join(tmpdir, variable)
                 os.makedirs(target_root)
@@ -955,15 +959,16 @@ class RexExecutor(object):
 
                 self.setenv(variable, target_root)
 
-                for i, path in enumerate(paths):
+                for i, path in enumerate(paths.split(separator)):
                     if not path.strip():
                         continue
 
-                    _debug("  %s-- %s." % ("`" if i == len(paths) - 1 else "|", path))
-                    prefix = " " if i == len(paths) - 1 else "|"
+                    pp = paths.split(separator)
+                    _debug("  %s-- %s." % ("`" if i == len(pp) - 1 else "|", path))
+                    prefix = " " if i == len(pp)-1 else "|"
 
                     result = self._flatten_path(path, target_root, prefix)
-                    if result:
+                    if result is not None:
                         self.appendenv(variable, result)
 
                 _debug("%s is now set to %s." % (variable, self.env.get(variable).value()))
@@ -976,10 +981,13 @@ class RexExecutor(object):
             if config.debug("flatten_env"):
                 print_debug(s)
 
-        result = None
         if os.path.exists(path):
             if os.path.isdir(path):
                 contents = os.listdir(path)
+
+                if not contents:
+                    _debug("  %s   `-- (skipping - is empty)" % prefix)
+
                 for j, item in enumerate(contents):
                     source = os.path.join(path, item)
                     target = os.path.join(target_root, item)
@@ -991,12 +999,9 @@ class RexExecutor(object):
                 source = path
                 target = os.path.join(target_root, basename)
 
-                self._flatten_symlink(source, target, basename, "  %s   `--" % (prefix))
-                result = target
+                return self._flatten_symlink(source, target, basename, "  %s   `--" % (prefix))
         else:
-            _debug("  %s   `-- does not exist to flatten, skipping." % (prefix, path))
-
-        return result
+            _debug("  %s   `-- (skipping - does not exist to flatten)" % prefix)
 
     def _flatten_symlink(self, source, target, item, prefix):
         def _debug(s):
@@ -1004,7 +1009,10 @@ class RexExecutor(object):
                 print_debug(s)
 
         if os.path.exists(target):
-            _debug("%s (skipping) %s seen in %s" % (prefix, item, os.readlink(target)))
+            _debug("%s %s (skipping - seen in %s)" % (prefix, item, os.readlink(target)))
+            return None
+
         else:
             _debug("%s %s" % (prefix, item))
             os.symlink(source, target)
+            return target
