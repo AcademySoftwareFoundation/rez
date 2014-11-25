@@ -22,7 +22,7 @@ endif
 
 # where unleash will publish packages to (ie those released with rez-unleash)
 if (! $?REZ_UNLEASH_PACKAGES_PATH ) then
-    setenv REZ_UNLEASH_PACKAGES_PATH /var/tmp/rezunleash/
+    setenv REZ_UNLEASH_PACKAGES_PATH /var/tmp/rezunleash
 endif
 
 # where rez will publish packages to (ie those released with rez-release)

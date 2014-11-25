@@ -22,7 +22,7 @@ fi
 
 # where unleash will publish packages to (ie those released with rez-unleash)
 if [ "$REZ_UNLEASH_PACKAGES_PATH" == "" ]; then
-	export REZ_UNLEASH_PACKAGES_PATH=/var/tmp/rezunleash/
+	export REZ_UNLEASH_PACKAGES_PATH=/var/tmp/rezunleash
 fi
 
 # where rez will publish packages to (ie those released with rez-release)
