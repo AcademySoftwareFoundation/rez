@@ -9,6 +9,7 @@ from rez.contrib.animallogic.unleash.unleash import UNLEASH_FLAVOUR
 from rez.contrib.animallogic.unleash.unleash import UNLEASH_TARGET
 from rez.contrib.animallogic.unleash.unleash import USERNAME
 from rez.contrib.animallogic.unleash.unleash import unleash
+from rez.contrib.animallogic.unleash.exceptions import UnleashError
 import os
 
 
@@ -54,7 +55,7 @@ def command(opts, parser, extra_arg_groups=None):
         print "Warning: the -c/--no-clean/ flag has no effect."
 
     if not opts.username:
-        raise RezUnleashError("Unable to determine the current user using the USER environment variable.")
+        raise UnleashError("Unable to determine the current user using the USER environment variable.")
 
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None

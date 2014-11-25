@@ -138,3 +138,7 @@ class SequencedCompleter(CombinedCompleter):
                 return completer(prefix, **kwargs)
 
         return []
+
+
+def EnvironmentVariableCompleter(prefix, **kwargs):
+    return os.environ.keys()
