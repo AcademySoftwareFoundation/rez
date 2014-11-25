@@ -11,6 +11,7 @@ from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
     print_debug, print_warning
 from rez.vendor.enum import Enum
+from rez.platform_ import platform_
 
 
 #===============================================================================
@@ -1002,7 +1003,7 @@ class RexExecutor(object):
 
         else:
             _debug("flatten_env", "%s %s" % (prefix, item))
-            os.symlink(source, target)
+            platform_.symlink(source, target)
             return target
 
 def _debug(module, s):
