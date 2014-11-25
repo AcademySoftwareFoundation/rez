@@ -293,14 +293,12 @@ class BasePackageResource(FileResource):
         variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in ("name", "version"))
 
-        component = None
         for resource in iter_descendant_resources(
                 parent_resource=self.parent_instance(),
                 resource_keys=resource_key,
                 variables=variables):
-            component = resource.load()
-
-        return component
+            return resource.load()
+        return None
 
     # TODO move into variant
     def _load_timestamp(self):
