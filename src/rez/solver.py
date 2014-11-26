@@ -421,8 +421,8 @@ class _PackageVariantList(_Common):
         entries = ([x.version, x] for x in it)
         self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
         if not self.entries:
-            raise PackageFamilyNotFoundError("package family not found: %s"
-                                             % package_name)
+            raise PackageFamilyNotFoundError("package family not found: %s, %s"
+                                             % (package_name, self.package_paths))
 
     def get_intersection(self, range, max_packages=0):
         """Get a list of variants that intersect with the given range.
