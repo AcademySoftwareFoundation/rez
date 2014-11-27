@@ -35,7 +35,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
     message = get_release_message(message)
 
     if not check_permission(name, username):
-        raise RezUnleashError("The user %s does not have permission to release the tool %s." % (name, username))
+        raise UnleashError("The user %s does not have permission to release the tool %s." % (username, name))
 
     if build_args is None:
         build_args = []
