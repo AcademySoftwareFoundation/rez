@@ -939,6 +939,10 @@ class RexExecutor(object):
                            % (e.__class__.__name__, str(e), stack))
 
     def flatten(self, tmpdir, variables=None):
+        def _debug(s):
+            if config.debug("flatten_env"):
+                print_debug(s)
+
         variables = config.flatten_env_vars if not variables else variables
 
         for variable in variables:
@@ -947,65 +951,254 @@ class RexExecutor(object):
                 paths = self.env.get(variable).value()
 
                 if not paths:
-                    _debug("flatten_env", "Unable to flatten %s, no paths defined." % variable)
+                    _debug("%s - unable to flatten, no paths have been defined." % variable)
                     continue
 
                 target_root = os.path.join(tmpdir, variable)
                 os.makedirs(target_root)
-                _debug("flatten_env", "%s flattening contents to %s." % (variable, target_root))
 
+                _debug("%s - currently set to: %s." % (variable, paths))
+                _debug("%s - will be flattened to: %s." % (variable, target_root))
                 self.setenv(variable, target_root)
 
-                for i, path in enumerate(paths.split(separator)):
-                    if not path.strip():
-                        continue
+                flattener = get_flattener_for_variable(variable)(paths.split(separator), target_root)
+                for result in flattener.flatten():
+                    self.appendenv(variable, result)
 
-                    pp = paths.split(separator)
-                    _debug("flatten_env", "  %s-- %s." % ("`" if i == len(pp) - 1 else "|", path))
-                    prefix = " " if i == len(pp)-1 else "|"
-
-                    result = self._flatten_path(path, target_root, prefix)
-                    if result is not None:
-                        self.appendenv(variable, result)
-
-                _debug("flatten_env", "%s is now set to %s." % (variable, self.env.get(variable).value()))
+                _debug("%s - is now set to %s." % (variable, self.env.get(variable).value()))
 
             else:
-                _debug("flatten_env", "Unable to flatten %s, it is not defined in the current environment." % variable)
+                _debug("%s - unable to flatten, it is not defined in the current environment." % variable)
 
-    def _flatten_path(self, path, target_root, prefix):
-        if os.path.exists(path):
-            if os.path.isdir(path):
-                contents = os.listdir(path)
 
-                if not contents:
-                    _debug("flatten_env", "  %s   `-- (skipping - is empty)" % prefix)
+def get_flattener_for_variable(variable):
+    if variable == "PYTHONPATH":
+        return PythonPathFlattener
 
-                for j, item in enumerate(contents):
-                    source = os.path.join(path, item)
-                    target = os.path.join(target_root, item)
-                    suffix = "`" if j == len(contents) - 1 else "|"
+    return DefaultFlattener
 
-                    self._flatten_symlink(source, target, item, "  %s   %s--" % (prefix, suffix))
+
+class Flattener(object):
+
+    def __init__(self, paths, target):
+        self._paths = paths
+        self._target = target
+        self._indent = 0
+
+    def flatten(self):
+        paths_to_retain_in_variable = []
+
+        for path in self._paths:
+            self._indent = 2
+
+            if not path.strip():
+                self.debug("+ '%s' - skipping, null value detected." % path)
+                continue
+
+            if os.path.exists(path):
+                self.debug("+ %s" % path)
+
+                for path in self.flatten_path(path):
+                    if path not in paths_to_retain_in_variable:
+                        paths_to_retain_in_variable.append(path)
+
             else:
-                basename = os.path.basename(path)
-                source = path
-                target = os.path.join(target_root, basename)
+                self.debug("+ %s - skipping, does not exist to flatten." % path)
 
-                return self._flatten_symlink(source, target, basename, "  %s   `--" % (prefix))
-        else:
-            _debug("flatten_env", "  %s   `-- (skipping - does not exist to flatten)" % prefix)
+        return paths_to_retain_in_variable
 
-    def _flatten_symlink(self, source, target, item, prefix):
+    def flatten_path(self, path):
+        raise NotImplemented
+
+    def symlink(self, source, target):
+        item = os.path.basename(source)
+
         if os.path.exists(target):
-            _debug("flatten_env", "%s %s (skipping - seen in %s)" % (prefix, item, os.readlink(target)))
-            return None
+            self.debug("- %s - skipping, already seen in %s" % (item, os.readlink(target)))
+            return False
 
         else:
-            _debug("flatten_env", "%s %s" % (prefix, item))
+            self.debug("- %s -> %s" % (item, target))
             platform_.symlink(source, target)
-            return target
+            return True
 
-def _debug(module, s):
-    if config.debug(module):
-        print_debug(s)
+    def debug(self, s):
+        if config.debug("flatten_env"):
+            print_debug("%s%s" % (" " * self._indent, s))
+
+
+class DefaultFlattener(Flattener):
+
+    def flatten_path(self, path):
+        self._indent = 4
+
+        if os.path.isdir(path):
+            contents = os.listdir(path)
+
+            if not contents:
+                self.debug("- skipping, is empty.")
+                return []
+
+            for item in contents:
+                source = os.path.join(path, item)
+                target = os.path.join(self._target, item)
+
+                self.symlink(source, target)
+
+        else:
+            basename = os.path.basename(path)
+            target = os.path.join(self._target, basename)
+
+            self.symlink(path, target)
+
+            self.debug("~ retaining %s in variable." % target)
+            return [target]
+
+        return []
+
+
+class PythonPathFlattener(DefaultFlattener):
+    """
+    If the path is a directory we have a couple of choices:
+
+        1. If the directory ends in .egg then it is most likely an egg file 
+           that has already been extracted.  This means they probably contain
+           EGG-INFO folders etc that might clash with other similar directories
+           in the PYTHONPATH.  In these we create the symlink to the original
+           .egg directory (rather than it's contents) and ensure that this
+           directory remains in the PYTHONPATH.
+        2. If the directory contains an .egg file which is not listed
+           explicitly in the PYTHONPATH then chances are it is being loaded
+           using some .pth and site.py magic.  To avoid multiple instances of
+           these files we ignore *.pth and site.py files, create symlinks for
+           everything else, and ensure that the .egg file is explicitly added
+           back into the PYTHONPATH.
+        3. If the directory contains other directories, it is possible these
+           provide a namespace using the pkg_resources mechanism.  As there is
+           no easy way to detect this, we must merge all subdirectories
+           together into one local flattened structure.
+        4. Everything else we treat as a normal file.  We assume that these are
+           standard .py files as so create symlinks back to the original
+           source.
+
+    If the path is a file then there is a high chance it is an egg file (a zip
+    archive).  Even if it's not an egg file, there's little else we can do
+    here.  In these cases we create a symlink as usual and ensure that the file
+    being pointed to remains in the final PYTHONPATH variable by passing it
+    back to the caller.
+
+    In all cases, when making a symlink we only create the link if it doesn't
+    already exists.  This means if foo.py is encountered twice in the
+    PYTHONPATH only the first occurence wins, which is the same behaviour
+    Python itself would use if we had not modified the PYTHONPATH at all.
+    """
+
+    EGG_SUFFIX = ".egg"
+    PTH_SUFFIX = ".pth"
+    SITE_FILE = "site.py"
+
+    def makedirs(self, target):
+
+        if not os.path.isdir(target):
+            self.debug("- %s mkdir" % (target))
+            os.makedirs(target)
+
+    def flatten_path(self, path):
+        self._indent = 4
+
+        if os.path.isdir(path):
+            # The current path is a .egg file (scenario 1 in the class
+            # docstring).  In this case we create a symlink and ensure it 
+            # remains in the PYTHONPATH.
+            if path.endswith(self.EGG_SUFFIX):
+                basename = os.path.basename(path)
+                target = os.path.join(self._target, basename)
+
+                self.symlink(path, target)
+
+                self.debug("~ retaining %s in PYTHONPATH." % target)
+                return [target]
+
+            contents = os.listdir(path)
+
+            # Otherwise check to see if it contains one or more egg files that
+            # are not already in the PYTHONPATH (scenario 2 in the docstring
+            # for this class).
+            paths_to_retain = []
+            eggs = filter(lambda x: x.endswith(self.EGG_SUFFIX), contents)
+            for egg in eggs:
+                source = os.path.join(path, egg)
+                target = os.path.join(self._target, egg)
+
+                if source in self._paths:
+                    # The egg is already in the PYTHONPATH, it will be dealt
+                    # with on another iteration, so we can ignore it.
+                    # (scenario 4 in the docstring for this class).
+                    self.debug("- %s - skipping, already in PYTHONPATH" % (egg))
+                    contents.remove(egg)
+
+                else:
+                    # The egg isn't in the PYTHONPATH so a .pth and site.py
+                    # file must be loading it.
+                    if self.SITE_FILE in contents:
+                        contents.remove(self.SITE_FILE)
+                    contents = filter(lambda x: not x.endswith(self.PTH_SUFFIX), contents)
+
+                    self.debug("~ retaining %s in PYTHONPATH." % target)
+                    paths_to_retain.append(target)
+
+            for item in contents:
+                self._indent = 4
+                source = os.path.join(path, item)
+
+                if os.path.isdir(source):
+                    # It's a directory.  Because of Python's namespace magic,
+                    # it is possible to have multiple directories with the same
+                    # name in the PYTHONPATH, each providing the same top level
+                    # namespace (and different child namespaces).  As a result
+                    # we must merge all directories that we come across to
+                    # ensure we pick up all the potential namespaces.  The
+                    # easiest way to do this with assuming anything about the
+                    # structure of the python code is to flatten the folder
+                    # structure locally, with symlinks off to the actualy files
+                    # underneath.  As expected, the first occurence of a file
+                    # wins.
+                    target = os.path.join(self._target, item)
+                    self.makedirs(target)
+
+                    for root, dirs, files in os.walk(source):
+                        relative = os.path.relpath(root, path)
+                        depth = relative.count(os.path.sep) + 1
+                        self._indent = 4 + (depth * 2)
+
+                        for file_ in files:
+                            source = os.path.join(root, file_)
+                            target = os.path.join(self._target, relative, file_)
+
+                            self.symlink(source, target)
+
+                        for dir_ in dirs:
+                            target = os.path.join(self._target, relative, dir_)
+
+                            self.makedirs(target)
+
+                else:
+                    # Files can just be linked in normally.
+                    target = os.path.join(self._target, item)
+
+                    self.symlink(source, target)
+
+            return paths_to_retain
+
+        else:
+            # This is a file, which means it must be an egg archive.  We can
+            # make a link to this as usual, however the path must remain in the
+            # resulting PYTHONPATH variable to ensure it is importable.  This
+            # is scenario 4 in the docstring.
+            basename = os.path.basename(path)
+            target = os.path.join(self._target, basename)
+
+            self.symlink(path, target)
+
+            self.debug("~ retaining %s in PYTHONPATH." % target)
+            return [target]
