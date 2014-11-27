@@ -27,4 +27,12 @@ commands:
 - export PATH=!ROOT!/bin/rez/:$PATH
 - export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/rez-{version.major}.{version.minor}.BETA.{version[3]}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.egg:$PYTHONPATH
 - export REZ_EXE=!ROOT!/bin/rez/rez
+- export REZ_PATH=!ROOT!
+- export REZ_LOCAL_PACKAGES_PATH=$HOME/package
+- export REZ_UNLEASH_PACKAGES_PATH=/var/tmp/rezunleash
+- export REZ_RELEASE_PACKAGES_PATH=/film/tools/packages
+- export REZ_PACKAGES_PATH=$REZ_LOCAL_PACKAGES_PATH:$REZ_RELEASE_PACKAGES_PATH
+- export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
+- export REZ_DEBUG=1
+
 
