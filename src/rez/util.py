@@ -102,8 +102,7 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    os.chmod(filepath, 0o777)
 
 
 def print_debug(msg):
