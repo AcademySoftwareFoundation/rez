@@ -7,7 +7,7 @@ from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 import rez.vendor.unittest2 as unittest
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, TempdirMixin
 import itertools
 import os.path
 from rez.vendor.version.version import Version
@@ -199,18 +199,6 @@ class TestSolver(TestBase):
         _test("pydad-3")
         s = self._fail("pymum-2")
         self.assertFalse(isinstance(s.failure_reason(), Cycle))
-
-
-class TempdirMixin(object):
-    """Mixin that adds tmpdir create/delete."""
-    @classmethod
-    def setUpClass(cls):
-        cls.root = tempfile.mkdtemp(prefix="rez_test_")
-
-    @classmethod
-    def tearDownClass(cls):
-        if os.path.exists(cls.root):
-            shutil.rmtree(cls.root)
 
 
 class TestVariantResolutionOrder(TestBase, TempdirMixin):

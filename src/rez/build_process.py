@@ -387,7 +387,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
-            if not os.path.exists(install_path):
+            if install and not os.path.exists(install_path):
                 os.makedirs(install_path)
 
             # run build system
