@@ -31,8 +31,8 @@ def disconnect():
 
 
 def get(key, search_path=None):
-	if search_path and search_path not in config.memcache_search_paths:
-		return None
+    if search_path and search_path not in config.memcache_search_paths:
+        return None
 
     connection = connect()
 
@@ -46,8 +46,8 @@ def get(key, search_path=None):
 
 
 def set(key, value, search_path=None):
-	if search_path and search_path not in config.memcache_search_paths:
-		return False
+    if search_path and search_path not in config.memcache_search_paths:
+        return False
 
     connection = connect()
 
