@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.util import create_pane, get_icon_widget, update_font
 from rez.resolved_context import PatchLock
 

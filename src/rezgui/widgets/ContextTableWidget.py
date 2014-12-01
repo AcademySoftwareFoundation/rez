@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import update_font, create_pane, get_icon_widget, interp_color
+from rezgui.util import update_font, create_pane, interp_color
 from rezgui.widgets.EffectivePackageCellWidget import EffectivePackageCellWidget
 from rezgui.widgets.PackageSelectWidget import PackageSelectWidget
 from rezgui.widgets.VariantCellWidget import VariantCellWidget
@@ -7,8 +7,7 @@ from rezgui.widgets.IconButton import IconButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
-from rez.packages import Variant, iter_packages
-from rez.resolved_context import ResolvedContext
+from rez.packages import iter_packages
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from functools import partial

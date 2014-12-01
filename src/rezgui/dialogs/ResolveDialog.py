@@ -7,10 +7,7 @@ from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
 from rez.vendor.version.requirement import Requirement
-import tempfile
-import threading
 import StringIO
-import os
 
 
 class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
@@ -130,7 +127,7 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         # validate the request before opening dialog
         for req_str in self.context_model.request:
             try:
-                _ = Requirement(req_str)
+                Requirement(req_str)
             except Exception as e:
                 title = "Invalid package request - %r" % req_str
                 QtGui.QMessageBox.critical(self, title, str(e))

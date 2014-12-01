@@ -81,14 +81,14 @@ class SvnReleaseVCS(ReleaseVCS):
                 status_list_known.append(status)
 
         if status_list_known:
-            raise ReleaseVCSError("'" + self.path + "' is not in a state to " + \
-                "release - you may need to svn-checkin and/or svn-update: " + \
-                str(status_list_known))
+            raise ReleaseVCSError(
+                "'%s' is not in a state to release - you may need to svn-checkin "
+                "and/or svn-update: %s" % (self.path, str(status_list_known)))
 
     def _create_tag_impl(self, tag_name, message=None):
         tag_url = self.get_tag_url(tag_name)
         print "rez-release: creating project tag in: %s..." % tag_url
-        self.svnc.callback_get_log_message = lambda x:(True,x)
+        self.svnc.callback_get_log_message = lambda x: (True, x)
         self.svnc.copy2([(self.this_url,)], tag_url, make_parents=True)
 
     def get_changelog(self, previous_revision=None):

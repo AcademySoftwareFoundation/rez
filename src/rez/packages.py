@@ -5,8 +5,8 @@ from rez.exceptions import PackageMetadataError, PackageRequestError, \
     ResourceError, ResourceNotFoundError
 from rez.package_resources import package_schema, PACKAGE_NAME_REGEX
 from rez.config import config
-from rez.vendor.version.version import Version, VersionRange
-from rez.vendor.version.requirement import VersionedObject, Requirement
+from rez.vendor.version.version import Version
+from rez.vendor.version.requirement import VersionedObject
 import os.path
 import sys
 

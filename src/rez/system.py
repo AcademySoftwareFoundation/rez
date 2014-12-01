@@ -81,7 +81,7 @@ class System(object):
                 proc = sp.Popen(args, stdout=sp.PIPE)
                 output = proc.communicate()[0]
                 shell = os.path.basename(output.strip().split()[0]).replace('-', '')
-            except Exception as e:
+            except Exception:
                 pass
 
             # check $SHELL
@@ -111,7 +111,7 @@ class System(object):
                                         break
                                 elif toks[0] == "PPid:":
                                     pid = toks[1]
-                    except Exception as e:
+                    except Exception:
                         break
 
             if (shell not in shells) and ("sh" in shells):
@@ -206,8 +206,6 @@ class System(object):
 
     @classmethod
     def _make_safe_version_string(cls, s):
-        from rez.vendor.version.version import Version
-
         sep_regex = re.compile("[\.\-]")
         char_regex = re.compile("[a-zA-Z0-9_]")
 

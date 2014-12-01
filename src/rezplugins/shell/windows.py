@@ -8,6 +8,7 @@ import subprocess
 
 raise Exception("Windows shell support is not yet complete")
 
+
 # FIMXE: this is not in working order!!! It is only here for reference
 class WinShell(Shell):
     @classmethod

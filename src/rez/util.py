@@ -1047,7 +1047,7 @@ class AttrDictWrapper(MutableMapping):
 class RO_AttrDictWrapper(AttrDictWrapper):
     """Read-only version of AttrDictWrapper."""
     def __setattr__(self, attr, value):
-        o = self[attr]  # may raise 'no attribute' error
+        self[attr]  # may raise 'no attribute' error
         raise AttributeError("'%s' object attribute '%s' is read-only"
                              % (self.__class__.__name__, attr))
 
@@ -1465,7 +1465,7 @@ class DataWrapper(object):
             problems because a DataWrapper instance can in some cases be
             incorrectly picked up by the Schema library as a schema validator.
         """
-        _ = self.validated_data
+        getattr(self, "validated_data")
 
     @propertycache
     def validated_data(self):
@@ -1547,7 +1547,6 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
             return []
 
     prefix = toks[-1]
-    value_ = None
     words = []
 
     attrs = dir(instance)
@@ -1566,7 +1565,6 @@ def get_object_completions(instance, prefix, types=None, instance_types=None):
                 continue
             if not callable(value):
                 words.append(attr)
-                value_ = value
 
     qual_words = ['.'.join(word_toks + [x]) for x in words]
 

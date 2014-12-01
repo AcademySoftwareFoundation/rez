@@ -42,7 +42,7 @@ class LazySubParsersAction(_SubParsersAction):
             parser = self._name_parser_map[parser_name]
         except KeyError:
             tup = parser_name, ', '.join(self._name_parser_map)
-            msg = _('unknown parser %r (choices: %s)' % tup)
+            msg = 'unknown parser %r (choices: %s)' % tup
             raise ArgumentError(self, msg)
 
         self._setup_subparser(parser_name, parser)

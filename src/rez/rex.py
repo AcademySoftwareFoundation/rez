@@ -6,11 +6,10 @@ import re
 import UserDict
 import inspect
 from string import Formatter
-from functools import partial
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars
+from rez.util import AttrDictWrapper, shlex_join, expandvars
 from rez.vendor.enum import Enum
 
 
@@ -325,7 +324,7 @@ class ActionManager(object):
 
         # expose env-vars from parent env if explicitly told to do so
         if (expanded_key not in self.environ) and \
-            ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
+                ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
             self.environ[expanded_key] = self.parent_environ.get(expanded_key, '')
             if self.interpreter.expand_env_vars:
                 key_ = expanded_key
@@ -339,11 +338,11 @@ class ActionManager(object):
             self.actions.append(action(unexpanded_key, str(unexpanded_value)))
             parts = self.environ[expanded_key].split(env_sep)
 
-            unexpanded_values = env_sep.join( \
+            unexpanded_values = env_sep.join(
                 addfunc(self._escape(unexpanded_value),
                         [self._keytoken(expanded_key)]))
 
-            expanded_values = env_sep.join( \
+            expanded_values = env_sep.join(
                 addfunc(self._escape(expanded_value), parts))
 
             self.environ[expanded_key] = \

@@ -1,9 +1,12 @@
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, local, Printer
+from rez.colorize import heading, local, critical, Printer
 from rez.util import propertycache, columnise
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.exceptions import RezSystemError, SuiteError
+from rez.config import config
 import os.path
+import sys
 
 
 class Wrapper(object):
@@ -38,7 +41,7 @@ class Wrapper(object):
         # a suite's ./bin path, which renders it useless.
         suite_path = os.path.dirname(os.path.dirname(filepath))
         try:
-            _ = Suite.load(suite_path)
+            Suite.load(suite_path)
         except SuiteError as e:
             _err(str(e))
 
@@ -63,7 +66,6 @@ class Wrapper(object):
         Returns:
             Return code of the command, or 0 if the command is not run.
         """
-        from rez.config import config
         from rez.vendor import argparse
 
         prefix_char = config.suite_alias_prefix_char
@@ -219,8 +221,8 @@ class Wrapper(object):
     def peek(self):
         config.remove_override("quiet")
         new_context = ResolvedContext(self.context.requested_packages(),
-                                      package_paths=context.package_paths,
-                                      verbosity=opts.verbose)
+                                      package_paths=self.context.package_paths)
+
         # reapply quiet mode (see cli.forward)
         if "REZ_QUIET" not in os.environ:
             config.override("quiet", True)

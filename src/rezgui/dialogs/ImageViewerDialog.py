@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.mixins.StoreSizeMixin import StoreSizeMixin
 from rezgui.widgets.ImageViewerWidget import ImageViewerWidget
 from rezgui.util import create_pane

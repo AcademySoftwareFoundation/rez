@@ -493,7 +493,6 @@ class _PackageVariantList(_Common):
 
 def _short_req_str(package_request):
     """print shortened version of '==X|==Y|==Z' ranged requests."""
-    reqstr = None
     if not package_request.conflict:
         versions = package_request.range.to_versions()
         if versions and len(versions) == len(package_request.range) \
@@ -1029,10 +1028,13 @@ class _ResolvePhase(_Common):
                     else:
                         if self.pr:
                             self.pr("merged extractions: %s", request_list)
+                        """
+                        # flake8 founs this, I don't remember why it's here...
                         if len(request_list.requirements) < len(common_requests):
                             for req in request_list.requirements:
                                 src_reqs = [x for x in common_requests
                                             if x.name == req.name]
+                        """
 
                     # do intersections with existing scopes
                     self.pr.subheader("INTERSECTING:")
@@ -1228,8 +1230,6 @@ class _ResolvePhase(_Common):
 
         # -- graph creation basics
 
-        REQUEST = 0
-        REQUIRES = 1
         node_color = "#F6F6F6"
         request_color = "#FFFFAA"
         solved_color = "#AAFFAA"

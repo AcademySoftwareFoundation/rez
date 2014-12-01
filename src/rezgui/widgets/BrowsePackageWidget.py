@@ -5,7 +5,7 @@ from rezgui.widgets.PackageVersionsTable import PackageVersionsTable
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.objects.App import app
-from rez.vendor.version.requirement import Requirement, VersionedObject
+from rez.vendor.version.requirement import Requirement
 
 
 class BrowsePackageWidget(QtGui.QWidget, ContextViewMixin):

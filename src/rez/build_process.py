@@ -414,4 +414,3 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
-

@@ -1,11 +1,11 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.util import create_pane
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rez.config import config
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
-from rez.vendor.schema.schema import Schema, Or, SchemaError
+from rez.vendor.schema.schema import Schema, SchemaError
 from functools import partial
 
 

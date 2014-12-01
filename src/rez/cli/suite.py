@@ -72,7 +72,7 @@ def setup_parser(parser, completions=False):
         DIR_action.completer = FilesCompleter(dirs=True, files=False)
         add_action.completer = FilesCompleter(dirs=False, file_patterns=["*.rxt"])
         find_request_action.completer = PackageFamilyCompleter
-        find_resolve_action = PackageCompleter
+        find_resolve_action.completer = PackageCompleter
 
 
 def command(opts, parser, extra_arg_groups=None):

@@ -1,5 +1,4 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.util import create_pane, get_timestamp_str
 from rez.packages import Package, Variant
 from rez.util import find_last_sublist

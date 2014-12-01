@@ -30,7 +30,7 @@ class Bash(SH):
             rcfile = False
         if stdin:
             cls._overruled_option('rcfile', 'stdin', rcfile)
-            rcFile = False
+            rcfile = False
         return (rcfile, norc, stdin, command)
 
     @classmethod

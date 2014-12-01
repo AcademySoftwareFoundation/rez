@@ -165,7 +165,7 @@ class Suite(object):
         Args:
             name (str): Name of the context to remove.
         """
-        _ = self._context(name)
+        self._context(name)
         del self.contexts[name]
         self._flush_tools()
 
@@ -425,7 +425,7 @@ class Suite(object):
                 if verbose:
                     print "saving over previous suite..."
                 for context_name in self.context_names:
-                    _ = self.context(context_name)  # load before dir deleted
+                    self.context(context_name)  # load before dir deleted
                 shutil.rmtree(path)
             else:
                 raise SuiteError("Cannot save, path exists: %r" % path)
@@ -533,7 +533,6 @@ class Suite(object):
                 ["----", "-------------", "----"]]
 
         for context_name in context_names:
-            data = self.contexts[context_name]
             context_path = self._context_path(context_name) or '-'
             ntools = len(context_tools.get(context_name, []))
             if ntools:

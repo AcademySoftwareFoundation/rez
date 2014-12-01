@@ -635,7 +635,8 @@ class Resource(object):
         raise NotImplementedError
 
     def _ancestor_instance(self, ancestor_cls):
-        path, _ = _ResourcePathParser.parse_filepath(ancestor_cls,
+        path, _ = _ResourcePathParser.parse_filepath(
+            ancestor_cls,
             filepath=self.path, search_paths=[self.variables["search_path"]],
             parse_all=False)
         var_keys = ancestor_cls._variable_keys()
@@ -1155,24 +1156,3 @@ def load_resource(filepath=None, resource_keys=None, search_path=None,
     """
     return get_resource(filepath, resource_keys, search_path, variables,
                         root_resource_key).load()
-
-
-
-
-
-#    Copyright 2008-2012 Dr D Studios Pty Limited (ACN 127 184 954) (Dr. D Studios)
-#
-#    This file is part of Rez.
-#
-#    Rez is free software: you can redistribute it and/or modify
-#    it under the terms of the GNU Lesser General Public License as published by
-#    the Free Software Foundation, either version 3 of the License, or
-#    (at your option) any later version.
-#
-#    Rez is distributed in the hope that it will be useful,
-#    but WITHOUT ANY WARRANTY; without even the implied warranty of
-#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-#    GNU General Public License for more details.
-#
-#    You should have received a copy of the GNU Lesser General Public License
-#    along with Rez.  If not, see <http://www.gnu.org/licenses/>.

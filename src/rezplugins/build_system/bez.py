@@ -85,9 +85,9 @@ class BezBuildSystem(BuildSystem):
         if install and "install" not in cmd:
             cmd.append("install")
 
-        retcode,_,_ = context.execute_shell(command=cmd,
-                                            block=True,
-                                            cwd=build_path)
+        retcode, _, _ = context.execute_shell(command=cmd,
+                                              block=True,
+                                              cwd=build_path)
         ret["success"] = (not retcode)
         return ret
 
@@ -95,11 +95,10 @@ class BezBuildSystem(BuildSystem):
 def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    package = Package(working_dir)
+    _ = Package(working_dir)  # TODO not sure if this is needed
     config.override("prompt", "BUILD>")
 
-    retcode,_,_ = context.execute_shell(block=True,
-                                       cwd=build_dir)
+    retcode, _, _ = context.execute_shell(block=True, cwd=build_dir)
     sys.exit(retcode)
 
 

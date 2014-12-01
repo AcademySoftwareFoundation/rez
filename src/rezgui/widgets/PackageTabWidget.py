@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.util import get_icon
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.VariantHelpWidget import VariantHelpWidget

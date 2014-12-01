@@ -7,26 +7,32 @@ from rez.vendor.version.requirement import VersionedObject
 from rez.yaml import dump_package_yaml
 from contextlib import contextmanager
 
+
 class quoted(str):
     """Wrap a string in this class to force a quoted representation when passed
     to `yaml.dump`."""
     pass
+
 
 class literal(str):
     """Wrap a string in this class to force a (multi-line) representation when
     passed to `yaml.dump`."""
     pass
 
+
 # create a shortcut that is more rez-friendly
 rex = literal
+
 
 def quoted_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='"')
 yaml.add_representer(quoted, quoted_presenter)
 
+
 def literal_presenter(dumper, data):
     return dumper.represent_scalar('tag:yaml.org,2002:str', data, style='|')
 yaml.add_representer(literal, literal_presenter)
+
 
 def ordered_dict_presenter(dumper, data):
     return dumper.represent_dict(data.items())
@@ -35,6 +41,7 @@ yaml.add_representer(OrderedDict, ordered_dict_presenter)
 
 def _entab(text, spaces=4):
     return '\n'.join([(' ' * 4) + t for t in text.split('\n')])
+
 
 def make_version_directory(path, metadata):
     name = metadata['name']
@@ -51,6 +58,7 @@ def make_version_directory(path, metadata):
             os.makedirs(os.path.join(basedir, *variant))
     return basedir
 
+
 def _get_metadata(name):
     metadata = OrderedDict()
     metadata['config_version'] = 0  # even if this value is overridden, it will appear first
@@ -62,9 +70,11 @@ def _get_metadata(name):
 
     return metadata
 
+
 def write_package_yaml(metafile, metadata):
     with open(metafile, 'w') as f:
         dump_package_yaml(metadata, f)
+
 
 def write_package_py(metafile, metadata):
     with open(metafile, 'w') as f:
@@ -78,6 +88,7 @@ def write_package_py(metafile, metadata):
             else:
                 text = '%s = %r\n' % (key, value)
             f.write(text + '\n')
+
 
 @contextmanager
 def make_package_yaml(name, path):
@@ -97,6 +108,7 @@ def make_package_yaml(name, path):
     basedir = make_version_directory(path, metadata)
     metafile = os.path.join(basedir, 'package.yaml')
     write_package_yaml(metafile, metadata)
+
 
 @contextmanager
 def make_package_py(name, path):

@@ -138,7 +138,7 @@ class Dict(Setting):
         items = value.split(",")
         try:
             return UserDict([item.split(":") for item in items])
-        except ValueError as e:
+        except ValueError:
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
                 % value)
@@ -571,7 +571,7 @@ class _PluginConfigs(object):
         # force plugin configs to load
         from rez.plugin_managers import plugin_manager
         for plugin_type in plugin_manager.get_plugin_types():
-            _ = getattr(self, plugin_type)
+            getattr(self, plugin_type)
 
         d = self.__dict__.copy()
         del d["_data"]
