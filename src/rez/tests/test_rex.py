@@ -638,6 +638,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         self.assertNumberOfContents(2)
         self.assertIsLink("test1.py")
         self.assertReadlink("test1.py", os.path.join(item, "test1.py"))
+        self.assertIsLink("test2.py")
+        self.assertReadlink("test2.py", os.path.join(item, "test2.py"))
 
     def test_variable_contains_egg_file(self):
         """

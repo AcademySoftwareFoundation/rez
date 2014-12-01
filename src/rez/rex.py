@@ -8,8 +8,7 @@ import inspect
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars, \
-    print_debug, print_warning
+from rez.util import AttrDictWrapper, shlex_join, expandvars, print_debug
 from rez.vendor.enum import Enum
 from rez.platform_ import platform_
 
@@ -940,8 +939,7 @@ class RexExecutor(object):
 
     def flatten(self, tmpdir, variables=None):
         def _debug(s):
-            if config.debug("flatten_env"):
-                print_debug(s)
+            print_debug(s, module="flatten_env")
 
         variables = config.flatten_env_vars if not variables else variables
 
@@ -980,78 +978,101 @@ def get_flattener_for_variable(variable):
 
 class Flattener(object):
 
-    def __init__(self, paths, target):
+    def __init__(self, paths, base_target):
+        """
+        Args:
+            path (list of str): the paths to be flattened.
+            base_target (str): where the contents should be flattened too.
+        """
         self._paths = paths
-        self._target = target
+        self._base_target = base_target
         self._indent = 0
 
     def flatten(self):
+        """Flatten each path individually..
+
+        Returns:
+            A list of paths that should be retained in the resulting
+            environment variable.  (Generally this will nearly always be an
+            empty list, however special files (such as Python egg files)
+            require this functionality).
+        """
         paths_to_retain_in_variable = []
 
         for path in self._paths:
             self._indent = 2
 
             if not path.strip():
-                self.debug("+ '%s' - skipping, null value detected." % path)
+                self._debug("+ '%s' - skipping, null value detected." % path)
                 continue
 
             if os.path.exists(path):
-                self.debug("+ %s" % path)
+                self._debug("+ %s" % path)
 
-                for path in self.flatten_path(path):
+                for path in self._flatten_path(path):
                     if path not in paths_to_retain_in_variable:
                         paths_to_retain_in_variable.append(path)
 
             else:
-                self.debug("+ %s - skipping, does not exist to flatten." % path)
+                self._debug("+ %s - skipping, does not exist to flatten." % path)
 
         return paths_to_retain_in_variable
 
-    def flatten_path(self, path):
+    def _flatten_path(self, path):
+        """Flatten the contents of a specific path.
+
+        Args:
+            path (str): The path to flatten.
+
+        Returns:
+            A list of paths that should be retained in the resulting
+            environment variable.  (Generally this will nearly always be an
+            empty list, however special files (such as Python egg files)
+            require this functionality).
+        """
         raise NotImplemented
 
     def symlink(self, source, target):
         item = os.path.basename(source)
 
         if os.path.exists(target):
-            self.debug("- %s - skipping, already seen in %s" % (item, os.readlink(target)))
+            self._debug("- %s - skipping, already seen in %s" % (item, os.readlink(target)))
             return False
 
         else:
-            self.debug("- %s -> %s" % (item, target))
+            self._debug("- %s -> %s" % (item, target))
             platform_.symlink(source, target)
             return True
 
-    def debug(self, s):
-        if config.debug("flatten_env"):
-            print_debug("%s%s" % (" " * self._indent, s))
+    def _debug(self, s):
+        print_debug("%s%s" % (" " * self._indent, s), module="flatten_env")
 
 
 class DefaultFlattener(Flattener):
 
-    def flatten_path(self, path):
+    def _flatten_path(self, path):
         self._indent = 4
 
         if os.path.isdir(path):
             contents = os.listdir(path)
 
             if not contents:
-                self.debug("- skipping, is empty.")
+                self._debug("- skipping, is empty.")
                 return []
 
             for item in contents:
                 source = os.path.join(path, item)
-                target = os.path.join(self._target, item)
+                target = os.path.join(self._base_target, item)
 
                 self.symlink(source, target)
 
         else:
             basename = os.path.basename(path)
-            target = os.path.join(self._target, basename)
+            target = os.path.join(self._base_target, basename)
 
             self.symlink(path, target)
 
-            self.debug("~ retaining %s in variable." % target)
+            self._debug("~ retaining %s in variable." % target)
             return [target]
 
         return []
@@ -1077,9 +1098,10 @@ class PythonPathFlattener(DefaultFlattener):
            provide a namespace using the pkg_resources mechanism.  As there is
            no easy way to detect this, we must merge all subdirectories
            together into one local flattened structure.
-        4. Everything else we treat as a normal file.  We assume that these are
-           standard .py files as so create symlinks back to the original
-           source.
+        4. For anything else that might be contained in the directory, we treat
+           it as a normal file.  We assume that these are standard .py files as
+           so create symlinks back to the original source.  Even if they are
+           not, there is not much else we can do.
 
     If the path is a file then there is a high chance it is an egg file (a zip
     archive).  Even if it's not an egg file, there's little else we can do
@@ -1100,93 +1122,47 @@ class PythonPathFlattener(DefaultFlattener):
     def makedirs(self, target):
 
         if not os.path.isdir(target):
-            self.debug("- %s mkdir" % (target))
+            self._debug("- %s mkdir" % (target))
             os.makedirs(target)
 
-    def flatten_path(self, path):
+    def _flatten_path(self, path):
         self._indent = 4
 
         if os.path.isdir(path):
-            # The current path is a .egg file (scenario 1 in the class
-            # docstring).  In this case we create a symlink and ensure it 
-            # remains in the PYTHONPATH.
             if path.endswith(self.EGG_SUFFIX):
-                basename = os.path.basename(path)
-                target = os.path.join(self._target, basename)
-
-                self.symlink(path, target)
-
-                self.debug("~ retaining %s in PYTHONPATH." % target)
-                return [target]
+                # The current path is a .egg file (scenario 1 in the class
+                # docstring).  In this case we create a symlink and ensure it
+                # remains in the PYTHONPATH.
+                return self._flatten_egg(path)
 
             contents = os.listdir(path)
 
             # Otherwise check to see if it contains one or more egg files that
             # are not already in the PYTHONPATH (scenario 2 in the docstring
             # for this class).
-            paths_to_retain = []
             eggs = filter(lambda x: x.endswith(self.EGG_SUFFIX), contents)
-            for egg in eggs:
-                source = os.path.join(path, egg)
-                target = os.path.join(self._target, egg)
-
-                if source in self._paths:
-                    # The egg is already in the PYTHONPATH, it will be dealt
-                    # with on another iteration, so we can ignore it.
-                    # (scenario 4 in the docstring for this class).
-                    self.debug("- %s - skipping, already in PYTHONPATH" % (egg))
-                    contents.remove(egg)
-
-                else:
-                    # The egg isn't in the PYTHONPATH so a .pth and site.py
-                    # file must be loading it.
-                    if self.SITE_FILE in contents:
-                        contents.remove(self.SITE_FILE)
-                    contents = filter(lambda x: not x.endswith(self.PTH_SUFFIX), contents)
-
-                    self.debug("~ retaining %s in PYTHONPATH." % target)
-                    paths_to_retain.append(target)
+            paths_to_retain, contents = self._filter_eggs_from_contents(path, eggs, contents)
 
             for item in contents:
                 self._indent = 4
-                source = os.path.join(path, item)
 
-                if os.path.isdir(source):
+                if os.path.isdir(os.path.join(path, item)):
                     # It's a directory.  Because of Python's namespace magic,
                     # it is possible to have multiple directories with the same
                     # name in the PYTHONPATH, each providing the same top level
                     # namespace (and different child namespaces).  As a result
                     # we must merge all directories that we come across to
                     # ensure we pick up all the potential namespaces.  The
-                    # easiest way to do this with assuming anything about the
-                    # structure of the python code is to flatten the folder
+                    # easiest way to do this without assuming anything about
+                    # the structure of the python code is to flatten the folder
                     # structure locally, with symlinks off to the actualy files
                     # underneath.  As expected, the first occurence of a file
                     # wins.
-                    target = os.path.join(self._target, item)
-                    self.makedirs(target)
-
-                    for root, dirs, files in os.walk(source):
-                        relative = os.path.relpath(root, path)
-                        depth = relative.count(os.path.sep) + 1
-                        self._indent = 4 + (depth * 2)
-
-                        for file_ in files:
-                            source = os.path.join(root, file_)
-                            target = os.path.join(self._target, relative, file_)
-
-                            self.symlink(source, target)
-
-                        for dir_ in dirs:
-                            target = os.path.join(self._target, relative, dir_)
-
-                            self.makedirs(target)
+                    self._flatten_subfolder(path, item)
 
                 else:
                     # Files can just be linked in normally.
-                    target = os.path.join(self._target, item)
-
-                    self.symlink(source, target)
+                    self._flatten_file(path, item)
 
             return paths_to_retain
 
@@ -1195,10 +1171,69 @@ class PythonPathFlattener(DefaultFlattener):
             # make a link to this as usual, however the path must remain in the
             # resulting PYTHONPATH variable to ensure it is importable.  This
             # is scenario 4 in the docstring.
-            basename = os.path.basename(path)
-            target = os.path.join(self._target, basename)
+            return self._flatten_egg(path)
 
-            self.symlink(path, target)
+    def _flatten_egg(self, path):
+        basename = os.path.basename(path)
+        target = os.path.join(self._base_target, basename)
 
-            self.debug("~ retaining %s in PYTHONPATH." % target)
-            return [target]
+        self.symlink(path, target)
+
+        self._debug("~ retaining %s in PYTHONPATH." % target)
+        return [target]
+
+    def _flatten_file(self, path, item):
+        source = os.path.join(path, item)
+        target = os.path.join(self._base_target, item)
+
+        self.symlink(source, target)
+
+    def _flatten_subfolder(self, path, item):
+        subfolder = os.path.join(path, item)
+        target = os.path.join(self._base_target, item)
+        self.makedirs(target)
+
+        for root, dirs, files in os.walk(subfolder):
+            relative = os.path.relpath(root, path)
+            depth = relative.count(os.path.sep) + 1
+            self._indent = 4 + (depth * 2)
+
+            for file_ in files:
+                source = os.path.join(root, file_)
+                target = os.path.join(self._base_target, relative, file_)
+
+                self.symlink(source, target)
+
+            for dir_ in dirs:
+                target = os.path.join(self._base_target, relative, dir_)
+
+                self.makedirs(target)
+
+    def _filter_eggs_from_contents(self, path, eggs, contents):
+        paths_to_retain = []
+
+        for egg in eggs:
+            source = os.path.join(path, egg)
+            target = os.path.join(self._base_target, egg)
+
+            if source in self._paths:
+                # The egg is already in the PYTHONPATH, it will be dealt
+                # with on another iteration, so we can ignore it.
+                # (scenario 4 in the docstring for this class).
+                self._debug("- %s - skipping, already in PYTHONPATH" % (egg))
+                contents.remove(egg)
+
+            else:
+                # The egg isn't in the PYTHONPATH so a .pth and site.py
+                # file must be loading it.  Technically we only need to do
+                # this once, no makker how many eggs we discover in the
+                # path.  However to preserve the clarity of the flattening
+                # logic we do it on each iteration.
+                if self.SITE_FILE in contents:
+                    contents.remove(self.SITE_FILE)
+                contents = filter(lambda x: not x.endswith(self.PTH_SUFFIX), contents)
+
+                self._debug("~ retaining %s in PYTHONPATH." % target)
+                paths_to_retain.append(target)
+
+        return paths_to_retain, contents

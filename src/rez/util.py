@@ -106,8 +106,10 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
              | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
-def print_debug(msg):
-    logger.debug(msg)
+def print_debug(msg, module=None):
+    from rez.config import config
+    if module is None or config.debug(module):
+        logger.debug(msg)
 
 
 def print_info(msg):
