@@ -1,4 +1,5 @@
 from rez.solver import Solver, SolverStatus, PackageVariantCache
+from rez.config import config
 from rez.vendor.enum import Enum
 
 
@@ -91,6 +92,7 @@ class Resolver(object):
                       package_load_callback=self.package_load_callback,
                       building=self.building,
                       verbosity=self.verbosity,
+                      prune_unfailed=config.prune_failed_graph,
                       buf=self.buf)
 
         if self.start_depth:

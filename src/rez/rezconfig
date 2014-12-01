@@ -115,6 +115,12 @@ resolve_caching: true
 resolve_start_depth: 1
 resolve_max_depth: 0
 
+# If true, then when a resolve graph is generated during a failed solve, packages
+# unrelated to the failure are pruned from the graph. An 'unrelated' package is
+# one that is not a dependency ancestor of any packages directly involved in the
+# failure.
+prune_failed_graph: true
+
 
 ###############################################################################
 # Environment Resolution

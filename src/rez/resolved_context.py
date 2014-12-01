@@ -85,7 +85,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (3, 1)
+    serialize_version = (3, 2)
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -789,6 +789,7 @@ class ResolvedContext(object):
         The dependency graph is a simpler subset of the resolve graph. It
         contains package name nodes connected directly to their dependencies.
         Weak references and conflict requests are not included in the graph.
+        The dependency graph does not show conflicts.
 
         Returns:
             `pygraph.digraph` object.
