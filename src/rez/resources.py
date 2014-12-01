@@ -72,26 +72,6 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # File Loading
 # -----------------------------------------------------------------------------
 
-def memcached():
-    def decorator(function):
-        def wrapper(*args, **kwargs):
-            path = args[0]
-            is_file = kwargs['is_file']
-            key = '%s(%s,%s)' % (function.__name__, path, is_file)
-
-            for search_path in config.memcache_search_paths:
-                if path.startswith(search_path):
-                    value = memcache.get(key)
-                    if value is None:
-                        value = function(path, is_file=is_file)
-                        memcache.set(key, value)
-                    memcache.disconnect()
-                    return value
-            else:
-                return function(path, is_file=is_file)
-        return wrapper
-    return decorator
-
 
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _findpath(path, is_file=None):
@@ -777,16 +757,12 @@ class FileResource(FileSystemResource):
         loaded from other reources.
         """
         key = "load(%s)" % self.path
-        cacheable = self.variables.get("search_path", "") in config.memcache_search_paths
+        search_path = self.variables.get("search_path", "")
 
-        data = memcache.get(key) if cacheable else None
+        data = memcache.get(key, search_path=search_path)
         if data is None:
             data = self._load_file()
-
-            if cacheable:
-                memcache.set(key, data)
-
-        memcache.disconnect()
+            memcache.set(key, data, search_path=search_path)
 
         try:
             if self.schema:

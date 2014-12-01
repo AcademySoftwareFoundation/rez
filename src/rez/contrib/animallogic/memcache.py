@@ -26,13 +26,16 @@ def disconnect():
         if config.debug("memcache"):
             print_debug("disconnecting all memcache servers.")
 
-        connect().disconnect_all()
+        _g_client.disconnect_all()
         _g_client = None
 
 
-def get(key):
+def get(key, search_path=None):
+	if search_path and search_path not in config.memcache_search_paths:
+		return None
 
     connection = connect()
+
     if connection:
         if config.debug("memcache"):
             print_debug("fetching key '%s' from memcache." % key)
@@ -42,7 +45,9 @@ def get(key):
     return None
 
 
-def set(key, value):
+def set(key, value, search_path=None):
+	if search_path and search_path not in config.memcache_search_paths:
+		return False
 
     connection = connect()
 
