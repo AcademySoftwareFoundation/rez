@@ -379,7 +379,7 @@ class ActionManager(object):
         self.interpreter.error(value)
 
     def command(self, value):
-        value = self._format(value)
+        # Note: Value is deliberately not formatted in commands
         self.actions.append(Command(value))
         self.interpreter.command(value)
 
