@@ -204,8 +204,6 @@ flatten_env: true
 # alongside the resulting context).
 flatten_env_vars:
 - LD_LIBRARY_PATH
-- PYTHONPATH
-- PATH
 
 
 ###############################################################################
