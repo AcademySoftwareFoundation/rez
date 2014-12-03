@@ -1218,6 +1218,7 @@ class ResolvedContext(object):
         # create and init the context
         r = ResolvedContext.__new__(ResolvedContext)
         r.load_path = None
+        r.tmpdir = mkdtemp_()
 
         r.timestamp = d["timestamp"]
         r.building = d["building"]
