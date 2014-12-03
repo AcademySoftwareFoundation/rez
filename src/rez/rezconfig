@@ -246,7 +246,7 @@ debug_bind_modules: false
 debug_resources: false
 
 # Print debugging info when flattening environment variables.
-debug_flatten_env: true
+debug_flatten_env: false
 
 # Turn on all debugging messages
 debug_all: false
