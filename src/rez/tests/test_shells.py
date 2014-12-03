@@ -37,7 +37,8 @@ class TestShells(TestBase, TempdirMixin):
             packages_path=[packages_path],
             implicit_packages=[],
             warn_untimestamped=False,
-            resolve_caching=False)
+            resolve_caching=False,
+            flatten_env=False)
 
     @classmethod
     def tearDownClass(cls):
