@@ -5,9 +5,11 @@ from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, TempdirMixin
 from rez.util import convert_old_commands
 import inspect
+import shutil
+import tempfile
 import textwrap
 import os
 
@@ -309,7 +311,6 @@ class TestRex(TestBase):
                        'FOO': ",".join(["test1","test2","test3"]),
                        'BAH': " ".join(["B","A","C"])})
 
-
     def test_9(self):
         """Convert old style commands to rex"""
 
@@ -357,23 +358,415 @@ class TestRex(TestBase):
         self.assertEqual(v.as_tuple(), (1, 2, "3alpha"))
 
 
+class TestRexFlattenEnvironment(TestBase, TempdirMixin):
+
+    @classmethod
+    def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
+        cls.settings = dict(flatten_env_vars=[])
+
+    @classmethod
+    def tearDownClass(cls):
+
+        TempdirMixin.tearDownClass()
+
+    def setUp(self):
+        TestBase.setUp(self)
+
+        self.variable = "env_var_to_flatten"
+        self.executor = self._create_executor({})
+
+    def _create_executor(self, env, **kwargs):
+
+        interp = Python(target_environ={}, passive=True)
+
+        return RexExecutor(interpreter=interp,
+                           parent_environ=env,
+                           shebang=False,
+                           **kwargs)
+
+    def assertUndefined(self):
+
+        self.assertFalse(self.executor.defined(self.variable))
+
+    def assertDefined(self):
+
+        self.assertTrue(self.executor.defined(self.variable))
+
+    def assertValue(self, expected=None):
+
+        expected = os.path.join(self.root, self.variable) if expected is None else expected
+        self.assertEquals(expected, self.executor.env.get(self.variable).value())
+
+    def test_variable_undefined_remains_undefined(self):
+
+        self.assertUndefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertUndefined()
+
+    def test_variable_defined_but_empty_remains_empty(self):
+
+        self.executor.setenv(self.variable, "")
+
+        self.assertDefined()
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertDefined()
+        self.assertValue("")
+
+
+class TestRexFlattener(TestBase):
+
+    @classmethod
+    def setUpClass(cls):
+
+        cls.settings = dict(flatten_env_vars=[])
+
+    def setUp(self):
+
+        self.root = tempfile.mkdtemp(prefix="rez_selftest_")
+        self.variable = "env_var_to_flatten"
+        self.executor = self._create_executor({})
+
+    def tearDown(self):
+
+        if os.path.exists(self.root):
+            shutil.rmtree(self.root)
+
+    def _touch(self, filepath):
+
+        fd = open(filepath, "w")
+        fd.write("Hello, World!")
+        fd.close()
+
+    def _makedirs(self, directorypath):
+
+        os.makedirs(directorypath)
+
+    def _create_executor(self, env, **kwargs):
+
+        interp = Python(target_environ={}, passive=True)
+
+        return RexExecutor(interpreter=interp,
+                           parent_environ=env,
+                           shebang=False,
+                           **kwargs)
+
+    def assertValue(self, expected=None):
+
+        expected = os.path.join(self.root, self.variable) if expected is None else expected
+        self.assertEquals(expected, self.executor.env.get(self.variable).value())
+
+    def assertIsDir(self, target):
+
+        self.assertTrue(os.path.isdir(os.path.join(self.root, self.variable, target)))
+
+    def assertIsLink(self, target):
+
+        self.assertTrue(os.path.islink(os.path.join(self.root, self.variable, target)))
+
+    def assertReadlink(self, link, target):
+
+        self.assertEqual(os.readlink(os.path.join(self.root, self.variable, link)), target)
+
+    def assertNumberOfContents(self, expected, target=None):
+
+        target = os.path.join(self.root, self.variable) if target is None else target
+        self.assertEqual(expected, len(os.listdir(target)))
+
+
+class TestRexDefaultFlattener(TestRexFlattener):
+
+    def test_variable_defined_containing_missing_path_creates_empty_flatten(self):
+
+        self.executor.setenv(self.variable, "/this/path/does/not/exist")
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(0)
+
+    def test_variable_defined_containing_empty_path(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+
+        self.executor.setenv(self.variable, item)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(0)
+
+    def test_variable_defined_containing_path_with_single_file(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        self._touch(os.path.join(item, "test.sh"))
+
+        self.executor.setenv(self.variable, item)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.sh")
+        self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
+
+    def test_variable_defined_containing_path_with_single_directory(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        self._makedirs(os.path.join(item, "test"))
+
+        self.executor.setenv(self.variable, item)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test")
+        self.assertReadlink("test", os.path.join(item, "test"))
+
+    def test_variable_defined_containing_paths_duplicate_files(self):
+
+        item1 = os.path.join(self.root, "item1")
+        self._makedirs(item1)
+        self._touch(os.path.join(item1, "test1.sh"))
+
+        item2 = os.path.join(self.root, "item2")
+        self._makedirs(item2)
+        self._touch(os.path.join(item2, "test1.sh"))
+        self._touch(os.path.join(item2, "test2.sh"))
+
+        self.executor.setenv(self.variable, item1 + os.pathsep + item2)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(2)
+        self.assertIsLink("test1.sh")
+        self.assertReadlink("test1.sh", os.path.join(item1, "test1.sh"))
+        self.assertIsLink("test2.sh")
+        self.assertReadlink("test2.sh", os.path.join(item2, "test2.sh"))
+
+    def test_variable_defined_containing_path_which_is_single_file(self):
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        test_file = os.path.join(item, "test.sh")
+        self._touch(test_file)
+
+        self.executor.setenv(self.variable, test_file)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test.sh"))
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.sh")
+        self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
+
+    def test_variable_defined_containing_complex_mixture(self):
+
+        item1 = os.path.join(self.root, "item1")
+        self._makedirs(item1)
+        self._touch(os.path.join(item1, "test1.sh"))
+        test_file1 = os.path.join(item1, "test3.sh")
+        self._touch(os.path.join(item1, "test3.sh"))
+
+        item2 = os.path.join(self.root, "item2")
+        self._makedirs(item2)
+        self._touch(os.path.join(item2, "test1.sh"))
+        self._touch(os.path.join(item2, "test2.sh"))
+        self._makedirs(os.path.join(item2, "test1"))
+
+        item3 = os.path.join(self.root, "item3")
+        self._makedirs(item3)
+        self._makedirs(os.path.join(item3, "test1"))
+        self._makedirs(os.path.join(item3, "test2"))
+
+        test_file2 = os.path.join(item2, "test3.sh")
+        self._touch(os.path.join(item2, "test3.sh"))
+
+        self.executor.setenv(self.variable, test_file1 + os.pathsep + item1 + os.pathsep + item2 + os.pathsep + item3 + os.pathsep + test_file2)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test3.sh"))
+        self.assertNumberOfContents(5)
+        self.assertIsLink("test1.sh")
+        self.assertReadlink("test1.sh", os.path.join(item1, "test1.sh"))
+        self.assertIsLink("test2.sh")
+        self.assertReadlink("test2.sh", os.path.join(item2, "test2.sh"))
+        self.assertIsLink("test1")
+        self.assertReadlink("test1", os.path.join(item2, "test1"))
+        self.assertIsLink("test2")
+        self.assertReadlink("test2", os.path.join(item3, "test2"))
+        self.assertIsLink("test3.sh")
+        self.assertReadlink("test3.sh", os.path.join(item1, "test3.sh"))
+
+
+class TestRexPythonPathFlattener(TestRexFlattener):
+
+    def setUp(self):
+
+        TestRexFlattener.setUp(self)
+
+        self.variable = "PYTHONPATH"
+
+    def test_variable_contains_directory_of_py_files(self):
+        """
+        PYTHONPATH=self.root/item
+        """
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        test_file1 = os.path.join(item, "test1.py")
+        self._touch(test_file1)
+        test_file2 = os.path.join(item, "test2.py")
+        self._touch(test_file2)
+
+        self.executor.setenv(self.variable, item)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable))
+        self.assertNumberOfContents(2)
+        self.assertIsLink("test1.py")
+        self.assertReadlink("test1.py", os.path.join(item, "test1.py"))
+        self.assertIsLink("test2.py")
+        self.assertReadlink("test2.py", os.path.join(item, "test2.py"))
+
+    def test_variable_contains_egg_file(self):
+        """
+        PYTHONPATH=self.root/item/test.egg
+        """
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        test_file = os.path.join(item, "test.egg")
+        self._touch(test_file)
+
+        self.executor.setenv(self.variable, test_file)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test.egg"))
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.egg")
+        self.assertReadlink("test.egg", os.path.join(item, "test.egg"))
+
+    def test_variable_contains_directory(self):
+        """
+        PYTHONPATH=self.root/item/
+        """
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+
+        dir_ = os.path.join(item, "dir")
+        self._makedirs(dir_)
+        test_file = os.path.join(dir_, "__init__.py")
+        self._touch(test_file)
+
+        self.executor.setenv(self.variable, item)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsDir("dir")
+        self.assertIsLink("dir/__init__.py")
+        self.assertReadlink("dir/__init__.py", os.path.join(item, "dir/__init__.py"))
+
+    def test_variable_contains_egg_file_also_on_path(self):
+        """
+        PYTHONPATH=self.root/item/:self.root/item/test.egg
+        """
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        test_file = os.path.join(item, "test.egg")
+        self._touch(test_file)
+
+        self.executor.setenv(self.variable, test_file)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test.egg"))
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.egg")
+        self.assertReadlink("test.egg", os.path.join(item, "test.egg"))
+
+    def test_variable_contains_egg_file_not_on_path(self):
+        """
+        PYTHONPATH=self.root/item/
+        """
+
+        item = os.path.join(self.root, "item")
+        self._makedirs(item)
+        test_file = os.path.join(item, "test.egg")
+        self._touch(test_file)
+        self._touch(os.path.join(item, "test.pth"))
+        self._touch(os.path.join(item, "site.py"))
+
+        self.executor.setenv(self.variable, test_file)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue(expected=os.path.join(self.root, self.variable) + os.pathsep + os.path.join(self.root, self.variable, "test.egg"))
+        self.assertNumberOfContents(1)
+        self.assertIsLink("test.egg")
+        self.assertReadlink("test.egg", os.path.join(item, "test.egg"))
+
+    def test_variable_contains_multiple_directories_providing_namespace(self):
+        """
+        PYTHONPATH=self.root/item1:self.root/item2
+        """
+
+        item1 = os.path.join(self.root, "item1")
+        self._makedirs(item1)
+        self._makedirs(os.path.join(item1, "namespace"))
+        self._touch(os.path.join(item1, "namespace", "__init__.py"))
+        self._makedirs(os.path.join(item1, "namespace", "sub_a"))
+        self._touch(os.path.join(item1, "namespace", "sub_a", "__init__.py"))
+
+        item2 = os.path.join(self.root, "item2")
+        self._makedirs(item2)
+        self._makedirs(os.path.join(item2, "namespace"))
+        self._touch(os.path.join(item2, "namespace", "__init__.py"))
+        self._makedirs(os.path.join(item2, "namespace", "sub_b"))
+        self._touch(os.path.join(item2, "namespace", "sub_b", "__init__.py"))
+
+        self.executor.setenv(self.variable, item1 + os.pathsep + item2)
+
+        self.executor.flatten(self.root, variables=[self.variable])
+
+        self.assertValue()
+        self.assertNumberOfContents(1)
+        self.assertIsDir("namespace")
+        self.assertIsDir("namespace/sub_a")
+        self.assertIsDir("namespace/sub_b")
+        self.assertIsLink("namespace/__init__.py")
+        self.assertReadlink("namespace/__init__.py", os.path.join(item1, "namespace/__init__.py"))
+        self.assertReadlink("namespace/sub_a/__init__.py", os.path.join(item1, "namespace/sub_a/__init__.py"))
+        self.assertReadlink("namespace/sub_b/__init__.py", os.path.join(item2, "namespace/sub_b/__init__.py"))
+
 
 def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestRex("test_1"))
-    suite.addTest(TestRex("test_2"))
-    suite.addTest(TestRex("test_3"))
-    suite.addTest(TestRex("test_4"))
-    suite.addTest(TestRex("test_5"))
-    suite.addTest(TestRex("test_6"))
-    suite.addTest(TestRex("test_7"))
-    suite.addTest(TestRex("test_8"))
-    suite.addTest(TestRex("test_9"))
-    suite.addTest(TestRex("test_version_binding"))
 
-    suites.append(suite)
+    suites = []
+    tests = [TestRex, TestRexFlattenEnvironment, TestRexDefaultFlattener]
+
+    for test in tests:
+        suites.append(unittest.TestLoader().loadTestsFromTestCase(test))
+
     return suites
+
 
 if __name__ == '__main__':
     unittest.main()

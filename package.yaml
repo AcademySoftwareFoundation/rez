@@ -4,7 +4,7 @@ uuid: 97937642-3646-4966-ab9c-8f337bbbce6a
 
 name: rez
 
-version: 2.0.b.14.2
+version: 2.0.b.14.3
 
 authors: [ rez ]
 
@@ -34,5 +34,3 @@ commands:
 - export REZ_PACKAGES_PATH=$REZ_LOCAL_PACKAGES_PATH:$REZ_RELEASE_PACKAGES_PATH
 - export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
 - export REZ_DEBUG=1
-
-

@@ -197,6 +197,21 @@ lint_variables:
 - LD_LIBRARY_PATH
 - PATH
 
+# Flatten the resulting environment.  If true, variables listed in the
+# flatten_env_vars config setting will be collapsed into a single directory.
+# Each variable is handled separately.  Each path in the variable (identified 
+# using the env_var_separators setting) is traversed in order.  For each item
+# found in the path a symlink is created in a temporary directory.  The value
+# of the environment variable is then replaced with this temporary directory.
+# Duplicate items found later in variable are ignored.
+flatten_env: true
+
+# A list of environment variables that will be collapsed.  Each variable will 
+# have it's contents flattened into a single directory in tmpdir (generally 
+# alongside the resulting context).
+flatten_env_vars:
+- LD_LIBRARY_PATH
+
 
 ###############################################################################
 # Debugging
@@ -229,6 +244,9 @@ debug_bind_modules: false
 
 # Print debugging info when searching and loading resources.
 debug_resources: false
+
+# Print debugging info when flattening environment variables.
+debug_flatten_env: true
 
 # Turn on all debugging messages
 debug_all: false

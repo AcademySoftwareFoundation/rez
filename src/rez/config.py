@@ -153,6 +153,7 @@ config_schema = Schema({
     "resetting_variables":              StrList,
     "release_hooks":                    StrList,
     "lint_variables":                   StrList,
+    "flatten_env_vars":                 StrList,
     "critical_styles":                  OptionalStrList,
     "error_styles":                     OptionalStrList,
     "warning_styles":                   OptionalStrList,
@@ -217,6 +218,7 @@ config_schema = Schema({
     "debug_package_release":            Bool,
     "debug_bind_modules":               Bool,
     "debug_resources":                  Bool,
+    "debug_flatten_env":                Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,
@@ -237,6 +239,7 @@ config_schema = Schema({
     "rez_1_environment_variables":      Bool,
     "rez_1_cmake_variables":            Bool,
     "disable_rez_1_compatibility":      Bool,
+    "flatten_env":                      Bool,
     "env_var_separators":               Dict,
 
     # GUI settings

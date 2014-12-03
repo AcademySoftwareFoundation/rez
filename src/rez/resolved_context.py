@@ -153,6 +153,7 @@ class ResolvedContext(object):
                 to stdout.
         """
         self.load_path = None
+        self.tmpdir = mkdtemp_()
 
         # resolving settings
         self.requested_timestamp = timestamp
@@ -1105,16 +1106,14 @@ class ResolvedContext(object):
         sh = create_shell(shell)
 
         # context and rxt files
-        tmpdir = mkdtemp_()
-
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path
         else:
-            rxt_file = os.path.join(tmpdir, "context.rxt")
+            rxt_file = os.path.join(self.tmpdir, "context.rxt")
             self.save(rxt_file)
 
         context_file = context_filepath or \
-            os.path.join(tmpdir, "context.%s" % sh.file_extension())
+            os.path.join(self.tmpdir, "context.%s" % sh.file_extension())
 
         # interpret this context and write out the native context file
         executor = self._create_executor(sh, parent_environ)
@@ -1130,7 +1129,7 @@ class ResolvedContext(object):
 
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
-                           tmpdir,
+                           self.tmpdir,
                            rcfile=rcfile,
                            norc=norc,
                            stdin=stdin,
@@ -1385,6 +1384,9 @@ class ResolvedContext(object):
                     msg = "Error in commands in file %s:\n%s" \
                           % (pkg.path, str(e))
                     raise PackageCommandError(msg)
+
+        if config.flatten_env:
+            executor.flatten(self.tmpdir)
 
         _heading("post system setup")
         # append suite path if there is an active parent suite

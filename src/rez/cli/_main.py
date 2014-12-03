@@ -101,8 +101,6 @@ def run(command=None):
     opts = parser.parse_args(arg_groups[0])
 
     if opts.debug or _env_var_true("REZ_DEBUG"):
-        from rez.util import set_rm_tmpdirs
-        set_rm_tmpdirs(False)
         exc_type = None
     else:
         exc_type = Exception
