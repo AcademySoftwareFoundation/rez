@@ -2,6 +2,7 @@
 Run unit tests.
 '''
 
+
 def setup_parser(parser, completions=False):
     parser.add_argument("--shells", action="store_true",
                         help="test shell invocation")
@@ -21,6 +22,8 @@ def setup_parser(parser, completions=False):
                         help="test resolved contexts")
     parser.add_argument("--resources", action="store_true",
                         help="test resource iteration and serialization")
+    parser.add_argument("--resources_", action="store_true",
+                        help="test core resource system")
     parser.add_argument("--packages", action="store_true",
                         help="test package iteration and serialization")
     parser.add_argument("--config", action="store_true",
@@ -47,7 +50,7 @@ def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "release", "context", "resources", "packages", "config",
+             "release", "context", "resources", "resources_", "packages", "config",
              "completion", "suites", "version", "schema", "lint",
              "animallogic", "launcher", "unleash"]
     suites = []

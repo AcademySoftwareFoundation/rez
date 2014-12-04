@@ -1,5 +1,5 @@
 """
-Built-in simple python build system.
+Built-in simple python build system
 """
 from rez.build_system import BuildSystem
 from rez.build_process import BuildType

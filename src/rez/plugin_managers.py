@@ -3,7 +3,7 @@ Manages loading of all types of Rez plugins.
 """
 from rez.config import config, _to_schema
 from rez.util import LazySingleton, propertycache, deep_update, columnise, \
-    print_debug
+    print_debug, print_warning
 from rez.exceptions import RezPluginError
 import os.path
 
@@ -120,8 +120,13 @@ class RezPluginType(object):
                             plugin_class = module.register_plugin()
                             self.register_plugin(plugin_name, plugin_class, module)
                         else:
+                            if config.debug("plugins"):
+                                print_warning(
+                                    "no 'register_plugin' function at %s: %s"
+                                    % (path, modname))
+
                             # delete from sys.modules?
-                            pass
+
                     except Exception as e:
                         nameish = modname.split('.')[-1]
                         self.failed_plugins[nameish] = str(e)
@@ -175,8 +180,7 @@ class RezPluginType(object):
 
 
 class RezPluginManager(object):
-    """
-    Primary interface for working with registered plugins.
+    """Primary interface for working with registered plugins.
 
     Custom plugins are organized under a python package named 'rezplugins'.
     The direct sub-packages of 'rezplugins' are the plugin types supported by
@@ -224,8 +228,7 @@ class RezPluginManager(object):
         All 'rezplugin' packages found on the search path will all be merged
         into a single python package.
 
-        ..note::
-
+        Note:
             Even though 'rezplugins' is a python package, your sparse copy of
             it should  not be on the `PYTHONPATH`, just the `REZ_PLUGIN_PATH`.
             This is important  because it ensures that rez's copy of
@@ -341,9 +344,16 @@ class BuildSystemPluginType(RezPluginType):
     type_name = "build_system"
 
 
+class PackageRepositoryPluginType(RezPluginType):
+    """Support for different package repositories for loading packages.
+    """
+    type_name = "package_repository"
+
+
 plugin_manager = RezPluginManager()
 
 plugin_manager.register_plugin_type(ShellPluginType)
 plugin_manager.register_plugin_type(ReleaseVCSPluginType)
 plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
+plugin_manager.register_plugin_type(PackageRepositoryPluginType)

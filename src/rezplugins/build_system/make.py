@@ -1,5 +1,5 @@
 """
-Make-based build system.
+Make-based build system
 """
 from rez.build_system import BuildSystem
 import os.path
