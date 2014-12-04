@@ -18,18 +18,14 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    import subprocess
     import sys
 
-    if not opts.FILE:
-        # run interactive interpreter
-        import subprocess
-        p = subprocess.Popen([sys.executable, "-E"])
-        p.wait()
-        return
+    cmd = [sys.executable, "-E"]
 
-    with open(opts.FILE) as f:
-        code = f.read()
-    pyc = compile(code, opts.FILE, "exec")
+    if opts.FILE:
+        cmd.append(opts.FILE)
+        cmd.extend(opts.ARG or [])
 
-    sys.argv = opts.ARG or []
-    exec(pyc, globals(), locals())
+    p = subprocess.Popen(cmd)
+    p.wait()
