@@ -2,8 +2,8 @@
 Manages loading of all types of Rez plugins.
 """
 from rez.config import config, _to_schema
-from rez.util import LazySingleton, propertycache, deep_update, columnise
-from rez.utils.logging_ import print_debug, print_warning
+from rez.util import LazySingleton, propertycache, deep_update, columnise, \
+    print_debug, print_warning
 from rez.exceptions import RezPluginError
 import os.path
 
