@@ -39,6 +39,22 @@ from rez.backport.lru_cache import lru_cache
 Required = Schema
 
 
+def schema_keys(schema):
+    """
+    Returns:
+        Set of keys of a schema which is in the form (eg):
+
+            schema = Schema({Required("foo"): int,
+                             Optional("bah"): basestring})
+    """
+    def _get_leaf(value):
+        if isinstance(value, Schema):
+            return _get_leaf(value._schema)
+        return value
+
+    return set(_get_leaf(x) for x in _get_leaf(schema))
+
+
 class cached_property(object):
     """simple property caching decorator."""
     def __init__(self, func, name=None):
@@ -49,6 +65,61 @@ class cached_property(object):
         result = self.func(instance)
         setattr(instance, self.name, result)
         return result
+
+
+class AttributeForwardMeta(type):
+    """Metaclass for forwarding attributes of class member `wrapped` onto the
+    parent class.
+
+    If the parent class already contains an attribute of the same name,
+    forwarding is skipped for that attribute.
+
+    The class must contain:
+    - keys (list of str): The attributes to be forwarded.
+
+    Example:
+
+        >>> class Foo(object):
+        >>>     def __init__(self):
+        >>>         self.a = "a_from_foo"
+        >>>         self.b = "b_from_foo"
+        >>>
+        >>> class Bah(object):
+        >>>     __metaclass__ = AttributeForwardMeta
+        >>>     keys = ["a", "b"]
+        >>>
+        >>>     @property
+        >>>     def a(self):
+        >>>         return "a_from_bah"
+        >>>
+        >>>     def __init__(self, child):
+        >>>         self.wrapped = child
+        >>>
+        >>> x = Foo()
+        >>> y = Bah(x)
+        >>> print y.a
+        a_from_bah
+        >>> print y.b
+        b_from_foo
+    """
+    def __new__(cls, name, parents, members):
+        keys = members.get('keys')
+        if keys:
+            def _defined(x):
+                return x in members or any(hasattr(p, x) for p in parents)
+
+            for key in keys:
+                if not _defined(key):
+                    members[key] = cls._make_forwarder(key)
+
+        return super(AttributeForwardMeta, cls).__new__(cls, name, parents, members)
+
+    @classmethod
+    def _make_forwarder(cls, key):
+        def func(self):
+            return getattr(self.wrapped, key)
+
+        return property(func)
 
 
 class LazyAttributeMeta(type):
@@ -73,7 +144,7 @@ class LazyAttributeMeta(type):
           validated dict, or None if there is no schema;
         - '_validate_key_impl' (function): Validation function used when
           '_validate_key' is not provided, it is here so you can use it in
-          your own '_validate_key'.
+          your own '_validate_key' function.
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
@@ -204,6 +275,22 @@ class Resource(object):
     def data(self):
         return self._load()
 
+    def get(self, key, default=None):
+        """Get the value of a resource variable."""
+        return self.variables.get(key, default)
+
+    def __str__(self):
+        return "%s%r" % (self.key, self.variables)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.variables)
+
+    def __hash__(self):
+        return hash((self.__class__, self.handle))
+
+    def __eq__(self, other):
+        return (self.handle == other.handle)
+
     def _load(self):
         """Load the data associated with the resource.
 
@@ -238,7 +325,7 @@ class ResourceHandle(object):
         return ResourceHandle(**d)
 
     def __str__(self):
-        return "%s%r" % (self.key, self.variables)
+        return "<%s%r>" % (self.key, self.variables)
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.key, self.variables)
@@ -295,3 +382,59 @@ class ResourcePool(object):
                                 "resource type %r" % resource_key)
 
         return resource_class(resource_handle.variables)
+
+
+class ResourceWrapper(object):
+    """An object that wraps a resource instance.
+
+    A resource wrapper is useful for two main reasons. First, we can wrap
+    several different resources with the one class, giving them a common
+    interface. This is useful when the same resource can be loaded from various
+    different sources (perhaps a database and the filesystem for example), and
+    further common functionality needs to be supplied.
+
+    Second, some resource attributes can be derived from the resource's
+    variables, which means the resource's data doesn't need to be loaded to get
+    these attributes. The wrapper can provide its own properties that do this,
+    avoiding unnecessary data loads.
+
+    You must subclass this class and provide `keys` - the list of attributes in
+    the resource that you want to expose in the wrapper. The `schema_keys`
+    function is provided to help get a list of keys from a resource schema.
+    """
+    __metaclass__ = AttributeForwardMeta
+    keys = None
+
+    def __init__(self, resource):
+        self.wrapped = resource
+
+    @property
+    def resource(self):
+        return self.wrapped
+
+    @property
+    def handle(self):
+        return self.resource.handle
+
+    @property
+    def data(self):
+        return self.resource.data
+
+    def validated_data(self):
+        return self.resource.validated_data()
+
+    def validate_data(self):
+        self.resource.validate_data()
+
+    def __eq__(self, other):
+        return (self.__class__ == other.__class__
+                and self.resource == other.resource)
+
+    def __str__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self.resource))
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self.resource)
+
+    def __hash__(self):
+        return hash((self.__class__, self.resource))
