@@ -273,7 +273,7 @@ class Resource(object):
 
     @cached_property
     def data(self):
-        return self._load()
+        return self._load() if self.schema else None
 
     def get(self, key, default=None):
         """Get the value of a resource variable."""
@@ -356,11 +356,15 @@ class ResourcePool(object):
         assert resource_key is not None
 
         cls_ = self.resource_classes.get(resource_key)
-        if cls_ and cls_ != resource_class:
-            raise ResourceError(
-                "Error registering resource class %s: Resource pool has already "
-                "registered %r to %s" % (resource_class.__class__.__name__,
-                                         resource_key, cls_.__class__.__name__))
+        if cls_:
+            if cls_ == resource_class:
+                return  # already registered
+            else:
+                raise ResourceError(
+                    "Error registering resource class %s: Resource pool has "
+                    "already registered %r to %s"
+                    % (resource_class.__class__.__name__, resource_key,
+                       cls_.__class__.__name__))
 
         self.resource_classes[resource_key] = resource_class
 
