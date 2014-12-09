@@ -1,6 +1,6 @@
-from rez.package_repository import package_repository_manager, \
-    PackageFamilyResource, PackageResource, VariantResource, \
-    package_family_schema, package_schema, variant_schema
+from rez.package_repository import package_repository_manager
+from rez.package_resources_ import PackageFamilyResource, PackageResource, \
+    VariantResource, package_family_schema, package_schema, variant_schema
 from rez.utils.data_utils import cached_property, StringFormatMixin
 from rez.resources_ import ResourceWrapper, schema_keys
 from rez.exceptions import PackageFamilyNotFoundError
