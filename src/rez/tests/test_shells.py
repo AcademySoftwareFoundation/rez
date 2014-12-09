@@ -183,6 +183,8 @@ class TestShells(TestBase, TempdirMixin):
             def _print(value):
                 env.FOO = value
                 info("${FOO}")
+                env.FOO.prepend("${FOO}")
+                env.FOO.append("${FOO}")
 
             env.GREET = "hi"
             env.WHO = "Gary"

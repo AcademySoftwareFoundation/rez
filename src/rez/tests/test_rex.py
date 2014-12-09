@@ -86,8 +86,8 @@ class TestRex(TestBase):
                        Source('./script.src')],
                    expected_output = {
                        'FOO': 'foo',
-                       'A': os.pathsep.join(["/data","/tmp"]),
-                       'B': os.pathsep.join(["/tmp","/data"])})
+                       'A': '"%s"' % os.pathsep.join(["/data","/tmp"]),
+                       'B': '"%s"' % os.pathsep.join(["/tmp","/data"])})
 
     def test_2(self):
         """Test simple setenvs and assignments."""
@@ -129,8 +129,8 @@ class TestRex(TestBase):
                        Prependenv('BAH', 'B'),
                        Appendenv('BAH', 'C')],
                    expected_output = {
-                       'FOO': os.pathsep.join(["test1","test2","test3"]),
-                       'BAH': os.pathsep.join(["B","A","C"])})
+                       'FOO': '"%s"' % os.pathsep.join(["test1","test2","test3"]),
+                       'BAH': '"%s"' % os.pathsep.join(["B","A","C"])})
 
         # FOO and BAH enabled as parent variables, but not present
         expected_actions = [Appendenv('FOO', 'test1'),
@@ -144,8 +144,8 @@ class TestRex(TestBase):
                    env={},
                    expected_actions=expected_actions,
                    expected_output = {
-                       'FOO': os.pathsep.join(["", "test1","test2","test3"]),
-                       'BAH': os.pathsep.join(["B","A", "","C"])},
+                       'FOO': '"%s"' % os.pathsep.join(["", "test1","test2","test3"]),
+                       'BAH': '"%s"' % os.pathsep.join(["B","A", "","C"])},
                    parent_variables=["FOO","BAH"])
 
         # FOO and BAH enabled as parent variables, and present
@@ -154,8 +154,8 @@ class TestRex(TestBase):
                         "BAH": "Z"},
                    expected_actions=expected_actions,
                    expected_output = {
-                       'FOO': os.pathsep.join(["tmp", "test1","test2","test3"]),
-                       'BAH': os.pathsep.join(["B","A", "Z","C"])},
+                       'FOO': '"%s"' % os.pathsep.join(["tmp", "test1","test2","test3"]),
+                       'BAH': '"%s"' % os.pathsep.join(["B","A", "Z","C"])},
                    parent_variables=["FOO","BAH"])
 
     def test_4(self):
@@ -306,8 +306,41 @@ class TestRex(TestBase):
                        Prependenv('BAH', 'B'),
                        Appendenv('BAH', 'C')],
                    expected_output = {
-                       'FOO': ",".join(["test1","test2","test3"]),
-                       'BAH': " ".join(["B","A","C"])})
+                       'FOO': '"%s"' % ",".join(["test1","test2","test3"]),
+                       'BAH': '"%s"' % " ".join(["B","A","C"])})
+
+    def test_9(self):
+        """Convert old style commands to rex"""
+
+        expected = ""
+        rez_commands = convert_old_commands([], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "setenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "setenv('A', 'B:{env.C}')"
+        rez_commands = convert_old_commands(["export A=B:$C"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "appendenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=$A:B"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "prependenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B:$A"], annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "appendenv('A', 'B:{env.C}')"
+        rez_commands = convert_old_commands(["export A=$A:B:$C"],
+                                            annotate=False)
+        self.assertEqual(rez_commands, expected)
+
+        expected = "prependenv('A', '{env.C}:B')"
+        rez_commands = convert_old_commands(["export A=$C:B:$A"],
+                                            annotate=False)
+        self.assertEqual(rez_commands, expected)
 
     def test_version_binding(self):
         """Test the Rex binding of the Version class."""
@@ -371,6 +404,7 @@ def get_test_suites():
     suite.addTest(TestRex("test_6"))
     suite.addTest(TestRex("test_7"))
     suite.addTest(TestRex("test_8"))
+    suite.addTest(TestRex("test_9"))
     suite.addTest(TestRex("test_version_binding"))
     suite.addTest(TestRex("test_old_style_commands"))
     suites.append(suite)
