@@ -41,10 +41,6 @@ from rez.backport.lru_cache import lru_cache
 Required = Schema
 
 
-# an alias for deprecated schema fields
-deprecated = object
-
-
 def schema_keys(schema):
     """
     Returns:

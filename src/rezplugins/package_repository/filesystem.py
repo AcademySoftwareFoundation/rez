@@ -1,8 +1,9 @@
 """
 Filesystem-based package repository
 """
-from rez.package_repository import PackageRepository, PackageFamilyResource, \
-    PackageResource, VariantResource, help_schema, PACKAGE_NAME_REGEX
+from rez.package_repository import PackageRepository
+from rez.package_resources_ import PackageFamilyResource, PackageResource, \
+    VariantResource, help_schema, PACKAGE_NAME_REGEX
 from rez.exceptions import PackageMetadataError
 from rez.resources_ import ResourceHandle, cached_property, Required, schema_keys
 from rez.serialise import load_from_file, FileFormat
