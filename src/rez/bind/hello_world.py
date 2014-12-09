@@ -9,7 +9,7 @@ from __future__ import absolute_import
 from rez.package_maker_ import make_py_package, root, code_provider
 from rez.exceptions import RezBindError
 from rez.vendor.version.version import Version
-from rez.lint_helper import env
+from rez.utils.lint_helper import env
 
 
 @code_provider

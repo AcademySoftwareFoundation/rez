@@ -87,7 +87,7 @@ setup(
                                            "tests"]),
     package_data = {
         'rez':
-            ['rezconfig', 'logging.conf'] +
+            ['rezconfig', 'utils/logging.conf'] +
             ['README*'] +
             find_files('*.*', 'completion') +
             find_files('*', 'tests/data') +

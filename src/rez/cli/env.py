@@ -1,11 +1,6 @@
 '''
 Open a rez-configured shell, possibly interactive.
 '''
-import select
-import sys
-import os
-import os.path
-import tempfile
 
 
 def setup_parser(parser, completions=False):
@@ -116,6 +111,10 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.util import get_epoch_time_from_str
     from rez.config import config
     from rez.contrib.animallogic.dora import launch_dora_from_context_file
+    import select
+    import sys
+    import os
+    import os.path
 
     command = opts.command
     if extra_arg_groups:

@@ -7,7 +7,16 @@ from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema, Optional, Or
 from rez.backport.lru_cache import lru_cache
+import re
 
+
+PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
+PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
+
+
+#------------------------------------------------------------------------------
+# type schemas
+#------------------------------------------------------------------------------
 
 commands_schema = Or(callable,  # commands function
                      basestring)  # commands in text block
@@ -17,14 +26,27 @@ help_schema = Or(basestring,  # single help entry
                  [[basestring]])  # multiple help entries
 
 
-# schema defining the requirements of a PackageFamily resource.
-package_family_schema = Schema({
+#------------------------------------------------------------------------------
+# schema dicts
+#------------------------------------------------------------------------------
+
+# requirements of all package-related resources
+base_resource_schema_dict = {
+    Required("location"):               basestring,
+    Required("uri"):                    basestring,
+}
+
+
+# package family
+package_family_schema_dict = base_resource_schema_dict.copy()
+package_family_schema_dict.update({
     Required("name"):                   basestring
 })
 
 
 # schema common to both package and variant
-package_base_schema_dict = {
+package_base_schema_dict = base_resource_schema_dict.copy()
+package_base_schema_dict.update({
     # basics
     Required("name"):                   basestring,
     Optional("version"):                Version,
@@ -52,26 +74,41 @@ package_base_schema_dict = {
 
     # custom keys
     Optional('custom'):                 dict
-}
+})
 
 
-# schema defining the requirements of a Package resource.
+# package
 package_schema_dict = package_base_schema_dict.copy()
 package_schema_dict.update({
     Optional("variants"):            [[Requirement]]
 })
-package_schema = Schema(package_schema_dict)
 
 
-# schema defining the requirements of a Variant resource.
+# variant
 variant_schema_dict = package_base_schema_dict.copy()
 variant_schema_dict.update({
     Required("base"):                   basestring,
     Required("root"):                   basestring,
     Optional("index"):                  int,
 })
+
+
+#------------------------------------------------------------------------------
+# resource schemas
+#------------------------------------------------------------------------------
+
+package_family_schema = Schema(package_family_schema_dict)
+
+
+package_schema = Schema(package_schema_dict)
+
+
 variant_schema = Schema(variant_schema_dict)
 
+
+#------------------------------------------------------------------------------
+# resource classes
+#------------------------------------------------------------------------------
 
 class PackageRepositoryResource(Resource):
     """Base class for all package-related resources."""
@@ -137,6 +174,10 @@ class VariantResource(PackageResource):
     def index(self):
         return self.get("index", None)
 
+
+#------------------------------------------------------------------------------
+# repository and repository manager
+#------------------------------------------------------------------------------
 
 class PackageRepository(object):
     """Base class for package repositories implemented in the package_repository

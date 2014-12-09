@@ -1,15 +1,7 @@
 '''
 Create a Rez package for existing software.
 '''
-from rez.config import config
-from rez.exceptions import RezBindError
-from rez import module_root_path
-from rez.util import get_close_pkgs, columnise
-from rez.vendor.version.requirement import VersionedObject, Requirement
 from rez.vendor import argparse
-import os.path
-import os
-import sys
 
 
 def setup_parser(parser, completions=False):
@@ -26,6 +18,15 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.config import config
+    from rez.exceptions import RezBindError
+    from rez import module_root_path
+    from rez.util import get_close_pkgs, columnise
+    from rez.vendor.version.requirement import VersionedObject, Requirement
+    import os.path
+    import os
+    import sys
+
     # gather the params
     install_path = (config.local_packages_path if opts.install_path is None
                     else opts.install_path)

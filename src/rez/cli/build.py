@@ -1,7 +1,6 @@
 '''
 Build a package from source.
 '''
-import sys
 import os
 import tempfile
 
@@ -77,6 +76,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
     from rez.build_process import LocalSequentialBuildProcess
     from rez.build_system import create_build_system
+    import sys
+
     working_dir = os.getcwd()
 
     # create build system

@@ -6,7 +6,7 @@ from rez.package_maker_ import make_py_package, code_provider, root
 from rez.bind_utils import check_version, find_exe, extract_version
 from rez.vendor.version.version import Version
 from rez.system import system
-from rez.lint_helper import env
+from rez.utils.lint_helper import env
 import sys
 
 

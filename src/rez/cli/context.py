@@ -1,11 +1,8 @@
 '''
 Print information about the current rez context, or a given context file.
 '''
-
 import sys
 from rez.rex import OutputStyle
-from rez.dot import save_graph, view_graph, prune_graph
-from rez.vendor.version.requirement import Requirement
 
 
 def setup_parser(parser, completions=False):
@@ -79,6 +76,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.status import status
     from rez.util import pretty_env_dict, timings
     from rez.resolved_context import ResolvedContext
+    from rez.dot import save_graph, view_graph, prune_graph
+    from rez.vendor.version.requirement import Requirement
     from pprint import pformat
 
     timings.enabled = False

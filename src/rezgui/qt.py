@@ -3,7 +3,7 @@ Abstraction for PyQt/PySide import.
 """
 import sys
 from rez.config import config
-from rez.lint_helper import used
+from rez.utils.lint_helper import used
 
 
 USE_PYSIDE = None
