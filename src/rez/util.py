@@ -1328,7 +1328,14 @@ class ObjectStringFormatter(Formatter):
             if value is None:
                 return ''
             elif isinstance(value, list):
-                return ' '.join(str(x) for x in value)
+                def _str(x):
+                    if isinstance(x, unicode):
+                        return x
+                    else:
+                        return str(x)
+
+                return ' '.join(map(_str, value))
+
         return Formatter.convert_field(self, value, conversion)
 
     def get_field(self, field_name, args, kwargs):

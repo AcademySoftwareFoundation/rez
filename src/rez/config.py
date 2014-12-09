@@ -165,6 +165,7 @@ config_schema = Schema({
     "local_styles":                     OptionalStrList,
     "implicit_styles":                  OptionalStrList,
     "alias_styles":                     OptionalStrList,
+    "memcached_uri":                    OptionalStrList,
     "local_packages_path":              Str,
     "release_packages_path":            Str,
     "unleash_packages_path":            Str,
@@ -212,7 +213,7 @@ config_schema = Schema({
     "memcache_ttl":                     Int,
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
-    "resolve_caching":                  Bool,
+    "resolve_caching":                  Bool,  # TODO DEPRECATE
     "prune_failed_graph":               Bool,
     "all_parent_variables":             Bool,
     "all_resetting_variables":          Bool,

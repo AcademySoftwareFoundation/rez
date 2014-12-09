@@ -1,12 +1,18 @@
 from rez.package_repository import package_repository_manager, \
-    PackageFamilyResource, PackageResource, package_family_schema, \
-    package_schema
+    PackageFamilyResource, PackageResource, VariantResource, \
+    package_family_schema, package_schema, variant_schema
+from rez.utils.data_utils import cached_property, StringFormatMixin
 from rez.resources_ import ResourceWrapper, schema_keys
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.config import config
+from rez.vendor.version.requirement import VersionedObject
 
 
-class PackageFamily(ResourceWrapper):
+class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
+    pass
+
+
+class PackageFamily(PackageRepositoryResourceWrapper):
     """A package family.
 
     Note:
@@ -27,10 +33,10 @@ class PackageFamily(ResourceWrapper):
         """
         repo = self.resource._repository
         for package in repo.iter_packages(self.resource):
-            yield package
+            yield Package(package)
 
 
-class Package(ResourceWrapper):
+class Package(PackageRepositoryResourceWrapper):
     """A package.
 
     Note:
@@ -42,6 +48,85 @@ class Package(ResourceWrapper):
     def __init__(self, resource):
         assert isinstance(resource, PackageResource)
         super(Package, self).__init__(resource)
+
+    @cached_property
+    def qualified_name(self):
+        """Get the qualified name of the package.
+
+        Returns:
+            str: Name of the package with version, eg "maya-2016.1".
+        """
+        o = VersionedObject.construct(self.name, self.version)
+        return str(o)
+
+    @cached_property
+    def parent(self):
+        repo = self.resource._repository
+        family = repo.get_parent_package_family(self.resource)
+        return PackageFamily(family)
+
+    def iter_variants(self):
+        """Iterate over the variants within this package, in index order.
+
+        Returns:
+            `Variant` iterator.
+        """
+        repo = self.resource._repository
+        for variant in repo.iter_variants(self.resource):
+            yield Variant(variant)
+
+
+class Variant(PackageRepositoryResourceWrapper):
+    """A package variant.
+
+    Note:
+        Do not instantiate this class directly, instead use the function
+        `Package.iter_variants`.
+    """
+    keys = schema_keys(variant_schema)
+
+    def __init__(self, resource):
+        assert isinstance(resource, VariantResource)
+        super(Variant, self).__init__(resource)
+
+    @cached_property
+    def qualified_package_name(self):
+        o = VersionedObject.construct(self.name, self.version)
+        return str(o)
+
+    @cached_property
+    def qualified_name(self):
+        """Get the qualified name of the variant.
+
+        Returns:
+            str: Name of the variant with version and index, eg "maya-2016.1[1]".
+        """
+        idxstr = '' if self.index is None else str(self.index)
+        return "%s[%s]" % (self.qualified_package_name, idxstr)
+
+    @cached_property
+    def parent(self):
+        repo = self.resource._repository
+        package = repo.get_parent_package(self.resource)
+        return Package(package)
+
+    def get_requires(self, build_requires=False, private_build_requires=False):
+        """Get the requirements of the variant.
+
+        Args:
+            build_requires (bool): If True, include build requirements.
+            private_build_requires (bool): If True, include private build
+                requirements.
+
+        Returns:
+            List of `Requirement` objects.
+        """
+        requires = self.requires or []
+        if build_requires:
+            requires = requires + (self.build_requires or [])
+        if private_build_requires:
+            requires = requires + (self.private_build_requires or [])
+        return requires
 
 
 def iter_package_families(paths=None):

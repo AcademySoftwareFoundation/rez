@@ -4,7 +4,8 @@ Search for packages.
 from rez.config import config
 from rez.exceptions import RezError
 from rez.util import print_error, get_epoch_time_from_str
-from rez.packages import iter_package_families, iter_packages
+#from rez.packages import iter_package_families, iter_packages
+from rez.packages_ import iter_package_families, iter_packages
 from rez.vendor.version.requirement import Requirement
 import os.path
 import fnmatch
@@ -138,10 +139,11 @@ def command(opts, parser, extra_arg_groups=None):
                     packages = [packages[-1]]
 
             for package in packages:
-                if (before_time or after_time) and package.timestamp:
-                    if (before_time and package.timestamp >= before_time) \
-                            or (after_time and package.timestamp <= after_time):
-                        continue
+                if ((before_time or after_time)
+                    and package.timestamp
+                    and (before_time and package.timestamp >= before_time
+                         or after_time and package.timestamp <= after_time)):
+                    continue
 
                 if opts.errors:
                     try:
