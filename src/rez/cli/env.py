@@ -1,10 +1,6 @@
 '''
 Open a rez-configured shell, possibly interactive.
 '''
-import select
-import sys
-import os
-import os.path
 
 
 def setup_parser(parser, completions=False):
@@ -112,6 +108,10 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.resolver import ResolverStatus
     from rez.util import get_epoch_time_from_str
     from rez.config import config
+    import select
+    import sys
+    import os
+    import os.path
 
     command = opts.command
     if extra_arg_groups:

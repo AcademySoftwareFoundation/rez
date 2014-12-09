@@ -1,8 +1,6 @@
 """
 Reverse dependency lookup.
 """
-import os
-import os.path
 
 
 def setup_parser(parser, completions=False):
@@ -36,6 +34,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.colorize import heading, Printer
     from rez.vendor.pygraph.readwrite.dot import write as write_dot
+    import os
+    import os.path
 
     config.override("warn_none", True)
 

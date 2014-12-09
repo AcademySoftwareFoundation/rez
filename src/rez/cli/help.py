@@ -1,9 +1,6 @@
 """
 Utility for displaying help for the given package.
 """
-from rez.vendor.version.requirement import Requirement
-from rez.package_help import PackageHelp
-import sys
 
 
 def setup_parser(parser, completions=False):
@@ -25,6 +22,10 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser=None, extra_arg_groups=None):
+    from rez.vendor.version.requirement import Requirement
+    from rez.package_help import PackageHelp
+    import sys
+
     if opts.manual or not opts.PKG:
         PackageHelp.open_rez_manual()
         sys.exit(0)

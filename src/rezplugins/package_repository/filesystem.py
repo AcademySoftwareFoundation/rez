@@ -2,7 +2,7 @@
 Filesystem-based package repository
 """
 from rez.package_repository import PackageRepository, PackageFamilyResource, \
-    PackageResource, VariantResource, help_schema
+    PackageResource, VariantResource, help_schema, PACKAGE_NAME_REGEX
 from rez.exceptions import PackageMetadataError
 from rez.resources_ import ResourceHandle, cached_property, Required, schema_keys
 from rez.serialise import load_from_file, FileFormat
@@ -62,6 +62,20 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
     def iter_packages(self):
         root = self._uri()
+
+        # check for unversioned package
+        for format_ in FileFormat:
+            filename = "package.%s" % format_.extension
+            filepath = os.path.join(root, filename)
+            if os.path.isfile(filepath):
+                handle = ResourceHandle(FileSystemPackageResource.key,
+                                        dict(location=self.location,
+                                             name=self.name))
+                package = self._repository._get_resource(handle)
+                yield package
+                return
+
+        # versioned packages
         for name in os.listdir(root):
             if name.startswith('.'):
                 continue
@@ -107,7 +121,7 @@ class FileSystemPackageResource(PackageResource):
         return family
 
     def iter_variants(self):
-        num_variants = len(self.data.get(self.variants, []))
+        num_variants = len(self.data.get("variants", []))
         if num_variants == 0:
             indexes = [None]
         else:
@@ -156,14 +170,16 @@ class FileSystemVariantResource(VariantResource):
     Note:
         Since a variant overlaps so much with a package, here we use the
         forwarding metaclass to forward our parent package's attributes onto
-        ourself. The exception is the 'requires' field, which is overridden in
-        the variant.
+        ourself (with some exceptions - eg 'variants', 'requires').
     """
     class _Metas(AttributeForwardMeta, LazyAttributeMeta): pass
     __metaclass__ = _Metas
 
     key = "filesystem.variant"
-    keys = schema_keys(package_schema_)  # forward Package attributes onto ourself
+
+    # forward Package attributes onto ourself
+    unused_package_keys = frozenset(["requires", "variants"])
+    keys = schema_keys(package_schema_) - unused_package_keys
 
     def _uri(self):
         index = self.index
@@ -187,10 +203,10 @@ class FileSystemVariantResource(VariantResource):
 
     @cached_property
     def requires(self):
-        reqs = self.parent.requires
+        reqs = self.parent.requires or []
         index = self.index
         if index is not None:
-            reqs.extend(self.parent.variants[index])
+            reqs = reqs + (self.parent.variants[index] or [])
         return reqs
 
     @cached_property
@@ -265,12 +281,14 @@ class FileSystemPackageRepository(PackageRepository):
         families = []
         for name in os.listdir(self.location):
             family = self._get_family(name)
-            families.append(family)
+            if family:
+                families.append(family)
         return families
 
     @lru_cache(maxsize=None)
     def _get_family(self, name):
-        if os.path.isdir(os.path.join(self.location, name)):
+        if PACKAGE_NAME_REGEX.match(name)  \
+                and os.path.isdir(os.path.join(self.location, name)):
             handle = ResourceHandle(FileSystemPackageFamilyResource.key,
                                     dict(location=self.location,
                                          name=name))

@@ -87,10 +87,15 @@ class ObjectStringFormatter(Formatter):
                     return kwds[key]
                 except KeyError:
                     pass
-                if hasattr(self.instance, key):
+
+                try:
+                    # we deliberately do not call hasattr() first - hasattr()
+                    # silently catches exceptions from properties.
                     return getattr(self.instance, key)
-                else:
-                    return self.instance[key]
+                except AttributeError:
+                    pass
+
+                return self.instance[key]
             else:
                 raise ValueError("zero length field name in format")
         else:
@@ -234,7 +239,7 @@ class LazyAttributeMeta(type):
     @classmethod
     def _make_validate_data(cls):
         def func(self):
-            getattr(self, "validated_data")
+            self.validated_data()
         return func
 
     @classmethod
