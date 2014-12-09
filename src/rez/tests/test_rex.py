@@ -86,8 +86,8 @@ class TestRex(TestBase):
                        Source('./script.src')],
                    expected_output = {
                        'FOO': 'foo',
-                       'A': '"%s"' % os.pathsep.join(["/data","/tmp"]),
-                       'B': '"%s"' % os.pathsep.join(["/tmp","/data"])})
+                       'A': os.pathsep.join(["/data","/tmp"]),
+                       'B': os.pathsep.join(["/tmp","/data"])})
 
     def test_2(self):
         """Test simple setenvs and assignments."""
@@ -129,8 +129,8 @@ class TestRex(TestBase):
                        Prependenv('BAH', 'B'),
                        Appendenv('BAH', 'C')],
                    expected_output = {
-                       'FOO': '"%s"' % os.pathsep.join(["test1","test2","test3"]),
-                       'BAH': '"%s"' % os.pathsep.join(["B","A","C"])})
+                       'FOO':  os.pathsep.join(["test1","test2","test3"]),
+                       'BAH':  os.pathsep.join(["B","A","C"])})
 
         # FOO and BAH enabled as parent variables, but not present
         expected_actions = [Appendenv('FOO', 'test1'),
@@ -144,8 +144,8 @@ class TestRex(TestBase):
                    env={},
                    expected_actions=expected_actions,
                    expected_output = {
-                       'FOO': '"%s"' % os.pathsep.join(["", "test1","test2","test3"]),
-                       'BAH': '"%s"' % os.pathsep.join(["B","A", "","C"])},
+                       'FOO': os.pathsep.join(["", "test1","test2","test3"]),
+                       'BAH': os.pathsep.join(["B","A", "","C"])},
                    parent_variables=["FOO","BAH"])
 
         # FOO and BAH enabled as parent variables, and present
@@ -154,8 +154,8 @@ class TestRex(TestBase):
                         "BAH": "Z"},
                    expected_actions=expected_actions,
                    expected_output = {
-                       'FOO': '"%s"' % os.pathsep.join(["tmp", "test1","test2","test3"]),
-                       'BAH': '"%s"' % os.pathsep.join(["B","A", "Z","C"])},
+                       'FOO': os.pathsep.join(["tmp", "test1","test2","test3"]),
+                       'BAH': os.pathsep.join(["B","A", "Z","C"])},
                    parent_variables=["FOO","BAH"])
 
     def test_4(self):

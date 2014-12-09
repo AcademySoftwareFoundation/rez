@@ -373,9 +373,12 @@ class ActionManager(object):
         def prepend_quoted(x, y, sep=None):
             if sep:
                 value_list = [x] + y
-                # remove the quotes of individual items on the list and return the joined string quoted
-                value_list = [remove_enclosing_quotes(x) for x in value_list]
-                return '"%s"' % sep.join(value_list)
+                if sep != os.path.pathsep:
+                    # remove the quotes of individual items on the list and return the joined string quoted
+                    value_list = [remove_enclosing_quotes(x) for x in value_list]
+                    return '"%s"' % sep.join(value_list)
+                else:
+                    return sep.join(value_list)
             else:
                 return [x] + y
         self._pendenv(key, value, Prependenv, self.interpreter.prependenv, prepend_quoted)
@@ -384,9 +387,12 @@ class ActionManager(object):
         def append_quoted(x, y, sep=None):
             if sep:
                 value_list = y + [x]
-                # remove the quotes of individual items on the list and return the joined string quoted
-                value_list = [remove_enclosing_quotes(x) for x in value_list]
-                return '"%s"' % sep.join(value_list)
+                if sep != os.path.pathsep:
+                    # remove the quotes of individual items on the list and return the joined string quoted
+                    value_list = [remove_enclosing_quotes(x) for x in value_list]
+                    return '"%s"' % sep.join(value_list)
+                else:
+                    return sep.join(value_list)
             else:
                 return y + [x]
 
