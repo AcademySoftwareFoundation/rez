@@ -1,21 +1,76 @@
-from rez.resources_ import Resource, ResourcePool, Required, cached_property
+from rez.resources_ import Resource, ResourcePool, Required, deprecated, \
+    cached_property
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.plugin_managers import plugin_manager
+from rez.config import config, Config
 from rez.vendor.version.version import Version
-from rez.vendor.schema.schema import Schema, Optional
+from rez.vendor.version.requirement import Requirement
+from rez.vendor.schema.schema import Schema, Optional, Or
 from rez.backport.lru_cache import lru_cache
 
 
+commands_schema = Or(callable,  # commands function
+                     basestring)  # commands in text block
+
+
+help_schema = Or(basestring,  # single help entry
+                 [[basestring]])  # multiple help entries
+
+
+# schema defining the requirements of a PackageFamily resource.
 package_family_schema = Schema({
-    Required("name"):               basestring
+    Required("name"):                   basestring
 })
 
 
-package_schema = Schema({
-    Required("name"):               basestring,
-    Optional("version"):            Version,
-    Optional('description'):        basestring
+# schema common to both package and variant
+package_base_schema_dict = {
+    # basics
+    Required("name"):                   basestring,
+    Optional("version"):                Version,
+    Optional('description'):            basestring,
+    Optional('authors'):                [basestring],
+
+    # dependencies
+    Optional('requires'):               [Requirement],
+    Optional('build_requires'):         [Requirement],
+    Optional('private_build_requires'): [Requirement],
+
+    # general
+    Optional('uuid'):                   basestring,
+    Optional('config'):                 Config,
+    Optional('tools'):                  [basestring],
+    Optional('help'):                   help_schema,
+
+    # commands
+    Optional('pre_commands'):           commands_schema,
+    Optional('commands'):               commands_schema,
+    Optional('post_commands'):          commands_schema,
+
+    # release info
+    Optional("timestamp"):              int,
+
+    # custom keys
+    Optional('custom'):                 dict
+}
+
+
+# schema defining the requirements of a Package resource.
+package_schema_dict = package_base_schema_dict.copy()
+package_schema_dict.update({
+    Optional("variants"):            [[Requirement]]
 })
+package_schema = Schema(package_schema_dict)
+
+
+# schema defining the requirements of a Variant resource.
+variant_schema_dict = package_base_schema_dict.copy()
+variant_schema_dict.update({
+    Required("base"):                   basestring,
+    Required("root"):                   basestring,
+    Optional("index"):                  int,
+})
+variant_schema = Schema(variant_schema_dict)
 
 
 class PackageRepositoryResource(Resource):
@@ -26,13 +81,25 @@ class PackageRepositoryResource(Resource):
         super(PackageRepositoryResource, self).__init__(variables)
         self._repository = None
 
+    @cached_property
+    def uri(self):
+        return self._uri()
+
     @property
     def location(self):
-        return self.variables["location"]
+        return self.get("location")
 
     @property
     def name(self):
-        return self.variables["name"]
+        return self.get("name")
+
+    def _uri(self):
+        """Return a URI.
+
+        Implement this function to return a short, readable string that
+        uniquely identifies this resource.
+        """
+        raise NotImplementedError
 
 
 class PackageFamilyResource(PackageRepositoryResource):
@@ -56,9 +123,19 @@ class PackageResource(PackageRepositoryResource):
         return Version(ver_str)
 
 
-def get_package_repository_types():
-    """Returns the available package repository implementations."""
-    return plugin_manager.get_plugins('package_repository')
+class VariantResource(PackageResource):
+    """A package variant.
+
+    A repository implementation's variant resource(s) must derive from this
+    class. It must satisfy the schema `variant_schema`.
+
+    Even packages that do not have a 'variants' section contain a variant - in
+    this case it is the 'None' variant (the value of `index` is None). This
+    provides some internal consistency and simplifies the implementation.
+    """
+    @property
+    def index(self):
+        return self.get("index", None)
 
 
 class PackageRepository(object):
@@ -114,6 +191,39 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def iter_variants(self, package_resource):
+        """Iterate over the variants within the given package.
+
+        Args:
+            package_resource (`PackageResource`): Parent package.
+
+        Returns:
+            `VariantResource` iterator.
+        """
+        raise NotImplementedError
+
+    def get_parent_package_family(self, package_resource):
+        """Get the parent package family of the given package.
+
+        Args:
+            package_resource (`PackageResource`): Package.
+
+        Returns:
+            `PackageFamilyResource`.
+        """
+        raise NotImplementedError
+
+    def get_parent_package(self, variant_resource):
+        """Get the parent package of the given variant.
+
+        Args:
+            variant_resource (`VariantResource`): Variant.
+
+        Returns:
+            `PackageResource`.
+        """
+        raise NotImplementedError
+
     def _get_resource(self, resource_handle):
         resource = self.pool.get_resource_from_handle(resource_handle)
         assert isinstance(resource, PackageRepositoryResource)
@@ -129,7 +239,10 @@ class PackageRepositoryManager(object):
     environment variable $REZ_PACKAGES_PATH).
     """
     def __init__(self):
-        self.pool = ResourcePool()  # TODO hook up cachesize to rezconfig
+        cache_size = config.resource_caching_maxsize
+        if cache_size < 0:
+            cache_size = None
+        self.pool = ResourcePool(cache_size=cache_size)
 
     @lru_cache(maxsize=None)
     def get_repository(self, path):
@@ -178,6 +291,11 @@ class PackageRepositoryManager(object):
         cls = plugin_manager.get_plugin_class('package_repository', repo_type)
         repo = cls(location, self.pool)
         return repo
+
+
+def get_package_repository_types():
+    """Returns the available package repository implementations."""
+    return plugin_manager.get_plugins('package_repository')
 
 
 # singleton

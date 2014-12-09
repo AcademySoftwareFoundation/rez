@@ -65,15 +65,17 @@ bind_module_path: []
 # If True, enable resource caching. This caches things such as disk reads of
 # package.yaml files, and data validation. You would only turn this off for
 # debugging purposes.
+# TODO DEPRECATE
 resource_caching: true
 
-# The size of the resource cache. This is measured in the number of items in the
-# cache where each might be a resource, directory listing, of resource path
-# parser regular expression: these all contribute to the resource cache.
-# A value of 0 has the same effect as setting resource_caching to false.  A
-# value of -1 creates a cache of unlimited size.  Any other value introduces an
-# lru cache fixed at that size.
+# The size of the local (in-process) resource cache. Resources include packages
+# and variants. A value of 0 disables caching; -1 sets a cache of unlimited size.
 resource_caching_maxsize: -1
+
+# Uris of running memcached server(s) to use as a file and resolve cache. For
+# example, the uri '127.0.0.1:11211' points to memcached running on localhost on
+# its default port. Must be either null, or a list of strings.
+memcached_uri:
 
 
 ###############################################################################
@@ -381,6 +383,7 @@ debug_old_commands: false
 # instead of 'commands'. Unlike 'commands', 'commands2' only allows new rex-
 # style commands. Once you have fully deprecated Rez-1, you should stop using
 # 'commands2'.
+# TODO DEPRECATE
 warn_commands2: false
 error_commands2: false
 

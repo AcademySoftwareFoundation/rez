@@ -4,6 +4,9 @@ Start a python interpreter or execute a python script within Rez's own execution
 
 
 def setup_parser(parser, completions=False):
+    parser.add_argument(
+        "-i", "--interactive", action="store_true",
+        help="inspect interactively after FILE has run")
     FILE_action = parser.add_argument(
         "FILE", type=str, nargs='?',
         help='python script to execute')
@@ -22,6 +25,9 @@ def command(opts, parser, extra_arg_groups=None):
     import sys
 
     cmd = [sys.executable, "-E"]
+
+    if opts.interactive:
+        cmd.append("-i")
 
     if opts.FILE:
         cmd.append(opts.FILE)
