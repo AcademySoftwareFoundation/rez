@@ -30,6 +30,14 @@ class PackageRepository(object):
         self.location = location
         self.pool = resource_pool
 
+    def register_resource(self, resource_class):
+        """Register a resource with the repository.
+
+        Your derived repository class should call this method in its __init__ to
+        register all the resource types associated with that plugin.
+        """
+        self.pool.register_resource(resource_class)
+
     def get_package_family(self, name):
         """Get a package family.
 
@@ -95,7 +103,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def _get_resource(self, resource_handle):
+    def get_resource(self, resource_handle):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
@@ -106,7 +114,7 @@ class PackageRepositoryManager(object):
 
     Contains instances of `PackageRepository` for each repository pointed to
     by the 'packages_path' config setting (also commonly set using the
-    environment variable $REZ_PACKAGES_PATH).
+    environment variable REZ_PACKAGES_PATH).
     """
     def __init__(self):
         cache_size = config.resource_caching_maxsize
@@ -122,7 +130,7 @@ class PackageRepositoryManager(object):
             path (str): Entry from the 'packages_path' config setting. This may
                 simply be a path (which is managed by the 'filesystem' package
                 repository plugin), or a string in the form "type:location",
-                where 'type' identifies the plugin type to use.
+                where 'type' identifies the repository plugin type to use.
 
         Returns:
             `PackageRepository` instance.
@@ -140,17 +148,16 @@ class PackageRepositoryManager(object):
         Returns:
             `PackageRepositoryResource` instance.
         """
-        repo_type = resource_handle.get("repository_type", "filesystem")
-        location = resource_handle["location"]
+        repo_type = resource_handle.get("repository_type")
+        location = resource_handle.get("location")
         path = "%s:%s" % (repo_type, location)
 
         repo = self.get_repository(path)
-        resource = self.pool.get_resource_from_handle(resource_handle)
-        resource._repository = repo
+        resource = repo.get_resource(resource_handle)
         return resource
 
     def clear_caches(self):
-        """Clear all caches and repositories."""
+        """Clear all cached data."""
         self.get_repository.clear_caches()
         self._get_repository.clear_caches()
         self.pool.clear_caches()

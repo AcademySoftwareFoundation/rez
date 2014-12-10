@@ -125,7 +125,7 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from itertools import groupby
 import copy
 import time
@@ -465,11 +465,12 @@ class _PackageVariantList(_Common):
                 value = []
                 for var in package.iter_variants():
                     requires = var.get_requires(build_requires=self.building)
+                    userdata = var.handle.to_dict()
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
                                              requires=requires,
                                              index=var.index,
-                                             userdata=var.resource_handle)
+                                             userdata=userdata)
                     value.append(variant)
                 entry[1] = value
             variants.extend(value)

@@ -2,7 +2,8 @@ from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
 from rez.utils.data_utils import cached_property, StringFormatMixin
-from rez.resources_ import ResourceWrapper, schema_keys
+from rez.util import is_subdirectory
+from rez.resources_ import ResourceHandle, ResourceWrapper, schema_keys
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.config import config
 from rez.vendor.version.requirement import VersionedObject
@@ -110,6 +111,20 @@ class Variant(PackageRepositoryResourceWrapper):
         package = repo.get_parent_package(self.resource)
         return Package(package)
 
+    @property
+    def config(self):
+        """Returns the config for this package.
+
+        Defaults to global config if this package did not provide a 'config'
+        section.
+        """
+        return self.resource.config or config
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the variant is from a local package"""
+        return is_subdirectory(self.base, config.local_packages_path)
+
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
 
@@ -188,3 +203,21 @@ def iter_packages(name, range_=None, paths=None):
                 continue
 
             yield Package(package_resource)
+
+
+def get_variant(variant_handle):
+    """Create a variant given its handle.
+
+    Args:
+        variant_handle (`ResourceHandle` or dict): Resource handle, or
+            equivalent dict.
+
+    Returns:
+        `Variant`.
+    """
+    if isinstance(variant_handle, dict):
+        variant_handle = ResourceHandle.from_dict(variant_handle)
+
+    resource = package_repository_manager.get_resource(variant_handle)
+    variant = Variant(resource)
+    return variant

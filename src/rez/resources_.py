@@ -149,6 +149,10 @@ class ResourceHandle(object):
         self.key = key
         self.variables = variables or {}
 
+    def get(self, key, default=None):
+        """Get the value of a resource variable."""
+        return self.variables.get(key, default)
+
     def to_dict(self):
         return dict(key=self.key, variables=self.variables)
 

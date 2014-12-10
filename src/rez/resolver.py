@@ -1,4 +1,5 @@
 from rez.solver import Solver, SolverStatus, PackageVariantCache
+from rez.packages_ import get_variant
 from rez.config import config
 from rez.vendor.enum import Enum
 
@@ -168,7 +169,14 @@ class Resolver(object):
             self.failure_description = solver.failure_description()
         elif st == SolverStatus.solved:
             self.status_ = ResolverStatus.solved
-            pkgs = solver.resolved_packages
+            #pkgs = solver.resolved_packages
+
+            # convert solver.Variants to packages.Variants
+            pkgs = []
+            for solver_variant in solver.resolved_packages:
+                variant_handle = solver_variant.userdata
+                variant = get_variant(variant_handle)
+                pkgs.append(variant)
 
         self.resolved_packages_ = pkgs
         self.graph_ = solver.get_graph()

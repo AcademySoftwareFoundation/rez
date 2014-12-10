@@ -19,6 +19,7 @@ from functools import update_wrapper
 from threading import RLock
 
 
+# TODO can simplify this further... we never use typed.
 def _make_key(args, kwds, typed, kwd_mark=(object(),)):
     # build a cache key from positional and keyword args
     key = args
