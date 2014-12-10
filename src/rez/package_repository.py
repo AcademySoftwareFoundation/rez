@@ -158,8 +158,8 @@ class PackageRepositoryManager(object):
 
     def clear_caches(self):
         """Clear all cached data."""
-        self.get_repository.clear_caches()
-        self._get_repository.clear_caches()
+        self.get_repository.cache_clear()
+        self._get_repository.cache_clear()
         self.pool.clear_caches()
 
     @lru_cache(maxsize=None)

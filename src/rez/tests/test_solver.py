@@ -10,7 +10,8 @@ class TestSolver(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.dirname(__file__)
-        cls.packages_path = os.path.join(path, "data", "solver", "packages")
+        packages_path = os.path.join(path, "data", "solver", "packages")
+        cls.packages_path = [packages_path]
         cls.settings = dict(
             packages_path=[cls.packages_path])
 

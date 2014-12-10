@@ -5,7 +5,8 @@ from rez.exceptions import BuildError, BuildContextResolveError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.resources import clear_caches
+#from rez.resources import clear_caches
+from rez.package_repository import package_repository_manager
 import shutil
 import os.path
 
@@ -43,7 +44,7 @@ class TestBuild(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         # cache clear is needed to clear Resource._listdir cache, which hides
         # newly added packages
-        clear_caches()
+        package_repository_manager.clear_caches()
         return ResolvedContext(pkgs)
 
     def _test_build(self, name, version=None):

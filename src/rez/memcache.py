@@ -112,34 +112,34 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
     """
     def decorator(func):
         def wrapper(*nargs, **kwargs):
-            if not memcache_client.enabled:
-                return func(*nargs, **kwargs)
+            if memcache_client.enabled:
+                if key_func is None:
+                    key = (nargs, frozenset(kwargs.items()))
+                else:
+                    key = key_func(*nargs, **kwargs)
 
-            if key_func is None:
-                key = (nargs, frozenset(kwargs.items()))
+                data = memcache_client.get(data_type, key)
+                if data is None:
+                    def _set(value):
+                        value_ = _None() if value is None else value
+                        memcache_client.set(data_type, key, value_)
+
+                    result = func(*nargs, **kwargs)
+                    if to_cache_func is None:
+                        _set(result)
+                    else:
+                        data = to_cache_func(result, *nargs, **kwargs)
+                        _set(data)
+                else:
+                    if isinstance(data, _None):
+                        data = None
+
+                    if from_cache_func is None:
+                        result = data
+                    else:
+                        result = from_cache_func(data, *nargs, **kwargs)
             else:
-                key = key_func(*nargs, **kwargs)
-
-            data = memcache_client.get(data_type, key)
-            if data is None:
-                def _set(value):
-                    value_ = _None() if value is None else value
-                    memcache_client.set(data_type, key, value_)
-
                 result = func(*nargs, **kwargs)
-                if to_cache_func is None:
-                    _set(result)
-                else:
-                    data = to_cache_func(result, *nargs, **kwargs)
-                    _set(data)
-            else:
-                if isinstance(data, _None):
-                    data = None
-
-                if from_cache_func is None:
-                    result = data
-                else:
-                    result = from_cache_func(data, *nargs, **kwargs)
 
             if value_func is not None:
                 result = value_func(result, *nargs, **kwargs)
