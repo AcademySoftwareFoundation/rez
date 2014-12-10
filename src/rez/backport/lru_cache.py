@@ -17,31 +17,18 @@ http://bugs.python.org/issue14373
 
 from functools import update_wrapper
 from threading import RLock
+from inspect import ismethod as ismethod_
 
 
-# TODO can simplify this further... we never use typed.
-def _make_key(args, kwds, typed, kwd_mark=(object(),)):
-    # build a cache key from positional and keyword args
-    key = args
-    if kwds:
-        sorted_items = tuple(sorted(kwds.items()))
-        key += kwd_mark + sorted_items
-    if typed:
-        key += tuple([type(v) for v in args])
-        if kwds:
-            key += tuple([type(v) for _, v in sorted_items])
-    return key
+def _make_key(args, kwds):
+    return (args, frozenset(kwds.items()))
 
 
-def lru_cache(maxsize=100, typed=False):
+def lru_cache(maxsize=100):
     """Least-recently-used cache decorator.
 
     If *maxsize* is set to None, the LRU features are disabled and the cache
     can grow without bound.
-
-    If *typed* is True, arguments of different types will be cached separately.
-    For example, f(3.0) and f(3) will be treated as distinct calls with
-    distinct results.
 
     Arguments to the cached function must be hashable.
 
@@ -81,7 +68,7 @@ def lru_cache(maxsize=100, typed=False):
 
             def wrapper(*args, **kwds):
                 # simple caching without ordering or size limit
-                key = make_key(args, kwds, typed)
+                key = make_key(args, kwds)
                 result = cache_get(key, root)   # root used here as a unique not-found sentinel
                 if result is not root:
                     return result
@@ -93,7 +80,7 @@ def lru_cache(maxsize=100, typed=False):
 
             def wrapper(*args, **kwds):
                 # size limited caching that tracks accesses by recency
-                key = make_key(args, kwds, typed) if kwds or typed else args
+                key = make_key(args, kwds)
                 with lock:
                     link = cache_get(key)
                     if link is not None:
