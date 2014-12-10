@@ -13,8 +13,9 @@ magic = get_magic()
 
 
 class DataType(Enum):
-    data = (1, False)   # a dict of POD types
-    code = (2, True)    # source from py file
+    data = (1, False)   # a dict of POD types from a file (eg yaml)
+    code = (2, True)    # source from py file (marshalled)
+    listdir = (3, False)  # cached os.listdir result
 
     def __init__(self, id_, bytecode_dependent):
         self.id_ = id_
@@ -69,3 +70,80 @@ class Client(object):
 
 # singleton
 memcache_client = Client()
+
+
+class _None(object):
+    pass
+
+
+def mem_cached(data_type, key_func=None, from_cache_func=None,
+               to_cache_func=None, value_func=None):
+    """memcached function decorator.
+
+    The wrapped function is expected to return a value that is stored to a
+    memcached server, first translated by `to_cache_func` if provided.
+
+    In the event of a cache hit, the data is translated by `from_cache_func` if
+    provided, before being returned.
+
+    In all cases (cache hits and misses), the result is translated by `value_func`
+    if provided, after from_cache_func/to_cache_func has been called.
+
+    Note:
+        This decorator will also cache a None result.
+
+    Args:
+        data_type (`DataType`): Type of data the function returns.
+        key_func (callable, optional): Function that, given the target function's
+            args, returns the key to use in memcached. If None, the args are used
+            directly. Note that if any arg is not hashable, you will have to
+            provide this key function.
+        from_cache_func (callable, optional): If provided, and a cache hit occurs,
+            the value will be translated by this function before being returned.
+        to_cache_func (callable, optional): If provided, and a cache miss occurs,
+            the value will be translated by this function before being cached.
+        value_func (callable, optional): If provided, the result is first
+            translated by this function before being returned.
+
+    Note:
+        `from_cache_func`, `to_cache_func` and `value_func` all accept a return
+        value as first parameter, then the target function's arguments follow.
+        Both are expected to return the translated result.
+    """
+    def decorator(func):
+        def wrapper(*nargs, **kwargs):
+            if not memcache_client.enabled:
+                return func(*nargs, **kwargs)
+
+            if key_func is None:
+                key = (nargs, frozenset(kwargs.items()))
+            else:
+                key = key_func(*nargs, **kwargs)
+
+            data = memcache_client.get(data_type, key)
+            if data is None:
+                def _set(value):
+                    value_ = _None() if value is None else value
+                    memcache_client.set(data_type, key, value_)
+
+                result = func(*nargs, **kwargs)
+                if to_cache_func is None:
+                    _set(result)
+                else:
+                    data = to_cache_func(result, *nargs, **kwargs)
+                    _set(data)
+            else:
+                if isinstance(data, _None):
+                    data = None
+
+                if from_cache_func is None:
+                    result = data
+                else:
+                    result = from_cache_func(data, *nargs, **kwargs)
+
+            if value_func is not None:
+                result = value_func(result, *nargs, **kwargs)
+
+            return result
+        return wrapper
+    return decorator

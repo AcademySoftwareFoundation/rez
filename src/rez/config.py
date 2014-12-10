@@ -211,6 +211,7 @@ config_schema = Schema({
     "resolve_start_depth":              Int,
     "changelog_maxsize":                Int,
     "memcache_ttl":                     Int,
+    "max_package_changelog_chars":      Int,
     "color_enabled":                    Bool,
     "resource_caching":                 Bool,
     "resolve_caching":                  Bool,  # TODO DEPRECATE

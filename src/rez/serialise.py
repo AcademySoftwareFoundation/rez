@@ -1,66 +1,109 @@
 """
-Read and write data from a file or stream. File caching via a memcached server
-is supported.
+Read and write data from file. File caching via a memcached server is supported.
 """
 from rez.util import ScopeContext
 from rez.exceptions import ResourceError
-from rez.memcache import memcache_client, DataType
+from rez.memcache import mem_cached, DataType
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 import marshal
 import os
+import os.path
 
 
 class FileFormat(Enum):
     py = ("py", DataType.code)
     yaml = ("yaml", DataType.data)
+    txt = ("txt", DataType.data)
 
-    __order__ = "py,yaml"  # py is preferred
+    __order__ = "py,yaml,txt"
 
     def __init__(self, extension, data_type):
         self.extension = extension
         self.data_type = data_type
 
 
-def load_from_file(filepath, format_=FileFormat.py, use_cache=True):
+"""
+def listdir(path, use_cache=True):
+    use_cache = use_cache and memcache_client.enabled
+    filepath = os.path.realpath(filepath)
+
+    if use_cache:
+        st = os.stat(path)
+        key = (path, st.st_ino, st.st_mtime)
+        data = memcache_client.get(DataType.listdir, key)
+        if data is not None:
+            return data
+
+    result = []
+    for name in os.listdir(path):
+        path_ = os.path.join(path, name)
+        is_dir = os.path.isdir(path_)
+        result.append((name, is_dir))
+
+    if use_cache:
+        memcache_client.set(DataType.listdir, key, result)
+
+    return result
+"""
+
+
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
     """Load data from a file.
 
     Args:
         filepath (str): File to load.
         format_ (`FileFormat`): Format of file contents.
-        use_cache (bool): If True, use memcached server if available.
+        update_data_callback (callable): Used to change data before it is
+            returned or cached.
 
     Returns:
-        dict.
+        dict or compiled code object (if file is .py).
     """
-    use_cache = use_cache and memcache_client.enabled
-
-    if use_cache:
-        st = os.stat(filepath)
-        key = (filepath, st.st_ino, st.st_mtime)
-        data = memcache_client.get(format_.data_type, key)
-
-        if data is not None:
-            if format_.data_type == DataType.data:
-                return data
-            else:  # DataType.data
-                code = marshal.loads(data)
-                return load_py(code, filepath)
-
+    filepath = os.path.realpath(filepath)
     if format_ == FileFormat.py:
-        with open(filepath) as f:
-            source = f.read()
-        code = compile(source, filepath, 'exec')
-        result = load_py(code, filepath)
-        if use_cache:
-            data = marshal.dumps(code)
+        return _load_from_py_file(filepath)
     else:
-        with open(filepath) as f:
-            result = data = load_yaml(f, filepath)
+        return _load_from_file(filepath, format_, update_data_callback)
 
-    if use_cache:
-        memcache_client.set(format_.data_type, key, data)
 
+def _load_from_file__key(filepath, *nargs, **kwargs):
+    st = os.stat(filepath)
+    return (filepath, st.st_ino, st.st_mtime)
+
+
+def _load_from_py_file__from_cache(marshalled_code, _):
+    return marshal.loads(marshalled_code)
+
+
+def _load_from_py_file__to_cache(code, _):
+    return marshal.dumps(code)
+
+
+def _load_from_py_file__value(code, filepath):
+    return load_py(code, filepath)
+
+
+@mem_cached(DataType.code,
+            key_func=_load_from_file__key,
+            from_cache_func=_load_from_py_file__from_cache,
+            to_cache_func=_load_from_py_file__to_cache,
+            value_func=_load_from_py_file__value)
+def _load_from_py_file(filepath):
+    with open(filepath) as f:
+        source = f.read()
+    code = compile(source, filepath, 'exec')
+    return code
+
+
+@mem_cached(DataType.data, key_func=_load_from_file__key)
+def _load_from_file(filepath, format_, update_data_callback):
+    load_func = load_yaml if format_ == FileFormat.yaml else load_txt
+    with open(filepath) as f:
+        result = load_func(f)
+
+    if update_data_callback:
+        result = update_data_callback(format_, result)
     return result
 
 
@@ -77,6 +120,9 @@ def load_py(stream, filepath=None):
 
     Args:
         stream (file-like object, or compiled code object).
+
+    Returns:
+        dict.
     """
     g = __builtins__.copy()
     scopes = ScopeContext()
@@ -103,11 +149,27 @@ def load_py(stream, filepath=None):
     return result
 
 
-def load_yaml(stream, filepath=None):
+def load_yaml(stream):
     """Load yaml-formatted data from a stream.
 
     Args:
         stream (file-like object).
+
+    Returns:
+        dict.
     """
     content = stream.read()
     return yaml.load(content) or {}
+
+
+def load_txt(stream):
+    """Load text data from a stream.
+
+    Args:
+        stream (file-like object).
+
+    Returns:
+        string.
+    """
+    content = stream.read()
+    return content

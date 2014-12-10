@@ -4,13 +4,14 @@ from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
 from rez.colorize import critical, heading, local, implicit, Printer
-from rez.resources import ResourceHandle
+#from rez.resources import ResourceHandle
 from rez.util import columnise, shlex_join, mkdtemp_, dedup, timings
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name, iter_packages
+from rez.packages_ import get_variant
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError, \
     ConfigurationError
@@ -248,14 +249,17 @@ class ResolvedContext(object):
         timings.add("resolve", actual_solve_time)
 
         if self.status_ == ResolverStatus.solved:
+            """
             # convert solver.Variants to packages.Variants
             pkgs = []
             for variant in resolver.resolved_packages:
                 resource_handle = variant.userdata
                 resource = resource_handle.get_resource()
                 pkg = Variant(resource)
-                pkgs.append(pkg)
+                pkgs.append(variant)
             self._resolved_packages = pkgs
+            """
+            self._resolved_packages = resolver.resolved_packages
 
         memcache.disconnect()
 
@@ -1149,7 +1153,7 @@ class ResolvedContext(object):
     def to_dict(self):
         resolved_packages = []
         for pkg in (self._resolved_packages or []):
-            resolved_packages.append(pkg.resource_handle.to_dict())
+            resolved_packages.append(pkg.handle.to_dict())
 
         serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
@@ -1247,9 +1251,15 @@ class ResolvedContext(object):
 
         r._resolved_packages = []
         for d_ in d["resolved_packages"]:
+            """
             resource_handle = ResourceHandle.from_dict(d_)
             resource = resource_handle.get_resource()
             variant = Variant(resource)
+            r._resolved_packages.append(variant)
+            """
+            # TODO backwards compatibility
+            variant_handle = d_
+            variant = get_variant(variant_handle)
             r._resolved_packages.append(variant)
 
         # -- SINCE SERIALIZE VERSION 1
@@ -1382,8 +1392,7 @@ class ResolvedContext(object):
                         # rex code is a function in a package.py
                         executor.execute_function(commands)
                 except error_class as e:
-                    msg = "Error in commands in file %s:\n%s" \
-                          % (pkg.path, str(e))
+                    msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(e))
                     raise PackageCommandError(msg)
 
         if config.flatten_env:

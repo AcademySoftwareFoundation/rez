@@ -30,23 +30,21 @@ help_schema = Or(basestring,  # single help entry
 
 # requirements of all package-related resources
 base_resource_schema_dict = {
+    Required("repository_type"):        basestring,
     Required("location"):               basestring,
     Required("uri"):                    basestring,
+    Required("name"):                   basestring
 }
 
 
 # package family
 package_family_schema_dict = base_resource_schema_dict.copy()
-package_family_schema_dict.update({
-    Required("name"):                   basestring
-})
 
 
 # schema common to both package and variant
 package_base_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict.update({
     # basics
-    Required("name"):                   basestring,
     Optional("version"):                Version,
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],
@@ -69,6 +67,11 @@ package_base_schema_dict.update({
 
     # release info
     Optional("timestamp"):              int,
+    Optional('revision'):               object,
+    Optional('changelog'):              basestring,
+    Optional('release_message'):        Or(None, basestring),
+    Optional('previous_version'):       Version,
+    Optional('previous_revision'):      object,
 
     # custom keys
     Optional('custom'):                 dict
@@ -109,8 +112,14 @@ variant_schema = Schema(variant_schema_dict)
 #------------------------------------------------------------------------------
 
 class PackageRepositoryResource(Resource):
-    """Base class for all package-related resources."""
+    """Base class for all package-related resources.
+
+    Attributes:
+        repository_type (str): Type of package repository associated with this
+            resource type.
+    """
     schema_error = PackageMetadataError
+    repository_type = None
 
     def __init__(self, variables=None):
         super(PackageRepositoryResource, self).__init__(variables)

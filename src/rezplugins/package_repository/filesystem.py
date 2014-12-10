@@ -9,6 +9,7 @@ from rez.resources_ import ResourceHandle, cached_property, Required, schema_key
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config, create_config
 from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
+from rez.memcache import mem_cached, DataType
 from rez.util import print_warning
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use, SchemaError
 from rez.vendor.version.version import Version
@@ -18,7 +19,9 @@ import os.path
 import os
 
 
-# -- schemas
+#------------------------------------------------------------------------------
+# schemas
+#------------------------------------------------------------------------------
 
 requirement_schema = And(basestring, Use(Requirement))
 
@@ -49,19 +52,34 @@ package_schema_ = Schema({
     Optional('commands'):               commands_schema,
     Optional('post_commands'):          commands_schema,
 
+    Optional("timestamp"):              int,
+    Optional('revision'):               object,
+    Optional('changelog'):              basestring,
+    Optional('release_message'):        Or(None, basestring),
+    Optional('previous_version'):       And(basestring, Use(Version)),
+    Optional('previous_revision'):      object,
+
     Optional('custom'):                 dict
 })
 
 
-# -- resources
+#------------------------------------------------------------------------------
+# resources
+#------------------------------------------------------------------------------
 
 class FileSystemPackageFamilyResource(PackageFamilyResource):
     key = "filesystem.family"
+    repository_type = "filesystem"
 
     def _uri(self):
         return os.path.join(self.location, self.name)
 
     def iter_packages(self):
+        # this ensures we're getting the cached result
+        return self._repository.iter_packages(self)
+
+    def _iter_packages(self):
+        # called by repository
         root = self._uri()
 
         # check for unversioned package
@@ -70,28 +88,28 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
             filepath = os.path.join(root, filename)
             if os.path.isfile(filepath):
                 handle = ResourceHandle(FileSystemPackageResource.key,
-                                        dict(location=self.location,
+                                        dict(repository_type="filesystem",
+                                             location=self.location,
                                              name=self.name))
-                package = self._repository._get_resource(handle)
+                package = self._repository.get_resource(handle)
                 yield package
                 return
 
         # versioned packages
-        for name in os.listdir(root):
-            if name.startswith('.'):
-                continue
-            path = os.path.join(root, name)
-            if os.path.isdir(path):
-                handle = ResourceHandle(FileSystemPackageResource.key,
-                                        dict(location=self.location,
-                                             name=self.name,
-                                             version=name))
-                package = self._repository._get_resource(handle)
-                yield package
+        #for name in os.listdir(root):
+        for name in self._repository._get_version_dirs(root):
+            handle = ResourceHandle(FileSystemPackageResource.key,
+                                    dict(repository_type="filesystem",
+                                         location=self.location,
+                                         name=self.name,
+                                         version=name))
+            package = self._repository.get_resource(handle)
+            yield package
 
 
 class FileSystemPackageResource(PackageResource):
     key = "filesystem.package"
+    repository_type = "filesystem"
     schema = package_schema_
 
     def _uri(self):
@@ -116,12 +134,18 @@ class FileSystemPackageResource(PackageResource):
     @cached_property
     def parent(self):
         handle = ResourceHandle(FileSystemPackageFamilyResource.key,
-                                dict(location=self.location,
+                                dict(repository_type="filesystem",
+                                     location=self.location,
                                      name=self.name))
-        family = self._repository._get_resource(handle)
+        family = self._repository.get_resource(handle)
         return family
 
     def iter_variants(self):
+        # this ensures we're getting the cached result
+        return self._repository.iter_variants(self)
+
+    def _iter_variants(self):
+        # this is called by the repository
         num_variants = len(self.data.get("variants", []))
         if num_variants == 0:
             indexes = [None]
@@ -130,17 +154,20 @@ class FileSystemPackageResource(PackageResource):
 
         for index in indexes:
             handle = ResourceHandle(FileSystemVariantResource.key,
-                                        dict(location=self.location,
+                                        dict(repository_type="filesystem",
+                                             location=self.location,
                                              name=self.name,
                                              version=self.get("version"),
                                              index=index))
-            variant = self._repository._get_resource(handle)
+            variant = self._repository.get_resource(handle)
             yield variant
 
     def _load(self):
         filepath = None
         path = self._uri()
-        for format_ in FileFormat:
+
+        # load package.py/yaml
+        for format_ in (FileFormat.py, FileFormat.yaml):
             filename = "package.%s" % format_.extension
             filepath_ = os.path.join(path, filename)
             if os.path.isfile(filepath_):
@@ -151,6 +178,40 @@ class FileSystemPackageResource(PackageResource):
             raise PackageMetadataError("Missing package definition file: %r" % self)
 
         data = load_from_file(filepath, format_)
+
+        if "timestamp" not in data:  # old format support
+            data_ = self._load_old_formats(path)
+            if data_:
+                data.update(data_)
+
+        return data
+
+    def _load_old_formats(self, path):
+        data = None
+
+        filepath = os.path.join(path, "release.yaml")
+        if os.path.isfile(filepath):
+            # rez<2.0.BETA.16
+            data = load_from_file(filepath, FileFormat.yaml,
+                                  update_data_callback=self._update_changelog)
+        else:
+            path_ = os.path.join(path, ".metadata")
+            if os.path.isdir(path_):
+                # rez-1
+                data = {}
+                filepath = os.path.join(path_, "changelog.txt")
+                if os.path.isfile(filepath):
+                    data["changelog"] = load_from_file(
+                        filepath, FileFormat.txt,
+                        update_data_callback=self._update_changelog)
+
+                filepath = os.path.join(path_, "release_time.txt")
+                if os.path.isfile(filepath):
+                    value = load_from_file(filepath, FileFormat.txt)
+                    try:
+                        data["timestamp"] = int(value.strip())
+                    except:
+                        pass
         return data
 
     def _convert_to_rex(self, commands):
@@ -165,6 +226,31 @@ class FileSystemPackageResource(PackageResource):
         else:
             return commands
 
+    def _update_changelog(self, file_format, data):
+        # this is to deal with older package releases. They can contain long
+        # changelogs (more recent rez versions truncate before release), and
+        # release.yaml files can contain a list-of-str changelog.
+        maxlen = config.max_package_changelog_chars
+
+        if file_format == FileFormat.yaml:
+            changelog = data.get("changelog")
+            if changelog:
+                changed = False
+                if isinstance(changelog, list):
+                    changelog = '\n'.join(changelog)
+                    changed = True
+                if len(changelog) > (maxlen + 3):
+                    changelog = changelog[:maxlen] + "..."
+                    changed = True
+                if changed:
+                    data["changelog"] = changelog
+        else:
+            assert isinstance(data, basestring)
+            if len(data) > (maxlen + 3):
+                data = data[:maxlen] + "..."
+
+        return data
+
 
 class FileSystemVariantResource(VariantResource):
     """
@@ -177,6 +263,7 @@ class FileSystemVariantResource(VariantResource):
     __metaclass__ = _Metas
 
     key = "filesystem.variant"
+    repository_type = "filesystem"
 
     # forward Package attributes onto ourself
     unused_package_keys = frozenset(["requires", "variants"])
@@ -213,10 +300,11 @@ class FileSystemVariantResource(VariantResource):
     @cached_property
     def parent(self):
         handle = ResourceHandle(FileSystemPackageResource.key,
-                                dict(location=self.location,
+                                dict(repository_type="filesystem",
+                                     location=self.location,
                                      name=self.name,
                                      version=self.get("version")))
-        package = self._repository._get_resource(handle)
+        package = self._repository.get_resource(handle)
         return package
 
     @property
@@ -224,7 +312,9 @@ class FileSystemVariantResource(VariantResource):
         return self.parent
 
 
-# -- repository
+#------------------------------------------------------------------------------
+# repository
+#------------------------------------------------------------------------------
 
 class FileSystemPackageRepository(PackageRepository):
     """A filesystem-based package repository.
@@ -250,9 +340,9 @@ class FileSystemPackageRepository(PackageRepository):
                 this repository.
         """
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
-        self.pool.register_resource(FileSystemPackageFamilyResource)
-        self.pool.register_resource(FileSystemPackageResource)
-        self.pool.register_resource(FileSystemVariantResource)
+        self.register_resource(FileSystemPackageFamilyResource)
+        self.register_resource(FileSystemPackageResource)
+        self.register_resource(FileSystemVariantResource)
 
     def get_package_family(self, name):
         return self._get_family(name)
@@ -277,13 +367,44 @@ class FileSystemPackageRepository(PackageRepository):
 
     # -- internal
 
+    def _get_family_dirs__key(self):
+        st = os.stat(self.location)
+        return (self.location, st.st_ino, st.st_mtime)
+
+    @mem_cached(DataType.listdir, key_func=_get_family_dirs__key)
+    def _get_family_dirs(self):
+        dirs = []
+        for name in os.listdir(self.location):
+            path = os.path.join(self.location, name)
+            if PACKAGE_NAME_REGEX.match(name) and os.path.isdir(path):
+                dirs.append(name)
+        return dirs
+
+    def _get_version_dirs__key(self, root):
+        st = os.stat(root)
+        return (root, st.st_ino, st.st_mtime)
+
+    @mem_cached(DataType.listdir, key_func=_get_version_dirs__key)
+    def _get_version_dirs(self, root):
+        dirs = []
+        for name in os.listdir(root):
+            if name.startswith('.'):
+                continue
+            path = os.path.join(root, name)
+            if os.path.isdir(path):
+                dirs.append(name)
+        return dirs
+
     @lru_cache(maxsize=None)
     def _get_families(self):
         families = []
-        for name in os.listdir(self.location):
-            family = self._get_family(name)
-            if family:
-                families.append(family)
+        for name in self._get_family_dirs():
+            handle = ResourceHandle(FileSystemPackageFamilyResource.key,
+                                    dict(repository_type="filesystem",
+                                         location=self.location,
+                                         name=name))
+            family = self.get_resource(handle)
+            families.append(family)
         return families
 
     @lru_cache(maxsize=None)
@@ -291,19 +412,20 @@ class FileSystemPackageRepository(PackageRepository):
         if PACKAGE_NAME_REGEX.match(name)  \
                 and os.path.isdir(os.path.join(self.location, name)):
             handle = ResourceHandle(FileSystemPackageFamilyResource.key,
-                                    dict(location=self.location,
+                                    dict(repository_type="filesystem",
+                                         location=self.location,
                                          name=name))
-            family = self._get_resource(handle)
+            family = self.get_resource(handle)
             return family
         return None
 
     @lru_cache(maxsize=None)
     def _get_packages(self, package_family_resource):
-        return [x for x in package_family_resource.iter_packages()]
+        return [x for x in package_family_resource._iter_packages()]
 
     @lru_cache(maxsize=None)
     def _get_variants(self, package_resource):
-        return [x for x in package_resource.iter_variants()]
+        return [x for x in package_resource._iter_variants()]
 
 
 def register_plugin():

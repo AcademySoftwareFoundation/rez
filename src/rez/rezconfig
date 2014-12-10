@@ -80,6 +80,11 @@ resource_caching_maxsize: -1
 # its default port. Must be either null, or a list of strings.
 memcached_uri:
 
+# If not zero, truncates all package changelog entries to this maximum length.
+# You should set this value - changelogs can theoretically be very large, and
+# this may adversely impact package load times.
+max_package_changelog_chars: 1024
+
 
 ###############################################################################
 # Package Resolution

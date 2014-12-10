@@ -749,8 +749,8 @@ class Cycle(FailureReason):
     def involved_requirements(self):
         pkgs = []
         for pkg in self.packages:
-            range = VersionRange.from_version(pkg.version)
-            stmt = Requirement.construct(pkg.name, range)
+            range_ = VersionRange.from_version(pkg.version)
+            stmt = Requirement.construct(pkg.name, range_)
             pkgs.append(stmt)
         return pkgs
 
@@ -903,17 +903,17 @@ class _PackageVariantList(_Common):
                         new_index = sorted_variants.index(original_requires)
                         var.index = new_index
 
+                    userdata = var.handle.to_dict()
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
                                              requires=original_requires,
                                              index=var.index,
-                                             userdata=var.resource_handle)
+                                             userdata=userdata)
                     value.append(variant)
 
                 # sort all now by version and variant
                 value = sorted(value, key=lambda v: (v.version, v.index))
                 entry[1] = value
-
             variants.extend(value)
             num_packages += 1
 
