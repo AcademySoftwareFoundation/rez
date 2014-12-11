@@ -26,6 +26,7 @@ import re
 import fnmatch
 from collections import defaultdict
 from rez.config import config
+from rez.contrib.animallogic import memcache
 from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
 from rez.exceptions import ResourceError, ResourceNotFoundError
@@ -70,6 +71,13 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # -----------------------------------------------------------------------------
 # File Loading
 # -----------------------------------------------------------------------------
+
+
+@config.lru_cache("resource_caching", "resource_caching_maxsize")
+def _findpath(path, is_file=None):
+    is_test = os.path.isfile if is_file else os.path.isdir
+    return is_test(path)
+
 
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
@@ -251,6 +259,7 @@ def register_resource(resource_class, force=False):
 def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
+    _findpath.cache_clear()
     Resource._cached.cache_clear()
     Resource.ancestors.cache_clear()
     _ResourcePathParser._get_regex.cache_clear()
@@ -697,7 +706,7 @@ class FileSystemResource(Resource):
 
     @classmethod
     def _iter_instances(cls, parent_resource):
-        for name in _listdir(parent_resource.path, cls.is_file):
+        for name in _listdir(parent_resource.path, is_file=cls.is_file):
             match = _ResourcePathParser.parse_filepart(cls, name)
             if match is not None:
                 variables = match[1]
@@ -708,8 +717,7 @@ class FileSystemResource(Resource):
     @classmethod
     def _iter_instance(cls, parent_resource):
         filepath = os.path.join(parent_resource.path, cls.path_pattern)
-        is_test = os.path.isfile if cls.is_file else os.path.isdir
-        if is_test(filepath):
+        if _findpath(filepath, is_file=cls.is_file):
             variables = {}
             variables.update(parent_resource.variables)
             yield cls(filepath, variables)
@@ -725,6 +733,16 @@ class FileResource(FileSystemResource):
     is_file = True
     loader = None
 
+    def _load_file(self):
+        if os.path.isfile(self.path):
+            data = load_file(self.path, self.loader)
+            return data
+        else:
+            msg = "not a file" if os.path.exists(self.path) \
+                else "file does not exist"
+            raise ResourceError("Could not load %s from %s: %s"
+                                % (self.key, self.path, msg))
+
     @Resource.cached
     def load(self):
         """load the resource data.
@@ -738,28 +756,29 @@ class FileResource(FileSystemResource):
         schema), for example, changing the name of keys, or grafting on data
         loaded from other reources.
         """
-        if os.path.isfile(self.path):
-            try:
-                data = load_file(self.path, self.loader)
-                if self.schema:
-                    k = "resources.validate.%s" % self.__class__.__name__
-                    timings.start(k)
-                    try:
-                        data_ = self.schema.validate(data)
-                    finally:
-                        timings.end(k)
-                    return data_
-            except SchemaError as e:
-                error_cls = self._contents_exception_type()
-                raise error_cls(value=str(e),
-                                path=self.path,
-                                resource_key=self.key)
-            return data
-        else:
-            msg = "not a file" if os.path.exists(self.path) \
-                else "file does not exist"
-            raise ResourceError("Could not load %s from %s: %s"
-                                % (self.key, self.path, msg))
+        key = "load(%s)" % self.path
+        search_path = self.variables.get("search_path", "")
+
+        data = memcache.get(key, search_path=search_path)
+        if data is None:
+            data = self._load_file()
+            memcache.set(key, data, search_path=search_path)
+
+        try:
+            if self.schema:
+                k = "resources.validate.%s" % self.__class__.__name__
+                timings.start(k)
+                try:
+                    data_ = self.schema.validate(data)
+                finally:
+                    timings.end(k)
+                return data_
+        except SchemaError as e:
+            error_cls = self._contents_exception_type()
+            raise error_cls(value=str(e),
+                            path=self.path,
+                            resource_key=self.key)
+        return data
 
 
 class SearchPath(FolderResource):

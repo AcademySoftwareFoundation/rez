@@ -21,6 +21,7 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.yaml import dump_yaml
+from rez.contrib.animallogic import memcache
 import getpass
 import inspect
 import time
@@ -246,6 +247,8 @@ class ResolvedContext(object):
                 pkg = Variant(resource)
                 pkgs.append(pkg)
             self._resolved_packages = pkgs
+
+        memcache.disconnect()
 
     def __str__(self):
         request = self.requested_packages(include_implicit=True)
