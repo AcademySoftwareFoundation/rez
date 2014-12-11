@@ -5,7 +5,8 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, help_schema, PACKAGE_NAME_REGEX
 from rez.exceptions import PackageMetadataError
-from rez.resources_ import ResourceHandle, cached_property, Required, schema_keys
+from rez.utils.resources import ResourceHandle, cached_property, Required, \
+    schema_keys
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config, create_config
 from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
@@ -78,6 +79,15 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
         # this ensures we're getting the cached result
         return self._repository.iter_packages(self)
 
+    def get_last_release_time(self):
+        # this repository makes sure to update path mtime every time a
+        # variant is added to the repository [TODO: coming]
+        path = os.path.join(self.location, self.name)
+        try:
+            return os.path.getmtime(path)
+        except OSError:
+            return 0
+
     def _iter_packages(self):
         # called by repository
         root = self._uri()
@@ -140,6 +150,12 @@ class FileSystemPackageResource(PackageResource):
         family = self._repository.get_resource(handle)
         return family
 
+    @cached_property
+    def state_handle(self):
+        if self.filepath:
+            return os.path.getmtime(self.filepath)
+        return None
+
     def iter_variants(self):
         # this ensures we're getting the cached result
         return self._repository.iter_variants(self)
@@ -162,32 +178,39 @@ class FileSystemPackageResource(PackageResource):
             variant = self._repository.get_resource(handle)
             yield variant
 
-    def _load(self):
-        filepath = None
-        path = self._uri()
+    @cached_property
+    def filepath(self):
+        return self._filepath_and_format[0]
 
-        # load package.py/yaml
+    @cached_property
+    def file_format(self):
+        return self._filepath_and_format[1]
+
+    @cached_property
+    def _filepath_and_format(self):
+        path = self.uri
         for format_ in (FileFormat.py, FileFormat.yaml):
             filename = "package.%s" % format_.extension
-            filepath_ = os.path.join(path, filename)
-            if os.path.isfile(filepath_):
-                filepath = filepath_
-                break
+            filepath = os.path.join(path, filename)
+            if os.path.isfile(filepath):
+                return filepath, format_
+        return None, None
 
-        if filepath is None:
+    def _load(self):
+        if self.filepath is None:
             raise PackageMetadataError("Missing package definition file: %r" % self)
 
-        data = load_from_file(filepath, format_)
-
+        data = load_from_file(self.filepath, self.file_format)
         if "timestamp" not in data:  # old format support
-            data_ = self._load_old_formats(path)
+            data_ = self._load_old_formats()
             if data_:
                 data.update(data_)
 
         return data
 
-    def _load_old_formats(self, path):
+    def _load_old_formats(self):
         data = None
+        path = self.uri
 
         filepath = os.path.join(path, "release.yaml")
         if os.path.isfile(filepath):
@@ -336,13 +359,15 @@ class FileSystemPackageRepository(PackageRepository):
 
         Args:
             location (str): Path containing the package repository.
-            resource_pool (`ResourcePool`): Pool to manage all resources from
-                this repository.
         """
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
         self.register_resource(FileSystemPackageFamilyResource)
         self.register_resource(FileSystemPackageResource)
         self.register_resource(FileSystemVariantResource)
+
+    def _uid(self):
+        st = os.stat(self.location)
+        return ("filesystem", self.location, st.st_ino)
 
     def get_package_family(self, name):
         return self._get_family(name)
@@ -364,6 +389,13 @@ class FileSystemPackageRepository(PackageRepository):
 
     def get_parent_package(self, variant_resource):
         return variant_resource.parent
+
+    def get_variant_state_handle(self, variant_resource):
+        package_resource = variant_resource.parent
+        return package_resource.state_handle
+
+    def get_last_release_time(self, package_family_resource):
+        return package_family_resource.get_last_release_time()
 
     # -- internal
 

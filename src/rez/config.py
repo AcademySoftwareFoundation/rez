@@ -1,6 +1,7 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
     convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter, \
     expandvars
+from rez.utils.logging_ import get_debug_printer
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
@@ -228,6 +229,7 @@ config_schema = Schema({
     "debug_resources":                  Bool,
     "debug_flatten_env":                Bool,
     "debug_memcache":                   Bool,
+    "debug_resolve_memcache":           Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,
@@ -398,6 +400,11 @@ class Config(DataWrapper):
         return (not self.quiet and not self.debug_none and
                 (self.debug_all or getattr(self, "debug_%s" % key)))
 
+    def debug_printer(self, key):
+        """Returns a printer object suitably enabled based on the given key."""
+        enabled = self.debug(key)
+        return get_debug_printer(enabled)
+
     @propertycache
     def plugins(self):
         """Plugin settings are loaded lazily, to avoid loading the plugins
@@ -428,6 +435,7 @@ class Config(DataWrapper):
         return paths
 
     # use as decorator
+    # TODO DEPRECATE after old resources removed
     def lru_cache(self, key, maxsize_key=None):
         def decorated(f):
             if self.get(key):

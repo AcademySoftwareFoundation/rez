@@ -3,7 +3,7 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
 from rez.utils.data_utils import cached_property, StringFormatMixin
 from rez.util import is_subdirectory
-from rez.resources_ import ResourceHandle, ResourceWrapper, schema_keys
+from rez.utils.resources import ResourceHandle, ResourceWrapper, schema_keys
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.config import config
 from rez.vendor.version.requirement import VersionedObject
@@ -181,15 +181,7 @@ def iter_packages(name, range_=None, paths=None):
     Returns:
         `Package` iterator.
     """
-    entries = []
-    for path in (paths or config.packages_path):
-        repo = package_repository_manager.get_repository(path)
-        family_resource = repo.get_package_family(name)
-        if family_resource:
-            entries.append((repo, family_resource))
-
-    if not entries:
-        raise PackageFamilyNotFoundError("No such package family %r" % name)
+    entries = _get_families(name, paths)
 
     seen = set()
     for repo, family_resource in entries:
@@ -221,3 +213,37 @@ def get_variant(variant_handle):
     resource = package_repository_manager.get_resource(variant_handle)
     variant = Variant(resource)
     return variant
+
+
+def get_last_release_time(name, paths=None):
+    """Returns the most recent time this package was released.
+
+    Note that releasing a variant into an already-released package is also
+    considered a package release.
+
+    Returns:
+        int: Epoch time of last package release, or zero if this cannot be
+        determined.
+    """
+    entries = _get_families(name, paths)
+    max_time = 0
+
+    for repo, family_resource in entries:
+        time_ = repo.get_last_release_time(family_resource)
+        if time_ == 0:
+            return 0
+        max_time = max(max_time, time_)
+    return max_time
+
+
+def _get_families(name, paths=None):
+    entries = []
+    for path in (paths or config.packages_path):
+        repo = package_repository_manager.get_repository(path)
+        family_resource = repo.get_package_family(name)
+        if family_resource:
+            entries.append((repo, family_resource))
+
+    if not entries:
+        raise PackageFamilyNotFoundError("No such package family %r" % name)
+    return entries

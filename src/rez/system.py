@@ -212,6 +212,14 @@ class System(object):
         """Return True if this is a production rez install."""
         return bool(self.rez_bin_path)
 
+    def clear_caches(self):
+        """Clear all caches in Rez."""
+        from rez.package_repository import package_repository_manager
+        from rez.memcache import memcache_client
+
+        memcache_client.flush()
+        package_repository_manager.clear_caches()
+
     @classmethod
     def _make_safe_version_string(cls, s):
         sep_regex = re.compile("[\.\-]")

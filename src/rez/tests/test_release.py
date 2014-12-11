@@ -2,13 +2,13 @@ from rez.build_process import LocalSequentialBuildProcess
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.release_vcs import create_release_vcs
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.vendor import yaml
+from rez.system import system
 from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.resources import clear_caches
 from rez.yaml import dump_package_yaml
 import rez.bind.platform
 import rez.bind.arch
@@ -41,9 +41,7 @@ class TestRelease(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, *pkgs):
-        # cache clear is needed to clear Resource._listdir cache, which hides
-        # newly added packages
-        clear_caches()
+        system.clear_caches()
         return ResolvedContext(pkgs)
 
     @shell_dependent
@@ -52,7 +50,7 @@ class TestRelease(TestBase, TempdirMixin):
         """Basic release."""
 
         # start fresh
-        clear_caches()
+        system.clear_caches()
         if os.path.exists(self.install_root):
             shutil.rmtree(self.install_root)
         if os.path.exists(self.src_root):
@@ -67,7 +65,7 @@ class TestRelease(TestBase, TempdirMixin):
         def _write_package():
             with open(packagefile, 'w') as f:
                 f.write(dump_package_yaml(package_data))
-            clear_caches()
+            system.clear_caches()
 
         # create the build system
         buildsys = create_build_system(working_dir, verbose=True)
@@ -99,8 +97,8 @@ class TestRelease(TestBase, TempdirMixin):
                                 "foo", "1.0", "data", "data.txt")
         self.assertTrue(os.path.exists(filepath))
 
-        # failed release (same version release again)
-        clear_caches()
+        # failed release (same version released again)
+        system.clear_caches()
         builder = _create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
@@ -138,7 +136,7 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(tags, expected_value)
 
         # check the package install path contains the packages we expect
-        clear_caches()
+        system.clear_caches()
         it = iter_packages(paths=[self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)

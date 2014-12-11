@@ -1,4 +1,4 @@
-from rez.resources_ import Resource, Required
+from rez.utils.resources import Resource, Required
 from rez.utils.data_utils import cached_property
 from rez.exceptions import PackageMetadataError
 from rez.config import Config
