@@ -13,18 +13,20 @@ magic = get_magic()
 
 
 class DataType(Enum):
-    data = (1, False)   # a dict of POD types from a file (eg yaml)
-    code = (2, True)    # source from py file (marshalled)
-    listdir = (3, False)  # cached os.listdir result
+    data = (1, False, 0)        # a dict of POD types from a file (eg yaml)
+    code = (2, True, 0)         # source from py file (marshalled)
+    listdir = (3, False, 0)     # cached os.listdir result
+    resolve = (4, False, 1)     # a package request solve
 
-    def __init__(self, id_, bytecode_dependent):
+    def __init__(self, id_, bytecode_dependent, min_compress_len):
         self.id_ = id_
         self.bytecode_dependent = bytecode_dependent
+        self.min_compress_len = min_compress_len
 
 
 class Client(object):
     def __init__(self):
-        pass
+        self.counter = 0
 
     @property
     def enabled(self):
@@ -32,36 +34,42 @@ class Client(object):
 
     def set(self, type_, key, value):
         h = self._key_hash(type_, key)
-        self.client.set(h, (type_, key, value))
+        data = (type_.id_, key, value)
+        self.client.set(h, data, min_compress_len=type_.min_compress_len)
 
     def get(self, type_, key):
         h = self._key_hash(type_, key)
         hit = self.client.get(h)
         if hit is not None:
-            _type, _key, value = hit
-            if _type == type_ and _key == key:  # avoid hash collisions
+            _type_id, _key, value = hit
+            if _type_id == type_.id_ and _key == key:  # avoid hash collisions
                 return value
         return None
+
+    def delete(self, type_, key):
+        h = self._key_hash(type_, key)
+        self.client.delete(h)
+
+    def flush(self):
+        """Drop existing entries from the cache.
+
+        This does not actually flush the memcache, which is deliberate - other
+        processes using rez will be unaffected.
+        """
+        self.counter += 1
 
     @cached_property
     def client(self):
         uris = config.memcached_uri
         if uris:
-            uris_ = []
-            for uri in uris:
-                mc = memcache.Client([uri])
-                mc.set("__test__", 1)
-                if mc.get("__test__") == 1:
-                    uris_.append(uri)
-                mc = None
-
-            if uris_:
-                return memcache.Client(uris_)
+            mc = memcache.Client(uris)
+            mc.set("__test__", 1)
+            if mc.get("__test__") == 1:
+                return mc
         return None
 
-    @classmethod
-    def _key_hash(cls, type_, key):
-        t = [type_.id_, __version__]
+    def _key_hash(self, type_, key):
+        t = [self.counter, type_.id_, __version__]
         if type_.bytecode_dependent:
             t.append(magic)
         t.append(key)
@@ -70,6 +78,11 @@ class Client(object):
 
 # singleton
 memcache_client = Client()
+
+
+class DoNotCache(object):
+    def __init__(self, result):
+        self.result = result
 
 
 class _None(object):
@@ -88,6 +101,10 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
 
     In all cases (cache hits and misses), the result is translated by `value_func`
     if provided, after from_cache_func/to_cache_func has been called.
+
+    If you do not want a result to be cached, wrap the return value of your
+    function in a `DoNotCache` object. Note that `value_func` will still be
+    applied in this case.
 
     Note:
         This decorator will also cache a None result.
@@ -125,7 +142,9 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
                         memcache_client.set(data_type, key, value_)
 
                     result = func(*nargs, **kwargs)
-                    if to_cache_func is None:
+                    if isinstance(result, DoNotCache):
+                        result = result.result
+                    elif to_cache_func is None:
                         _set(result)
                     else:
                         data = to_cache_func(result, *nargs, **kwargs)
@@ -140,6 +159,8 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
                         result = from_cache_func(data, *nargs, **kwargs)
             else:
                 result = func(*nargs, **kwargs)
+                if isinstance(result, DoNotCache):
+                    result = result.result
 
             if value_func is not None:
                 result = value_func(result, *nargs, **kwargs)

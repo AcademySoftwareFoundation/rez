@@ -59,7 +59,25 @@ bind_module_path: []
 
 
 ###############################################################################
-# Resources
+# Caching
+###############################################################################
+
+# Use available caching mechanisms to speed up resolves when applicable.
+resolve_caching: true
+
+# The size of the local (in-process) resource cache. Resources include package
+# families, packages and variants. A value of 0 disables caching; -1 sets a cache
+# of unlimited size.
+resource_caching_maxsize: -1
+
+# Uris of running memcached server(s) to use as a file and resolve cache. For
+# example, the uri '127.0.0.1:11211' points to memcached running on localhost on
+# its default port. Must be either null, or a list of strings.
+memcached_uri:
+
+
+###############################################################################
+# Misc
 ###############################################################################
 
 # If True, enable resource caching. This caches things such as disk reads of
@@ -67,15 +85,6 @@ bind_module_path: []
 # debugging purposes.
 # TODO DEPRECATE
 resource_caching: true
-
-# The size of the local (in-process) resource cache. Resources include packages
-# and variants. A value of 0 disables caching; -1 sets a cache of unlimited size.
-resource_caching_maxsize: -1
-
-# Uris of running memcached server(s) to use as a file and resolve cache. For
-# example, the uri '127.0.0.1:11211' points to memcached running on localhost on
-# its default port. Must be either null, or a list of strings.
-memcached_uri:
 
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
@@ -93,9 +102,6 @@ implicit_packages:
 - '~platform=={system.platform}'
 - '~arch=={system.arch}'
 - '~os=={system.os}'
-
-# Use available caching mechanisms to speed up resolves when applicable.
-resolve_caching: true
 
 # 'start_depth' and 'max_depth' are used to delay loading older packages until
 # necessary. More recent packages are searched first, and then if a solution is
@@ -203,7 +209,11 @@ debug_package_release: false
 debug_bind_modules: false
 
 # Print debugging info when searching and loading resources.
+# TODO update new resources system to use this
 debug_resources: false
+
+# Print debugging info related to use of memcached during a resolve
+debug_resolve_memcache: false
 
 # Turn on all debugging messages
 debug_all: false

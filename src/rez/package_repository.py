@@ -1,4 +1,5 @@
-from rez.resources_ import ResourcePool
+from rez.utils.resources import ResourcePool
+from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
@@ -37,6 +38,17 @@ class PackageRepository(object):
         register all the resource types associated with that plugin.
         """
         self.pool.register_resource(resource_class)
+
+    @cached_property
+    def uid(self):
+        """Returns a unique identifier for this repository.
+
+        This is necessary for memcached caching.
+
+        Returns:
+            hashable value: Value that uniquely identifies this repository.
+        """
+        return self._uid()
 
     def get_package_family(self, name):
         """Get a package family.
@@ -103,10 +115,54 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_variant_state_handle(self, variant_resource):
+        """Get a value that indicates the state of the variant.
+
+        This is used for resolve caching. For example, in the 'filesystem'
+        repository type, the 'state' is the last modified date of the file
+        associated with the variant (perhaps a package.py). If the state of
+        any variant has changed from a cached resolve - eg, if a file has been
+        modified - the cached resolve is discarded.
+
+        This may not be applicable to your repository type, leave as-is if so.
+
+        Returns:
+            A hashable value.
+        """
+        return None
+
+    def get_last_release_time(self, package_family_resource):
+        """Get the last time a package was added to the given family.
+
+        This information is used to cache resolves via memcached. It can be left
+        not implemented, but resolve caching is a substantial optimisation that
+        you will be missing out on.
+
+        Returns:
+            int: Epoch time at which a package was changed/added/removed from
+                the given package family. Zero signifies an unknown last package
+                update time.
+        """
+        return 0
+
     def get_resource(self, resource_handle):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
+
+    def _uid(self):
+        """Unique identifier implementation.
+
+        You may need to provide your own implementation. For example, consider
+        the 'filesystem' repository. A default uri might be 'filesystem:/tmp_pkgs'.
+        However /tmp_pkgs is probably a local path for each user, so this would
+        not actually uniquely identify the repository - probably the inode number
+        needs to be incorporated also.
+
+        Returns:
+            Hashable value.
+        """
+        return (self.name(), self.location)
 
 
 class PackageRepositoryManager(object):

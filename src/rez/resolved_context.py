@@ -85,7 +85,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (3, 2)
+    serialize_version = (4, 0)
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -199,7 +199,8 @@ class ResolvedContext(object):
         self.failure_description = None
         self.graph_string = None
         self.graph_ = None
-        self.solve_time = 0.0
+        self.from_cache = None
+        self.solve_time = 0.0  # inclusive of load time
         self.load_time = 0.0
 
         # suite information
@@ -218,7 +219,7 @@ class ResolvedContext(object):
                             package_paths=self.package_paths,
                             timestamp=self.timestamp,
                             building=self.building,
-                            caching=caching,
+                            caching=self.caching,
                             callback=callback_,
                             package_load_callback=package_load_callback,
                             verbosity=verbosity,
@@ -233,21 +234,12 @@ class ResolvedContext(object):
         self.load_time = resolver.load_time
         self.failure_description = resolver.failure_description
         self.graph_ = resolver.graph
+        self.from_cache = resolver.from_cache
 
         actual_solve_time = self.solve_time - self.load_time
         timings.add("resolve", actual_solve_time)
 
         if self.status_ == ResolverStatus.solved:
-            """
-            # convert solver.Variants to packages.Variants
-            pkgs = []
-            for variant in resolver.resolved_packages:
-                resource_handle = variant.userdata
-                resource = resource_handle.get_resource()
-                pkg = Variant(resource)
-                pkgs.append(variant)
-            self._resolved_packages = pkgs
-            """
             self._resolved_packages = resolver.resolved_packages
 
     def __str__(self):
@@ -679,14 +671,15 @@ class ResolvedContext(object):
 
         if verbosity:
             _pr()
+            actual_solve_time = self.solve_time - self.load_time
             _pr("resolve details:", heading)
             _pr("start depth: %s" % (self.start_depth or '-'))
-            _pr("max depth: %s" % (self.max_depth or '-'))
-            _pr("load time: %.02f secs" % self.load_time)
-            actual_solve_time = self.solve_time - self.load_time
-            _pr("solve time: %.02f secs" % actual_solve_time)
+            _pr("max depth:   %s" % (self.max_depth or '-'))
+            _pr("load time:   %.02f secs" % self.load_time)
+            _pr("solve time:  %.02f secs" % actual_solve_time)
+            _pr("from cache:  %s" % self.from_cache)
             if self.load_path:
-                _pr("rxt file: %s" % self.load_path)
+                _pr("rxt file:    %s" % self.load_path)
 
         if verbosity >= 2:
             _pr()
@@ -1205,6 +1198,7 @@ class ResolvedContext(object):
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=self.graph(as_dot=True),
+            from_cache=self.from_cache,
             solve_time=self.solve_time,
             load_time=self.load_time)
 
@@ -1296,6 +1290,10 @@ class ResolvedContext(object):
 
         r.max_depth = d.get("max_depth", 0)
         r.start_depth = d.get("start_depth", 0)
+
+        # -- SINCE SERIALIZE VERSION 4.0
+
+        r.from_cache = d.get("from_cache", False)
 
         return r
 
