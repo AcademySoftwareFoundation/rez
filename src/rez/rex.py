@@ -2,7 +2,6 @@ import os
 import subprocess
 import sys
 from string import Formatter
-import tempfile
 import re
 import UserDict
 import inspect
@@ -953,7 +952,8 @@ class RexExecutor(object):
                     _debug("%s - unable to flatten, no paths have been defined." % variable)
                     continue
 
-                target_root = tempfile.mkdtemp(prefix=variable + "_", dir=tmpdir)
+                target_root = os.path.join(tmpdir, variable)
+                os.makedirs(target_root)
 
                 _debug("%s - currently set to: %s." % (variable, paths))
                 _debug("%s - will be flattened to: %s." % (variable, target_root))
