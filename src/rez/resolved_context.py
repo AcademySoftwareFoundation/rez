@@ -153,7 +153,6 @@ class ResolvedContext(object):
                 to stdout.
         """
         self.load_path = None
-        self.tmpdir = mkdtemp_()
 
         # resolving settings
         self.requested_timestamp = timestamp
@@ -1106,14 +1105,16 @@ class ResolvedContext(object):
         sh = create_shell(shell)
 
         # context and rxt files
+        tmpdir = mkdtemp_()
+
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path
         else:
-            rxt_file = os.path.join(self.tmpdir, "context.rxt")
+            rxt_file = os.path.join(tmpdir, "context.rxt")
             self.save(rxt_file)
 
         context_file = context_filepath or \
-            os.path.join(self.tmpdir, "context.%s" % sh.file_extension())
+            os.path.join(tmpdir, "context.%s" % sh.file_extension())
 
         # interpret this context and write out the native context file
         executor = self._create_executor(sh, parent_environ)
@@ -1122,14 +1123,14 @@ class ResolvedContext(object):
         if actions_callback:
             actions_callback(executor)
 
-        self._execute(executor)
+        self._execute(executor, tmpdir=tmpdir)
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
 
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
-                           self.tmpdir,
+                           tmpdir,
                            rcfile=rcfile,
                            norc=norc,
                            stdin=stdin,
@@ -1218,7 +1219,6 @@ class ResolvedContext(object):
         # create and init the context
         r = ResolvedContext.__new__(ResolvedContext)
         r.load_path = None
-        r.tmpdir = mkdtemp_()
 
         r.timestamp = d["timestamp"]
         r.building = d["building"]
@@ -1287,7 +1287,7 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
-    def _execute(self, executor):
+    def _execute(self, executor, tmpdir=None):
         br = '#' * 80
         br_minor = '-' * 80
 
@@ -1387,7 +1387,10 @@ class ResolvedContext(object):
                     raise PackageCommandError(msg)
 
         if config.flatten_env:
-            executor.flatten(self.tmpdir)
+            if not tmpdir:
+                tmpdir = mkdtemp_()
+
+            executor.flatten(tmpdir)
 
         _heading("post system setup")
         # append suite path if there is an active parent suite
