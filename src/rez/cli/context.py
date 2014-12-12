@@ -74,7 +74,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.status import status
-    from rez.util import pretty_env_dict
+    from rez.utils.formatting import columnise
     from rez.resolved_context import ResolvedContext
     from rez.utils.graph_utils import save_graph, view_graph, prune_graph
     from rez.vendor.version.requirement import Requirement
@@ -137,7 +137,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.format == 'table':
         env = rc.get_environ(parent_environ=parent_env)
-        print pretty_env_dict(env)
+        rows = [x for x in sorted(env.iteritems())]
+        print '\n'.join(columnise(rows))
     elif opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)
         print pformat(env)

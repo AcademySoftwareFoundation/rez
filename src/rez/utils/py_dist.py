@@ -11,6 +11,13 @@ import os.path
 import textwrap
 
 
+def _mkdirs(*dirs):
+    path = os.path.join(*dirs)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
+
 def convert_name(name):
     """ Convert a python distribution name into a rez-safe package name."""
     return name.replace('-', '_')

@@ -15,7 +15,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.util import pretty_dict
+    from rez.utils.yaml import dump_yaml
 
     data = config.data
     if opts.FIELD:
@@ -29,6 +29,7 @@ def command(opts, parser, extra_arg_groups=None):
                 raise ValueError("no such setting: %r" % opts.FIELD)
 
     if isinstance(data, (dict, list)):
-        print pretty_dict(data)
+        txt = dump_yaml(data).strip()
+        print txt
     else:
         print data

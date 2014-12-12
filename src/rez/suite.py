@@ -1,6 +1,7 @@
-from rez.util import propertycache, create_forwarding_script, columnise
+from rez.util import propertycache, create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
+from rez.utils.formatting import columnise
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError

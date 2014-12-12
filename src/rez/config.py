@@ -1,6 +1,6 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
     convert_dicts, AttrDictWrapper, DataWrapper, expandvars
-from rez.utils.data_utils import ObjectStringFormatter
+from rez.utils.formatting import ObjectStringFormatter
 from rez.utils.logging_ import get_debug_printer
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
@@ -294,44 +294,6 @@ class Expand(object):
             else:
                 return value
         return _expand(data)
-
-
-def _to_schema(config_dict, required, allow_custom_keys=True,
-               inject_expansion=True):
-    """Convert a dict of Schemas into a Schema.
-
-    Args:
-        required (bool): Whether to make schema keys optional or required.
-        allow_custom_keys (bool): If True, creates a schema that allows
-            custom items in dicts.
-        inject_expansion (bool): If True, updates schema values by adding
-            variable expansion. This is used to update plugins schemas, so
-            plugin authors don't have to explicitly support expansion.
-
-    Returns:
-        A `Schema` object.
-    """
-    def _to(value):
-        if isinstance(value, dict):
-            d = {}
-            for k, v in value.iteritems():
-                if isinstance(k, basestring):
-                    k = Schema(k) if required else Optional(k)
-                d[k] = _to(v)
-            if allow_custom_keys:
-                d[Optional(basestring)] = (Expand()
-                                           if inject_expansion else object)
-            schema = Schema(d)
-        else:
-            if type(value) is type and issubclass(value, Setting):
-                schema = value.schema
-            else:
-                schema = value
-            if inject_expansion:
-                schema = And(schema, Expand())
-        return schema
-
-    return _to(config_dict)
 
 
 # -----------------------------------------------------------------------------

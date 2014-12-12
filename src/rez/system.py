@@ -5,7 +5,8 @@ import sys
 from rez import __version__
 from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
-from rez.util import propertycache, which
+from rez.util import which
+from rez.utils.data_utils import cached_property
 
 
 class System(object):
@@ -16,39 +17,42 @@ class System(object):
         """Returns the current version of Rez."""
         return __version__
 
-    @propertycache
+    @cached_property
     def platform(self):
         """Get the current platform.
         @returns The current platform. Examples:
-        linux
-        windows
-        osx
+
+            linux
+            windows
+            osx
         """
         return platform_.name
 
-    @propertycache
+    @cached_property
     def arch(self):
         """Get the current architecture.
         @returns The current architecture. Examples:
-        x86_64
-        i386
+
+            x86_64
+            i386
         """
         r = platform_.arch
         return self._make_safe_version_string(r)
 
-    @propertycache
+    @cached_property
     def os(self):
         """Get the current operating system.
         @returns The current operating system. Examples:
-        Ubuntu-12.04
-        CentOS-5.4
-        windows-6.1.7600.sp1
-        osx-10.6.2
+
+            Ubuntu-12.04
+            CentOS-5.4
+            windows-6.1.7600.sp1
+            osx-10.6.2
         """
         r = platform_.os
         return self._make_safe_version_string(r)
 
-    @propertycache
+    @cached_property
     def variant(self):
         """Returns a list of the form ["platform-X", "arch-X", "os-X"] suitable
         for use as a variant in a system-dependent package."""
@@ -57,12 +61,13 @@ class System(object):
                 "os-%s" % self.os]
 
     # TODO move shell detection into shell plugins
-    @propertycache
+    @cached_property
     def shell(self):
         """Get the current shell.
         @returns The current shell this process is running in. Examples:
-        bash
-        tcsh
+
+            bash
+            tcsh
         """
         from rez.shells import get_shell_types
         shells = set(get_shell_types())
@@ -144,36 +149,36 @@ class System(object):
                                 shell = iter(shells).next()  # give up - just choose a shell
             return shell
 
-    @propertycache
+    @cached_property
     def user(self):
         """Get the current user."""
         import getpass
         return getpass.getuser()
 
-    @propertycache
+    @cached_property
     def fqdn(self):
         """
-        @returns Fully qualified domain name. Example:
-        somesvr.somestudio.com
+        @returns Fully qualified domain name, eg 'somesvr.somestudio.com'
         """
         import socket
         return socket.getfqdn()
 
-    @propertycache
+    @cached_property
     def hostname(self):
         """
         @returns The machine hostname, eg 'somesvr'
         """
         return self.fqdn.split('.', 1)[0]
 
-    @propertycache
+    @cached_property
     def domain(self):
         """
         @returns The domain, eg 'somestudio.com'
         """
         return self.fqdn.split('.', 1)[1]
 
-    @property
+
+    @cached_property
     def uuid(self):
         """
         @returns A unique uuidas a string.
@@ -181,7 +186,7 @@ class System(object):
         import uuid
         return str(uuid.uuid4())
 
-    @propertycache
+    @cached_property
     def rez_bin_path(self):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.

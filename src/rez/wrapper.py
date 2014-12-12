@@ -1,6 +1,7 @@
 from rez.resolved_context import ResolvedContext
 from rez.utils.colorize import heading, local, critical, Printer
-from rez.util import propertycache, columnise
+from rez.utils.data_utils import cached_property
+from rez.utils.formatting import columnise
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.exceptions import RezSystemError, SuiteError
@@ -55,7 +56,7 @@ class Wrapper(object):
         self.context = context
         self.tool_name = tool_name
 
-    @propertycache
+    @cached_property
     def suite(self):
         from rez.suite import Suite
         return Suite.load(self.suite_path)

@@ -1,9 +1,12 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config, _to_schema
-from rez.util import LazySingleton, propertycache, deep_update, columnise, \
-    print_debug, print_warning
+from rez.config import config
+from rez.utils.formatting import columnise
+from rez.util import deep_update
+from rez.utils.schema import dict_to_schema
+from rez.utils.data_utils import LazySingleton, cached_property
+from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 import os.path
 
@@ -160,7 +163,7 @@ class RezPluginType(object):
             raise RezPluginError("Unrecognised %s plugin: '%s'"
                                  % (self.pretty_type_name, plugin_name))
 
-    @propertycache
+    @cached_property
     def config_schema(self):
         """Returns the merged configuration data schema for this plugin
         type."""
@@ -172,7 +175,7 @@ class RezPluginType(object):
                     and plugin_class.schema_dict:
                 d_ = {name: plugin_class.schema_dict}
                 deep_update(d, d_)
-        return _to_schema(d, required=True)
+        return dict_to_schema(d, required=True)
 
     def create_instance(self, plugin, **instance_kwargs):
         """Create and return an instance of the given plugin."""
