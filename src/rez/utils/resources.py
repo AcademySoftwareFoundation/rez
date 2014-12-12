@@ -32,29 +32,7 @@ See the 'pets' unit test in tests/test_resources.py for a complete example.
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
 from rez.exceptions import ResourceError
-from rez.vendor.schema.schema import Schema, Optional
 from rez.backport.lru_cache import lru_cache
-
-
-# an alias which just so happens to be the same number of characters as
-# 'Optional' so that our schema are easier to read
-Required = Schema
-
-
-def schema_keys(schema):
-    """
-    Returns:
-        Set of keys of a schema which is in the form (eg):
-
-            schema = Schema({Required("foo"): int,
-                             Optional("bah"): basestring})
-    """
-    def _get_leaf(value):
-        if isinstance(value, Schema):
-            return _get_leaf(value._schema)
-        return value
-
-    return set(_get_leaf(x) for x in _get_leaf(schema))
 
 
 class Resource(object):

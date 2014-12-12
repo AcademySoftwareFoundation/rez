@@ -8,7 +8,7 @@ from rez.resolved_context import ResolvedContext
 from rez.packages import iter_packages, Package
 from rez.suite import Suite
 from rez.wrapper import Wrapper
-from rez.colorize import local, warning, critical, Printer
+from rez.utils.colorize import local, warning, critical, Printer
 from rez.util import print_colored_columns
 from rez.backport.shutilwhich import which
 from rez.vendor.version.requirement import Requirement

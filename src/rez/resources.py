@@ -26,8 +26,8 @@ import re
 import fnmatch
 from collections import defaultdict
 from rez.config import config
-from rez.util import to_posixpath, is_dict_subset, \
-    propertycache, dicts_conflicting, DataWrapper, print_debug
+from rez.util import to_posixpath, propertycache, DataWrapper
+from rez.utils.logging_ import print_debug
 from rez.utils.scope import ScopeContext
 from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.vendor import yaml
@@ -42,6 +42,26 @@ _resource_classes = {}
 # make an alias which just so happens to be the same number of characters as
 # 'Optional'  so that our schema are easier to read
 Required = Schema
+
+
+
+def is_dict_subset(dict1, dict2):
+    """Returns True if dict1 is a subset of dict2."""
+    for k, v in dict1.iteritems():
+        if k in dict2:
+            if dict2[k] != v:
+                return False
+        else:
+            return False
+    return True
+
+
+def dicts_conflicting(dict1, dict2):
+    """Returns True if any key present in both dicts has differing values."""
+    for k, v in dict1.iteritems():
+        if k in dict2 and dict2[k] != v:
+            return True
+    return False
 
 
 def _or_regex(strlist):

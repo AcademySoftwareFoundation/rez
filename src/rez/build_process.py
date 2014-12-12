@@ -3,7 +3,8 @@ from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import convert_dicts, AttrDictWrapper, print_debug
+from rez.util import convert_dicts, AttrDictWrapper
+from rez.utils.logging_ import print_debug
 from rez.release_hook import create_release_hooks
 from rez.utils.yaml import dump_yaml
 from rez import __version__

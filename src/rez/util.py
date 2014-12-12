@@ -24,18 +24,17 @@ from rez.vendor.progress.bar import Bar
 from rez.vendor.schema.schema import Schema, Optional
 
 
-logger = logging.getLogger(__name__)
-
-
 DEV_NULL = open(os.devnull, 'w')
 
 
+"""
 try:
     import collections
     OrderedDict = collections.OrderedDict
 except AttributeError:
     import backport.ordereddict
     OrderedDict = backport.ordereddict.OrderedDict
+"""
 
 
 class _Missing:
@@ -103,26 +102,6 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
     os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
              | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
-
-
-def print_debug(msg):
-    logger.debug(msg)
-
-
-def print_info(msg):
-    logger.info(msg)
-
-
-def print_warning(msg):
-    logger.warning(msg)
-
-
-def print_error(msg):
-    logger.error(msg)
-
-
-def print_critical(msg):
-    logger.critical(msg)
 
 
 def is_subdirectory(path_a, path_b):
@@ -776,25 +755,6 @@ def find_last_sublist(list_, sublist):
     return None
 
 
-def is_dict_subset(dict1, dict2):
-    """Returns True if dict1 is a subset of dict2."""
-    for k, v in dict1.iteritems():
-        if k in dict2:
-            if dict2[k] != v:
-                return False
-        else:
-            return False
-    return True
-
-
-def dicts_conflicting(dict1, dict2):
-    """Returns True if any key present in both dicts has differing values."""
-    for k, v in dict1.iteritems():
-        if k in dict2 and dict2[k] != v:
-            return True
-    return False
-
-
 def deep_update(dict1, dict2):
     """Perform a deep merge of `dict2` into `dict1`.
 
@@ -1173,67 +1133,6 @@ class DataWrapper(object):
         formatter = ObjectStringFormatter(self, pretty=pretty,
                                           expand=ObjectStringFormatter.expand)
         return formatter.format(s)
-
-
-def get_object_completions(instance, prefix, types=None, instance_types=None):
-    """Get completion strings based on an object's attributes/keys.
-
-    Completion also works on dynamic attributes (eg implemented via
-    __getattr__) if they are iterable.
-
-    Args:
-        prefix (str): Prefix to match, can be dot-separated to access nested
-            attributes.
-        types (tuple): Attribute types to match, any if None.
-        instance_types (tuple): Class types to recurse into when a dotted
-            prefix is given, any if None.
-
-    Returns:
-        List of strings.
-    """
-    word_toks = []
-    toks = prefix.split('.')
-    while len(toks) > 1:
-        attr = toks[0]
-        toks = toks[1:]
-        word_toks.append(attr)
-        try:
-            instance = getattr(instance, attr)
-        except AttributeError:
-            return []
-        if instance_types and not isinstance(instance, instance_types):
-            return []
-
-    prefix = toks[-1]
-    words = []
-
-    attrs = dir(instance)
-    try:
-        for attr in instance:
-            if isinstance(attr, basestring):
-                attrs.append(attr)
-    except TypeError:
-        pass
-
-    for attr in attrs:
-        if attr.startswith(prefix) and not attr.startswith('_') \
-                and not hasattr(instance.__class__, attr):
-            value = getattr(instance, attr)
-            if types and not isinstance(value, types):
-                continue
-            if not callable(value):
-                words.append(attr)
-
-    qual_words = ['.'.join(word_toks + [x]) for x in words]
-
-    if len(words) == 1 and value is not None and \
-            (instance_types is None or isinstance(value, instance_types)):
-        qual_word = qual_words[0]
-        words = get_object_completions(value, '', types)
-        for word in words:
-            qual_words.append("%s.%s" % (qual_word, word))
-
-    return qual_words
 
 
 @atexit.register

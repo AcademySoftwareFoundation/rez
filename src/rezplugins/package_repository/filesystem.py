@@ -5,13 +5,13 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, help_schema, PACKAGE_NAME_REGEX
 from rez.exceptions import PackageMetadataError
-from rez.utils.resources import ResourceHandle, cached_property, Required, \
-    schema_keys
+from rez.utils.resources import ResourceHandle, cached_property
+from rez.utils.schema import Required, schema_keys
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config, create_config
 from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
 from rez.memcache import mem_cached, DataType
-from rez.util import print_warning
+from rez.utils.logging_ import print_warning
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use, SchemaError
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement

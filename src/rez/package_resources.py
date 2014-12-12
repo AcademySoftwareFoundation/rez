@@ -4,7 +4,8 @@ from rez.resources import _or_regex, _updated_schema, register_resource, \
     _ResourcePathParser
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceNotFoundError, PackageMetadataError
-from rez.util import propertycache, deep_update, print_warning
+from rez.util import propertycache, deep_update
+from rez.utils.logging_ import print_warning
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange

@@ -8,10 +8,6 @@ def print_debug(msg):
     logger.debug(msg)
 
 
-def print_info(msg):
-    logger.info(msg)
-
-
 def print_warning(msg):
     logger.warning(msg)
 
