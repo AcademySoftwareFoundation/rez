@@ -73,7 +73,17 @@ class VersionedObject(_Common):
 
 
 class Requirement(_Common):
-    """Requirement for a versioned object, eg 'foo-1.5+<2', '!bah-5', 'foo==1.2'.
+    """Requirement for a versioned object.
+
+    Examples of valid requirement strings:
+
+        foo-1.0
+        foo@1.0
+        foo#1.0
+        foo-1+
+        foo-1+<4.3
+        foo<3
+        foo==1.0.1
 
     Defines a requirement for an object. For example, "foo-5+" means that you
     require any version of "foo", version 5 or greater. An unversioned

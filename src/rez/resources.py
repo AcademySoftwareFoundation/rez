@@ -19,6 +19,8 @@ an understanding of the underlying file and folder structure.  This ensures
 that the addition of new resources is localized to the registration functions
 provided by this module.
 """
+assert False, "RESOURCES.PY"
+
 import os
 import sys
 import inspect

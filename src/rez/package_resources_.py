@@ -6,11 +6,6 @@ from rez.config import Config
 from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema, Optional, Or
-import re
-
-
-PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
-PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 
 
 #------------------------------------------------------------------------------

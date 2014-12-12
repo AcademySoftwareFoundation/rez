@@ -3,13 +3,14 @@ Filesystem-based package repository
 """
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    VariantResource, help_schema, PACKAGE_NAME_REGEX
+    VariantResource, help_schema
 from rez.exceptions import PackageMetadataError
+from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import ResourceHandle, cached_property
 from rez.utils.schema import Required, schema_keys
+from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config, create_config
-from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
 from rez.memcache import mem_cached, DataType
 from rez.utils.logging_ import print_warning
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use, SchemaError
@@ -408,7 +409,7 @@ class FileSystemPackageRepository(PackageRepository):
         dirs = []
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
-            if PACKAGE_NAME_REGEX.match(name) and os.path.isdir(path):
+            if is_valid_package_name(name) and os.path.isdir(path):
                 dirs.append(name)
         return dirs
 
@@ -441,7 +442,7 @@ class FileSystemPackageRepository(PackageRepository):
 
     @lru_cache(maxsize=None)
     def _get_family(self, name):
-        if PACKAGE_NAME_REGEX.match(name)  \
+        if is_valid_package_name(name) \
                 and os.path.isdir(os.path.join(self.location, name)):
             handle = ResourceHandle(FileSystemPackageFamilyResource.key,
                                     dict(repository_type="filesystem",

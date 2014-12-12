@@ -3,9 +3,9 @@ import os
 import os.path
 from fnmatch import fnmatch
 from rez import __version__
-from rez.util import propertycache
+from rez.utils.data_utils import cached_property
 from rez.resolved_context import ResolvedContext
-from rez.packages import iter_packages, Package
+from rez.packages_ import iter_packages, Package
 from rez.suite import Suite
 from rez.wrapper import Wrapper
 from rez.utils.colorize import local, warning, critical, Printer
@@ -23,7 +23,7 @@ class Status(object):
     def __init__(self):
         pass
 
-    @propertycache
+    @cached_property
     def context_file(self):
         """Get path to the current context file.
 
@@ -32,7 +32,7 @@ class Status(object):
         """
         return os.getenv("REZ_RXT_FILE")
 
-    @propertycache
+    @cached_property
     def context(self):
         """Get the current context.
 
@@ -42,7 +42,7 @@ class Status(object):
         path = self.context_file
         return ResolvedContext.load(path) if path else None
 
-    @propertycache
+    @cached_property
     def suites(self):
         """Get currently visible suites.
 
@@ -53,7 +53,7 @@ class Status(object):
         """
         return Suite.load_visible_suites()
 
-    @propertycache
+    @cached_property
     def parent_suite(self):
         """Get the current parent suite.
 
@@ -70,7 +70,7 @@ class Status(object):
         return None
 
     # TODO store this info in env-var instead, remove suite info from context.
-    @propertycache
+    @cached_property
     def active_suite_context_name(self):
         """Get the name of the currently active context in a parent suite.
 

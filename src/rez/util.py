@@ -12,7 +12,6 @@ import textwrap
 from collections import MutableMapping, defaultdict
 from rez import module_root_path
 from rez.utils.yaml import dump_yaml
-from rez.utils.filesystem import rmdtemp, rm_tmdirs, _tmpdirs
 from rez.vendor.progress.bar import Bar
 from rez.vendor.schema.schema import Schema, Optional
 
@@ -714,7 +713,5 @@ class DataWrapper(object):
 
 @atexit.register
 def _atexit():
-    # remove temp dirs
-    if rm_tmdirs:
-        for path in _tmpdirs:
-            rmdtemp(path)
+    from rez.resolved_context import ResolvedContext
+    ResolvedContext.tmpdir_manager.clear()

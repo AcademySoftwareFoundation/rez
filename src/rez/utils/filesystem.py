@@ -11,38 +11,39 @@ import os
 import re
 
 
+class TempDirs(object):
+    """Tempdir manager."""
+    def __init__(self, tmpdir, prefix="rez_"):
+        self.tmpdir = tmpdir
+        self.prefix = prefix
+        self.dirs = set()
+        self.lock = Lock()
+
+    def mkdtemp(self):
+        path = tempfile.mkdtemp(dir=self.tmpdir, prefix=self.prefix)
+        try:
+            self.lock.acquire()
+            self.dirs.add(path)
+        finally:
+            self.lock.release()
+        return path
+
+    def clear(self):
+        dirs = self.dirs
+        for path in dirs:
+            if os.path.exists(path):
+                shutil.rmtree(path)
+
+    def __del__(self):
+        self.clear()
+
+
 def is_subdirectory(path_a, path_b):
     """Returns True if `path_a` is a subdirectory of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
     relative = os.path.relpath(path_a, path_b)
     return (not relative.startswith(os.pardir + os.sep))
-
-
-rm_tmdirs = True
-_tmpdirs = set()
-_tmpdir_lock = Lock()
-
-
-def mkdtemp_():
-    from rez.config import config
-    path = tempfile.mkdtemp(dir=config.tmpdir, prefix='rez_')
-    try:
-        _tmpdir_lock.acquire()
-        _tmpdirs.add(path)
-    finally:
-        _tmpdir_lock.release()
-    return path
-
-
-def rmdtemp(path):
-    if os.path.exists(path):
-        shutil.rmtree(path)
-
-
-def set_rm_tmpdirs(enable):
-    global rm_tmdirs
-    rm_tmdirs = enable
 
 
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
