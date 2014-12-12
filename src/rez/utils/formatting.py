@@ -3,6 +3,43 @@ Utilities related to formatting output or translating input.
 """
 from string import Formatter
 from rez.vendor.enum import Enum
+from rez.vendor.version.requirement import Requirement
+from rez.exceptions import PackageRequestError
+import re
+
+
+PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
+PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
+
+
+def is_valid_package_name(name, raise_error=False):
+    """Test the validity of a package name string.
+
+    Args:
+        name (str): Name to test.
+        raise_error (bool): If True, raise an exception on failure
+
+    Returns:
+        bool.
+    """
+    is_valid = PACKAGE_NAME_REGEX.match(name)
+    if raise_error and not is_valid:
+        raise PackageRequestError("Not a valid package name: %r" % name)
+    return is_valid
+
+
+class PackageRequest(Requirement):
+    """A package request parser.
+
+    Example:
+
+        >>> pr = PackageRequirement("foo-1.3+")
+        >>> print pr.name, pr.range
+        foo 1.3+
+    """
+    def __init__(self, s):
+        super(PackageRequirement, self).__init__(s)
+        is_valid_package_name(self.name, True)
 
 
 class StringFormatType(Enum):

@@ -6,11 +6,15 @@ from rez.utils.formatting import StringFormatMixin
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageFamilyNotFoundError
-from rez.config import config
+from rez.exceptions import PackageFamilyNotFoundError, PackageRequestError
 from rez.vendor.version.requirement import VersionedObject
+from rez.config import config
 import sys
 
+
+#------------------------------------------------------------------------------
+# package-related classes
+#------------------------------------------------------------------------------
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
     pass
@@ -41,8 +45,10 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 
 
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
+    """Abstract base class for `Package` and `Variant`.
+    """
     def print_info(self, buf=None, skip_attributes=None):
-        """Print the contents of the package, in yaml format."""
+        """Print the contents of the object, in yaml format."""
         from rez.utils.yaml import dump_package_yaml
         data = self.validated_data().copy()
         data = dict((k, v) for k, v in data.iteritems()
@@ -169,6 +175,10 @@ class Variant(PackageBaseResourceWrapper):
             requires = requires + (self.private_build_requires or [])
         return requires
 
+
+#------------------------------------------------------------------------------
+# resource aquisition functions
+#------------------------------------------------------------------------------
 
 def iter_package_families(paths=None):
     """Iterate over package families, in no particular order.

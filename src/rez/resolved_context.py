@@ -3,9 +3,9 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.util import shlex_join, dedup
-from rez.utils.filesystem import mkdtemp_
+from rez.utils.colorize import critical, heading, local, implicit, Printer
+from rez.utils.filesystem import TempDirs
 from rez.utils.formatting import columnise
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
@@ -97,6 +97,7 @@ class ResolvedContext(object):
     shell.
     """
     serialize_version = (4, 0)
+    tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_context_")
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -1099,7 +1100,7 @@ class ResolvedContext(object):
         sh = create_shell(shell)
 
         # context and rxt files
-        tmpdir = tmpdir or mkdtemp_()
+        tmpdir = tmpdir or self.tmpdir_manager.mkdtemp()
 
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path

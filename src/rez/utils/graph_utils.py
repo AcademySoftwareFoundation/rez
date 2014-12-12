@@ -7,8 +7,9 @@ import subprocess
 import sys
 import tempfile
 from rez.config import config
-from rez.package_resources import PACKAGE_NAME_REGSTR
 from rez.vendor.pydot import pydot
+from rez.utils.formatting import PackageRequest
+from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
@@ -27,14 +28,18 @@ def prune_graph(graph_str, package_name):
     """
     # find nodes of interest
     g = read_dot(graph_str)
-    regex = re.compile(PACKAGE_NAME_REGSTR)
     nodes = set()
+
     for node, attrs in g.node_attr.iteritems():
         attr = [x for x in attrs if x[0] == "label"]
         if attr:
             label = attr[0][1]
-            match = regex.search(label)
-            if match and match.group() == package_name:
+            try:
+                request = PackageRequest(label)
+            except PackageRequestError:
+                continue
+
+            if request.name == package_name:
                 nodes.add(node)
 
     if not nodes:
