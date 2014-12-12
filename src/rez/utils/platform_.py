@@ -2,32 +2,30 @@ import platform
 import sys
 import os
 import os.path
-from rez.util import propertycache, which
+from rez.util import which
+from rez.utils.data_utils import cached_property
 from rez.exceptions import RezSystemError
 
 
 class Platform(object):
     """Abstraction of a platform.
     """
+    name = None
+
     def __init__(self):
         pass
 
-    @property
-    def name(self):
-        """Returns the name of the platform, eg 'linux'."""
-        raise NotImplementedError
-
-    @property
+    @cached_property
     def arch(self):
         """Returns the name of the architecture."""
-        return platform.machine()
+        return self._arch()
 
-    @property
+    @cached_property
     def os(self):
         """Returns the name of the operating system."""
-        raise NotImplementedError
+        return self._os()
 
-    @property
+    @cached_property
     def terminal_emulator_command(self):
         """Returns the command to use to run another command in a separate
         terminal emulator.
@@ -39,24 +37,44 @@ class Platform(object):
             List of strings, or None if the terminal emulator could not be
             determined.
         """
-        raise NotImplementedError
+        return self._terminal_emulator_command()
 
-    @property
+    @cached_property
     def image_viewer(self):
         """Returns the system default image viewer.
 
         If None, rez will use the web browser to display images.
         """
-        raise NotImplementedError
+        return self._image_viewer()
 
-    @property
+    @cached_property
     def editor(self):
         """Returns the system default text editor."""
-        raise NotImplementedError
+        return self._editor()
 
-    @property
+    @cached_property
     def tmpdir(self):
         """Return system default temporary directory path."""
+        return self._tmpdir()
+
+    # -- implementation
+
+    def _arch(self):
+        return platform.machine()
+
+    def _os(self):
+        raise NotImplementedError
+
+    def _terminal_emulator_command(self):
+        raise NotImplementedError
+
+    def _image_viewer(self):
+        raise NotImplementedError
+
+    def _editor(self):
+        raise NotImplementedError
+
+    def _tmpdir(self):
         raise NotImplementedError
 
     def symlink(self, source, link_name):
@@ -69,8 +87,7 @@ class Platform(object):
 # -----------------------------------------------------------------------------
 
 class _UnixPlatform(Platform):
-    @property
-    def tmpdir(self):
+    def _tmpdir(self):
         return "/tmp"
 
 
@@ -79,12 +96,9 @@ class _UnixPlatform(Platform):
 # -----------------------------------------------------------------------------
 
 class LinuxPlatform(_UnixPlatform):
-    @property
-    def name(self):
-        return "linux"
+    name = "linux"
 
-    @propertycache
-    def os(self):
+    def _os(self):
         distributor = None
         release = None
 
@@ -164,8 +178,7 @@ class LinuxPlatform(_UnixPlatform):
         # give up
         raise RezSystemError("cannot detect operating system")
 
-    @propertycache
-    def terminal_emulator_command(self):
+    def _terminal_emulator_command(self):
         term = which("x-terminal-emulator", "xterm", "konsole")
         if term is None:
             return None
@@ -176,13 +189,11 @@ class LinuxPlatform(_UnixPlatform):
         else:
             return [term, "-hold", "-e"]
 
-    @propertycache
-    def image_viewer(self):
+    def _image_viewer(self):
         from rez.util import which
         return which("xdg-open", "eog", "kview")
 
-    @propertycache
-    def editor(self):
+    def _editor(self):
         ed = os.getenv("EDITOR")
         if ed is None:
             from rez.util import which
@@ -195,17 +206,13 @@ class LinuxPlatform(_UnixPlatform):
 # -----------------------------------------------------------------------------
 
 class OSXPlatform(_UnixPlatform):
-    @property
-    def name(self):
-        return "osx"
+    name = "osx"
 
-    @propertycache
-    def os(self):
+    def _os(self):
         release = platform.mac_ver()[0]
         return "osx-%s" % release
 
-    @propertycache
-    def terminal_emulator_command(self):
+    def _terminal_emulator_command(self):
         term = which("x-terminal-emulator", "xterm")
         if term is None:
             return None
@@ -216,12 +223,10 @@ class OSXPlatform(_UnixPlatform):
         else:
             return [term, "-hold", "-e"]
 
-    @property
-    def image_viewer(self):
+    def _image_viewer(self):
         return "open"
 
-    @property
-    def editor(self):
+    def _editor(self):
         return "open"
 
 
@@ -230,12 +235,9 @@ class OSXPlatform(_UnixPlatform):
 # -----------------------------------------------------------------------------
 
 class WindowsPlatform(Platform):
-    @property
-    def name(self):
-        return "windows"
+    name = "windows"
 
-    @propertycache
-    def arch(self):
+    def _arch(self):
         # http://stackoverflow.com/questions/7164843/in-python-how-do-you-determine-whether-the-kernel-is-running-in-32-bit-or-64-bi
         if os.name == 'nt' and sys.version_info[:2] < (2, 7):
             arch = os.environ.get("PROCESSOR_ARCHITEW6432",
@@ -244,8 +246,7 @@ class WindowsPlatform(Platform):
                 return arch
         return super(WindowsPlatform, self).arch()
 
-    @propertycache
-    def os(self):
+    def _os(self):
         release, version, csd, ptype = platform.win32_ver()
         toks = []
         for item in (version, csd):
@@ -254,19 +255,17 @@ class WindowsPlatform(Platform):
         final_version = str('.').join(toks)
         return "windows-%s" % final_version
 
-    @property
-    def tmpdir(self):
+    def _tmpdir(self):
         path = os.getenv("TEMP")
         if path and os.path.isdir(path):
             return path
         return "/tmp"
 
-    def image_viewer(self):
+    def _image_viewer(self):
         # os.system("file.jpg") will open default viewer on windows
         return ''
 
-    @property
-    def editor(self):
+    def _editor(self):
         # os.system("file.txt") will open default editor on windows
         return ''
 

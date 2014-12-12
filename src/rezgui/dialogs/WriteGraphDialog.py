@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
-from rez.dot import save_graph, prune_graph
+from rez.utils.graph_utils import save_graph, prune_graph
 from multiprocessing import Process
 import tempfile
 import threading

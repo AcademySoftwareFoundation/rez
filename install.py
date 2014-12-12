@@ -15,7 +15,7 @@ bin_path = os.path.join(source_path, "bin")
 src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
-from rez._version import _rez_version
+from rez.utils._version import _rez_version
 from build_utils.virtualenv.virtualenv import Logger, create_environment
 from build_utils.distlib.scripts import ScriptMaker
 

@@ -30,7 +30,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import get_reverse_dependency_tree
-    from rez.dot import save_graph, view_graph
+    from rez.utils.graph_utils import save_graph, view_graph
     from rez.config import config
     from rez.utils.colorize import heading, Printer
     from rez.vendor.pygraph.readwrite.dot import write as write_dot
