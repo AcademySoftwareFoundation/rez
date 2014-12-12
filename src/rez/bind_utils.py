@@ -4,7 +4,8 @@ Utility functions for bind modules.
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
-from rez.util import which, print_debug
+from rez.util import which
+from rez.utils.logging_ import print_debug
 import subprocess
 import os.path
 

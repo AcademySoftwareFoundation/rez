@@ -3,7 +3,7 @@ from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
-from rez.colorize import critical, heading, local, implicit, Printer
+from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.util import columnise, shlex_join, mkdtemp_, dedup
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle

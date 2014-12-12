@@ -4,7 +4,8 @@ Sends a post-release email
 from rez.release_hook import ReleaseHook
 from rez.system import system
 from email.mime.text import MIMEText
-from rez.util import print_warning, AttrDictWrapper
+from rez.util import AttrDictWrapper
+from rez.utils.logging_ import print_warning
 from rez.utils.data_utils import ObjectStringFormatter
 import smtplib
 import sys

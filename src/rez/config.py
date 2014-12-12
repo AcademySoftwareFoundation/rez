@@ -448,7 +448,7 @@ class Config(DataWrapper):
 
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):
-            from rez.util import get_object_completions
+            from rez.utils.data_utils import get_object_completions
             words = get_object_completions(
                 instance=self.plugins,
                 prefix=prefix_,

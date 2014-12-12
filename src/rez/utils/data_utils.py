@@ -284,3 +284,65 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=key)
+
+
+def get_object_completions(instance, prefix, types=None, instance_types=None):
+    """Get completion strings based on an object's attributes/keys.
+
+    Completion also works on dynamic attributes (eg implemented via
+    __getattr__) if they are iterable.
+
+    Args:
+        instance (object): Object to introspect.
+        prefix (str): Prefix to match, can be dot-separated to access nested
+            attributes.
+        types (tuple): Attribute types to match, any if None.
+        instance_types (tuple): Class types to recurse into when a dotted
+            prefix is given, any if None.
+
+    Returns:
+        List of strings.
+    """
+    word_toks = []
+    toks = prefix.split('.')
+    while len(toks) > 1:
+        attr = toks[0]
+        toks = toks[1:]
+        word_toks.append(attr)
+        try:
+            instance = getattr(instance, attr)
+        except AttributeError:
+            return []
+        if instance_types and not isinstance(instance, instance_types):
+            return []
+
+    prefix = toks[-1]
+    words = []
+
+    attrs = dir(instance)
+    try:
+        for attr in instance:
+            if isinstance(attr, basestring):
+                attrs.append(attr)
+    except TypeError:
+        pass
+
+    for attr in attrs:
+        if attr.startswith(prefix) and not attr.startswith('_') \
+                and not hasattr(instance.__class__, attr):
+            value = getattr(instance, attr)
+            if types and not isinstance(value, types):
+                continue
+            if not callable(value):
+                words.append(attr)
+
+    qual_words = ['.'.join(word_toks + [x]) for x in words]
+
+    if len(words) == 1 and value is not None and \
+            (instance_types is None or isinstance(value, instance_types)):
+        qual_word = qual_words[0]
+        words = get_object_completions(value, '', types)
+        for word in words:
+            qual_words.append("%s.%s" % (qual_word, word))
+
+    return qual_words

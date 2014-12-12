@@ -2,7 +2,8 @@
 Pluggable API for creating subshells using different programs, such as bash.
 """
 from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
-from rez.util import which, shlex_join, print_warning
+from rez.util import which, shlex_join
+from rez.utils.logging_ import print_warning
 from rez.exceptions import RezSystemError
 from rez.config import config
 from rez.system import system

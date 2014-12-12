@@ -4,7 +4,7 @@ Executes pre- and post-release shell commands
 from rez.release_hook import ReleaseHook
 from rez.exceptions import ReleaseError
 from rez.config import config
-from rez.util import print_debug
+from rez.utils.logging_ import print_debug
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
 from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
 import getpass

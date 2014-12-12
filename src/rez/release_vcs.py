@@ -1,6 +1,7 @@
 from rez.exceptions import ReleaseVCSError
 from rez.packages import load_developer_package
-from rez.util import which, print_debug
+from rez.util import which
+from rez.utils.logging_ import print_debug
 import subprocess
 
 

@@ -6,7 +6,7 @@ import rez
 from rez.packages import iter_packages
 from rez.package_maker_ import make_py_package, code_provider, root, get_code
 from rez.bind_utils import check_version
-from rez.util import print_info
+from rez.utils.logging_ import print_info
 from rez.system import system
 from rez.vendor.version.version import Version, VersionRange
 from rez.utils.lint_helper import env

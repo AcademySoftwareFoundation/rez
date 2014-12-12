@@ -1,5 +1,5 @@
 from rez.resolved_context import ResolvedContext
-from rez.colorize import heading, local, critical, Printer
+from rez.utils.colorize import heading, local, critical, Printer
 from rez.util import propertycache, columnise
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError

@@ -3,10 +3,12 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
 from rez.utils.data_utils import cached_property, StringFormatMixin
 from rez.util import is_subdirectory
-from rez.utils.resources import ResourceHandle, ResourceWrapper, schema_keys
+from rez.utils.schema import schema_keys
+from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.config import config
 from rez.vendor.version.requirement import VersionedObject
+import sys
 
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
@@ -37,7 +39,30 @@ class PackageFamily(PackageRepositoryResourceWrapper):
             yield Package(package)
 
 
-class Package(PackageRepositoryResourceWrapper):
+class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
+    def print_info(self, buf=None, skip_attributes=None):
+        """Print the contents of the package, in yaml format."""
+        from rez.utils.yaml import dump_package_yaml
+        data = self.validated_data().copy()
+        data = dict((k, v) for k, v in data.iteritems()
+                    if v is not None and not k.startswith('_'))
+
+        # attributes we don't want to see
+        if "config_version" in data:
+            del data["config_version"]
+        if "config" in data:
+            del data["config"]
+
+        for attr in (skip_attributes or []):
+            if attr in data:
+                del data[attr]
+
+        txt = dump_package_yaml(data)
+        buf = buf or sys.stdout
+        print >> buf, txt
+
+
+class Package(PackageBaseResourceWrapper):
     """A package.
 
     Note:
@@ -77,7 +102,7 @@ class Package(PackageRepositoryResourceWrapper):
             yield Variant(variant)
 
 
-class Variant(PackageRepositoryResourceWrapper):
+class Variant(PackageBaseResourceWrapper):
     """A package variant.
 
     Note:
