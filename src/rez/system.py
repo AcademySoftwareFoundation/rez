@@ -3,7 +3,7 @@ import os.path
 import re
 import sys
 from rez import __version__
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 from rez.exceptions import RezSystemError
 from rez.util import propertycache, which
 

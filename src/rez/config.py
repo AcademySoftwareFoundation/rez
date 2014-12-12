@@ -519,15 +519,15 @@ class Config(DataWrapper):
     # -- dynamic defaults
 
     def _get_tmpdir(self):
-        from rez.platform_ import platform_
+        from rez.utils.platform_ import platform_
         return platform_.tmpdir
 
     def _get_image_viewer(self):
-        from rez.platform_ import platform_
+        from rez.utils.platform_ import platform_
         return platform_.image_viewer
 
     def _get_editor(self):
-        from rez.platform_ import platform_
+        from rez.utils.platform_ import platform_
         return platform_.editor
 
 

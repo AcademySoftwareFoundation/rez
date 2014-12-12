@@ -3,7 +3,7 @@ Binds a cmake executable as a rez package.
 """
 from __future__ import absolute_import
 from rez.package_maker_ import make_py_package, code_provider, root
-from rez.bind_utils import check_version, find_exe, extract_version
+from rez.bind.utils import check_version, find_exe, extract_version
 from rez.system import system
 from rez.utils.lint_helper import env
 

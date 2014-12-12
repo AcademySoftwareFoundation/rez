@@ -1084,7 +1084,7 @@ class ResolvedContext(object):
             if term_cmd:
                 term_cmd = term_cmd.strip().split()
             else:
-                from rez.platform_ import platform_
+                from rez.utils.platform_ import platform_
                 term_cmd = platform_.terminal_emulator_command
             if term_cmd:
                 pre_command = term_cmd

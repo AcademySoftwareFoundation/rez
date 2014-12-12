@@ -5,7 +5,7 @@ from __future__ import absolute_import
 import rez
 from rez.packages import iter_packages
 from rez.package_maker_ import make_py_package, code_provider, root, get_code
-from rez.bind_utils import check_version
+from rez.bind.utils import check_version
 from rez.utils.logging_ import print_info
 from rez.system import system
 from rez.vendor.version.version import Version, VersionRange

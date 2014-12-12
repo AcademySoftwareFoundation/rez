@@ -7,7 +7,7 @@ from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
 from rez.packages import load_developer_package
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
