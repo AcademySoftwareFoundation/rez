@@ -1,8 +1,9 @@
 from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
-from rez.utils.data_utils import cached_property, StringFormatMixin
-from rez.util import is_subdirectory
+from rez.utils.data_utils import cached_property
+from rez.utils.formatting import StringFormatMixin
+from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError

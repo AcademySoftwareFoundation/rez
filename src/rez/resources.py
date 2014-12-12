@@ -26,7 +26,8 @@ import re
 import fnmatch
 from collections import defaultdict
 from rez.config import config
-from rez.util import to_posixpath, propertycache, DataWrapper
+from rez.util import propertycache, DataWrapper
+from rez.utils.filesystem import to_posixpath
 from rez.utils.logging_ import print_debug
 from rez.utils.scope import ScopeContext
 from rez.exceptions import ResourceError, ResourceNotFoundError

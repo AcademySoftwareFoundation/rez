@@ -106,7 +106,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
-    from rez.util import get_epoch_time_from_str
+    from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
     import select
     import sys

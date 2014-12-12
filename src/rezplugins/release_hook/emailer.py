@@ -6,7 +6,7 @@ from rez.system import system
 from email.mime.text import MIMEText
 from rez.util import AttrDictWrapper
 from rez.utils.logging_ import print_warning
-from rez.utils.data_utils import ObjectStringFormatter
+from rez.utils.formatting import ObjectStringFormatter
 import smtplib
 import sys
 

@@ -1,9 +1,8 @@
 """
 Utilities related to managing data types.
 """
-from rez.vendor.enum import Enum
 from rez.vendor.schema.schema import Schema, Optional
-from string import Formatter
+from threading import Lock
 import re
 
 
@@ -22,109 +21,26 @@ class cached_property(object):
         return result
 
 
-class StringFormatType(Enum):
-    """Behaviour of key expansion when using `ObjectStringFormatter`."""
-    error = 1  # raise exception on unknown key
-    empty = 2  # expand to empty on unknown key
-    unchanged = 3  # leave string unchanged on unknown key
+class LazySingleton(object):
+    """A threadsafe singleton that initialises when first referenced."""
+    def __init__(self, instance_class, *nargs, **kwargs):
+        self.instance_class = instance_class
+        self.nargs = nargs
+        self.kwargs = kwargs
+        self.lock = Lock()
+        self.instance = None
 
-
-class ObjectStringFormatter(Formatter):
-    """String formatter for objects.
-
-    This formatter will expand any reference to an object's attributes.
-    """
-    error = StringFormatType.error
-    empty = StringFormatType.empty
-    unchanged = StringFormatType.unchanged
-
-    def __init__(self, instance, pretty=False, expand=StringFormatType.error):
-        """Create a formatter.
-
-        Args:
-            instance: The object to format with.
-            pretty: If True, references to non-string attributes such as lists
-                are converted to basic form, with characters such as brackets
-                and parentheses removed.
-            expand: `StringFormatType`.
-        """
-        self.instance = instance
-        self.pretty = pretty
-        self.expand = expand
-
-    def convert_field(self, value, conversion):
-        if self.pretty:
-            if value is None:
-                return ''
-            elif isinstance(value, list):
-                def _str(x):
-                    if isinstance(x, unicode):
-                        return x
-                    else:
-                        return str(x)
-
-                return ' '.join(map(_str, value))
-
-        return Formatter.convert_field(self, value, conversion)
-
-    def get_field(self, field_name, args, kwargs):
-        if self.expand == StringFormatType.error:
-            return Formatter.get_field(self, field_name, args, kwargs)
-        try:
-            return Formatter.get_field(self, field_name, args, kwargs)
-        except (AttributeError, KeyError, TypeError):
-            reg = re.compile("[^\.\[]+")
+    def __call__(self):
+        if self.instance is None:
             try:
-                key = reg.match(field_name).group()
-            except:
-                key = field_name
-            if self.expand == StringFormatType.empty:
-                return ('', key)
-            else:  # StringFormatType.unchanged
-                return ("{%s}" % field_name, key)
-
-    def get_value(self, key, args, kwds):
-        if isinstance(key, str):
-            if key:
-                try:
-                    # Check explicitly passed arguments first
-                    return kwds[key]
-                except KeyError:
-                    pass
-
-                try:
-                    # we deliberately do not call hasattr() first - hasattr()
-                    # silently catches exceptions from properties.
-                    return getattr(self.instance, key)
-                except AttributeError:
-                    pass
-
-                return self.instance[key]
-            else:
-                raise ValueError("zero length field name in format")
-        else:
-            return Formatter.get_value(self, key, args, kwds)
-
-
-class StringFormatMixin(object):
-    def format(self, s, pretty=False, expand=StringFormatType.error):
-        """Format a string.
-
-        Args:
-            s (str): String to format, eg "hello {name}"
-            pretty: If True, references to non-string attributes such as lists
-                are converted to basic form, with characters such as brackets
-                and parenthesis removed.
-            expand: What to expand references to nonexistent attributes to:
-                - None: raise an exception;
-                - 'empty': expand to an empty string;
-                - 'unchanged': leave original string intact, ie '{key}'
-
-        Returns:
-            The formatting string.
-        """
-        formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
-        return formatter.format(s)
+                self.lock.acquire()
+                if self.instance is None:
+                    self.instance = self.instance_class(*self.nargs, **self.kwargs)
+                    self.nargs = None
+                    self.kwargs = None
+            finally:
+                self.lock.release()
+        return self.instance
 
 
 class AttributeForwardMeta(type):

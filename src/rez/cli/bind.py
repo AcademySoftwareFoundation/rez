@@ -21,7 +21,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.exceptions import RezBindError
     from rez import module_root_path
-    from rez.util import get_close_pkgs, columnise
+    from rez.util import get_close_pkgs
+    from rez.utils.formatting import columnise
     from rez.vendor.version.requirement import VersionedObject, Requirement
     import os.path
     import os

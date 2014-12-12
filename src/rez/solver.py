@@ -1826,7 +1826,7 @@ class Solver(_Common):
 
     def dump(self):
         """Print a formatted summary of the current solve state."""
-        from rez.util import columnise
+        from rez.utils.formatting import columnise
 
         rows = []
         for i, phase in enumerate(self.phase_stack):

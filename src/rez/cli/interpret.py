@@ -36,7 +36,7 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.shells import create_shell
-    from rez.util import pretty_env_dict
+    from rez.utils.formatting import columnise
     from rez.rex import RexExecutor, Python
     from pprint import pformat
 
@@ -67,7 +67,8 @@ def command(opts, parser, extra_arg_groups=None):
     o = ex.get_output()
     if isinstance(o, dict):
         if opts.format == "table":
-            print pretty_env_dict(o)
+            rows = [x for x in sorted(o.iteritems())]
+            print '\n'.join(columnise(rows))
         else:
             print pformat(o)
     else:
