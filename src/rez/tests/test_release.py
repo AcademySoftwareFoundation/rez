@@ -9,7 +9,7 @@ from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.yaml import dump_package_yaml
+from rez.utils.yaml import dump_package_yaml
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os

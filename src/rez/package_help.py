@@ -1,8 +1,8 @@
 from rez.packages import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
-from rez.util import AttrDictWrapper, ObjectStringFormatter, \
-    convert_old_command_expansions
+from rez.util import AttrDictWrapper, convert_old_command_expansions
+from rez.utils.data_utils import ObjectStringFormatter
 from rez.system import system
 import subprocess
 import webbrowser
@@ -59,8 +59,8 @@ class PackageHelp(object):
             namespace = dict(base=base, root=root, config=config,
                              version=VersionBinding(package.version),
                              system=system)
-            formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
-                                              expand='unchanged')
+            formatter = ObjectStringFormatter(
+                AttrDictWrapper(namespace), expand=ObjectStringFormatter.unchanged)
 
             # format sections
             for section in sections:

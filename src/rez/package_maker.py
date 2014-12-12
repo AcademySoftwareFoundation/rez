@@ -4,7 +4,7 @@ import inspect
 import textwrap
 from rez.util import OrderedDict
 from rez.vendor.version.requirement import VersionedObject
-from rez.yaml import dump_package_yaml
+from rez.utils.yaml import dump_package_yaml
 from contextlib import contextmanager
 
 

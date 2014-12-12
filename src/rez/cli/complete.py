@@ -13,11 +13,8 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.cli._util import subcommands, hidden_subcommands
-    from rez.util import timings
     import os
     import re
-
-    timings.enabled = False
 
     # get comp info from environment variables
     comp_line = os.getenv("COMP_LINE", "")

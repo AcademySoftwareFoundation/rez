@@ -74,13 +74,12 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.status import status
-    from rez.util import pretty_env_dict, timings
+    from rez.util import pretty_env_dict
     from rez.resolved_context import ResolvedContext
     from rez.dot import save_graph, view_graph, prune_graph
     from rez.vendor.version.requirement import Requirement
     from pprint import pformat
 
-    timings.enabled = False
     rxt_file = opts.RXT if opts.RXT else status.context_file
     if not rxt_file:
         print >> sys.stderr, "not in a resolved environment context."

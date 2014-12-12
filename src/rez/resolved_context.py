@@ -4,14 +4,12 @@ from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
 from rez.config import config
 from rez.colorize import critical, heading, local, implicit, Printer
-#from rez.resources import ResourceHandle
-from rez.util import columnise, shlex_join, mkdtemp_, dedup, timings
+from rez.util import columnise, shlex_join, mkdtemp_, dedup
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
-from rez.packages import Variant, validate_package_name, iter_packages
-from rez.packages_ import get_variant
+from rez.packages_ import get_variant, iter_packages
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
@@ -20,7 +18,7 @@ from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
-from rez.yaml import dump_yaml
+from rez.utils.yaml import dump_yaml
 import getpass
 import inspect
 import time
@@ -236,9 +234,6 @@ class ResolvedContext(object):
         self.graph_ = resolver.graph
         self.from_cache = resolver.from_cache
 
-        actual_solve_time = self.solve_time - self.load_time
-        timings.add("resolve", actual_solve_time)
-
         if self.status_ == ResolverStatus.solved:
             self._resolved_packages = resolver.resolved_packages
 
@@ -402,8 +397,6 @@ class ResolvedContext(object):
 
         # apply subtractions
         if package_subtractions:
-            for pkg_name in package_subtractions:
-                validate_package_name(pkg_name)
             request = [x for x in request if x.name not in package_subtractions]
 
         # apply overrides
@@ -563,13 +556,13 @@ class ResolvedContext(object):
                 if other_pkg.version > pkg.version:
                     r = VersionRange.as_span(lower_version=pkg.version,
                                              upper_version=other_pkg.version)
-                    it = iter_packages(pkg.name, range=r)
+                    it = iter_packages(pkg.name, range_=r)
                     pkgs = sorted(it, key=lambda x: x.version)
                     newer_packages[pkg.name] = pkgs
                 elif other_pkg.version < pkg.version:
                     r = VersionRange.as_span(lower_version=other_pkg.version,
                                              upper_version=pkg.version)
-                    it = iter_packages(pkg.name, range=r)
+                    it = iter_packages(pkg.name, range_=r)
                     pkgs = sorted(it, key=lambda x: x.version, reverse=True)
                     older_packages[pkg.name] = pkgs
 
@@ -1260,12 +1253,6 @@ class ResolvedContext(object):
 
         r._resolved_packages = []
         for d_ in d["resolved_packages"]:
-            """
-            resource_handle = ResourceHandle.from_dict(d_)
-            resource = resource_handle.get_resource()
-            variant = Variant(resource)
-            r._resolved_packages.append(variant)
-            """
             # TODO backwards compatibility
             variant_handle = d_
             variant = get_variant(variant_handle)

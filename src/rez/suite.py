@@ -6,7 +6,7 @@ from rez.colorize import alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.vendor.version.requirement import Requirement
-from rez.yaml import dump_yaml
+from rez.utils.yaml import dump_yaml
 from collections import defaultdict
 import os
 import os.path

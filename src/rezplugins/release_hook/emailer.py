@@ -4,7 +4,8 @@ Sends a post-release email
 from rez.release_hook import ReleaseHook
 from rez.system import system
 from email.mime.text import MIMEText
-from rez.util import print_warning, AttrDictWrapper, ObjectStringFormatter
+from rez.util import print_warning, AttrDictWrapper
+from rez.utils.data_utils import ObjectStringFormatter
 import smtplib
 import sys
 
@@ -40,7 +41,8 @@ class EmailReleaseHook(ReleaseHook):
                          system=system,
                          package=self.package)
 
-        formatter = ObjectStringFormatter(namespace, pretty=True, expand="empty")
+        formatter = ObjectStringFormatter(namespace, pretty=True,
+                                          expand=ObjectStringFormatter.empty)
         body = formatter.format(self.settings.body)
         body = body.strip()
         body = body.replace("\n\n\n", "\n\n")

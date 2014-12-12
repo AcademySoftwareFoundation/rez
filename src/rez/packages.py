@@ -235,7 +235,7 @@ class _PackageBase(ResourceWrapper):
 
     def print_info(self, buf=None, skip_attributes=None):
         """Print the contents of the package, in yaml format."""
-        from rez.yaml import dump_package_yaml
+        from rez.utils.yaml import dump_package_yaml
         data = self.validated_data.copy()
         data = dict((k, v) for k, v in data.iteritems()
                     if v is not None and not k.startswith('_'))
