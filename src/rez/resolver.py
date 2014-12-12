@@ -236,7 +236,9 @@ class Resolver(object):
         return (request,
                 tuple(repo_ids),
                 self.building,
-                config.prune_failed_graph)
+                config.prune_failed_graph,
+                self.start_depth,
+                self.max_depth)
 
     def _solve(self):
         package_cache = PackageVariantCache(
@@ -302,32 +304,6 @@ class Resolver(object):
             for variant_handle in solver_dict.get("variant_handles", []):
                 variant = get_variant(variant_handle)
                 self.resolved_packages_.append(variant)
-
-        """
-        st = solver.status
-        pkgs = None
-
-        if st == SolverStatus.unsolved:
-            self.status_ = ResolverStatus.aborted
-            self.failure_description = solver.abort_reason
-        elif st == SolverStatus.failed:
-            self.status_ = ResolverStatus.failed
-            self.failure_description = solver.failure_description()
-        elif st == SolverStatus.solved:
-            self.status_ = ResolverStatus.solved
-
-            # convert solver.Variants to packages.Variants
-            pkgs = []
-            for solver_variant in solver.resolved_packages:
-                variant_handle_dict = solver_variant.userdata
-                variant = get_variant(variant_handle_dict)
-                pkgs.append(variant)
-
-        self.resolved_packages_ = pkgs
-        self.graph_ = solver.get_graph()
-        self.solve_time = solver.solve_time
-        self.load_time = solver.load_time
-        """
 
     @classmethod
     def _solver_to_dict(cls, solver):

@@ -1,6 +1,6 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper, DataWrapper, ObjectStringFormatter, \
-    expandvars
+    convert_dicts, AttrDictWrapper, DataWrapper, expandvars
+from rez.utils.data_utils import ObjectStringFormatter
 from rez.utils.logging_ import get_debug_printer
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
@@ -276,7 +276,7 @@ class Expand(object):
     """Schema that applies variable expansion."""
     namespace = dict(system=system)
     formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
-                                      expand='unchanged')
+                                      expand=ObjectStringFormatter.unchanged)
 
     def __init__(self):
         pass

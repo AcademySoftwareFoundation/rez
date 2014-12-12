@@ -1,7 +1,7 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
-from rez.util import ScopeContext
+from rez.utils.scope import ScopeContext
 from rez.exceptions import ResourceError
 from rez.memcache import mem_cached, DataType
 from rez.vendor.enum import Enum
@@ -21,31 +21,6 @@ class FileFormat(Enum):
     def __init__(self, extension, data_type):
         self.extension = extension
         self.data_type = data_type
-
-
-"""
-def listdir(path, use_cache=True):
-    use_cache = use_cache and memcache_client.enabled
-    filepath = os.path.realpath(filepath)
-
-    if use_cache:
-        st = os.stat(path)
-        key = (path, st.st_ino, st.st_mtime)
-        data = memcache_client.get(DataType.listdir, key)
-        if data is not None:
-            return data
-
-    result = []
-    for name in os.listdir(path):
-        path_ = os.path.join(path, name)
-        is_dir = os.path.isdir(path_)
-        result.append((name, is_dir))
-
-    if use_cache:
-        memcache_client.set(DataType.listdir, key, result)
-
-    return result
-"""
 
 
 def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):

@@ -34,6 +34,10 @@ class ObjectStringFormatter(Formatter):
 
     This formatter will expand any reference to an object's attributes.
     """
+    error = StringFormatType.error
+    empty = StringFormatType.empty
+    unchanged = StringFormatType.unchanged
+
     def __init__(self, instance, pretty=False, expand=StringFormatType.error):
         """Create a formatter.
 

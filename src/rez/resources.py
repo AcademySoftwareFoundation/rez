@@ -27,8 +27,9 @@ import fnmatch
 from collections import defaultdict
 from rez.config import config
 from rez.contrib.animallogic import memcache
-from rez.util import to_posixpath, ScopeContext, is_dict_subset, \
+from rez.util import to_posixpath, is_dict_subset, \
     propertycache, dicts_conflicting, DataWrapper, timings, print_debug
+from rez.utils.scope import ScopeContext
 from rez.exceptions import ResourceError, ResourceNotFoundError
 from rez.vendor import yaml
 # FIXME: handle this double-module business
@@ -221,12 +222,8 @@ def load_file(filepath, loader=None):
     elif isinstance(loader, basestring):
         loader = metadata_loaders[loader]
 
-    timings.start("resources.load_file")
-    try:
-        with open(filepath, 'r') as f:
-            doc = loader(f, filepath)
-    finally:
-        timings.end("resources.load_file")
+    with open(filepath, 'r') as f:
+        doc = loader(f, filepath)
 
     if config.debug("resources"):
         print_debug("loaded resource file: %s" % filepath)
@@ -817,9 +814,7 @@ class ResourceWrapper(DataWrapper):
     @propertycache
     def _data(self):
         k = "resources.load.%s" % self.__class__.__name__
-        timings.start(k)
         data = self._resource.load()
-        timings.end(k)
         return data
 
     @property
