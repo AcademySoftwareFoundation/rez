@@ -11,7 +11,7 @@ class RezCompletionFinder(CompletionFinder):
         self.always_complete_options = False
         self.exclude = None
         self.validator = default_validator
-        self.wordbreaks = " \t\"'@><=;|&(:"  # TODO might need to be configurable/OS specifi
+        self.wordbreaks = " \t\"'@><=;|&(:"  # TODO might need to be configurable/OS specific
 
         comp_point = len(comp_line[:comp_point].decode(sys_encoding))
         comp_line = comp_line.decode(sys_encoding)
@@ -34,12 +34,12 @@ def ConfigCompleter(prefix, **kwargs):
 
 
 def PackageCompleter(prefix, **kwargs):
-    from rez.packages import get_completions
+    from rez.packages_ import get_completions
     return get_completions(prefix)
 
 
 def PackageFamilyCompleter(prefix, **kwargs):
-    from rez.packages import get_completions
+    from rez.packages_ import get_completions
     return get_completions(prefix, family_only=True)
 
 

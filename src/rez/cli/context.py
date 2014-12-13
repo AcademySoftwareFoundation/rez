@@ -74,10 +74,9 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.status import status
-    from rez.utils.formatting import columnise
+    from rez.utils.formatting import columnise, PackageRequest
     from rez.resolved_context import ResolvedContext
     from rez.utils.graph_utils import save_graph, view_graph, prune_graph
-    from rez.vendor.version.requirement import Requirement
     from pprint import pformat
 
     rxt_file = opts.RXT if opts.RXT else status.context_file
@@ -127,7 +126,7 @@ def command(opts, parser, extra_arg_groups=None):
         elif opts.graph or opts.write_graph:
             gstr = _graph()
             if opts.prune_pkg:
-                req = Requirement(opts.prune_pkg)
+                req = PackageRequest(opts.prune_pkg)
                 gstr = prune_graph(gstr, req.name)
             func = view_graph if opts.graph else save_graph
             func(gstr, dest_file=opts.write_graph)

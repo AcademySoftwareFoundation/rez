@@ -22,7 +22,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser=None, extra_arg_groups=None):
-    from rez.vendor.version.requirement import Requirement
+    from rez.utils.formatting import PackageRequest
     from rez.package_help import PackageHelp
     import sys
 
@@ -30,19 +30,19 @@ def command(opts, parser=None, extra_arg_groups=None):
         PackageHelp.open_rez_manual()
         sys.exit(0)
 
-    request = Requirement(opts.PKG)
+    request = PackageRequest(opts.PKG)
     if request.conflict:
         raise ValueError("Expected a non-conflicting package")
 
     help_ = PackageHelp(request.name, request.range, verbose=opts.verbose)
     if not help_.success:
-        print >> sys.stderr, ("Could not find a package with help for %s."
-                              % request)
+        msg = "Could not find a package with help for %r." % request
+        print >> sys.stderr, msg
         sys.exit(1)
 
     package = help_.package
     print "Help found for:"
-    print package.path
+    print package.uri
     if package.description:
         print
         print "Description:"

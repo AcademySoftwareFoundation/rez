@@ -38,7 +38,7 @@ class PackageRequest(Requirement):
         foo 1.3+
     """
     def __init__(self, s):
-        super(PackageRequirement, self).__init__(s)
+        super(PackageRequest, self).__init__(s)
         is_valid_package_name(self.name, True)
 
 

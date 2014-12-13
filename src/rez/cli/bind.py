@@ -22,8 +22,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import RezBindError
     from rez import module_root_path
     from rez.util import get_close_pkgs
-    from rez.utils.formatting import columnise
-    from rez.vendor.version.requirement import VersionedObject, Requirement
+    from rez.utils.formatting import columnise, PackageRequest
+    from rez.vendor.version.requirement import VersionedObject
     import os.path
     import os
     import sys
@@ -31,7 +31,7 @@ def command(opts, parser, extra_arg_groups=None):
     # gather the params
     install_path = (config.local_packages_path if opts.install_path is None
                     else opts.install_path)
-    req = Requirement(opts.PKG)
+    req = PackageRequest(opts.PKG)
     name = req.name
     version_range = None if req.range.is_any() else req.range
     if req.conflict:

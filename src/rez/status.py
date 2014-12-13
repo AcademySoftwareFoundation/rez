@@ -9,9 +9,8 @@ from rez.packages_ import iter_packages, Package
 from rez.suite import Suite
 from rez.wrapper import Wrapper
 from rez.utils.colorize import local, warning, critical, Printer
-from rez.utils.formatting import print_colored_columns
+from rez.utils.formatting import print_colored_columns, PackageRequest
 from rez.backport.shutilwhich import which
-from rez.vendor.version.requirement import Requirement
 
 
 class Status(object):
@@ -278,7 +277,7 @@ class Status(object):
                 _pr("Path:     %s" % package.search_path)
 
         try:
-            req = Requirement(request_str)
+            req = PackageRequest(request_str)
         except:
             return False
         if req.conflict:

@@ -215,6 +215,10 @@ debug_resources: false
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache: false
 
+# Send human-readable strings as memcached keys - this gives a higher chance of
+# key conflicts, but also means you can run 'memcached -vv' to debug hits/misses
+debug_memcache_keys: false
+
 # Turn on all debugging messages
 debug_all: false
 

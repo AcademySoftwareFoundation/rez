@@ -5,7 +5,7 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, help_schema
 from rez.exceptions import PackageMetadataError
-from rez.utils.formatting import is_valid_package_name
+from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import ResourceHandle, cached_property
 from rez.utils.schema import Required, schema_keys
 from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
@@ -15,7 +15,6 @@ from rez.memcache import mem_cached, DataType
 from rez.utils.logging_ import print_warning
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use, SchemaError
 from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import Requirement
 from rez.backport.lru_cache import lru_cache
 import os.path
 import os
@@ -25,7 +24,7 @@ import os
 # schemas
 #------------------------------------------------------------------------------
 
-requirement_schema = And(basestring, Use(Requirement))
+package_request_schema = And(basestring, Use(PackageRequest))
 
 
 commands_schema = Or(callable,  # commands function
@@ -39,10 +38,10 @@ package_schema_ = Schema({
     Optional('description'):            And(basestring, Use(lambda x: x.strip())),
     Optional('authors'):                [basestring],
 
-    Optional('requires'):               [requirement_schema],
-    Optional('build_requires'):         [requirement_schema],
-    Optional('private_build_requires'): [requirement_schema],
-    Optional('variants'):               [[requirement_schema]],
+    Optional('requires'):               [package_request_schema],
+    Optional('build_requires'):         [package_request_schema],
+    Optional('private_build_requires'): [package_request_schema],
+    Optional('variants'):               [[package_request_schema]],
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 And(dict,
@@ -129,6 +128,10 @@ class FileSystemPackageResource(PackageResource):
         if ver_str:
             path = os.path.join(path, ver_str)
         return path
+
+    @cached_property
+    def base(self):
+        return self.uri
 
     @cached_property
     def commands(self):
@@ -442,8 +445,8 @@ class FileSystemPackageRepository(PackageRepository):
 
     @lru_cache(maxsize=None)
     def _get_family(self, name):
-        if is_valid_package_name(name) \
-                and os.path.isdir(os.path.join(self.location, name)):
+        is_valid_package_name(name, raise_error=True)
+        if os.path.isdir(os.path.join(self.location, name)):
             handle = ResourceHandle(FileSystemPackageFamilyResource.key,
                                     dict(repository_type="filesystem",
                                          location=self.location,

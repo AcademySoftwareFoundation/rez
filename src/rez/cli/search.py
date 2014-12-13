@@ -49,7 +49,8 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.exceptions import RezError
-    from rez.util import print_error, get_epoch_time_from_str
+    from rez.utils.formatting import get_epoch_time_from_str
+    from rez.utils.logging_ import print_error
     from rez.packages_ import iter_package_families, iter_packages
     from rez.vendor.version.requirement import Requirement
     import os.path

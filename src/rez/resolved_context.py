@@ -5,8 +5,8 @@ from rez.system import system
 from rez.config import config
 from rez.util import shlex_join, dedup
 from rez.utils.colorize import critical, heading, local, implicit, Printer
+from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.filesystem import TempDirs
-from rez.utils.formatting import columnise
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -16,7 +16,6 @@ from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
-from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
@@ -61,17 +60,17 @@ def get_lock_request(name, version, patch_lock, weak=True):
         patch_lock (PatchLock): Lock type to apply.
 
     Returns:
-        `Requirement` object, or None if there is no equivalent request.
+        `PackageRequest` object, or None if there is no equivalent request.
     """
     ch = '~' if weak else ''
     if patch_lock == PatchLock.lock:
         s = "%s%s==%s" % (ch, name, str(version))
-        return Requirement(s)
+        return PackageRequest(s)
     elif (patch_lock == PatchLock.no_lock) or (not version):
         return None
     version_ = version.trim(patch_lock.rank)
     s = "%s%s-%s" % (ch, name, str(version_))
-    return Requirement(s)
+    return PackageRequest(s)
 
 
 class ResolvedContext(object):
@@ -117,7 +116,7 @@ class ResolvedContext(object):
         """Perform a package resolve, and store the result.
 
         Args:
-            package_requests: List of strings or Requirement objects
+            package_requests: List of strings or PackageRequest objects
                 representing the request.
             verbosity: Verbosity level. One of [0,1,2].
             timestamp: Ignore packages released after this epoch time. Packages
@@ -169,11 +168,11 @@ class ResolvedContext(object):
         self._package_requests = []
         for req in package_requests:
             if isinstance(req, basestring):
-                req = Requirement(req)
+                req = PackageRequest(req)
             self._package_requests.append(req)
 
         if add_implicit_packages:
-            self.implicit_packages = [Requirement(x)
+            self.implicit_packages = [PackageRequest(x)
                                       for x in config.implicit_packages]
         # package paths
         self.package_paths = (config.packages_path if package_paths is None
@@ -272,7 +271,7 @@ class ResolvedContext(object):
                 to the result.
 
         Returns:
-            List of `Requirement` objects.
+            List of `PackageRequest` objects.
         """
         if include_implicit:
             return self._package_requests + self.implicit_packages
@@ -359,7 +358,7 @@ class ResolvedContext(object):
         in the order that they appear in `package_requests`.
 
         Args:
-            package_requests (list of str or list of `Requirement`):
+            package_requests (list of str or list of `PackageRequest`):
                 Overriding requests.
             package_subtractions (list of str): Any original request with a
                 package name in this list is removed, before the new requests
@@ -374,14 +373,14 @@ class ResolvedContext(object):
                 `strict` is True, rank is ignored.
 
         Returns:
-            List of `Requirement` objects that can be used to construct a new
-            `ResolvedContext` object.
+            List of `PackageRequest` objects that can be used to construct a
+            new `ResolvedContext` object.
         """
         # assemble source request
         if strict:
             request = []
             for variant in self.resolved_packages:
-                req = Requirement(variant.qualified_package_name)
+                req = PackageRequest(variant.qualified_package_name)
                 request.append(req)
         else:
             request = self.requested_packages()[:]
@@ -409,7 +408,7 @@ class ResolvedContext(object):
 
             for req in package_requests:
                 if isinstance(req, basestring):
-                    req = Requirement(req)
+                    req = PackageRequest(req)
 
                 if req.name in request_dict:
                     i, req_ = request_dict[req.name]
@@ -1233,8 +1232,8 @@ class ResolvedContext(object):
         r.timestamp = d["timestamp"]
         r.building = d["building"]
         r.caching = d["caching"]
-        r.implicit_packages = [Requirement(x) for x in d["implicit_packages"]]
-        r._package_requests = [Requirement(x) for x in d["package_requests"]]
+        r.implicit_packages = [PackageRequest(x) for x in d["implicit_packages"]]
+        r._package_requests = [PackageRequest(x) for x in d["package_requests"]]
         r.package_paths = d["package_paths"]
 
         r.rez_version = d["rez_version"]

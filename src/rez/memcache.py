@@ -7,6 +7,7 @@ from rez.utils.data_utils import cached_property
 from rez.vendor.enum import Enum
 from rez.vendor.memcache import memcache
 from imp import get_magic
+from hashlib import md5
 
 
 magic = get_magic()
@@ -27,18 +28,22 @@ class DataType(Enum):
 class Client(object):
     def __init__(self):
         self.counter = 0
+        if config.debug_memcache_keys:
+            self._key_hash_fn = self._key_hash_debug
+        else:
+            self._key_hash_fn = self._key_hash
 
     @property
     def enabled(self):
         return (self.client is not None)
 
     def set(self, type_, key, value):
-        h = self._key_hash(type_, key)
+        h = self._key_hash_fn(type_, key)
         data = (type_.id_, key, value)
         self.client.set(h, data, min_compress_len=type_.min_compress_len)
 
     def get(self, type_, key):
-        h = self._key_hash(type_, key)
+        h = self._key_hash_fn(type_, key)
         hit = self.client.get(h)
         if hit is not None:
             _type_id, _key, value = hit
@@ -47,7 +52,7 @@ class Client(object):
         return None
 
     def delete(self, type_, key):
-        h = self._key_hash(type_, key)
+        h = self._key_hash_fn(type_, key)
         self.client.delete(h)
 
     def flush(self):
@@ -73,7 +78,13 @@ class Client(object):
         if type_.bytecode_dependent:
             t.append(magic)
         t.append(key)
-        return str(hash(tuple(t)))
+        return md5(str(t)).hexdigest()
+
+    def _key_hash_debug(self, type_, key):
+        h = self._key_hash(type_, key)[:16]
+        str_key = str(key).replace(' ', '_')
+        value = "%s:%s:%s" % (h, type_.name, str_key)
+        return value[:250]  # 250 is memcached's max key length
 
 
 # singleton
