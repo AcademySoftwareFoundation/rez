@@ -1,7 +1,7 @@
 
 _rez_complete_fn()
 {
-    COMPREPLY=$(COMP_LINE=${COMP_LINE} COMP_POINT=${COMP_POINT} _rez-complete)
+    COMPREPLY=($(COMP_LINE=${COMP_LINE} COMP_POINT=${COMP_POINT} _rez-complete))
 }
 
 complete -F _rez_complete_fn rez

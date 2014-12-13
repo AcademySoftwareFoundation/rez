@@ -98,6 +98,10 @@ class Package(PackageBaseResourceWrapper):
         family = repo.get_parent_package_family(self.resource)
         return PackageFamily(family)
 
+    @cached_property
+    def num_variants(self):
+        return len(self.data.get("variants", []))
+
     def iter_variants(self):
         """Iterate over the variants within this package, in index order.
 
@@ -270,6 +274,55 @@ def get_last_release_time(name, paths=None):
             return 0
         max_time = max(max_time, time_)
     return max_time
+
+
+def get_completions(prefix, paths=None, family_only=False):
+    """Get autocompletion options given a prefix string.
+
+    Args:
+        prefix (str): Prefix to match.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
+        family_only (bool): If True, only match package names, do not include
+            version component.
+
+    Returns:
+        Set of strings, may be empty.
+    """
+    op = None
+    if prefix:
+        if prefix[0] in ('!', '~'):
+            if family_only:
+                return set()
+            op = prefix[0]
+            prefix = prefix[1:]
+
+    fam = None
+    for ch in ('-', '@', '#'):
+        if ch in prefix:
+            if family_only:
+                return set()
+            fam = prefix.split(ch)[0]
+            break
+
+    words = set()
+    if not fam:
+        words = set(x.name for x in iter_package_families(paths=paths)
+                    if x.name.startswith(prefix))
+        if len(words) == 1:
+            fam = iter(words).next()
+
+    if family_only:
+        return words
+
+    if fam:
+        it = iter_packages(fam, paths=paths)
+        words.update(x.qualified_name for x in it
+                     if x.qualified_name.startswith(prefix))
+
+    if op:
+        words = set(op + x for x in words)
+    return words
 
 
 def _get_families(name, paths=None):

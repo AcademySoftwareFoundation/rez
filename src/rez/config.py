@@ -230,6 +230,7 @@ config_schema = Schema({
     "debug_flatten_env":                Bool,
     "debug_memcache":                   Bool,
     "debug_resolve_memcache":           Bool,
+    "debug_memcache_keys":              Bool,
     "debug_all":                        Bool,
     "debug_none":                       Bool,
     "quiet":                            Bool,

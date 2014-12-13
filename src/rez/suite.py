@@ -1,11 +1,10 @@
 from rez.util import propertycache, create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
-from rez.utils.formatting import columnise
+from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
-from rez.vendor.version.requirement import Requirement
 from rez.utils.yaml import dump_yaml
 from collections import defaultdict
 import os
@@ -144,7 +143,7 @@ class Suite(object):
 
         if in_resolve:
             if isinstance(in_resolve, basestring):
-                in_resolve = Requirement(in_resolve)
+                in_resolve = PackageRequest(in_resolve)
 
             def _in_resolve(name):
                 context = self.context(name)

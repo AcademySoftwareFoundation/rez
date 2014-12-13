@@ -1,10 +1,10 @@
 from rez.utils.resources import Resource
 from rez.utils.schema import Required
 from rez.utils.data_utils import cached_property
+from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError
 from rez.config import Config
 from rez.vendor.version.version import Version
-from rez.vendor.version.requirement import Requirement
 from rez.vendor.schema.schema import Schema, Optional, Or
 
 
@@ -41,14 +41,15 @@ package_family_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict.update({
     # basics
+    Required("base"):                   basestring,
     Optional("version"):                Version,
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],
 
     # dependencies
-    Optional('requires'):               [Requirement],
-    Optional('build_requires'):         [Requirement],
-    Optional('private_build_requires'): [Requirement],
+    Optional('requires'):               [PackageRequest],
+    Optional('build_requires'):         [PackageRequest],
+    Optional('private_build_requires'): [PackageRequest],
 
     # general
     Optional('uuid'):                   basestring,
@@ -77,14 +78,13 @@ package_base_schema_dict.update({
 # package
 package_schema_dict = package_base_schema_dict.copy()
 package_schema_dict.update({
-    Optional("variants"):            [[Requirement]]
+    Optional("variants"):            [[PackageRequest]]
 })
 
 
 # variant
 variant_schema_dict = package_base_schema_dict.copy()
 variant_schema_dict.update({
-    Required("base"):                   basestring,
     Required("root"):                   basestring,
     Optional("index"):                  int,
 })

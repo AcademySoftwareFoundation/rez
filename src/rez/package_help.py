@@ -1,4 +1,4 @@
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
 from rez.util import AttrDictWrapper, convert_old_command_expansions
@@ -29,7 +29,7 @@ class PackageHelp(object):
 
         # find latest package with a help entry
         package = None
-        it = iter_packages(package_name, range=version_range)
+        it = iter_packages(package_name, range_=version_range)
         packages = sorted(it, key=lambda x: x.version, reverse=True)
         for package_ in packages:
             if self._verbose:
@@ -49,7 +49,7 @@ class PackageHelp(object):
 
             # create string formatter for help entries
             if package.num_variants == 0:
-                base = os.path.dirname(package.path)
+                base = package.base
                 root = base
             else:
                 variant = package.get_variant(0)
