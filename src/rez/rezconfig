@@ -239,7 +239,7 @@ release_hooks: []
 # release emails or elsewhere in the system.  No care is taken to ensure the
 # log is truncated gracefully so sentences may be cut off midway etc.
 # The size is measured in lines.  A value of -1 denotes an unbound changelog.
-changelog_maxsize: 0
+changelog_maxsize: -1
 
 
 ###############################################################################
