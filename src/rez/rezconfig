@@ -165,6 +165,13 @@ terminal_emulator_command:
 env_var_separators:
     CMAKE_MODULE_PATH: ';'
 
+# These environment variables are used with the 'rez lint' command for basic 
+# sanity checking purposes.
+lint_variables:
+- PYTHONPATH
+- LD_LIBRARY_PATH
+- PATH
+
 
 ###############################################################################
 # Debugging

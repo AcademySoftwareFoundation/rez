@@ -16,6 +16,7 @@ subcommands = [
     "forward",
     "help",
     "interpret",
+    "lint",
     "python",
     "release",
     "search",
