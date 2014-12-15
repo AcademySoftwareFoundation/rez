@@ -1118,6 +1118,7 @@ class PythonPathFlattener(DefaultFlattener):
     EGG_SUFFIX = ".egg"
     PTH_SUFFIX = ".pth"
     SITE_FILE = "site.py"
+    SITE_FILE_COMPILED = "site.pyc"
 
     def makedirs(self, target):
 
@@ -1229,8 +1230,9 @@ class PythonPathFlattener(DefaultFlattener):
                 # this once, no makker how many eggs we discover in the
                 # path.  However to preserve the clarity of the flattening
                 # logic we do it on each iteration.
-                if self.SITE_FILE in contents:
-                    contents.remove(self.SITE_FILE)
+                for file_ in (self.SITE_FILE, self.SITE_FILE_COMPILED):
+                    if file_ in contents:
+                        contents.remove(file_)
                 contents = filter(lambda x: not x.endswith(self.PTH_SUFFIX), contents)
 
                 self._debug("~ retaining %s in PYTHONPATH." % target)
