@@ -45,7 +45,7 @@ def command(opts, parser, extra_arg_groups=None):
     files = ["build_project", "build_cproject", "build_cproject_settings", "build_pydevproject"]
     build_all = all([not getattr(opts, file_) for file_ in files])
 
-    eclipse_project_builder = EclipseProjectBuilder(working_dir)
+    eclipse_project_builder = EclipseProjectBuilder(working_dir, opts.variants)
 
     if build_all:
         eclipse_project_builder.build_all()

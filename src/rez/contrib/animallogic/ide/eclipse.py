@@ -23,14 +23,20 @@ class EclipseProjectBuilder(object):
     end_section_regex = re.compile('\)')
     bracket_regex = re.compile('[{}]')
 
-    def __init__(self, working_directory):
+    def __init__(self, working_directory, variants):
 
         self.working_directory = working_directory
         self.package = load_developer_package(self.working_directory)
 
         self.name = self.package.name
         self.dependencies = self.package.requires if self.package.requires else []
-        self.variants = list(self.package.iter_variants())
+        if variants:
+            self.variants = []
+            for v in self.package.iter_variants():
+                if v.index in variants:
+                    self.variants.append(v)
+        else:
+            self.variants = list(self.package.iter_variants())
         self.local_dependencies = self._get_local_dependencies()
 
     def _get_local_dependencies(self):
