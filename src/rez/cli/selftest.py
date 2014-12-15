@@ -39,6 +39,8 @@ def setup_parser(parser, completions=False):
                         help="test unleash")
     parser.add_argument("--schema", action="store_true",
                         help="test schema validation")
+    parser.add_argument("--lint", action="store_true",
+                        help="test environment linting")
 
 
 def get_suites(opts):
@@ -46,8 +48,8 @@ def get_suites(opts):
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
              "release", "context", "resources", "packages", "config",
-             "completion", "suites", "version", "schema", "animallogic", 
-             "launcher", "unleash"]
+             "completion", "suites", "version", "schema", "lint",
+             "animallogic", "launcher", "unleash"]
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
 
