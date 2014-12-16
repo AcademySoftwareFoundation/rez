@@ -17,7 +17,11 @@ class cached_property(object):
             return self
 
         result = self.func(instance)
-        setattr(instance, self.name, result)
+        try:
+            setattr(instance, self.name, result)
+        except AttributeError:
+            raise AttributeError("can't set attribute %r on %r"
+                                 % (self.name, instance))
         return result
 
 
@@ -146,7 +150,7 @@ class LazyAttributeMeta(type):
                                             "%r, already defined" % attr)
                     else:
                         attr = key
-                    members[attr] = cls._make_getter(key, optional, key_schema)
+                    members[attr] = cls._make_getter(key, attr, optional, key_schema)
 
         if schema or not _defined("schema"):
             members["validate_data"] = cls._make_validate_data()
@@ -186,7 +190,7 @@ class LazyAttributeMeta(type):
         return func
 
     @classmethod
-    def _make_getter(cls, key, optional, key_schema):
+    def _make_getter(cls, key, attribute, optional, key_schema):
         def getter(self):
             if key not in self.data:
                 if optional:
@@ -199,7 +203,7 @@ class LazyAttributeMeta(type):
             else:
                 return self._validate_key_impl(key, attr, key_schema)
 
-        return cached_property(getter, name=key)
+        return cached_property(getter, name=attribute)
 
 
 def get_object_completions(instance, prefix, types=None, instance_types=None):

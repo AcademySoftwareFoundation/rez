@@ -94,9 +94,17 @@ class Package(PackageBaseResourceWrapper):
 
     @cached_property
     def parent(self):
+        """Get the parent package family.
+
+        Note:
+            If this is a developer package, None will be returned.
+
+        Returns:
+            `PackageFamily`.
+        """
         repo = self.resource._repository
         family = repo.get_parent_package_family(self.resource)
-        return PackageFamily(family)
+        return PackageFamily(family) if family else None
 
     @cached_property
     def num_variants(self):
@@ -143,6 +151,11 @@ class Variant(PackageBaseResourceWrapper):
 
     @cached_property
     def parent(self):
+        """Get the parent package.
+
+        Returns:
+            `Package`.
+        """
         repo = self.resource._repository
         package = repo.get_parent_package(self.resource)
         return Package(package)
