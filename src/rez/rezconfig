@@ -212,6 +212,14 @@ flatten_env: true
 flatten_env_vars:
 - LD_LIBRARY_PATH
 
+# Defines what suites on $PATH stay visible when a context in a suite is sourced.
+# Possible values are:
+# - 'none': No suites are kept on PATH;
+# - 'owner': Keep the suite containing the context visible;
+# - 'existing': Keep all suites visible that were on PATH at the time the
+#   context was entered.
+context_suite_visibility: existing
+
 
 ###############################################################################
 # Debugging

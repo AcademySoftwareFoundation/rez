@@ -179,6 +179,7 @@ config_schema = Schema({
     "unleash_launcher_preset":          Str,
     "unleash_flavour":                  Str,
     "unleash_target":                   Str,
+    "context_suite_visibility":         Str,
     "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
