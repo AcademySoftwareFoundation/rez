@@ -494,7 +494,9 @@ class ResolvedContext(object):
     def load(cls, path):
         """Load a resolved context from file."""
         with open(path) as f:
-            return cls.read_from_buffer(f, path)
+            context = cls.read_from_buffer(f, path)
+        context.set_load_path(path)
+        return context
 
     @classmethod
     def read_from_buffer(cls, buf, identifier_str=None):
