@@ -115,6 +115,18 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def get_developer_package(self):
+        """Get the developer package.
+
+        Note:
+            Most repositories will not need to implement this.
+
+        This is implemented by the 'filesystem' repository. It loads a package
+        from a working directory, before the package has been installed or
+        released.
+        """
+        raise NotImplementedError
+
     def get_variant_state_handle(self, variant_resource):
         """Get a value that indicates the state of the variant.
 
