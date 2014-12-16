@@ -12,7 +12,8 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages import Variant, validate_package_name, iter_packages
 from rez.shells import create_shell
-from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
+from rez.exceptions import ResolvedContextError, PackageCommandError, RezError, \
+    ConfigurationError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.requirement import Requirement
@@ -26,6 +27,15 @@ import time
 import sys
 import os
 import os.path
+
+
+class SuiteVisibility(Enum):
+    """Defines what suites on $PATH stay visible when a context in a suite is
+    sourced."""
+    none = 0        # no suites are kept on PATH
+    owner = 1       # Keep the suite containing the context visible;
+    existing = 2    # Keep all suites visible that were on PATH at the time the
+                    # context was entered.
 
 
 class PatchLock(Enum):
@@ -1402,10 +1412,29 @@ class ResolvedContext(object):
                     raise PackageCommandError(msg)
 
         _heading("post system setup")
-        # append suite path if there is an active parent suite
+
+        # suite visibility (if this is a context in a suite, existing suite(s)
+        # may be kept on $PATH)
         if self.parent_suite_path:
-            tools_path = os.path.join(self.parent_suite_path, "bin")
-            executor.env.PATH.append(tools_path)
+            from rez.suite import Suite
+
+            try:
+                mode = SuiteVisibility[config.context_suite_visibility]
+            except KeyError:
+                raise ConfigurationError("Invalid suite visiblity setting %r"
+                                         % config.context_suite_visibility)
+
+            suite_paths = []
+            if mode == SuiteVisibility.owner:
+                suite_paths.append(self.parent_suite_path)
+            elif mode == SuiteVisibility.existing:
+                suite_paths = Suite.visible_suite_paths()
+                if self.parent_suite_path not in suite_paths:
+                    suite_paths.insert(0, self.parent_suite_path)
+
+            for path in suite_paths:
+                tools_path = os.path.join(path, "bin")
+                executor.env.PATH.append(tools_path)
 
         # append system paths
         executor.append_system_paths()

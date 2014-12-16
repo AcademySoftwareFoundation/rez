@@ -487,13 +487,13 @@ class Suite(object):
         return s
 
     @classmethod
-    def load_visible_suites(cls, paths=None):
-        """Get a list of suites whos bin paths are visible on $PATH.
+    def visible_suite_paths(cls, paths=None):
+        """Get a list of paths to suites that are visible on $PATH.
 
         Returns:
-            List of `Suite` objects.
+            List of str.
         """
-        suites = []
+        suite_paths = []
         if paths is None:
             paths = os.getenv("PATH", "").split(os.pathsep)
         for path in paths:
@@ -501,8 +501,18 @@ class Suite(object):
                 path_ = os.path.dirname(path)
                 filepath = os.path.join(path_, "suite.yaml")
                 if os.path.isfile(filepath):
-                    suite = cls.load(path_)
-                    suites.append(suite)
+                    suite_paths.append(path_)
+        return suite_paths
+
+    @classmethod
+    def load_visible_suites(cls, paths=None):
+        """Get a list of suites whos bin paths are visible on $PATH.
+
+        Returns:
+            List of `Suite` objects.
+        """
+        suite_paths = cls.visible_suite_paths(paths)
+        suites = [cls.load(x) for x in suite_paths]
         return suites
 
     def print_info(self, buf=sys.stdout, verbose=False):

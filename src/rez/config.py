@@ -167,6 +167,7 @@ config_schema = Schema({
     "prompt":                           Str,
     "build_directory":                  Str,
     "documentation_url":                Str,
+    "context_suite_visibility":         Str,
     "suite_alias_prefix_char":          Char,
     "tmpdir":                           OptionalStr,
     "default_shell":                    OptionalStr,
