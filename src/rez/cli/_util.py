@@ -22,6 +22,7 @@ subcommands = [
     "status",
     "suite",
     "selftest",
+    "yaml2py".
     "gui"]
 
 
