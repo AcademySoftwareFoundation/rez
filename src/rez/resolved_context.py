@@ -33,7 +33,7 @@ class SuiteVisibility(Enum):
     """Defines what suites on $PATH stay visible when a context in a suite is
     sourced."""
     none = 0        # no suites are kept on PATH
-    owner = 1       # Keep the suite containing the context visible;
+    parent = 1      # Keep the suite containing the context visible;
     existing = 2    # Keep all suites visible that were on PATH at the time the
                     # context was entered.
 
@@ -1420,14 +1420,14 @@ class ResolvedContext(object):
         if self.parent_suite_path:
             from rez.suite import Suite
 
+            value = config.context_suite_visibility.lower()
             try:
-                mode = SuiteVisibility[config.context_suite_visibility]
+                mode = SuiteVisibility[value]
             except KeyError:
-                raise ConfigurationError("Invalid suite visiblity setting %r"
-                                         % config.context_suite_visibility)
+                raise ConfigurationError("Invalid suite visiblity setting %r" % value)
 
             suite_paths = []
-            if mode == SuiteVisibility.owner:
+            if mode == SuiteVisibility.parent:
                 suite_paths.append(self.parent_suite_path)
             elif mode == SuiteVisibility.existing:
                 suite_paths = Suite.visible_suite_paths()
