@@ -199,6 +199,7 @@ terminal_emulator_command:
 # configured separator will be used.
 env_var_separators:
     CMAKE_MODULE_PATH: ';'
+    DOXYGEN_TAGFILES: ' '
     AL_MAYA_AUTO_EVAL: ' '
     AL_MAYA_AUTO_LOADVERSIONEDTOOL: ' '
     AL_MAYA_AUTO_NEWSCENEEVENT: ' '
@@ -216,7 +217,6 @@ env_var_separators:
     ARENA_WORKSPACE_MAILING_LIST: ','
     ARTISTTOOLPALETTE_SYNAPSE_TOOLS: ','
     ARTISTTOOLPALETTE_TOOLS: ','
-    DOXYGEN_TAGFILES: ' '
     RIG_RELEASEUI_TO: ','
     SHOTSETUP_PLUGIN_MODULES: ','
 
@@ -249,6 +249,7 @@ flatten_env_vars:
 # - 'existing': Keep all suites visible that were on PATH at the time the
 #   context was entered.
 context_suite_visibility: existing
+
 
 
 ###############################################################################
