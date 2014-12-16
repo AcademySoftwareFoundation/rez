@@ -10,13 +10,15 @@
 #	<files> [RELATIVE <rel_path>]
 #	DESTINATION <rel_install_dir>
 #	[EXECUTABLE]
+#   [LOCAL_SYMLINK]
 # )
 #
 # 'files' can be relative or absolute. Subdirectories are copied intact. RELATIVE lets you
 # remove some of the file's relative path before it is installed. Note however that ALL files
 # must be within the RELATIVE path, if RELATIVE is specified. If EXECUTABLE is present then the
-# files will be installed with execute permissions.
-#
+# files will be installed with execute permissions. If LOCAL_SYMLINK is preset it would create a symlink
+# from the build package back to the source code for development/testing purposes. That way is not
+# needed to do a rez-build every time that the code changes
 #
 # Example - take the files:
 #
@@ -45,7 +47,10 @@
 # - <INSTALLDIR>/foo.a
 # - <INSTALLDIR>/detail/bah.a
 #
-
+# install_files_(data/foo.a data/detail/bah.a RELATIVE data DESTINATION . LOCAL_SYMLINK )
+# will create a symlink from:
+# - <INSTALLDIR>/foo.a --> <SOURCEDIR>/foo.a
+# - <INSTALLDIR>/detail/bah.a --><SOURCEDIR>/detail/bah.a
 
 include(Utils)
 
@@ -97,7 +102,8 @@ macro (install_files_)
 	# parse args
 	#
 
-	parse_arguments(INSTF "DESTINATION;RELATIVE" "EXECUTABLE" ${ARGN})
+
+	parse_arguments(INSTF "DESTINATION;RELATIVE" "EXECUTABLE;LOCAL_SYMLINK" ${ARGN})
 
 	if(NOT INSTF_DEFAULT_ARGS)
 		message(FATAL_ERROR "no files listed in call to install_files_")
@@ -125,7 +131,14 @@ macro (install_files_)
 	foreach(f ${INSTF_DEFAULT_ARGS})
 		get_target_filepath(${f} ${rel_dir} ${dest_dir} target_fpath)
 		get_filename_component(target_path ${target_fpath} PATH)
-		install(FILES ${f} DESTINATION ${target_path} PERMISSIONS ${perms})
+        if(CENTRAL OR NOT INSTF_LOCAL_SYMLINK)
+		    install(FILES ${f} DESTINATION ${target_path} PERMISSIONS ${perms})
+        else()
+            install( CODE "message (STATUS  \"Symlink : ${CMAKE_INSTALL_PREFIX}/${target_fpath} -> ${f}\" )" )
+            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}/${target_path})" )
+            install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${f} ${CMAKE_INSTALL_PREFIX}/${target_fpath})" )
+        endif(CENTRAL OR NOT INSTF_LOCAL_SYMLINK)
+
 	endforeach(f ${INSTF_DEFAULT_ARGS})
 
 endmacro (install_files_)
