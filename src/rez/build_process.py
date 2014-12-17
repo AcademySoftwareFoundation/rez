@@ -166,8 +166,7 @@ class StandardBuildProcess(BuildProcess):
             if not tag_name:
                 tag_name = "unversioned"
         except Exception as e:
-            raise ReleaseError("Error formatting tag name for release: %s"
-                               % str(e))
+            raise ReleaseError("Error formatting tag name for release: %s" % str(e))
 
         # get last release, this stops same/earlier version release
         last_pkg = self._get_last_release(install_path)
@@ -304,11 +303,12 @@ class StandardBuildProcess(BuildProcess):
                 raise ReleaseError(("cannot release - an equal package "
                                     "version already exists: %s")
                                    % str(pkg))
-            else:
-                if pkg.version > self.package.version and self.ensure_latest:
+            elif pkg.version > self.package.version:
+                if self.ensure_latest:
                     raise ReleaseError(("cannot release - a newer package "
                                        "version already exists: %s")
                                        % str(pkg))
+            else:
                 return pkg
         return None
 
