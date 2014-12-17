@@ -161,8 +161,9 @@ class GitReleaseVCS(ReleaseVCS):
 
         def _get(key, fn):
             try:
-                doc[key] = fn()
-                return True
+                value = fn()
+                doc[key] = value
+                return (value is not None)
             except Exception as e:
                 print_error("Error retrieving %s: %s" % (key, str(e)))
                 return False
