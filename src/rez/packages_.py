@@ -9,6 +9,7 @@ from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, PackageRequestError
 from rez.vendor.version.requirement import VersionedObject
 from rez.config import config
+from rez.system import system
 import sys
 
 
@@ -174,6 +175,20 @@ class Variant(PackageBaseResourceWrapper):
         """Returns True if the variant is from a local package"""
         return is_subdirectory(self.base, config.local_packages_path)
 
+    @cached_property
+    def subpath(self):
+        """Returns the variant 'subpath'.
+
+        The subpath is the path under the variant's `base` directory where this
+        variant's payload is. If there are zero variants, this is None.
+
+        Returns:
+            str or None.
+        """
+        if self.base == self.root:
+            return None
+        return os.path.relpath(self.root, self.base)
+
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
 
@@ -248,6 +263,27 @@ def iter_packages(name, range_=None, paths=None):
                 continue
 
             yield Package(package_resource)
+
+
+def get_developer_package(path):
+    """Load a developer package.
+
+    A developer package may for example be a package.yaml or package.py in a
+    user's source directory.
+
+    Args:
+        path: Directory containing the package definition file.
+
+    Returns:
+        `Package` object.
+    """
+    # we clear caches since a developer package may change at any time
+    system.clear_caches()
+    repo = package_repository_manager.get_repository(path)
+    package_resource = repo.get_developer_package()
+    if package_resource is None:
+        raise ResourceError("No package definition file found at %s" % path)
+    return Package(package_resource)
 
 
 def get_variant(variant_handle):

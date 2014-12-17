@@ -127,7 +127,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
             yield package
 
 
-class FileSystemPackageResource(PackageResource, PackageResourceMixin):
+class FileSystemPackageResource(PackageResource):
     key = "filesystem.package"
     repository_type = "filesystem"
     schema = package_schema_
@@ -141,7 +141,7 @@ class FileSystemPackageResource(PackageResource, PackageResourceMixin):
 
     @property
     def base(self):
-        return self.uri
+        return self._path()
 
     @cached_property
     def parent(self):
@@ -454,7 +454,13 @@ class FileSystemPackageRepository(PackageRepository):
     def get_developer_package(self):
         filepath, _ = get_package_definition_file(self.location)
         if not filepath:
-            pass # TODO RAISE
+            return None
+
+        handle = ResourceHandle(FileSystemDeveloperPackageResource.key,
+                                dict(repository_type="filesystem",
+                                     location=self.location))
+        package = self.get_resource(handle)
+        return package
 
     def get_variant_state_handle(self, variant_resource):
         package_resource = variant_resource.parent

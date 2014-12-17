@@ -3,6 +3,7 @@ from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
+import os.path
 
 
 def get_package_repository_types():
@@ -124,6 +125,9 @@ class PackageRepository(object):
         This is implemented by the 'filesystem' repository. It loads a package
         from a working directory, before the package has been installed or
         released.
+
+        Returns:
+            `PackageResource`.
         """
         raise NotImplementedError
 
@@ -203,9 +207,17 @@ class PackageRepositoryManager(object):
         Returns:
             `PackageRepository` instance.
         """
-        if ':' not in path:
-            path = "filesystem:%s" % path
-        return self._get_repository(path)
+        # normalise
+        parts = path.split(':', 1)
+        if len(parts) == 1:
+            parts = ("filesystem", parts[0])
+
+        repo_type, location = parts
+        if repo_type == "filesystem":
+            location = os.path.realpath(location)
+
+        uri = "%s:%s" % (repo_type, location)
+        return self._get_repository(uri)
 
     def get_resource(self, resource_handle):
         """Get a resource.

@@ -5,11 +5,16 @@ from string import Formatter
 from rez.vendor.enum import Enum
 from rez.vendor.version.requirement import Requirement
 from rez.exceptions import PackageRequestError
+import os
 import re
 
 
 PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
 PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
+
+
+ENV_VAR_REGSTR = r'\$(\w+|\{[^}]*\})'
+ENV_VAR_REGEX = re.compile(ENV_VAR_REGSTR)
 
 
 def is_valid_package_name(name, raise_error=False):
@@ -145,6 +150,44 @@ class StringFormatMixin(object):
         """
         formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
+
+
+def expandvars(text, environ=None):
+    """Expand shell variables of form $var and ${var}.
+
+    Unknown variables are left unchanged.
+
+    Args:
+        text (str): String to expand.
+        environ (dict): Environ dict to use for expansions, defaults to
+            os.environ.
+
+    Returns:
+        The expanded string.
+    """
+    if '$' not in text:
+        return text
+
+    i = 0
+    if environ is None:
+        environ = os.environ
+
+    while True:
+        m = ENV_VAR_REGEX.search(text, i)
+        if not m:
+            break
+        i, j = m.span(0)
+        name = m.group(1)
+        if name.startswith('{') and name.endswith('}'):
+            name = name[1:-1]
+        if name in environ:
+            tail = text[j:]
+            text = text[:i] + environ[name]
+            i = len(text)
+            text += tail
+        else:
+            i = j
+    return text
 
 
 def columnise(rows, padding=2):

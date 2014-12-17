@@ -8,7 +8,8 @@ import inspect
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, which, expandvars, print_debug
+from rez.util import AttrDictWrapper, shlex_join
+from rez.utils.formatting import expandvars
 from rez.vendor.enum import Enum
 from rez.contrib.animallogic.flattener import get_flattener_for_variable
 
