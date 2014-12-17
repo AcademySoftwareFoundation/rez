@@ -1,6 +1,6 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper, DataWrapper, expandvars
-from rez.utils.formatting import ObjectStringFormatter
+    convert_dicts, AttrDictWrapper, DataWrapper
+from rez.utils.formatting import ObjectStringFormatter, expandvars
 from rez.utils.logging_ import get_debug_printer
 from rez.exceptions import ConfigurationError
 from rez import module_root_path

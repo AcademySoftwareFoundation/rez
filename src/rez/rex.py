@@ -9,7 +9,8 @@ from string import Formatter
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, expandvars
+from rez.util import AttrDictWrapper, shlex_join
+from rez.utils.formatting import expandvars
 from rez.vendor.enum import Enum
 
 
