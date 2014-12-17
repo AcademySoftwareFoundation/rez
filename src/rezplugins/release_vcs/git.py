@@ -123,6 +123,13 @@ class GitReleaseVCS(ReleaseVCS):
             msg += '\n'.join(statmsg)
             raise ReleaseVCSError(msg)
 
+        # check for untracked files
+        output = self.git("ls-files", "--other", "--exclude-standard")
+        if output:
+            msg = "Could not release: there are untracked files:\n"
+            msg += '\n'.join(output)
+            raise ReleaseVCSError(msg)
+
         # check if we are behind/ahead of remote
         if remote:
             self.git("remote", "update")
