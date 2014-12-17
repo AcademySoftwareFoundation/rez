@@ -1,7 +1,7 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
     Required, metadata_loaders, iter_descendant_resources, _listdir, \
-    _ResourcePathParser, _findpath
+    _ResourcePathParser
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceNotFoundError, PackageMetadataError
 from rez.util import propertycache, deep_update, print_warning
@@ -121,10 +121,6 @@ class MetadataFolder(FolderResource):
     path_pattern = '.metadata'
     parent_resource = PackageVersionFolder
 
-    @classmethod
-    def _iter_instances(cls, parent_resource):
-        return cls._iter_instance(parent_resource)
-
 
 class ReleaseTimestampResource(FileResource):
     # Deprecated
@@ -132,10 +128,6 @@ class ReleaseTimestampResource(FileResource):
     path_pattern = 'release_time.txt'
     parent_resource = MetadataFolder
     schema = Use(int)
-
-    @classmethod
-    def _iter_instances(cls, parent_resource):
-        return cls._iter_instance(parent_resource)
 
 
 class ChangelogResource(FileResource):
@@ -188,10 +180,6 @@ class ReleaseDataResource(FileResource):
         Optional('previous_revision'): object,
         Optional(basestring): object
     })
-
-    @classmethod
-    def _iter_instances(cls, parent_resource):
-        return cls._iter_instance(parent_resource)
 
 
 class BasePackageResource(FileResource):
@@ -382,14 +370,22 @@ class VersionedPackageResource(BasePackageResource):
     versioned = True
 
     @classmethod
-    def _iter_instances(cls, parent_resource):
-        for ext in ['py', 'yaml', 'txt']:
-            filepath = os.path.join(parent_resource.path, "package." + ext)
-            if _findpath(filepath, is_file=cls.is_file):
-                variables = {"ext": ext}
+    def iter_instances(cls, parent_resource):
+        instances = []
+        for name in _listdir(parent_resource.path, cls.is_file):
+            match = _ResourcePathParser.parse_filepart(cls, name)
+            if match is not None:
+                variables = match[1]
                 variables.update(parent_resource.variables)
-                yield cls(filepath, variables)
-                break
+                filepath = os.path.join(parent_resource.path, name)
+                instances.append(cls(filepath, variables))
+
+        if instances:
+            if len(instances) > 1:
+                ext_sort_order = ('py', 'yaml', 'txt')
+                instances.sort(
+                    key=lambda x: ext_sort_order.index(x.variables['ext']))
+            yield instances[0]
 
     def convert_version(self, value):
         """Deals with two errors:

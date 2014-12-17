@@ -71,13 +71,6 @@ def _updated_schema(schema, items=None, rm_keys=None):
 # File Loading
 # -----------------------------------------------------------------------------
 
-
-@config.lru_cache("resource_caching", "resource_caching_maxsize")
-def _findpath(path, is_file=None):
-    is_test = os.path.isfile if is_file else os.path.isdir
-    return is_test(path)
-
-
 @config.lru_cache("resource_caching", "resource_caching_maxsize")
 def _listdir(path, is_file=None):
     names = []
@@ -258,7 +251,6 @@ def register_resource(resource_class):
 def clear_caches():
     """Clear all resource caches."""
     _listdir.cache_clear()
-    _findpath.cache_clear()
     Resource._cached.cache_clear()
     Resource.ancestors.cache_clear()
     _ResourcePathParser._get_regex.cache_clear()
@@ -713,14 +705,6 @@ class FileSystemResource(Resource):
                 variables.update(parent_resource.variables)
                 filepath = os.path.join(parent_resource.path, name)
                 yield cls(filepath, variables)
-
-    @classmethod
-    def _iter_instance(cls, parent_resource):
-        filepath = os.path.join(parent_resource.path, cls.path_pattern)
-        if _findpath(filepath, is_file=cls.is_file):
-            variables = {}
-            variables.update(parent_resource.variables)
-            yield cls(filepath, variables)
 
 
 class FolderResource(FileSystemResource):
