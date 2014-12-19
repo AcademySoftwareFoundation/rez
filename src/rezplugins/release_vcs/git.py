@@ -4,6 +4,7 @@ Git version control
 from rez.release_vcs import ReleaseVCS
 from rez.util import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
+from rez.config import Str
 import functools
 import os.path
 import re
@@ -16,7 +17,8 @@ class GitReleaseVCSError(ReleaseVCSError):
 class GitReleaseVCS(ReleaseVCS):
 
     schema_dict = {
-        "allow_no_upstream": bool}
+        "allow_no_upstream": bool,
+        "commit_details_format": Str}
 
     @classmethod
     def name(cls):
@@ -211,31 +213,40 @@ class GitReleaseVCS(ReleaseVCS):
         print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
         self.git("push", remote, tag_name)
 
+    def get_commit_details(self, previous_revision=None):
+        commit_details = []
+        previous_commit = (previous_revision or {}).get("commit")
 
-    def get_release_log(self, previous_revision=None):
-        release_log = []
-        prev_commit = (previous_revision or {}).get("commit")
+        if previous_commit:
+            hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
+            for hash_ in hashes:
+                commit_detail = self.git("log", hash_, "--name-only", "--no-merges", "-1", "--pretty=%s" % self.settings.commit_details_format)
+                commit_details.append("\n".join(commit_detail))
 
-        if prev_commit:
-            hashes = self.git("log", "-n", "100", "%s.." % prev_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
+        return commit_details
 
+    def get_automatic_release_comments(self, previous_revision=None):
+        automatic_release_comments = []
+        previous_commit = (previous_revision or {}).get("commit")
+
+        if previous_commit:
+            hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
             for hash_ in hashes:
                 log = self.git("log", hash_, "--no-merges", "-1", "--pretty=format:%an: %s")
-
-                author = self._get_author_from_log(log[0])
                 message = self._get_release_message_from_log(log[0])
 
                 if message:
-                    release_log.append("%s: %s" % (author, message))
+                    author = self._get_author_from_log(log[0])
+                    automatic_release_comments.append([author, message])
 
-        return release_log
+        return automatic_release_comments
 
     def _get_release_message_from_log(self, log):
         """
         Extract the release message from a single commit log string.  This 
         assumes that the incoming log represents a single commit and is 
         formatted to match the regular expression which is currently:
-        
+
             Firstname Lastname: commit log message <release>release message</release>
         """
 
@@ -246,17 +257,19 @@ class GitReleaseVCS(ReleaseVCS):
         Extract the author from a single commit log string.  This assumes that  
         the incoming log represents a single commit and is formatted to match
         the regular expression which is currently:
-        
+
             Firstname Lastname: commit log message
         """
 
         return re.search('^(.*?): ', log).group(1)
 
-    def commit(add=True, message="Auto Commit from Rez Git VCS plugin."):
+    def commit(self, add=True, message="Auto Commit from Rez Git VCS plugin."):
         """
+        Thin wrapper for automating a commit through git.
         """
 
         self.git("commit", "-a" if add else "", "-m", message)
+
 
 def register_plugin():
     return GitReleaseVCS
