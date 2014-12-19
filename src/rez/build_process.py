@@ -16,7 +16,6 @@ import time
 
 class BuildType(Enum):
     """ Enum to represent the type of build."""
-
     local = 0
     central = 1
 
@@ -425,4 +424,3 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
-

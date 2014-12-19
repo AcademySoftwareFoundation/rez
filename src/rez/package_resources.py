@@ -292,7 +292,6 @@ class BasePackageResource(FileResource):
     def _load_component(self, resource_key):
         variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in ("name", "version"))
-
         for resource in iter_descendant_resources(
                 parent_resource=self.parent_instance(),
                 resource_keys=resource_key,

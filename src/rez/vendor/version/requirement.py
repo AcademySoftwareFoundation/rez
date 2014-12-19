@@ -263,17 +263,6 @@ class Requirement(_Common):
                 and (self.range_ == other.range_)
                 and (self.conflict_ == other.conflict_))
 
-    def __cmp__(self, other):
-        """order from minor to mayor version"""
-        if not other:
-            return +1
-
-        if other.range < self.range_:
-            return +1
-        elif other.range > self.range_:
-            return -1
-        return 0
-
     def __hash__(self):
         return hash((self.name_, self.range_, self.conflict_))
 
