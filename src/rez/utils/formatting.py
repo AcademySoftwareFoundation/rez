@@ -5,6 +5,7 @@ from string import Formatter
 from rez.vendor.enum import Enum
 from rez.vendor.version.requirement import Requirement
 from rez.exceptions import PackageRequestError
+from pprint import pformat
 import os
 import re
 
@@ -188,6 +189,47 @@ def expandvars(text, environ=None):
         else:
             i = j
     return text
+
+
+def indent(txt):
+    """Indent the given text by 4 spaces."""
+    lines = (("    " + x) for x in txt.split('\n'))
+    return '\n'.join(lines)
+
+
+def dict_to_attributes_code(dict_):
+    """Given a nested dict, generate a python code equivalent.
+
+    Example:
+        >>> d = {'foo': 'bah', 'colors': {'red': 1, 'blue': 2}}
+        >>> print dict_to_attributes_code(d)
+        foo = 'bah'
+        colors.red = 1
+        colors.blue = 2
+
+    Returns:
+        str.
+    """
+    lines = []
+    for key, value in dict_.iteritems():
+        if isinstance(value, dict):
+            txt = dict_to_attributes_code(value)
+            lines_ = txt.split('\n')
+            for line in lines_:
+                if not line.startswith(' '):
+                    line = "%s.%s" % (key, line)
+                lines.append(line)
+        else:
+            value_txt = pformat(value)
+            if '\n' in value_txt:
+                lines.append("%s = \\" % key)
+                value_txt = indent(value_txt)
+                lines.extend(value_txt.split('\n'))
+            else:
+                line = "%s = %s" % (key, value_txt)
+                lines.append(line)
+
+    return '\n'.join(lines)
 
 
 def columnise(rows, padding=2):

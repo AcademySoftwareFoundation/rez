@@ -1,6 +1,7 @@
 from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
+from rez.package_serialise import dump_package_data
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin
 from rez.utils.filesystem import is_subdirectory
@@ -8,6 +9,7 @@ from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, PackageRequestError
 from rez.vendor.version.requirement import VersionedObject
+from rez.serialise import FileFormat
 from rez.config import config
 from rez.system import system
 import sys
@@ -48,26 +50,13 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
-    def print_info(self, buf=None, skip_attributes=None):
-        """Print the contents of the object, in yaml format."""
-        from rez.utils.yaml import dump_package_yaml
+    def print_info(self, buf=None, format_=FileFormat.yaml, skip_attributes=None):
+        """Print the contents of the package."""
         data = self.validated_data().copy()
-        data = dict((k, v) for k, v in data.iteritems()
-                    if v is not None and not k.startswith('_'))
-
-        # attributes we don't want to see
-        if "config_version" in data:
-            del data["config_version"]
-        if "config" in data:
-            del data["config"]
-
-        for attr in (skip_attributes or []):
-            if attr in data:
-                del data[attr]
-
-        txt = dump_package_yaml(data)
+        data["config"] = self.data.get("config")
         buf = buf or sys.stdout
-        print >> buf, txt
+        dump_package_data(data, buf=buf, format_=format_,
+                          skip_attributes=skip_attributes)
 
 
 class Package(PackageBaseResourceWrapper):

@@ -2,12 +2,28 @@
 Utilities related to managing data types.
 """
 from rez.vendor.schema.schema import Schema, Optional
+from inspect import getsourcelines
 from threading import Lock
+from textwrap import dedent
 import re
 
 
+class SourceCode(object):
+    """Very simple wrapper for source code."""
+    def __init__(self, source):
+        self.source = source
+
+    @classmethod
+    def from_function(cls, func):
+        loc = getsourcelines(func)[0][1:]
+        code = dedent(''.join(loc))
+        value = SourceCode.__new__(SourceCode)
+        value.source = code
+        return value
+
+
 class cached_property(object):
-    """simple property caching descriptor."""
+    """Simple property caching descriptor."""
     def __init__(self, func, name=None):
         self.func = func
         self.name = name or func.__name__
@@ -52,7 +68,8 @@ class AttributeForwardMeta(type):
     parent class.
 
     If the parent class already contains an attribute of the same name,
-    forwarding is skipped for that attribute.
+    forwarding is skipped for that attribute. If the wrapped object does not
+    contain an attribute, the forwarded value will be None.
 
     The class must contain:
     - keys (list of str): The attributes to be forwarded.
@@ -66,7 +83,7 @@ class AttributeForwardMeta(type):
         >>>
         >>> class Bah(object):
         >>>     __metaclass__ = AttributeForwardMeta
-        >>>     keys = ["a", "b"]
+        >>>     keys = ["a", "b", "c"]
         >>>
         >>>     @property
         >>>     def a(self):
@@ -81,6 +98,8 @@ class AttributeForwardMeta(type):
         a_from_bah
         >>> print y.b
         b_from_foo
+        >>> print y.c
+        None
     """
     def __new__(cls, name, parents, members):
         def _defined(x):

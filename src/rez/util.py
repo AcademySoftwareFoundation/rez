@@ -200,10 +200,12 @@ def convert_old_commands(commands, annotate=True):
         s = s.replace('\\"', '"')
         return s.encode("string-escape")
 
-    loc = []
+    loc = ["# <BEGIN CONVERTED OLD COMMANDS>"]
+
     for cmd in commands:
         if annotate:
-            loc.append("comment('OLD COMMAND: %s')" % _encode(cmd))
+            line = "comment('OLD COMMAND: %s')" % _encode(cmd)
+            loc.append(line)
 
         cmd = convert_old_command_expansions(cmd)
         toks = cmd.strip().split()
@@ -217,7 +219,7 @@ def convert_old_commands(commands, annotate=True):
 
             separator = config.env_var_separators.get(var, os.pathsep)
 
-            # This is a special special case.  We don't want to include "';'" in
+            # This is a special case.  We don't want to include "';'" in
             # our env var separators map as it's not really the correct
             # behaviour/something we want to promote.  It's included here for
             # backwards compatibility only, and to not propogate elsewhere.
@@ -259,6 +261,8 @@ def convert_old_commands(commands, annotate=True):
         else:
             # assume we can execute this as a straight command
             loc.append("command('%s')" % _encode(cmd))
+
+    loc.append("# <END CONVERTED OLD COMMANDS>")
 
     rex_code = '\n'.join(loc)
     if config.debug("old_commands"):

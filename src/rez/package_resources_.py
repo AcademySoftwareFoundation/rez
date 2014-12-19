@@ -1,6 +1,6 @@
 from rez.utils.resources import Resource
 from rez.utils.schema import Required
-from rez.utils.data_utils import cached_property
+from rez.utils.data_utils import cached_property, SourceCode
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError
 from rez.config import Config
@@ -12,8 +12,8 @@ from rez.vendor.schema.schema import Schema, Optional, Or
 # type schemas
 #------------------------------------------------------------------------------
 
-commands_schema = Or(callable,  # commands function
-                     basestring)  # commands in text block
+#commands_schema = Or(callable,  # commands function
+#                     basestring)  # commands in text block
 
 
 help_schema = Or(basestring,  # single help entry
@@ -58,9 +58,9 @@ package_base_schema_dict.update({
     Optional('help'):                   help_schema,
 
     # commands
-    Optional('pre_commands'):           commands_schema,
-    Optional('commands'):               commands_schema,
-    Optional('post_commands'):          commands_schema,
+    Optional('pre_commands'):           SourceCode,
+    Optional('commands'):               SourceCode,
+    Optional('post_commands'):          SourceCode,
 
     # release info
     Optional("timestamp"):              int,

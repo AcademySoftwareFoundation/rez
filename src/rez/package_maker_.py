@@ -17,7 +17,7 @@ from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.vendor import yaml
 from rez.exceptions import PackageMetadataError, RezSystemError
 from rez.util import OrderedDict
-from rez.utils.yaml import dump_package_yaml
+from rez.package_serialise import dump_package_yaml
 from contextlib import contextmanager
 import inspect
 import textwrap

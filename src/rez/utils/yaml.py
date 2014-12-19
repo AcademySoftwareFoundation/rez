@@ -1,3 +1,4 @@
+from rez.utils.data_utils import SourceCode
 from rez.vendor import yaml
 from rez.vendor.yaml.dumper import SafeDumper
 from rez.vendor.yaml.nodes import ScalarNode, MappingNode
@@ -44,16 +45,20 @@ class _Dumper(SafeDumper):
         code = dedent(''.join(loc))
         return self.represent_str(code)
 
+    def represent_sourcecode(self, data):
+        code = data.source
+        return self.represent_str(code)
+
 
 _Dumper.add_representer(str, _Dumper.represent_str)
 _Dumper.add_representer(Version, _Dumper.represent_as_str)
 _Dumper.add_representer(Requirement, _Dumper.represent_as_str)
 _Dumper.add_representer(FunctionType, _Dumper.represent_function)
+_Dumper.add_representer(SourceCode, _Dumper.represent_sourcecode)
 
 
+"""
 class OrderedDumper(_Dumper):
-    """Dumps keys in specified order.
-    """
     order = None
 
     # modified from yaml.representer.BaseRepresenter.represent_mapping()
@@ -93,32 +98,14 @@ class OrderedDumper(_Dumper):
 
 
 OrderedDumper.add_representer(dict, OrderedDumper.represent_dict)
+"""
 
-
-class PackageOrderedDumper(OrderedDumper):
-    order = [
-        'name',
-        'version',
-        'description',
-        'authors',
-        'tools',
-        'requires',
-        'build_requires',
-        'private_build_requires',
-        'variants',
-        'commands',
-        'help',
-        'uuid']
-
-
-def dump_yaml(data, Dumper=_Dumper):
+def dump_yaml(data, Dumper=_Dumper, default_flow_style=False):
     """Returns data as yaml-formatted string."""
-    return yaml.dump(data, default_flow_style=False, Dumper=Dumper)
-
-
-def dump_package_yaml(data, Dumper=_Dumper):
-    """Convenience function for dumping with PackageOrderedDumper."""
-    return yaml.dump(data, default_flow_style=False, Dumper=PackageOrderedDumper)
+    content = yaml.dump(data,
+                        default_flow_style=default_flow_style,
+                        Dumper=Dumper)
+    return content.strip()
 
 
 def load_yaml(filepath):

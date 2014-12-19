@@ -54,9 +54,11 @@ scripts = [
     "rez-selftest",
     "rez-bind",
     "rez-search",
+    "rez-view",
     "rez-status",
     "rez-help",
     "rez-depends",
+    "rez-yaml2py",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency
     "_rez-complete",
