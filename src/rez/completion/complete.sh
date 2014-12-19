@@ -15,6 +15,6 @@ complete -F _rez_complete_fn rez-help
 complete -F _rez_complete_fn rez-interpret
 complete -F _rez_complete_fn rez-release
 complete -F _rez_complete_fn rez-search
+complete -F _rez_complete_fn rez-view
 complete -F _rez_complete_fn rez-suite
 complete -F _rez_complete_fn rez-selftest
-complete -F _rez_complete_fn rez-tools

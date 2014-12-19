@@ -8,7 +8,8 @@ from rez.exceptions import PackageMetadataError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import ResourceHandle, cached_property
 from rez.utils.schema import Required, schema_keys
-from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta
+from rez.utils.data_utils import AttributeForwardMeta, LazyAttributeMeta, \
+    SourceCode
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config, create_config
 from rez.memcache import mem_cached, DataType
@@ -16,6 +17,7 @@ from rez.utils.logging_ import print_warning
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use, SchemaError
 from rez.vendor.version.version import Version
 from rez.backport.lru_cache import lru_cache
+from textwrap import dedent
 import os.path
 import os
 
@@ -27,15 +29,16 @@ import os
 package_request_schema = And(basestring, Use(PackageRequest))
 
 
-commands_schema = Or(callable,  # commands function
-                     basestring,  # commands in text block
+commands_schema = Or(SourceCode,    # commands function
+                     basestring,    # commands in text block
                      [basestring])  # old-style commands
 
 
 package_schema_ = Schema({
     Required("name"):                   basestring,
     Optional("version"):                And(basestring, Use(Version)),
-    Optional('description'):            And(basestring, Use(lambda x: x.strip())),
+    Optional('description'):            And(basestring,
+                                            Use(lambda x: dedent(x).strip())),
     Optional('authors'):                [basestring],
 
     Optional('requires'):               [package_request_schema],
@@ -88,10 +91,6 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     def _uri(self):
         return os.path.join(self.location, self.name)
 
-    def iter_packages(self):
-        # this ensures we're getting the cached result
-        return self._repository.iter_packages(self)
-
     def get_last_release_time(self):
         # this repository makes sure to update path mtime every time a
         # variant is added to the repository [TODO: coming]
@@ -101,8 +100,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
         except OSError:
             return 0
 
-    def _iter_packages(self):
-        # called by repository
+    def iter_packages(self):
         root = self.uri
 
         # check for unversioned package
@@ -133,11 +131,7 @@ class FileSystemPackageResource(PackageResource):
     schema = package_schema_
 
     def _uri(self):
-        path = os.path.join(self.location, self.name)
-        ver_str = self.get("version")
-        if ver_str:
-            path = os.path.join(path, ver_str)
-        return path
+        return self.filepath
 
     @property
     def base(self):
@@ -171,10 +165,6 @@ class FileSystemPackageResource(PackageResource):
         return None
 
     def iter_variants(self):
-        # this ensures we're getting the cached result
-        return self._repository.iter_variants(self)
-
-    def _iter_variants(self):
         # this is called by the repository
         num_variants = len(self.data.get("variants", []))
         if num_variants == 0:
@@ -193,7 +183,11 @@ class FileSystemPackageResource(PackageResource):
             yield variant
 
     def _path(self):
-        return self.uri
+        path = os.path.join(self.location, self.name)
+        ver_str = self.get("version")
+        if ver_str:
+            path = os.path.join(path, ver_str)
+        return path
 
     @cached_property
     def filepath(self):
@@ -212,7 +206,9 @@ class FileSystemPackageResource(PackageResource):
         if self.filepath is None:
             raise PackageMetadataError("Missing package definition file: %r" % self)
 
-        data = load_from_file(self.filepath, self.file_format)
+        data = load_from_file(self.filepath, self.file_format,
+                              recursive_attributes=("config",))
+
         if "timestamp" not in data:  # old format support
             data_ = self._load_old_formats()
             if data_:
@@ -257,7 +253,10 @@ class FileSystemPackageResource(PackageResource):
                 raise SchemaError(None, msg)
             elif config.warn("old_commands"):
                 print_warning("%r: %s" % (self, msg))
-            return convert_old_commands(commands)
+            commands = convert_old_commands(commands)
+
+        if isinstance(commands, basestring):
+            return SourceCode(commands)
         else:
             return commands
 
@@ -395,6 +394,26 @@ class FileSystemDeveloperPackageResource(FileSystemPackageResource):
         return data
 
 
+class FileSystemDeveloperVariantResource(FileSystemVariantResource):
+    key = "filesystem.variant.developer"
+
+    @cached_property
+    def name(self):
+        return self.parent.name
+
+    @cached_property
+    def version(self):
+        return self.parent.version
+
+    @cached_property
+    def parent(self):
+        handle = ResourceHandle(FileSystemDeveloperPackageResource.key,
+                                dict(repository_type="filesystem",
+                                     location=self.location))
+        package = self._repository.get_resource(handle)
+        return package
+
+
 #------------------------------------------------------------------------------
 # repository
 #------------------------------------------------------------------------------
@@ -425,6 +444,7 @@ class FileSystemPackageRepository(PackageRepository):
         self.register_resource(FileSystemPackageResource)
         self.register_resource(FileSystemVariantResource)
         self.register_resource(FileSystemDeveloperPackageResource)
+        self.register_resource(FileSystemDeveloperVariantResource)
 
     def _uid(self):
         st = os.stat(self.location)
@@ -525,11 +545,11 @@ class FileSystemPackageRepository(PackageRepository):
 
     @lru_cache(maxsize=None)
     def _get_packages(self, package_family_resource):
-        return [x for x in package_family_resource._iter_packages()]
+        return [x for x in package_family_resource.iter_packages()]
 
     @lru_cache(maxsize=None)
     def _get_variants(self, package_resource):
-        return [x for x in package_resource._iter_variants()]
+        return [x for x in package_resource.iter_variants()]
 
 
 def register_plugin():

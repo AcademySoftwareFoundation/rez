@@ -1373,12 +1373,7 @@ class ResolvedContext(object):
                 executor.bind('base',       pkg.base)
 
                 try:
-                    if isinstance(commands, basestring):
-                        # rex code is in a string
-                        executor.execute_code(commands)
-                    elif inspect.isfunction(commands):
-                        # rex code is a function in a package.py
-                        executor.execute_function(commands)
+                    executor.execute_code(commands.source)
                 except error_class as e:
                     msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(e))
                     raise PackageCommandError(msg)

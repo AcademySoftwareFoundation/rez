@@ -22,13 +22,14 @@ subcommands = [
     "python",
     "release",
     "search",
+    "view",
     "status",
     "suite",
     "selftest",
     "unleash",
     "whatprovides",
-    "gui",
-    "yaml2py"]
+    "yaml2py",
+    "gui"]
 
 
 hidden_subcommands = [
