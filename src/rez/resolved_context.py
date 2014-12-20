@@ -1404,7 +1404,21 @@ class ResolvedContext(object):
                 try:
                     if isinstance(commands, basestring):
                         # rex code is in a string
-                        executor.execute_code(commands)
+
+                        # want to show a filename, so we can see it in
+                        # tracebacks / etc... but if we pass the unaltered
+                        # filename, python will automatically use that to
+                        # display source lines in tracebacks... which will be
+                        # incorrect, because the line numbers will not line up
+                        # (ie, we're excuting the code in the commands section
+                        # of a yaml file, which starts at line 7; line 2 in the
+                        # commmands section would be line 9 in the file).
+
+                        # so, we pass "<commands from FILE>"
+                        filename = None
+                        if hasattr(pkg, 'path') and pkg.path:
+                            filename = "<%s from %s>" % (attr, pkg.path)
+                        executor.execute_code(commands, filename=filename)
                     elif inspect.isfunction(commands):
                         # rex code is a function in a package.py
                         executor.execute_function(commands)
