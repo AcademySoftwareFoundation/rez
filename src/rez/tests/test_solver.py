@@ -190,6 +190,14 @@ class TestSolver(TestBase):
         s = self._fail("pymum-2")
         self.assertFalse(isinstance(s.failure_reason(), Cycle))
 
+    def test_9(self):
+        """Basic solves involving single combined packages"""
+        self._solve(["multi"],
+                    ["multi-1.2[]"])
+        self._solve(["single_unversioned"],
+                    ["single_unversioned[]"])
+        self._solve(["single_versioned"],
+                    ["single_versioned-3.5[]"])
 
 def get_test_suites():
     suites = []
@@ -202,6 +210,7 @@ def get_test_suites():
     suite.addTest(TestSolver("test_6"))
     suite.addTest(TestSolver("test_7"))
     suite.addTest(TestSolver("test_8"))
+    suite.addTest(TestSolver("test_9"))
     suites.append(suite)
     return suites
 

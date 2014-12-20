@@ -556,7 +556,7 @@ class Resource(object):
     @classmethod
     def _path_pattern(cls):
         hierarchy = cls.ancestors() + (cls,)
-        parts = [r.path_pattern for r in hierarchy if r]
+        parts = [r.path_pattern for r in hierarchy if r and r.path_pattern]
         return os.path.sep.join(parts)
 
     @classmethod
