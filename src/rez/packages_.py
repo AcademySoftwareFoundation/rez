@@ -96,9 +96,6 @@ class Package(PackageBaseResourceWrapper):
     def parent(self):
         """Get the parent package family.
 
-        Note:
-            If this is a developer package, None will be returned.
-
         Returns:
             `PackageFamily`.
         """
@@ -315,21 +312,10 @@ def get_developer_package(path):
 
     name = data.get("name")
     if name is None or not isinstance(name, basestring):
-        raise PackageMetadataError("Error in %r - missing or non-string 'name'"
-                                   % filepath)
+        raise PackageMetadataError(
+            "Error in %r - missing or non-string field 'name'" % filepath)
 
     return create_package(name, **data)
-
-    """
-    # we clear caches since a developer package may change at any time
-    system.clear_caches()
-    location = "filesystem:%s" % path
-    repo = package_repository_manager.get_repository(location)
-    package_resource = repo.get_developer_package()
-    if package_resource is None:
-        raise ResourceError("No package definition file found at %s" % path)
-    return Package(package_resource)
-    """
 
 
 def create_package(name, data):

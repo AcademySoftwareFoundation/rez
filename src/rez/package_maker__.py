@@ -85,9 +85,7 @@ class PackageMaker(object):
         package_data = package_schema.validate(package_data)
         package_data = self._post_transform_data(package_data)
 
-        # create a 'memory' package repository containing just this package. We
-        # don't do this via `package_repository_manager` because we don't want
-        # the associated resources to be cached.
+        # create a 'memory' package repository containing just this package
         version_str = package_data.get("version") or "_NO_VERSION"
         repo_data = {self.name: {version_str: package_data}}
         repo = create_memory_package_repository(repo_data)
@@ -99,17 +97,6 @@ class PackageMaker(object):
         package = Package(package_resource)
         return package
 
-        """
-        # turn into a developer package in a tmpdir
-        path = mkdtemp(prefix="rez_package_maker_")
-        filepath = os.path.join(path, "package.py")
-        with open(filepath, 'w') as f:
-            dump_package_data(package_data, f, FileFormat.py)
-
-        package = get_developer_package(path)
-        return package
-        """
-
     def _get_data(self):
         data = self._data.copy()
 
@@ -117,6 +104,9 @@ class PackageMaker(object):
             value = getattr(self, key, None)
             if value is not None:
                 data[key] = value
+
+        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        return data
 
     # schema expected by the 'memory' package repository is a little different
     # to the schema we expect in the package maker.
