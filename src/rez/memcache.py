@@ -5,7 +5,7 @@ from rez import __version__
 from rez.config import config
 from rez.utils.data_utils import cached_property
 from rez.vendor.enum import Enum
-from rez.vendor.memcache import memcache
+from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
 from imp import get_magic
 from hashlib import md5
 
@@ -67,11 +67,43 @@ class Client(object):
     def client(self):
         uris = config.memcached_uri
         if uris:
-            mc = memcache.Client(uris)
+            mc = Client_(uris)
             mc.set("__test__", 1)
             if mc.get("__test__") == 1:
                 return mc
         return None
+
+    @classmethod
+    def test_servers(cls):
+        """Test memcached server availability.
+
+        Returns:
+            List of 2-tuples, where each contains:
+            uri (str): Server uri;
+            online (bool): True if the server is responsing.
+        """
+        entries = []
+        for uri in (config.memcached_uri or []):
+            mc = Client_([uri])
+            mc.set("__test__", 1)
+            online = (mc.get("__test__") == 1)
+            entries.append((uri, online))
+        return entries
+
+    @classmethod
+    def get_summary_string(cls):
+        from rez.utils.formatting import columnise
+
+        entries = cls.test_servers()
+        if not entries:
+            return None
+
+        rows = [["CACHE SERVER", "ONLINE"],
+                ["------------", "------"]]
+        for uri, online in entries:
+            row = (uri, str(online))
+            rows.append(row)
+        return '\n'.join(columnise(rows))
 
     def _key_hash(self, type_, key):
         t = [self.counter, type_.id_, __version__]
@@ -84,7 +116,7 @@ class Client(object):
         h = self._key_hash(type_, key)[:16]
         str_key = str(key).replace(' ', '_')
         value = "%s:%s:%s" % (h, type_.name, str_key)
-        return value[:250]  # 250 is memcached's max key length
+        return value[:SERVER_MAX_KEY_LENGTH]
 
 
 # singleton

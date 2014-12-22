@@ -82,6 +82,13 @@ class TestPackages(TestBase):
         res = _to_qnames(iter_packages('pydad', "<3"))
         self.assertEqual(res, set(['pydad-1', 'pydad-2']))
 
+        for fam_name in ALL_FAMILIES:
+            for package in iter_packages(fam_name):
+                family = package.parent
+                self.assertEqual(family.name, fam_name)
+                it = family.iter_packages()
+                self.assertTrue(package in it)
+
     def test_3(self):
         """check package contents."""
         package = get_package("versioned", "3.0")
@@ -101,6 +108,7 @@ class TestPackages(TestBase):
     def test_4(self):
         """test package creation."""
         package_data = {
+            "name":             "foo",
             "version":          "1.0.0",
             "description":      "something foo-like",
             "requires":         ["python-2.6+"]

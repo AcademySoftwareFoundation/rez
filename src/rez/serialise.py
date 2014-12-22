@@ -98,7 +98,8 @@ def load_py(stream, filepath=None):
         return data
 
     result.update(scopes.to_dict())
-    result = _process_python_objects(result)
+    result = _process_objects(result)
+    return result
 
 
 def load_yaml(stream, **kwargs):
