@@ -7,9 +7,10 @@ from rez.utils.formatting import StringFormatMixin
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageFamilyNotFoundError, PackageRequestError
+from rez.exceptions import PackageFamilyNotFoundError, PackageMetadataError
+from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
-from rez.serialise import FileFormat
+from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.system import system
 import sys
@@ -20,7 +21,10 @@ import sys
 #------------------------------------------------------------------------------
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
-    pass
+    def validated_data(self):
+        data = ResourceWrapper.validated_data(self)
+        data = dict((k, v) for k, v in data.iteritems() if v is not None)
+        return data
 
 
 class PackageFamily(PackageRepositoryResourceWrapper):
@@ -51,7 +55,13 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
     def print_info(self, buf=None, format_=FileFormat.yaml, skip_attributes=None):
-        """Print the contents of the package."""
+        """Print the contents of the package.
+
+        Args:
+            buf (file-like object): Stream to write to.
+            format_ (`FileFormat`): Format to write in.
+            skip_attributes (list of str): List of attributes to not print.
+        """
         data = self.validated_data().copy()
         data["config"] = self.data.get("config")
         buf = buf or sys.stdout
@@ -230,8 +240,8 @@ def iter_packages(name, range_=None, paths=None):
 
     Args:
         name (str): Name of the package, eg 'maya'.
-        range_ (VersionRange, optional): If provided, limits the versions
-            returned to those in `range_`.
+        range_ (VersionRange or str): If provided, limits the versions returned
+            to those in `range_`.
         paths (list of str, optional): paths to search for packages, defaults
             to `config.packages_path`.
 
@@ -248,10 +258,37 @@ def iter_packages(name, range_=None, paths=None):
                 continue
 
             seen.add(key)
-            if range_ and package_resource.version not in range_:
-                continue
+            if range_:
+                if isinstance(range_, basestring):
+                    range_ = VersionRange(range_)
+                if package_resource.version not in range_:
+                    continue
 
             yield Package(package_resource)
+
+
+def get_package(name, version, paths=None):
+    """Get an exact version of a package.
+
+    Args:
+        name (str): Name of the package, eg 'maya'.
+        version (Version or str): Version of the package, eg '1.0.0'
+        paths (list of str, optional): paths to search for package, defaults
+            to `config.packages_path`.
+
+    Returns:
+        `Package` object, or None if the package was not found.
+    """
+    if isinstance(version, basestring):
+        range_ = VersionRange("==%s" % version)
+    else:
+        range_ = VersionRange.from_version(version, "==")
+
+    it = iter_packages(name, range_, paths)
+    try:
+        return it.next()
+    except StopIteration:
+        return None
 
 
 def get_developer_package(path):
@@ -266,13 +303,48 @@ def get_developer_package(path):
     Returns:
         `Package` object.
     """
+    data = None
+    for format_ in (FileFormat.py, FileFormat.yaml):
+        filepath = os.path.join(path, "package.%s" % format_.extension)
+        if os.path.isfile(filepath):
+            data = load_from_file(filepath, format_)
+            break
+
+    if data is None:
+        raise ResourceError("No package definition file found at %s" % path)
+
+    name = data.get("name")
+    if name is None or not isinstance(name, basestring):
+        raise PackageMetadataError("Error in %r - missing or non-string 'name'"
+                                   % filepath)
+
+    return create_package(name, **data)
+
+    """
     # we clear caches since a developer package may change at any time
     system.clear_caches()
-    repo = package_repository_manager.get_repository(path)
+    location = "filesystem:%s" % path
+    repo = package_repository_manager.get_repository(location)
     package_resource = repo.get_developer_package()
     if package_resource is None:
         raise ResourceError("No package definition file found at %s" % path)
     return Package(package_resource)
+    """
+
+
+def create_package(name, data):
+    """Create a package given package data.
+
+    Args:
+        name (str): Package name.
+        data (dict): Package data. Must conform to `package_maker.package_schema`.
+
+    Returns:
+        `Package` object.
+    """
+    from rez.package_maker__ import PackageMaker
+    maker = PackageMaker(name, data)
+    return maker.get_package()
 
 
 def get_variant(variant_handle):
@@ -288,8 +360,8 @@ def get_variant(variant_handle):
     if isinstance(variant_handle, dict):
         variant_handle = ResourceHandle.from_dict(variant_handle)
 
-    resource = package_repository_manager.get_resource(variant_handle)
-    variant = Variant(resource)
+    variant_resource = package_repository_manager.get_resource(variant_handle)
+    variant = Variant(variant_resource)
     return variant
 
 
@@ -316,6 +388,13 @@ def get_last_release_time(name, paths=None):
 
 def get_completions(prefix, paths=None, family_only=False):
     """Get autocompletion options given a prefix string.
+
+    Example:
+
+        >>> get_completions("may")
+        set(["maya", "maya_utils"])
+        >>> get_completions("maya-")
+        set(["maya-2013.1", "maya-2015.0.sp1"])
 
     Args:
         prefix (str): Prefix to match.

@@ -1,6 +1,7 @@
 from rez.tests.util import TestBase
 from rez.utils.resources import Resource, ResourcePool, ResourceHandle, \
-    Required, ResourceWrapper
+    ResourceWrapper
+from rez.utils.schema import Required
 from rez.exceptions import ResourceError
 import rez.vendor.unittest2 as unittest
 from rez.vendor.schema.schema import Schema, Use, And, Optional

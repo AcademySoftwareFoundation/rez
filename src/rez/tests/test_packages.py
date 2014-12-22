@@ -1,10 +1,14 @@
-from rez.packages import iter_package_families, iter_packages
 from rez.package_resources import VersionlessPackageResource, \
     VersionlessVariantResource, register_resource, \
     CombinedPackageFamilyResource, CombinedPackageResource
+from rez.packages_ import iter_package_families, iter_packages, get_package, \
+    create_package
+from rez.package_repository import create_memory_package_repository
 from rez.tests.util import TestBase
-from rez.vendor.version.version import VersionRange
+from rez.utils.formatting import PackageRequest
+from rez.utils.data_utils import SourceCode
 import rez.vendor.unittest2 as unittest
+from rez.vendor.version.version import Version
 import os.path
 
 register_resource(VersionlessPackageResource, force=True)
@@ -13,7 +17,7 @@ register_resource(CombinedPackageFamilyResource, force=True)
 register_resource(CombinedPackageResource, force=True)
 
 ALL_PACKAGES = set([
-    # solver packages
+    # packages from data/solver
     'bahish-1', 'bahish-2',
     'nada',
     'nopy-2.1',
@@ -25,7 +29,7 @@ ALL_PACKAGES = set([
     'pyson-1', 'pyson-2',
     'pysplit-5', 'pysplit-6', 'pysplit-7',
     'python-2.5.2', 'python-2.6.0', 'python-2.6.8', 'python-2.7.0',
-    # resources packages
+    # packages from data/packages
     'unversioned',
     'versioned-1.0', 'versioned-2.0',
     'single_unversioned',
@@ -56,15 +60,18 @@ def _to_qnames(it):
 class TestPackages(TestBase):
     @classmethod
     def setUpClass(cls):
-        path = os.path.dirname(__file__)
-        solver_packages_path = os.path.join(
+        path = os.path.realpath(os.path.dirname(__file__))
+        cls.solver_packages_path = os.path.join(
             path, "data", "solver", "packages")
-        resource_packages_path = os.path.join(
-            path, "data", "resources", "packages")
+        cls.yaml_packages_path = os.path.join(
+            path, "data", "packages", "yaml_packages")
+        cls.py_packages_path = os.path.join(
+            path, "data", "packages", "py_packages")
 
         cls.settings = dict(
-            packages_path=[solver_packages_path,
-                           resource_packages_path])
+            packages_path=[cls.solver_packages_path,
+                           cls.yaml_packages_path,
+                           cls.py_packages_path])
 
     def test_1(self):
         """package family iteration."""
@@ -73,18 +80,51 @@ class TestPackages(TestBase):
 
     def test_2(self):
         """package iteration."""
-        all_packages = _to_qnames(iter_packages())
+        all_packages = set()
+        all_fams = iter_package_families()
+        for fam in all_fams:
+            packages = _to_qnames(iter_packages(fam.name))
+            all_packages.update(packages)
         self.assertEqual(all_packages, ALL_PACKAGES)
 
-        res = _to_qnames(iter_packages(name='nada'))
+        res = _to_qnames(iter_packages('nada'))
         self.assertEqual(res, set(['nada']))
 
-        res = _to_qnames(iter_packages(name='python'))
+        res = _to_qnames(iter_packages('python'))
         self.assertEqual(res, set(['python-2.5.2', 'python-2.6.0',
                                    'python-2.6.8', 'python-2.7.0']))
 
-        res = _to_qnames(iter_packages(name='pydad', range=VersionRange("<3")))
+        res = _to_qnames(iter_packages('pydad', "<3"))
         self.assertEqual(res, set(['pydad-1', 'pydad-2']))
+
+    def test_3(self):
+        """check package contents."""
+        package = get_package("versioned", "3.0")
+        expected_data = dict(
+             name="versioned",
+             version=Version("3.0"),
+             base=os.path.join(self.py_packages_path, "versioned", "3.0"),
+             commands=SourceCode('env.PATH.append("{root}/bin")'))
+        data = package.validated_data()
+        self.assertDictEqual(data, expected_data)
+
+        package = get_package("versioned", "2.0")
+        expected_uri = os.path.join(self.yaml_packages_path,
+                                    "versioned", "2.0", "package.yaml")
+        self.assertEqual(package.uri, expected_uri)
+
+    def test_4(self):
+        """test package creation."""
+        package_data = {
+            "version":          "1.0.0",
+            "description":      "something foo-like",
+            "requires":         ["python-2.6+"]
+        }
+
+        package = create_package("foo", package_data)
+        self.assertEqual(package.version, Version("1.0.0"))
+        self.assertEqual(package.description, "something foo-like")
+        self.assertEqual(package.requires, [PackageRequest("python-2.6+")])
 
 
 def get_test_suites():
@@ -92,6 +132,8 @@ def get_test_suites():
     suite = unittest.TestSuite()
     suite.addTest(TestPackages("test_1"))
     suite.addTest(TestPackages("test_2"))
+    suite.addTest(TestPackages("test_3"))
+    suite.addTest(TestPackages("test_4"))
     suites.append(suite)
     return suites
 

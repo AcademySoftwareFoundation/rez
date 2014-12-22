@@ -1,7 +1,7 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
-from rez.utils.scope import ScopeContext, RecursiveAttribute
+from rez.utils.scope import ScopeContext
 from rez.utils.data_utils import SourceCode
 from rez.exceptions import ResourceError
 from rez.memcache import mem_cached, DataType
@@ -24,18 +24,15 @@ class FileFormat(Enum):
         self.data_type = data_type
 
 
-def load_from_file(filepath, format_=FileFormat.py, recursive_attributes=None,
-                   update_data_callback=None):
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
     """Load data from a file.
 
     Note:
-        Any function from a .py file will be converted to a `SourceCode` instance.
+        Any functions from a .py file will be converted to `SourceCode` objects.
 
     Args:
         filepath (str): File to load.
         format_ (`FileFormat`): Format of file contents.
-        recursive_attributes (list of str): Only used in python files. If any
-            names are provided, empty `RecursiveAttribute` instances are created.
         update_data_callback (callable): Used to change data before it is
             returned or cached.
 
@@ -43,8 +40,7 @@ def load_from_file(filepath, format_=FileFormat.py, recursive_attributes=None,
         dict.
     """
     filepath = os.path.realpath(filepath)
-    return _load_from_file(filepath, format_, recursive_attributes,
-                           update_data_callback)
+    return _load_from_file(filepath, format_, update_data_callback)
 
 
 def _load_from_file__key(filepath, *nargs, **kwargs):
@@ -53,18 +49,17 @@ def _load_from_file__key(filepath, *nargs, **kwargs):
 
 
 @mem_cached(DataType.data, key_func=_load_from_file__key)
-def _load_from_file(filepath, format_, recursive_attributes, update_data_callback):
+def _load_from_file(filepath, format_, update_data_callback):
     load_func = load_functions[format_]
     with open(filepath) as f:
-        result = load_func(f, filepath=filepath,
-                           recursive_attributes=recursive_attributes)
+        result = load_func(f, filepath=filepath)
 
     if update_data_callback:
         result = update_data_callback(format_, result)
     return result
 
 
-def load_py(stream, filepath=None, recursive_attributes=None):
+def load_py(stream, filepath=None):
     """Load python-formatted data from a stream.
 
     Args:
@@ -76,12 +71,6 @@ def load_py(stream, filepath=None, recursive_attributes=None):
     g = __builtins__.copy()
     scopes = ScopeContext()
     g['scope'] = scopes
-
-    attrs = {}
-    for name in (recursive_attributes or []):
-        attr = RecursiveAttribute()
-        attrs[name] = attr
-        g[name] = attr
 
     try:
         exec stream in g
@@ -98,17 +87,18 @@ def load_py(stream, filepath=None, recursive_attributes=None):
     for k, v in g.iteritems():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
-            if isfunction(v):
-                v = SourceCode.from_function(v)
             result[k] = v
 
-    result.update(scopes.to_dict())
-    for name, attr in attrs.iteritems():
-        d = attr.to_dict()
-        if d:
-            result[name] = d
+    def _process_objects(data):
+        for k, v in data.iteritems():
+            if isfunction(v):
+                data[k] = SourceCode.from_function(v)
+            elif isinstance(v, dict):
+                _process_objects(v)
+        return data
 
-    return result
+    result.update(scopes.to_dict())
+    result = _process_python_objects(result)
 
 
 def load_yaml(stream, **kwargs):

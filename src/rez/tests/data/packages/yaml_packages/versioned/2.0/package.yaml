@@ -1,0 +1,5 @@
+name: versioned
+version: '2.0'
+
+commands: |
+    env.PATH.append("{root}/bin")
