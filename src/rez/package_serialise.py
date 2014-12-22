@@ -84,6 +84,13 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
     dump_func(items, buf)
 
 
+# Keeping annotations as rex 'comment' actions is only useful when a package's
+# old commands are being converted on the fly - in this case, the new commands
+# are never written to disk, so the only way to be able to debug new/old commands
+# is to see them in the context. But here we are writing packages to disk, so
+# instead we just comment out these comment actions - that way we can refer to
+# the package file to see what the original commands were, but they don't get
+# processed by rex.
 def _commented_old_command_annotations(sourcecode):
     lines = sourcecode.source.split('\n')
     for i, line in enumerate(lines):
@@ -113,8 +120,9 @@ def _dump_package_data_py(items, buf):
             quoted_str = '"""\n%s\n"""' % value
             txt = "description = \\\n%s" % indent(quoted_str)
         elif key == "config":
-            # config is a scope context
-            txt = dict_to_attributes_code(dict(config=value))
+            # config is a scope
+            attrs_txt = dict_to_attributes_code(dict(config=value))
+            txt = "with scope('config'):\n%s" % indent(attrs_txt)
         elif isinstance(value, SourceCode):
             # source code becomes a python function
             if key in ("commands", "pre_commands", "post_commands"):

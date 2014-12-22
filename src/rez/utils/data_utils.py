@@ -11,15 +11,27 @@ import re
 class SourceCode(object):
     """Very simple wrapper for source code."""
     def __init__(self, source):
-        self.source = source
+        self.source = source.strip()
 
     @classmethod
     def from_function(cls, func):
         loc = getsourcelines(func)[0][1:]
         code = dedent(''.join(loc))
         value = SourceCode.__new__(SourceCode)
-        value.source = code
+        value.source = code.strip()
         return value
+
+    def __eq__(self, other):
+        return (other.source == self.source)
+
+    def __ne__(self, other):
+        return (other.source != self.source)
+
+    def __str__(self):
+        return self.source.replace('\n', "\\n")
+
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 class cached_property(object):

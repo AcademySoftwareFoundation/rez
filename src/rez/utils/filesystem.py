@@ -2,9 +2,9 @@
 Filesystem-related utilities.
 """
 from threading import Lock
+from tempfile import mkdtemp
 import posixpath
 import ntpath
-import tempfile
 import os.path
 import shutil
 import os
@@ -20,7 +20,7 @@ class TempDirs(object):
         self.lock = Lock()
 
     def mkdtemp(self):
-        path = tempfile.mkdtemp(dir=self.tmpdir, prefix=self.prefix)
+        path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
         try:
             self.lock.acquire()
             self.dirs.add(path)

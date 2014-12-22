@@ -1,4 +1,4 @@
-from rez.utils.resources import ResourcePool
+from rez.utils.resources import ResourcePool, ResourceHandle
 from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
@@ -9,6 +9,21 @@ import os.path
 def get_package_repository_types():
     """Returns the available package repository implementations."""
     return plugin_manager.get_plugins('package_repository')
+
+
+def create_memory_package_repository(repository_data):
+    """Create a standalone in-memory package repository from the data given.
+
+    See rezplugins/package_repository/memory.py for more details.
+
+    Args:
+        repository_data (dict): Package repository data.
+
+    Returns:
+        `PackageRepository` object.
+    """
+    cls_ = plugin_manager.get_plugin_class("package_repository", "memory")
+    return cls_.create_repository(repository_data)
 
 
 class PackageRepository(object):
@@ -116,21 +131,6 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def get_developer_package(self):
-        """Get the developer package.
-
-        Note:
-            Most repositories will not need to implement this.
-
-        This is implemented by the 'filesystem' repository. It loads a package
-        from a working directory, before the package has been installed or
-        released.
-
-        Returns:
-            `PackageResource`.
-        """
-        raise NotImplementedError
-
     def get_variant_state_handle(self, variant_resource):
         """Get a value that indicates the state of the variant.
 
@@ -161,7 +161,12 @@ class PackageRepository(object):
         """
         return 0
 
-    def get_resource(self, resource_handle):
+    def get_resource(self, resource_key, **variables):
+        variables["repository_type"] = self.name()
+        handle = ResourceHandle(resource_key, variables)
+        return self.get_resource_by_handle(handle)
+
+    def get_resource_by_handle(self, resource_handle):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
@@ -216,8 +221,8 @@ class PackageRepositoryManager(object):
         if repo_type == "filesystem":
             location = os.path.realpath(location)
 
-        uri = "%s:%s" % (repo_type, location)
-        return self._get_repository(uri)
+        normalised_path = "%s:%s" % (repo_type, location)
+        return self._get_repository(normalised_path)
 
     def get_resource(self, resource_handle):
         """Get a resource.
