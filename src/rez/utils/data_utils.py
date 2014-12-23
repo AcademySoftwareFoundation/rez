@@ -245,8 +245,8 @@ class LazyAttributeMeta(type):
 def get_object_completions(instance, prefix, types=None, instance_types=None):
     """Get completion strings based on an object's attributes/keys.
 
-    Completion also works on dynamic attributes (eg implemented via
-    __getattr__) if they are iterable.
+    Completion also works on dynamic attributes (eg implemented via __getattr__)
+    if they are iterable.
 
     Args:
         instance (object): Object to introspect.

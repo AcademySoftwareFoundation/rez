@@ -13,6 +13,7 @@ from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.system import system
+import os.path
 import sys
 
 
@@ -57,6 +58,20 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     @property
     def uri(self):
         return self.resource.uri
+
+    @property
+    def config(self):
+        """Returns the config for this package.
+
+        Defaults to global config if this package did not provide a 'config'
+        section.
+        """
+        return self.resource.config or config
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the variant is from a local package"""
+        return is_subdirectory(self.base, config.local_packages_path)
 
     def print_info(self, buf=None, format_=FileFormat.yaml, skip_attributes=None):
         """Print the contents of the package.
@@ -160,20 +175,6 @@ class Variant(PackageBaseResourceWrapper):
         repo = self.resource._repository
         package = repo.get_parent_package(self.resource)
         return Package(package)
-
-    @property
-    def config(self):
-        """Returns the config for this package.
-
-        Defaults to global config if this package did not provide a 'config'
-        section.
-        """
-        return self.resource.config or config
-
-    @cached_property
-    def is_local(self):
-        """Returns True if the variant is from a local package"""
-        return is_subdirectory(self.base, config.local_packages_path)
 
     @cached_property
     def subpath(self):
@@ -319,7 +320,7 @@ def get_developer_package(path):
         raise PackageMetadataError(
             "Error in %r - missing or non-string field 'name'" % filepath)
 
-    return create_package(name, **data)
+    return create_package(name, data)
 
 
 def create_package(name, data):
