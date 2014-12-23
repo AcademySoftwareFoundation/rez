@@ -13,15 +13,14 @@ import os.path
 
 
 class FileFormat(Enum):
-    py = ("py", DataType.data)
-    yaml = ("yaml", DataType.data)
-    txt = ("txt", DataType.data)
+    py = ("py",)
+    yaml = ("yaml",)
+    txt = ("txt",)
 
     __order__ = "py,yaml,txt"
 
-    def __init__(self, extension, data_type):
+    def __init__(self, extension):
         self.extension = extension
-        self.data_type = data_type
 
 
 def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
@@ -48,7 +47,7 @@ def _load_from_file__key(filepath, *nargs, **kwargs):
     return (filepath, st.st_ino, st.st_mtime)
 
 
-@mem_cached(DataType.data, key_func=_load_from_file__key)
+@mem_cached(DataType.package_file, key_func=_load_from_file__key)
 def _load_from_file(filepath, format_, update_data_callback):
     load_func = load_functions[format_]
     with open(filepath) as f:

@@ -54,19 +54,10 @@ def _add_common_args(parser):
 
 class InfoAction(_StoreTrueAction):
     def __call__(self, parser, args, values, option_string=None):
-        from rez.plugin_managers import plugin_manager
-        from rez import memcache
-
+        from rez.system import system
+        txt = system.get_summary_string()
         print
-        print "Rez %s" % __version__
-        print
-        print plugin_manager.get_summary_string()
-
-        txt = memcache.Client.get_summary_string()
-        if txt:
-            print
-            print txt
-
+        print txt
         print
         sys.exit(0)
 

@@ -58,6 +58,7 @@ scripts = [
     "rez-status",
     "rez-help",
     "rez-depends",
+    "rez-memcache",
     "rez-yaml2py",
     "bez",
     "_rez_fwd",  # TODO rename this _rez-forward for consistency

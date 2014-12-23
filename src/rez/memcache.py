@@ -6,29 +6,24 @@ from rez.config import config
 from rez.utils.data_utils import cached_property
 from rez.vendor.enum import Enum
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
-from imp import get_magic
 from hashlib import md5
 
 
-magic = get_magic()
-
-
 class DataType(Enum):
-    data = (1, False, 0)        # a dict of POD types from a file (eg yaml)
-    code = (2, True, 0)         # source from py file (marshalled)
-    listdir = (3, False, 0)     # cached os.listdir result
-    resolve = (4, False, 1)     # a package request solve
+    package_file = (1, config.memcached_package_file_min_compress_len)  # data from a package file
+    context_file = (2, config.memcached_context_file_min_compress_len)  # data from a context file
+    listdir = (3, config.memcached_listdir_min_compress_len)            # cached os.listdir result
+    resolve = (4, config.memcached_resolve_min_compress_len)            # a package request solve
 
-    def __init__(self, id_, bytecode_dependent, min_compress_len):
+    def __init__(self, id_, min_compress_len):
         self.id_ = id_
-        self.bytecode_dependent = bytecode_dependent
         self.min_compress_len = min_compress_len
 
 
 class Client(object):
     def __init__(self):
-        self.counter = 0
-        if config.debug_memcache_keys:
+        self.key_offset = __version__
+        if config.debug_memcache:
             self._key_hash_fn = self._key_hash_debug
         else:
             self._key_hash_fn = self._key_hash
@@ -55,13 +50,35 @@ class Client(object):
         h = self._key_hash_fn(type_, key)
         self.client.delete(h)
 
-    def flush(self):
+    def flush(self, hard=False):
         """Drop existing entries from the cache.
 
-        This does not actually flush the memcache, which is deliberate - other
-        processes using rez will be unaffected.
+        Args:
+            hard (bool): If True, all current entries are flushed from the
+                server(s), which affects all users. If False, only the local
+                process is affected.
         """
-        self.counter += 1
+        if hard:
+            # flushes server(s), reset stats
+            self.client.flush_all()
+            self.reset_stats()
+        else:
+            # set our counter to some unique value. This offsets our keys so
+            # that they don't match anyone else's
+            from uuid import uuid4
+            self.key_offset = "%s:%s" % (__version__, uuid4().hex)
+
+    def get_stats(self):
+        """Get server statistics.
+
+        Returns:
+            A list of tuples (server_identifier, stats_dictionary).
+        """
+        return self._get_stats()
+
+    def reset_stats(self):
+        """Reset the server stats."""
+        self._get_stats("reset")
 
     @cached_property
     def client(self):
@@ -73,43 +90,43 @@ class Client(object):
                 return mc
         return None
 
-    @classmethod
-    def test_servers(cls):
-        """Test memcached server availability.
+    def get_summary_string(self):
+        from rez.utils.formatting import columnise, readable_time_duration, \
+            readable_memory_size
 
-        Returns:
-            List of 2-tuples, where each contains:
-            uri (str): Server uri;
-            online (bool): True if the server is responsing.
-        """
-        entries = []
-        for uri in (config.memcached_uri or []):
-            mc = Client_([uri])
-            mc.set("__test__", 1)
-            online = (mc.get("__test__") == 1)
-            entries.append((uri, online))
-        return entries
-
-    @classmethod
-    def get_summary_string(cls):
-        from rez.utils.formatting import columnise
-
-        entries = cls.test_servers()
-        if not entries:
+        stats = self.get_stats()
+        if not stats:
             return None
 
-        rows = [["CACHE SERVER", "ONLINE"],
-                ["------------", "------"]]
-        for uri, online in entries:
-            row = (uri, str(online))
+        rows = [["CACHE SERVER", "UPTIME", "HITS", "MISSES", "HIT RATIO", "MEMORY", "USED"],
+                ["------------", "------", "----", "------", "---------", "------", "----"]]
+
+        for server_id, stats_dict in stats:
+            server_uri = server_id.split()[0]
+            uptime = int(stats_dict.get("uptime", 0))
+            hits = int(stats_dict.get("get_hits", 0))
+            misses = int(stats_dict.get("get_misses", 0))
+            memory = int(stats_dict.get("limit_maxbytes", 0))
+            used = int(stats_dict.get("bytes", 0))
+
+            hit_ratio = float(hits) / max(hits + misses, 1)
+            hit_percent = int(hit_ratio * 100.0)
+            used_ratio = float(used) / max(memory, 1)
+            used_percent = int(used_ratio * 100.0)
+
+            row = (server_uri,
+                   readable_time_duration(uptime),
+                   str(hits),
+                   str(misses),
+                   "%d%%" % hit_percent,
+                   readable_memory_size(memory),
+                   "%s (%d%%)" % (readable_memory_size(used), used_percent))
+
             rows.append(row)
         return '\n'.join(columnise(rows))
 
     def _key_hash(self, type_, key):
-        t = [self.counter, type_.id_, __version__]
-        if type_.bytecode_dependent:
-            t.append(magic)
-        t.append(key)
+        t = (self.key_offset, type_.id_, key)
         return md5(str(t)).hexdigest()
 
     def _key_hash_debug(self, type_, key):
@@ -117,6 +134,11 @@ class Client(object):
         str_key = str(key).replace(' ', '_')
         value = "%s:%s:%s" % (h, type_.name, str_key)
         return value[:SERVER_MAX_KEY_LENGTH]
+
+    def _get_stats(self, stat_args=None):
+        if not self.enabled:
+            return []
+        return self.client.get_stats(stat_args=stat_args)
 
 
 # singleton
@@ -163,26 +185,36 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
         to_cache_func (callable, optional): If provided, and a cache miss occurs,
             the value will be translated by this function before being cached.
         value_func (callable, optional): If provided, the result is first
-            translated by this function before being returned.
+            translated by this function before being returned, regardless of
+            whether a cache hit or miss occurred.
 
     Note:
         `from_cache_func`, `to_cache_func` and `value_func` all accept a return
         value as first parameter, then the target function's arguments follow.
         Both are expected to return the translated result.
+
+    Note:
+        You can override `data_type` by passing the kwarg '_data_type' to the
+        decorated function. This argument is not passed to the wrapped function.
     """
     def decorator(func):
         def wrapper(*nargs, **kwargs):
+            if "_data_type" in kwargs:
+                data_type_ = kwargs.pop("_data_type")
+            else:
+                data_type_ = data_type
+
             if memcache_client.enabled:
                 if key_func is None:
                     key = (nargs, frozenset(kwargs.items()))
                 else:
                     key = key_func(*nargs, **kwargs)
 
-                data = memcache_client.get(data_type, key)
+                data = memcache_client.get(data_type_, key)
                 if data is None:
                     def _set(value):
                         value_ = _None() if value is None else value
-                        memcache_client.set(data_type, key, value_)
+                        memcache_client.set(data_type_, key, value_)
 
                     result = func(*nargs, **kwargs)
                     if isinstance(result, DoNotCache):

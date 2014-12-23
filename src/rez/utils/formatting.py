@@ -272,30 +272,51 @@ def print_colored_columns(printer, rows, padding=2):
         printer(line, col)
 
 
+time_divs = (
+    (365 * 24 * 3600, "years", 10),
+    (30 * 24 * 3600, "months", 12),
+    (7 * 24 * 3600, "weeks", 5),
+    (24 * 3600, "days", 7),
+    (3600, "hours", 10),
+    (60, "minutes", 10),
+    (1, "seconds", 60))
+
+
 def readable_time_duration(secs):
     """Convert number of seconds into human readable form, eg '3.2 hours'.
     """
-    divs = ((365 * 24 * 3600, "years", 10),
-            (30 * 24 * 3600, "months", 12),
-            (7 * 24 * 3600, "weeks", 5),
-            (24 * 3600, "days", 7),
-            (3600, "hours", 8),
-            (60, "minutes", 5),
-            (1, "seconds", 60))
+    return _readable_units(secs, time_divs, True)
 
-    if secs == 0:
-        return "0 seconds"
-    neg = (secs < 0)
+
+memory_divs = (
+    (1024 * 1024 * 1024 * 1024, "Tb", 128),
+    (1024 * 1024 * 1024, "Gb", 64),
+    (1024 * 1024, "Mb", 32),
+    (1024, "Kb", 16),
+    (1, "bytes", 1024))
+
+
+def readable_memory_size(bytes_):
+    """Convert number of bytes into human readable form, eg '1.2 Kb'.
+    """
+    return _readable_units(bytes_, memory_divs)
+
+
+def _readable_units(value, divs, plural_aware=False):
+    if value == 0:
+        unit = divs[-1][1]
+        return "0 %s" % unit
+    neg = (value < 0)
     if neg:
-        secs = -secs
+        value = -value
 
-    for seconds, unit, threshold in divs:
-        if secs >= seconds:
-            f = secs / float(seconds)
+    for quantity, unit, threshold in divs:
+        if value >= quantity:
+            f = value / float(quantity)
             rounding = 0 if f > threshold else 1
             f = round(f, rounding)
             f = int(f * 10) / 10.0
-            if f == 1.0:
+            if plural_aware and f == 1.0:
                 unit = unit[:-1]
             txt = "%g %s" % (f, unit)
             break
