@@ -164,9 +164,9 @@ class PackageRepository(object):
     def get_resource(self, resource_key, **variables):
         variables["repository_type"] = self.name()
         handle = ResourceHandle(resource_key, variables)
-        return self.get_resource_by_handle(handle)
+        return self.get_resource_from_handle(handle)
 
-    def get_resource_by_handle(self, resource_handle):
+    def get_resource_from_handle(self, resource_handle):
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
@@ -238,7 +238,7 @@ class PackageRepositoryManager(object):
         path = "%s:%s" % (repo_type, location)
 
         repo = self.get_repository(path)
-        resource = repo.get_resource(resource_handle)
+        resource = repo.get_resource_from_handle(resource_handle)
         return resource
 
     def clear_caches(self):

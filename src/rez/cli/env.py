@@ -137,7 +137,6 @@ def command(opts, parser, extra_arg_groups=None):
         if context.status != ResolverStatus.solved:
             print >> sys.stderr, "cannot rez-env into a failed context"
             sys.exit(1)
-        context.validate()
 
     if opts.patch:
         # TODO patching is lagging behind in options, and needs to be updated

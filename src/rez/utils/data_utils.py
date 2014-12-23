@@ -17,15 +17,20 @@ class SourceCode(object):
     def from_function(cls, func):
         loc = getsourcelines(func)[0][1:]
         code = dedent(''.join(loc))
+        if code and code[0] in (' ', '\t'):
+            # outer indent(s) follow, perhaps comments
+            code = "if True:\n" + code
+
         value = SourceCode.__new__(SourceCode)
-        value.source = code.strip()
+        value.source = code
         return value
 
     def __eq__(self, other):
-        return (other.source == self.source)
+        return (isinstance(other, SourceCode)
+                and other.source == self.source)
 
     def __ne__(self, other):
-        return (other.source != self.source)
+        return not (other == self)
 
     def __str__(self):
         return self.source.replace('\n', "\\n")

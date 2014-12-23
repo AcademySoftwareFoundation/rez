@@ -73,7 +73,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
 class FileSystemPackageResource(PackageResourceHelper):
     key = "filesystem.package"
-    resource_key = "filesystem.variant"
+    variant_key = "filesystem.variant"
     repository_type = "filesystem"
     schema = package_pod_schema
 
