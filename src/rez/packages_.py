@@ -54,6 +54,10 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
+    @property
+    def uri(self):
+        return self.resource.uri
+
     def print_info(self, buf=None, format_=FileFormat.yaml, skip_attributes=None):
         """Print the contents of the package.
 

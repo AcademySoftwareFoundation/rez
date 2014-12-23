@@ -1200,8 +1200,10 @@ class ResolvedContext(object):
         def _print_version(value):
             return '.'.join(str(x) for x in value)
 
-        load_ver = [int(x) for x in str(d["serialize_version"]).split('.')]
+        toks = str(d["serialize_version"]).split('.')
+        load_ver = tuple(int(x) for x in toks)
         curr_ver = ResolvedContext.serialize_version
+
         if load_ver[0] > curr_ver[0]:
             msg = ["The context"]
             if identifier_str:
@@ -1241,8 +1243,12 @@ class ResolvedContext(object):
 
         r._resolved_packages = []
         for d_ in d["resolved_packages"]:
-            # TODO: backwards compatibility
             variant_handle = d_
+            if load_ver < (4, 0):
+                # -- SINCE SERIALIZE VERSION 4.0
+                from rez.utils.backcompat import convert_old_variant_handle
+                variant_handle = convert_old_variant_handle(variant_handle)
+
             variant = get_variant(variant_handle)
             r._resolved_packages.append(variant)
 

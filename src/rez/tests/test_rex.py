@@ -6,7 +6,7 @@ from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
 from rez.tests.util import TestBase, TempdirMixin
-from rez.util import convert_old_environment_variable_references
+from rez.utils.backcompat import convert_old_commands
 import inspect
 import textwrap
 import os

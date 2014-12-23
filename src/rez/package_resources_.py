@@ -9,6 +9,7 @@ from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, Optional, Or, And, Use
 from textwrap import dedent
+import os.path
 
 
 #------------------------------------------------------------------------------
@@ -27,7 +28,6 @@ help_schema = Or(basestring,  # single help entry
 base_resource_schema_dict = {
     Required("repository_type"):        basestring,
     Required("location"):               basestring,
-    Required("uri"):                    basestring,
     Required("name"):                   basestring
 }
 
@@ -267,7 +267,8 @@ class PackageResourceHelper(PackageResource):
 
     def _convert_to_rex(self, commands):
         if isinstance(commands, list):
-            from rez.util import convert_old_commands
+            from rez.utils.backcompat import convert_old_commands
+
             msg = "package %r is using old-style commands." % self.uri
             if config.disable_rez_1_compatibility or config.error_old_commands:
                 raise SchemaError(None, msg)
@@ -294,6 +295,11 @@ class DerivedVariantResource(VariantResource):
     """
     class _Metas(AttributeForwardMeta, LazyAttributeMeta): pass
     __metaclass__ = _Metas
+
+    # Note: lazy key validation doesn't happen in this class, it just fowards on
+    # attributes from the package. But LazyAttributeMeta does still use this
+    # schema to create other class attributes, such as `validate_data`.
+    schema = variant_schema
 
     # forward Package attributes onto ourself
     unused_package_keys = frozenset(["requires", "variants"])
