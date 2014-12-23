@@ -70,13 +70,29 @@ resolve_caching: true
 
 # The size of the local (in-process) resource cache. Resources include package
 # families, packages and variants. A value of 0 disables caching; -1 sets a cache
-# of unlimited size.
+# of unlimited size. The size refers to the number of entries, not byte count.
 resource_caching_maxsize: -1
 
 # Uris of running memcached server(s) to use as a file and resolve cache. For
 # example, the uri '127.0.0.1:11211' points to memcached running on localhost on
 # its default port. Must be either null, or a list of strings.
 memcached_uri:
+
+# Bytecount beyond which memcached entries are compressed, for cached package
+# files (such as package.yaml, package.py). Zero means never compress.
+memcached_package_file_min_compress_len: 16384
+
+# Bytecount beyond which memcached entries are compressed, for cached context
+# files (aka .rxt files). Zero means never compress.
+memcached_context_file_min_compress_len: 1
+
+# Bytecount beyond which memcached entries are compressed, for directory listings.
+# Zero means never compress.
+memcached_listdir_min_compress_len: 16384
+
+# Bytecount beyond which memcached entries are compressed, for resolves. Zero
+# means never compress.
+memcached_resolve_min_compress_len: 1
 
 
 ###############################################################################
@@ -278,7 +294,11 @@ debug_resolve_memcache: false
 
 # Send human-readable strings as memcached keys - this gives a higher chance of
 # key conflicts, but also means you can run 'memcached -vv' to debug hits/misses
-debug_memcache_keys: false
+
+# Debug memcache usage. This doesn't spam stdout, instead it sends human-readable
+# strings as memcached keys (that you can read by running 'memcached -vv' as the
+# server).
+debug_memcache: false
 
 # Turn on all debugging messages
 debug_all: false

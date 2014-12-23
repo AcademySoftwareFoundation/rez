@@ -75,6 +75,9 @@ def setup_parser(parser, completions=False):
         "--patch-rank", type=int, metavar="N", default=0,
         help="patch rank. Ignored if --patch is not present")
     parser.add_argument(
+        "--no-cache", dest="no_cache", action="store_true",
+        help="do not fetch cached resolves")
+    parser.add_argument(
         "-q", "--quiet", action="store_true",
         help="run in quiet mode (hides welcome message)")
     parser.add_argument(
@@ -163,7 +166,8 @@ def command(opts, parser, extra_arg_groups=None):
                       add_implicit_packages=(not opts.no_implicit),
                       verbosity=opts.verbose,
                       max_fails=opts.max_fails,
-                      time_limit=opts.time_limit)
+                      time_limit=opts.time_limit,
+                      caching=(not opts.no_cache))
         if opts.depth:
             kwargs["start_depth"] = opts.depth[0]
             kwargs["max_depth"] = opts.depth[1]

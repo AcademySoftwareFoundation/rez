@@ -58,6 +58,7 @@ scripts = [
     "rez-status",
     "rez-help",
     "rez-depends",
+    "rez-memcache",
     "rez-yaml2py",
     "rez-launcher",
     "rez-unleash",

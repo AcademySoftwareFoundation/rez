@@ -217,13 +217,42 @@ class System(object):
         """Return True if this is a production rez install."""
         return bool(self.rez_bin_path)
 
-    def clear_caches(self):
-        """Clear all caches in Rez."""
+    def get_summary_string(self):
+        """Get a string summarising the state of Rez as a whole.
+
+        Returns:
+            String.
+        """
+        from rez.plugin_managers import plugin_manager
+        from rez.memcache import memcache_client
+
+        txt = "Rez %s" % __version__
+        txt += "\n\n%s" % plugin_manager.get_summary_string()
+
+        txt_ = memcache_client.get_summary_string()
+        if txt_:
+            txt += "\n\n%s" % txt_
+        return txt
+
+    def clear_caches(self, hard=False):
+        """Clear all caches in Rez.
+
+        Rez caches package contents and iteration during a python session. Thus
+        newly released packages, and changes to existing packages, may not be
+        picked up. You need to clear the cache for these changes to become
+        visible.
+
+        Args:
+            hard (bool): Perform a 'hard' cache clear. This just means that the
+                memcached cache is also cleared. Generally this is not needed -
+                this option is for debugging purposes.
+        """
         from rez.package_repository import package_repository_manager
         from rez.memcache import memcache_client
 
-        memcache_client.flush()
         package_repository_manager.clear_caches()
+        if hard:
+            memcache_client.flush()
 
     @classmethod
     def _make_safe_version_string(cls, s):

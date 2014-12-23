@@ -25,6 +25,7 @@ subcommands = [
     "view",
     "status",
     "suite",
+    "memcache",
     "selftest",
     "unleash",
     "whatprovides",

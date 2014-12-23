@@ -282,7 +282,8 @@ class Client(local):
             readline = s.readline
             while 1:
                 line = readline()
-                if not line or line.strip() == 'END': break
+                if not line or line.strip() in ('END', 'RESET'):
+                    break
                 stats = line.split(' ', 2)
                 serverData[stats[1]] = stats[2]
 
