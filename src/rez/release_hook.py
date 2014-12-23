@@ -1,5 +1,5 @@
 from rez.utils.logging_ import print_warning
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 
 
 def get_release_hook_types():
@@ -46,7 +46,7 @@ class ReleaseHook(object):
             source_path: Path containing source that was released.
         """
         self.source_path = source_path
-        self.package = load_developer_package(source_path)
+        self.package = get_developer_package(source_path)
         self.type_settings = self.package.config.plugins.release_hook
         self.settings = self.type_settings.get(self.name())
 

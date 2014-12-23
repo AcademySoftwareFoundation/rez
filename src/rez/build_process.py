@@ -1,4 +1,4 @@
-from rez.packages import load_developer_package, iter_packages
+from rez.packages_ import get_developer_package, iter_packages
 from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
 from rez.resolver import ResolverStatus
@@ -58,7 +58,7 @@ class BuildProcess(object):
         if vcs and (vcs.path != working_dir):
             raise RezError("BuildProcess was provided with mismatched VCS")
 
-        self.package = load_developer_package(working_dir)
+        self.package = get_developer_package(working_dir)
         hook_names = self.package.config.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
 
@@ -184,6 +184,7 @@ class StandardBuildProcess(BuildProcess):
             # get previous version/revision, needed by hooks and vcs.get_changelog
             last_version = last_pkg.version
             last_revision = last_pkg.revision
+            # TODO probably don't need this in resources2
             if isinstance(last_revision, AttrDictWrapper):
                 last_revision = convert_dicts(last_pkg.revision,
                                               to_class=dict,
@@ -343,8 +344,13 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
 
             # create build dir, possibly deleting previous build
-            build_subdir = os.path.join(build_path, variant.subpath)
-            install_path = os.path.join(base_install_path, variant.subpath)
+            if variant.subpath:
+                build_subdir = os.path.join(build_path, variant.subpath)
+                install_path = os.path.join(base_install_path, variant.subpath)
+            else:
+                build_subdir = build_path
+                install_path = base_install_path
+
             rxt_file = os.path.join(build_subdir, "build.rxt")
 
             if build_type == BuildType.local:
@@ -358,6 +364,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if not os.path.exists(build_subdir):
                 os.makedirs(build_subdir)
 
+            """
             # resolve build environment and save to file, possibly reusing
             # existing build context file
             r = None
@@ -381,8 +388,19 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                                     timestamp=timestamp,
                                     building=True)
                 r.save(rxt_file)
+            """
 
+            # create build environment
+            request = variant.get_requires(build_requires=True,
+                                           private_build_requires=True)
+            self._pr("Resolving build environment: %s"
+                     % ' '.join(map(str, request)))
+            r = ResolvedContext(request,
+                                package_paths=packages_path,
+                                timestamp=timestamp,
+                                building=True)
             r.print_info()
+            r.save(rxt_file)  # save before possible fail so user can debug
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
@@ -411,11 +429,18 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                                  % self.buildsys.name())
 
         # write package definition file into release path
-        # TODO this has to change to resource copying/merging
+        # TODO this has to change to resource copying/merging. For now it's a hack
         if install:
             if not os.path.exists(base_install_path):
                 os.makedirs(base_install_path)
-            shutil.copy(self.package.path, base_install_path)
+
+            # hacktime
+            for name in ("package.yaml", "package.py"):
+                filepath = os.path.join(self.working_dir, name)
+                if os.path.exists(filepath):
+                    break
+            assert filepath
+            shutil.copy(filepath, base_install_path)
 
         if build_env_scripts:
             self._pr("\nThe following executable script(s) have been created:")

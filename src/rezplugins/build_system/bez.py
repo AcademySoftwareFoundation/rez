@@ -5,7 +5,6 @@ from rez.build_system import BuildSystem
 from rez.build_process import BuildType
 from rez.util import create_forwarding_script
 from rez.resolved_context import ResolvedContext
-from rez.packages import Package
 from rez.config import config
 from rez.utils.yaml import dump_yaml
 import os.path
@@ -95,7 +94,6 @@ class BezBuildSystem(BuildSystem):
 def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    _ = Package(working_dir)  # TODO not sure if this is needed
     config.override("prompt", "BUILD>")
 
     retcode, _, _ = context.execute_shell(block=True, cwd=build_dir)

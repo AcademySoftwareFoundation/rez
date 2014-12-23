@@ -6,7 +6,7 @@ from rez.build_process import BuildType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
@@ -217,7 +217,7 @@ def get_current_variant_index(context, package):
 def _FWD__spawn_build_shell(working_dir, build_dir):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
-    package = load_developer_package(working_dir)
+    package = get_developer_package(working_dir)
     config.override("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,

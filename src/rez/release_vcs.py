@@ -1,5 +1,5 @@
 from rez.exceptions import ReleaseVCSError
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 from rez.util import which
 from rez.utils.logging_ import print_debug
 import subprocess
@@ -46,7 +46,7 @@ class ReleaseVCS(object):
     def __init__(self, path):
         assert(self.is_valid_root(path))
         self.path = path
-        self.package = load_developer_package(path)
+        self.package = get_developer_package(path)
         self.type_settings = self.package.config.plugins.release_vcs
         self.settings = self.type_settings.get(self.name())
 

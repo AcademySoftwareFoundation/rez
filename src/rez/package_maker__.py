@@ -2,7 +2,7 @@ from rez.utils.schema import Required, schema_keys
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import SourceCode
 from rez.serialise import FileFormat
-from rez.package_resources_ import help_schema
+from rez.package_resources_ import help_schema, _commands_schema
 from rez.package_serialise import dump_package_data
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
@@ -33,11 +33,13 @@ package_schema = Schema({
     Optional('tools'):                  [basestring],
     Optional('help'):                   help_schema,
 
-    Optional('pre_commands'):           callable,
-    Optional('commands'):               callable,
-    Optional('post_commands'):          callable,
+    Optional('pre_commands'):           _commands_schema,
+    Optional('commands'):               _commands_schema,
+    Optional('post_commands'):          _commands_schema,
 
-    Optional('custom'):                 dict
+    Optional('custom'):                 dict,
+
+    Optional(basestring):               object  # allows deprecated fields
 })
 
 
@@ -83,7 +85,7 @@ class PackageMaker(object):
         # get and validate package data
         package_data = self._get_data()
         package_data = package_schema.validate(package_data)
-        package_data = self._post_transform_data(package_data)
+        #package_data = self._post_transform_data(package_data)
 
         # create a 'memory' package repository containing just this package
         version_str = package_data.get("version") or "_NO_VERSION"
@@ -108,6 +110,7 @@ class PackageMaker(object):
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
 
+    """
     # schema expected by the 'memory' package repository is a little different
     # to the schema we expect in the package maker.
     def _post_transform_data(self, data):
@@ -118,3 +121,4 @@ class PackageMaker(object):
 
             data_[key] = value
         return data_
+    """
