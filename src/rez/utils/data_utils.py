@@ -11,7 +11,7 @@ import re
 class SourceCode(object):
     """Very simple wrapper for source code."""
     def __init__(self, source):
-        self.source = source.strip()
+        self.source = source.rstrip()
 
     @classmethod
     def from_function(cls, func):
@@ -22,7 +22,7 @@ class SourceCode(object):
             code = "if True:\n" + code
 
         value = SourceCode.__new__(SourceCode)
-        value.source = code
+        value.source = code.rstrip()
         return value
 
     def __eq__(self, other):

@@ -28,7 +28,7 @@ ALL_PACKAGES = set([
     'versioned-1.0', 'versioned-2.0', 'versioned-3.0',
     'single_unversioned',
     'single_versioned-3.5',
-    'multi-1.0', 'multi-1.1', 'multi-1.2'])
+    'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'])
 
 
 ALL_FAMILIES = set(x.split('-')[0] for x in ALL_PACKAGES)
@@ -91,6 +91,8 @@ class TestPackages(TestBase):
 
     def test_3(self):
         """check package contents."""
+
+        # a py-based package
         package = get_package("versioned", "3.0")
         expected_data = dict(
              name="versioned",
@@ -100,10 +102,39 @@ class TestPackages(TestBase):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
+        # a yaml-based package
         package = get_package("versioned", "2.0")
         expected_uri = os.path.join(self.yaml_packages_path,
                                     "versioned", "2.0", "package.yaml")
         self.assertEqual(package.uri, expected_uri)
+
+        # a 'combined' type package
+        package = get_package("multi", "1.0")
+        expected_uri = os.path.join(self.yaml_packages_path, "multi.yaml<1.0>")
+        self.assertEqual(package.uri, expected_uri)
+        expected_data = dict(
+             name="multi",
+             version=Version("1.0"),
+             tools=["tweak"])
+        data = package.validated_data()
+        self.assertDictEqual(data, expected_data)
+
+        # a 'combined' type package, with version overrides
+        package = get_package("multi", "1.1")
+        expected_uri = os.path.join(self.yaml_packages_path, "multi.yaml<1.1>")
+        self.assertEqual(package.uri, expected_uri)
+        expected_data = dict(
+             name="multi",
+             version=Version("1.1"),
+             tools=["twerk"])
+        data = package.validated_data()
+        self.assertDictEqual(data, expected_data)
+
+        # check that visibility of 'combined' packages is correct
+        package = get_package("multi", "2.0")
+        expected_uri = os.path.join(self.py_packages_path, "multi.py<2.0>")
+        self.assertEqual(package.uri, expected_uri)
+
 
     def test_4(self):
         """test package creation."""
@@ -111,8 +142,7 @@ class TestPackages(TestBase):
             "name":             "foo",
             "version":          "1.0.0",
             "description":      "something foo-like",
-            "requires":         ["python-2.6+"]
-        }
+            "requires":         ["python-2.6+"]}
 
         package = create_package("foo", package_data)
         self.assertEqual(package.version, Version("1.0.0"))
@@ -124,9 +154,9 @@ def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestPackages("test_1"))
-    #suite.addTest(TestPackages("test_2"))
-    #suite.addTest(TestPackages("test_3"))
-    #suite.addTest(TestPackages("test_4"))
+    suite.addTest(TestPackages("test_2"))
+    suite.addTest(TestPackages("test_3"))
+    suite.addTest(TestPackages("test_4"))
     suites.append(suite)
     return suites
 
