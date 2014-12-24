@@ -2,7 +2,7 @@ from rez.package_resources import VersionlessPackageResource, \
     VersionlessVariantResource, register_resource, \
     CombinedPackageFamilyResource, CombinedPackageResource
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
-    create_package
+    create_package, get_developer_package
 from rez.package_repository import create_memory_package_repository
 from rez.tests.util import TestBase
 from rez.utils.formatting import PackageRequest
@@ -110,10 +110,10 @@ class TestPackages(TestBase):
         # a py-based package
         package = get_package("versioned", "3.0")
         expected_data = dict(
-             name="versioned",
-             version=Version("3.0"),
-             base=os.path.join(self.py_packages_path, "versioned", "3.0"),
-             commands=SourceCode('env.PATH.append("{root}/bin")'))
+            name="versioned",
+            version=Version("3.0"),
+            base=os.path.join(self.py_packages_path, "versioned", "3.0"),
+            commands=SourceCode('env.PATH.append("{root}/bin")'))
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
@@ -128,9 +128,9 @@ class TestPackages(TestBase):
         expected_uri = os.path.join(self.yaml_packages_path, "multi.yaml<1.0>")
         self.assertEqual(package.uri, expected_uri)
         expected_data = dict(
-             name="multi",
-             version=Version("1.0"),
-             tools=["tweak"])
+            name="multi",
+            version=Version("1.0"),
+            tools=["tweak"])
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
@@ -139,9 +139,9 @@ class TestPackages(TestBase):
         expected_uri = os.path.join(self.yaml_packages_path, "multi.yaml<1.1>")
         self.assertEqual(package.uri, expected_uri)
         expected_data = dict(
-             name="multi",
-             version=Version("1.1"),
-             tools=["twerk"])
+            name="multi",
+            version=Version("1.1"),
+            tools=["twerk"])
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
@@ -163,6 +163,28 @@ class TestPackages(TestBase):
         self.assertEqual(package.version, Version("1.0.0"))
         self.assertEqual(package.description, "something foo-like")
         self.assertEqual(package.requires, [PackageRequest("python-2.6+")])
+
+        family = package.parent
+        self.assertEqual(family.name, package.name)
+        packages = list(family.iter_packages())
+        self.assertEqual(len(packages), 1)
+        self.assertEqual(package, packages[0])
+
+    def test_5(self):
+        """test developer package."""
+        path = os.path.join(self.yaml_packages_path, "developer")
+        package = get_developer_package(path)
+        expected_data = dict(
+            name="foo",
+            version=Version("3.0.1"),
+            description="a foo type thing.",
+            authors=["joe.bloggs"],
+            requires=[PackageRequest('bah-1.2+<2')],
+            variants=[[PackageRequest('floob-4.1')],
+                      [PackageRequest('flaab-2.0')]],
+            uuid="28d94bcd1a934bb4999bcf70a21106cc")
+        data = package.validated_data()
+        self.assertDictEqual(data, expected_data)
 
 
 def get_test_suites():
