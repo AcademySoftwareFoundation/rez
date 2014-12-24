@@ -5,6 +5,7 @@ from rez.config import config
 from rez.utils.logging_ import print_debug
 import re
 import os
+import os.path
 
 
 variant_key_conversions = {
@@ -26,7 +27,13 @@ def convert_old_variant_handle(handle_dict):
         if value is not None:
             variables[key] = value
 
-    key = "filesystem.variant"
+    path = handle_dict["path"]
+    filename = os.path.basename(path)
+    if os.path.splitext(filename)[0] == "package":
+        key = "filesystem.variant"
+    else:
+        key = "filesystem.variant.combined"
+
     return dict(key=key, variables=variables)
 
 
