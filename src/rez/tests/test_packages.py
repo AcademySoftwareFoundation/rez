@@ -61,12 +61,10 @@ class TestPackages(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.realpath(os.path.dirname(__file__))
-        cls.solver_packages_path = os.path.join(
-            path, "data", "solver", "packages")
-        cls.yaml_packages_path = os.path.join(
-            path, "data", "packages", "yaml_packages")
-        cls.py_packages_path = os.path.join(
-            path, "data", "packages", "py_packages")
+        cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
+        cls.packages_base_path = os.path.join(path, "data", "packages")
+        cls.yaml_packages_path = os.path.join(cls.packages_base_path, "yaml_packages")
+        cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.settings = dict(
             packages_path=[cls.solver_packages_path,
@@ -150,7 +148,6 @@ class TestPackages(TestBase):
         expected_uri = os.path.join(self.py_packages_path, "multi.py<2.0>")
         self.assertEqual(package.uri, expected_uri)
 
-
     def test_4(self):
         """test package creation."""
         package_data = {
@@ -172,7 +169,7 @@ class TestPackages(TestBase):
 
     def test_5(self):
         """test developer package."""
-        path = os.path.join(self.yaml_packages_path, "developer")
+        path = os.path.join(self.packages_base_path, "developer")
         package = get_developer_package(path)
         expected_data = dict(
             name="foo",
@@ -194,6 +191,7 @@ def get_test_suites():
     suite.addTest(TestPackages("test_2"))
     suite.addTest(TestPackages("test_3"))
     suite.addTest(TestPackages("test_4"))
+    suite.addTest(TestPackages("test_5"))
     suites.append(suite)
     return suites
 

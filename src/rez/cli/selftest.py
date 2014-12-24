@@ -30,6 +30,8 @@ def setup_parser(parser, completions=False):
                         help="test completions")
     parser.add_argument("--suites", action="store_true",
                         help="test suites")
+    parser.add_argument("--imports", action="store_true",
+                        help="test importing of all source")
     parser.add_argument("--version", action="store_true",
                         help="test versions")
     parser.add_argument("--animallogic", action="store_true",
@@ -47,12 +49,10 @@ def setup_parser(parser, completions=False):
 def get_suites(opts):
     from rez.backport.importlib import import_module
 
-    tests = ["shells", "solver", "formatter", "commands", "rex", "build",
+    tests = ("shells", "solver", "formatter", "commands", "rex", "build",
              "release", "context", "resources_", "packages", "config",
-             "completion", "suites", "version", "schema", "lint",
-             "animallogic", "launcher", "unleash"]
-             "release", "context", "resources_", "packages", "config",
-             "completion", "suites", "version", "schema"]
+             "completion", "suites", "imports", "version", "schema", "lint",
+             "animallogic", "launcher", "unleash")
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
 

@@ -313,7 +313,7 @@ def get_developer_package(path):
             break
 
     if data is None:
-        raise ResourceError("No package definition file found at %s" % path)
+        raise PackageMetadataError("No package definition file found at %s" % path)
 
     name = data.get("name")
     if name is None or not isinstance(name, basestring):
