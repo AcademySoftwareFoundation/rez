@@ -20,8 +20,6 @@ def setup_parser(parser, completions=False):
                         help="test the release system")
     parser.add_argument("--context", action="store_true",
                         help="test resolved contexts")
-    parser.add_argument("--resources", action="store_true",
-                        help="test resource iteration and serialization")
     parser.add_argument("--resources_", action="store_true",
                         help="test core resource system")
     parser.add_argument("--packages", action="store_true",
@@ -42,7 +40,7 @@ def get_suites(opts):
     from rez.backport.importlib import import_module
 
     tests = ["shells", "solver", "formatter", "commands", "rex", "build",
-             "release", "context", "resources", "resources_", "packages", "config",
+             "release", "context", "resources_", "packages", "config",
              "completion", "suites", "version", "schema"]
     suites = []
     test_all = all(not getattr(opts, test) for test in tests)
