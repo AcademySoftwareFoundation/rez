@@ -11,9 +11,8 @@ from hashlib import md5
 
 class DataType(Enum):
     package_file = (1, config.memcached_package_file_min_compress_len)  # data from a package file
-    context_file = (2, config.memcached_context_file_min_compress_len)  # data from a context file
-    listdir = (3, config.memcached_listdir_min_compress_len)            # cached os.listdir result
-    resolve = (4, config.memcached_resolve_min_compress_len)            # a package request solve
+    listdir = (2, config.memcached_listdir_min_compress_len)            # cached os.listdir result
+    resolve = (3, config.memcached_resolve_min_compress_len)            # a package request solve
 
     def __init__(self, id_, min_compress_len):
         self.id_ = id_
@@ -136,8 +135,6 @@ class Client(object):
         return value[:SERVER_MAX_KEY_LENGTH]
 
     def _get_stats(self, stat_args=None):
-        if not self.enabled:
-            return []
         return self.client.get_stats(stat_args=stat_args)
 
 
@@ -199,10 +196,7 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
     """
     def decorator(func):
         def wrapper(*nargs, **kwargs):
-            if "_data_type" in kwargs:
-                data_type_ = kwargs.pop("_data_type")
-            else:
-                data_type_ = data_type
+            data_type_ = kwargs.pop("_data_type", data_type)
 
             if memcache_client.enabled:
                 if key_func is None:

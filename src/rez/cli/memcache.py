@@ -15,6 +15,11 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.memcache import memcache_client
     from rez.utils.yaml import dump_yaml
+    import sys
+
+    if not memcache_client.enabled:
+        print >> sys.stderr, "memcaching is not enabled."
+        sys.exit(1)
 
     if opts.flush:
         memcache_client.flush(hard=True)

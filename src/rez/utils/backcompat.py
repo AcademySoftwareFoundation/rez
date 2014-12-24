@@ -11,6 +11,7 @@ variant_key_conversions = {
     "name":         "name",
     "version":      "version",
     "index":        "index",
+    "ext":          "ext",
     "search_path":  "location"
 }
 

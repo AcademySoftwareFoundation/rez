@@ -487,10 +487,10 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
-        with open(path) as f:
-            context = cls.read_from_buffer(f, path)
-        context.set_load_path(path)
-        return context
+        try:
+            return cls._load(path)
+        except Exception as e:
+            cls._load_error(e, path)
 
     @classmethod
     def read_from_buffer(cls, buf, identifier_str=None):
@@ -498,18 +498,7 @@ class ResolvedContext(object):
         try:
             return cls._read_from_buffer(buf, identifier_str)
         except Exception as e:
-            exc_name = e.__class__.__name__
-            msg = "Failed to load context"
-            if identifier_str:
-                msg += " from %s" % identifier_str
-            raise ResolvedContextError("%s: %s: %s" % (msg, exc_name, str(e)))
-
-    @classmethod
-    def _read_from_buffer(cls, buf, identifier_str=None):
-        content = buf.read()
-        doc = yaml.load(content)
-        r = cls.from_dict(doc, identifier_str)
-        return r
+            cls._load_error(e, identifier_str)
 
     def get_resolve_diff(self, other):
         """Get the difference between the resolve in this context and another.
@@ -1277,6 +1266,30 @@ class ResolvedContext(object):
         r.from_cache = d.get("from_cache", False)
 
         return r
+
+    @classmethod
+    def _load(cls, path):
+        with open(path) as f:
+            content = f.read()
+        doc = yaml.load(content)
+        context = cls.from_dict(doc, path)
+        context.set_load_path(path)
+        return context
+
+    @classmethod
+    def _read_from_buffer(cls, buf, identifier_str=None):
+        content = buf.read()
+        doc = yaml.load(content)
+        context = cls.from_dict(doc, identifier_str)
+        return context
+
+    @classmethod
+    def _load_error(cls, e, path=None):
+        exc_name = e.__class__.__name__
+        msg = "Failed to load context"
+        if path:
+            msg += " from %s" % path
+        raise ResolvedContextError("%s: %s: %s" % (msg, exc_name, str(e)))
 
     def _set_parent_suite(self, suite_path, context_name):
         self.parent_suite_path = suite_path

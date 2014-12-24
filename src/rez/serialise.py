@@ -23,7 +23,8 @@ class FileFormat(Enum):
         self.extension = extension
 
 
-def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
+                   data_type=None):
     """Load data from a file.
 
     Note:
@@ -34,12 +35,18 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
         format_ (`FileFormat`): Format of file contents.
         update_data_callback (callable): Used to change data before it is
             returned or cached.
+        data_type (`DataType`): Use if the data type being loaded is different
+            from the default (`DataType.package_file`).
 
     Returns:
         dict.
     """
-    filepath = os.path.realpath(filepath)
-    return _load_from_file(filepath, format_, update_data_callback)
+    kwargs = dict(filepath=os.path.realpath(filepath),
+                  format_=format_,
+                  update_data_callback=update_data_callback)
+    if data_type is not None:
+        kwargs["_data_type"] = data_type
+    return _load_from_file(**kwargs)
 
 
 def _load_from_file__key(filepath, *nargs, **kwargs):
