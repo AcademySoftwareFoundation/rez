@@ -25,10 +25,10 @@ ALL_PACKAGES = set([
     # packages from data/packages
     'unversioned',
     'unversioned_py',
-    'versioned-1.0', 'versioned-2.0', 'versioned-3.0'])
-    #'single_unversioned',
-    #'single_versioned-3.5',
-    #'multi-1.0', 'multi-1.1', 'multi-1.2'])
+    'versioned-1.0', 'versioned-2.0', 'versioned-3.0',
+    'single_unversioned',
+    'single_versioned-3.5',
+    'multi-1.0', 'multi-1.1', 'multi-1.2'])
 
 
 ALL_FAMILIES = set(x.split('-')[0] for x in ALL_PACKAGES)
@@ -124,9 +124,9 @@ def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestPackages("test_1"))
-    suite.addTest(TestPackages("test_2"))
-    suite.addTest(TestPackages("test_3"))
-    suite.addTest(TestPackages("test_4"))
+    #suite.addTest(TestPackages("test_2"))
+    #suite.addTest(TestPackages("test_3"))
+    #suite.addTest(TestPackages("test_4"))
     suites.append(suite)
     return suites
 

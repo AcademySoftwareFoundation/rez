@@ -40,7 +40,7 @@ package_family_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict.update({
     # basics
-    Required("base"):                   basestring,
+    Optional("base"):                   basestring,
     Optional("version"):                Version,
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],

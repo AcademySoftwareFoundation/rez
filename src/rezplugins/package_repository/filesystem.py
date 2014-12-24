@@ -11,6 +11,8 @@ from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.memcache import mem_cached, DataType
 from rez.backport.lru_cache import lru_cache
+from rez.vendor.schema.schema import Schema, Optional, And, Use
+from rez.vendor.version.version import Version, VersionRange
 import os.path
 import os
 
@@ -19,9 +21,10 @@ import os
 # utility functions
 #------------------------------------------------------------------------------
 
-def get_package_definition_file(path):
-    for format_ in FileFormat:
-        filename = "package.%s" % format_.extension
+# get a file that could be .yaml or .py
+def _get_file(path, name):
+    for format_ in (FileFormat.py, FileFormat.yaml):
+        filename = "%s.%s" % (name, format_.extension)
         filepath = os.path.join(path, filename)
         if os.path.isfile(filepath):
             return filepath, format_
@@ -37,6 +40,10 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     repository_type = "filesystem"
 
     def _uri(self):
+        return self.path
+
+    @cached_property
+    def path(self):
         return os.path.join(self.location, self.name)
 
     def get_last_release_time(self):
@@ -49,10 +56,8 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
             return 0
 
     def iter_packages(self):
-        root = self.uri
-
         # check for unversioned package
-        filepath, _ = get_package_definition_file(root)
+        filepath, _ = _get_file(self.path, "package")
         if filepath:
             package = self._repository.get_resource(
                 FileSystemPackageResource.key,
@@ -62,7 +67,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
             return
 
         # versioned packages
-        for version_str in self._repository._get_version_dirs(root):
+        for version_str in self._repository._get_version_dirs(self.path):
             package = self._repository.get_resource(
                 FileSystemPackageResource.key,
                 location=self.location,
@@ -80,10 +85,6 @@ class FileSystemPackageResource(PackageResourceHelper):
     def _uri(self):
         return self.filepath
 
-    @property
-    def base(self):
-        return self._path()
-
     @cached_property
     def parent(self):
         family = self._repository.get_resource(
@@ -98,7 +99,12 @@ class FileSystemPackageResource(PackageResourceHelper):
             return os.path.getmtime(self.filepath)
         return None
 
-    def _path(self):
+    @property
+    def base(self):
+        return self.path
+
+    @cached_property
+    def path(self):
         path = os.path.join(self.location, self.name)
         ver_str = self.get("version")
         if ver_str:
@@ -115,8 +121,7 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     @cached_property
     def _filepath_and_format(self):
-        path = self._path()
-        return get_package_definition_file(path)
+        return _get_file(self.path, "package")
 
     def _load(self):
         if self.filepath is None:
@@ -195,9 +200,149 @@ class FileSystemVariantResource(DerivedVariantResource):
         package = self._repository.get_resource(
             FileSystemPackageResource.key,
             location=self.location,
-             name=self.name,
-             version=self.get("version"))
+            name=self.name,
+            version=self.get("version"))
         return package
+
+
+# -- 'combined' resource types
+
+class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
+    key = "filesystem.family.combined"
+    repository_type = "filesystem"
+
+    schema = Schema({
+        Optional("versions"):               [And(basestring,
+                                                 Use(Version))],
+        Optional("version_overrides"):      {And(basestring,
+                                                 Use(VersionRange)): dict}
+    })
+
+    @property
+    def ext(self):
+        return self.get("ext")
+
+    @property
+    def filepath(self):
+        filename = "%s.%s" % (self.name, self.ext)
+        return os.path.join(self.location, filename)
+
+    def _uri(self):
+        return self.filepath
+
+    def get_last_release_time(self):
+        try:
+            return os.path.getmtime(self.filepath)
+        except OSError:
+            return 0
+
+    def iter_packages(self):
+        # unversioned package
+        if not self.versions:
+            package = self._repository.get_resource(
+                FileSystemCombinedPackageResource.key,
+                location=self.location,
+                name=self.name,
+                ext=self.ext)
+            yield package
+            return
+
+        # versioned packages
+        for version in self.versions:
+            package = self._repository.get_resource(
+                FileSystemCombinedPackageResource.key,
+                location=self.location,
+                name=self.name,
+                ext=self.ext,
+                version=str(version))
+            yield package
+
+    def _load(self):
+        format_ = FileFormat[self.ext]
+        data = load_from_file(self.filepath, format_)
+        return data
+
+
+class FileSystemCombinedPackageResource(PackageResourceHelper):
+    key = "filesystem.package.combined"
+    variant_key = "filesystem.variant.combined"
+    repository_type = "filesystem"
+    schema = package_pod_schema
+
+    def _uri(self):
+        ver_str = self.get("version", "")
+        return "%s<%s>" % (self.parent.filepath, ver_str)
+
+    @cached_property
+    def parent(self):
+        family = self._repository.get_resource(
+            FileSystemCombinedPackageFamilyResource.key,
+            location=self.location,
+            name=self.name,
+            ext=self.get("ext"))
+        return family
+
+    @property
+    def base(self):
+        return None  # combined resource types do not have 'base'
+
+    @cached_property
+    def state_handle(self):
+        return os.path.getmtime(self.parent.filepath)
+
+    def iter_variants(self):
+        num_variants = len(self.data.get("variants", []))
+        if num_variants == 0:
+            indexes = [None]
+        else:
+            indexes = range(num_variants)
+
+        for index in indexes:
+            variant = self._repository.get_resource(
+                self.variant_key,
+                location=self.location,
+                name=self.name,
+                ext=self.get("ext"),
+                version=self.get("version"),
+                index=index)
+            yield variant
+
+    def _load(self):
+        data = self.parent.data.copy()
+
+        if "versions" in data:
+            del data["versions"]
+            version_str = self.get("version")
+            data["version"] = version_str
+            version = Version(version_str)
+
+            overrides = self.parent.version_overrides
+            if overrides:
+                for range_, data_ in overrides.iteritems():
+                    if version in range_:
+                        data.update(data_)
+                del data["version_overrides"]
+
+        return data
+
+
+class FileSystemCombinedVariantResource(DerivedVariantResource):
+    key = "filesystem.variant.combined"
+    repository_type = "filesystem"
+
+    @cached_property
+    def parent(self):
+        package = self._repository.get_resource(
+            FileSystemCombinedPackageResource.key,
+            location=self.location,
+            name=self.name,
+            ext=self.get("ext"),
+            version=self.get("version"))
+        return package
+
+    @property
+    def root(self):
+        return None  # combined resource types do not have 'root'
 
 
 #------------------------------------------------------------------------------
@@ -214,6 +359,30 @@ class FileSystemPackageRepository(PackageRepository):
                       /1.0.1/package.py
                  /pkgB/2.1/package.py
                       /2.2/package.py
+
+    Another supported storage format is to store all package versions within a
+    single package family in one file, like so:
+
+        /LOCATION/pkgC.yaml
+        /LOCATION/pkgD.py
+
+    These 'combined' package files allow for differences between package
+    versions via a 'package_overrides' section:
+
+        name: pkgC
+
+        versions:
+        - '1.0'
+        - '1.1'
+        - '1.2'
+
+        version_overrides:
+            '1.0':
+                requires:
+                - python-2.5
+            '1.1+':
+                requires:
+                - python-2.6
     """
     @classmethod
     def name(cls):
@@ -229,6 +398,10 @@ class FileSystemPackageRepository(PackageRepository):
         self.register_resource(FileSystemPackageFamilyResource)
         self.register_resource(FileSystemPackageResource)
         self.register_resource(FileSystemVariantResource)
+
+        self.register_resource(FileSystemCombinedPackageFamilyResource)
+        self.register_resource(FileSystemCombinedPackageResource)
+        self.register_resource(FileSystemCombinedVariantResource)
 
     def _uid(self):
         st = os.stat(self.location)
@@ -273,8 +446,13 @@ class FileSystemPackageRepository(PackageRepository):
         dirs = []
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
-            if is_valid_package_name(name) and os.path.isdir(path):
-                dirs.append(name)
+            if os.path.isdir(path):
+                if is_valid_package_name(name):
+                    dirs.append((name, None))
+            else:
+                name_, ext_ = os.path.splitext(name)
+                if ext_ in (".py", ".yaml") and is_valid_package_name(name_):
+                    dirs.append((name_, ext_[1:]))
         return dirs
 
     def _get_version_dirs__key(self, root):
@@ -295,11 +473,18 @@ class FileSystemPackageRepository(PackageRepository):
     @lru_cache(maxsize=None)
     def _get_families(self):
         families = []
-        for name in self._get_family_dirs():
-            family = self.get_resource(
-                FileSystemPackageFamilyResource.key,
-                location=self.location,
-                name=name)
+        for name, ext in self._get_family_dirs():
+            if ext is None:  # is a directory
+                family = self.get_resource(
+                    FileSystemPackageFamilyResource.key,
+                    location=self.location,
+                    name=name)
+            else:
+                family = self.get_resource(
+                    FileSystemCombinedPackageFamilyResource.key,
+                    location=self.location,
+                    name=name,
+                    ext=ext)
             families.append(family)
         return families
 
@@ -312,6 +497,15 @@ class FileSystemPackageRepository(PackageRepository):
                 location=self.location,
                 name=name)
             return family
+        else:
+            filepath, format_ = _get_file(self.location, name)
+            if filepath:
+                family = self.get_resource(
+                    FileSystemCombinedPackageFamilyResource.key,
+                    location=self.location,
+                    name=name,
+                    ext=format_.extension)
+                return family
         return None
 
     @lru_cache(maxsize=None)
