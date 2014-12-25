@@ -5,7 +5,9 @@ able to search packages much faster - for example, in a database-based package
 repository. The algorithms here serve as backup for those package repositories
 that do not provide an implementation.
 """
-from rez.packages import iter_package_families, iter_packages
+
+
+from rez.packages_ import iter_package_families, iter_packages
 from rez.exceptions import PackageRequestError
 from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
@@ -48,21 +50,17 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         return pkgs_list, g
 
     nfams = len(fams)
-    #bar = Bar("Searching", max=nfams, bar_prefix=' [', bar_suffix='] ')
     bar = ProgressBar("Searching", nfams)
     lookup = defaultdict(set)
 
     for i, fam in enumerate(fams):
         bar.next()
         it = iter_packages(name=fam.name, paths=paths)
-        try:
-            pkg = max(it, key=lambda x: x.version)
-        except ValueError:
-            continue
+        pkg = max(it, key=lambda x: x.version)
 
         requires = set(pkg.requires or [])
         for req_list in (pkg.variants or []):
-            requires |= set(req_list)
+            requires.update(req_list)
 
         for req in requires:
             if not req.conflict:
@@ -85,15 +83,15 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
 
         for child in working_set:
             parents = lookup[child] - consumed
-            working_set_ |= parents
-            consumed |= parents
+            working_set_.update(parents)
+            consumed.update(parents)
 
             for parent in parents:
                 g.add_node(parent, attrs=node_attrs)
                 g.add_edge((parent, child))
 
         if working_set_:
-            pkgs_list.append(list(working_set_))
+            pkgs_list.append(sorted(list(working_set_)))
 
         working_set = working_set_
         n += 1

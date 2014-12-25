@@ -10,7 +10,7 @@ class TestCommands(TestBase):
 
     @classmethod
     def get_packages_path(cls):
-        path = os.path.dirname(__file__)
+        path = os.path.realpath(os.path.dirname(__file__))
         return os.path.join(path, "data", "commands", "packages")
 
     @classmethod
@@ -19,6 +19,7 @@ class TestCommands(TestBase):
             packages_path=[cls.get_packages_path()],
             resolve_caching=False,
             warn_untimestamped=False,
+            warn_old_commands=False,
             implicit_packages=[],
             rez_1_environment_variables=False)
 

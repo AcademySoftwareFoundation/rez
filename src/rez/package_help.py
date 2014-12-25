@@ -1,9 +1,8 @@
 from rez.packages_ import iter_packages
 from rez.config import config
 from rez.rex_bindings import VersionBinding
-from rez.util import AttrDictWrapper
 from rez.utils.backcompat import convert_old_command_expansions
-from rez.utils.formatting import ObjectStringFormatter
+from rez.utils.scope import scoped_formatter
 from rez.system import system
 import subprocess
 import webbrowser
@@ -34,7 +33,7 @@ class PackageHelp(object):
         packages = sorted(it, key=lambda x: x.version, reverse=True)
         for package_ in packages:
             if self._verbose:
-                print "searching for help in %s..." % str(package_)
+                print "searching for help in %s..." % package_.uri
             if package_.help:
                 package = package_
                 break
@@ -46,7 +45,7 @@ class PackageHelp(object):
             elif isinstance(help_, list):
                 sections = help_
             if self._verbose:
-                print "found %d help entries in %s." % (len(sections), str(package))
+                print "found %d help entries in %s." % (len(sections), package.uri)
 
             # create string formatter for help entries
             if package.num_variants == 0:
@@ -57,11 +56,12 @@ class PackageHelp(object):
                 base = variant.base
                 root = variant.root
 
-            namespace = dict(base=base, root=root, config=config,
-                             version=VersionBinding(package.version),
-                             system=system)
-            formatter = ObjectStringFormatter(
-                AttrDictWrapper(namespace), expand=ObjectStringFormatter.unchanged)
+            formatter = scoped_formatter(
+                base=base,
+                root=root,
+                config=config,
+                version=VersionBinding(package.version),
+                system=system)
 
             # format sections
             for section in sections:

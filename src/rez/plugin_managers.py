@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config
+from rez.config import config, expand_system_vars
 from rez.utils.formatting import columnise
 from rez.util import deep_update
 from rez.utils.schema import dict_to_schema
@@ -175,7 +175,7 @@ class RezPluginType(object):
                     and plugin_class.schema_dict:
                 d_ = {name: plugin_class.schema_dict}
                 deep_update(d, d_)
-        return dict_to_schema(d, required=True)
+        return dict_to_schema(d, required=True, modifier=expand_system_vars)
 
     def create_instance(self, plugin, **instance_kwargs):
         """Create and return an instance of the given plugin."""

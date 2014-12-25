@@ -1,7 +1,7 @@
 """
 Utilities for working with dict-based schemas.
 """
-from rez.vendor.schema.schema import Schema, Optional
+from rez.vendor.schema.schema import Schema, Optional, Use, And
 
 
 # an alias which just so happens to be the same number of characters as
@@ -37,18 +37,22 @@ def schema_keys(schema):
     return keys
 
 
-def dict_to_schema(schema_dict, required, allow_custom_keys=True):
+def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None):
     """Convert a dict of Schemas into a Schema.
 
     Args:
         required (bool): Whether to make schema keys optional or required.
         allow_custom_keys (bool, optional): If True, creates a schema that
             allows custom items in dicts.
-        value_function (callable, optional): Functor to apply to dict values.
+        modifier (callable): Functor to apply to dict values - it is applied
+            via `Schema.Use`.
 
     Returns:
         A `Schema` object.
     """
+    if modifier:
+        modifier = Use(modifier)
+
     def _to(value):
         if isinstance(value, dict):
             d = {}
@@ -57,8 +61,10 @@ def dict_to_schema(schema_dict, required, allow_custom_keys=True):
                     k = Required(k) if required else Optional(k)
                 d[k] = _to(v)
             if allow_custom_keys:
-                d[Optional(basestring)] = object
+                d[Optional(basestring)] = modifier or object
             schema = Schema(d)
+        elif modifier:
+            schema = And(value, modifier)
         else:
             schema = value
         return schema

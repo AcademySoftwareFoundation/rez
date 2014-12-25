@@ -1,8 +1,9 @@
+from rez.utils.formatting import StringFormatMixin, StringFormatType
 import UserDict
 import sys
 
 
-class RecursiveAttribute(UserDict.UserDict):
+class RecursiveAttribute(UserDict.UserDict, StringFormatMixin):
     """An object that can have new attributes added recursively::
 
         >>> a = RecursiveAttribute()
@@ -24,6 +25,8 @@ class RecursiveAttribute(UserDict.UserDict):
         >>> a.new = True
         AttributeError: 'RecursiveAttribute' object has no attribute 'new'
     """
+    format_expand = StringFormatType.unchanged
+
     def __init__(self, data=None, read_only=False):
         self.__dict__.update(dict(data={}, read_only=read_only))
         self._update(data or {})
@@ -222,3 +225,33 @@ class ScopeContext(object):
     def __str__(self):
         names = ('.'.join(y for y in x) for x in self.scopes.keys())
         return "%r" % (tuple(names),)
+
+
+def scoped_formatter(**objects):
+    """See `scoped_format`."""
+    return RecursiveAttribute(objects, read_only=True)
+
+
+def scoped_format(txt, **objects):
+    """Format a string with respect to a set of objects' attributes.
+
+    Example:
+
+        >>> Class Foo(object):
+        >>>     def __init__(self):
+        >>>         self.name = "Dave"
+        >>> print scoped_format("hello {foo.name}", foo=Foo())
+        hello Dave
+
+    Args:
+        objects (dict): Dict of objects to format with. If a value is a dict,
+            its values, and any further neted dicts, will also format with dot
+            notation.
+        pretty (bool): See `ObjectStringFormatter`.
+        expand (bool): See `ObjectStringFormatter`.
+    """
+    pretty = objects.pop("pretty", RecursiveAttribute.format_pretty)
+    expand = objects.pop("expand", RecursiveAttribute.format_expand)
+    attr = RecursiveAttribute(objects, read_only=True)
+    formatter = scoped_formatter(**objects)
+    return formatter.format(txt, pretty=pretty, expand=expand)

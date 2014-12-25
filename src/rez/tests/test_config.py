@@ -5,7 +5,7 @@ from rez.config import Config
 from rez.system import system
 from rez import module_root_path
 from rez.util import RO_AttrDictWrapper
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 import os
 import os.path
 
@@ -116,7 +116,7 @@ class TestConfig(TestBase):
 
     def test_4(self):
         """Test package config overrides."""
-        pkg = load_developer_package(self.config_path)
+        pkg = get_developer_package(self.config_path)
         c = pkg.config
         self._test_basic(c)
 
