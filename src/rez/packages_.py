@@ -3,7 +3,7 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema
 from rez.package_serialise import dump_package_data
 from rez.utils.data_utils import cached_property
-from rez.utils.formatting import StringFormatMixin
+from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
@@ -22,6 +22,8 @@ import sys
 #------------------------------------------------------------------------------
 
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
+    format_expand = StringFormatType.unchanged
+
     def validated_data(self):
         data = ResourceWrapper.validated_data(self)
         data = dict((k, v) for k, v in data.iteritems() if v is not None)

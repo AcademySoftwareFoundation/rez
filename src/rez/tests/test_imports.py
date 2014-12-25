@@ -29,7 +29,7 @@ class TestImports(TestBase):
         import rez.shells
         import rez.solver
         import rez.status
-        import rez.suites
+        import rez.suite
         import rez.system
         import rez.wrapper
 

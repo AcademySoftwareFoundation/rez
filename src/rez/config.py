@@ -1,7 +1,8 @@
 from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
     convert_dicts, AttrDictWrapper, DataWrapper
-from rez.utils.formatting import ObjectStringFormatter, expandvars
+from rez.utils.formatting import expandvars
 from rez.utils.logging_ import get_debug_printer
+from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
@@ -42,7 +43,7 @@ class Setting(object):
         try:
             data = self._validate(data)
             data = self.schema.validate(data)
-            data = Expand().validate(data)
+            data = expand_system_vars(data)
         except SchemaError as e:
             raise ConfigurationError("Misconfigured setting '%s': %s"
                                      % (self.key, str(e)))
@@ -52,18 +53,22 @@ class Setting(object):
         # overriden settings take precedence.
         if self.key in self.config.overrides:
             return self.config.overrides[self.key]
+
         # next, env-var
         if not self.config.locked:
             value = os.getenv(self._env_var_name)
             if value is not None:
                 return self._parse_env_var(value)
+
         # next, data unchanged
         if data is not None:
             return data
+
         # some settings have a programmatic default
         attr = "_get_%s" % self.key
         if hasattr(self.config, attr):
             return getattr(self.config, attr)()
+
         # setting is None
         return None
 
@@ -273,31 +278,6 @@ _plugin_config_dict = {
         "releasable_branches":          Or(None, [basestring])
     }
 }
-
-
-# TODO move into config?
-class Expand(object):
-    """Schema that applies variable expansion."""
-    namespace = dict(system=system)
-    formatter = ObjectStringFormatter(AttrDictWrapper(namespace),
-                                      expand=ObjectStringFormatter.unchanged)
-
-    def __init__(self):
-        pass
-
-    def validate(self, data):
-        def _expand(value):
-            if isinstance(value, basestring):
-                value = expandvars(value)
-                value = os.path.expanduser(value)
-                return self.formatter.format(value)
-            elif isinstance(value, list):
-                return [_expand(x) for x in value]
-            elif isinstance(value, dict):
-                return dict((k, _expand(v)) for k, v in value.iteritems())
-            else:
-                return value
-        return _expand(data)
 
 
 # -----------------------------------------------------------------------------
@@ -581,6 +561,22 @@ class _PluginConfigs(object):
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+def expand_system_vars(data):
+    """Expands any strings within `data` such as '{system.user}'."""
+    def _expanded(value):
+        if isinstance(value, basestring):
+            value = expandvars(value)
+            value = os.path.expanduser(value)
+            return scoped_format(value, system=system)
+        elif isinstance(value, (list, tuple, set)):
+            return [_expanded(x) for x in value]
+        elif isinstance(value, dict):
+            return dict((k, _expanded(v)) for k, v in value.iteritems())
+        else:
+            return value
+    return _expanded(data)
 
 
 def create_config(overrides=None):

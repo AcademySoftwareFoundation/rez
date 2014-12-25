@@ -28,6 +28,10 @@ def setup_parser(parser, completions=False):
         help='force-update the cache that stores the reverse package-family dependencies (this cache is automatically '
              'regenerated every 10 minutes by default.'
     )
+    parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="don't print progress bar or depth indicators")
+
     PKG_action = parser.add_argument(
         "PKG", type=str,
         help="package that other packages depend on")
@@ -41,7 +45,6 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import get_reverse_dependency_tree
     from rez.utils.graph_utils import save_graph, view_graph
     from rez.config import config
-    from rez.utils.colorize import heading, Printer
     from rez.vendor.pygraph.readwrite.dot import write as write_dot
     from rez import packages
     from rez.vendor.version import version
@@ -53,6 +56,7 @@ def command(opts, parser, extra_arg_groups=None):
     pkg_name, version_range_str = _extract_package_name_version(opts.PKG)
 
     config.override("warn_none", True)
+    config.override("show_progress", (not opts.quiet))
 
     if opts.paths is None:
         pkg_paths = None
@@ -83,13 +87,14 @@ def command(opts, parser, extra_arg_groups=None):
             save_graph(gstr, dest_file=opts.write_graph)
         else:
             view_graph(gstr)
-    else:
-        _pr()
-        for i, pkgs in enumerate(pkgs_list):
-            _pr("depth %d:" % i, heading)
-            _pr(" ".join(pkgs))
+        return 0
 
-    return 0
+    for i, pkgs in enumerate(pkgs_list):
+        if opts.quiet:
+            toks = pkgs
+        else:
+            toks = ["#%d:" % i] + pkgs
+        print ' '.join(toks)
 
 def _extract_package_name_version(input_pkg):
 

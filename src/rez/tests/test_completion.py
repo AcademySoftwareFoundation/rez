@@ -1,7 +1,7 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.config import Config
-from rez.packages import get_completions
+from rez.packages_ import get_completions
 from rez import module_root_path
 import os
 import os.path

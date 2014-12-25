@@ -133,22 +133,34 @@ class ObjectStringFormatter(Formatter):
 
 
 class StringFormatMixin(object):
-    def format(self, s, pretty=False, expand=StringFormatType.error):
+    """Turn any object into a string formatter.
+
+    An object inheriting this mixin will have a `format` function added, that is
+    able to format using attributes of the object.
+    """
+    format_expand = StringFormatType.error
+    format_pretty = True
+
+    def format(self, s, pretty=None, expand=None):
         """Format a string.
 
         Args:
             s (str): String to format, eg "hello {name}"
-            pretty: If True, references to non-string attributes such as lists
-                are converted to basic form, with characters such as brackets
-                and parenthesis removed.
-            expand: What to expand references to nonexistent attributes to:
-                - None: raise an exception;
-                - 'empty': expand to an empty string;
-                - 'unchanged': leave original string intact, ie '{key}'
+            pretty (bool): If True, references to non-string attributes such as
+                lists are converted to basic form, with characters such as
+                brackets and parenthesis removed. If None, defaults to the
+                object's 'format_pretty' attribute.
+            expand (`StringFormatType`): Expansion mode. If None, will default
+                to the object's 'format_expand' attribute.
 
         Returns:
             The formatting string.
         """
+        if pretty is None:
+            pretty = self.format_pretty
+        if expand is None:
+            expand = self.format_expand
+
         formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
 

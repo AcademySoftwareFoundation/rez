@@ -84,6 +84,7 @@ setup(
     license="LGPL",
     scripts=[os.path.join('bin', x) for x in scripts],
     include_package_data=True,
+    zip_safe=False,
     package_dir = {'': 'src'},
     packages=find_packages('src', exclude=["build_utils",
                                            "build_utils.*",

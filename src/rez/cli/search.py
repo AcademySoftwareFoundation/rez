@@ -124,7 +124,7 @@ def command(opts, parser, extra_arg_groups=None):
                 return
         if opts.format:
             try:
-                print r.format(opts.format, pretty=True, expand='unchanged')
+                print r.format(opts.format)
             except error_class as e:
                 _handle(e)
         else:
