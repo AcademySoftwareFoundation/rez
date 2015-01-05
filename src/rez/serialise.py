@@ -8,6 +8,7 @@ from rez.memcache import mem_cached, DataType
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from inspect import isfunction
+import sys
 import os
 import os.path
 
@@ -85,8 +86,12 @@ def load_py(stream, filepath=None):
         frames = traceback.extract_tb(sys.exc_info()[2])
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
+
+        msg = str(e)
         stack = ''.join(traceback.format_list(frames)).strip()
-        raise ResourceError("%s:\n%s" % (str(e), stack))
+        if stack:
+            msg += ":\n" + stack
+        raise ResourceError(msg)
 
     result = {}
     excludes = set(('scope', '__builtins__'))

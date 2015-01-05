@@ -1,0 +1,33 @@
+Each directory contains a rez-based project, that can be built and installed with
+'rez-build', and released with 'rez-release'. Some may depend on packages that
+you need to provide, either by using the 'rez-ingest' tool, or by creating by
+hand (see the wiki on how to do this). An example is the 'python' package.
+
+These projects may not all do *exactly* what you want - there may be specific
+things about how you install software at your studio that aren't accounted for -
+but many will make a good starting point. You can copy these projects to your
+own working directory and then modify them and add then to your own software
+repository (git etc).
+
+Please note that all packages here have a CMake-based build. Your own packages
+may use a different build system, such as the inbuilt (and very simple and not
+intended for complicated builds) 'bez' system. Or, you may have other build
+systems implemented as Rez 'build_system' plugins that you may like to use. See
+the wiki on how to do this.
+
+To build a project:
+]$ cd projects/PROJECT_NAME/
+]$ rez-build
+
+To locally install, then test:
+]$ rez-build -i
+... (build output)
+]$ rez-env PROJECT_NAME
+... (rez-env output)
+]$ # now you're able to test
+
+To release a project:
+- Make a copy of the project;
+- Add it to your repository of choice (git etc);
+- Clone the source into a working directory;
+]$ rez-release
