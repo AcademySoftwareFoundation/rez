@@ -184,7 +184,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_VARIANT_NUMBER = get_current_variant_index(context, package)
-        executor.env.REZ_BUILD_PROJECT_FILE = package.path
+        executor.env.REZ_BUILD_PROJECT_FILE = package.filepath
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
         executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \

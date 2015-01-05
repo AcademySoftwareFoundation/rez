@@ -301,6 +301,13 @@ def get_developer_package(path):
     A developer package may for example be a package.yaml or package.py in a
     user's source directory.
 
+    Note:
+        The resulting package has a 'filepath' attribute added to it, that does
+        not normally appear on a `Package` object. A developer package is the
+        only case where we know we can directly associate a 'package.*' file
+        with a package - other packages can come from any kind of package repo,
+        which may or may not associate a single file with a single package.
+
     Args:
         path: Directory containing the package definition file.
 
@@ -322,7 +329,9 @@ def get_developer_package(path):
         raise PackageMetadataError(
             "Error in %r - missing or non-string field 'name'" % filepath)
 
-    return create_package(name, data)
+    package = create_package(name, data)
+    setattr(package, "filepath", filepath)
+    return package
 
 
 def create_package(name, data):
