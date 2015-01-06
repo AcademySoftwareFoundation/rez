@@ -436,6 +436,7 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
+    # TODO: file locking
     def install_variant(self, variant_resource):
         if variant_resource._repository is self:
             return variant_resource
@@ -544,7 +545,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         if isinstance(family, FileSystemCombinedPackageFamilyResource):
             raise NotImplementedError(
-                "Cannot install package into combined-style package file.")
+                "Cannot install variant into combined-style package file.")
 
         # find the package if it exists
         existing_package = None
@@ -584,10 +585,13 @@ class FileSystemPackageRepository(PackageRepository):
 
             parent_package = existing_package
             package_data = parent_package.validated_data()
+            ext = os.path.splitext(existing_package.filepath)[-1][1:]
+            package_format = FileFormat[ext]
         else:
             parent_package = variant.parent
             package_data = parent_package.validated_data()
             package_data["variants"] = []
+            package_format = FileFormat.py
 
         # merge the variant into the package
         if variant.index is None:
@@ -611,7 +615,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         filepath = os.path.join(path, "package.py")
         with open(filepath, 'w') as f:
-            dump_package_data(package_data, buf=f, format_=FileFormat.py)
+            dump_package_data(package_data, buf=f, format_=package_format)
 
         os.utime(family_path)  # keeps memcached resolves updated properly
 

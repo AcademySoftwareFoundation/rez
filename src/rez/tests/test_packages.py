@@ -26,6 +26,7 @@ ALL_PACKAGES = set([
     'unversioned',
     'unversioned_py',
     'versioned-1.0', 'versioned-2.0', 'versioned-3.0',
+    'variants_py-2.0',
     'single_unversioned',
     'single_versioned-3.5',
     'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'])
@@ -168,6 +169,27 @@ class TestPackages(TestBase):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
+    def test_6(self):
+        """test variant iteration."""
+        expected_data_ = dict(
+            name="variants_py",
+            version=Version("2.0"),
+            description="package with variants",
+            base=os.path.join(self.py_packages_path, "variants_py", "2.0"),
+            commands=SourceCode('env.PATH.append("{root}/bin")'))
+
+        requires_ = ["platform-linux", "platform-osx"]
+
+        package = get_package("variants_py", "2.0")
+        for i, variant in enumerate(package.iter_variants()):
+            expected_data = expected_data_.copy()
+            expected_data["requires"] = [PackageRequest('python-2.7'),
+                                         PackageRequest(requires_[i])]
+            data = variant.validated_data()
+            self.assertDictEqual(data, expected_data)
+            self.assertEqual(variant.index, i)
+            self.assertEqual(variant.parent, package)
+
 
 def get_test_suites():
     suites = []
@@ -177,6 +199,7 @@ def get_test_suites():
     suite.addTest(TestPackages("test_3"))
     suite.addTest(TestPackages("test_4"))
     suite.addTest(TestPackages("test_5"))
+    suite.addTest(TestPackages("test_6"))
     suites.append(suite)
     return suites
 
