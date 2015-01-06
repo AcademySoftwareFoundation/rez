@@ -413,8 +413,8 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 if install and extra_files:
                     if not os.path.exists(install_path):
                         os.makedirs(install_path)
-                    for file in extra_files:
-                        shutil.copy(file, install_path)
+                    for file_ in extra_files:
+                        shutil.copy(file_, install_path)
             else:
                 raise BuildError("The %s build system failed"
                                  % self.buildsys.name())

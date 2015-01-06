@@ -85,7 +85,6 @@ class PackageMaker(object):
         # get and validate package data
         package_data = self._get_data()
         package_data = package_schema.validate(package_data)
-        #package_data = self._post_transform_data(package_data)
 
         # create a 'memory' package repository containing just this package
         version_str = package_data.get("version") or "_NO_VERSION"
@@ -97,6 +96,9 @@ class PackageMaker(object):
         it = repo.iter_packages(family_resource)
         package_resource = it.next()
         package = Package(package_resource)
+
+        # revalidate the package for extra measure
+        package.validate_data()
         return package
 
     def _get_data(self):
@@ -109,16 +111,3 @@ class PackageMaker(object):
 
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
-
-    """
-    # schema expected by the 'memory' package repository is a little different
-    # to the schema we expect in the package maker.
-    def _post_transform_data(self, data):
-        data_ = {}
-        for key, value in data.iteritems():
-            if isfunction(value) or ismethod(value):
-                value = SourceCode.from_function(value)
-
-            data_[key] = value
-        return data_
-    """
