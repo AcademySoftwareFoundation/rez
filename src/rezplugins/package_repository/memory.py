@@ -85,6 +85,9 @@ class MemoryVariantResource(DerivedVariantResource):
     key = "memory.variant"
     repository_type = "memory"
 
+    def _root(self):
+        return None  # memory types do not have 'root'
+
     @cached_property
     def parent(self):
         package = self._repository.get_resource(

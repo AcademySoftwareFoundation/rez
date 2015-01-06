@@ -26,8 +26,6 @@ help_schema = Or(basestring,  # single help entry
 
 # requirements of all package-related resources
 base_resource_schema_dict = {
-    Required("repository_type"):        basestring,
-    Required("location"):               basestring,
     Required("name"):                   basestring
 }
 
@@ -83,10 +81,6 @@ package_schema_dict.update({
 
 # variant
 variant_schema_dict = package_base_schema_dict.copy()
-variant_schema_dict.update({
-    Required("root"):                   basestring,
-    Optional("index"):                  int,
-})
 
 
 #------------------------------------------------------------------------------
@@ -115,9 +109,11 @@ _commands_schema = Or(SourceCode,       # commands as converted function
 _package_request_schema = And(basestring, Use(PackageRequest))
 
 
-package_pod_schema = Schema({
-    Required("base"):                   basestring,
-    Required("name"):                   basestring,
+package_pod_schema_dict = base_resource_schema_dict.copy()
+
+
+package_pod_schema_dict.update({
+    Optional("base"):                   basestring,
     Optional("version"):                And(basestring, Use(Version)),
     Optional('description'):            And(basestring,
                                             Use(lambda x: dedent(x).strip())),
@@ -147,6 +143,9 @@ package_pod_schema = Schema({
 
     Optional('custom'):                 dict
 })
+
+
+package_pod_schema = Schema(package_pod_schema_dict)
 
 
 #------------------------------------------------------------------------------
@@ -223,6 +222,14 @@ class VariantResource(PackageResource):
     @property
     def index(self):
         return self.get("index", None)
+
+    @cached_property
+    def root(self):
+        return self._root()
+
+    def _root(self):
+        """Return the 'root' path of the variant."""
+        raise NotImplementedError
 
 
 #------------------------------------------------------------------------------
@@ -310,8 +317,7 @@ class DerivedVariantResource(VariantResource):
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
-    @cached_property
-    def root(self):
+    def _root(self):
         index = self.index
         if index is None:
             return self.base
@@ -326,7 +332,7 @@ class DerivedVariantResource(VariantResource):
         reqs = self.parent.requires or []
         index = self.index
         if index is not None:
-            reqs.extend(self.parent.variants[index] or [])
+            reqs = reqs + (self.parent.variants[index] or [])
         return reqs
 
     @property

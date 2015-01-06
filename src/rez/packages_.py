@@ -85,6 +85,9 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         """
         data = self.validated_data().copy()
         data["config"] = self.data.get("config")
+        if "base" in data:
+            del data["base"]
+
         buf = buf or sys.stdout
         dump_package_data(data, buf=buf, format_=format_,
                           skip_attributes=skip_attributes)
@@ -147,6 +150,7 @@ class Variant(PackageBaseResourceWrapper):
         `Package.iter_variants`.
     """
     keys = schema_keys(variant_schema)
+    keys.update(["index", "root"])
 
     def __init__(self, resource):
         assert isinstance(resource, VariantResource)
