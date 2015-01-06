@@ -167,7 +167,8 @@ class StandardBuildProcess(BuildProcess):
             if not tag_name:
                 tag_name = "unversioned"
         except Exception as e:
-            raise ReleaseError("Error formatting tag name for release: %s" % str(e))
+            raise ReleaseError("Error formatting tag name for release: %s"
+                               % str(e))
 
         # get last release, this stops same/earlier version release
         last_pkg = self._get_last_release(install_path)
@@ -422,8 +423,10 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
                 extra_files = ret.get("extra_files", []) + [rxt_file]
                 if install and extra_files:
-                    for file in extra_files:
-                        shutil.copy(file, install_path)
+                    if not os.path.exists(install_path):
+                        os.makedirs(install_path)
+                    for file_ in extra_files:
+                        shutil.copy(file_, install_path)
             else:
                 raise BuildError("The %s build system failed"
                                  % self.buildsys.name())

@@ -4,7 +4,8 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     DerivedVariantResource, PackageResourceHelper, package_pod_schema
-from rez.exceptions import PackageMetadataError
+from rez.package_serialise import dump_package_data
+from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
 from rez.serialise import load_from_file, FileFormat
@@ -435,7 +436,19 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
+    def install_variant(self, variant_resource):
+        if variant_resource._repository is self:
+            return variant_resource
+        variant = self._create_variant(variant_resource)
+        return variant
+
     # -- internal
+
+    def _clear_caches(self):
+        self._get_families.cache_clear()
+        self._get_family.cache_clear()
+        self._get_packages.cache_clear()
+        self._get_variants.cache_clear()
 
     def _get_family_dirs__key(self):
         st = os.stat(self.location)
@@ -515,6 +528,111 @@ class FileSystemPackageRepository(PackageRepository):
     @lru_cache(maxsize=None)
     def _get_variants(self, package_resource):
         return [x for x in package_resource.iter_variants()]
+
+    def _create_family(self, name):
+        path = os.path.join(self.location, name)
+        if not os.path.exists(path):
+            os.makedirs(path)
+        self._clear_caches()
+        return self.get_package_family(name)
+
+    def _create_variant(self, variant):
+        # find or create the package family
+        family = self.get_package_family(variant.name)
+        if not family:
+            family = self._create_family(variant.name)
+
+        if isinstance(family, FileSystemCombinedPackageFamilyResource):
+            raise NotImplementedError(
+                "Cannot install package into combined-style package file.")
+
+        # find the package if it exists
+        existing_package = None
+        for package in self.iter_packages(family):
+            if package.version == variant.version:
+                uuids = set([variant.uuid, package.uuid])
+                if len(uuids) > 1 and None not in uuids:
+                    raise ResourceError(
+                        "Cannot install variant %r into package %r - the "
+                        "packages are not the same (UUID mismatch)"
+                        % (variant, package))
+
+                if variant.index is None:
+                    if package.variants:
+                        raise ResourceError(
+                            "Attempting to install a package without variants "
+                            "(%r) into an existing package with variants (%r)"
+                            % (variant, package))
+                    else:
+                        it = self.iter_variants(package)
+                        return it.next()
+                elif package.variants:
+                    existing_package = package
+                else:
+                    raise ResourceError(
+                        "Attempting to install a variant (%r) into an existing "
+                        "package without variants (%r)" % (variant, package))
+
+        if existing_package:
+            # check if the variant is already there
+            variant_requires = variant.parent.variants[variant.index]
+
+            for variant_ in self.iter_variants(existing_package):
+                variant_requires_ = existing_package.variants[variant_.index]
+                if variant_requires_ == variant_requires:
+                    return variant_
+
+            parent_package = existing_package
+            package_data = parent_package.validated_data()
+        else:
+            parent_package = variant.parent
+            package_data = parent_package.validated_data()
+            package_data["variants"] = []
+
+        # merge the variant into the package
+        if variant.index is None:
+            new_index = None
+        else:
+            variant_requires = variant.parent.variants[variant.index]
+            package_data["variants"].append(variant_requires)
+            new_index = len(package_data["variants"]) - 1
+
+        # config has to be a dict or None
+        package_data["config"] = parent_package.data.get("config")
+
+        # create version dir and write out the new package definition file
+        family_path = os.path.join(self.location, variant.name)
+        if variant.version:
+            path = os.path.join(family_path, str(variant.version))
+        else:
+            path = family_path
+        if not os.path.exists(path):
+            os.makedirs(path)
+
+        filepath = os.path.join(path, "package.py")
+        with open(filepath, 'w') as f:
+            dump_package_data(package_data, buf=f, format_=FileFormat.py)
+
+        os.utime(family_path)  # keeps memcached resolves updated properly
+
+        # load new variant
+        new_variant = None
+        self._clear_caches()
+        family = self.get_package_family(variant.name)
+        if family:
+            for package in self.iter_packages(family):
+                if package.version == variant.version:
+                    for variant_ in self.iter_variants(package):
+                        if variant_.index == new_index:
+                            new_variant = variant_
+                            break
+                elif new_variant:
+                    break
+
+        if not new_variant:
+            raise RezSystemError(
+                "Unexpected internal failure - expected installed variant")
+        return new_variant
 
 
 def register_plugin():

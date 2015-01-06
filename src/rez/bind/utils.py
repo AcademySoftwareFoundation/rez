@@ -58,6 +58,9 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
         version_arg: Arg to pass to program, eg "-V". Can also be a list.
         word_index: Expect the Nth word of output to be the version.
         version_rank: Cap the version to this many tokens.
+
+    Returns:
+        `Version` object.
     """
     if isinstance(version_arg, basestring):
         version_arg = [version_arg]

@@ -4,6 +4,7 @@ The main command-line entry point.
 import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
+from rez.exceptions import RezError, RezSystemError
 from rez import __version__
 
 
@@ -100,11 +101,11 @@ def run(command=None):
     if opts.debug or _env_var_true("REZ_DEBUG"):
         exc_type = None
     else:
-        exc_type = Exception
+        exc_type = RezError
 
     try:
         returncode = opts.func(opts, opts.parser, arg_groups[1:])
-    except NotImplementedError as e:
+    except (NotImplementedError, RezSystemError) as e:
         import traceback
         raise Exception(traceback.format_exc())
     except exc_type as e:

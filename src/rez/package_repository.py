@@ -109,6 +109,21 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def install_variant(self, variant_resource):
+        """Install a variant into this repository.
+
+        Use this function to install a variant from some other package repository
+        into this one.
+
+        Args:
+            variant_resource (`VariantResource`): Variant to install.
+
+        Returns:
+            `VariantResource` object, which is the newly created variant in this
+            repository.
+        """
+        raise NotImplementedError
+
     def get_parent_package_family(self, package_resource):
         """Get the parent package family of the given package.
 
