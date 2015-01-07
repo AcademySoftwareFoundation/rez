@@ -115,7 +115,7 @@ def _dump_package_data_yaml(items, buf):
 
 def _dump_package_data_py(items, buf):
     for i, (key, value) in enumerate(items):
-        if key == "description":
+        if key == "description" and len(value) > 40:
             # description is a triple-quoted string
             quoted_str = '"""\n%s\n"""' % value
             txt = "description = \\\n%s" % indent(quoted_str)

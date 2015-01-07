@@ -150,7 +150,7 @@ class Variant(PackageBaseResourceWrapper):
         `Package.iter_variants`.
     """
     keys = schema_keys(variant_schema)
-    keys.update(["index", "root"])
+    keys.update(["index", "root", "subpath"])
 
     def __init__(self, resource):
         assert isinstance(resource, VariantResource)
@@ -181,20 +181,6 @@ class Variant(PackageBaseResourceWrapper):
         repo = self.resource._repository
         package = repo.get_parent_package(self.resource)
         return Package(package)
-
-    @cached_property
-    def subpath(self):
-        """Returns the variant 'subpath'.
-
-        The subpath is the path under the variant's `base` directory where this
-        variant's payload is. If there are zero variants, this is None.
-
-        Returns:
-            str or None.
-        """
-        if self.base == self.root:
-            return None
-        return os.path.relpath(self.root, self.base)
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.

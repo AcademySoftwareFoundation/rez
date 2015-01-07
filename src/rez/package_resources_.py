@@ -227,8 +227,20 @@ class VariantResource(PackageResource):
     def root(self):
         return self._root()
 
+    @cached_property
+    def subpath(self):
+        return self._subpath()
+
     def _root(self):
         """Return the 'root' path of the variant."""
+        raise NotImplementedError
+
+    def _subpath(self):
+        """Return the variant's 'subpath'
+
+        The subpath is the relative path the variant's payload should be stored
+        under, relative to the package base.
+        """
         raise NotImplementedError
 
 
@@ -255,6 +267,9 @@ class PackageResourceHelper(PackageResource):
     @cached_property
     def post_commands(self):
         return self._convert_to_rex(self._post_commands)
+
+    def _subpath(self):
+        pass
 
     def iter_variants(self):
         num_variants = len(self.data.get("variants", []))
@@ -291,7 +306,7 @@ class PackageResourceHelper(PackageResource):
             return commands
 
 
-class DerivedVariantResource(VariantResource):
+class VariantResourceHelper(VariantResource):
     """Helper class for implementing variants that inherit properties from their
     parent package.
 
@@ -309,23 +324,27 @@ class DerivedVariantResource(VariantResource):
     schema = variant_schema
 
     # forward Package attributes onto ourself
-    unused_package_keys = frozenset(["requires", "variants"])
-    keys = schema_keys(package_schema) - unused_package_keys
+    keys = schema_keys(package_schema) - set(["requires", "variants"])
 
     def _uri(self):
         index = self.index
         idxstr = '' if index is None else str(index)
         return "%s[%s]" % (self.parent.uri, idxstr)
 
+    def _subpath(self):
+        reqs = self.parent.variants[self.index]
+        dirs = [x.safe_str() for x in reqs]
+        subpath = os.path.join(*dirs)
+        return subpath
+
     def _root(self):
-        index = self.index
-        if index is None:
+        if self.base is None:
+            return None
+        elif self.index is None:
             return self.base
         else:
-            reqs = self.parent.variants[index]
-            dirs = [x.safe_str() for x in reqs]
-            subpath = os.path.join(*dirs)
-            return os.path.join(self.base, subpath)
+            root = os.path.join(self.base, self.subpath)
+            return root
 
     @cached_property
     def requires(self):

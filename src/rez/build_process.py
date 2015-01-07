@@ -86,6 +86,8 @@ class BuildProcess(object):
     def release(self):
         """Perform the release process.
 
+        Iterates over the package's variants, building and installing each.
+
         Raises:
             ReleaseError: If the release failed.
         """
@@ -326,6 +328,9 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         build_env_scripts = []
         timestamp = int(time.time())
 
+        if install and not os.path.exists(base_install_path):
+            os.makedirs(base_install_path)
+
         num_built_variants = 0
         nvariants = max(self.package.num_variants, 1)
         if variants:
@@ -347,10 +352,10 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             # create build dir, possibly deleting previous build
             if variant.subpath:
                 build_subdir = os.path.join(build_path, variant.subpath)
-                install_path = os.path.join(base_install_path, variant.subpath)
+                variant_install_path = os.path.join(base_install_path, variant.subpath)
             else:
                 build_subdir = build_path
-                install_path = base_install_path
+                variant_install_path = base_install_path
 
             rxt_file = os.path.join(build_subdir, "build.rxt")
 
@@ -412,7 +417,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             self._pr("\nInvoking %s build system..." % self.buildsys.name())
             ret = self.buildsys.build(r,
                                       build_path=build_subdir,
-                                      install_path=install_path,
+                                      install_path=variant_install_path,
                                       install=install,
                                       build_type=build_type)
             if ret.get("success"):
@@ -423,16 +428,20 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
                 extra_files = ret.get("extra_files", []) + [rxt_file]
                 if install and extra_files:
-                    if not os.path.exists(install_path):
-                        os.makedirs(install_path)
+                    if not os.path.exists(variant_install_path):
+                        os.makedirs(variant_install_path)
                     for file_ in extra_files:
-                        shutil.copy(file_, install_path)
+                        shutil.copy(file_, variant_install_path)
             else:
                 raise BuildError("The %s build system failed"
                                  % self.buildsys.name())
 
-        # write package definition file into release path
-        # TODO this has to change to resource copying/merging. For now it's a hack
+            # install variant into release package repository
+            if install:
+                variant.install(install_path)
+
+        """
+        # install variant into release package repository
         if install:
             if not os.path.exists(base_install_path):
                 os.makedirs(base_install_path)
@@ -444,6 +453,7 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                     break
             assert filepath
             shutil.copy(filepath, base_install_path)
+        """
 
         if build_env_scripts:
             self._pr("\nThe following executable script(s) have been created:")

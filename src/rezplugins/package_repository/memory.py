@@ -3,7 +3,7 @@ In-memory package repository
 """
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    DerivedVariantResource, PackageResourceHelper, package_pod_schema
+    VariantResourceHelper, PackageResourceHelper, package_pod_schema
 from rez.exceptions import PackageMetadataError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import ResourceHandle, ResourcePool, cached_property
@@ -81,7 +81,7 @@ class MemoryPackageResource(PackageResourceHelper):
         return package_data
 
 
-class MemoryVariantResource(DerivedVariantResource):
+class MemoryVariantResource(VariantResourceHelper):
     key = "memory.variant"
     repository_type = "memory"
 
