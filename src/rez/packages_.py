@@ -214,6 +214,27 @@ class Variant(PackageBaseResourceWrapper):
             requires = requires + (self.private_build_requires or [])
         return requires
 
+    def install(self, path):
+        """Install this variant into another package repository.
+
+        If the package already exists, this variant will be correctly merged
+        into the package. If the variant already exists in this package, the
+        existing variant is returned.
+
+        Args:
+            path (str): Path to destination package repository.
+
+        Returns:
+            `Variant` object - the (existing or newly created) variant in the
+            specified repository.
+        """
+        repo = package_repository_manager.get_repository(path)
+        resource = repo.install_variant(self.resource)
+        if resource is self.resource:
+            return self
+        else:
+            return Variant(resource)
+
 
 #------------------------------------------------------------------------------
 # resource aquisition functions

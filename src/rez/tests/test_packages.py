@@ -4,12 +4,13 @@ from rez.package_resources import VersionlessPackageResource, \
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_repository import create_memory_package_repository
-from rez.tests.util import TestBase
+from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import SourceCode
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
 import os.path
+import os
 
 register_resource(VersionlessPackageResource, force=True)
 register_resource(VersionlessVariantResource, force=True)
@@ -59,9 +60,11 @@ def _to_qnames(it):
     return set(p.qualified_name for p in it)
 
 
-class TestPackages(TestBase):
+class TestPackages(TestBase, TempdirMixin):
     @classmethod
     def setUpClass(cls):
+        TempdirMixin.setUpClass()
+
         path = os.path.realpath(os.path.dirname(__file__))
         cls.solver_packages_path = os.path.join(path, "data", "solver", "packages")
         cls.packages_base_path = os.path.join(path, "data", "packages")
@@ -72,6 +75,10 @@ class TestPackages(TestBase):
             packages_path=[cls.solver_packages_path,
                            cls.yaml_packages_path,
                            cls.py_packages_path])
+
+    @classmethod
+    def tearDownClass(cls):
+        TempdirMixin.tearDownClass()
 
     def test_1(self):
         """package family iteration."""
@@ -180,7 +187,7 @@ class TestPackages(TestBase):
             authors=["joe.bloggs"],
             requires=[PackageRequest('bah-1.2+<2')],
             variants=[[PackageRequest('floob-4.1')],
-                      [PackageRequest('flaab-2.0')]],
+                      [PackageRequest('floob-2.0')]],
             uuid="28d94bcd1a934bb4999bcf70a21106cc")
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
@@ -206,6 +213,37 @@ class TestPackages(TestBase):
             self.assertEqual(variant.index, i)
             self.assertEqual(variant.parent, package)
 
+    def test_7(self):
+        """test variant installation."""
+        repo_path = os.path.join(self.root, "packages")
+        os.makedirs(repo_path)
+
+        path = os.path.join(self.packages_base_path, "developer")
+        package = get_developer_package(path)
+
+        def _data(obj):
+            d = obj.validated_data()
+            if "base" in d:
+                del d["base"]
+            return d
+
+        # we loop twice here to make sure the second round of variant installs
+        # have no effect (they're already installed into new repo package)
+        for i in range(2):
+            # install variants into new repo
+            for variant in package.iter_variants():
+                variant_ = variant.install(repo_path)
+                data = _data(variant)
+                data_ = _data(variant_)
+                self.assertDictEqual(data, data_)
+
+            # now there should be a package that matches the dev package
+            package_ = get_package(package.name, package.version, paths=[repo_path])
+            self.assertNotEqual(package_, None)
+            data = _data(package)
+            data_ = _data(package_)
+            self.assertDictEqual(data, data_)
+
 
 def get_test_suites():
     suites = []
@@ -216,6 +254,7 @@ def get_test_suites():
     suite.addTest(TestPackages("test_4"))
     suite.addTest(TestPackages("test_5"))
     suite.addTest(TestPackages("test_6"))
+    suite.addTest(TestPackages("test_7"))
     suites.append(suite)
     return suites
 

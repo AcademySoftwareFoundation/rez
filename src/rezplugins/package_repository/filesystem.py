@@ -443,13 +443,14 @@ class FileSystemPackageRepository(PackageRepository):
         variant = self._create_variant(variant_resource)
         return variant
 
-    # -- internal
-
-    def _clear_caches(self):
+    def clear_caches(self):
+        super(FileSystemPackageRepository, self).clear_caches()
         self._get_families.cache_clear()
         self._get_family.cache_clear()
         self._get_packages.cache_clear()
         self._get_variants.cache_clear()
+
+    # -- internal
 
     def _get_family_dirs__key(self):
         st = os.stat(self.location)
@@ -534,7 +535,7 @@ class FileSystemPackageRepository(PackageRepository):
         path = os.path.join(self.location, name)
         if not os.path.exists(path):
             os.makedirs(path)
-        self._clear_caches()
+        self.clear_caches()
         return self.get_package_family(name)
 
     def _create_variant(self, variant):
@@ -601,8 +602,10 @@ class FileSystemPackageRepository(PackageRepository):
             package_data["variants"].append(variant_requires)
             new_index = len(package_data["variants"]) - 1
 
-        # config has to be a dict or None
+        # a little data massaging is needed
         package_data["config"] = parent_package.data.get("config")
+        if "base" in package_data:
+            del package_data["base"]
 
         # create version dir and write out the new package definition file
         family_path = os.path.join(self.location, variant.name)
@@ -617,11 +620,11 @@ class FileSystemPackageRepository(PackageRepository):
         with open(filepath, 'w') as f:
             dump_package_data(package_data, buf=f, format_=package_format)
 
-        os.utime(family_path)  # keeps memcached resolves updated properly
+        os.utime(family_path, None)  # keeps memcached resolves updated properly
 
         # load new variant
         new_variant = None
-        self._clear_caches()
+        self.clear_caches()
         family = self.get_package_family(variant.name)
         if family:
             for package in self.iter_packages(family):
