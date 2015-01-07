@@ -272,6 +272,13 @@ build_directory: build
 # rezplugins/release_hook.
 release_hooks: []
 
+# The timeout to use when creating locks related to release. Locks are used when
+# a variant is installed into a package repository. This is necessary because,
+# for example, multiple processes may try to install a variant into an existing
+# package at the same time. The timeout value is in seconds. A value of zero
+# indicates no timeout.
+release_lock_timeout: 10
+
 
 ###############################################################################
 # Suites
