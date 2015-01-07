@@ -3,40 +3,63 @@ Search for packages.
 """
 
 
+# these are package fields that can be printed using the --format option.
+# It's a hardcoded list because some fields, even though they can be printed,
+# aren't very useful to see here.
+fields = sorted((
+    'pre_commands', 'tools', 'uuid', 'build_requires', 'version', 'timestamp',
+    'release_message', 'private_build_requires', 'revision', 'description',
+    'base', 'authors', 'variants', 'commands', 'name', 'changelog',
+    'post_commands', 'requires', 'root', 'index', 'uri', 'num_variants',
+    'qualified_name'))
+
+
 def setup_parser(parser, completions=False):
     types_ = ("package", "family", "variant", "auto")
-    parser.add_argument("-s", "--sort", action="store_true",
-                        help="print results in sorted order")
-    parser.add_argument("-t", "--type", default="auto", choices=types_,
-                        help="type of resource to search for. If 'auto', "
-                        "either packages or package families are searched, "
-                        "depending on the value of PKG")
-    parser.add_argument("--nl", "--no-local", dest="no_local",
-                        action="store_true",
-                        help="don't search local packages")
-    parser.add_argument("--validate", action="store_true",
-                        help="validate each resource that is found")
-    parser.add_argument("--paths", type=str, default=None,
-                        help="set package search path")
-    parser.add_argument("-f", "--format", type=str, default=None,
-                        help="format package output, eg "
-                        "--format='{qualified_name} | {description}'")
-    parser.add_argument("-l", "--latest", action="store_true",
-                        help="when searching packages, only show the latest "
-                        "version of each package")
-    parser.add_argument("-e", "--errors", action="store_true",
-                        help="search for packages containing errors")
-    parser.add_argument("--nw", "--no-warnings", dest="no_warnings",
-                        action="store_true",
-                        help="suppress warnings")
-    parser.add_argument("--before", type=str,
-                        help="only show packages released before the given time. "
-                        "Supported formats are: epoch time (eg 1393014494), "
-                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
-    parser.add_argument("--after", type=str,
-                        help="only show packages released after the given time. "
-                        "Supported formats are: epoch time (eg 1393014494), "
-                        "or relative time (eg -10s, -5m, -0.5h, -10d)")
+
+    parser.add_argument(
+        "-s", "--sort", action="store_true",
+        help="print results in sorted order")
+    parser.add_argument(
+        "-t", "--type", default="auto", choices=types_,
+        help="type of resource to search for. If 'auto', either packages or "
+        "package families are searched, depending on the value of PKG")
+    parser.add_argument(
+        "--nl", "--no-local", dest="no_local", action="store_true",
+        help="don't search local packages")
+    parser.add_argument(
+        "--validate", action="store_true",
+        help="validate each resource that is found")
+    parser.add_argument(
+        "--paths", type=str, default=None,
+        help="set package search path")
+    parser.add_argument(
+        "-f", "--format", type=str, default=None,
+        help="format package output, eg --format='{qualified_name} | "
+        "{description}'. Valid fields include: %s" % ", ".join(fields))
+    parser.add_argument(
+        "--no-newlines", action="store_true",
+        help="print newlines as '\\n' rather than actual newlines")
+    parser.add_argument(
+        "-l", "--latest", action="store_true",
+        help="when searching packages, only show the latest version of each "
+        "package")
+    parser.add_argument(
+        "-e", "--errors", action="store_true",
+        help="search for packages containing errors")
+    parser.add_argument(
+        "--nw", "--no-warnings", dest="no_warnings", action="store_true",
+        help="suppress warnings")
+    parser.add_argument(
+        "--before", type=str,
+        help="only show packages released before the given time. Supported "
+        "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
+        "-5m, -0.5h, -10d)")
+    parser.add_argument(
+        "--after", type=str,
+        help="only show packages released after the given time. Supported "
+        "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
+        "-5m, -0.5h, -10d)")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='?',
         help="packages to search, glob-style patterns are supported")
@@ -49,7 +72,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.exceptions import RezError
-    from rez.utils.formatting import get_epoch_time_from_str
+    from rez.utils.formatting import get_epoch_time_from_str, expand_abbreviations
     from rez.utils.logging_ import print_error
     from rez.packages_ import iter_package_families, iter_packages
     from rez.vendor.version.requirement import Requirement
@@ -123,10 +146,17 @@ def command(opts, parser, extra_arg_groups=None):
                 _handle(e)
                 return
         if opts.format:
-            try:
-                print r.format(opts.format)
-            except error_class as e:
-                _handle(e)
+            txt = expand_abbreviations(opts.format, fields)
+            lines = txt.split("\\n")
+            for line in lines:
+                try:
+                    line_ = r.format(line)
+                except error_class as e:
+                    _handle(e)
+                    break
+                if opts.no_newlines:
+                    line_ = line_.replace('\n', "\\n")
+                print line_
         else:
             print r.qualified_name
 
