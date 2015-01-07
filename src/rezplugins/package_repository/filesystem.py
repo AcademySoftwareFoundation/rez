@@ -3,7 +3,7 @@ Filesystem-based package repository
 """
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    DerivedVariantResource, PackageResourceHelper, package_pod_schema
+    VariantResourceHelper, PackageResourceHelper, package_pod_schema
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
@@ -19,8 +19,12 @@ import os
 
 
 #------------------------------------------------------------------------------
-# utility functions
+# utilities
 #------------------------------------------------------------------------------
+
+class PackageDefinitionFileMissing(PackageMetadataError):
+    pass
+
 
 # get a file that could be .yaml or .py
 def _get_file(path, name):
@@ -126,7 +130,8 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     def _load(self):
         if self.filepath is None:
-            raise PackageMetadataError("Missing package definition file: %r" % self)
+            raise PackageDefinitionFileMissing(
+                "Missing package definition file: %r" % self)
 
         data = load_from_file(self.filepath, self.file_format)
 
@@ -191,7 +196,7 @@ class FileSystemPackageResource(PackageResourceHelper):
         return data
 
 
-class FileSystemVariantResource(DerivedVariantResource):
+class FileSystemVariantResource(VariantResourceHelper):
     key = "filesystem.variant"
     repository_type = "filesystem"
 
@@ -326,7 +331,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
         return data
 
 
-class FileSystemCombinedVariantResource(DerivedVariantResource):
+class FileSystemCombinedVariantResource(VariantResourceHelper):
     key = "filesystem.variant.combined"
     repository_type = "filesystem"
 
@@ -340,8 +345,7 @@ class FileSystemCombinedVariantResource(DerivedVariantResource):
             version=self.get("version"))
         return package
 
-    @property
-    def root(self):
+    def _root(self):
         return None  # combined resource types do not have 'root'
 
 
@@ -450,7 +454,8 @@ class FileSystemPackageRepository(PackageRepository):
             lock.acquire(timeout=config.release_lock_timeout)
             variant = self._create_variant(variant_resource)
         finally:
-            lock.release()
+            if lock.is_locked():
+                lock.release()
 
         return variant
 
@@ -557,12 +562,21 @@ class FileSystemPackageRepository(PackageRepository):
 
         if isinstance(family, FileSystemCombinedPackageFamilyResource):
             raise NotImplementedError(
-                "Cannot install variant into combined-style package file.")
+                "Cannot install variant into combined-style package file %r."
+                % family.filepath)
 
         # find the package if it exists
         existing_package = None
         for package in self.iter_packages(family):
             if package.version == variant.version:
+                # during a build, the family/version dirs get created ahead of
+                # time, which causes a 'missing package definition file' error.
+                # This is fine, we can just ignore it and write the new file.
+                try:
+                    package.validate_data()
+                except PackageDefinitionFileMissing:
+                    break
+
                 uuids = set([variant.uuid, package.uuid])
                 if len(uuids) > 1 and None not in uuids:
                     raise ResourceError(
