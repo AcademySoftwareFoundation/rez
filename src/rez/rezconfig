@@ -343,6 +343,14 @@ release_hooks: []
 # The size is measured in lines.  A value of -1 denotes an unbound changelog.
 changelog_maxsize: 0
 
+# The timeout to use when creating locks related to release. Locks are used when
+# a variant is installed into a package repository. This is necessary because,
+# for example, multiple processes may try to install a variant into an existing
+# package at the same time. The timeout value is in seconds. A value of zero
+# indicates no timeout.
+release_lock_timeout: 10
+
+
 
 ###############################################################################
 # Suites

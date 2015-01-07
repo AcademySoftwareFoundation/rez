@@ -435,11 +435,23 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
-    # TODO: file locking
     def install_variant(self, variant_resource):
         if variant_resource._repository is self:
             return variant_resource
-        variant = self._create_variant(variant_resource)
+
+        from rez.vendor.lockfile import LockFile
+        filename = ".lock.%s" % variant_resource.name
+        if variant_resource.version:
+            filename += "-%s" % str(variant_resource.version)
+        lock_file = os.path.join(self.location, filename)
+        lock = LockFile(lock_file)
+
+        try:
+            lock.acquire(timeout=config.release_lock_timeout)
+            variant = self._create_variant(variant_resource)
+        finally:
+            lock.release()
+
         return variant
 
     def clear_caches(self):
