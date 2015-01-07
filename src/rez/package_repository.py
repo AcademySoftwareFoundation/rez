@@ -55,6 +55,10 @@ class PackageRepository(object):
         """
         self.pool.register_resource(resource_class)
 
+    def clear_caches(self):
+        """Clear any cached resources in the pool."""
+        self.pool.clear_caches()
+
     @cached_property
     def uid(self):
         """Returns a unique identifier for this repository.

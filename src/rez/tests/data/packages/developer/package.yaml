@@ -9,7 +9,7 @@ requires:
 
 variants:
 - [ 'floob-4.1' ]
-- [ 'flaab-2.0' ]
+- [ 'floob-2.0' ]
 
 uuid: 28d94bcd1a934bb4999bcf70a21106cc
 
