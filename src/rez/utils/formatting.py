@@ -13,9 +13,11 @@ import re
 PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
 PACKAGE_NAME_REGEX = re.compile(r"^%s\Z" % PACKAGE_NAME_REGSTR)
 
-
 ENV_VAR_REGSTR = r'\$(\w+|\{[^}]*\})'
 ENV_VAR_REGEX = re.compile(ENV_VAR_REGSTR)
+
+FORMAT_VAR_REGSTR = "{(?P<var>.+?)}"
+FORMAT_VAR_REGEX = re.compile(FORMAT_VAR_REGSTR)
 
 
 def is_valid_package_name(name, raise_error=False):
@@ -163,6 +165,35 @@ class StringFormatMixin(object):
 
         formatter = ObjectStringFormatter(self, pretty=pretty, expand=expand)
         return formatter.format(s)
+
+
+def expand_abbreviations(txt, fields):
+    """Expand abbreviations in a format string.
+
+    If an abbreviation does not match a field, or matches multiple fields, it
+    is left unchanged.
+
+    Example:
+
+        >>> fields = ("hey", "there", "dude")
+        >>> expand_abbreviations("hello {d}", fields)
+        'hello dude'
+
+    Args:
+        txt (str): Format string.
+        fields (list of str): Fields to expand to.
+
+    Returns:
+        Expanded string.
+    """
+    def _expand(matchobj):
+        s = matchobj.group("var")
+        if s not in fields:
+            matches = [x for x in fields if x.startswith(s)]
+            if len(matches) == 1:
+                s = matches[0]
+        return "{%s}" % s
+    return re.sub(FORMAT_VAR_REGEX, _expand, txt)
 
 
 def expandvars(text, environ=None):

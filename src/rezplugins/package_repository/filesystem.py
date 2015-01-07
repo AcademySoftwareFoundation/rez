@@ -139,15 +139,14 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     def _load_old_formats(self):
         data = None
-        path = self.uri
 
-        filepath = os.path.join(path, "release.yaml")
+        filepath = os.path.join(self.path, "release.yaml")
         if os.path.isfile(filepath):
             # rez<2.0.BETA.16
             data = load_from_file(filepath, FileFormat.yaml,
                                   update_data_callback=self._update_changelog)
         else:
-            path_ = os.path.join(path, ".metadata")
+            path_ = os.path.join(self.path, ".metadata")
             if os.path.isdir(path_):
                 # rez-1
                 data = {}

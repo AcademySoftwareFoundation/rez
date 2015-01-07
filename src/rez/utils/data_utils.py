@@ -33,10 +33,11 @@ class SourceCode(object):
         return not (other == self)
 
     def __str__(self):
-        return self.source.replace('\n', "\\n")
+        return self.source
 
     def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+        txt = str(self).replace('\n', "\\n")
+        return "%s(%s)" % (self.__class__.__name__, txt)
 
 
 class cached_property(object):
