@@ -3,17 +3,14 @@ Binds rez-gui as a rez package.
 """
 from __future__ import absolute_import
 import rez
-from rez.packages import iter_packages
-from rez.package_maker_ import make_py_package, code_provider, root, get_code
-from rez.bind.utils import check_version
-from rez.utils.logging_ import print_info
+from rez.package_maker__ import make_package
+from rez.bind._utils import check_version, make_dirs
 from rez.system import system
-from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.version import Version
 from rez.utils.lint_helper import env
-from rez.bind import rez as rezbind
+from rez.util import create_executable_script
 import shutil
 import os.path
-import sys
 
 
 def setup_parser(parser):
@@ -22,49 +19,48 @@ def setup_parser(parser):
         help="manually specify the gui lib to use (default: %(default)s).")
 
 
-@code_provider
 def commands():
     env.PYTHONPATH.append('{this.root}')
     env.PATH.append('{this.root}/bin')
 
 
-@code_provider
-def rez_gui_bin():
+def rez_gui_source():
     from rez.cli._main import run
     run("gui")
 
 
 def bind(path, version_range=None, opts=None, parser=None):
     rez_version = Version(rez.__version__)
-    rez_major_version = rez_version.trim(1)
     check_version(rez_version, version_range)
 
-    # before we start, we need to make sure rez itself is bound
-    range_ = VersionRange.from_version(rez_major_version)
-    it = iter_packages("rez", range=range_, paths=[path])
-    if next(it, False) is False:
-        _, version_str = rezbind.bind(path, version_range, opts, parser)
-        print_info("created package rez-%s" % version_str)
+    rez_major_version = rez_version.trim(1)
+    rez_major_minor_version = rez_version.trim(2)
+    next_major = int(str(rez_major_version)) + 1
+    rez_req_str = "rez-%s+<%d" % (str(rez_major_minor_version), next_major)
 
     gui_lib = getattr(opts, "gui_lib", "")
-    py_version = tuple(sys.version_info[:2])
-    py_require_str = "python-%d.%d" % py_version
-    requires = list(system.variant) + [py_require_str] + [gui_lib]
-    tool_name = 'rez-gui'
+
+    def make_root(variant, root):
+        # copy source
+        rez_path = rez.__path__[0]
+        site_path = os.path.dirname(rez_path)
+        rezgui_path = os.path.join(site_path, "rezgui")
+        shutil.copytree(rezgui_path, os.path.join(root, "rezgui"))
+
+        # create rez-gui executable
+        binpath = make_dirs(root, "bin")
+        filepath = os.path.join(binpath, "rez-gui")
+        create_executable_script(filepath, rez_gui_source)
 
     # create package
-    with make_py_package("rezgui", rez_version, path) as pkg:
-        pkg.set_requires("rez-%s" % str(rez_major_version))
-        pkg.add_variant(*requires)
-        pkg.set_tools(tool_name)
-        pkg.set_commands(commands)
-        tool_content = get_code(rez_gui_bin)
-        pkg.add_python_tool(name=tool_name, body=tool_content, relpath=root("bin"))
-        install_path = pkg.variant_path(0)
+    with make_package("rezgui", path, make_root=make_root) as pkg:
+        pkg.version = rez_version
+        pkg.variants = [system.variant]
+        pkg.commands = commands
+        pkg.tools = ["rez-gui"]
 
-    # copy source
-    rez_path = rez.__path__[0]
-    site_path = os.path.dirname(rez_path)
-    rezgui_path = os.path.join(site_path, "rezgui")
-    shutil.copytree(rezgui_path, os.path.join(install_path, "rezgui"))
-    return ("rezgui", rez_version)
+        pkg.requires = [rez_req_str]
+        if gui_lib:
+            pkg.requires.append(gui_lib)
+
+    return "rezgui", rez_version

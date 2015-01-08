@@ -2,8 +2,8 @@
 Binds a python executable as a rez package.
 """
 from __future__ import absolute_import
-from rez.package_maker_ import make_py_package, code_provider, root
-from rez.bind.utils import check_version, find_exe, extract_version
+from rez.package_maker__ import make_package
+from rez.bind._utils import check_version, find_exe, extract_version
 from rez.vendor.version.version import Version
 from rez.system import system
 from rez.utils.lint_helper import env
@@ -16,7 +16,6 @@ def setup_parser(parser):
                         "python interpreter")
 
 
-@code_provider
 def commands():
     env.PATH.append('{this.root}/bin')
 
@@ -34,10 +33,15 @@ def bind(path, version_range=None, opts=None, parser=None):
 
     check_version(version, version_range)
 
-    with make_py_package("python", version, path) as pkg:
-        pkg.add_variant(*system.variant)
-        pkg.set_tools("python")
-        pkg.set_commands(commands)
-        pkg.add_link(exepath, root("bin", "python"))
+    def make_root(variant, root):
+        binpath = make_dirs(root, "bin")
+        link = os.path.join(binpath, "python")
+        platform_.symlink(exepath, link)
 
-    return ("python", version)
+    with make_package("python", path, make_root=make_root) as pkg:
+        pkg.version = version
+        pkg.tools = ["python"]
+        pkg.commands = commands
+        pkg.variants = [system.variant]
+
+    return "python", version

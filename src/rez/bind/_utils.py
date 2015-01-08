@@ -1,6 +1,7 @@
 """
 Utility functions for bind modules.
 """
+from __future__ import absolute_import
 from rez.vendor.version.version import Version
 from rez.exceptions import RezBindError
 from rez.config import config
@@ -8,6 +9,7 @@ from rez.util import which
 from rez.utils.logging_ import print_debug
 import subprocess
 import os.path
+import os
 
 
 def log(msg):
@@ -15,16 +17,23 @@ def log(msg):
         print_debug(msg)
 
 
-def check_version(version, range=None):
+def make_dirs(*dirs):
+    path = os.path.join(*dirs)
+    if not os.path.exists(path):
+        os.makedirs(path)
+    return path
+
+
+def check_version(version, range_=None):
     """Check that the found software version is within supplied range.
 
     Args:
         version: Version of the package as a Version object.
-        range: Allowable version range as a VersionRange object.
+        range_: Allowable version range as a VersionRange object.
     """
-    if range and version not in range:
+    if range_ and version not in range_:
         raise RezBindError("found version %s is not within range %s"
-                           % (str(version), str(range)))
+                           % (str(version), str(range_)))
 
 
 def find_exe(name, filepath=None):
