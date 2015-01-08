@@ -296,7 +296,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
         return os.path.getmtime(self.parent.filepath)
 
     def iter_variants(self):
-        num_variants = len(self.data.get("variants", []))
+        num_variants = len(self._data.get("variants", []))
         if num_variants == 0:
             indexes = [None]
         else:
@@ -313,7 +313,7 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
             yield variant
 
     def _load(self):
-        data = self.parent.data.copy()
+        data = self.parent._data.copy()
 
         if "versions" in data:
             del data["versions"]
@@ -631,7 +631,7 @@ class FileSystemPackageRepository(PackageRepository):
             new_index = len(package_data["variants"]) - 1
 
         # a little data massaging is needed
-        package_data["config"] = parent_package.data.get("config")
+        package_data["config"] = parent_package._data.get("config")
         if "base" in package_data:
             del package_data["base"]
 

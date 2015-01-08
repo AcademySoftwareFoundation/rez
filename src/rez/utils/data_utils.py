@@ -297,11 +297,11 @@ class AttributeForwardMeta(type):
 
 class LazyAttributeMeta(type):
     """Metaclass for adding properties to a class for accessing top-level keys
-    in its `data` dictionary, and validating them on first reference.
+    in its `_data` dictionary, and validating them on first reference.
 
     Property names are derived from the keys of the class's `schema` object.
     If a schema key is optional, then the class property will evaluate to None
-    if the key is not present in `data`.
+    if the key is not present in `_data`.
 
     The attribute getters created by this metaclass will perform lazy data
     validation, OR, if the class has a `_validate_key` method, will call this
@@ -317,7 +317,7 @@ class LazyAttributeMeta(type):
           validated dict, or None if there is no schema;
         - '_validate_key_impl' (function): Validation function used when
           '_validate_key' is not provided, it is here so you can use it in
-          your own '_validate_key' function.
+          your own '_validate_key' function;
         - '_schema_keys' (frozenset): Keys in the schema.
     """
     def __new__(cls, name, parents, members):
@@ -385,12 +385,12 @@ class LazyAttributeMeta(type):
     @classmethod
     def _make_getter(cls, key, attribute, optional, key_schema):
         def getter(self):
-            if key not in self.data:
+            if key not in self._data:
                 if optional:
                     return None
                 raise self.schema_error("Required key is missing: %r" % key)
 
-            attr = self.data[key]
+            attr = self._data[key]
             if hasattr(self, "_validate_key"):
                 return self._validate_key(key, attr, key_schema)
             else:

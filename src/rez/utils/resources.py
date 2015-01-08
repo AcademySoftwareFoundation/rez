@@ -82,7 +82,7 @@ class Resource(object):
         return ResourceHandle(self.key, self.variables)
 
     @cached_property
-    def data(self):
+    def _data(self):
         return self._load() if self.schema else None
 
     def get(self, key, default=None):

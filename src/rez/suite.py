@@ -1,6 +1,7 @@
-from rez.util import propertycache, create_forwarding_script
+from rez.util import create_forwarding_script
 from rez.exceptions import SuiteError, ResolvedContextError
 from rez.resolved_context import ResolvedContext
+from rez.utils.data_utils import cached_property
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.colorize import warning, critical, Printer, alias as alias_col
 from rez.vendor import yaml
@@ -53,7 +54,7 @@ class Suite(object):
         """
         return self.contexts.keys()
 
-    @propertycache
+    @cached_property
     def tools_path(self):
         """Get the path that should be added to $PATH to expose this suite's
         tools.

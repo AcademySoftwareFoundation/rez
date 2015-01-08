@@ -46,6 +46,15 @@ class TestConfig(TestBase):
         c.override("build_directory", "flabber")
         self.assertEqual(c.build_directory, "flabber")
 
+        # remove override
+        value = c.tmpdir or ''
+        new_value = value + '_'
+        c.override("tmpdir", new_value)
+        self.assertEqual(c.tmpdir, new_value)
+        c.remove_override("tmpdir")
+        value_ = c.tmpdir or ''
+        self.assertEqual(value_, value)
+
         self._test_basic(c)
 
     def test_1(self):

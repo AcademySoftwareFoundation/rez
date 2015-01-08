@@ -46,7 +46,7 @@ release_packages_path: '/film/tools/packages'
 unleash_packages_path: '/var/tmp/rezunleash'
 
 # Where temporary files go. Defaults to appropriate path depending on your
-# system, for example linux distributions will probably set this to /tmp.
+# system - for example, *nix distributions will probably set this to '/tmp'.
 tmpdir: '/tmp'
 
 

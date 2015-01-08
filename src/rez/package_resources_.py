@@ -272,7 +272,7 @@ class PackageResourceHelper(PackageResource):
         pass
 
     def iter_variants(self):
-        num_variants = len(self.data.get("variants", []))
+        num_variants = len(self._data.get("variants", []))
         if num_variants == 0:
             indexes = [None]
         else:

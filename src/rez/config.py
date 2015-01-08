@@ -1,5 +1,6 @@
-from rez.util import deep_update, propertycache, DataWrapper
-from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, convert_dicts
+from rez.util import deep_update
+from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
+    convert_dicts, cached_property, LazyAttributeMeta
 from rez.utils.formatting import expandvars
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -285,7 +286,7 @@ _plugin_config_dict = {
 # Config
 # -----------------------------------------------------------------------------
 
-class Config(DataWrapper):
+class Config(object):
     """Rez configuration settings.
 
     You should call the `create_config` function, rather than constructing a
@@ -296,6 +297,7 @@ class Config(DataWrapper):
     files update the master configuration to create the final config. See the
     comments at the top of 'rezconfig' for more details.
     """
+    __metaclass__ = LazyAttributeMeta
     schema = config_schema
     schema_error = ConfigurationError
 
@@ -326,7 +328,7 @@ class Config(DataWrapper):
             self.plugins.override(keys[1:], value)
         else:
             self.overrides[key] = value
-            propertycache.uncache(self, key)
+            self._uncache(key)
 
     def remove_override(self, key):
         """Remove a setting override, if one exists."""
@@ -335,7 +337,7 @@ class Config(DataWrapper):
             raise NotImplementedError
         elif key in self.overrides:
             del self.overrides[key]
-            propertycache.uncache(self, key)
+            self._uncache(key)
 
     def warn(self, key):
         """Returns True if the warning setting is enabled."""
@@ -352,7 +354,7 @@ class Config(DataWrapper):
         enabled = self.debug(key)
         return get_debug_printer(enabled)
 
-    @propertycache
+    @cached_property
     def plugins(self):
         """Plugin settings are loaded lazily, to avoid loading the plugins
         until necessary."""
@@ -381,18 +383,6 @@ class Config(DataWrapper):
             paths.remove(self.local_packages_path)
         return paths
 
-    # use as decorator
-    # TODO DEPRECATE after old resources removed
-    def lru_cache(self, key, maxsize_key=None):
-        def decorated(f):
-            if self.get(key):
-                maxsize = self.get(maxsize_key) if maxsize_key else -1
-                maxsize = None if maxsize == -1 else maxsize
-                return lru_cache(maxsize)(f)
-            else:
-                return f
-        return decorated
-
     def get_completions(self, prefix):
         def _get_plugin_completions(prefix_):
             from rez.utils.data_utils import get_object_completions
@@ -416,6 +406,12 @@ class Config(DataWrapper):
                 keys += _get_plugin_completions('')
             return keys
 
+    def _uncache(self, key):
+        # deleting the attribute falls up back to the class attribute, which is
+        # the cached_property descriptor
+        if hasattr(self, key):
+            delattr(self, key)
+
     def _swap(self, other):
         """Swap this config with another.
 
@@ -432,7 +428,7 @@ class Config(DataWrapper):
             key_schema = Schema(key_schema)
         return key_schema.validate(value)
 
-    @propertycache
+    @cached_property
     def _data(self):
         data = {}
         for filepath in self.filepaths:
