@@ -1,5 +1,5 @@
-from rez.util import deep_update, propertycache, RO_AttrDictWrapper, \
-    convert_dicts, AttrDictWrapper, DataWrapper
+from rez.util import deep_update, propertycache, DataWrapper
+from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, convert_dicts
 from rez.utils.formatting import expandvars
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format

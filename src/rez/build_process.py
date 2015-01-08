@@ -3,7 +3,7 @@ from rez.exceptions import RezError, BuildError, BuildContextResolveError, \
     ReleaseError
 from rez.resolver import ResolverStatus
 from rez.resolved_context import ResolvedContext
-from rez.util import convert_dicts, AttrDictWrapper
+#from rez.utils.data_utils import convert_dicts, AttrDictWrapper
 from rez.utils.logging_ import print_debug
 from rez.release_hook import create_release_hooks
 from rez.utils.yaml import dump_yaml
@@ -187,11 +187,14 @@ class StandardBuildProcess(BuildProcess):
             # get previous version/revision, needed by hooks and vcs.get_changelog
             last_version = last_pkg.version
             last_revision = last_pkg.revision
+
+            """
             # TODO probably don't need this in resources2
             if isinstance(last_revision, AttrDictWrapper):
                 last_revision = convert_dicts(last_pkg.revision,
                                               to_class=dict,
                                               from_class=AttrDictWrapper)
+            """
 
         revision = self.vcs.get_current_revision()
         changelog = self.vcs.get_changelog(last_revision)

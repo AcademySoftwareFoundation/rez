@@ -4,7 +4,7 @@ from rez.exceptions import ConfigurationError
 from rez.config import Config
 from rez.system import system
 from rez import module_root_path
-from rez.util import RO_AttrDictWrapper
+from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages_ import get_developer_package
 import os
 import os.path

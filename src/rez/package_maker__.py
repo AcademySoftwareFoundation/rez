@@ -1,12 +1,11 @@
 from rez.utils.schema import Required, schema_keys
 from rez.utils.formatting import PackageRequest
-from rez.utils.data_utils import SourceCode
+from rez.utils.data_utils import SourceCode, AttrDictWrapper
 from rez.serialise import FileFormat
 from rez.package_resources_ import help_schema, _commands_schema
 from rez.package_serialise import dump_package_data
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
-from rez.util import AttrDictWrapper
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.version.version import Version
 from contextlib import contextmanager

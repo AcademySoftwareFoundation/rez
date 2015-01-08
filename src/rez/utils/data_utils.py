@@ -2,6 +2,7 @@
 Utilities related to managing data types.
 """
 from rez.vendor.schema.schema import Schema, Optional
+from collections import MutableMapping
 from inspect import getsourcelines
 from threading import Lock
 from textwrap import dedent
@@ -79,6 +80,161 @@ class LazySingleton(object):
             finally:
                 self.lock.release()
         return self.instance
+
+
+class AttrDictWrapper(MutableMapping):
+    """Wrap a custom dictionary with attribute-based lookup::
+
+        >>> d = {'one': 1}
+        >>> dd = AttrDictWrapper(d)
+        >>> assert dd.one == 1
+        >>> ddd = dd.copy()
+        >>> ddd.one = 2
+        >>> assert ddd.one == 2
+        >>> assert dd.one == 1
+        >>> assert d['one'] == 1
+    """
+    def __init__(self, data=None):
+        self.__dict__['_data'] = {} if data is None else data
+
+    @property
+    def _data(self):
+        return self.__dict__['_data']
+
+    def __getattr__(self, attr):
+        if attr.startswith('__') and attr.endswith('__'):
+            d = self.__dict__
+        else:
+            d = self._data
+        try:
+            return d[attr]
+        except KeyError:
+            raise AttributeError("'%s' object has no attribute '%s'"
+                                 % (self.__class__.__name__, attr))
+
+    def __setattr__(self, attr, value):
+        # For things like '__class__', for instance
+        if attr.startswith('__') and attr.endswith('__'):
+            super(AttrDictWrapper, self).__setattr__(attr, value)
+        self._data[attr] = value
+
+    def __getitem__(self, key):
+        return self._data[key]
+
+    def __setitem__(self, key, value):
+        self._data[key] = value
+
+    def __delitem__(self, key):
+        del self._data[key]
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __str__(self):
+        return str(self._data)
+
+    def __repr__(self):
+        return "%s(%r)" % (self.__class__.__name__, self._data)
+
+    def copy(self):
+        return self.__class__(self._data.copy())
+
+
+class RO_AttrDictWrapper(AttrDictWrapper):
+    """Read-only version of AttrDictWrapper."""
+    def __setattr__(self, attr, value):
+        self[attr]  # may raise 'no attribute' error
+        raise AttributeError("'%s' object attribute '%s' is read-only"
+                             % (self.__class__.__name__, attr))
+
+
+def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
+    """Recursively convert dict and UserDict types.
+
+    Note that `d` is unchanged.
+
+    Args:
+        to_class (type): Dict-like type to convert values to, usually UserDict
+            subclass, or dict.
+        from_class (type): Dict-like type to convert values from. If a tuple,
+            multiple types are converted.
+
+    Returns:
+        Converted data as `to_class` instance.
+    """
+    d_ = to_class()
+    for key, value in d.iteritems():
+        if isinstance(value, from_class):
+            d_[key] = convert_dicts(value, to_class=to_class,
+                                    from_class=from_class)
+        else:
+            d_[key] = value
+    return d_
+
+
+def get_object_completions(instance, prefix, types=None, instance_types=None):
+    """Get completion strings based on an object's attributes/keys.
+
+    Completion also works on dynamic attributes (eg implemented via __getattr__)
+    if they are iterable.
+
+    Args:
+        instance (object): Object to introspect.
+        prefix (str): Prefix to match, can be dot-separated to access nested
+            attributes.
+        types (tuple): Attribute types to match, any if None.
+        instance_types (tuple): Class types to recurse into when a dotted
+            prefix is given, any if None.
+
+    Returns:
+        List of strings.
+    """
+    word_toks = []
+    toks = prefix.split('.')
+    while len(toks) > 1:
+        attr = toks[0]
+        toks = toks[1:]
+        word_toks.append(attr)
+        try:
+            instance = getattr(instance, attr)
+        except AttributeError:
+            return []
+        if instance_types and not isinstance(instance, instance_types):
+            return []
+
+    prefix = toks[-1]
+    words = []
+
+    attrs = dir(instance)
+    try:
+        for attr in instance:
+            if isinstance(attr, basestring):
+                attrs.append(attr)
+    except TypeError:
+        pass
+
+    for attr in attrs:
+        if attr.startswith(prefix) and not attr.startswith('_') \
+                and not hasattr(instance.__class__, attr):
+            value = getattr(instance, attr)
+            if types and not isinstance(value, types):
+                continue
+            if not callable(value):
+                words.append(attr)
+
+    qual_words = ['.'.join(word_toks + [x]) for x in words]
+
+    if len(words) == 1 and value is not None and \
+            (instance_types is None or isinstance(value, instance_types)):
+        qual_word = qual_words[0]
+        words = get_object_completions(value, '', types)
+        for word in words:
+            qual_words.append("%s.%s" % (qual_word, word))
+
+    return qual_words
 
 
 class AttributeForwardMeta(type):
@@ -241,65 +397,3 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=attribute)
-
-
-def get_object_completions(instance, prefix, types=None, instance_types=None):
-    """Get completion strings based on an object's attributes/keys.
-
-    Completion also works on dynamic attributes (eg implemented via __getattr__)
-    if they are iterable.
-
-    Args:
-        instance (object): Object to introspect.
-        prefix (str): Prefix to match, can be dot-separated to access nested
-            attributes.
-        types (tuple): Attribute types to match, any if None.
-        instance_types (tuple): Class types to recurse into when a dotted
-            prefix is given, any if None.
-
-    Returns:
-        List of strings.
-    """
-    word_toks = []
-    toks = prefix.split('.')
-    while len(toks) > 1:
-        attr = toks[0]
-        toks = toks[1:]
-        word_toks.append(attr)
-        try:
-            instance = getattr(instance, attr)
-        except AttributeError:
-            return []
-        if instance_types and not isinstance(instance, instance_types):
-            return []
-
-    prefix = toks[-1]
-    words = []
-
-    attrs = dir(instance)
-    try:
-        for attr in instance:
-            if isinstance(attr, basestring):
-                attrs.append(attr)
-    except TypeError:
-        pass
-
-    for attr in attrs:
-        if attr.startswith(prefix) and not attr.startswith('_') \
-                and not hasattr(instance.__class__, attr):
-            value = getattr(instance, attr)
-            if types and not isinstance(value, types):
-                continue
-            if not callable(value):
-                words.append(attr)
-
-    qual_words = ['.'.join(word_toks + [x]) for x in words]
-
-    if len(words) == 1 and value is not None and \
-            (instance_types is None or isinstance(value, instance_types)):
-        qual_word = qual_words[0]
-        words = get_object_completions(value, '', types)
-        for word in words:
-            qual_words.append("%s.%s" % (qual_word, word))
-
-    return qual_words
