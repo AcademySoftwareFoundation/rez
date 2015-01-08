@@ -49,19 +49,20 @@ def command(opts, parser, extra_arg_groups=None):
         if not os.path.isdir(path):
             continue
 
-        file = os.path.join(path, name+".py")
-        if os.path.isfile(file):
+        filename = os.path.join(path, name + ".py")
+        if os.path.isfile(filename):
             if opts.search:
-                print file
+                print filename
                 sys.exit(0)
             else:
-                bindfile = file
+                bindfile = filename
                 break
         else:
-            for file in os.listdir(path):
-                fpath = os.path.join(path, file)
-                fname,ext = os.path.splitext(file)
-                if os.path.isfile(fpath) and ext == ".py":
+            for filename in os.listdir(path):
+                fpath = os.path.join(path, filename)
+                fname, ext = os.path.splitext(filename)
+                if os.path.isfile(fpath) and ext == ".py" \
+                        and not fname.startswith('_'):
                     bindnames[fname] = fpath
 
     if not bindfile:
@@ -104,10 +105,10 @@ def command(opts, parser, extra_arg_groups=None):
     if not bindfunc:
         raise RezBindError("'bind' function missing in %s" % bindfile)
 
-    name,version = bindfunc(path=install_path,
-                            version_range=version_range,
-                            opts=bind_opts,
-                            parser=bind_parser)
+    name, version = bindfunc(path=install_path,
+                             version_range=version_range,
+                             opts=bind_opts,
+                             parser=bind_parser)
 
     o = VersionedObject.construct(name, version)
     print "created package '%s' in %s" % (str(o), install_path)

@@ -9,7 +9,7 @@ import re
 
 
 class SourceCode(object):
-    """Very simple wrapper for source code."""
+    """Very simple wrapper for python source code."""
     def __init__(self, source):
         self.source = source.rstrip()
 

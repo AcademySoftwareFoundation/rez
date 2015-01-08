@@ -51,6 +51,35 @@ class ProgressBar(Bar):
 
 
 # TODO use distlib.ScriptMaker
+# TODO or, do the work ourselves to make this cross platform
+# FIXME *nix only
+def create_executable_script(filepath, body, program=None):
+    """Create an executable script.
+
+    Args:
+        filepath (str): File to create.
+        body (str or callable): Contents of the script. If a callable, its code
+            is used as the script body.
+        program (str): Name of program to launch the script, 'python' if None
+    """
+    program = program or "python"
+    if callable(body):
+        from rez.utils.data_utils import SourceCode
+        code = SourceCode.from_function(body)
+        body = code.source
+
+    if not body.endswith('\n'):
+        body += '\n'
+
+    with open(filepath, 'w') as f:
+        # TODO make cross platform
+        f.write("#!/usr/bin/env %s\n" % program)
+        f.write(body)
+
+    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+
+
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     """Create a 'forwarding' script.
 
@@ -67,14 +96,8 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
     if kwargs:
         doc["kwargs"] = kwargs
 
-    content = dump_yaml(doc)
-    with open(filepath, 'w') as f:
-        # TODO make cross platform
-        f.write("#!/usr/bin/env _rez_fwd\n")
-        f.write(content)
-
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    body = dump_yaml(doc)
+    create_executable_script(filepath, body, "_rez_fwd")
 
 
 def dedup(seq):

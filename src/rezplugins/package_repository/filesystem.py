@@ -616,14 +616,17 @@ class FileSystemPackageRepository(PackageRepository):
         else:
             parent_package = variant.parent
             package_data = parent_package.validated_data()
-            package_data["variants"] = []
             package_format = FileFormat.py
+            if "variants" in package_data:
+                del package_data["variants"]
 
         # merge the variant into the package
         if variant.index is None:
             new_index = None
         else:
             variant_requires = variant.parent.variants[variant.index]
+            if not package_data.get("variants"):
+                package_data["variants"] = []
             package_data["variants"].append(variant_requires)
             new_index = len(package_data["variants"]) - 1
 

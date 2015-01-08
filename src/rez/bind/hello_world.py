@@ -6,19 +6,19 @@ requirement. This is not typical! This package is intended as a very simple test
 case, and for that reason we do not want any dependencies.
 """
 from __future__ import absolute_import
-from rez.package_maker_ import make_py_package, root, code_provider
-from rez.exceptions import RezBindError
+from rez.package_maker__ import make_package
 from rez.vendor.version.version import Version
 from rez.utils.lint_helper import env
+from rez.util import create_executable_script
+from rez.bind._utils import make_dirs, check_version
+import os.path
 
 
-@code_provider
 def commands():
     env.PATH.append('{this.root}/bin')
 
 
-@code_provider
-def hello_world_tool():
+def hello_world_source():
     import sys
     from optparse import OptionParser
 
@@ -36,16 +36,16 @@ def hello_world_tool():
 
 def bind(path, version_range=None, opts=None, parser=None):
     version = Version("1.0")
-    if version_range and version not in version_range:
-        raise RezBindError("hello_world is a test package that can only "
-                           "be bound as version 1.0")
+    check_version(version, version_range)
 
-    with make_py_package("hello_world", version, path) as pkg:
-        pkg.set_tools("hello_world")
-        pkg.set_commands(commands)
+    def make_root(variant, root):
+        binpath = make_dirs(root, "bin")
+        filepath = os.path.join(binpath, "hello_world")
+        create_executable_script(filepath, hello_world_source)
 
-        pkg.add_python_tool(name="hello_world",
-                            body=hello_world_tool,
-                            relpath=root("bin"))
+    with make_package("hello_world", path, make_root=make_root) as pkg:
+        pkg.version = version
+        pkg.tools = ["hello_world"]
+        pkg.commands = commands
 
-    return ("hello_world", version)
+    return "hello_world", version

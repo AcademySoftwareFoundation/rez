@@ -6,10 +6,12 @@ from rez.package_resources_ import help_schema, _commands_schema
 from rez.package_serialise import dump_package_data
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
+from rez.util import AttrDictWrapper
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.version.version import Version
-from inspect import isfunction, ismethod
-from tempfile import mkdtemp
+from contextlib import contextmanager
+import os.path
+import os
 
 
 package_request_schema = Or(basestring,
@@ -18,6 +20,7 @@ package_request_schema = Or(basestring,
 
 package_schema = Schema({
     Required("name"):                   basestring,
+    Optional("base"):                   basestring,
     Optional("version"):                Or(basestring,
                                            And(Version, Use(str))),
     Optional('description'):            basestring,
@@ -46,35 +49,16 @@ package_schema = Schema({
 package_schema_keys = schema_keys(package_schema)
 
 
-class PackageMaker(object):
-    """Utility class for creating packages.
-
-    You can either create an instance of `PackageMaker` directly, passing all
-    relevant package attributes in the constructor; or, you can subclass it, and
-    any package attributes you define on the subclass are used as well (and are
-    used in preference to `self.data`).
-
-    Example:
-
-        class FooPackageMaker(PackageMaker):
-            description = "Does foo-like things."
-
-            def __init__(self, data):
-                super(FooPackageMaker, self).__init__("foo", data)
-
-            def commands(self):
-                # this code must be self-contained!
-                env.PATH.append("{root}/bin")
-    """
-    def __init__(self, name, data):
+class PackageMaker(AttrDictWrapper):
+    """Utility class for creating packages."""
+    def __init__(self, name, data=None):
         """Create a package maker.
 
         Args:
             name (str): Package name.
-            data (dict): Package data. Must conform to `package_schema`.
         """
+        super(PackageMaker, self).__init__(data)
         self.name = name
-        self._data = data
 
     def get_package(self):
         """Create the analogous package.
@@ -103,11 +87,54 @@ class PackageMaker(object):
 
     def _get_data(self):
         data = self._data.copy()
-
-        for key in package_schema_keys:
-            value = getattr(self, key, None)
-            if value is not None:
-                data[key] = value
-
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
+
+
+@contextmanager
+def make_package(name, path, make_base=None, make_root=None):
+    """Make and install a package.
+
+    Example:
+
+        >>> def make_root(variant, path):
+        >>>     os.symlink("/foo_payload/misc/python27", "ext")
+        >>>
+        >>> with make_package('foo', '/packages', make_root=make_root) as pkg:
+        >>>     pkg.version = '1.0.0'
+        >>>     pkg.description = 'does foo things'
+        >>>     pkg.requires = ['python-2.7']
+
+    Args:
+        name (str): Package name.
+        path (str): Package repository path to install package into.
+        make_base (callable): Function that is used to create the package
+            payload, if applicable.
+        make_root (callable): Function that is used to create the package
+            variant payloads, if applicable.
+
+    Note:
+        Both `make_base` and `make_root` are called once per variant install,
+        and have the signature (variant, path).
+    """
+    maker = PackageMaker(name)
+    yield maker
+
+    # post-with-block:
+    package = maker.get_package()
+    for variant in package.iter_variants():
+        variant_ = variant.install(path)
+
+        base = variant_.base
+        if make_base and base:
+            if not os.path.exists(base):
+                os.makedirs(base)
+            os.chdir(base)
+            make_base(variant_, base)
+
+        root = variant_.root
+        if make_root and root:
+            if not os.path.exists(root):
+                os.makedirs(root)
+            os.chdir(root)
+            make_root(variant_, root)
