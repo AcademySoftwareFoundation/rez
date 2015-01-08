@@ -9,7 +9,6 @@ import os.path
 import copy
 import re
 import textwrap
-from collections import MutableMapping, defaultdict
 from rez import module_root_path
 from rez.utils.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
@@ -198,6 +197,7 @@ def deep_update(dict1, dict2):
             dict1[k] = copy.deepcopy(v)
 
 
+# TODO DEPRECATE
 class propertycache(object):
     '''Class for creating properties where the value is initially calculated
     then stored.
@@ -315,99 +315,7 @@ class propertycache(object):
             d.clear()
 
 
-class AttrDictWrapper(MutableMapping):
-    """Wrap a custom dictionary with attribute-based lookup::
-
-        >>> d = {'one': 1}
-        >>> dd = AttrDictWrapper(d)
-        >>> assert dd.one == 1
-        >>> ddd = dd.copy()
-        >>> ddd.one = 2
-        >>> assert ddd.one == 2
-        >>> assert dd.one == 1
-        >>> assert d['one'] == 1
-    """
-    def __init__(self, data=None):
-        self.__dict__['_data'] = {} if data is None else data
-
-    @property
-    def _data(self):
-        return self.__dict__['_data']
-
-    def __getattr__(self, attr):
-        if attr.startswith('__') and attr.endswith('__'):
-            d = self.__dict__
-        else:
-            d = self._data
-        try:
-            return d[attr]
-        except KeyError:
-            raise AttributeError("'%s' object has no attribute '%s'"
-                                 % (self.__class__.__name__, attr))
-
-    def __setattr__(self, attr, value):
-        # For things like '__class__', for instance
-        if attr.startswith('__') and attr.endswith('__'):
-            super(AttrDictWrapper, self).__setattr__(attr, value)
-        self._data[attr] = value
-
-    def __getitem__(self, key):
-        return self._data[key]
-
-    def __setitem__(self, key, value):
-        self._data[key] = value
-
-    def __delitem__(self, key):
-        del self._data[key]
-
-    def __iter__(self):
-        return iter(self._data)
-
-    def __len__(self):
-        return len(self._data)
-
-    def __str__(self):
-        return str(self._data)
-
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self._data)
-
-    def copy(self):
-        return self.__class__(self._data.copy())
-
-
-class RO_AttrDictWrapper(AttrDictWrapper):
-    """Read-only version of AttrDictWrapper."""
-    def __setattr__(self, attr, value):
-        self[attr]  # may raise 'no attribute' error
-        raise AttributeError("'%s' object attribute '%s' is read-only"
-                             % (self.__class__.__name__, attr))
-
-
-def convert_dicts(d, to_class=AttrDictWrapper, from_class=dict):
-    """Recursively convert dict and UserDict types.
-
-    Note that `d` is unchanged.
-
-    Args:
-        to_class (type): Dict-like type to convert values to, usually UserDict
-            subclass, or dict.
-        from_class (type): Dict-like type to convert values from. If a tuple,
-            multiple types are converted.
-
-    Returns:
-        Converted data as `to_class` instance.
-    """
-    d_ = to_class()
-    for key, value in d.iteritems():
-        if isinstance(value, from_class):
-            d_[key] = convert_dicts(value, to_class=to_class,
-                                    from_class=from_class)
-        else:
-            d_[key] = value
-    return d_
-
-
+# TODO DEPRECATE
 class _LazyAttributeValidator(type):
     """Metaclass for adding properties to a class for accessing top-level keys
     in its `_data` dictionary, and validating them on first reference.
@@ -479,6 +387,7 @@ class _LazyAttributeValidator(type):
         return propertycache(getter, name=key)
 
 
+# TODO DEPRECATE
 class DataWrapper(object):
     """Base class for implementing a class that contains validated data.
 
