@@ -208,7 +208,6 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
-    "release_lock_timeout":                         Int,
     "color_enabled":                                Bool,
     "resource_caching":                             Bool,
     "resolve_caching":                              Bool,
