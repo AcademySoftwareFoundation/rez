@@ -324,7 +324,6 @@ class TestRex(TestBase):
 
     def test_old_style_commands(self):
         """Convert old style commands to rex"""
-
         expected = ""
         rez_commands = convert_old_environment_variable_references("")
         self.assertEqual(rez_commands, expected)

@@ -225,22 +225,23 @@ class VariantResource(PackageResource):
 
     @cached_property
     def root(self):
+        """Return the 'root' path of the variant."""
         return self._root()
 
     @cached_property
     def subpath(self):
-        return self._subpath()
-
-    def _root(self):
-        """Return the 'root' path of the variant."""
-        raise NotImplementedError
-
-    def _subpath(self):
         """Return the variant's 'subpath'
 
         The subpath is the relative path the variant's payload should be stored
-        under, relative to the package base.
+        under, relative to the package base. If None, implies that the variant
+        root matches the package base.
         """
+        return self._subpath()
+
+    def _root(self):
+        raise NotImplementedError
+
+    def _subpath(self):
         raise NotImplementedError
 
 
@@ -267,9 +268,6 @@ class PackageResourceHelper(PackageResource):
     @cached_property
     def post_commands(self):
         return self._convert_to_rex(self._post_commands)
-
-    def _subpath(self):
-        pass
 
     def iter_variants(self):
         num_variants = len(self._data.get("variants", []))
@@ -332,10 +330,13 @@ class VariantResourceHelper(VariantResource):
         return "%s[%s]" % (self.parent.uri, idxstr)
 
     def _subpath(self):
-        reqs = self.parent.variants[self.index]
-        dirs = [x.safe_str() for x in reqs]
-        subpath = os.path.join(*dirs)
-        return subpath
+        if self.index is None:
+            return None
+        else:
+            reqs = self.parent.variants[self.index]
+            dirs = [x.safe_str() for x in reqs]
+            subpath = os.path.join(*dirs)
+            return subpath
 
     def _root(self):
         if self.base is None:

@@ -2,7 +2,7 @@
 CMake-based build system
 """
 from rez.build_system import BuildSystem
-from rez.build_process import BuildType
+from rez.build_process_ import BuildType
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildSystemError
 from rez.util import create_forwarding_script

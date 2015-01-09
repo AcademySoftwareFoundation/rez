@@ -200,7 +200,7 @@ class Variant(PackageBaseResourceWrapper):
             requires = requires + (self.private_build_requires or [])
         return requires
 
-    def install(self, path):
+    def install(self, path, dry_run=False):
         """Install this variant into another package repository.
 
         If the package already exists, this variant will be correctly merged
@@ -209,14 +209,20 @@ class Variant(PackageBaseResourceWrapper):
 
         Args:
             path (str): Path to destination package repository.
+            dry_run (bool): If True, do not actually install the variant. In this
+                mode, a `Variant` instance is only returned if the equivalent
+                variant already exists in this repository; otherwise, None is
+                returned.
 
         Returns:
             `Variant` object - the (existing or newly created) variant in the
-            specified repository.
+            specified repository. If `dry_run` is True, None may be returned.
         """
         repo = package_repository_manager.get_repository(path)
-        resource = repo.install_variant(self.resource)
-        if resource is self.resource:
+        resource = repo.install_variant(self.resource, dry_run=dry_run)
+        if resource is None:
+            return None
+        elif resource is self.resource:
             return self
         else:
             return Variant(resource)
@@ -259,6 +265,9 @@ def iter_packages(name, range_=None, paths=None):
             to those in `range_`.
         paths (list of str, optional): paths to search for packages, defaults
             to `config.packages_path`.
+
+    Raises:
+        `PackageFamilyNotFoundError` if no such package is found.
 
     Returns:
         `Package` iterator.

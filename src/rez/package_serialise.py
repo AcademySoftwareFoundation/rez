@@ -1,7 +1,7 @@
 from rez.vendor import yaml
 from rez.serialise import FileFormat
 from rez.package_resources_ import help_schema
-from rez.vendor.schema.schema import Schema, Optional, And, Use
+from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
 from rez.utils.data_utils import SourceCode
 from rez.utils.formatting import PackageRequest, indent, dict_to_attributes_code
@@ -26,7 +26,16 @@ package_key_order = [
     'post_commands',
     'help',
     'config',
-    'uuid']
+    'uuid',
+    'timestamp',
+    'release_message',
+    'changelog',
+    'revision',
+    'previous_version',
+    'previous_revision']
+
+
+version_schema = And(Version, Use(str))
 
 
 package_request_schema = And(PackageRequest, Use(str))
@@ -35,7 +44,7 @@ package_request_schema = And(PackageRequest, Use(str))
 # package serialisation schema
 package_serialise_schema = Schema({
     Required("name"):                   basestring,
-    Optional("version"):                And(Version, Use(str)),
+    Optional("version"):                version_schema,
     Optional("description"):            basestring,
     Optional("authors"):                [basestring],
     Optional("tools"):                  [basestring],
@@ -53,6 +62,13 @@ package_serialise_schema = Schema({
     Optional("uuid"):                   basestring,
     Optional("config"):                 dict,
 
+    Optional("timestamp"):              int,
+    Optional('revision'):               object,
+    Optional('changelog'):              basestring,
+    Optional('release_message'):        Or(None, basestring),
+    Optional('previous_version'):       version_schema,
+    Optional('previous_revision'):      object,
+
     Optional(basestring):               object
 })
 
@@ -64,7 +80,7 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
         data (dict): Data source - must conform to `package_serialise_schema`.
         buf (file-like object): Destination stream.
         format_ (`FileFormat`): Format to dump data in.
-        skip_attributes (lsit of str): List of attributes to not print.
+        skip_attributes (list of str): List of attributes to not print.
     """
     if format_ == FileFormat.txt:
         raise ValueError("'txt' format not supported for packages.")

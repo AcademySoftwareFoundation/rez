@@ -236,7 +236,7 @@ class ResourceWrapper(object):
 
     @property
     def data(self):
-        return self.resource.data
+        return self.resource._data
 
     def validated_data(self):
         return self.resource.validated_data()

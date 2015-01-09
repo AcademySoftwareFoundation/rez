@@ -232,6 +232,12 @@ class TestPackages(TestBase, TempdirMixin):
         for i in range(2):
             # install variants into new repo
             for variant in package.iter_variants():
+                test_ = variant.install(repo_path, dry_run=True)
+                if i:
+                    self.assertNotEqual(test_, None)
+                else:
+                    self.assertEqual(test_, None)
+
                 variant_ = variant.install(repo_path)
                 data = _data(variant)
                 data_ = _data(variant_)
