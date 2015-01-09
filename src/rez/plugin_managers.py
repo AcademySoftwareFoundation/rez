@@ -353,10 +353,18 @@ class PackageRepositoryPluginType(RezPluginType):
     type_name = "package_repository"
 
 
+class BuildProcessPluginType(RezPluginType):
+    """Support for different build and release processes.
+    """
+    type_name = "build_process"
+
+
 plugin_manager = RezPluginManager()
+
 
 plugin_manager.register_plugin_type(ShellPluginType)
 plugin_manager.register_plugin_type(ReleaseVCSPluginType)
 plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
+plugin_manager.register_plugin_type(BuildProcessPluginType)

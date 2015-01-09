@@ -439,7 +439,7 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
-    def install_variant(self, variant_resource):
+    def install_variant(self, variant_resource, dry_run=False):
         if variant_resource._repository is self:
             return variant_resource
 
@@ -452,7 +452,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         try:
             lock.acquire(timeout=config.release_lock_timeout)
-            variant = self._create_variant(variant_resource)
+            variant = self._create_variant(variant_resource, dry_run=dry_run)
         finally:
             if lock.is_locked():
                 lock.release()
@@ -554,7 +554,7 @@ class FileSystemPackageRepository(PackageRepository):
         self.clear_caches()
         return self.get_package_family(name)
 
-    def _create_variant(self, variant):
+    def _create_variant(self, variant, dry_run=False):
         # find or create the package family
         family = self.get_package_family(variant.name)
         if not family:
@@ -619,6 +619,9 @@ class FileSystemPackageRepository(PackageRepository):
             package_format = FileFormat.py
             if "variants" in package_data:
                 del package_data["variants"]
+
+        if dry_run:
+            return None
 
         # merge the variant into the package
         if variant.index is None:

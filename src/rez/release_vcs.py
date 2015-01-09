@@ -17,8 +17,7 @@ def create_release_vcs(path, vcs_name=None):
     vcs_types = get_release_vcs_types()
     if vcs_name:
         if vcs_name not in vcs_types:
-            raise ReleaseVCSError("Unknown version control system: %r"
-                                  % vcs_name)
+            raise ReleaseVCSError("Unknown version control system: %r" % vcs_name)
         cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         return cls(path)
 
@@ -34,8 +33,7 @@ def create_release_vcs(path, vcs_name=None):
                               "choose." % (path, clss_str))
     elif not clss:
         raise ReleaseVCSError("No version control system for package "
-                              "releasing is associated with the path %s"
-                              % path)
+                              "releasing is associated with the path %s" % path)
     else:
         return clss[0](path)
 

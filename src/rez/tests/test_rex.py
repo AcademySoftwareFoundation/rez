@@ -332,7 +332,7 @@ class TestRex(TestBase):
         rez_commands = convert_old_commands(["export A=B"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "setenv('A', 'B:{env.C}')"
+        expected = "setenv('A', 'B:$C')"
         rez_commands = convert_old_commands(["export A=B:$C"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
@@ -349,12 +349,12 @@ class TestRex(TestBase):
         rez_commands = convert_old_commands(["export A=B:$A"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "appendenv('A', 'B:{env.C}')"
+        expected = "appendenv('A', 'B:$C')"
         rez_commands = convert_old_commands(["export A=$A:B:$C"],
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "prependenv('A', '{env.C}:B')"
+        expected = "prependenv('A', '$C:B')"
         rez_commands = convert_old_commands(["export A=$C:B:$A"],
                                             annotate=False)
         self.assertEqual(rez_commands, expected)

@@ -1,4 +1,4 @@
-from rez.build_process import BuildType
+from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
 
@@ -56,6 +56,8 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
 
 
 class BuildSystem(object):
+    """A build system, such as cmake, make, Scons etc.
+    """
     @classmethod
     def name(cls):
         """Return the name of the build system, eg 'make'."""

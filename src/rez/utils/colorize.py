@@ -190,7 +190,7 @@ def _color(str_, fore_color=None, back_color=None, styles=None):
     .. _Colorama:
         https://pypi.python.org/pypi/colorama
     """
-    if not config.get("color_enabled", False):
+    if not config.color_enabled:
         return str_
 
     # lazily init colorama. This is important - we don't want to init at startup,

@@ -295,6 +295,10 @@ class Config(object):
         self.overrides = overrides or {}
         self.locked = locked
 
+    def get(self, key, default=None):
+        """Get the value of a setting."""
+        return getattr(self, key, default)
+
     def override(self, key, value):
         """Set a setting to the given value.
 

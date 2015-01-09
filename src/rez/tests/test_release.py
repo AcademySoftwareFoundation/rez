@@ -9,7 +9,7 @@ from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
-from rez.package_serialise import dump_package_yaml
+from rez.package_serialise import dump_package_data
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -64,7 +64,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         def _write_package():
             with open(packagefile, 'w') as f:
-                f.write(dump_package_yaml(package_data))
+                dump_package_data(package_data, f)
             system.clear_caches()
 
         # create the build system
