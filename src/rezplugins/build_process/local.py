@@ -2,7 +2,9 @@
 Builds packages on local host
 """
 from rez.build_process_ import BuildProcessHelper, BuildType
-from rez.exceptions import BuildError
+from rez.release_hook import ReleaseHookEvent
+from rez.exceptions import BuildError, ReleaseError
+from rez.utils.colorize import Printer, warning
 import shutil
 import os
 
@@ -19,9 +21,9 @@ class LocalBuildProcess(BuildProcessHelper):
     def build(self, install_path=None, clean=False, install=False, variants=None):
         self._print_header("Building %s..." % self.package.qualified_name)
 
+        # build variants
         num_visited, build_env_scripts = self.visit_variants(
             self._build_variant,
-            build_type=BuildType.local,
             variants=variants,
             install_path=install_path,
             clean=clean,
@@ -36,14 +38,55 @@ class LocalBuildProcess(BuildProcessHelper):
 
     def release(self, release_message=None, variants=None):
         self._print_header("Releasing %s..." % self.package.qualified_name)
-        self.visit_variants(self._release_variant,
-                            variants=variants,
-                            release_message=release_message)
+
+        # test that we're in a state to release
+        self.pre_release()
+
+        release_path = self.package.config.release_packages_path
+        previous_package = self.get_previous_release()
+        changelog = getattr(previous_package, "changelog", None)
+        last_version = getattr(previous_package, "last_version", None)
+        last_revision = getattr(previous_package, "last_revision", None)
+
+        # run pre-release hooks
+        self.run_hooks(ReleaseHookEvent.pre_release,
+                       install_path=release_path,
+                       release_message=release_message,
+                       changelog=changelog,
+                       previous_version=last_version,
+                       previous_revision=last_revision)
+
+        # release variants
+        num_visited, installed_variants = self.visit_variants(
+            self._release_variant,
+            variants=variants,
+            release_message=release_message)
+
+        installed_variants = [x for x in installed_variants if x is not None]
+
+        # run post-release hooks
+        self.run_hooks(ReleaseHookEvent.post_release,
+                       install_path=release_path,
+                       variants=installed_variants,
+                       release_message=release_message,
+                       changelog=changelog,
+                       previous_version=last_version,
+                       previous_revision=last_revision)
+
+        # perform post-release actions: tag repo etc
+        if installed_variants:
+            self.post_release(release_message=release_message)
+
+        if self.verbose:
+            num_released = len(installed_variants)
+            msg = "\n%d of %d releases were successful" % (num_released, num_visited)
+            if num_released < num_visited:
+                Printer()(msg, warning)
+            else:
+                self._print(msg)
 
     def _build_variant_base(self, variant, build_type, install_path=None,
                             clean=False, install=False, **kwargs):
-        self._print_header("Building variant %s..." % self._n_of_m(variant))
-
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
         variant_install_path = self.get_package_install_path(install_path)
@@ -87,23 +130,52 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return build_result
 
-    def _build_variant(self, variant, build_type, install_path=None,
-                       clean=False, install=False, **kwargs):
-        build_result = self._build_variant_base(build_type=build_type,
-                                                variant=variant,
-                                                install_path=install_path,
-                                                clean=clean,
-                                                install=install)
+    def _build_variant(self, variant, install_path=None, clean=False,
+                       install=False, **kwargs):
+        if variant.index is not None:
+            self._print_header("Building variant %s..." % self._n_of_m(variant))
 
-        # install variant into release package repository
+        # build and possibly install variant
+        install_path = install_path or self.package.config.local_packages_path
+        build_result = self._build_variant_base(
+            build_type=BuildType.local,
+            variant=variant,
+            install_path=install_path,
+            clean=clean,
+            install=install)
+
+        # install variant into package repository
         if install:
             variant.install(install_path)
 
         return build_result.get("build_env_script")
 
     def _release_variant(self, variant, release_message=None, **kwargs):
-        pass
-        #self._print_header("Releasing %s..." % self._n_of_m(variant))
+        release_path = self.package.config.release_packages_path
+
+        # test if variant has already been released
+        variant_ = variant.install(release_path, dry_run=True)
+        if variant_ is not None:
+            self._print_header("Skipping %s: destination variant already exists (%r)"
+                               % (self._n_of_m(variant), variant_.uri))
+            return None
+
+        if variant.index is not None:
+            self._print_header("Releasing variant %s..." % self._n_of_m(variant))
+
+        # build and install variant
+        build_result = self._build_variant_base(
+            build_type=BuildType.central,
+            variant=variant,
+            install_path=release_path,
+            clean=True,
+            install=True)
+
+        # add release info to variant, and install it into package repository
+        release_data = self.get_release_data()
+        release_data["release_message"] = release_message
+        variant_ = variant.install(release_path, overrides=release_data)
+        return variant_
 
 
 def register_plugin():

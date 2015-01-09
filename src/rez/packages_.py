@@ -75,18 +75,30 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         """Returns True if the variant is from a local package"""
         return is_subdirectory(self.base, config.local_packages_path)
 
-    def print_info(self, buf=None, format_=FileFormat.yaml, skip_attributes=None):
+    def print_info(self, buf=None, format_=FileFormat.yaml,
+                   skip_attributes=None, include_release=False):
         """Print the contents of the package.
 
         Args:
             buf (file-like object): Stream to write to.
             format_ (`FileFormat`): Format to write in.
             skip_attributes (list of str): List of attributes to not print.
+            include_release (bool): If True, include release-related attributes,
+                such as 'timestamp' and 'changelog'
         """
         data = self.validated_data().copy()
         data["config"] = self.data.get("config")
         if "base" in data:
             del data["base"]
+
+        if not include_release:
+            release_attributes = ["timestamp",
+                                  "revision",
+                                  "changelog",
+                                  "release_message",
+                                  "previous_version",
+                                  "previous_revision"]
+            skip_attributes = (skip_attributes or []) + release_attributes
 
         buf = buf or sys.stdout
         dump_package_data(data, buf=buf, format_=format_,
@@ -200,7 +212,7 @@ class Variant(PackageBaseResourceWrapper):
             requires = requires + (self.private_build_requires or [])
         return requires
 
-    def install(self, path, dry_run=False):
+    def install(self, path, dry_run=False, overrides=None):
         """Install this variant into another package repository.
 
         If the package already exists, this variant will be correctly merged
@@ -213,13 +225,17 @@ class Variant(PackageBaseResourceWrapper):
                 mode, a `Variant` instance is only returned if the equivalent
                 variant already exists in this repository; otherwise, None is
                 returned.
+            overrides (dict): Use this to change or add attributes to the
+                installed variant.
 
         Returns:
             `Variant` object - the (existing or newly created) variant in the
             specified repository. If `dry_run` is True, None may be returned.
         """
         repo = package_repository_manager.get_repository(path)
-        resource = repo.install_variant(self.resource, dry_run=dry_run)
+        resource = repo.install_variant(self.resource,
+                                        dry_run=dry_run,
+                                        overrides=overrides)
         if resource is None:
             return None
         elif resource is self.resource:

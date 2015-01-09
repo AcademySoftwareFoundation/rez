@@ -143,6 +143,11 @@ class ReleaseHookError(RezError):
     pass
 
 
+class ReleaseHookCancellingError(RezError):
+    """A release hook error that asks to cancel the release as a result."""
+    pass
+
+
 class SuiteError(RezError):
     """Any suite-related error."""
     pass

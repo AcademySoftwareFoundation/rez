@@ -2,7 +2,7 @@
 Executes pre- and post-release shell commands
 """
 from rez.release_hook import ReleaseHook
-from rez.exceptions import ReleaseError
+from rez.exceptions import ReleaseHookCancellingError
 from rez.config import config
 from rez.utils.logging_ import print_debug
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
@@ -92,29 +92,23 @@ class CommandReleaseHook(ReleaseHook):
                 if self.settings.stop_on_error:
                     return
 
-    def pre_build(self, user, install_path, release_message=None,
-                  changelog=None, previous_version=None,
-                  previous_revision=None):
+    def pre_build(self, user, install_path, **kwargs):
         errors = []
         self._release(self.settings.pre_build_commands, errors=errors)
         if errors and self.settings.cancel_on_error:
-            raise ReleaseError("The release was cancelled due to the "
-                               "following failed pre-build commands:\n%s"
-                               % '\n\n'.join(errors))
+            raise ReleaseHookCancellingError(
+                "The following pre-build commands failed:\n%s"
+                % '\n\n'.join(errors))
 
-    def pre_release(self, user, install_path, release_message=None,
-                    changelog=None, previous_version=None,
-                    previous_revision=None):
+    def pre_release(self, user, install_path, **kwargs):
         errors = []
         self._release(self.settings.pre_release_commands, errors=errors)
         if errors and self.settings.cancel_on_error:
-            raise ReleaseError("The release was cancelled due to the "
-                               "following failed pre-release commands:\n%s"
-                               % '\n\n'.join(errors))
+            raise ReleaseHookCancellingError(
+                "The following pre-release commands failed:\n%s"
+                % '\n\n'.join(errors))
 
-    def post_release(self, user, install_path, release_message=None,
-                     changelog=None, previous_version=None,
-                     previous_revision=None):
+    def post_release(self, user, install_path, variants, **kwargs):
         self._release(self.settings.post_release_commands)
 
 

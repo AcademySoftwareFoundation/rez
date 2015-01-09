@@ -14,6 +14,7 @@ from rez.memcache import mem_cached, DataType
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use
 from rez.vendor.version.version import Version, VersionRange
+import time
 import os.path
 import os
 
@@ -175,6 +176,8 @@ class FileSystemPackageResource(PackageResourceHelper):
         # changelogs (more recent rez versions truncate before release), and
         # release.yaml files can contain a list-of-str changelog.
         maxlen = config.max_package_changelog_chars
+        if not maxlen:
+            return data
 
         if file_format == FileFormat.yaml:
             changelog = data.get("changelog")
@@ -443,7 +446,7 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
-    def install_variant(self, variant_resource, dry_run=False):
+    def install_variant(self, variant_resource, dry_run=False, overrides=None):
         if variant_resource._repository is self:
             return variant_resource
 
@@ -456,7 +459,8 @@ class FileSystemPackageRepository(PackageRepository):
 
         try:
             lock.acquire(timeout=self.settings.file_lock_timeout)
-            variant = self._create_variant(variant_resource, dry_run=dry_run)
+            variant = self._create_variant(variant_resource, dry_run=dry_run,
+                                           overrides=overrides)
         finally:
             if lock.is_locked():
                 lock.release()
@@ -558,7 +562,7 @@ class FileSystemPackageRepository(PackageRepository):
         self.clear_caches()
         return self.get_package_family(name)
 
-    def _create_variant(self, variant, dry_run=False):
+    def _create_variant(self, variant, dry_run=False, overrides=None):
         # find or create the package family
         family = self.get_package_family(variant.name)
         if not family:
@@ -651,11 +655,25 @@ class FileSystemPackageRepository(PackageRepository):
         if not os.path.exists(path):
             os.makedirs(path)
 
+        # add a timestamp. We make this just a few seconds in the future, so
+        # that the package does exist on disk when its timestamp claims. Note
+        # that if a timestamp already exists, we don't overwrite it. This is
+        # intentional - the package-level timestamp (as opposed to per-variant)
+        # must always be the timestamp of the earliest variant.
+        overrides = overrides or {}
+        overrides["timestamp"] = int(time.time()) + 2
+
+        # apply attribute overrides
+        for key, value in overrides.iteritems():
+            if package_data.get(key) is None:
+                package_data[key] = value
+
         filepath = os.path.join(path, "package.py")
         with open(filepath, 'w') as f:
             dump_package_data(package_data, buf=f, format_=package_format)
 
-        os.utime(family_path, None)  # keeps memcached resolves updated properly
+        # touch the family dir, this keeps memcached resolves updated properly
+        os.utime(family_path, None)
 
         # load new variant
         new_variant = None

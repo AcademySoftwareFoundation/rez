@@ -19,6 +19,9 @@ emailer:
     #   - message: Release message.
     #   - changelog: Release changelog.
     #   - previous_version: Version of previous release.
+    # - variants: Namespace for info about the variants that were released:
+    #   - count: The number of variants that were released;
+    #   - paths: Newline-separated paths to the root of each variant.
     body: |
         Package '{package.qualified_name}' was released by {system.user}@{system.fqdn}.
 
@@ -27,6 +30,9 @@ emailer:
         RELEASED TO: {release.path}
         PREVIOUS VERSION: {release.previous_version}
         REZ VERSION: {system.rez_version}
+
+        {variants.count} VARIANTS:
+        {variants.paths}
 
         MESSAGE:
         {release.message}

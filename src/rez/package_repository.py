@@ -113,7 +113,7 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
-    def install_variant(self, variant_resource, dry_run=False):
+    def install_variant(self, variant_resource, dry_run=False, overrides=None):
         """Install a variant into this repository.
 
         Use this function to install a variant from some other package repository
@@ -125,6 +125,8 @@ class PackageRepository(object):
                 mode, a `Variant` instance is only returned if the equivalent
                 variant already exists in this repository; otherwise, None is
                 returned.
+            overrides (dict): Use this to change or add attributes to the
+                installed variant.
 
         Returns:
             `VariantResource` object, which is the newly created variant in this

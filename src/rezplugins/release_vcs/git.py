@@ -200,15 +200,13 @@ class GitReleaseVCS(ReleaseVCS):
     def create_release_tag(self, tag_name, message=None):
         # check if tag already exists
         tags = self.git("tag")
-        if tag_name in tags:
-            print_warning("Skipped tag creation, tag '%s' already exists" % tag_name)
+        if tag_name in tags:  # already exists
             return
 
         # create tag
         print "Creating tag '%s'..." % tag_name
         args = ["tag", "-a", tag_name]
-        if message:
-            args += ["-m", message]
+        args += ["-m", message or '']
         self.git(*args)
 
         # push tag

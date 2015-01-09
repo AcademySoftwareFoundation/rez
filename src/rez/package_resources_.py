@@ -112,11 +112,13 @@ _package_request_schema = And(basestring, Use(PackageRequest))
 package_pod_schema_dict = base_resource_schema_dict.copy()
 
 
+large_string_dict = And(basestring, Use(lambda x: dedent(x).strip()))
+
+
 package_pod_schema_dict.update({
     Optional("base"):                   basestring,
     Optional("version"):                And(basestring, Use(Version)),
-    Optional('description'):            And(basestring,
-                                            Use(lambda x: dedent(x).strip())),
+    Optional('description'):            large_string_dict,
     Optional('authors'):                [basestring],
 
     Optional('requires'):               [_package_request_schema],
@@ -136,7 +138,7 @@ package_pod_schema_dict.update({
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,
-    Optional('changelog'):              basestring,
+    Optional('changelog'):              large_string_dict,
     Optional('release_message'):        Or(None, basestring),
     Optional('previous_version'):       And(basestring, Use(Version)),
     Optional('previous_revision'):      object,
@@ -358,3 +360,7 @@ class VariantResourceHelper(VariantResource):
     @property
     def wrapped(self):  # forward Package attributes onto ourself
         return self.parent
+
+    def _load(self):
+        # doesn't have its own data, forwards on from parent instead
+        return None

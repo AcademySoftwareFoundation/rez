@@ -131,10 +131,10 @@ def _dump_package_data_yaml(items, buf):
 
 def _dump_package_data_py(items, buf):
     for i, (key, value) in enumerate(items):
-        if key == "description" and len(value) > 40:
+        if key in ("description", "changelog") and len(value) > 40:
             # description is a triple-quoted string
             quoted_str = '"""\n%s\n"""' % value
-            txt = "description = \\\n%s" % indent(quoted_str)
+            txt = "%s = \\\n%s" % (key, indent(quoted_str))
         elif key == "config":
             # config is a scope
             attrs_txt = dict_to_attributes_code(dict(config=value))

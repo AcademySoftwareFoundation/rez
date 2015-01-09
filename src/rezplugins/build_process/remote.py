@@ -8,7 +8,7 @@ from rez.exceptions import BuildError
 class RemoteBuildProcess(BuildProcessHelper):
     """The default build process.
 
-    This process builds a package's variants sequentially and on localhost.
+    This process builds a package's variants sequentially, on remote hosts.
     """
     @classmethod
     def name(cls):

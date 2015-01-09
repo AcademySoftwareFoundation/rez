@@ -58,8 +58,6 @@ def convert_old_commands(commands, annotate=True):
         return s.encode("string-escape")
 
     loc = []
-    if annotate:
-        loc.append("# <BEGIN CONVERTED OLD COMMANDS>")
 
     for cmd in commands:
         if annotate:
@@ -118,9 +116,6 @@ def convert_old_commands(commands, annotate=True):
         else:
             # assume we can execute this as a straight command
             loc.append("command('%s')" % _encode(cmd))
-
-    if annotate:
-        loc.append("# <END CONVERTED OLD COMMANDS>")
 
     rex_code = '\n'.join(loc)
     if config.debug("old_commands"):
