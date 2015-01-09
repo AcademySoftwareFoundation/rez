@@ -1,0 +1,6 @@
+filesystem:
+    # The timeout to use when creating file locks. This is done when a variant is
+    # installed into an existing package, to prevent multiple file writes at
+    # once (which could result in a variant install getting lost). The timeout
+    # value is in seconds. A value of zero indicates no timeout.
+    file_lock_timeout: 10

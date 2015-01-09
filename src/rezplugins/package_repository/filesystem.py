@@ -388,6 +388,8 @@ class FileSystemPackageRepository(PackageRepository):
                 requires:
                 - python-2.6
     """
+    schema_dict = {"file_lock_timeout": int}
+
     @classmethod
     def name(cls):
         return "filesystem"
@@ -406,6 +408,8 @@ class FileSystemPackageRepository(PackageRepository):
         self.register_resource(FileSystemCombinedPackageFamilyResource)
         self.register_resource(FileSystemCombinedPackageResource)
         self.register_resource(FileSystemCombinedVariantResource)
+
+        self.settings = config.plugins.package_repository.filesystem
 
     def _uid(self):
         st = os.stat(self.location)
@@ -451,7 +455,7 @@ class FileSystemPackageRepository(PackageRepository):
         lock = LockFile(lock_file)
 
         try:
-            lock.acquire(timeout=config.release_lock_timeout)
+            lock.acquire(timeout=self.settings.file_lock_timeout)
             variant = self._create_variant(variant_resource, dry_run=dry_run)
         finally:
             if lock.is_locked():
