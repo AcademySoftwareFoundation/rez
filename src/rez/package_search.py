@@ -40,22 +40,20 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
     g.add_node(package_name)
 
     # build reverse lookup
-    fams = list(iter_package_families(paths))
-
-    package_names = set(x.name for x in fams)
+    it = iter_package_families(paths)
+    package_names = set(x.name for x in it)
     if package_name not in package_names:
         raise PackageRequestError("No such package family %r" % package_name)
 
     if depth == 0:
         return pkgs_list, g
 
-    nfams = len(fams)
-    bar = ProgressBar("Searching", nfams)
+    bar = ProgressBar("Searching", len(package_names))
     lookup = defaultdict(set)
 
-    for i, fam in enumerate(fams):
+    for i, package_name_ in enumerate(package_names):
         bar.next()
-        it = iter_packages(name=fam.name, paths=paths)
+        it = iter_packages(name=package_name_, paths=paths)
         pkg = max(it, key=lambda x: x.version)
 
         requires = set(pkg.requires or [])
@@ -64,7 +62,7 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
 
         for req in requires:
             if not req.conflict:
-                lookup[req.name].add(fam.name)
+                lookup[req.name].add(package_name_)
 
     # perform traversal
     bar.finish()

@@ -1,10 +1,12 @@
-from rez.packages_ import get_developer_package
-from rez.exceptions import BuildProcessError, BuildContextResolveError
+from rez.packages_ import get_developer_package, iter_packages
+from rez.exceptions import BuildProcessError, BuildContextResolveError, \
+    ReleaseHookCancellingError, RezError, ReleaseError
 from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus
 from rez.config import config
 from rez.vendor.enum import Enum
+import getpass
 import os.path
 
 
@@ -176,6 +178,105 @@ class BuildProcessHelper(BuildProcess):
         if context.status != ResolverStatus.solved:
             raise BuildContextResolveError(context)
         return context, rxt_filepath
+
+    def pre_release(self):
+        # test that the repo is in a state to release
+        assert self.vcs
+        self._print("Checking state of repository...")
+        self.vcs.validate_repostate()
+
+        release_path = self.package.config.release_packages_path
+        it = iter_packages(self.package.name, paths=[release_path])
+        packages = sorted(it, key=lambda x: x.version, reverse=True)
+
+        # check UUID. This stops unrelated packages that happen to have the same
+        # name, being released as though they are the same package
+        if self.package.uuid and packages:
+            latest_package = packages[0]
+            if latest_package.uuid and latest_package.uuid != self.package.uuid:
+                raise ReleaseError(
+                    "Cannot release - the packages are not the same (UUID mismatch)")
+
+        # test that a newer package version hasn't already been released
+        if self.ensure_latest:
+            for package in packages:
+                if package.version > self.package.version:
+                    raise ReleaseError(
+                        "Cannot release - a newer package version already "
+                        "exists (%s)" % package.uri)
+                else:
+                    break
+
+    def post_release(self, release_message=None):
+        # format tag
+        release_settings = self.package.config.plugins.release_vcs
+        try:
+            tag_name = self.package.format(release_settings.tag_name)
+        except Exception as e:
+            raise ReleaseError("Error formatting release tag name: %s" % str(e))
+        if not tag_name:
+            tag_name = "unversioned"
+
+        # write a tag for the new release into the vcs
+        assert self.vcs
+        self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
+
+    def run_hooks(self, hook_event, **kwargs):
+        for hook in self.hooks:
+            self.debug_print("Running %s hook '%s'...",
+                             hook_event.label, hook.name())
+            try:
+                func = getattr(hook, hook_event.func_name)
+                func(user=getpass.getuser(), **kwargs)
+            except ReleaseHookCancellingError as e:
+                raise ReleaseError(
+                    "%s cancelled by %s hook '%s': %s:\n%s"
+                    % (hook_event.noun, hook_event.label, hook.name(),
+                       e.__class__.__name__, str(e)))
+            except RezError:
+                self.debug_print(
+                    "Error in %s hook '%s': %s:\n%s"
+                    % (hook_event.label, hook.name(),
+                       e.__class__.__name__, str(e)))
+
+    def get_previous_release(self):
+        release_path = self.package.config.release_packages_path
+        it = iter_packages(self.package.name, paths=[release_path])
+        packages = sorted(it, key=lambda x: x.version, reverse=True)
+
+        for package in packages:
+            if package.version < self.package.version:
+                return package
+        return None
+
+    def get_release_data(self):
+        """Get release data for this release.
+
+        Returns:
+            dict.
+        """
+        previous_package = self.get_previous_release()
+        if previous_package:
+            previous_version = previous_package.version
+            previous_revision = previous_package.revision
+        else:
+            previous_version = None
+            previous_revision = None
+
+        assert self.vcs
+        revision = self.vcs.get_current_revision()
+        changelog = self.vcs.get_changelog(previous_revision)
+
+        # truncate changelog - very large changelogs can cause package load
+        # times to be very high, we don't want that
+        maxlen = config.max_package_changelog_chars
+        if maxlen and changelog and len(changelog) > maxlen + 3:
+            changelog = changelog[:maxlen] + "..."
+
+        return dict(revision=revision,
+                    changelog=changelog,
+                    previous_version=previous_version,
+                    previous_revision=previous_revision)
 
     def _print(self, txt, *nargs):
         if self.verbose:

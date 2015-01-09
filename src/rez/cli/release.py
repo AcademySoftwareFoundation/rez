@@ -9,19 +9,20 @@ def setup_parser(parser, completions=False):
     from rez.release_vcs import get_release_vcs_types
     vcs_types = get_release_vcs_types()
 
-    parser.add_argument("-m", "--message", type=str,
-                        help="commit message")
-    parser.add_argument("--vcs", type=str, choices=vcs_types,
-                        help="force the vcs system to use")
-    parser.add_argument("--no-latest", dest="no_latest",
-                        action="store_true",
-                        help="allows release of version earlier than the "
-                        "latest release.")
+    parser.add_argument(
+        "-m", "--message", type=str,
+        help="release message")
+    parser.add_argument(
+        "--vcs", type=str, choices=vcs_types,
+        help="force the vcs system to use")
+    parser.add_argument(
+        "--no-latest", dest="no_latest", action="store_true",
+        help="allows release of version earlier than the latest release.")
     setup_parser_common(parser)
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.build_process import LocalSequentialBuildProcess
+    from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
     from rez.cli.build import get_build_args
@@ -42,9 +43,12 @@ def command(opts, parser, extra_arg_groups=None):
                                    child_build_args=child_build_args)
 
     # create and execute release process
-    builder = LocalSequentialBuildProcess(working_dir,
-                                          buildsys,
-                                          vcs=vcs,
-                                          ensure_latest=(not opts.no_latest),
-                                          release_message=opts.message)
-    builder.release()
+    builder = create_build_process(opts.process,
+                                   working_dir,
+                                   build_system=buildsys,
+                                   vcs=vcs,
+                                   ensure_latest=(not opts.no_latest),
+                                   verbose=True)
+
+    builder.release(release_message=opts.message,
+                    variants=opts.variants)

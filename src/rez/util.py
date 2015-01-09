@@ -7,36 +7,16 @@ import atexit
 import os
 import os.path
 import copy
-import re
-import textwrap
-from rez import module_root_path
 from rez.utils.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
-from rez.vendor.schema.schema import Schema, Optional
 
 
 DEV_NULL = open(os.devnull, 'w')
 
 
-"""
-try:
-    import collections
-    OrderedDict = collections.OrderedDict
-except AttributeError:
-    import backport.ordereddict
-    OrderedDict = backport.ordereddict.OrderedDict
-"""
-
-
 class _Missing:
     pass
 _missing = _Missing()
-
-
-# TODO deprecate
-class Common(object):
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
 class ProgressBar(Bar):

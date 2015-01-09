@@ -228,7 +228,10 @@ class ScopeContext(object):
 
 
 def scoped_formatter(**objects):
-    """See `scoped_format`."""
+    """Format a string with respect to a set of objects' attributes.
+
+    Use this rather than `scoped_format` when you need to reuse the formatter.
+    """
     return RecursiveAttribute(objects, read_only=True)
 
 

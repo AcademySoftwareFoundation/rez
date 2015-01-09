@@ -9,8 +9,11 @@ def setup_parser(parser, completions=False):
         "-f", "--format", default="yaml", choices=formats,
         help="format to print the package in")
     parser.add_argument(
+        "-a", "--all", action="store_true",
+        help="show all package data, including release-related fields")
+    parser.add_argument(
         "-b", "--brief", action="store_true",
-        help="print package contents and nothing else")
+        help="do not print extraneous info, such as package uri")
     parser.add_argument(
         "-c", "--current", action="store_true",
         help="show the package in the current context, if any")
@@ -65,4 +68,4 @@ def command(opts, parser, extra_arg_groups=None):
         format_ = FileFormat.py
     else:
         format_ = FileFormat.yaml
-    package.print_info(format_=format_)
+    package.print_info(format_=format_, include_release=opts.all)
