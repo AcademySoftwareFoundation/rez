@@ -98,6 +98,9 @@ class BuildProcess(object):
 
         Raises:
             `BuildError`: If the build failed.
+
+        Returns:
+            int: Number of variants successfully built.
         """
         raise NotImplementedError
 
@@ -113,6 +116,9 @@ class BuildProcess(object):
 
         Raises:
             `ReleaseError`: If the release failed.
+
+        Returns:
+            int: Number of variants successfully released.
         """
         raise NotImplementedError
 
@@ -180,12 +186,16 @@ class BuildProcessHelper(BuildProcess):
         return context, rxt_filepath
 
     def pre_release(self):
+        # test that the release path exists
+        release_path = self.package.config.release_packages_path
+        if not os.path.exists(release_path):
+            raise ReleaseError("Release path does not exist: %r" % release_path)
+
         # test that the repo is in a state to release
         assert self.vcs
         self._print("Checking state of repository...")
         self.vcs.validate_repostate()
 
-        release_path = self.package.config.release_packages_path
         it = iter_packages(self.package.name, paths=[release_path])
         packages = sorted(it, key=lambda x: x.version, reverse=True)
 

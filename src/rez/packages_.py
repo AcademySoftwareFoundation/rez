@@ -7,7 +7,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageFamilyNotFoundError, PackageMetadataError
+from rez.exceptions import PackageMetadataError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
@@ -245,7 +245,7 @@ class Variant(PackageBaseResourceWrapper):
 
 
 #------------------------------------------------------------------------------
-# resource aquisition functions
+# resource acquisition functions
 #------------------------------------------------------------------------------
 
 def iter_package_families(paths=None):
@@ -281,9 +281,6 @@ def iter_packages(name, range_=None, paths=None):
             to those in `range_`.
         paths (list of str, optional): paths to search for packages, defaults
             to `config.packages_path`.
-
-    Raises:
-        `PackageFamilyNotFoundError` if no such package is found.
 
     Returns:
         `Package` iterator.
@@ -488,6 +485,4 @@ def _get_families(name, paths=None):
         if family_resource:
             entries.append((repo, family_resource))
 
-    if not entries:
-        raise PackageFamilyNotFoundError("No such package family %r" % name)
     return entries

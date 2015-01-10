@@ -35,10 +35,13 @@ package_key_order = [
     'previous_revision']
 
 
-version_schema = And(Version, Use(str))
+version_schema = Or(basestring, And(Version, Use(str)))
 
 
-package_request_schema = And(PackageRequest, Use(str))
+package_request_schema = Or(basestring, And(PackageRequest, Use(str)))
+
+
+source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
 
 
 # package serialisation schema
@@ -54,9 +57,9 @@ package_serialise_schema = Schema({
     Optional('private_build_requires'): [package_request_schema],
     Optional('variants'):               [[package_request_schema]],
 
-    Optional('pre_commands'):           SourceCode,
-    Optional('commands'):               SourceCode,
-    Optional('post_commands'):          SourceCode,
+    Optional('pre_commands'):           source_code_schema,
+    Optional('commands'):               source_code_schema,
+    Optional('post_commands'):          source_code_schema,
 
     Optional("help"):                   help_schema,
     Optional("uuid"):                   basestring,
