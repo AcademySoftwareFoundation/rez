@@ -87,6 +87,11 @@ class Client(object):
             mc.set("__test__", 1)
             if mc.get("__test__") == 1:
                 return mc
+            else:
+                from rez.utils.colorize import Printer, error
+                import sys
+                msg = "Failed to connect to memcached: %s" % ", ".join(uris)
+                Printer(sys.stderr)(msg, error)
         return None
 
     def get_summary_string(self):

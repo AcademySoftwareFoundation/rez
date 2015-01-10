@@ -43,18 +43,19 @@ class LocalBuildProcess(BuildProcessHelper):
         self.pre_release()
 
         release_path = self.package.config.release_packages_path
-        previous_package = self.get_previous_release()
-        changelog = getattr(previous_package, "changelog", None)
-        last_version = getattr(previous_package, "last_version", None)
-        last_revision = getattr(previous_package, "last_revision", None)
+        release_data = self.get_release_data()
+        changelog = release_data.get("changelog")
+        revision = release_data.get("revision")
+        previous_version = release_data.get("previous_version")
+        previous_revision = release_data.get("previous_revision")
 
         # run pre-release hooks
         self.run_hooks(ReleaseHookEvent.pre_release,
                        install_path=release_path,
                        release_message=release_message,
                        changelog=changelog,
-                       previous_version=last_version,
-                       previous_revision=last_revision)
+                       previous_version=previous_version,
+                       previous_revision=previous_revision)
 
         # release variants
         num_visited, installed_variants = self.visit_variants(
@@ -70,8 +71,8 @@ class LocalBuildProcess(BuildProcessHelper):
                        variants=installed_variants,
                        release_message=release_message,
                        changelog=changelog,
-                       previous_version=last_version,
-                       previous_revision=last_revision)
+                       previous_version=previous_version,
+                       previous_revision=previous_revision)
 
         # perform post-release actions: tag repo etc
         if installed_variants:
