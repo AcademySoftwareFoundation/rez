@@ -35,6 +35,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._print('')
         else:
             self._print("\nAll %d build(s) were successful.\n", num_visited)
+        return num_visited
 
     def release(self, release_message=None, variants=None):
         self._print_header("Releasing %s..." % self.package.qualified_name)
@@ -58,33 +59,35 @@ class LocalBuildProcess(BuildProcessHelper):
                        previous_revision=previous_revision)
 
         # release variants
-        num_visited, installed_variants = self.visit_variants(
+        num_visited, released_variants = self.visit_variants(
             self._release_variant,
             variants=variants,
             release_message=release_message)
 
-        installed_variants = [x for x in installed_variants if x is not None]
+        released_variants = [x for x in released_variants if x is not None]
+        num_released = len(released_variants)
 
         # run post-release hooks
         self.run_hooks(ReleaseHookEvent.post_release,
                        install_path=release_path,
-                       variants=installed_variants,
+                       variants=released_variants,
                        release_message=release_message,
                        changelog=changelog,
                        previous_version=previous_version,
                        previous_revision=previous_revision)
 
         # perform post-release actions: tag repo etc
-        if installed_variants:
+        if released_variants:
             self.post_release(release_message=release_message)
 
         if self.verbose:
-            num_released = len(installed_variants)
             msg = "\n%d of %d releases were successful" % (num_released, num_visited)
             if num_released < num_visited:
                 Printer()(msg, warning)
             else:
                 self._print(msg)
+
+        return num_released
 
     def _build_variant_base(self, variant, build_type, install_path=None,
                             clean=False, install=False, **kwargs):

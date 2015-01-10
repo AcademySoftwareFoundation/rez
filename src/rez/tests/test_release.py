@@ -1,4 +1,4 @@
-from rez.build_process import LocalSequentialBuildProcess
+from rez.build_process_ import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.release_vcs import create_release_vcs
@@ -10,6 +10,7 @@ import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.package_serialise import dump_package_data
+from rez.serialise import FileFormat
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -64,7 +65,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         def _write_package():
             with open(packagefile, 'w') as f:
-                dump_package_data(package_data, f)
+                dump_package_data(package_data, f, format_=FileFormat.yaml)
             system.clear_caches()
 
         # create the build system
@@ -82,16 +83,19 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(vcs.name(), "stub")
 
         def _create_builder(ensure_latest=True):
-            return LocalSequentialBuildProcess(working_dir,
-                                               buildsys=buildsys,
-                                               vcs=vcs,
-                                               ensure_latest=ensure_latest)
+            return create_build_process(process_type="local",
+                                        working_dir=working_dir,
+                                        build_system=buildsys,
+                                        vcs=vcs,
+                                        ensure_latest=ensure_latest,
+                                        verbose=True)
 
-        # do a release
+        # release should fail because release path does not exist
         builder = _create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
 
+        # release should work this time
         os.mkdir(self.install_root)
         builder.release()
 
@@ -103,8 +107,8 @@ class TestRelease(TestBase, TempdirMixin):
         # failed release (same version released again)
         system.clear_caches()
         builder = _create_builder()
-        with self.assertRaises(ReleaseError):
-            builder.release()
+        num_variants = builder.release()
+        self.assertEqual(num_variants, 0)
 
         # update package version and release again
         package_data["version"] = "1.1"
@@ -140,12 +144,13 @@ class TestRelease(TestBase, TempdirMixin):
 
         # check the package install path contains the packages we expect
         system.clear_caches()
-        it = iter_packages(paths=[self.install_root])
+        it = iter_packages("foo", paths=[self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
 
 def get_test_suites():
+    # TODO variant-based test
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestRelease("test_1"))
