@@ -63,7 +63,7 @@ class ReleaseHook(object):
             changelog: List of strings describing changes since last release.
             previous_version: Version object - previously-release package, or
                 None if no previous release.
-            previous_revision: Revision of previously-releaved package (type
+            previous_revision: Revision of previously-released package (type
                 depends on repo - see ReleaseVCS.get_current_revision().
             kwargs: Reserved.
 
