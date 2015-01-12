@@ -655,13 +655,9 @@ class FileSystemPackageRepository(PackageRepository):
         if not os.path.exists(path):
             os.makedirs(path)
 
-        # add a timestamp. We make this just a few seconds in the future, so
-        # that the package does exist on disk when its timestamp claims. Note
-        # that if a timestamp already exists, we don't overwrite it. This is
-        # intentional - the package-level timestamp (as opposed to per-variant)
-        # must always be the timestamp of the earliest variant.
+        # add the timestamp
         overrides = overrides or {}
-        overrides["timestamp"] = int(time.time()) + 2
+        overrides["timestamp"] = int(time.time())
 
         # apply attribute overrides
         for key, value in overrides.iteritems():

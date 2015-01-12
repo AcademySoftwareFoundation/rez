@@ -209,6 +209,8 @@ class TestPackages(TestBase, TempdirMixin):
             d = obj.validated_data()
             if "base" in d:
                 del d["base"]
+            if "timestamp" in d:
+                del d["timestamp"]
             return d
 
         # we loop twice here to make sure the second round of variant installs

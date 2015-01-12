@@ -47,6 +47,7 @@ class TestShells(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, pkgs):
+        from rez.config import config
         return ResolvedContext(pkgs, caching=False)
 
     @shell_dependent
