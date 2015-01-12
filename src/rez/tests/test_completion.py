@@ -30,6 +30,7 @@ class TestCompletion(TestBase):
                        "plugin_path"])
         _eq("plugins", ["plugins",
                         "plugins.package_repository",
+                        "plugins.build_process",
                         "plugins.build_system",
                         "plugins.release_hook",
                         "plugins.release_vcs",
