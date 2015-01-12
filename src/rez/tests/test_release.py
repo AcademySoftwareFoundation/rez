@@ -42,7 +42,6 @@ class TestRelease(TestBase, TempdirMixin):
 
     @classmethod
     def _create_context(cls, *pkgs):
-        system.clear_caches()
         return ResolvedContext(pkgs)
 
     @shell_dependent
@@ -66,7 +65,6 @@ class TestRelease(TestBase, TempdirMixin):
         def _write_package():
             with open(packagefile, 'w') as f:
                 dump_package_data(package_data, f, format_=FileFormat.yaml)
-            system.clear_caches()
 
         # create the build system
         buildsys = create_build_system(working_dir, verbose=True)
@@ -105,7 +103,6 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertTrue(os.path.exists(filepath))
 
         # failed release (same version released again)
-        system.clear_caches()
         builder = _create_builder()
         num_variants = builder.release()
         self.assertEqual(num_variants, 0)
@@ -143,7 +140,6 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(tags, expected_value)
 
         # check the package install path contains the packages we expect
-        system.clear_caches()
         it = iter_packages("foo", paths=[self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
