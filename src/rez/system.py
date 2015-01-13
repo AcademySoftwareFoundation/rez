@@ -173,6 +173,14 @@ class System(object):
         """
         return self.fqdn.split('.', 1)[1]
 
+    @property
+    def uuid(self):
+        """
+        @returns A unique uuidas a string.
+        """
+        import uuid
+        return str(uuid.uuid4())
+
     @propertycache
     def rez_bin_path(self):
         """Get path containing rez binaries, or None if no binaries are
