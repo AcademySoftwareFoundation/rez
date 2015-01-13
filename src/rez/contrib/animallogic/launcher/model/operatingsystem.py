@@ -1,5 +1,6 @@
 from rez.vendor.enum import Enum
-import platform
+from rez.platform_ import platform_
+
 
 class OperatingSystem(Enum):
 
@@ -11,15 +12,13 @@ class OperatingSystem(Enum):
     @staticmethod
     def get_current_operating_system():
 
-        name = platform.system().lower()
-
-        if name == 'linux':
+        if platform_.name == 'linux':
             return OperatingSystem.linux
 
-        elif name == 'osx':
+        elif platform_.name == 'osx':
             return OperatingSystem.mac
 
-        elif name == 'windows':
+        elif platform_.name == 'windows':
             return OperatingSystem.windows
 
         else:

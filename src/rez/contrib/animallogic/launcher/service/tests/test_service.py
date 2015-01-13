@@ -1,9 +1,9 @@
-from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
-from rez.contrib.animallogic.launcher.settingtype import SettingType
-from rez.contrib.animallogic.launcher.mode import Mode
-from rez.contrib.animallogic.launcher.setting import ValueSetting, ReferenceSetting
-from rez.contrib.animallogic.launcher.service import LauncherHessianService
-from rez.contrib.animallogic.launcher.service import SettingsResolver
+from rez.contrib.animallogic.launcher.model.operatingsystem import OperatingSystem
+from rez.contrib.animallogic.launcher.model.settingtype import SettingType
+from rez.contrib.animallogic.launcher.model.mode import Mode
+from rez.contrib.animallogic.launcher.model.setting import ValueSetting, ReferenceSetting
+from rez.contrib.animallogic.launcher.service.hessian import LauncherHessianService
+from rez.contrib.animallogic.launcher.service.hessian import SettingsResolver
 from rez.contrib.animallogic.launcher.exceptions import LauncherError
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy
 import rez.vendor.unittest2 as unittest
@@ -37,7 +37,7 @@ class BaseTestLauncherHessianService(unittest.TestCase):
 
         self.assertEqual(expected['type']['name'], setting.setting_type.launcher_type)
         self.assertEqual(expected['id'], setting.id)
-        self.assertEqual(expected['sourcePresetId']['key'], setting.source_preset_id)
+        self.assertEqual(expected['sourcePresetId']['key'], setting.parent_id)
 
     def assert_preset(self, expected, preset):
 
@@ -105,7 +105,7 @@ class TestLauncherHessianService_AddSettingToPreset(BaseTestLauncherHessianServi
 
         BaseTestLauncherHessianService.setUp(self)
 
-        self.new_setting = ValueSetting('new', 'value', SettingType.string)
+        self.new_setting = ValueSetting(None, None, 'new', 'value', SettingType.string, None)
 
     def test_add_setting_to_preset(self):
 
@@ -123,7 +123,7 @@ class TestLauncherHessianService_CreatePreset(BaseTestLauncherHessianService):
 
         BaseTestLauncherHessianService.setUp(self)
 
-        self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new'}
+        self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new', 'version':1, 'createdBy':'unknown', 'createdOn':1421124354320}
 
     def test_create_preset(self):
 
@@ -139,7 +139,7 @@ class TestLauncherHessianService_GetReferenceFromPreset(BaseTestLauncherHessianS
 
         BaseTestLauncherHessianService.setUp(self)
         self.launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy({}, ""))
-        self.reference_settings = [ReferenceSetting('Test', 1234, 1), ReferenceSetting('base', 9999, 2)]
+        self.reference_settings = [ReferenceSetting(1, None, 'Test', 1234), ReferenceSetting(2, None, 'base', 9999)]
 
     def test_get_reference_setting_from_preset(self):
 
@@ -180,7 +180,7 @@ class TestLauncherHessianService_AddReferenceToPreset(BaseTestLauncherHessianSer
 
         BaseTestLauncherHessianService.setUp(self)
         self.launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy({}, ""))
-        self.new_reference_setting = ReferenceSetting('/test/full/path', 1234)
+        self.new_reference_setting = ReferenceSetting(None, None, '/test/full/path', 1234)
 
     def test_add_reference_setting_to_preset(self):
 
@@ -210,7 +210,7 @@ class TestLauncherHessianService_RemoveReferenceToPreset(BaseTestLauncherHessian
 
         BaseTestLauncherHessianService.setUp(self)
         self.launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy({}, ""))
-        self.new_reference_setting = ReferenceSetting('/test/full/path', 1234)
+        self.new_reference_setting = ReferenceSetting(None, None, '/test/full/path', 1234)
 
     def test_remove_reference_setting_to_preset(self):
 
@@ -247,38 +247,38 @@ class TestSettingsResolver(unittest.TestCase):
         self.assertEqual([], self.settings_resolver.resolve_settings([]))
 
     def test_setting_without_reference(self):
-        setting = ValueSetting("name", "value", SettingType.string)
+        setting = ValueSetting(None, None, "name", "value", SettingType.string, None)
 
         resolved_settings = self.settings_resolver.resolve_settings([setting])
         self.assertSettings([setting], resolved_settings)
 
     def test_setting_with_undefined_reference(self):
-        setting = ValueSetting("name", "${value}", SettingType.string)
+        setting = ValueSetting(None, None, "name", "${value}", SettingType.string, None)
 
         resolved_settings = self.settings_resolver.resolve_settings([setting])
         self.assertSettings([setting], resolved_settings)
 
-        setting = ValueSetting("name", "pre ${value} post", SettingType.string)
+        setting = ValueSetting(None, None, "name", "pre ${value} post", SettingType.string, None)
 
         resolved_settings = self.settings_resolver.resolve_settings([setting])
         self.assertSettings([setting], resolved_settings)
 
     def test_settings_with_simple_self_reference(self):
         settings = [
-                    ValueSetting("name", "value", SettingType.string),
-                    ValueSetting("name", "${name}", SettingType.string),
+                    ValueSetting(None, None, "name", "value", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name}", SettingType.string, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value", SettingType.string),
+                             ValueSetting(None, None, "name", "value", SettingType.string, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
         self.assertSettings(expected_settings, resolved_settings)
 
         settings = [
-                    ValueSetting("name", "${name}", SettingType.string),
-                    ValueSetting("name", "value", SettingType.string),
+                    ValueSetting(None, None, "name", "${name}", SettingType.string, None),
+                    ValueSetting(None, None, "name", "value", SettingType.string, None),
                     ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -286,13 +286,13 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_prepend_self_reference(self):
         settings = [
-                    ValueSetting("name", "${name}value1", SettingType.string),
-                    ValueSetting("name", "${name}value2", SettingType.string),
-                    ValueSetting("name", "${name}value3", SettingType.string),
+                    ValueSetting(None, None, "name", "${name}value1", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name}value2", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name}value3", SettingType.string, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value1value2value3", SettingType.string),
+                             ValueSetting(None, None, "name", "value1value2value3", SettingType.string, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -300,13 +300,13 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_overwrite_self_reference(self):
         settings = [
-                    ValueSetting("name", "${name}value1", SettingType.string),
-                    ValueSetting("name", "${name}value2", SettingType.string),
-                    ValueSetting("name", "value3", SettingType.string),
+                    ValueSetting(None, None, "name", "${name}value1", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name}value2", SettingType.string, None),
+                    ValueSetting(None, None, "name", "value3", SettingType.string, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value3", SettingType.string),
+                             ValueSetting(None, None, "name", "value3", SettingType.string, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -314,16 +314,16 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_reference_and_self_reference(self):
         settings = [
-                    ValueSetting("name", "value1", SettingType.string),
-                    ValueSetting("spam", "ham", SettingType.string),
-                    ValueSetting("name", "${name} bar ${spam}", SettingType.string),
-                    ValueSetting("package", "${name}", SettingType.package),
+                    ValueSetting(None, None, "name", "value1", SettingType.string, None),
+                    ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name} bar ${spam}", SettingType.string, None),
+                    ValueSetting(None, None, "package", "${name}", SettingType.package, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value1 bar ham", SettingType.string),
-                             ValueSetting("spam", "ham", SettingType.string),
-                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ValueSetting(None, None, "name", "value1 bar ham", SettingType.string, None),
+                             ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                             ValueSetting(None, None, "package", "value1 bar ham", SettingType.package, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -331,16 +331,16 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_reference_and_self_reference_only_packages(self):
         settings = [
-                    ValueSetting("name", "value1", SettingType.string),
-                    ValueSetting("spam", "ham", SettingType.string),
-                    ValueSetting("name", "${name} bar ${spam}", SettingType.string),
-                    ValueSetting("package", "${name}", SettingType.package),
+                    ValueSetting(None, None, "name", "value1", SettingType.string, None),
+                    ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name} bar ${spam}", SettingType.string, None),
+                    ValueSetting(None, None, "package", "${name}", SettingType.package, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value1 bar ${spam}", SettingType.string),
-                             ValueSetting("spam", "ham", SettingType.string),
-                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ValueSetting(None, None, "name", "value1 bar ${spam}", SettingType.string, None),
+                             ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                             ValueSetting(None, None, "package", "value1 bar ham", SettingType.package, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
@@ -348,18 +348,18 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_nested_references(self):
         settings = [
-                    ValueSetting("name", "value1", SettingType.string),
-                    ValueSetting("spam", "ham", SettingType.string),
-                    ValueSetting("eggs", "${spam}", SettingType.string),
-                    ValueSetting("name", "${name} bar ${eggs}", SettingType.string),
-                    ValueSetting("package", "${name}", SettingType.package),
+                    ValueSetting(None, None, "name", "value1", SettingType.string, None),
+                    ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                    ValueSetting(None, None, "eggs", "${spam}", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name} bar ${eggs}", SettingType.string, None),
+                    ValueSetting(None, None, "package", "${name}", SettingType.package, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value1 bar ham", SettingType.string),
-                             ValueSetting("spam", "ham", SettingType.string),
-                             ValueSetting("eggs", "ham", SettingType.string),
-                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ValueSetting(None, None, "name", "value1 bar ham", SettingType.string, None),
+                             ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                             ValueSetting(None, None, "eggs", "ham", SettingType.string, None),
+                             ValueSetting(None, None, "package", "value1 bar ham", SettingType.package, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -367,18 +367,18 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_nested_references_only_packages(self):
         settings = [
-                    ValueSetting("name", "value1", SettingType.string),
-                    ValueSetting("spam", "ham", SettingType.string),
-                    ValueSetting("eggs", "${spam}", SettingType.string),
-                    ValueSetting("name", "${name} bar ${eggs}", SettingType.string),
-                    ValueSetting("package", "${name}", SettingType.package),
+                    ValueSetting(None, None, "name", "value1", SettingType.string, None),
+                    ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                    ValueSetting(None, None, "eggs", "${spam}", SettingType.string, None),
+                    ValueSetting(None, None, "name", "${name} bar ${eggs}", SettingType.string, None),
+                    ValueSetting(None, None, "package", "${name}", SettingType.package, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("name", "value1 bar ${eggs}", SettingType.string),
-                             ValueSetting("spam", "ham", SettingType.string),
-                             ValueSetting("eggs", "${spam}", SettingType.string),
-                             ValueSetting("package", "value1 bar ham", SettingType.package),
+                             ValueSetting(None, None, "name", "value1 bar ${eggs}", SettingType.string, None),
+                             ValueSetting(None, None, "spam", "ham", SettingType.string, None),
+                             ValueSetting(None, None, "eggs", "${spam}", SettingType.string, None),
+                             ValueSetting(None, None, "package", "value1 bar ham", SettingType.package, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)
@@ -386,13 +386,13 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_mixed_references(self):
         settings = [
-                    ValueSetting("a", "${path}:/tmp", SettingType.string),
-                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ValueSetting(None, None, "a", "${path}:/tmp", SettingType.string, None),
+                    ValueSetting(None, None, "path", "/var/tmp:${path}:/scratch", SettingType.string, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("a", "/var/tmp::/scratch:/tmp", SettingType.string),
-                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ValueSetting(None, None, "a", "/var/tmp::/scratch:/tmp", SettingType.string, None),
+                             ValueSetting(None, None, "path", "/var/tmp::/scratch", SettingType.string, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings)
@@ -400,13 +400,13 @@ class TestSettingsResolver(unittest.TestCase):
 
     def test_settings_with_mixed_references_only_packages(self):
         settings = [
-                    ValueSetting("a", "${path}:/tmp", SettingType.string),
-                    ValueSetting("path", "/var/tmp:${path}:/scratch", SettingType.string),
+                    ValueSetting(None, None, "a", "${path}:/tmp", SettingType.string, None),
+                    ValueSetting(None, None, "path", "/var/tmp:${path}:/scratch", SettingType.string, None),
                     ]
 
         expected_settings = [
-                             ValueSetting("a", "${path}:/tmp", SettingType.string),
-                             ValueSetting("path", "/var/tmp::/scratch", SettingType.string),
+                             ValueSetting(None, None, "a", "${path}:/tmp", SettingType.string, None),
+                             ValueSetting(None, None, "path", "/var/tmp::/scratch", SettingType.string, None),
                              ]
 
         resolved_settings = self.settings_resolver.resolve_settings(settings, only_packages=True)

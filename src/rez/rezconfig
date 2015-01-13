@@ -523,6 +523,21 @@ plugins:
 # The base url for the Launcher service server used by the Launcher cli.
 launcher_service_url: http://launcher.al.com.au:6060/launcher/service
 
+# The default format string to use with the 'rez launcher list' command.
+launcher_list_format: '{{name}}'
+
+# The default format string to use for long listings with the 'rez launcher 
+# list -l' command.
+launcher_long_list_format: '{{type}} {{created_by: <12}} {{created_on:%b %d %Y}} {{name}}'
+
+# A per-platform python executable that can be used with the 'rez launcher env'
+# command to execute the launcher scripts.  This is analogous to the
+# 'LAUNCH_PYTHON_EXE' setting used by Launcher.
+launch_python_exe:
+    linux: /usr/bin/python2.6
+    windows: C:\Python2.6\python.exe
+    osx: /usr/bin/python2.6
+
 
 ###############################################################################
 # Unleash

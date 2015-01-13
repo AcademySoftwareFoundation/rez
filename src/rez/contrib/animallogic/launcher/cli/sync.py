@@ -5,7 +5,7 @@ process sync those packages to other sites (WAG or BB).
 """
 
 from rez.contrib.animallogic.hessian import client
-from rez.contrib.animallogic.launcher.service import LauncherHessianService
+from rez.contrib.animallogic.launcher.service.hessian import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.syncer import Syncer
 from rez.config import config

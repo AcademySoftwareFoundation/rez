@@ -173,6 +173,8 @@ config_schema = Schema({
     "build_directory":                  Str,
     "documentation_url":                Str,
     "launcher_service_url":             Str,
+    "launcher_list_format":             Str,
+    "launcher_long_list_format":        Str,
     "ark_url":                          Str,
     "unleash_launcher_preset":          Str,
     "unleash_flavour":                  Str,
@@ -247,6 +249,7 @@ config_schema = Schema({
     "memcache_enabled":                 Bool,
     "memcache_client_debug":            Bool,
     "env_var_separators":               Dict,
+    "launch_python_exe":                Dict,
 
     # GUI settings
     "use_pyside":                       Bool,

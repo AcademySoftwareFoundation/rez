@@ -1,7 +1,7 @@
-from rez.contrib.animallogic.launcher.mode import Mode
-from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
-from rez.contrib.animallogic.launcher.setting import ValueSetting
-from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.launcher.model.mode import Mode
+from rez.contrib.animallogic.launcher.model.operatingsystem import OperatingSystem
+from rez.contrib.animallogic.launcher.model.setting import ValueSetting
+from rez.contrib.animallogic.launcher.model.settingtype import SettingType
 from rez.contrib.animallogic.launcher.exceptions import BakerError
 import datetime
 import getpass
@@ -131,7 +131,7 @@ class Baker(object):
 
     def _create_setting_from_package(self, package):
 
-        setting = ValueSetting(package.name, "==%s" % (package.version),
-                               SettingType.package)
+        setting = ValueSetting(None, None, package.name, "==%s" % (package.version),
+                               SettingType.package, None)
 
         return setting

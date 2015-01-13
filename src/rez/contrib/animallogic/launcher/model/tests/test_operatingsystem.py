@@ -1,4 +1,4 @@
-from rez.contrib.animallogic.launcher.operatingsystem import OperatingSystem
+from rez.contrib.animallogic.launcher.model.operatingsystem import OperatingSystem
 import rez.vendor.unittest2 as unittest
 import platform
 

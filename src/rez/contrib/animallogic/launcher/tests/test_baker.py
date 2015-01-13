@@ -1,9 +1,9 @@
-from rez.contrib.animallogic.launcher.settingtype import SettingType
-from rez.contrib.animallogic.launcher.setting import ValueSetting
-from rez.contrib.animallogic.launcher.service import LauncherHessianService
+from rez.contrib.animallogic.launcher.model.settingtype import SettingType
+from rez.contrib.animallogic.launcher.model.setting import ValueSetting
+from rez.contrib.animallogic.launcher.service.hessian import LauncherHessianService
 from rez.contrib.animallogic.launcher.baker import Baker
 from rez.contrib.animallogic.launcher.exceptions import BakerError
-from rez.contrib.animallogic.launcher.cli.bake import argparse_setting
+from rez.contrib.animallogic.launcher.cli.util import argparse_setting
 from rez.contrib.animallogic.launcher.tests.stubs import StubPresetProxy, StubToolsetProxy, StubRezService, StubPackage
 from rez.vendor import argparse
 import rez.vendor.unittest2 as unittest
@@ -75,9 +75,9 @@ class TestBaker(unittest.TestCase):
         self.new_preset_path = '/presets/Rez/test_new'
         self.new_preset = {'fullyQualifiedName':'/presets/Rez/test_new', 'description':'bar', 'parentId':{'key':43325883}, 'id':{'key':4077}, 'name':'test_new'}
         self.package_requests = ['package_1-1.2.3', 'package_2', 'platform-CentOS']
-        self.resolved_package_settings = [ValueSetting('package_1', '1.2.3', SettingType.package), ValueSetting('package_2', '2.0.1', SettingType.package), ValueSetting('platform', 'CentOS', SettingType.package)]
+        self.resolved_package_settings = [ValueSetting(None, None, 'package_1', '1.2.3', SettingType.package, None), ValueSetting(None, None, 'package_2', '2.0.1', SettingType.package, None), ValueSetting(None, None, 'platform', 'CentOS', SettingType.package, None)]
         self.resolved_packages = [StubPackage('package_1', '1.2.3'), StubPackage('package_2', '2.0.1'), StubPackage('platform', 'CentOS')]
-        self.overrides = [ValueSetting('string', '1.2.3', SettingType.string), ValueSetting('override_2', '2.0.1', SettingType.string)]
+        self.overrides = [ValueSetting(None, None, 'string', '1.2.3', SettingType.string, None), ValueSetting(None, None, 'override_2', '2.0.1', SettingType.string, None)]
 
         launcher_service = LauncherHessianService(StubPresetProxy(settings=self.settings, preset_path=self.preset_path, preset=self.new_preset), StubToolsetProxy())
         rez_service = StubRezService(self.resolved_packages)
@@ -118,7 +118,7 @@ class TestBaker(unittest.TestCase):
 
     def test_package_settings_do_not_resolve(self):
 
-        self.baker.settings = [ValueSetting('conflict', '', SettingType.package), ValueSetting('foo', '1', SettingType.package)]
+        self.baker.settings = [ValueSetting(None, None, 'conflict', '', SettingType.package, None), ValueSetting(None, None, 'foo', '1', SettingType.package, None)]
         self.assertRaises(BakerError, self.baker.resolve_package_settings)
 
     def test_filter_settings(self):
