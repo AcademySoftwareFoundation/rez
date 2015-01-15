@@ -37,7 +37,8 @@ class ValueSetting(Setting):
     SYSTEM_PACKAGE_SETTING_NAMES = ("CentOS",
                                     "platform",
                                     "arch",
-                                    "os",)
+                                    "os",
+                                    "ALBlacklist",)
 
     def __init__(self, name, value, setting_type, operating_system=None):
 
