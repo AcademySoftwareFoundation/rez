@@ -1040,7 +1040,7 @@ class ResolvedContext(object):
                       norc=False, stdin=False, command=None, quiet=False,
                       block=None, actions_callback=None, context_filepath=None,
                       start_new_session=False, detached=False, pre_command=None,
-                      **Popen_args):
+                      tmpdir=None, **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -1105,7 +1105,7 @@ class ResolvedContext(object):
         sh = create_shell(shell)
 
         # context and rxt files
-        tmpdir = mkdtemp_()
+        tmpdir = tmpdir or mkdtemp_()
 
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path
