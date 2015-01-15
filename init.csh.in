@@ -35,6 +35,11 @@ if (! $?REZ_PACKAGES_PATH ) then
     setenv REZ_PACKAGES_PATH ${REZ_LOCAL_PACKAGES_PATH}:${REZ_RELEASE_PACKAGES_PATH}
 endif
 
+# where rez will look for additional configuration
+if (! $?REZ_CONFIG_FILE ) then
+    setenv REZ_CONFIG_FILE /film/tools/packages/rez/rezconfig
+endif
+
 # Tell Rez where our downloads live.
 setenv REZ_EXTERNAL_PACKAGES_DOWNLOADS /film/tools/packages/downloads
 
