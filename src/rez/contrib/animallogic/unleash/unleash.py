@@ -67,14 +67,17 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
 
         if not ignore_auto_messages:
             automatic_release_comments = get_automatic_release_comments(vcs, previous_revision)
-            show_automatic_release_comments(automatic_release_comments)
+            if automatic_release_comments:
+                show_automatic_release_comments(automatic_release_comments)
     else:
         print_warning("Unable to find the last version for this package.")
 
     builder.release_message = get_release_message(message)
 
     if automatic_release_comments:
-        builder.release_message = "%s\n%s" % (builder.release_message, "\n".join(map(lambda x: x[0] + ": " + x[1], automatic_release_comments)))
+        builder.release_message += "\n"
+        for automatic_release_comment in automatic_release_comments:
+            builder.release_message += "{0}: {1}\n".format(*automatic_release_comment)
 
     config.override('release_packages_path', package.config.unleash_packages_path)
 
@@ -186,9 +189,6 @@ def get_automatic_release_comments(vcs, previous_revision):
 
 
 def show_automatic_release_comments(automatic_release_comments):
-
-    if not automatic_release_comments:
-        return
 
     printer = Printer()
 
