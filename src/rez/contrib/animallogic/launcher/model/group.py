@@ -5,7 +5,7 @@ class Group(Member):
         super(Group, self).__init__(id_, parent_id, name, created_by,
                                     created_on)
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         return "g"
 
     def __repr__(self):

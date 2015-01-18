@@ -16,7 +16,7 @@ class ReferenceSetting(Setting):
 
         self.preset_id = preset_id
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         return "r"
 
     def __repr__(self):
@@ -71,7 +71,9 @@ class ValueSetting(Setting):
 
     def is_system_package_setting(self):
         """
-        Is this setting a 'system' setting and so protected by Launcher.
+        Is this setting a 'system package' setting and so protected by Rez.
+        This generally identifies implicit packages in Rez that need special
+        handling when it comes to baking etc.
         """
 
         return self.is_package_setting() and self.name in self.SYSTEM_PACKAGE_SETTING_NAMES
@@ -84,7 +86,7 @@ class ValueSetting(Setting):
 
         return "<ValueSetting name=%s, value=%s, type=%s>" % (self.name, self.value, self.setting_type.name)
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         return "v"
 
     @property
@@ -129,6 +131,6 @@ class ValueSetting(Setting):
             value_parent = self.parent.__dict__
             value_parent["path"] = self.parent.path
 
-        return formatter.format(specification, type=self.getMemberTypeIdentifier(),
+        return formatter.format(specification, type=self.getMemberTypeShortIdentifier(),
                                 path=self.path, value_parent=value_parent,
                                 **self.__dict__)

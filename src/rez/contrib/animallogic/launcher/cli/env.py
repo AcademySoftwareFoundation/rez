@@ -45,7 +45,7 @@ def command(opts, parser, extra_arg_groups=None):
     mode = Mode.shell
     operating_system = OperatingSystem.get_current_operating_system()
     date = datetime.datetime.now()
-    random_number = int(random.random() * 10**18)
+    random_number = int(random.random() * 10**18) # random number the same length as used by Launcher
     script_file = os.path.join(config.tmpdir, "launch%d.py" % random_number)
 
     if not command:

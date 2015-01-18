@@ -2,6 +2,9 @@ from rez.contrib.animallogic.launcher.model.member import Member
 
 
 class Preset(Member):
+
+    PRESETS_PREFIX = '/presets'
+
     def __init__(self, id_, parent_id, name, created_by, created_on, version,
                  description, path):
         super(Preset, self).__init__(id_, parent_id, name, created_by,
@@ -12,7 +15,7 @@ class Preset(Member):
 
         self._path = path
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         return "p"
 
     @property
@@ -22,7 +25,7 @@ class Preset(Member):
     def resolve_settings(self, date, user, os, mode):
         settings = []
 
-        path = self.path[8:] if self.path.startswith('/presets') else self.path
+        path = self.path[len(self.PRESETS_PREFIX):] if self.path.startswith(self.PRESETS_PREFIX) else self.path
 
         for entity in proxy.resolveSettingsForPath(user, path, None, os, mode, date):
             setting = EntityMapper.map(entity)

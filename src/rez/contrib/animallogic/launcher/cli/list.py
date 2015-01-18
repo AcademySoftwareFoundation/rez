@@ -25,21 +25,23 @@ def setup_parser(parser):
     parser.add_argument("-p", "--presets", default=False, action='store_true',
                         help="list presets only.")
     parser.add_argument("-f", "--format", default=None,
-                        help="this option is ignored when used with -l/--long.")
+                        help="display the results using the provided format"
+                        "string.  this option is ignored when used with"
+                        "-l/--long.")
 
 
 def command(opts, parser, extra_arg_groups=None):
 
     preset_proxy = client.HessianProxy(config.launcher_service_url + "/preset")
     preset_path = opts.preset
-    long = opts.long
+    long_ = opts.long
     recursive = opts.recursive
     presets_only = opts.presets
     format_specification = opts.format
     date = datetime.datetime.now()
 
     if not format_specification:
-        if long:
+        if long_:
             format_specification = config.launcher_long_list_format
 
         else:
@@ -52,7 +54,7 @@ def command(opts, parser, extra_arg_groups=None):
     if presets_only:
         children = filter(lambda x: isinstance(x, Preset), children)
 
-    if long:
+    if long_:
         parent_id = None
         for child in children:
             if (child.parent_id != parent_id or parent_id is None) and recursive:

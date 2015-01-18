@@ -23,11 +23,11 @@ class Member(object):
     def format(self, specification):
         formatter = DefaultFormatter()
 
-        return formatter.format(specification, type=self.getMemberTypeIdentifier(),
+        return formatter.format(specification, type=self.getMemberTypeShortIdentifier(),
                                         path=self.path,
                                         **self.__dict__)
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         raise NotImplementedError
 
     @property

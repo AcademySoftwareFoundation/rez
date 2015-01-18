@@ -19,20 +19,23 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+
 def setup_parser(parser):
+    setting_types = map(lambda x:x.name, SettingType)
 
     parser.add_argument("preset", default="/Rez/applications",
                         help="The preset to list.")
     parser.add_argument("--name",
-                        help="use a long listing format.")
+                        help="find a setting with the specified name.")
     parser.add_argument("--value",
-                        help="list submembers recursively.")
-    parser.add_argument("--type",
-                        help="list presets only.")
+                        help="find a setting with the specified value.")
+    parser.add_argument("--type", choices=setting_types,
+                        help="find a setting with the specified type. available"
+                        "types are ")
     parser.add_argument("-version",
-                        help="this option is ignored when used with -l/--long.")
+                        help="find a setting whose value is within the given version range.")
     parser.add_argument("-f", "--format", default="{path}",
-                        help="this option is ignored when used with -l/--long.")
+                        help="display the results using the provided format string.")
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -54,8 +57,8 @@ def command(opts, parser, extra_arg_groups=None):
 
     for child in root.get_children(date, recursive=True):
         if isinstance(child, Preset):
-            settings = launcher_service.get_unresolved_settings_from_path(child.path, operating_system=operating_system, date=date)
-            settings = launcher_service.resolve_settings(settings)
+            unresolved_settings = launcher_service.get_unresolved_settings_from_path(child.path, operating_system=operating_system, date=date)
+            settings = launcher_service.resolve_settings(unresolved_settings)
 
             for setting in settings:
                 if setting.parent_id is None:

@@ -6,7 +6,7 @@ class Tool(Group):
 
         self.icon_path = icon_path
 
-    def getMemberTypeIdentifier(self):
+    def getMemberTypeShortIdentifier(self):
         return "t"
 
     def __repr__(self):
