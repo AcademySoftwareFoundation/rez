@@ -224,7 +224,8 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
 
     retcode, _, _ = context.execute_shell(block=True,
                                           cwd=build_dir,
-                                          actions_callback=callback)
+                                          actions_callback=callback,
+                                          tmpdir=build_dir)
     sys.exit(retcode)
 
 
