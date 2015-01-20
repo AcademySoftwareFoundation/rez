@@ -1,4 +1,4 @@
-from rez.contrib.animallogic.launcher.setting import ReferenceSetting
+from rez.contrib.animallogic.launcher.model.setting import ReferenceSetting
 
 
 class StubPresetProxy(object):
@@ -48,7 +48,7 @@ class StubPresetProxy(object):
         newRef = {u'id': 1, u'presetId': {u'key': self.PRESET_REFERENCE_TABLE[referencePath]}, u'name': u'Test'}
         self.root_preset[destination_path].append(newRef)
 
-        return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
+        return ReferenceSetting(1, None, referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
 
     def removeReference(self, destination_path, referencePath, username, description):
 
@@ -62,7 +62,7 @@ class StubPresetProxy(object):
             if ref['presetId']['key'] == self.PRESET_REFERENCE_TABLE[referencePath]:
                 self.root_preset[destination_path].remove(ref)
 
-        return ReferenceSetting(referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
+        return ReferenceSetting(1, None, referencePath, self.PRESET_REFERENCE_TABLE[referencePath])
 
     def resolveReferenceSettingsForPath(self, path, date):
 

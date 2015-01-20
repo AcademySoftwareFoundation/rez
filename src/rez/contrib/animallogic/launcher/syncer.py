@@ -1,5 +1,5 @@
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.setting import ValueSetting
+from rez.contrib.animallogic.launcher.model.setting import ValueSetting
 from rez.packages import iter_package_families
 from rez.config import config
 import logging

@@ -3,35 +3,18 @@ Bake a launcher preset based on the resolution of a rez environment.
 """
 
 from rez.contrib.animallogic.hessian import client
-from rez.contrib.animallogic.launcher.service import LauncherHessianService
+from rez.contrib.animallogic.launcher.service.hessian import LauncherHessianService
 from rez.contrib.animallogic.launcher.resolver import RezService
 from rez.contrib.animallogic.launcher.baker import Baker
-from rez.contrib.animallogic.launcher.setting import ValueSetting
-from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.launcher.model.settingtype import SettingType
+from rez.contrib.animallogic.launcher.cli.util import argparse_setting
 from rez.contrib.animallogic.util import get_epoch_datetime_from_str
 from rez.config import config
-from rez.vendor import argparse
 import logging
 import sys
 
 
 logger = logging.getLogger(__name__)
-
-
-def argparse_setting(string):
-    try:
-        setting, value = string.split("=", 1)
-        bits = setting.split(":", 1)
-
-        name = bits[-1]
-        setting_type = SettingType['string']
-        if len(bits) == 2:
-            setting_type = SettingType[bits[0]]
-
-        return ValueSetting(name, value, setting_type)
-
-    except:
-        raise argparse.ArgumentTypeError("must be in the format type:name=value.")
 
 
 def setup_parser(parser):

@@ -1,4 +1,4 @@
-from rez.contrib.animallogic.launcher.settingtype import SettingType
+from rez.contrib.animallogic.launcher.model.settingtype import SettingType
 import rez.vendor.unittest2 as unittest
 
 class TestSettingType(unittest.TestCase):
