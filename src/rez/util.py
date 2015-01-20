@@ -619,6 +619,7 @@ def convert_old_command_expansions(command):
     command = command.replace("!BASE!",          "{base}")
     command = command.replace("!ROOT!",          "{root}")
     command = command.replace("!USER!",          "{system.user}")
+    command = command.replace("!UUID!",          "{system.uuid}")
     return command
 
 
