@@ -5,7 +5,9 @@ from rez.build_system import create_build_system
 from rez.build_process import LocalSequentialBuildProcess
 from rez.contrib.animallogic.unleash.exceptions import UnleashError
 from rez.util import print_warning
+from rez.colorize import Printer, _color
 import os
+import re
 import subprocess
 import sys
 import urllib2
@@ -32,7 +34,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
     name = package.name
     version = package.version
     description = package.description
-    message = get_release_message(message)
+    automatic_release_comments = None
 
     if not check_permission(name, username):
         raise UnleashError("The user %s does not have permission to release the tool %s." % (username, name))
@@ -56,9 +58,26 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
                                           ensure_latest=(not allow_not_latest),
                                           release_message=message)
 
-    if not ignore_auto_messages:
-        message = "%s\n%s" % (message, get_release_message_from_log(vcs, builder))
-        builder.release_message = message
+    install_path = builder.package.config.release_packages_path
+    last_release = builder._get_last_release(install_path)
+
+    if last_release:
+        previous_revision = last_release.revision
+        show_commit_details(get_commit_details(vcs, previous_revision), previous_revision)
+
+        if not ignore_auto_messages:
+            automatic_release_comments = get_automatic_release_comments(vcs, previous_revision)
+            if automatic_release_comments:
+                show_automatic_release_comments(automatic_release_comments)
+    else:
+        print_warning("Unable to find the last version for this package.")
+
+    builder.release_message = get_release_message(message)
+
+    if automatic_release_comments:
+        builder.release_message += "\n"
+        for automatic_release_comment in automatic_release_comments:
+            builder.release_message += "{0}: {1}\n".format(*automatic_release_comment)
 
     config.override('release_packages_path', package.config.unleash_packages_path)
 
@@ -123,25 +142,25 @@ def get_message_from_user(prompt="Please enter a release comment terminated with
     Prompt the user for a release message that is used with rez-release and 
     Unleash.
     """
-    
+
     def prompt_user_for_input(prompt):
         user_input = []
-        
+
         while True:
             input = raw_input(prompt).strip()
-            
+
             if input == ".":
                 break
             elif input != "" or user_input:
                 user_input.append(input)
-            
+
             prompt = ""
-        
+
         if not user_input:
             user_input = prompt_user_for_input("You have not entered a valid release comment, please try again:\n")
-        
+
         return user_input
-    
+
     return "\n".join(prompt_user_for_input(prompt))
 
 
@@ -162,28 +181,45 @@ def check_permission(tool, username):
     return "<expansion>/STAFF(%s)</expansion>" % username in lines[0]
 
 
-def get_release_message_from_log(vcs, builder):
+def get_automatic_release_comments(vcs, previous_revision):
     """
     Extract release messages hidden in commit logs. 
-    
-    These messages are enclosed in <release></release> tags and are entered by
-    the developer at commit, not release, time.  They are then extracted here 
-    for consolidation with other release messages.
-    
-    If extractMessageFromLog is True, message comments will be extracted from the 
-    Git log.
     """
+    return vcs.get_automatic_release_comments(previous_revision=previous_revision)
 
-    install_path = builder.package.config.release_packages_path
 
-    last_package = builder._get_last_release(install_path)
+def show_automatic_release_comments(automatic_release_comments):
 
-    if not last_package:
-        print_warning("Unable to find last package for release comments.")
-        return ""
+    printer = Printer()
 
-    last_revision = last_package.revision
-    return "\n".join(vcs.get_release_log(previous_revision=last_revision))
+    printer("--------------------------------------------------------------------------------")
+    printer("Release comments (automatically added to the release notes)")
+    printer("--------------------------------------------------------------------------------")
+
+    for author, message in automatic_release_comments:
+        printer(_color(author + ": ", fore_color="red") + _color(message, fore_color="green"))
+        printer()
+
+
+def get_commit_details(vcs, previous_revision):
+
+    return vcs.get_commit_details(previous_revision=previous_revision)
+
+
+def show_commit_details(commit_details, previous_revision):
+
+    if not commit_details:
+        return
+
+    printer = Printer()
+
+    printer("--------------------------------------------------------------------------------")
+    printer("Changes since %s" % previous_revision)
+    printer("--------------------------------------------------------------------------------")
+
+    for commit_detail in commit_details:
+        printer(commit_detail)
+        printer()
 
 
 def encode(input):
@@ -193,4 +229,3 @@ def encode(input):
     """
 
     return input.replace("\n", "\\\\n").replace("'", "\\\'\"\\\'\"\\\'")
-
