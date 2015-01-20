@@ -92,6 +92,22 @@ class GitReleaseVCS(ReleaseVCS):
 
         remote, remote_branch = self.get_tracking_branch()
 
+        # check for untracked files
+        output = self.git("ls-files", "--other", "--exclude-standard")
+        if output:
+            msg = "Could not release: there are untracked files:\n"
+            msg += '\n'.join(output)
+            raise ReleaseVCSError(msg)
+
+        # check for uncommitted changes
+        try:
+            self.git("diff-index", "--quiet", "HEAD")
+        except ReleaseVCSError:
+            msg = "Could not release: there are uncommitted changes:\n"
+            statmsg = self.git("diff-index", "--stat", "HEAD")
+            msg += '\n'.join(statmsg)
+            raise ReleaseVCSError(msg)
+
         # check for upstream branch
         if remote is None and not self.settings.allow_no_upstream:
             raise ReleaseVCSError(
@@ -115,15 +131,6 @@ class GitReleaseVCS(ReleaseVCS):
                     "Could not release: current branch is %s, must match "
                     "one of: %s"
                     % (current_branch_name, ', '.join(releasable_branches)))
-
-        # check for uncommitted changes
-        try:
-            self.git("diff-index", "--quiet", "HEAD")
-        except ReleaseVCSError:
-            msg = "Could not release: there are uncommitted changes:\n"
-            statmsg = self.git("diff-index", "--stat", "HEAD")
-            msg += '\n'.join(statmsg)
-            raise ReleaseVCSError(msg)
 
         # check if we are behind/ahead of remote
         if remote:
