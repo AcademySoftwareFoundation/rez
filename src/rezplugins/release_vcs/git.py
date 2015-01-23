@@ -100,11 +100,10 @@ class GitReleaseVCS(ReleaseVCS):
             raise ReleaseVCSError(msg)
 
         # check for uncommitted changes
-        try:
-            self.git("diff-index", "--quiet", "HEAD")
-        except ReleaseVCSError:
+        isDirty = self.git("status", "--porcelain")
+        if isDirty:
             msg = "Could not release: there are uncommitted changes:\n"
-            statmsg = self.git("diff-index", "--stat", "HEAD")
+            statmsg = self.git("status")
             msg += '\n'.join(statmsg)
             raise ReleaseVCSError(msg)
 
