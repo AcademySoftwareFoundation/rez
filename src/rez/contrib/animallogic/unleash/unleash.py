@@ -88,7 +88,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
 
     unleash_command = "python %s -p %s -v %s -b %s -f %s -t %s -m \\'%s\\' -d \\'%s\\' %s" % \
                       (UNLEASHER_COMMAND, name, version, base, unleash_flavour, 
-                      unleash_target, encode(message), encode(description), "-e" if test else "")
+                      unleash_target, encode(builder.release_message), encode(description), "-e" if test else "")
 
     launch_command = [LAUNCHER_COMMAND, 
                         "-l", "shell", "-r",
