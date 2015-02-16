@@ -263,6 +263,17 @@ class Requirement(_Common):
                 and (self.range_ == other.range_)
                 and (self.conflict_ == other.conflict_))
 
+    def __cmp__(self, other):
+        """order from minor to mayor version"""
+        if not other:
+            return +1
+
+        if other.range < self.range:
+            return +1
+        elif other.range > self.range:
+            return -1
+        return 0
+
     def __hash__(self):
         return hash((self.name_, self.range_, self.conflict_))
 
@@ -370,17 +381,6 @@ class RequirementList(_Common):
             return "%s <--!--> %s" % (s1, s2)
         else:
             return ' '.join(str(x) for x in self.requirements_)
-
-    def __cmp__(self, other):
-        """order from minor to mayor version"""
-        if not other:
-            return +1
-
-        if other.range < self.range:
-            return +1
-        elif other.range > self.range:
-            return -1
-        return 0
 
 def extract_family_name_from_requirements(requirement_list):
     return [req.name for req in requirement_list]
