@@ -371,5 +371,16 @@ class RequirementList(_Common):
         else:
             return ' '.join(str(x) for x in self.requirements_)
 
+    def __cmp__(self, other):
+        """order from minor to mayor version"""
+        if not other:
+            return +1
+
+        if other.range < self.range:
+            return +1
+        elif other.range > self.range:
+            return -1
+        return 0
+
 def extract_family_name_from_requirements(requirement_list):
     return [req.name for req in requirement_list]
