@@ -105,15 +105,11 @@ class CSH(UnixShell):
 
     @staticmethod
     def _escapeDoubleQuotes(value):
-        if '"' in value:
-            value = value.replace('"', '"\\""')
-        return value
+        return value.replace('"', '"\\""')
 
     @staticmethod
     def _escapeAntiPackage(value):
-        if '!' in value:
-            value = value.replace('!', '\\!')
-        return value
+        return value.replace('!', '\\!')
 
 
     def setenv(self, key, value):
