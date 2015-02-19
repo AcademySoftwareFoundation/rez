@@ -233,7 +233,7 @@ class VariantSorter(object):
     # request eek zex foo-1+   (fam_requires=eek, zex, foo)
 
     First group variants per intersecting weight.
-     Weight is given by the intersecting teh variant package name with the fam request
+     Weight is given by the intersecting the variant package name with the fam request
 
                                                 IntWeight
 

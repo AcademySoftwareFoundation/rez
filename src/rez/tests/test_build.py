@@ -92,6 +92,11 @@ class TestBuild(TestBase, TempdirMixin):
         self._create_context("bah==2.1", "foo==1.0.0")
         self._create_context("bah==2.1", "foo==1.1.0")
 
+    def _test_build_anti(self):
+        """Build, install, test the anti package."""
+        self._test_build("anti", "1.0.0")
+
+
     @shell_dependent
     @install_dependent
     def test_build_whack(self):
@@ -110,12 +115,22 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_loco()
         self._test_build_bah()
 
+    @shell_dependent
+    @install_dependent
+    def test_builds_anti(self):
+        """Test we can
+         build packages that contain anti packages"""
+        self._test_build_build_util()
+        self._test_build_floob()
+        self._test_build_anti()
+
 
 def get_test_suites():
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestBuild("test_build_whack"))
     suite.addTest(TestBuild("test_builds"))
+    suite.addTest(TestBuild("test_builds_anti"))
     suites.append(suite)
     return suites
 

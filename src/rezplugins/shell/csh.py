@@ -99,13 +99,25 @@ class CSH(UnixShell):
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
-    def _escapeDoubleQuotes(self, value):
+    def _escape(self, value):
+        value = self._escapeDoubleQuotes(value)
+        return self._escapeAntiPackage(value)
+
+    @staticmethod
+    def _escapeDoubleQuotes(value):
         if '"' in value:
-            value = value.replace ( '"','"\\""' )
+            value = value.replace('"', '"\\""')
         return value
 
+    @staticmethod
+    def _escapeAntiPackage(value):
+        if '!' in value:
+            value = value.replace('!', '\\!')
+        return value
+
+
     def setenv(self, key, value):
-        value = self._escapeDoubleQuotes(value)
+        value = self._escape(value)
         self._addline('setenv %s "%s"' % (key, value))
 
     def unsetenv(self, key):
@@ -113,6 +125,7 @@ class CSH(UnixShell):
 
     def alias(self, key, value):
         self._addline("alias %s '%s';" % (key, value))
+
 
 
 def register_plugin():
