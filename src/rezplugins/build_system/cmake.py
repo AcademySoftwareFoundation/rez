@@ -79,8 +79,7 @@ class CMakeBuildSystem(BuildSystem):
 
         self.settings = self.package.config.plugins.build_system.cmake
         self.build_target = opts.build_target or self.settings.build_target
-        self.cmake_build_system = opts.build_system \
-            or self.settings.build_system
+        self.cmake_build_system = opts.build_system or self.settings.build_system
         if self.cmake_build_system == 'xcode' and platform_.name != 'osx':
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
@@ -178,6 +177,7 @@ class CMakeBuildSystem(BuildSystem):
 
     @staticmethod
     def _add_build_actions(executor, context, package, variant, build_type):
+        settings = package.config.plugins.build_system.cmake
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
 
