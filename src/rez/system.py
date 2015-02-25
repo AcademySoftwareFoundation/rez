@@ -151,6 +151,11 @@ class System(object):
         return getpass.getuser()
 
     @propertycache
+    def home(self):
+        """Get the home directory for the current user."""
+        return os.path.expanduser("~")
+
+    @propertycache
     def fqdn(self):
         """
         @returns Fully qualified domain name. Example:
