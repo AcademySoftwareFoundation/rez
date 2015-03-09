@@ -4,3 +4,6 @@ git:
 
     # The format used with 'git show' when retrieving the commit details.
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
+
+    # The name of the remote to track changes against.
+    remote: origin

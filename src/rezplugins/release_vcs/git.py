@@ -17,7 +17,8 @@ class GitReleaseVCS(ReleaseVCS):
 
     schema_dict = {
         "allow_no_upstream": bool,
-        "commit_details_format": basestring}
+        "commit_details_format": basestring,
+        "remote": basestring}
 
     @classmethod
     def name(cls):
@@ -132,7 +133,7 @@ class GitReleaseVCS(ReleaseVCS):
 
         # check if we are behind/ahead of remote
         if remote:
-            self.git("remote", "update")
+            self.git("remote", "update", self.settings.remote)
             n = self.get_relative_to_remote()
             if n:
                 s = "ahead of" if n > 0 else "behind"
