@@ -17,8 +17,7 @@ class GitReleaseVCS(ReleaseVCS):
 
     schema_dict = {
         "allow_no_upstream": bool,
-        "commit_details_format": basestring,
-        "remotes": basestring}
+        "commit_details_format": basestring}
 
     @classmethod
     def name(cls):
@@ -50,7 +49,8 @@ class GitReleaseVCS(ReleaseVCS):
 
     def get_relative_to_remote(self):
         """Return the number of commits we are relative to the remote. Negative
-        is behind, positive in front, zero means we are matched to remote.
+        is behind, positive in front, zero means we are matched to remote.  if
+        we are both behind and ahead then only the ahead value will be reported.
         """
         s = self.git("status", "--short", "-b")[0]
         r = re.compile("\[([^\]]+)\]")
@@ -58,7 +58,7 @@ class GitReleaseVCS(ReleaseVCS):
         if toks:
             try:
                 s2 = toks[-1]
-                adj, n = s2.split()
+                adj, n = s2.split(",")[0].split()
                 assert(adj in ("ahead", "behind"))
                 n = int(n)
                 return -n if adj == "behind" else n
@@ -74,7 +74,8 @@ class GitReleaseVCS(ReleaseVCS):
         return self.git("rev-parse", "--abbrev-ref", "HEAD")[0]
 
     def get_tracking_branch(self):
-        """Returns (remote, branch) tuple, or None,None if there is no remote.
+        """Returns (remote, branch) tuple, or (None, None) if there is no
+        remote.
         """
         try:
             remote_uri = self.git("rev-parse", "--abbrev-ref",
@@ -133,7 +134,7 @@ class GitReleaseVCS(ReleaseVCS):
 
         # check if we are behind/ahead of remote
         if remote:
-            self.git("remote", "update", *self.settings.remotes)
+            self.git("remote", "update", remote)
             n = self.get_relative_to_remote()
             if n:
                 s = "ahead of" if n > 0 else "behind"
@@ -141,6 +142,10 @@ class GitReleaseVCS(ReleaseVCS):
                 raise ReleaseVCSError(
                     "Could not release: %d commits %s %s."
                     % (abs(n), s, remote_uri))
+
+        print "DONE"
+        import sys
+        sys.exit()
 
     def get_changelog(self, previous_revision=None):
         prev_commit = None
