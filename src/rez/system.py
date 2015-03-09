@@ -203,6 +203,13 @@ class System(object):
 
         return None
 
+    @cached_property
+    def home(self):
+        """
+	@returns The home directory of the current user
+	"""
+        return os.path.expanduser('~')
+
     @property
     def is_production_rez_install(self):
         """Return True if this is a production rez install."""
