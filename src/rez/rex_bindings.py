@@ -14,7 +14,7 @@ class Binding(object):
         self.__data = data or {}
 
     def __attr_error(self, attr):
-        raise NotImplemented
+        raise NotImplementedError
 
     def __getattr__(self, attr):
         try:

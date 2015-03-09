@@ -689,10 +689,10 @@ class DependencyConflict(_Common):
 
 class FailureReason(_Common):
     def involved_requirements(self):
-        raise NotImplemented
+        raise NotImplementedError
 
     def description(self):
-        raise NotImplemented
+        raise NotImplementedError
 
 
 class TotalReduction(FailureReason):
