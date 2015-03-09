@@ -1,0 +1,24 @@
+sh:
+    # String to add to shell prompt when using rez-env. Set prompt to the empty
+    # string if you do not want Rez changing the prompt.
+    prompt: '>'
+
+bash:
+    # String to add to shell prompt when using rez-env. Set prompt to the empty
+    # string if you do not want Rez changing the prompt.
+    prompt: '>'
+
+csh:
+    # String to add to shell prompt when using rez-env. Set prompt to the empty
+    # string if you do not want Rez changing the prompt.
+    prompt: '>'
+
+tcsh:
+    # String to add to shell prompt when using rez-env. Set prompt to the empty
+    # string if you do not want Rez changing the prompt.
+    prompt: '>'
+
+cmd:
+    # String to add to shell prompt when using rez-env. Set prompt to the empty
+    # string if you do not want Rez changing the prompt.
+    prompt: '$G'

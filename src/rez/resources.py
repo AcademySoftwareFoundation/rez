@@ -44,7 +44,7 @@ Required = Schema
 
 
 def _or_regex(strlist):
-    return '|'.join('(%s)' % e for e in strlist)
+    return '|'.join('(%s)' % re.escape(e) for e in strlist)
 
 
 def _updated_schema(schema, items=None, rm_keys=None):
@@ -304,7 +304,7 @@ class _ResourcePathParser(object):
         """
         reg = cls._get_regex(resource_class, pattern,
                              tuple(search_paths or ()), parse_all)
-        m = reg.match(to_posixpath(filepath))
+        m = reg.match(filepath)
         if m:
             return m.group(0), m.groupdict()
 
@@ -333,7 +333,7 @@ class _ResourcePathParser(object):
             pattern += '$'
         else:
             # assertion lookaehead so '/foo/ba' matches 'foo/ba' and
-            # /foo/ba/whee', but not '/foo/barry'
+            # /foo/ba/whee', but not '/foo/barry'.
             pattern += "(?=$|%s)" % re.escape(os.path.sep)
         reg = re.compile(pattern)
         return reg
@@ -635,14 +635,17 @@ class Resource(object):
         raise NotImplementedError
 
     def _ancestor_instance(self, ancestor_cls):
-        path, _ = _ResourcePathParser.parse_filepath(
-            ancestor_cls,
+        match = _ResourcePathParser.parse_filepath(ancestor_cls,
             filepath=self.path, search_paths=[self.variables["search_path"]],
             parse_all=False)
+        if match is None:
+            raise ResourceError("Unable to find ancestor resource %r from %r:"
+                                "file did not match path patterns" %
+                                (ancestor_cls, self.path))
         var_keys = ancestor_cls._variable_keys()
         variables = dict((k, v) for k, v in self.variables.iteritems()
                          if k in var_keys)
-        return ancestor_cls(path, variables)
+        return ancestor_cls(match[0], variables)
 
     def ancestor_instance(self, ancestor_cls):
         """Get an instance of a resource type higher in the hierarchy."""

@@ -242,7 +242,7 @@ class WindowsPlatform(Platform):
                                   os.environ.get('PROCESSOR_ARCHITECTURE'))
             if arch:
                 return arch
-        return super(WindowsPlatform, self).arch()
+        return super(WindowsPlatform, self).arch
 
     @propertycache
     def os(self):
@@ -259,8 +259,9 @@ class WindowsPlatform(Platform):
         path = os.getenv("TEMP")
         if path and os.path.isdir(path):
             return path
-        return "/tmp"
+        return "C:/temp"
 
+    @propertycache
     def image_viewer(self):
         # os.system("file.jpg") will open default viewer on windows
         return ''
@@ -269,6 +270,27 @@ class WindowsPlatform(Platform):
     def editor(self):
         # os.system("file.txt") will open default editor on windows
         return ''
+
+    def symlink(self, source, link_name):
+        # If we are already in a version of python that supports symlinks then
+        # just use the os module, otherwise fall back on ctypes.  It requires
+        # administrator privileges to run or the correct group policy to be set.
+        # This implementation is taken from
+        # http://stackoverflow.com/questions/6260149/os-symlink-support-in-windows
+        if callable(getattr(os, "symlink", None)):
+            os.symlink(source, link_name)
+        else:
+            import ctypes
+            csl = ctypes.windll.kernel32.CreateSymbolicLinkW
+            csl.argtypes = (ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_uint32)
+            csl.restype = ctypes.c_ubyte
+            flags = 1 if os.path.isdir(source) else 0
+            if csl(link_name, source, flags) == 0:
+                raise ctypes.WinError()
+
+    @propertycache
+    def terminal_emulator_command(self):
+        return ["CMD.exe", "/Q", "/K"]
 
 
 # singleton

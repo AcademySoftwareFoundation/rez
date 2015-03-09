@@ -98,12 +98,17 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
     content = dump_yaml(doc)
     with open(filepath, 'w') as f:
-        # TODO make cross platform
+        # TODO: make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+	# TODO: Although Windows supports os.chmod you can only set the readonly
+    # flag. Setting the file readonly breaks the unit tests that expect to
+	# clean up the files once the test has run.  Temporarily we don't bother
+    # setting the permissions, but this will need to change.
+    if os.name == "posix":
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                 | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def print_debug(msg):
@@ -180,10 +185,10 @@ def shlex_join(value):
 
 
 # returns path to first program in the list to be successfully found
-def which(*programs):
+def which(*programs, **shutilwhich_kwargs):
     from rez.backport.shutilwhich import which as which_
     for prog in programs:
-        path = which_(prog)
+        path = which_(prog, **shutilwhich_kwargs)
         if path:
             return path
     return None
@@ -654,7 +659,11 @@ def convert_old_commands(commands, annotate=True):
                     value = value[1:-1]
                     break
 
-            separator = config.env_var_separators.get(var, os.pathsep)
+            # As the only old-style commands were Linux/Bash based,
+            # we assume using the default separator ":" is ok - we don't
+            # need to use os.pathsep as we don't expected to see a
+            # Windows path here.
+            separator = config.env_var_separators.get(var, ":")
 
             # This is a special special case.  We don't want to include "';'" in
             # our env var separators map as it's not really the correct
@@ -823,6 +832,63 @@ def expandvars(text, environ=None):
         else:
             i = j
     return text
+
+
+def expanduser(path):
+    """Expand paths beginning with '~'.
+    
+    True story... the implementation of os.path.expanduser differs between
+    Windows (nt) and Linux (posix).  On posix platforms the `pwd` module is
+    used so '~foo' will only expand if 'foo' is a valid user.  This is nice. On
+    nt platforms the same check is not made - the '~' is always expanded based
+    using string manipulation and environment variables.  This is bad.
+
+    As a result, due to the way expansion is hard wired into the `config`
+    module this means weak implicit packages (for example) in the config are
+    expanded from '~os=={system.os}' to 'C:/Users/os=={system.os}' on nt
+    platforms.
+
+    Ideally, `PathStrList` based `Settings` would be the only setting type to
+    use the `os.path.expanduser` method, thereby making it explicit that this
+    level of expansion should take place.  This works for the main `Config`
+    class however `_PluginConfig` follows a different code path that makes this
+    all but impossible without a larger refactor (see comment in `_to_schema`
+    method).  Therefore, to keep the behaviour consistent across all types of
+    configuration and platform we change the os.path.expanduser implementation.
+
+    As it is highly unlikely we should need to refer to someone else's home
+    directory (thereby triggering the above 'feature') we use a custom
+    `expanduser` method which can only expand '~'.  Others the path is returned
+    without expansion applied."""
+    if os.name == "nt":
+        userpath = path
+        if not path.startswith('~'):
+            return path
+
+        i = path.find(os.path.sep, 1)
+        if i < 0:
+            i = len(path)
+        if i != 1:
+            return path
+
+        if 'HOME' in os.environ:
+            userhome = os.environ['HOME']
+        elif 'USERPROFILE' in os.environ:
+            userhome = os.environ['USERPROFILE']
+        elif not 'HOMEPATH' in os.environ:
+            return path
+        else:
+            try:
+                drive = os.environ['HOMEDRIVE']
+            except KeyError:
+                drive = ''
+            userhome = os.path.join(drive, os.environ['HOMEPATH'])
+        userpath = userhome + path[i:]
+
+    else:
+        userpath = os.path.expanduser(path)
+
+    return userpath
 
 
 def find_last_sublist(list_, sublist):

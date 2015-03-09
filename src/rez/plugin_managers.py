@@ -1,7 +1,7 @@
 """
 Manages loading of all types of Rez plugins.
 """
-from rez.config import config, _to_schema
+from rez.config import config, _to_schema, _load_config_from_filepaths
 from rez.util import LazySingleton, propertycache, deep_update, columnise, \
     print_debug
 from rez.exceptions import RezPluginError
@@ -133,11 +133,8 @@ class RezPluginType(object):
                             print_debug(out.getvalue())
 
             # load config
-            configfile = os.path.join(path, "rezconfig")
-            if os.path.exists(configfile):
-                from rez.config import _load_config_yaml
-                data = _load_config_yaml(configfile)
-                deep_update(self.config_data, data)
+            data = _load_config_from_filepaths([os.path.join(path, "rezconfig")])
+            deep_update(self.config_data, data)
 
     def get_plugin_class(self, plugin_name):
         """Returns the class registered under the given plugin name."""
