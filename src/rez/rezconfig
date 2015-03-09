@@ -553,6 +553,12 @@ plugins:
             - '^release-'
             - '^AL_2\.0$'
 
+        # A list of GitHub organization allowed to rez-release from. Releases
+        # from forks are not allowed
+        #
+        releasable_organizations:
+            - 'rnd'
+
 
 ###############################################################################
 # Launcher

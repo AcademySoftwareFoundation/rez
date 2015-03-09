@@ -1,11 +1,12 @@
 """
 Git version control
 """
+import commands
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
+from rez.config import Str, config
 import functools
-import os.path
 import re
 
 
@@ -17,7 +18,8 @@ class GitReleaseVCS(ReleaseVCS):
 
     schema_dict = {
         "allow_no_upstream": bool,
-        "commit_details_format": basestring}
+        "commit_details_format": basestring,
+        "remote_origin_url": basestring}
 
     @classmethod
     def name(cls):
@@ -34,15 +36,15 @@ class GitReleaseVCS(ReleaseVCS):
 
     @classmethod
     def is_valid_root(cls, path):
-        if os.path.isdir(os.path.join(path, '.git')):
-            return True
 
-        while path != os.sep:
-            path = os.path.dirname(path)
-            if os.path.isdir(os.path.join(path, '.git')):
-                return True
+        remote_origin_url = config.plugins.release_vcs.get(cls.name()).remote_origin_url
+        current_remote_url = commands.getoutput('git config remote.origin.url')
 
-        return False
+        if not re.search(remote_origin_url, current_remote_url):
+            return False
+
+        inside_working_dir = commands.getoutput('git rev-parse  --is-inside-work-tree')
+        return inside_working_dir == 'true'
 
     def git(self, *nargs):
         return self._cmd(self.executable, *nargs)
@@ -142,10 +144,6 @@ class GitReleaseVCS(ReleaseVCS):
                 raise ReleaseVCSError(
                     "Could not release: %d commits %s %s."
                     % (abs(n), s, remote_uri))
-
-        print "DONE"
-        import sys
-        sys.exit()
 
     def get_changelog(self, previous_revision=None):
         prev_commit = None

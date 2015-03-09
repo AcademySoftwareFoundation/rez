@@ -4,3 +4,10 @@ git:
 
     # The format used with 'git show' when retrieving the commit details.
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
+
+github:
+    remote_origin_url: http://github.al.com.au
+
+    allow_no_upstream: false
+
+    commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
