@@ -46,7 +46,7 @@ class TestRelease(TestBase, TempdirMixin):
         clear_caches()
         return ResolvedContext(pkgs)
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_1(self):
         """Basic release."""

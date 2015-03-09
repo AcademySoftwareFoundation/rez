@@ -18,16 +18,16 @@ here = os.path.abspath(os.path.dirname(__file__))
 data_root = os.path.join(here, "data", "resources")
 
 
-def _abspath(path):
-    return os.path.join(data_root, path)
+def _abspath(*paths):
+    return os.path.join(data_root, *paths)
 
 
 def _abspaths(it):
-    return set(_abspath(path) for path in it)
+    return set(_abspath(*path) for path in it)
 
 
 def _abstuple(r):
-    return (r[0], r[1], _abspath(r[2]))
+    return (r[0], r[1], _abspath(*r[2]))
 
 
 def _abstuples(it):
@@ -35,7 +35,7 @@ def _abstuples(it):
 
 
 def _to_paths(it):
-    return _abspaths(r.path for r in it)
+    return set([r.path for r in it])
 
 
 def _to_tuples(it):
@@ -48,77 +48,77 @@ def _to_tuples(it):
 
 
 ALL_PACKAGES = _abspaths([
-    'packages/unversioned/package.yaml',
-    'packages/versioned/1.0/package.yaml',
-    'packages/versioned/2.0/package.yaml',
-    'packages/single_unversioned.yaml',
-    'packages/single_versioned.yaml',
-    'packages/multi.yaml',
+    ['packages', 'unversioned', 'package.yaml'],
+    ['packages', 'versioned', '1.0', 'package.yaml'],
+    ['packages', 'versioned', '2.0', 'package.yaml'],
+    ['packages', 'single_unversioned.yaml'],
+    ['packages', 'single_versioned.yaml'],
+    ['packages', 'multi.yaml'],
 
-    'pypackages/unversioned/package.py',
-    'pypackages/versioned/1.0/package.py',
-    'pypackages/versioned/2.0/package.py',
-    'pypackages/single_unversioned.py',
-    'pypackages/single_versioned.py',
-    'pypackages/multi.py'])
+    ['pypackages', 'unversioned', 'package.py'],
+    ['pypackages', 'versioned', '1.0', 'package.py'],
+    ['pypackages', 'versioned', '2.0', 'package.py'],
+    ['pypackages', 'single_unversioned.py'],
+    ['pypackages', 'single_versioned.py'],
+    ['pypackages', 'multi.py']])
 
 
 ALL_PACKAGE_FOLDERS = _abspaths([
-    'packages/unversioned',
-    'packages/versioned',
-    'packages/versioned/1.0',
-    'packages/versioned/2.0',
+    ['packages', 'unversioned'],
+    ['packages', 'versioned'],
+    ['packages', 'versioned', '1.0'],
+    ['packages', 'versioned', '2.0'],
 
-    'pypackages/unversioned',
-    'pypackages/versioned',
-    'pypackages/versioned/1.0',
-    'pypackages/versioned/2.0'])
+    ['pypackages', 'unversioned'],
+    ['pypackages', 'versioned'],
+    ['pypackages', 'versioned', '1.0'],
+    ['pypackages', 'versioned', '2.0']])
 
 
 ALL_PACKAGE_RESOURCES = _abstuples([
-    ('PackageFamilyFolder', '-', 'pypackages/unversioned'),
-    ('PackageFamilyFolder', '-', 'pypackages/versioned'),
-    ('PackageFamilyFolder', '-', 'packages/versioned'),
-    ('PackageFamilyFolder', '-', 'packages/unversioned'),
+    ('PackageFamilyFolder', '-', ['pypackages', 'unversioned']),
+    ('PackageFamilyFolder', '-', ['pypackages', 'versioned']),
+    ('PackageFamilyFolder', '-', ['packages', 'versioned']),
+    ('PackageFamilyFolder', '-', ['packages', 'unversioned']),
 
-    ('PackageVersionFolder', '1.0', 'pypackages/versioned/1.0'),
-    ('PackageVersionFolder', '2.0', 'pypackages/versioned/2.0'),
-    ('PackageVersionFolder', '1.0', 'packages/versioned/1.0'),
-    ('PackageVersionFolder', '2.0', 'packages/versioned/2.0'),
+    ('PackageVersionFolder', '1.0', ['pypackages', 'versioned', '1.0']),
+    ('PackageVersionFolder', '2.0', ['pypackages', 'versioned', '2.0']),
+    ('PackageVersionFolder', '1.0', ['packages', 'versioned', '1.0']),
+    ('PackageVersionFolder', '2.0', ['packages', 'versioned', '2.0']),
 
-    ('VersionlessPackageResource', '-', 'pypackages/unversioned/package.py'),
-    ('VersionlessPackageResource', '-', 'packages/unversioned/package.yaml'),
+    ('VersionlessPackageResource', '-', ['pypackages', 'unversioned', 'package.py']),
+    ('VersionlessPackageResource', '-', ['packages', 'unversioned', 'package.yaml']),
 
-    ('VersionlessVariantResource', '-', 'pypackages/unversioned/package.py'),
-    ('VersionlessVariantResource', '-', 'packages/unversioned/package.yaml'),
+    ('VersionlessVariantResource', '-', ['pypackages', 'unversioned', 'package.py']),
+    ('VersionlessVariantResource', '-', ['packages', 'unversioned', 'package.yaml']),
 
-    ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
-    ('VersionedPackageResource', '2.0', 'pypackages/versioned/2.0/package.py'),
-    ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
-    ('VersionedPackageResource', '2.0', 'packages/versioned/2.0/package.yaml'),
+    ('VersionedPackageResource', '1.0', ['pypackages', 'versioned', '1.0', 'package.py']),
+    ('VersionedPackageResource', '2.0', ['pypackages', 'versioned', '2.0', 'package.py']),
+    ('VersionedPackageResource', '1.0', ['packages', 'versioned', '1.0', 'package.yaml']),
+    ('VersionedPackageResource', '2.0', ['packages', 'versioned', '2.0', 'package.yaml']),
 
-    ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml'),
-    ('VersionedVariantResource', '2.0', 'packages/versioned/2.0/package.yaml'),
-    ('VersionedVariantResource', '1.0', 'pypackages/versioned/1.0/package.py'),
-    ('VersionedVariantResource', '2.0', 'pypackages/versioned/2.0/package.py'),
+    ('VersionedVariantResource', '1.0', ['packages', 'versioned', '1.0', 'package.yaml']),
+    ('VersionedVariantResource', '2.0', ['packages', 'versioned', '2.0', 'package.yaml']),
+    ('VersionedVariantResource', '1.0', ['pypackages', 'versioned', '1.0', 'package.py']),
+    ('VersionedVariantResource', '2.0', ['pypackages', 'versioned', '2.0', 'package.py']),
 
-    ('CombinedPackageFamilyResource', '-', 'packages/single_unversioned.yaml'),
-    ('CombinedPackageFamilyResource', '-', 'pypackages/single_unversioned.py'),
-    ('CombinedPackageFamilyResource', '-', 'packages/single_versioned.yaml'),
-    ('CombinedPackageFamilyResource', '-', 'pypackages/single_versioned.py'),
-    ('CombinedPackageFamilyResource', '-', 'packages/multi.yaml'),
-    ('CombinedPackageFamilyResource', '-', 'pypackages/multi.py'),
+    ('CombinedPackageFamilyResource', '-', ['packages', 'single_unversioned.yaml']),
+    ('CombinedPackageFamilyResource', '-', ['pypackages', 'single_unversioned.py']),
+    ('CombinedPackageFamilyResource', '-', ['packages', 'single_versioned.yaml']),
+    ('CombinedPackageFamilyResource', '-', ['pypackages', 'single_versioned.py']),
+    ('CombinedPackageFamilyResource', '-', ['packages', 'multi.yaml']),
+    ('CombinedPackageFamilyResource', '-', ['pypackages', 'multi.py']),
 
-    ('CombinedPackageResource', '', 'packages/single_unversioned.yaml'),
-    ('CombinedPackageResource', '', 'pypackages/single_unversioned.py'),
-    ('CombinedPackageResource', '3.5', 'packages/single_versioned.yaml'),
-    ('CombinedPackageResource', '3.5', 'pypackages/single_versioned.py'),
-    ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
-    ('CombinedPackageResource', '1.1', 'packages/multi.yaml'),
-    ('CombinedPackageResource', '1.2', 'packages/multi.yaml'),
-    ('CombinedPackageResource', '1.0', 'pypackages/multi.py'),
-    ('CombinedPackageResource', '1.1', 'pypackages/multi.py'),
-    ('CombinedPackageResource', '1.2', 'pypackages/multi.py')])
+    ('CombinedPackageResource', '', ['packages', 'single_unversioned.yaml']),
+    ('CombinedPackageResource', '', ['pypackages', 'single_unversioned.py']),
+    ('CombinedPackageResource', '3.5', ['packages', 'single_versioned.yaml']),
+    ('CombinedPackageResource', '3.5', ['pypackages', 'single_versioned.py']),
+    ('CombinedPackageResource', '1.0', ['packages', 'multi.yaml']),
+    ('CombinedPackageResource', '1.1', ['packages', 'multi.yaml']),
+    ('CombinedPackageResource', '1.2', ['packages', 'multi.yaml']),
+    ('CombinedPackageResource', '1.0', ['pypackages', 'multi.py']),
+    ('CombinedPackageResource', '1.1', ['pypackages', 'multi.py']),
+    ('CombinedPackageResource', '1.2', ['pypackages', 'multi.py'])])
 
 
 # TODO add variant tests
@@ -194,25 +194,25 @@ class TestResources(TestBase):
         # iterate over explicit resource type
         result = list(iter_resources(resource_keys=['package.versionless']))
         self.assertEqual(_to_paths(result),
-                         _abspaths(['packages/unversioned/package.yaml',
-                                    'pypackages/unversioned/package.py']))
+                         _abspaths([['packages', 'unversioned', 'package.yaml'],
+                                    ['pypackages', 'unversioned', 'package.py']]))
 
         result = list(iter_resources(resource_keys=['package.dev'],
                                      search_path=_abspath("developer")))
         self.assertEqual(_to_paths(result),
-                         _abspaths(['developer/package.yaml']))
+                         _abspaths([['developer', 'package.yaml']]))
 
         # iterate over explicit resource type, specifying 'name' variable. Also
         # check that expanded variables in the result are correct.
         result = list(iter_resources(resource_keys=['package.versioned'],
                                      variables=dict(name='versioned')))
         self.assertEqual(_to_paths(result),
-                         _abspaths(['packages/versioned/1.0/package.yaml',
-                                    'packages/versioned/2.0/package.yaml',
-                                    'pypackages/versioned/1.0/package.py',
-                                    'pypackages/versioned/2.0/package.py']))
+                         _abspaths([['packages', 'versioned', '1.0', 'package.yaml'],
+                                    ['packages', 'versioned', '2.0', 'package.yaml'],
+                                    ['pypackages', 'versioned', '1.0', 'package.py'],
+                                    ['pypackages', 'versioned', '2.0', 'package.py']]))
 
-        path = _abspath('packages/versioned/1.0/package.yaml')
+        path = _abspath('packages', 'versioned', '1.0', 'package.yaml')
         resource = [r for r in result if r.path == path][0]
         self.assertEqual(resource.variables,
                          {'name': 'versioned',
@@ -224,12 +224,12 @@ class TestResources(TestBase):
         result = list(iter_resources(resource_keys=['package.versionless',
                                                     'package.versioned']))
         self.assertEqual(_to_paths(result),
-                         _abspaths(['packages/unversioned/package.yaml',
-                                    'pypackages/unversioned/package.py',
-                                    'packages/versioned/1.0/package.yaml',
-                                    'packages/versioned/2.0/package.yaml',
-                                    'pypackages/versioned/1.0/package.py',
-                                    'pypackages/versioned/2.0/package.py']))
+                         _abspaths([['packages', 'unversioned', 'package.yaml'],
+                                    ['pypackages', 'unversioned', 'package.py'],
+                                    ['packages', 'versioned', '1.0', 'package.yaml'],
+                                    ['packages', 'versioned', '2.0', 'package.yaml'],
+                                    ['pypackages', 'versioned', '1.0', 'package.py'],
+                                    ['pypackages', 'versioned', '2.0', 'package.py']]))
 
         # iterate over glob pattern of resource types in a hierarchy
         result = list(iter_resources(resource_keys=['package.*'],
@@ -249,9 +249,9 @@ class TestResources(TestBase):
                                      variables=dict(name='multi',
                                                     ext='yaml')))
         self.assertEqual(_to_tuples(result), _abstuples([
-            ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
-            ('CombinedPackageResource', '1.1', 'packages/multi.yaml'),
-            ('CombinedPackageResource', '1.2', 'packages/multi.yaml')]))
+            ('CombinedPackageResource', '1.0', ['packages', 'multi.yaml']),
+            ('CombinedPackageResource', '1.1', ['packages', 'multi.yaml']),
+            ('CombinedPackageResource', '1.2', ['packages', 'multi.yaml'])]))
 
         # iterate over sub-resources (variants)
         result = list(iter_resources(resource_keys='variant.*',
@@ -259,21 +259,21 @@ class TestResources(TestBase):
                                                     ext='yaml'),
                                      root_resource_key="folder.packages_root"))
         self.assertEqual(_to_tuples(result), _abstuples([
-            ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml')]))
+            ('VersionedVariantResource', '1.0', ['packages', 'versioned', '1.0', 'package.yaml'])]))
         self.assertEqual(len(result), 2)
 
         # iterate over a broad slice of resources, based on a variable
         result = list(iter_resources(variables=dict(version='1.0'),
                                      root_resource_key="folder.packages_root"))
         self.assertEqual(_to_tuples(result), _abstuples([
-            ('PackageVersionFolder', '1.0', 'pypackages/versioned/1.0'),
-            ('PackageVersionFolder', '1.0', 'packages/versioned/1.0'),
-            ('VersionedPackageResource', '1.0', 'pypackages/versioned/1.0/package.py'),
-            ('VersionedPackageResource', '1.0', 'packages/versioned/1.0/package.yaml'),
-            ('VersionedVariantResource', '1.0', 'packages/versioned/1.0/package.yaml'),
-            ('VersionedVariantResource', '1.0', 'pypackages/versioned/1.0/package.py'),
-            ('CombinedPackageResource', '1.0', 'packages/multi.yaml'),
-            ('CombinedPackageResource', '1.0', 'pypackages/multi.py')]))
+            ('PackageVersionFolder', '1.0', ['pypackages', 'versioned', '1.0']),
+            ('PackageVersionFolder', '1.0', ['packages', 'versioned', '1.0']),
+            ('VersionedPackageResource', '1.0', ['pypackages', 'versioned', '1.0', 'package.py']),
+            ('VersionedPackageResource', '1.0', ['packages', 'versioned', '1.0', 'package.yaml']),
+            ('VersionedVariantResource', '1.0', ['packages', 'versioned', '1.0', 'package.yaml']),
+            ('VersionedVariantResource', '1.0', ['pypackages', 'versioned', '1.0', 'package.py']),
+            ('CombinedPackageResource', '1.0', ['packages', 'multi.yaml']),
+            ('CombinedPackageResource', '1.0', ['pypackages', 'multi.py'])]))
 
         # iterate over packages in a combined family package, test that the
         # version override feature is working
@@ -293,7 +293,7 @@ class TestResources(TestBase):
 
         # iterate over the variants in a developer package
         resource = get_resource(resource_keys="package.dev",
-                                filepath=_abspath("developer/package.yaml"))
+                                filepath=_abspath("developer", "package.yaml"))
         result = list(iter_child_resources(resource))
         result2 = list(iter_descendant_resources(resource))
         self.assertEqual(result, result2)
@@ -315,7 +315,7 @@ class TestResources(TestBase):
         search_path = _abspath("developer")
         resource = get_resource(resource_keys="package.dev",
                                 search_path=search_path)
-        path = _abspath("developer/package.yaml")
+        path = _abspath("developer", "package.yaml")
         expected_variables = {"ext": "yaml",
                               "search_path": search_path}
         expected_data = {'description': 'a foo type thing.',
@@ -339,7 +339,7 @@ class TestResources(TestBase):
                                                ext='py'))
 
         resource_key = 'package.versioned'
-        path = _abspath('pypackages/versioned/1.0/package.py')
+        path = _abspath('pypackages', 'versioned', '1.0', 'package.py')
         expected_variables = {'name': 'versioned',
                               'version': '1.0',
                               'ext': 'py',
@@ -361,7 +361,7 @@ class TestResources(TestBase):
         # check the parent of this resource is a versioned folder
         parent = resource.parent_instance()
         self.assertEqual(parent.key, "version.folder")
-        self.assertEqual(parent.path, _abspath('pypackages/versioned/1.0'))
+        self.assertEqual(parent.path, _abspath('pypackages', 'versioned', '1.0'))
         self.assertEqual(parent.variables, {'name': 'versioned',
                                             'version': '1.0',
                                             'search_path': self.pypackages_path})
@@ -384,7 +384,7 @@ class TestResources(TestBase):
             self.assertEqual(resource.load(), expected_data)
 
         # load a sub-resource
-        path = _abspath('pypackages/multi.py')
+        path = _abspath('pypackages', 'multi.py')
         expected_variables = {'name': 'multi',
                               'version': '1.1',
                               'ext': 'py',

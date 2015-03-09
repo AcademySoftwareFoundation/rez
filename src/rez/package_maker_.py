@@ -16,6 +16,7 @@ from rez.vendor.version.version import Version
 from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.vendor import yaml
 from rez.exceptions import PackageMetadataError, RezSystemError
+from rez.platform_ import platform_
 from rez.util import OrderedDict
 from rez.yaml import dump_package_yaml
 from contextlib import contextmanager
@@ -241,7 +242,8 @@ class PackageMaker(object):
                                            "conflict: %s" % str(reqlist))
 
         # make base dir. Variant dirs are created only if needed
-        os.makedirs(self.base_path)
+        if not os.path.exists(self.base_path):
+            os.makedirs(self.base_path)
 
         # make python tools
         for (name, path), body in self.python_tools.iteritems():
@@ -260,8 +262,14 @@ class PackageMaker(object):
                     f.write("#!/usr/bin/env python\n")
                     f.write(code)
 
-                os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-                         | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
+                # TODO: Although Windows supports os.chmod you can only set
+                # the readonly flag.  Setting the file readonly breaks the
+                # unit tests that expect to clean up the files once the test
+                # has run.  Temporarily we don't bother setting the
+                # permissions, but this will need to change.
+                if platform_.name != "windows":
+                    os.chmod(file, stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                             | stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH)
 
         # make symlinks
         for (source, path) in self.links:

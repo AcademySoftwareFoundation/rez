@@ -27,6 +27,7 @@ class TestSchema(unittest.TestCase):
     def setUpClass(cls):
         cls.test_file_fd, cls.test_file_name = tempfile.mkstemp(suffix='LICENSE-MIT')
         os.write(cls.test_file_fd, "Copyright (c) 2012 Vladimir Keleshev, <vladimir@keleshev.com>")
+        os.close(cls.test_file_fd)
 
     @classmethod
     def tearDownClass(cls):

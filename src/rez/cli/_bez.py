@@ -4,6 +4,7 @@ import os.path
 import textwrap
 import subprocess
 from rez.vendor import yaml, argparse
+from rez.util import mkdtemp_
 
 
 def run():
@@ -44,10 +45,14 @@ def run():
                instpath=doc["install_path"],
                targets=str(opts.TARGET or None))
 
-    cli_code = textwrap.dedent(code).strip().replace('\n', ';')
+    cli_code = textwrap.dedent(code).replace("\\", "\\\\")
+    
+    bezfile = os.path.join(mkdtemp_(), "bezfile")
+    with open(bezfile, "w") as fd:
+        fd.write(cli_code)
 
     print "executing rezbuild.py..."
-    cmd = ["python", "-c", cli_code]
+    cmd = ["python", bezfile]
     p = subprocess.Popen(cmd)
     p.wait()
     sys.exit(p.returncode)
