@@ -190,7 +190,7 @@ class Requirement(_Common):
         the same value."""
         import platform
         if platform.system() == "Windows":
-            raise NotImplemented
+            raise NotImplementedError
         else:
             return str(self)
 

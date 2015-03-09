@@ -75,7 +75,7 @@ class System(object):
             raise RezSystemError("no shells available")
 
         if self.platform == "windows":
-            raise NotImplemented
+            raise NotImplementedError
         else:
             import subprocess as sp
             shell = None
