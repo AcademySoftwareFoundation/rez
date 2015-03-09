@@ -98,12 +98,17 @@ def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
 
     content = dump_yaml(doc)
     with open(filepath, 'w') as f:
-        # TODO make cross platform
+        # TODO: make cross platform
         f.write("#!/usr/bin/env _rez_fwd\n")
         f.write(content)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+	# TODO: Although Windows supports os.chmod you can only set the readonly
+    # flag. Setting the file readonly breaks the unit tests that expect to
+	# clean up the files once the test has run.  Temporarily we don't bother
+    # setting the permissions, but this will need to change.
+    if os.name == "posix":
+        os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+                 | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
 def print_debug(msg):

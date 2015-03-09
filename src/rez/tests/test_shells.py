@@ -49,8 +49,12 @@ class TestShells(TestBase, TempdirMixin):
     def _create_context(cls, pkgs):
         return ResolvedContext(pkgs, caching=False)
 
-    @shell_dependent()
+    @shell_dependent(exclude=["cmd"])
     def test_no_output(self):
+        # TODO: issues with binding the 'hello_world' package means it is not
+        # possible to run this test on Windows.  The 'hello_world' executable
+        # is not registered correctly on Windows so always returned the
+        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:
@@ -145,7 +149,8 @@ class TestShells(TestBase, TempdirMixin):
         # TODO: this test does not run on Windows using the CMD shell as it
         # does not accept commands from stdin.  Rather than explicitly skipping
         # the test (via the decorator) perhaps we should check for startup
-        # capabilities as the other tests do.
+        # capabilities as the other tests do.  Also the 'sh' vendor module is
+        # not compatible with Windows.
         from rez.vendor.sh import sh
 
         # here we are making sure that running a command via rez-env prints
@@ -178,7 +183,7 @@ class TestShells(TestBase, TempdirMixin):
             p.wait()
             self.assertEqual(p.returncode, 0)
 
-    @shell_dependent()
+    @shell_dependent(exclude=["cmd"])
     def test_rex_code(self):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect."""

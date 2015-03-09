@@ -164,6 +164,7 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
+        value = str(value).replace('"', "")
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):
