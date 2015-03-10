@@ -825,6 +825,13 @@ def expandvars(text, environ=None):
     return text
 
 
+def remove_enclosing_quotes(string_):
+    """
+    return a string without the enclosing double quotes
+    """
+    return string_[1:-1] if string_.startswith('"') and string_.endswith('"') else string_
+
+
 def find_last_sublist(list_, sublist):
     """Given a list, find the last occurance of a sublist within it.
 

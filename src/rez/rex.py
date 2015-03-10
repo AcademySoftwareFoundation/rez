@@ -9,7 +9,7 @@ from string import Formatter
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, expandvars
+from rez.util import AttrDictWrapper, shlex_join, expandvars, remove_enclosing_quotes
 from rez.vendor.enum import Enum
 
 
@@ -336,22 +336,18 @@ class ActionManager(object):
         if expanded_key in self.environ:
             env_sep = self._env_sep(expanded_key)
             self.actions.append(action(unexpanded_key, str(unexpanded_value)))
-            parts = self.environ[expanded_key].split(env_sep)
+            parts = remove_enclosing_quotes(self.environ[expanded_key]).split(env_sep)
 
-            unexpanded_values = env_sep.join(
-                addfunc(self._escape(unexpanded_value),
-                        [self._keytoken(expanded_key)]))
+            unexpanded_values = addfunc(self._escape(unexpanded_value), [self._keytoken(expanded_key)], env_sep)
 
-            expanded_values = env_sep.join(
-                addfunc(self._escape(expanded_value), parts))
+            expanded_values = addfunc(self._escape(expanded_value), parts, env_sep)
 
-            self.environ[expanded_key] = \
-                env_sep.join(addfunc(str(expanded_value), parts))
+            self.environ[expanded_key] = addfunc(str(expanded_value), parts, env_sep)
         else:
             self.actions.append(Setenv(unexpanded_key, str(unexpanded_value)))
             self.environ[expanded_key] = str(expanded_value)
-            unexpanded_values = self._expand(unexpanded_value)
-            expanded_values = self._expand(expanded_value)
+            unexpanded_values = self._escape(self._expand(unexpanded_value))
+            expanded_values = self._escape(self._expand(expanded_value))
             interpfunc = None
 
         applied = False
@@ -374,12 +370,33 @@ class ActionManager(object):
             self.interpreter.setenv(key, value)
 
     def prependenv(self, key, value):
-        self._pendenv(key, value, Prependenv, self.interpreter.prependenv,
-                      lambda x, y: [x] + y)
+        def prepend_quoted(x, y, sep=None):
+            if sep:
+                value_list = [x] + y
+                if sep != os.path.pathsep:
+                    # remove the quotes of individual items on the list and return the joined string quoted
+                    value_list = [remove_enclosing_quotes(x) for x in value_list]
+                    return '"%s"' % sep.join(value_list)
+                else:
+                    return sep.join(value_list)
+            else:
+                return [x] + y
+        self._pendenv(key, value, Prependenv, self.interpreter.prependenv, prepend_quoted)
 
     def appendenv(self, key, value):
-        self._pendenv(key, value, Appendenv, self.interpreter.appendenv,
-                      lambda x, y: y + [x])
+        def append_quoted(x, y, sep=None):
+            if sep:
+                value_list = y + [x]
+                if sep != os.path.pathsep:
+                    # remove the quotes of individual items on the list and return the joined string quoted
+                    value_list = [remove_enclosing_quotes(x) for x in value_list]
+                    return '"%s"' % sep.join(value_list)
+                else:
+                    return sep.join(value_list)
+            else:
+                return y + [x]
+
+        self._pendenv(key, value, Appendenv, self.interpreter.appendenv, append_quoted)
 
     def alias(self, key, value):
         key = str(self._format(key))
