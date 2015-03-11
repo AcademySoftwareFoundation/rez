@@ -12,6 +12,8 @@ import re
 
 
 def execute_command_in_path(command, path):
+    if config.debug("package_release"):
+        print_debug("Running command: %s in path %s:" % (command, path) )
     p = subprocess.Popen(command, stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE, cwd=path, shell=True)
     out, err = p.communicate()

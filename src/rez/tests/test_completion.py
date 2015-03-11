@@ -36,8 +36,7 @@ class TestCompletion(TestBase):
                         "plugins.release_vcs",
                         "plugins.shell"])
         _eq("plugins.release_vcs.releasable_",
-            ["plugins.release_vcs.releasable_branches",
-             "plugins.release_vcs.releasable_organizations"])
+            ["plugins.release_vcs.releasable_branches"])
 
     def test_packages(self):
         """Test packages completion."""

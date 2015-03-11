@@ -553,12 +553,6 @@ plugins:
             - '^release-'
             - '^AL_2\.0$'
 
-        # A list of Github organizations from where we allow releases. Releasing
-        # from a private (user) fork is now allowed
-        releasable_organizations:
-            - '^rnd$'
-
-
 
 ###############################################################################
 # Launcher

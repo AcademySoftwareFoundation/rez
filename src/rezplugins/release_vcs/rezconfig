@@ -6,8 +6,13 @@ git:
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
 
 github:
-    remote_origin_url: http://github.al.com.au
+    remote_origin_url: ^http://github.al.com.au
 
     allow_no_upstream: false
 
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
+
+    # A list of Github organizations from where we allow releases. Releasing
+    # from a private (user) fork is now allowed
+    releasable_organizations:
+        - '^rnd$'
