@@ -553,11 +553,11 @@ plugins:
             - '^release-'
             - '^AL_2\.0$'
 
-        # A list of GitHub organization allowed to rez-release from. Releases
-        # from forks are not allowed
-        #
+        # A list of Github organizations from where we allow releases. Releasing
+        # from a private (user) fork is now allowed
         releasable_organizations:
-            - 'rnd'
+            - '^rnd$'
+
 
 
 ###############################################################################
