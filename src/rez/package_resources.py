@@ -505,6 +505,16 @@ class CombinedPackageResource(BasePackageResource):
             yield cls(parent_resource.path, variables)
 
 
+class CombinedVariantResource(BaseVariantResource):
+    """A variant within a `CombinedPackageResource`."""
+    key = 'variant.combined'
+    parent_resource = CombinedPackageResource
+    variable_keys = ["index"]
+    sub_resource = True
+    schema = None
+    versioned = True
+
+
 # -----------------------------------------------------------------------------
 # Developer Package Resources
 # -----------------------------------------------------------------------------
@@ -573,6 +583,7 @@ register_resource(VersionlessVariantResource)
 register_resource(ReleaseDataResource)
 register_resource(CombinedPackageFamilyResource)
 register_resource(CombinedPackageResource)
+register_resource(CombinedVariantResource)
 # deprecated
 register_resource(MetadataFolder)
 register_resource(ReleaseTimestampResource)
