@@ -7,7 +7,17 @@ from rez.utils.logging_ import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
 from rez.config import Str, config
 import functools
+import subprocess
 import re
+
+
+def execute_command_in_path(command, path):
+    p = subprocess.Popen(command, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, cwd=path, shell=True)
+    out, err = p.communicate()
+    if p.returncode:
+        return None
+    return out.strip()
 
 
 class GitReleaseVCSError(ReleaseVCSError):
@@ -37,14 +47,22 @@ class GitReleaseVCS(ReleaseVCS):
     @classmethod
     def is_valid_root(cls, path):
 
+        inside_working_dir = execute_command_in_path('git rev-parse  --is-inside-work-tree', path)
+        if not inside_working_dir == 'true':
+            return False
+
         remote_origin_url = config.plugins.release_vcs.get(cls.name()).remote_origin_url
-        current_remote_url = commands.getoutput('git config remote.origin.url')
+        current_remote_url = execute_command_in_path('git config remote.origin.url', path)
+
+        if not current_remote_url:
+            return False
 
         if not re.search(remote_origin_url, current_remote_url):
             return False
 
-        inside_working_dir = commands.getoutput('git rev-parse  --is-inside-work-tree')
-        return inside_working_dir == 'true'
+        return True
+
+
 
     def git(self, *nargs):
         return self._cmd(self.executable, *nargs)
