@@ -203,9 +203,8 @@ class TestShellsCommands(TestBase, TempdirMixin):
         sh_expected=r'export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"'
         csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"'
 
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
 
         context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
 
@@ -241,9 +240,8 @@ class TestShellsCommands(TestBase, TempdirMixin):
         csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"'
         escpaed_csh_expected=r'setenv VARIABLE_ESCAPED_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"'
 
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
 
         context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
 
