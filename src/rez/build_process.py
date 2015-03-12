@@ -10,6 +10,7 @@ from rez import __version__
 from rez.vendor.enum import Enum
 import getpass
 import shutil
+import os
 import os.path
 import time
 
@@ -112,15 +113,15 @@ class StandardBuildProcess(BuildProcess):
         """Build all the variants of the package.
 
         Args:
-            install_path: The path to install the package to, if installing.
+            install_path (str): The path to install the package to, if installing.
                 Note that the actual path for the package install becomes
                 {install_path}/{pkg_name}/{pkg_version}. If None, defaults
                 to the local packages path setting.
-            build_path: The directory to build into.
-            clean: If True, clear any previous build first. Otherwise, rebuild
-                over the top of a previous build.
-            install: If True, install the build.
-            build_type: The BuildType for the current build.
+            build_path (str): The directory to build into.
+            clean (bool): If True, clear any previous build first. Otherwise,
+                rebuild over the top of a previous build.
+            install (bool): If True, install the build.
+            build_type (bool): The BuildType for the current build.
 
         Returns:
             True if the build completed, False otherwise.
@@ -340,17 +341,16 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
                 continue
 
             self._hdr("Building %d/%d..." % (i + 1, nvariants), 2)
-            subdir = variant.subpath
 
             # create build dir, possibly deleting previous build
             build_subdir = os.path.join(build_path, variant.subpath)
             install_path = os.path.join(base_install_path, variant.subpath)
             rxt_file = os.path.join(build_subdir, "build.rxt")
 
-            if build_type == BuildType.central:
-                packages_path = self.package.config.nonlocal_packages_path
-            else:
+            if build_type == BuildType.local:
                 packages_path = self.package.config.packages_path
+            else:
+                packages_path = self.package.config.nonlocal_packages_path
 
             if clean and os.path.exists(build_subdir):
                 shutil.rmtree(build_subdir)
@@ -424,3 +424,4 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
         else:
             self._pr("\nAll %d build(s) were successful.\n"
                      % num_built_variants)
+

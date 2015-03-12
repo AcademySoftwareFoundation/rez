@@ -266,16 +266,6 @@ class ResolvedContext(object):
         return (self.status_ == ResolverStatus.solved)
 
     @property
-    def success(self):
-        """Return the current status of the context as a boolean value.  
-        Required for backwards compatibility (with Launcher).
-
-        Returns:
-            bool
-        """
-        return self.status == ResolverStatus.solved
-
-    @property
     def status(self):
         """Return the current status of the context.
 
@@ -808,7 +798,6 @@ class ResolvedContext(object):
         The dependency graph is a simpler subset of the resolve graph. It
         contains package name nodes connected directly to their dependencies.
         Weak references and conflict requests are not included in the graph.
-        The dependency graph does not show conflicts.
 
         Returns:
             `pygraph.digraph` object.
@@ -950,7 +939,6 @@ class ResolvedContext(object):
                 defaults to os.environ if None.
             style (): Style to format shell code in.
         """
-        from rez.shells import create_shell
         executor = self._create_executor(interpreter=create_shell(shell),
                                          parent_environ=parent_environ,
                                          style=style)
@@ -1104,7 +1092,6 @@ class ResolvedContext(object):
             block = not (command or stdin)
 
         # create the shell
-        from rez.shells import create_shell
         sh = create_shell(shell)
 
         # context and rxt files

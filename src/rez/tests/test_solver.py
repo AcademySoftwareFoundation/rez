@@ -1,5 +1,4 @@
 import shutil
-import tempfile
 from rez.package_resources import VersionlessPackageResource, \
     VersionlessVariantResource, register_resource
 from rez.resources import register_resource

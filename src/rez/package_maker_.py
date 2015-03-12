@@ -134,12 +134,10 @@ class PackageMaker(object):
         self.description = None
         self.authors = None
         self.help = None
-
         self.variants = None
         self.requires = None
         self.build_requires = None
         self.private_build_requires = None
-
         self.tools = None
         self.commands = None
         self.custom = None
@@ -312,12 +310,12 @@ class PackageMaker(object):
         if self.help:
             doc["help"] = self.help
 
-        if self.private_build_requires:
-            doc["private_build_requires"] = [str(x) for x in self.private_build_requires]
-        if self.build_requires:
-            doc["build_requires"] = [str(x) for x in self.build_requires]
         if self.requires:
             doc["requires"] = [str(x) for x in self.requires]
+        if self.build_requires:
+            doc["build_requires"] = [str(x) for x in self.build_requires]
+        if self.private_build_requires:
+            doc["private_build_requires"] = [str(x) for x in self.private_build_requires]
 
         if self.variants:
             variants = []

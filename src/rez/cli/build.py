@@ -3,7 +3,9 @@ Build a package from source.
 '''
 import sys
 import os
+from rez.vendor import argparse
 import tempfile
+
 
 def setup_parser_common(parser):
     """Parser setup common to both rez-build and rez-release."""
@@ -51,7 +53,6 @@ def setup_parser(parser, completions=False):
                         "full build. Running these scripts will place you into "
                         "a build environment, where you can invoke the build "
                         "system directly.")
-
     setup_parser_common(parser)
 
 

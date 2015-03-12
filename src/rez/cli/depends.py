@@ -1,7 +1,6 @@
 """
 Reverse dependency lookup.
 """
-
 import os
 import os.path
 

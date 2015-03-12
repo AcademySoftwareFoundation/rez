@@ -61,7 +61,6 @@ def patch_rez_binaries(dest_dir):
     # delete rez bin files written by setuptools
     for name in bin_names:
         filepath = os.path.join(venv_bin_path, name)
-        #if os.path.exists(filepath):
         if os.path.isfile(filepath):
             os.remove(filepath)
 

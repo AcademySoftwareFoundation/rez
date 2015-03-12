@@ -126,14 +126,12 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import columnise, timings
-from rez.config import config
-from heapq import merge
-import copy
-import sys
-import time
+from rez.util import timings
 from operator import itemgetter
 from itertools import groupby
+import copy
+import time
+import sys
 
 
 class SolverStatus(Enum):
@@ -751,8 +749,8 @@ class Cycle(FailureReason):
     def involved_requirements(self):
         pkgs = []
         for pkg in self.packages:
-            range_ = VersionRange.from_version(pkg.version)
-            stmt = Requirement.construct(pkg.name, range_)
+            range = VersionRange.from_version(pkg.version)
+            stmt = Requirement.construct(pkg.name, range)
             pkgs.append(stmt)
         return pkgs
 
@@ -816,6 +814,7 @@ class PackageVariant(_Common):
         stmt = VersionedObject.construct(self.name, self.version)
         idxstr = '' if self.index is None else str(self.index)
         return "%s[%s]" % (str(stmt), idxstr)
+
 
 class _PackageVariantList(_Common):
     """A sorted list of package variants, loaded lazily."""
@@ -2274,6 +2273,8 @@ class Solver(_Common):
 
     def dump(self):
         """Print a formatted summary of the current solve state."""
+        from rez.util import columnise
+
         rows = []
         for i, phase in enumerate(self.phase_stack):
             rows.append((self._depth_label(i), phase.status, str(phase)))

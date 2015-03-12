@@ -123,6 +123,5 @@ class CSH(UnixShell):
         self._addline("alias %s '%s';" % (key, value))
 
 
-
 def register_plugin():
     return CSH

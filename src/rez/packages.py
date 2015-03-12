@@ -1,4 +1,4 @@
-from rez.util import Common, propertycache, dedup
+from rez.util import propertycache, dedup
 from rez.resources import iter_resources, iter_child_resources, \
     get_resource, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageRequestError, \

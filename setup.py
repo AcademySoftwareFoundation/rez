@@ -16,6 +16,7 @@ if sys.version_info < (2, 6):
     print >> sys.stderr, "install failed - requires python v2.6 or greater"
     sys.exit(1)
 
+
 def find_files(pattern, path=None, root="rez"):
     paths = []
     basepath = os.path.realpath(os.path.join("src", root))

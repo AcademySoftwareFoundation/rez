@@ -5,17 +5,19 @@ able to search packages much faster - for example, in a database-based package
 repository. The algorithms here serve as backup for those package repositories
 that do not provide an implementation.
 """
+from rez.config import config
+from rez.packages import iter_package_families, iter_packages
+from rez.exceptions import PackageRequestError
+from rez.util import ProgressBar
+from rez.vendor.pygraph.classes.digraph import digraph
+#from rez.vendor.progress.bar import Bar
+from collections import defaultdict
 
 import os
 import sys
 import pickle
 import time
 
-from rez.packages import iter_package_families, iter_packages
-from rez.exceptions import PackageRequestError
-from rez.util import ProgressBar
-from rez.vendor.pygraph.classes.digraph import digraph
-from collections import defaultdict
 
 
 REVERSE_FAMILY_DEPENDENCIES_CACHE = '/tmp/rez_reverse_lookup.dat'

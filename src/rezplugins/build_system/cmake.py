@@ -12,6 +12,7 @@ from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
 import functools
+import os.path
 import sys
 import os
 

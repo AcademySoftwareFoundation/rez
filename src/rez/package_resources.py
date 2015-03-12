@@ -1,17 +1,16 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
-    Required, metadata_loaders, iter_descendant_resources, _listdir, \
-    _ResourcePathParser, _findpath
+    Required, metadata_loaders, iter_descendant_resources, load_resource, \
+    _listdir, _ResourcePathParser, _findpath
 from rez.config import config, Config, create_config
-from rez.exceptions import ResourceNotFoundError, \
-    PackageMetadataError
+from rez.exceptions import ResourceNotFoundError, PackageMetadataError
 from rez.util import propertycache, deep_update, print_warning
 from rez.vendor.schema.schema import Schema, SchemaError, Use, And, Or, \
     Optional
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import Requirement
-import os.path
 import string
+import os.path
 import re
 
 

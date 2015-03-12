@@ -7,7 +7,6 @@ import shutil
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
-from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.vendor.sh import sh
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
@@ -50,14 +49,12 @@ class TestShells(TestBase, TempdirMixin):
 
     @shell_dependent
     def test_no_output(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world -q",
-                                stdout=subprocess.PIPE,
-                                shell=current_shell)
+                                stdout=subprocess.PIPE)
 
             self.assertEqual(
                 _stdout(p), '',
@@ -67,66 +64,58 @@ class TestShells(TestBase, TempdirMixin):
 
     @shell_dependent
     def test_command(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(command="hello_world",
-                                stdout=subprocess.PIPE,
-                                shell=current_shell)
+                                stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @shell_dependent
     def test_command_returncode(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context(["hello_world"])
-            p = r.execute_shell(command="hello_world -q -r 66",
-                                stdout=subprocess.PIPE,
-                                shell=current_shell)
-            p.wait()
-            self.assertEqual(p.returncode, 66)
+            command = "hello_world -q -r 66"
+            commands = (command, command.split())
+            for cmd in commands:
+                p = r.execute_shell(command=cmd, stdout=subprocess.PIPE)
+                p.wait()
+                self.assertEqual(p.returncode, 66)
 
     @shell_dependent
     def test_norc(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,norc,_,command = sh.startup_capabilities(norc=True, command=True)
+        sh = create_shell()
+        _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
 
         if norc and command:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(norc=True,
                                 command="hello_world",
-                                stdout=subprocess.PIPE,
-                                shell=current_shell)
+                                stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
     @shell_dependent
     def test_stdin(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,stdin,_ = sh.startup_capabilities(stdin=True)
+        sh = create_shell()
+        _, _, stdin, _ = sh.startup_capabilities(stdin=True)
 
         if stdin:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(stdout=subprocess.PIPE,
-                                stdin=subprocess.PIPE,
-                                norc=True,
-                                shell=current_shell)
-            stdout,_ = p.communicate(input="hello_world\n")
+                                stdin=subprocess.PIPE)
+            stdout, _ = p.communicate(input="hello_world\n")
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
     @shell_dependent
     def test_rcfile(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        rcfile,_,_,command = sh.startup_capabilities(rcfile=True, command=True)
+        sh = create_shell()
+        rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
 
         if rcfile and command:
             f, path = tempfile.mkstemp()
@@ -136,8 +125,7 @@ class TestShells(TestBase, TempdirMixin):
             r = self._create_context(["hello_world"])
             p = r.execute_shell(rcfile=path,
                                 command="hello_world -q",
-                                stdout=subprocess.PIPE,
-                                shell=current_shell)
+                                stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
@@ -162,17 +150,16 @@ class TestShells(TestBase, TempdirMixin):
     @shell_dependent
     @install_dependent
     def test_rez_command(self):
-        current_shell = config.get('default_shell')
-        sh = create_shell(shell=current_shell)
-        _,_,_,command = sh.startup_capabilities(command=True)
+        sh = create_shell()
+        _, _, _, command = sh.startup_capabilities(command=True)
 
         if command:
             r = self._create_context([])
-            p = r.execute_shell(command="rezolve -h", shell=current_shell)
+            p = r.execute_shell(command="rezolve -h")
             p.wait()
             self.assertEqual(p.returncode, 0)
 
-            p = r.execute_shell(command="rez-env -h", shell=current_shell)
+            p = r.execute_shell(command="rez-env -h")
             p.wait()
             self.assertEqual(p.returncode, 0)
 

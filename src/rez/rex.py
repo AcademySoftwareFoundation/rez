@@ -8,7 +8,7 @@ import inspect
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError
-from rez.util import AttrDictWrapper, shlex_join, expandvars, print_debug
+from rez.util import AttrDictWrapper, shlex_join, which, expandvars, print_debug
 from rez.vendor.enum import Enum
 from rez.platform_ import platform_
 
