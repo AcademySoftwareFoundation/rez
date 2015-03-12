@@ -309,7 +309,20 @@ class TestRex(TestBase):
                        'FOO': ",".join(["test1","test2","test3"]),
                        'BAH': " ".join(["B","A","C"])})
 
-    def test_9(self):
+    def test_version_binding(self):
+        """Test the Rex binding of the Version class."""
+        v = VersionBinding(Version("1.2.3alpha"))
+        self.assertEqual(v.major, 1)
+        self.assertEqual(v.minor, 2)
+        self.assertEqual(v.patch, "3alpha")
+        self.assertEqual(len(v), 3)
+        self.assertEqual(v[1], 2)
+        self.assertEqual(v[:2], (1, 2))
+        self.assertEqual(str(v), "1.2.3alpha")
+        self.assertEqual(v[5], None)
+        self.assertEqual(v.as_tuple(), (1, 2, "3alpha"))
+
+    def test_old_style_commands(self):
         """Convert old style commands to rex"""
 
         expected = ""
@@ -341,19 +354,6 @@ class TestRex(TestBase):
         rez_commands = convert_old_commands(["export A=$C:B:$A"],
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
-
-    def test_version_binding(self):
-        """Test the Rex binding of the Version class."""
-        v = VersionBinding(Version("1.2.3alpha"))
-        self.assertEqual(v.major, 1)
-        self.assertEqual(v.minor, 2)
-        self.assertEqual(v.patch, "3alpha")
-        self.assertEqual(len(v), 3)
-        self.assertEqual(v[1], 2)
-        self.assertEqual(v[:2], (1, 2))
-        self.assertEqual(str(v), "1.2.3alpha")
-        self.assertEqual(v[5], None)
-        self.assertEqual(v.as_tuple(), (1, 2, "3alpha"))
 
 
 class TestRexFlattenEnvironment(TestBase, TempdirMixin):
