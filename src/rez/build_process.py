@@ -148,13 +148,12 @@ class StandardBuildProcess(BuildProcess):
     def release(self):
         assert(self.vcs)
         install_path = self.package.config.release_packages_path
-
-        if not os.path.exists(install_path):
-            os.mkdir(install_path)
-
         base_build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory,
                                        "release")
+
+        if not os.path.exists(install_path):
+            os.mkdir(install_path)
 
         print "Checking state of repository..."
         self.vcs.validate_repostate()

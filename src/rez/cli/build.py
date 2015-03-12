@@ -112,8 +112,9 @@ def command(opts, parser, extra_arg_groups=None):
 
         if opts.fail_graph:
             if e.context.graph:
-                from rez.contrib.animallogic.viewdotgraph import view_graph_from_resolved_context
-                view_graph_from_resolved_context(e.context)
+                from rez.dot import view_graph
+                g = e.context.graph(as_dot=True)
+                view_graph(g)
             else:
                 print >> sys.stderr, \
                     "the failed resolve context did not generate a graph."

@@ -16,6 +16,7 @@ from rez.bind import hello_world
 import subprocess
 import tempfile
 import os
+import sys
 
 
 def _stdout(proc):

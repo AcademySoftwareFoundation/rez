@@ -1326,7 +1326,6 @@ class ResolvedContext(object):
         executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
         executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
-        executor.bind('user', self.user)
 
         #
         # -- apply each resolved package to the execution context
