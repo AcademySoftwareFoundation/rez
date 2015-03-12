@@ -211,7 +211,7 @@ class TestShellsCommands(TestBase, TempdirMixin):
         if command:
             r = self._create_context(["shelltest"])
 
-            p = r.execute_shell(command="env", shell=current_shell, context_filepath=context_file)
+            p = r.execute_shell(command="env", context_filepath=context_file)
             p.wait()
             self.assertEqual(p.returncode, 0)
 
@@ -248,7 +248,7 @@ class TestShellsCommands(TestBase, TempdirMixin):
         if command:
             r = self._create_context(["shelltest2"])
 
-            p = r.execute_shell(command="env", shell=current_shell, context_filepath=context_file)
+            p = r.execute_shell(command="env", context_filepath=context_file)
             p.wait()
             self.assertEqual(p.returncode, 0)
 

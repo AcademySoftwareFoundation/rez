@@ -1,4 +1,4 @@
-
+# FIXME this is out of date
 complete rez 'C/*/`_rez_completion`/'
 complete rezolve 'C/*/`_rez_completion`/'
 complete rez-env 'C/*/`_rez_completion`/'
