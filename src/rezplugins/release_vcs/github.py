@@ -19,13 +19,13 @@ class GitHubReleaseVCS(GitReleaseVCS):
         # Check that the repository is not a fork and belongs to the white listed organizations
         current_organization = self._get_organization()
         releasable = False
-        for organization in self.type_settings.releasable_organizations:
+        for organization in self.type_settings[self.name()].releasable_organizations:
             if re.search(organization, current_organization):
                 releasable = True
 
         if not releasable:
             raise GitHubReleaseVCSError("GitHub organization %s is not among the allowed organizations %s"
-                                        % (current_organization, self.type_settings.releasable_organizations))
+                                        % (current_organization, self.type_settings[self.name].releasable_organizations))
 
     def _get_remote_origin_url(self):
         return self.git('config', 'remote.origin.url')[0]
