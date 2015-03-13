@@ -1231,6 +1231,7 @@ class RexExecutor(object):
                 _debug("%s - currently set to: %s." % (variable, paths))
                 _debug("%s - will be flattened to: %s." % (variable, target_root))
                 self.setenv(variable, target_root)
+                self.setenv("%s_ORIGINAL" % variable, paths)
 
                 flattener = get_flattener_for_variable(variable)(paths.split(separator), target_root)
                 for result in flattener.flatten():
