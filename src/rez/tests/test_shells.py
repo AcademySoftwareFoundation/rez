@@ -108,7 +108,8 @@ class TestShells(TestBase, TempdirMixin):
         if stdin:
             r = self._create_context(["hello_world"])
             p = r.execute_shell(stdout=subprocess.PIPE,
-                                stdin=subprocess.PIPE)
+                                stdin=subprocess.PIPE,
+                                norc=True)
             stdout, _ = p.communicate(input="hello_world\n")
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
