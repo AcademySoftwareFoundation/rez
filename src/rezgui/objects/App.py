@@ -3,6 +3,7 @@ from rezgui.objects.Config import Config
 from rezgui.objects.ProcessTrackerThread import ProcessTrackerThread
 from rezgui import organisation_name, application_name
 from rez.resolved_context import ResolvedContext
+from rez.exceptions import ResolvedContextError
 from rez.util import propertycache
 from rez.vendor import yaml
 from contextlib import contextmanager

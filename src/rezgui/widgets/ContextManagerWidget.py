@@ -6,15 +6,13 @@ from rezgui.widgets.ConfiguredSplitter import ConfiguredSplitter
 from rezgui.widgets.ContextTableWidget import ContextTableWidget
 from rezgui.widgets.PackageTabWidget import PackageTabWidget
 from rezgui.widgets.ContextSettingsWidget import ContextSettingsWidget
-from rezgui.widgets.IconButton import IconButton
 from rezgui.widgets.ContextResolveTimeLabel import ContextResolveTimeLabel
 from rezgui.widgets.FindPopup import FindPopup
 from rezgui.dialogs.ResolveDialog import ResolveDialog
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
-from rez.config import config
-from rez.resolved_context import ResolvedContext, PatchLock
+from rez.resolved_context import PatchLock
 from rez.util import readable_time_duration
 from functools import partial
 import time

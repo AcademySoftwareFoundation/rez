@@ -1,10 +1,10 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages import iter_packages
 from rez.resolved_context import PatchLock, get_lock_request
-from rez.vendor.version.requirement import Requirement, RequirementList
+from rez.vendor.version.requirement import RequirementList
 from rez.vendor.version.version import VersionRange
 from functools import partial
 

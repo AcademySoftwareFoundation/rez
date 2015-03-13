@@ -1,7 +1,7 @@
 from rez.resources import _or_regex, _updated_schema, register_resource, \
     Resource, SearchPath, ArbitraryPath, FolderResource, FileResource, \
-    Required, metadata_loaders, iter_descendant_resources, load_resource, \
-    _listdir, _ResourcePathParser, _findpath
+    Required, metadata_loaders, iter_descendant_resources, _listdir, \
+    _ResourcePathParser, _findpath
 from rez.config import config, Config, create_config
 from rez.exceptions import ResourceNotFoundError, PackageMetadataError
 from rez.util import propertycache, deep_update, print_warning
@@ -455,21 +455,21 @@ class CombinedPackageFamilyResource(BasePackageResource):
             schema,
             [(Optional('versions'), [Use(Version)]),
              (Optional('version_overrides'), {
-                Use(VersionRange): {
-                    Optional('help'):                   Or(basestring,
-                                                           [[basestring]]),
-                    Optional('tools'):                  [basestring],
-                    Optional('requires'):               [Use(Requirement)],
-                    Optional('build_requires'):         [Use(Requirement)],
-                    Optional('private_build_requires'): [Use(Requirement)],
-                    Optional('variants'):               [[Use(Requirement)]],
-                    Optional('commands'):               Or(rex_command,
-                                                           And([basestring],
-                                                               Use(self.convert_to_rex))),
-                    Optional('custom'):                 object,
-                    Optional(basestring):               object
-                }
-            })])
+                 Use(VersionRange): {
+                     Optional('help'):                   Or(basestring,
+                                                            [[basestring]]),
+                     Optional('tools'):                  [basestring],
+                     Optional('requires'):               [Use(Requirement)],
+                     Optional('build_requires'):         [Use(Requirement)],
+                     Optional('private_build_requires'): [Use(Requirement)],
+                     Optional('variants'):               [[Use(Requirement)]],
+                     Optional('commands'):               Or(rex_command,
+                                                            And([basestring],
+                                                                Use(self.convert_to_rex))),
+                     Optional('custom'):                 object,
+                     Optional(basestring):               object
+                 }
+             })])
 
 
 class CombinedPackageResource(BasePackageResource):

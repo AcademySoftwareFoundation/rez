@@ -1,7 +1,5 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rez.util import readable_time_duration
-from rez.resolved_context import PatchLock
-from functools import partial
 import os.path
 import time
 

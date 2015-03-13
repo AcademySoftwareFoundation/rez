@@ -1,9 +1,8 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.widgets.StreamableTextEdit import StreamableTextEdit
 from rezgui.widgets.ViewGraphButton import ViewGraphButton
 from rezgui.util import create_pane
-from rez.packages import Package
 
 
 class VariantDetailsWidget(QtGui.QWidget, ContextViewMixin):

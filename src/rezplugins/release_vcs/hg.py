@@ -21,12 +21,12 @@ class HgReleaseVCS(ReleaseVCS):
 
         hgdir = os.path.join(self.path, '.hg')
         if not os.path.isdir(hgdir):
-            raise HgReleaseVCSError( \
+            raise HgReleaseVCSError(
                 "'%s' is not a mercurial working copy" % self.path)
         try:
             assert self.hg('root')[0] == self.path
         except AssertionError:
-            raise HgReleaseVCSError( \
+            raise HgReleaseVCSError(
                 "'%s' is not the root of a mercurial working copy" % self.path)
         except Exception, err:
             raise HgReleaseVCSError("failed to call hg binary: " + str(err))
@@ -55,8 +55,9 @@ class HgReleaseVCS(ReleaseVCS):
         def _check(modified, path):
             if modified:
                 modified = [line.split()[-1] for line in modified]
-                raise ReleaseVCSError(("%s is not in a state to release - please " + \
-                    "commit outstanding changes: %s") % (path, ', '.join(modified)))
+                raise ReleaseVCSError(
+                    "%s is not in a state to release - please commit outstanding "
+                    "changes: %s" % (path, ', '.join(modified)))
 
         _check(self.hg('status', '-m', '-a'), self.path)
         if self.patch_path:

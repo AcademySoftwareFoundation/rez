@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.util import create_pane
 from rezgui.widgets.ContextEnvironWidget import ContextEnvironWidget
 from rezgui.widgets.SearchableTextEdit import SearchableTextEdit

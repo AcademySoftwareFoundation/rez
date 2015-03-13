@@ -37,8 +37,7 @@ class LoadPackagesThread(QtCore.QObject):
                 break
 
             for attr in self.package_attributes:
-                # this may cause load and/or data validation
-                _ = getattr(package, attr)
+                getattr(package, attr)  # cause load and/or data validation
             self.progress.emit(i + 1, num_packages)
 
         if not self.stopped:

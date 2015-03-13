@@ -3,7 +3,6 @@ Build a package from source.
 '''
 import sys
 import os
-from rez.vendor import argparse
 import tempfile
 
 

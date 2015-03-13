@@ -4,12 +4,8 @@ Binds a cmake executable as a rez package.
 from __future__ import absolute_import
 from rez.package_maker_ import make_py_package, code_provider, root
 from rez.bind_utils import check_version, find_exe, extract_version
-from rez.exceptions import RezBindError
-from rez.vendor.version.version import Version
-from rez.util import which
 from rez.system import system
-import subprocess
-import sys
+from rez.lint_helper import env
 
 
 def setup_parser(parser):

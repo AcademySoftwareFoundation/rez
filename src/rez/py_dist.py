@@ -6,16 +6,14 @@ from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil
 import sys
-import re
 import os
 import os.path
 import textwrap
 
 
-
 def convert_name(name):
     """ Convert a python distribution name into a rez-safe package name."""
-    return name.replace('-','_')
+    return name.replace('-', '_')
 
 
 # TODO change this when version submod is rewritten
@@ -32,7 +30,6 @@ def convert_version(version):
     return version
     """
     return str(version)
-
 
 
 # TODO add native Requirement conversion support into new version submod
@@ -86,7 +83,6 @@ def get_dist_dependencies(name, recurse=True):
     """
     dist = pkg_resources.get_distribution(name)
     pkg_name = convert_name(dist.project_name)
-    pkg_version = dist.version
 
     reqs = set()
     working = set([dist])
@@ -101,8 +97,8 @@ def get_dist_dependencies(name, recurse=True):
 
             for req in dist.requires():
                 reqs_ = convert_requirement(req)
-                deps |= set(x.split('-',1)[0] for x in reqs_ \
-                    if not x.startswith('!'))
+                deps |= set(x.split('-', 1)[0] for x in reqs_
+                            if not x.startswith('!'))
 
         working = deps - reqs
         depth += 1
@@ -174,11 +170,11 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
             eggpath = os.path.join(dist.location, egginfo_dir)
             file = os.path.join(eggpath, "installed-files.txt")
             if not os.path.isfile(file):
-                raise RezSystemError((\
+                raise RezSystemError(
                     "There is not enough information on disk to convert the "
                     "python distribution '%s' into a Rez package. The distribution "
                     "is installed to a common site, but the installed file "
-                    "information is not present.") % name)
+                    "information is not present." % name)
 
             with open(file) as f:
                 installed_files = f.read().strip().split()
@@ -188,9 +184,8 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
             for file in installed_files:
                 path = os.path.join(eggpath, file)
                 path = os.path.realpath(path)
-                if os.path.isfile(path) \
-                    and path.startswith(dist.location + os.sep):
 
+                if os.path.isfile(path) and path.startswith(dist.location + os.sep):
                     dir_ = os.path.dirname(path)
                     if ignore_dirs:
                         reldir = os.path.relpath(dir_, dist.location)
@@ -222,20 +217,20 @@ def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
 
     variants_str = "[['%s']]" % pypkg if make_variant else ''
 
-    content = textwrap.dedent( \
-    """
-    config_version = 0
-    name = '%(name)s'
-    version = '%(version)s'
-    %(variants)s
-    requires = %(requires)s
-    def commands():
-        env.PYTHONPATH.append('{this.root}')
-    """ % dict(
-        name=pkg_name,
-        version=pkg_version,
-        variants=variants_str,
-        requires=str(pkg_requires)))
+    content = textwrap.dedent(
+        """
+        config_version = 0
+        name = '%(name)s'
+        version = '%(version)s'
+        %(variants)s
+        requires = %(requires)s
+        def commands():
+            env.PYTHONPATH.append('{this.root}')
+        """ % dict(
+            name=pkg_name,
+            version=pkg_version,
+            variants=variants_str,
+            requires=str(pkg_requires)))
 
     content = content.strip() + '\n'
     with open(pkg_file, 'w') as f:

@@ -1,14 +1,11 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.objects.App import app
 from rezgui.util import add_menu_action
 from rezgui.windows.BrowsePackageSubWindow import BrowsePackageSubWindow
 from rezgui.windows.ContextSubWindow import ContextSubWindow
 from rezgui.dialogs.AboutDialog import AboutDialog
-from rez.exceptions import ResolvedContextError
-from rez.resolved_context import ResolvedContext
 from contextlib import contextmanager
 from functools import partial
-import os.path
 import time
 
 

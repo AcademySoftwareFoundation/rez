@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.widgets.BrowsePackageWidget import BrowsePackageWidget
 from rezgui.widgets.ContextSettingsWidget import ContextSettingsWidget
 from rezgui.mixins.ContextViewMixin import ContextViewMixin

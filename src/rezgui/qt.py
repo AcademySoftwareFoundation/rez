@@ -3,6 +3,7 @@ Abstraction for PyQt/PySide import.
 """
 import sys
 from rez.config import config
+from rez.lint_helper import used
 
 
 USE_PYSIDE = None
@@ -22,10 +23,12 @@ if USE_PYSIDE is None:
     else:
         try:
             import PyQt4
+            used(PyQt4)
             USE_PYSIDE = False
         except ImportError:
             try:
                 import PySide
+                used(PySide)
                 USE_PYSIDE = True
             except ImportError:
                 raise Exception("rez-gui requires either PyQt4 or PySide; "
@@ -36,3 +39,6 @@ if USE_PYSIDE:
 else:
     from PyQt4 import QtGui, QtCore
     QtCore.Signal = QtCore.pyqtSignal
+
+used(QtCore)
+used(QtGui)

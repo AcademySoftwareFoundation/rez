@@ -5,8 +5,8 @@ from __future__ import absolute_import
 import rez
 from rez.package_maker_ import make_py_package, code_provider
 from rez.bind_utils import check_version
-from rez.exceptions import RezBindError
 from rez.system import system
+from rez.lint_helper import env
 import shutil
 import os.path
 import sys

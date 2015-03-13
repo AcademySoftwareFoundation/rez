@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rezgui.util import create_pane, create_toolbutton
+from rezgui.util import create_pane
 from rezgui.widgets.VariantVersionsTable import VariantVersionsTable
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
 from rezgui.widgets.ChangelogEdit import ChangelogEdit

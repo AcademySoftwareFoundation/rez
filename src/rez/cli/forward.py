@@ -1,6 +1,4 @@
 """See util.create_forwarding_script()."""
-import sys
-import os.path
 from rez.vendor import argparse
 
 __doc__ = argparse.SUPPRESS
@@ -17,7 +15,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.vendor import yaml
     from rez.vendor.yaml.error import YAMLError
     import inspect
-    import os
+    import os.path
 
     # we don't usually want warnings printed in a wrapped tool. But in cases
     # where we do (for debugging) we leave a backdoor - setting $REZ_QUIET=0
@@ -39,7 +37,6 @@ def command(opts, parser, extra_arg_groups=None):
     func_name = doc["func_name"]
     nargs = doc.get("nargs", [])
     kwargs = doc.get("kwargs", {})
-    plugin_instance = None
 
     if isinstance(doc["module"], basestring):
         # refers to a rez module

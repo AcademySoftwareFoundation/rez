@@ -1,4 +1,4 @@
-from rezgui.qt import QtCore, QtGui
+from rezgui.qt import QtGui
 from rezgui.widgets.ContextEnvironTable import ContextEnvironTable
 from rezgui.util import create_pane
 from rezgui.objects.App import app

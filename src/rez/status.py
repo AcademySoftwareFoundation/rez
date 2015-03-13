@@ -320,7 +320,7 @@ class Status(object):
             return False
 
         try:
-            suite = Suite.load(path)
+            Suite.load(path)
         except:
             return False
 
@@ -336,7 +336,7 @@ class Status(object):
             return False
 
         try:
-            context = ResolvedContext.load(path)
+            ResolvedContext.load(path)
         except:
             return False
 

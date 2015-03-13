@@ -2,7 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.widgets.ToolWidget import ToolWidget
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rezgui.util import get_icon, create_pane
+from rezgui.util import get_icon
 from rezgui.objects.App import app
 
 
