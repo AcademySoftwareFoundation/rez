@@ -121,7 +121,8 @@ class ResolvedContext(object):
                  building=False, caching=None, package_paths=None,
                  add_implicit_packages=True, max_fails=-1, time_limit=-1,
                  callback=None, package_load_callback=None, max_depth=None,
-                 start_depth=None, buf=None):
+                 start_depth=None, buf=None,
+                 callbacks=["pre_commands", "commands", "post_commands"]):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -160,6 +161,7 @@ class ResolvedContext(object):
                 used anymore. If None, the system configured value is used.
             buf (file-like object): Where to print verbose output to, defaults
                 to stdout.
+            callbacks (list): Functions in package.py to execute
         """
         self.load_path = None
 
@@ -173,6 +175,7 @@ class ResolvedContext(object):
                           else max_depth)
         self.start_depth = (config.resolve_start_depth if start_depth is None
                             else start_depth)
+        self.callbacks = callbacks
 
         self._package_requests = []
         for req in package_requests:
@@ -1384,7 +1387,7 @@ class ResolvedContext(object):
                                       variant=VariantBinding(pkg))
 
         # commands
-        for attr in ("pre_commands", "commands", "post_commands"):
+        for attr in self.callbacks:
             found = False
             for pkg in resolved_pkgs:
                 commands = getattr(pkg, attr)
