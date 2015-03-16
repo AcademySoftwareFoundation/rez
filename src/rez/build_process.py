@@ -148,12 +148,13 @@ class StandardBuildProcess(BuildProcess):
     def release(self):
         assert(self.vcs)
         install_path = self.package.config.release_packages_path
+
+        if not os.path.exists(install_path):
+            os.mkdir(install_path)
+
         base_build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory,
                                        "release")
-
-        if not os.path.exists(install_path):
-            raise ReleaseError("Release path does not exist: %r" % install_path)
 
         print "Checking state of repository..."
         self.vcs.validate_repostate()
@@ -377,6 +378,9 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
             if r.status != ResolverStatus.solved:
                 raise BuildContextResolveError(r)
 
+            if install and not os.path.exists(install_path):
+                os.makedirs(install_path)
+
             # run build system
             self._pr("\nInvoking %s build system..." % self.buildsys.name())
             ret = self.buildsys.build(r,
@@ -392,8 +396,6 @@ class LocalSequentialBuildProcess(StandardBuildProcess):
 
                 extra_files = ret.get("extra_files", []) + [rxt_file]
                 if install and extra_files:
-                    if not os.path.exists(install_path):
-                        os.makedirs(install_path)
                     for file in extra_files:
                         shutil.copy(file, install_path)
             else:
