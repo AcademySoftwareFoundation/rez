@@ -623,14 +623,14 @@ def convert_old_command_expansions(command):
     return command
 
 
-"""
+
 def convert_old_environment_variable_references(input_):
 
     def repl(matchobj):
         return "{env.%s}" % matchobj.groupdict()['variable']
 
     return re.sub("\$\{?(?P<variable>[a-zA-Z][_a-zA-Z0-9]*)\}?", repl, input_)
-"""
+
 
 
 def convert_old_commands(commands, annotate=True):
