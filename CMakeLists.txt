@@ -19,6 +19,7 @@ configure_file(init.csh.in init.csh @ONLY)
 configure_file(init.sh.in init.sh @ONLY)
 configure_file(setup.py setup.py @ONLY)
 configure_file(install.py install.py @ONLY)
+configure_file(src/rez/_version.py.in ${relative_path_to_install}/src/rez/_version.py @ONLY)
 
 set(install_py ${CMAKE_CURRENT_BINARY_DIR}/install.py)
 

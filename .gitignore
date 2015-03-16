@@ -2,6 +2,7 @@
 .project
 .pydevproject
 .nfs*
+src/rez/_version.py
 src/rez.egg-info/
 build/
 dist/
