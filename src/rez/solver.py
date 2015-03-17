@@ -126,7 +126,6 @@ from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
 from rez.packages import iter_packages
-from rez.util import timings
 from operator import itemgetter
 from itertools import groupby
 import copy
@@ -889,9 +888,7 @@ class _PackageVariantList(_Common):
                     original_variants.append(var)
 
                 if any(variants_to_sort):
-                    timings.start("solver.sort_variants")
                     sorted_variants = VariantSorter(variants_to_sort, package_requests).sort_variants()
-                    timings.end("solver.sort_variants")
                 else:
                     sorted_variants = variants_to_sort
 

@@ -57,6 +57,8 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
     builder = create_build_process("local",
                                    working_dir,
                                    build_system=buildsys,
+                                   vcs=vcs,
+                                   ensure_latest=(not opts.no_latest),
                                    verbose=True)
 
     install_path = builder.package.config.release_packages_path

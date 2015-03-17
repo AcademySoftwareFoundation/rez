@@ -20,8 +20,7 @@ from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
-from rez.yaml import dump_yaml
-from rez.contrib.animallogic import memcache
+from rez.utils.yaml import dump_yaml
 import getpass
 import inspect
 import time

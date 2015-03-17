@@ -12,7 +12,7 @@ class RemoteBuildProcess(BuildProcessHelper):
     """
     @classmethod
     def name(cls):
-        return "local"
+        return "remote"
 
     def build(self, install_path=None, clean=False, install=False, variants=None):
         raise NotImplementedError("coming soon...")
