@@ -4,9 +4,9 @@ Environment variable and alias lookup.
 
 
 from rez.rex import RexExecutor, Alias, Appendenv, Prependenv, Resetenv, Setenv, Unsetenv
-from rez.colorize import heading, Printer
+from rez.utils.colorize import heading, Printer
 from rez.config import config
-from rez.packages import iter_packages, iter_package_families
+from rez.packages_ import iter_packages, iter_package_families
 from rez.vendor.version import version
 from rez.util import ProgressBar
 import os.path

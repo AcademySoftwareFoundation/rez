@@ -7,10 +7,10 @@ variables, the following tests are performed:
     * empty - check the path is not empty.
     * file - the path is a single file (a folder is expected).
 '''
-from rez.colorize import heading, critical, error, warning, info, Printer
+from rez.utils.colorize import heading, critical, error, warning, info, Printer
 from rez.config import config
 from rez.exceptions import RezError
-from rez.util import columnise
+from rez.utils.formatting import columnise
 from operator import attrgetter
 import os
 

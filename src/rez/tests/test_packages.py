@@ -1,6 +1,4 @@
-from rez.package_resources import VersionlessPackageResource, \
-    VersionlessVariantResource, register_resource, \
-    CombinedPackageFamilyResource, CombinedPackageResource
+
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_repository import create_memory_package_repository
@@ -12,10 +10,6 @@ from rez.vendor.version.version import Version
 import os.path
 import os
 
-register_resource(VersionlessPackageResource, force=True)
-register_resource(VersionlessVariantResource, force=True)
-register_resource(CombinedPackageFamilyResource, force=True)
-register_resource(CombinedPackageResource, force=True)
 
 ALL_PACKAGES = set([
     # packages from data/solver

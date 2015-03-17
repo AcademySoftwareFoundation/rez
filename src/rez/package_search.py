@@ -108,10 +108,9 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_upda
             for req_list in (pkg.variants or []):
                 requires.update(req_list)
 
-
             for req in requires:
                 if not req.conflict:
-                    lookup[req.name].add(fam.name)
+                    lookup[req.name].add(package_name_)
 
         _save_reverse_lookup(lookup)
 

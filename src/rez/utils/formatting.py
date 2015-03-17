@@ -8,6 +8,7 @@ from rez.exceptions import PackageRequestError
 from pprint import pformat
 import os
 import re
+import time
 
 
 PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"

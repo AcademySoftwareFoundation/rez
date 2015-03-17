@@ -1,7 +1,6 @@
 """
 Functions for converting python distributions to rez packages.
 """
-from rez.util import _mkdirs
 from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil

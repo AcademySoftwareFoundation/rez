@@ -1,4 +1,4 @@
-from rez.build_process import LocalSequentialBuildProcess
+from rez.build_process_ import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
 from rez.exceptions import BuildError, BuildContextResolveError
@@ -34,9 +34,10 @@ class TestBuild(TestBase, TempdirMixin):
     @classmethod
     def _create_builder(cls, working_dir):
         buildsys = create_build_system(working_dir)
-        return LocalSequentialBuildProcess(working_dir,
-                                           buildsys,
-                                           vcs=None)
+        return create_build_process("local",
+                                    working_dir,
+                                    build_system=buildsys,
+                                    verbose=True)
 
     @classmethod
     def _create_context(cls, *pkgs):

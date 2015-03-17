@@ -249,8 +249,6 @@ class ResolvedContext(object):
         if self.status_ == ResolverStatus.solved:
             self._resolved_packages = resolver.resolved_packages
 
-        memcache.disconnect()
-
     def __str__(self):
         request = self.requested_packages(include_implicit=True)
         req_str = " ".join(str(x) for x in request)
@@ -1398,7 +1396,7 @@ class ResolvedContext(object):
 
         if config.flatten_env:
             if not tmpdir:
-                tmpdir = mkdtemp_()
+                tmpdir = self.tmpdir_manager.mkdtemp()
 
             executor.flatten(tmpdir)
 

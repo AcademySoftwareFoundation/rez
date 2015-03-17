@@ -1,7 +1,8 @@
 """
 Reverse dependency lookup.
 """
-
+from rez import packages_
+from rez.vendor.version import version
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
@@ -44,10 +45,9 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import get_reverse_dependency_tree
     from rez.utils.graph_utils import save_graph, view_graph
+    from rez.utils.colorize import Printer
     from rez.config import config
     from rez.vendor.pygraph.readwrite.dot import write as write_dot
-    from rez import packages
-    from rez.vendor.version import version
     import os
     import os.path
 
@@ -204,7 +204,7 @@ class ReverseVersionDependenciesCollector(object):
             A displayable package object.
         """
 
-        package_obj = sorted(packages.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
+        package_obj = sorted(packages_.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
         for requirement in package_obj.requires:
             if requirement.name != self._requirement_name:
                 continue

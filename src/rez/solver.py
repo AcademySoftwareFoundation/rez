@@ -125,7 +125,7 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from operator import itemgetter
 from itertools import groupby
 import copy

@@ -116,6 +116,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.contrib.animallogic.dora import launch_dora_from_context_file
     import select
     import sys
+    import tempfile
     import os
     import os.path
 

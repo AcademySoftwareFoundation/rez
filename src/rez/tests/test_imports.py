@@ -6,7 +6,7 @@ class TestImports(TestBase):
     def test_1(self):
         """import every file in rez."""
         import rez
-        import rez.build_process
+        import rez.build_process_
         import rez.build_system
         import rez.config
         import rez.exceptions

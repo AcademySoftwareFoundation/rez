@@ -1,12 +1,12 @@
 from rez.build_system import create_build_system
-from rez.build_process import LocalSequentialBuildProcess
+from rez.build_process_ import create_build_process
 from rez.config import config
 from rez.exceptions import BuildSystemError
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 from rez.rex import RexExecutor, Python
 from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin
-from rez.util import convert_old_commands
+from rez.utils.backcompat import convert_old_commands
 from rez.vendor.version.requirement import Requirement
 from rez.contrib.animallogic.util import get_epoch_datetime_from_str
 from rezplugins.build_system.cmake import get_current_variant_index
@@ -144,9 +144,10 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
     @classmethod
     def _create_builder(cls, working_dir):
         buildsys = create_build_system(working_dir)
-        return LocalSequentialBuildProcess(working_dir,
-                                           buildsys,
-                                           vcs=None)
+        return create_build_process("local",
+                                    working_dir,
+                                    build_system=buildsys,
+                                    verbose=True)
 
     def test_multiple_build_systems_with_cmake(self):
 
@@ -162,7 +163,7 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
     def test_current_variant_index_with_variants(self):
 
         working_dir = os.path.join(self.src_root, "current_variant_index_with_variants")
-        package = load_developer_package(working_dir)
+        package = get_developer_package(working_dir)
 
         variants = list(package.iter_variants())
         self.assertEqual(len(variants), 2)
@@ -175,7 +176,7 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
     def test_current_variant_index_without_variants(self):
 
         working_dir = os.path.join(self.src_root, "current_variant_index_without_variants")
-        package = load_developer_package(working_dir)
+        package = get_developer_package(working_dir)
 
         for i, variant in enumerate(package.iter_variants()):
             self.assertEqual(i, 0)

@@ -4,7 +4,10 @@ import logging
 logger = logging.getLogger(__name__)
 
 
-def print_debug(msg):
+def print_debug(msg, module=None):
+    from rez.config import config
+    if module is None or config.debug(module):
+        logger.debug(msg)
     logger.debug(msg)
 
 

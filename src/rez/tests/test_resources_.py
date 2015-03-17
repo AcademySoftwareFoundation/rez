@@ -44,12 +44,6 @@ pet_schema = Schema({
 })
 
 
-<<<<<<< HEAD
-=======
-pet_schema_keys = set(x._schema for x in pet_schema._schema)
-
-
->>>>>>> 71f7f8b... -early stages resources update WIP
 class BasePetResource(Resource):
     schema_error = PetResourceError
 
@@ -111,7 +105,6 @@ class PetRepository(object):
         return self.pool.get_resource_from_handle(handle)
 
 
-<<<<<<< HEAD
 class Pet(ResourceWrapper):
     keys = ("colors", "male", "age", "owner")
 
@@ -129,13 +122,6 @@ class Kitten(Pet):
 
 
 class Puppy(Pet):
-=======
-class Kitten(object):
-    pass
-
-
-class Puppy(object):
->>>>>>> 71f7f8b... -early stages resources update WIP
     pass
 
 
@@ -154,12 +140,7 @@ class PetStore(object):
         fn = getattr(self.repo, "get_%s" % species)
         resource = fn(name)
 
-<<<<<<< HEAD
         return cls_(resource) if resource else None
-=======
-        #return cls_(resource) if resource else None
-        return resource
->>>>>>> 71f7f8b... -early stages resources update WIP
 
 
 # -- test suite

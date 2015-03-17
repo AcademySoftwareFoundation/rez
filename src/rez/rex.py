@@ -11,6 +11,7 @@ from rez.exceptions import RexError, RexUndefinedVariableError
 from rez.util import shlex_join
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
+from rez.utils.logging_ import print_debug
 from rez.vendor.enum import Enum
 from rez.contrib.animallogic.flattener import get_flattener_for_variable
 

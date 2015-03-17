@@ -1,7 +1,4 @@
 import shutil
-from rez.package_resources import VersionlessPackageResource, \
-    VersionlessVariantResource, register_resource
-from rez.resources import register_resource
 from rez.resolved_context import ResolvedContext
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
@@ -10,9 +7,6 @@ from rez.tests.util import TestBase, TempdirMixin
 import itertools
 import os.path
 from rez.vendor.version.version import Version
-
-register_resource(VersionlessPackageResource, force=True)
-register_resource(VersionlessVariantResource, force=True)
 
 
 class TestSolver(TestBase):

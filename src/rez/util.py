@@ -55,8 +55,7 @@ def create_executable_script(filepath, body, program=None):
         f.write("#!/usr/bin/env %s\n" % program)
         f.write(body)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
-             | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
+    os.chmod(filepath, 0o777)
 
 
 def create_forwarding_script(filepath, module, func_name, *nargs, **kwargs):
