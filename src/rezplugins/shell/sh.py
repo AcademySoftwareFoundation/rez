@@ -82,8 +82,8 @@ class SH(UnixShell):
 
     def _bind_interactive_rez(self):
         if config.prompt:
-            stored_prompt = os.getenv("$REZ_STORED_PROMPT")
-            curr_prompt = stored_prompt or os.getenv("$PS1", "\\h:\\w]$ ")
+            stored_prompt = os.getenv("REZ_STORED_PROMPT")
+            curr_prompt = stored_prompt or os.getenv("PS1", "\\h:\\w]$ ")
             if not stored_prompt:
                 self.setenv("REZ_STORED_PROMPT", '"%s"' % curr_prompt)
 
