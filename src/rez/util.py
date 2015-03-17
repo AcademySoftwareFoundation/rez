@@ -29,9 +29,9 @@ class ProgressBar(Bar):
         super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
 
-# TODO use distlib.ScriptMaker
-# TODO or, do the work ourselves to make this cross platform
-# FIXME *nix only
+# TODO: use distlib.ScriptMaker
+# TODO: or, do the work ourselves to make this cross platform
+# FIXME: *nix only
 def create_executable_script(filepath, body, program=None):
     """Create an executable script.
 
@@ -51,7 +51,7 @@ def create_executable_script(filepath, body, program=None):
         body += '\n'
 
     with open(filepath, 'w') as f:
-        # TODO make cross platform
+        # TODO: make cross platform
         f.write("#!/usr/bin/env %s\n" % program)
         f.write(body)
 

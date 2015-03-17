@@ -6,6 +6,7 @@ from rez.utils.logging_ import print_debug
 import re
 import os
 import os.path
+import textwrap
 
 
 variant_key_conversions = {

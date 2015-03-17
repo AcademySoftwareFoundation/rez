@@ -11,7 +11,7 @@ class RezCompletionFinder(CompletionFinder):
         self.always_complete_options = False
         self.exclude = None
         self.validator = default_validator
-        self.wordbreaks = " \t\"'@><=;|&(:"  # TODO might need to be configurable/OS specific
+        self.wordbreaks = " \t\"'@><=;|&(:"  # TODO: might need to be configurable/OS specific
 
         comp_point = len(comp_line[:comp_point].decode(sys_encoding))
         comp_line = comp_line.decode(sys_encoding)

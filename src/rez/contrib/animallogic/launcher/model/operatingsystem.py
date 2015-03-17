@@ -1,5 +1,5 @@
 from rez.vendor.enum import Enum
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 
 
 class OperatingSystem(Enum):

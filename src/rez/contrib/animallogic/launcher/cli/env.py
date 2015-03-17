@@ -7,7 +7,7 @@ from rez.contrib.animallogic.hessian import client
 from rez.contrib.animallogic.launcher.service.hessian import LauncherHessianService
 from rez.contrib.animallogic.launcher.model.mode import Mode
 from rez.contrib.animallogic.launcher.model.operatingsystem import OperatingSystem
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 from rez.shells import get_shell_types, create_shell
 from rez.system import system
 from rez.vendor import argparse

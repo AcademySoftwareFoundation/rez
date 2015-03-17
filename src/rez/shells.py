@@ -190,7 +190,7 @@ class UnixShell(Shell):
         shell_command = None
 
         def _record_shell(ex, files, bind_rez=True, print_msg=False):
-            # TODO make context sourcing position configurable?
+            # TODO: make context sourcing position configurable?
             if bind_rez:
                 ex.source(context_file)
             for file_ in files:

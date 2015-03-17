@@ -60,7 +60,7 @@ class System(object):
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
 
-    # TODO move shell detection into shell plugins
+    # TODO: move shell detection into shell plugins
     @cached_property
     def shell(self):
         """Get the current shell.
@@ -199,7 +199,7 @@ class System(object):
             if os.path.exists(rezolve_exe):
                 binpath = path
 
-        # TODO improve this, could still pick up non-production 'rezolve'
+        # TODO: improve this, could still pick up non-production 'rezolve'
         if not binpath:
             path = which("rezolve")
             if path:

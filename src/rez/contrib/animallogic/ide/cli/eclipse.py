@@ -2,7 +2,7 @@
 Create Eclipse project files (.project, .cproject, .pydevproject).
 """
 
-from rez.build_process import LocalSequentialBuildProcess
+from rez.build_process_ import create_build_process
 from rez.build_system import create_build_system
 from rez.cli.build import setup_parser_common, get_build_args
 from rez.contrib.animallogic.ide.eclipse import EclipseProjectBuilder
@@ -26,7 +26,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     if not opts.no_build:
         build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
-    
+
         buildsys_type = opts.buildsys if ("buildsys" in opts) else None
         buildsys = create_build_system(working_dir,
                                        buildsys_type=buildsys_type,
@@ -35,11 +35,14 @@ def command(opts, parser, extra_arg_groups=None):
                                        verbose=True,
                                        build_args=build_args,
                                        child_build_args=child_build_args)
-    
-        builder = LocalSequentialBuildProcess(working_dir,
-                                              buildsys,
-                                              vcs=None)
-    
+
+        # TODO: make the build process configurable passed on parameters to the 
+        # rez ide command.
+        builder = create_build_process("local",
+                                   working_dir,
+                                   build_system=buildsys,
+                                   verbose=True)
+
         builder.build(clean=True, variants=opts.variants)
 
     files = ["build_project", "build_cproject", "build_cproject_settings", "build_pydevproject"]

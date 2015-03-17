@@ -216,7 +216,6 @@ config_schema = Schema({
     "resource_caching_maxsize":                     Int,
     "resolve_max_depth":                            Int,
     "resolve_start_depth":                          Int,
-    "changelog_maxsize":                            Int,
     "memcache_ttl":                                 Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,

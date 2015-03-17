@@ -145,7 +145,7 @@ def command(opts, parser, extra_arg_groups=None):
             sys.exit(1)
 
     if opts.patch:
-        # TODO patching is lagging behind in options, and needs to be updated
+        # TODO: patching is lagging behind in options, and needs to be updated
         # anyway.
         if context is None:
             from rez.status import status

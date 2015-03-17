@@ -1,11 +1,11 @@
 from rez.config import config
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 from rez.release_vcs import create_release_vcs
 from rez.build_system import create_build_system
-from rez.build_process import LocalSequentialBuildProcess
+from rez.build_process_ import create_build_process
 from rez.contrib.animallogic.unleash.exceptions import UnleashError
-from rez.util import print_warning
-from rez.colorize import Printer, _color
+from rez.utils.logging_ import print_warning
+from rez.utils.colorize import Printer, _color
 import os
 import re
 import subprocess
@@ -28,7 +28,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
             build_args=None, child_build_args=None, allow_not_latest=False, 
             ignore_auto_messages=False, opts=None):
 
-    package = load_developer_package(working_dir)
+    package = get_developer_package(working_dir)
     vcs = create_release_vcs(working_dir)
 
     name = package.name
@@ -52,11 +52,12 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
                                    build_args=build_args,
                                    child_build_args=child_build_args)
 
-    builder = LocalSequentialBuildProcess(working_dir,
-                                          buildsys,
-                                          vcs=vcs,
-                                          ensure_latest=(not allow_not_latest),
-                                          release_message=message)
+    # TODO: make the build process configurable passed on parameters to the 
+    # rez unleash command.
+    builder = create_build_process("local",
+                                   working_dir,
+                                   build_system=buildsys,
+                                   verbose=True)
 
     install_path = builder.package.config.release_packages_path
     last_release = builder._get_last_release(install_path)

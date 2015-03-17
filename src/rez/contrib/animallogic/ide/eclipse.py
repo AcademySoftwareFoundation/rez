@@ -6,9 +6,9 @@ import functools
 
 import xml.etree.cElementTree as etree
 
-from rez.build_process import BuildType
+from rez.build_process_ import BuildType
 from rezplugins.build_system.cmake import CMakeBuildSystem
-from rez.packages import load_developer_package
+from rez.packages_ import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.rex import Python
 import tempfile
@@ -26,7 +26,7 @@ class EclipseProjectBuilder(object):
     def __init__(self, working_directory, variants):
 
         self.working_directory = working_directory
-        self.package = load_developer_package(self.working_directory)
+        self.package = get_developer_package(self.working_directory)
 
         self.name = self.package.name
         self.dependencies = self.package.requires if self.package.requires else []

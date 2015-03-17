@@ -471,7 +471,7 @@ class VariantSorter(object):
             weight = len(self._intersect_variant_with_package_request(fam_requires_set, variant))
             weighted_dict.setdefault(weight, []).append(variant)
 
-        #TODO  to be correct a this point we should check every request in every variant to check if it contains
+        #TODO: to be correct a this point we should check every request in every variant to check if it contains
         # an antipackage (conflict) and give it negative weight, but it might be costly given it is not a common case?
         # Given that it is not a common case to have an anitpackage in the variants, and the fact that the
         # The antipackage will end up with the least priority when we sort its group we might be ok not sorting it here
@@ -561,7 +561,7 @@ class VariantSorter(object):
                 return requirement.range
             else:
                 # This stack on top of VersionRange("") when sorted
-                # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
+                # TODO: any other more meaningful VersionRange we know is going to be on top when we sort by range?
                 return VersionRange("==")
         else:
             return VersionRange("")

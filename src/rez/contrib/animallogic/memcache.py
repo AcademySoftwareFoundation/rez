@@ -1,6 +1,6 @@
 from rez.config import config
-from rez.vendor.memcached import memcache
-from rez.util import print_debug
+from rez.vendor.memcache import memcache
+from rez.utils.logging_ import print_debug
 
 
 _g_client = None

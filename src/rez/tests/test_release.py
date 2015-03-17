@@ -142,7 +142,7 @@ class TestRelease(TestBase, TempdirMixin):
 
 
 def get_test_suites():
-    # TODO variant-based test
+    # TODO: variant-based test
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestRelease("test_1"))

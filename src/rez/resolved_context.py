@@ -350,7 +350,7 @@ class ResolvedContext(object):
         import copy
         return copy.copy(self)
 
-    # TODO deprecate in favor of patch() method
+    # TODO: deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,
                             package_subtractions=None, strict=False, rank=0):
         """Get a 'patched' request.

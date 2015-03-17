@@ -1,5 +1,5 @@
-from rez.platform_ import platform_
-from rez.util import print_debug
+from rez.utils.platform_ import platform_
+from rez.utils.logging_ import print_debug
 import os.path
 
 
