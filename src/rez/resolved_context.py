@@ -1409,8 +1409,13 @@ class ResolvedContext(object):
                 try:
                     executor.execute_code(commands.source)
                 except error_class as e:
-                    msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(e))
-                    raise PackageCommandError(msg)
+                    try:
+                        if (type(e) == IndentationError):
+                            commands.maybe_indent()
+                            executor.execute_code(commands.source)
+                    except error_class as e:
+                        msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(e))
+                        raise PackageCommandError(msg)
 
         _heading("post system setup")
         # append suite path if there is an active parent suite
