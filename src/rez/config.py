@@ -162,7 +162,6 @@ config_schema = Schema({
     "release_hooks":                                StrList,
     "lint_variables":                               StrList,
     "flatten_env_vars":                             StrList,
-    "memcache_servers":                             StrList,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
     "warning_styles":                               OptionalStrList,
@@ -260,8 +259,6 @@ config_schema = Schema({
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "flatten_env":                                  Bool,
-    "memcache_enabled":                             Bool,
-    "memcache_client_debug":                        Bool,
     "env_var_separators":                           Dict,
     "launch_python_exe":                            Dict,
 

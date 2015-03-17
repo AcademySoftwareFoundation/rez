@@ -77,6 +77,7 @@ resource_caching_maxsize: -1
 # example, the uri '127.0.0.1:11211' points to memcached running on localhost on
 # its default port. Must be either null, or a list of strings.
 memcached_uri:
+- memcache.al.com.au:11211
 
 # Bytecount beyond which memcached entries are compressed, for cached package
 # files (such as package.yaml, package.py). Zero means never compress.
@@ -285,9 +286,6 @@ debug_resources: false
 
 # Print debugging info when flattening environment variables.
 debug_flatten_env: false
-
-# print debugging info when communicating with the memcache server.
-debug_memcache: false
 
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache: false
@@ -600,20 +598,6 @@ unleash_target: film_tools_packages
 ###############################################################################
 # Memcache
 ###############################################################################
-
-# Use memcache to cache the files loaded by the resource system.  This will
-# cache the file content (not the Rez objects), reducing the need to contact
-# the file server.  This cache layer is independent of 'resource_caching' and as
-# such can be enabled/disabled separated.
-memcache_enabled: true
-
-# A list of servers that form the memcache cluster.
-memcache_servers:
-- memcache.al.com.au:11211
-
-# Debug memcache connections - display error messages when a server can't be
-# contacted.
-memcache_client_debug: true
 
 # The default time to live of all objects entered into the cache.  This time is
 # measured in seconds.  The current default is to cache for one hour.

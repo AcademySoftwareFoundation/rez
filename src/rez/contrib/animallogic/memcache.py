@@ -9,12 +9,12 @@ _g_client = None
 def connect():
     global _g_client
 
-    if config.memcache_enabled and _g_client is None:
+    if config.memcache_uri and _g_client is None:
         if config.debug("memcache"):
-            print_debug("connecting to memcache servers %s." % config.memcache_servers)
+            print_debug("connecting to memcache servers %s." % config.memcache_uri)
 
-        _g_client = memcache.Client(config.memcache_servers,
-                                    debug=int(config.memcache_client_debug))
+        _g_client = memcache.Client(config.memcache_uri,
+                                    debug=int(config.memcache))
 
     return _g_client
 
