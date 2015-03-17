@@ -146,7 +146,9 @@ def _dump_package_data_py(items, buf):
             # source code becomes a python function
             if key in ("commands", "pre_commands", "post_commands"):
                 value = _commented_old_command_annotations(value)
-            txt = "def %s():\n%s" % (key, indent(value.source))
+            # don't intend code if already indented
+            source = value.source if value.source[0] in (' ', '\t') else indent(value.source)
+            txt = "def %s():\n%s" % (key, source)
         elif isinstance(value, list) and len(value) > 1:
             # nice formatting for lists
             lines = ["%s = [" % key]

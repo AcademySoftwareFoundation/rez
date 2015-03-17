@@ -6,7 +6,6 @@ from collections import MutableMapping
 from inspect import getsourcelines
 from threading import Lock
 from textwrap import dedent
-import re
 
 
 class SourceCode(object):
@@ -14,13 +13,29 @@ class SourceCode(object):
     def __init__(self, source):
         self.source = source.rstrip()
 
+    def maybe_indent(self):
+        if self.source and self.source[0] in (' ', '\t'):
+            # outer indent(s) follow, perhaps comments
+            self.source = "if True:\n" + self.source
+
     @classmethod
     def from_function(cls, func):
         loc = getsourcelines(func)[0][1:]
         code = dedent(''.join(loc))
-        if code and code[0] in (' ', '\t'):
-            # outer indent(s) follow, perhaps comments
-            code = "if True:\n" + code
+
+        # align lines that start with a comment (#)
+        codelines = code.split('\n')
+        linescount = len(codelines)
+        for i, line in enumerate(codelines):
+            if line.startswith('#'):
+                nextindex = i+1 if i < linescount else i-1
+                nextline = codelines[nextindex]
+                while nextline.startswith('#'):
+                    nextline = codelines[nextindex]
+                    nextindex = nextindex+1 if nextindex < linescount else nextindex-1
+                firstchar = len(nextline)-len(nextline.lstrip())
+                codelines[i] = '%s%s' % (nextline[:firstchar], line)
+        code = '\n'.join(codelines)
 
         value = SourceCode.__new__(SourceCode)
         value.source = code.rstrip()
