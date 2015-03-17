@@ -233,11 +233,19 @@ class StandardBuildProcess(BuildProcess):
         self._hdr("Releasing %s..." % self.package.qualified_name)
         _do_build(install=True, clean=False)
 
+        def _trim_changelog(changelog, maxsize):
+            if maxsize == -1:
+                return changelog
+
+            lines = changelog.split("\n")
+            return "\n".join(lines[:maxsize])
+
         # write release info (changelog etc) into release path
+        changelog_maxsize = self.package.config.changelog_maxsize
         release_info = dict(
             timestamp=int(time.time()),
             revision=revision,
-            changelog=changelog)
+            changelog=_trim_changelog(changelog, changelog_maxsize))
 
         if self.release_message:
             release_message = self.release_message.strip()
