@@ -85,7 +85,8 @@ class EclipseProjectBuilder(object):
     def find_include_paths(self, variant):
 
         paths = []
-        target_directories = os.path.join('build', variant.subpath, 'CMakeFiles/TargetDirectories.txt')
+        subpath = variant.subpath if variant.subpath else ""
+        target_directories = os.path.join('build', subpath, 'CMakeFiles/TargetDirectories.txt')
 
         for target_directory in open(target_directories):
             target_directory = target_directory.strip()
@@ -137,7 +138,7 @@ class EclipseProjectBuilder(object):
     def find_target_directories(self, variant, variant_index):
         paths = []
         names = set()
-        variant_dir = os.path.join('build', variant.subpath)
+        variant_dir = os.path.join('build', variant.subpath) if variant.subpath else 'build'
         target_directories = os.path.join(variant_dir, 'CMakeFiles/TargetDirectories.txt')
 
         for line in open(target_directories):
@@ -259,7 +260,8 @@ class EclipseProjectBuilder(object):
         j = 99 # Need a random id that's not i
         for i, variant in enumerate(self.variants):
             j += 1
-            variant_name = variant.subpath
+            variant_name = variant.subpath if variant.subpath else "default"
+            subpath = variant.subpath if variant.subpath else ""
 
             cconfiguration = etree.SubElement(storage_module, "cconfiguration")
             cconfiguration.set('id', 'cdt.managedbuild.toolchain.gnu.base.%d' % i)
@@ -308,7 +310,7 @@ class EclipseProjectBuilder(object):
             target_platform.set('superClass', 'cdt.managedbuild.target.gnu.platform.base')
 
             builder = etree.SubElement(tool_chain, "builder")
-            builder.set('buildPath', '${workspace_loc:/%s/build/%s}' % (self.name, variant.subpath))
+            builder.set('buildPath', '${workspace_loc:/%s/build/%s}' % (self.name, subpath))
             builder.set('id', 'cdt.managedbuild.target.gnu.builder.base.%d' % i)
             builder.set('keepEnvironmentInBuildfile', 'false')
             builder.set('managedBuildOn', 'false')
@@ -414,7 +416,7 @@ class EclipseProjectBuilder(object):
 
         for variant in self.variants:
             configuration = etree.SubElement(storage_module, "configuration")
-            configuration.set('configurationName', variant.subpath)
+            configuration.set('configurationName', subpath)
 
         storage_module = etree.SubElement(cproject, "storageModule")
         storage_module.set('moduleId', 'scannerConfiguration')
@@ -485,7 +487,8 @@ class EclipseProjectBuilder(object):
         settings = 'eclipse.preferences.version=1\n'
 
         for i, variant in enumerate(self.variants):
-            resolved_context_file = os.path.join('build', variant.subpath, 'build.rxt')
+            subpath = variant.subpath if variant.subpath else ''
+            resolved_context_file = os.path.join('build', subpath, 'build.rxt')
             context = ResolvedContext.load(resolved_context_file)
 
             callback = functools.partial(CMakeBuildSystem._add_build_actions,
