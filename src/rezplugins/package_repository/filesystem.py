@@ -156,11 +156,11 @@ class FileSystemPackageResource(PackageResourceHelper):
             if os.path.isdir(path_):
                 # rez-1
                 data = {}
-                filepath = os.path.join(path_, "changelog.txt")
-                if os.path.isfile(filepath):
-                    data["changelog"] = load_from_file(
-                        filepath, FileFormat.txt,
-                        update_data_callback=self._update_changelog)
+#                filepath = os.path.join(path_, "changelog.txt")
+#                if os.path.isfile(filepath):
+#                    data["changelog"] = load_from_file(
+#                        filepath, FileFormat.txt,
+#                        update_data_callback=self._update_changelog)
 
                 filepath = os.path.join(path_, "release_time.txt")
                 if os.path.isfile(filepath):
