@@ -27,7 +27,7 @@ def filter_preferred_build_systems(valid_build_systems, preferred):
 
 def get_epoch_datetime_from_str(s, format_="%Y-%m-%d %H:%M:%S"):
 
-    from rez.util import get_epoch_time_from_str
+    from rez.utils.formatting import get_epoch_time_from_str
 
     try:
         # First try and get the time from rez.util, which assumes either the 

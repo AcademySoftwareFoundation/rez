@@ -596,7 +596,6 @@ class VariantSorter(object):
         @param variants_slice: a list of variants
         @return: an ordered list of family names by averaged positional weight
         """
-        remaining_families_sorted_by_positional_weight = []
         averaged_weight_map = {}
         for variant in variants_slice:
             for w, req in enumerate(variant, start=1):
@@ -895,16 +894,16 @@ class _PackageVariantList(_Common):
                 value = []
                 for var in original_variants:
                     # Map the variants to the new indexes in the sorted_variants
+                    new_index = var.index
                     original_requires = var.get_requires(build_requires=self.building)
-                    if var.resource_handle.variables.get('index') is not None:
+                    if var.index is not None:
                         new_index = sorted_variants.index(original_requires)
-                        var.index = new_index
 
                     userdata = var.handle.to_dict()
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
                                              requires=original_requires,
-                                             index=var.index,
+                                             index=new_index,
                                              userdata=userdata)
                     value.append(variant)
 
@@ -1941,7 +1940,7 @@ class _ResolvePhase(_Common):
             if variant:
                 # We changed the index to help the solver pick the 'preferred' variant
                 # At this point we should add it back for the original index
-                variant.index = variant.userdata.variables.get('index', None)
+                variant.index = variant.userdata.get('index', None)
                 variants.append(variant)
 
         return variants

@@ -219,40 +219,42 @@ class TestResources_(TestBase):
 
         store = PetStore()
         obi = store.get_kitten("obi")
-        self.assertTrue(isinstance(obi, KittenResource))
+        self.assertTrue(isinstance(obi, Kitten))
+        self.assertTrue(isinstance(obi.resource, KittenResource))
         self.assertFalse(obi.is_loaded)
 
         obi_ = store.get_kitten("obi")
-        self.assertTrue(obi_ is obi)
+        self.assertTrue(obi_ == obi)
+        self.assertTrue(obi_.resource is obi.resource)
 
         # accessing 'name' should not cause a resource data load
-        #self.assertEqual(obi.name, "obi")
-        #self.assertFalse(obi.resource.is_loaded)
+        self.assertEqual(obi.name, "obi")
+        self.assertFalse(obi.is_loaded)
 
         # accessing an attrib should cause resource's data to load
         self.assertEqual(obi.colors, set(["black", "white"]))
-        self.assertEqual(obi.validations, dict(colors=1))
+        self.assertEqual(obi.resource.validations, dict(colors=1))
         self.assertTrue(obi.is_loaded)
 
         # accessing same attrib again should not cause a revalidation
         self.assertEqual(obi.colors, set(["black", "white"]))
-        self.assertEqual(obi.validations, dict(colors=1))
+        self.assertEqual(obi.resource.validations, dict(colors=1))
 
         # validated attribs should stay cached
         obi_ = None
         obi = None
         obi = store.get_kitten("obi")
         self.assertEqual(obi.colors, set(["black", "white"]))
-        self.assertEqual(obi.validations, dict(colors=1))
+        self.assertEqual(obi.resource.validations, dict(colors=1))
 
         self.assertEqual(obi.male, True)
-        self.assertEqual(obi.validations, dict(colors=1, male=1))
+        self.assertEqual(obi.resource.validations, dict(colors=1, male=1))
 
-        _validate(obi, dict(name="obi",
-                            colors=set(["black", "white"]),
-                            male=True,
-                            age=1.0,
-                            owner=None))
+        _validate(obi.resource, dict(name="obi",
+                                     colors=set(["black", "white"]),
+                                     male=True,
+                                     age=1.0,
+                                     owner=None))
 
         # load a bad resource, won't fail til bad attribute is accessed
         mordor = store.get_kitten("mordor")
@@ -263,9 +265,16 @@ class TestResources_(TestBase):
 
         # load a puppy why not?
         taco = store.get_puppy("taco")
-        self.assertTrue(isinstance(taco, PuppyResource))
+        self.assertTrue(isinstance(taco, Puppy))
+        self.assertTrue(isinstance(taco.resource, PuppyResource))
         self.assertEqual(taco.male, True)
         self.assertEqual(taco.colors, set(["brown"]))
+
+        _validate(taco.resource, dict(name="taco",
+                                      colors=set(["brown"]),
+                                      male=True,
+                                      age=0.6,
+                                      owner="joe.bloggs"))
 
 
 def get_test_suites():

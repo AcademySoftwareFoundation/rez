@@ -1,5 +1,5 @@
 name = 'anti'
-version = ''
+version = '1.0.0'
 authors = ["joe.bloggs"]
 uuid = "e760fa04-043d-47bb-ba4d-543b18a70959"
 description = "package with anti package"

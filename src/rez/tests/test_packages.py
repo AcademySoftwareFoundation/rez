@@ -31,7 +31,7 @@ ALL_PACKAGES = set([
     'variants_py-2.0',
     'single_unversioned',
     'single_versioned-3.5',
-    'multi-1.0', 'multi-1.1', 'multi-1.2','bah-2.0.0',
+    'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0', 'bah-2.0.0',
     'multi_packages_variant_sorted-1', 'asymmetric_variants-1', 'bar-4.5.3',
     'permuted_family_names_same_position_weight-1', 'eek-1.0.1', 'bar-4.8.5',
     'multi_packages_variant_unsorted-1', 'package_name_in_require_and_variant-1',
