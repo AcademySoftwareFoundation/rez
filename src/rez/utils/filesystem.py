@@ -34,8 +34,9 @@ class TempDirs(object):
             if os.path.exists(path):
                 shutil.rmtree(path)
 
-    def __del__(self):
-        self.clear()
+#    def __del__(self):
+#        self.clear()
+#        pass
 
 
 def is_subdirectory(path_a, path_b):

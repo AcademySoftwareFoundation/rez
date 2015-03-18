@@ -176,7 +176,7 @@ def deep_update(dict1, dict2):
             dict1[k] = copy.deepcopy(v)
 
 
-@atexit.register
-def _atexit():
-    from rez.resolved_context import ResolvedContext
-    ResolvedContext.tmpdir_manager.clear()
+#@atexit.register
+#def _atexit():
+#    from rez.resolved_context import ResolvedContext
+#    ResolvedContext.tmpdir_manager.clear()

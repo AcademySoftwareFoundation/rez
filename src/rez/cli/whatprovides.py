@@ -60,7 +60,7 @@ def command(opts, parser, extra_arg_groups=None):
     def add_provider(package, action):
         name = package.name
         range_ = version.VersionRange.from_version(package.version)
-        search_path = package.search_path
+        search_path = package.uri
 
         for provider in providers:
             if provider.name == name and provider.search_path == search_path:
@@ -80,7 +80,7 @@ def command(opts, parser, extra_arg_groups=None):
                 continue
 
             executor = WhatProvidesRexExecutor()
-            executor.execute_code(package.commands)
+            executor.execute_code(package.commands.source)
 
             for action in executor.actions:
                 if isinstance(action, (Appendenv, Prependenv, Resetenv, Setenv, Unsetenv)):

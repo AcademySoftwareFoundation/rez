@@ -177,7 +177,6 @@ class System(object):
         """
         return self.fqdn.split('.', 1)[1]
 
-
     @cached_property
     def uuid(self):
         """
@@ -185,6 +184,13 @@ class System(object):
         """
         import uuid
         return str(uuid.uuid4())
+
+    @cached_property
+    def home(self):
+        """
+        @returns The home directory of the current user
+        """
+        return os.path.expanduser('~')
 
     @cached_property
     def rez_bin_path(self):
