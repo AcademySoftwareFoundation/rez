@@ -25,7 +25,7 @@ variants:
 
 commands:
 - export PATH=!ROOT!/bin/rez/:$PATH
-- export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/rez-{version.major}.{version.minor}.BETA.{version[3]}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.egg:$PYTHONPATH
+- export PYTHONPATH=!ROOT!/lib/$PYTHON_FULLNAME_DOTTED/site-packages/rez-${REZ_REZ_VERSION}-py${PYTHON_VERSION_MAJOR}.${PYTHON_VERSION_MINOR}.egg:$PYTHONPATH
 - export REZ_EXE=!ROOT!/bin/rez/rez
 - export REZ_PATH=!ROOT!
 - export REZ_LOCAL_PACKAGES_PATH=$HOME/packages
