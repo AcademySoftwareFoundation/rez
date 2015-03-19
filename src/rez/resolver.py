@@ -5,6 +5,7 @@ from rez.memcache import memcache_client, DataType
 from rez.packages_ import get_variant, get_last_release_time
 from rez.config import config
 from rez.vendor.enum import Enum
+import rez
 import os
 
 
@@ -233,7 +234,8 @@ class Resolver(object):
             repo = package_repository_manager.get_repository(path)
             repo_ids.append(repo.uid)
 
-        return (request,
+        return (rez.__version__,
+                request,
                 tuple(repo_ids),
                 self.building,
                 config.prune_failed_graph,

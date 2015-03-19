@@ -595,20 +595,6 @@ unleash_flavour: package
 unleash_target: film_tools_packages
 
 
-###############################################################################
-# Memcache
-###############################################################################
-
-# The default time to live of all objects entered into the cache.  This time is
-# measured in seconds.  The current default is to cache for one hour.
-memcache_ttl: 3600
-
-# Only cache resources found on this search path.  This allows us to not cache
-# files from a developers local packages path.
-memcache_search_paths:
-- '/film/tools/packages'
-
-
 
 ###############################################################################
 ###############################################################################
