@@ -5,14 +5,16 @@ git:
     # The format used with 'git show' when retrieving the commit details.
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
 
-github:
-    remote_origin_url: ^http://github.al.com.au
+    remote_origin_url: ^http://git.al.com.au
 
+github:
     allow_no_upstream: false
 
     commit_details_format: "format:%C(bold)%ad (id: %h)%Creset%n%Cred%an: %Cgreen%s%Creset"
 
+    remote_origin_url: ^http://github.al.com.au
+
     # A list of Github organizations from where we allow releases. Releasing
-    # from a private (user) fork is now allowed
+    # from a private (user) fork is not allowed
     releasable_organizations:
         - '^rnd$'
