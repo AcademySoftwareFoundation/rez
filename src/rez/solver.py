@@ -1938,9 +1938,6 @@ class _ResolvePhase(_Common):
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
-                # We changed the index to help the solver pick the 'preferred' variant
-                # At this point we should add it back for the original index
-                variant.index = variant.userdata.get('index', None)
                 variants.append(variant)
 
         return variants
@@ -2191,6 +2188,8 @@ class Solver(_Common):
                 s = SolverState(self.num_solves, self.num_fails, new_phase)
                 self.pr.important(str(s))
 
+        # Finished solving, revert the indexed changed by the variant solving algorithm
+        self._revert_sorted_indexes()
         end_time = time.time()
         self.solve_time += (end_time - start_time)
 
@@ -2392,6 +2391,18 @@ class Solver(_Common):
             depth = len(self.phase_stack) - 1
         count = self.depth_counts[depth]
         return "{%d,%d}" % (depth,count)
+
+    def _revert_sorted_indexes(self):
+        # We changed the index to help the solver pick the 'preferred' variant
+        # Restoring the original index from the userdata (resource handle)
+
+        # Get the last (succeeded or failed) phase
+        final_phase = self.phase_stack[-1]
+
+        for scope in final_phase.scopes:
+            variant = scope._get_solved_variant()
+            if variant:
+                variant.index = variant.userdata.get('variables').get('index', None)
 
     def __str__(self):
         return "%s %s %s" % (self.status,
