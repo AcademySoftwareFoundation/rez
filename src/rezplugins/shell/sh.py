@@ -3,9 +3,11 @@ SH shell
 """
 import os
 import os.path
+import pipes
 import subprocess
 from rez.config import config
 from rez.shells import UnixShell
+from rez.rex import EscapedString
 
 
 class SH(UnixShell):
@@ -90,36 +92,43 @@ class SH(UnixShell):
             new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
             new_prompt = (new_prompt + " %s") if config.prefix_prompt \
                 else ("%s " + new_prompt)
+
             new_prompt = new_prompt % curr_prompt
-            self._addline('export PS1="%s"' % new_prompt)
-
-    def _needs_escaping(self, value):
-        if '"' in value:
-            try:
-                if value[value.index('"')-1] == '\\':
-                    return False
-            except:
-                return True
-        return True
-
-    def _escapeDoubleQuotes(self, value):
-        if self._needs_escaping(value):
-            value = value.replace ( '"','\\"' )
-        return value
+            new_prompt = self.escape_string(new_prompt)
+            self._addline('export PS1=%s' % new_prompt)
 
     def setenv(self, key, value):
-        self._addline('export %s="%s"' % (key, value))
+        value = self.escape_string(value)
+        self._addline('export %s=%s' % (key, value))
 
     def unsetenv(self, key):
         self._addline("unset %s" % key)
 
     def alias(self, key, value):
+        value = EscapedString.disallow(value)
         cmd = "function {key}() {{ {value}; }};export -f {key};"
         self._addline(cmd.format(key=key, value=value))
 
     def source(self, value):
-        value = os.path.expanduser(value)
+        value = self.escape_string(value)
         self._addline('. %s' % value)
+
+    def escape_string(self, value):
+        value = EscapedString.promote(value)
+        value = value.expanduser()
+        result = ''
+
+        for is_literal, txt in value.strings:
+            if is_literal:
+                txt = pipes.quote(txt)
+                if not txt.startswith("'"):
+                    txt = "'%s'" % txt
+            else:
+                txt = txt.replace('\\', '\\\\')
+                txt = txt.replace('"', '\\"')
+                txt = '"%s"' % txt
+            result += txt
+        return result
 
     def _saferefenv(self, key):
         pass
