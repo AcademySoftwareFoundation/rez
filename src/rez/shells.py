@@ -5,6 +5,7 @@ from rez.rex import RexExecutor, ActionInterpreter, OutputStyle
 from rez.util import which, shlex_join
 from rez.utils.logging_ import print_warning
 from rez.exceptions import RezSystemError
+from rez.rex import EscapedString
 from rez.config import config
 from rez.system import system
 import subprocess
@@ -62,18 +63,16 @@ class Shell(ActionInterpreter):
     def _addline(self, line):
         self._lines.append(line)
 
-    def get_output(self, manager):
-        if manager.output_style == OutputStyle.file:
+    def get_output(self, style=OutputStyle.file):
+        if style == OutputStyle.file:
             script = '\n'.join(self._lines) + '\n'
-        elif manager.output_style == OutputStyle.eval:
+        else:  # eval style
             lines = []
             for line in self._lines:
                 if not line.startswith('#'):  # strip comments
                     line = line.rstrip().rstrip(';')
                     lines.append(line)
             script = ';'.join(lines)
-        else:
-            raise ValueError("Unknown output style: %r" % manager.output_style)
 
         return script
 
@@ -321,17 +320,27 @@ class UnixShell(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
             self._addline('echo %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
+            line = self.escape_string(line)
             self._addline('echo %s 1>&2' % line)
 
+    # escaping is allowed in args, but not in program string
     def command(self, value):
-        value = shlex_join(value)
+        if hasattr(value, '__iter__'):
+            it = iter(value)
+            cmd = EscapedString.disallow(it.next())
+            args_str = ' '.join(self.escape_string(x) for x in it)
+            value = "%s %s" % (cmd, args_str)
+        else:
+            value = EscapedString.disallow(value)
         self._addline(value)
 
     def comment(self, value):
+        value = EscapedString.demote(value)
         for line in value.split('\n'):
             self._addline('# %s' % line)
 
