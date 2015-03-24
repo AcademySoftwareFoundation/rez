@@ -244,6 +244,7 @@ class Resolver(object):
         package_cache = PackageVariantCache(
             self.package_paths,
             timestamp=self.timestamp,
+            package_requests=self.package_requests,
             package_load_callback=self.package_load_callback,
             building=self.building)
 
