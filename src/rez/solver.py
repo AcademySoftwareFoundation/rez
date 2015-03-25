@@ -123,13 +123,15 @@ from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
-    RequirementList
+    RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
 from rez.packages_ import iter_packages
-from itertools import groupby
+from rez.config import config
+from heapq import merge
 import copy
 import time
 import sys
+from operator import itemgetter
 
 
 class SolverStatus(Enum):
@@ -203,6 +205,414 @@ class _Printer(object):
 
     def __nonzero__(self):
         return self.verbosity
+
+
+class VariantSorter(object):
+    """
+    Example of the variant sorting algorithm see test cases in tests_solver for more
+
+    #initial order
+
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]
+    #6    [ foo-3, eek-5, zex-4 ]
+    #7    [ bar-4]
+    #8    [ bar-2, bah-2 foo-1 ]
+    #9    [ bar-4, bah-1, foo-2 ]
+    #10   [ bar-4, bah-2 ]
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]
+    #13   [ bar-3, bah-4 ]
+
+    # request eek zex foo-1+   (fam_requires=eek, zex, foo)
+
+    First group variants per intersecting weight.
+     Weight is given by the intersecting teh variant package name with the fam request
+
+                                                IntWeight
+
+
+    #7    [ bar-4]                                 0
+    #10   [ bar-4, bah-2 ]                         0
+    #13   [ bar-3, bah-4 ]                         0
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1
+    #9    [ bar-4, bah-1, foo-2 ]                  1
+
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3
+    #6    [ foo-3, eek-5, zex-4 ]                  3
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3
+
+    Now sort each variant starting for the one with less weigh by VersionRange of the fam_requires
+
+    Sorting intersecting Weight 0
+    -----------------------------
+    These variants does not contain any of the fam_requires so the next criteria is get the weight by amount of
+     packages. We want the variants  with less packages to be picked first so they have more weight
+
+                                                IntWeight      PackagesWeight
+
+
+    #7    [ bar-4]                                 0                1
+
+    #10   [ bar-4, bah-2 ]                         0                0
+    #13   [ bar-3, bah-4 ]                         0                0
+
+    We still need to sort the variants with PackagesWeight 0
+    Take a weighted average of where they appear in all the variants.
+
+    Position Weight is given 1 if found in position 0 , 1/2 in position 1, 1/3 in position 2 and so on
+
+    #10   [ bar-4, bah-2 ]
+    #13   [ bar-3, bah-4 ]
+
+    so bar = 2 (1+1) and bah = 1 ( 0.5 + 0.5 ) , so we now sort by bar and in case of tie we sort by bah
+
+                                                IntWeight      PackagesWeight         bar VersionRange
+
+    #13   [ bar-3, bah-4 ]                         0                0                       3
+
+    #10   [ bar-4, bah-2 ]                         0                0                       4
+
+    Sorting by bar VersionRange gives a sorted group so we do not need to sort by bah
+
+    So the group IntWeight 0 sorted is
+                                                IntWeight      PackagesWeight         bar VersionRange
+
+    #13   [ bar-3, bah-4 ]                         0                0                       3
+    #10   [ bar-4, bah-2 ]                         0                0                       4
+    #7    [ bar-4]                                 0                1                       -
+
+
+    Sorting intersecting Weight 1
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+     eek and zex won't take any effect on the sorting so only when sorting by foo VersionRange we will remove the tie
+
+                                                IntWeight      foo VersionRange
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1                   1
+    #9    [ bar-4, bah-1, foo-2 ]                  1                   2
+
+    So the group IntWeight 1 sorted is
+
+                                                IntWeight      foo VersionRange
+
+    #8    [ bar-2, bah-2 foo-1 ]                   1                  1
+    #9    [ bar-4, bah-1, foo-2 ]                  1                  2
+
+
+
+    Sorting intersecting Weight 2
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+     eek does not take any effect so we sort by zex
+
+                                                IntWeight      zex VersionRange
+
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                1
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                1
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2                3
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2                5
+
+
+    The variants with zex=1 VersionRange still are tied so we need to sort by the next fam_requires foo
+
+
+                                                IntWeight      zex VersionRange   foo VersionRange
+
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                 1                   1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                 1                   4
+
+    So the group IntWeight 2 sorted is
+
+                                                IntWeight      zex VersionRange   foo VersionRange
+
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]           2                 1                   1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]           2                 1                   4
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]           2                 3                   -
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]           2                 5                   -
+
+
+    Sorting intersecting Weight 3
+    -----------------------------
+    We are going to iterate thru the fam_requires in order and sort by VersionRange
+    Sorting by eek VersionRange yields
+
+                                                IntWeight      eek VersionRange
+
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3                 1
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3
+
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5
+
+
+    Group with eek=1 do no need sorting.
+    Group with eek=3 versionRange need to keep sorting by the next fam_requires zex which yields
+
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3                   2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3                   4
+
+    Group with eek=5 versionRange need to keep sorting by the next fam_requires zex which yields
+
+
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5                   4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5                   5
+
+    Even variant #11 will pull more packages than #6 we prefer #11 which has higher version of the fam_requires
+
+
+    So the group IntWeight 3 sorted is
+                                                IntWeight      eek VersionRange   zex Version Range
+
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]          3                 1                   -
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]           3                 3                   2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]           3                 3                   4
+    #6    [ foo-3, eek-5, zex-4 ]                  3                 5                   4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]           3                 5                   5
+
+
+
+    The final sorted list
+    ----------------------
+
+                                           IntWeight   eek VRange    zex VRange   foo VRange  packageWeight  bar VRange
+
+    #13   [ bar-3, bah-4 ]                   0             -            -             -             0            3
+    #10   [ bar-4, bah-2 ]                   0             -            -             -             0            4
+    #7    [ bar-4]                           0             -            -             -             1            -
+    #8    [ bar-2, bah-2 foo-1 ]             1             -            -             1
+    #9    [ bar-4, bah-1, foo-2 ]            1             -            -             2
+    #5    [ foo-1, bar-4, zex-1, bah-6 ]     2             -            1             1
+    #0    [ foo-4, bar-1, zex-1, bah-1 ]     2             -            1             4
+    #2    [ foo-1, bar-3, zex-3, bah-3 ]     2             3            -
+    #4    [ foo-1, bar-2, zex-5, bah-5 ]     2             5            -
+    #12   [ foo-1 , eek-1, zex-4, bah-4 ]    3             1            -
+    #1    [ foo-1, eek-3, zex-2, bah-2 ]     3             3            2
+    #3    [ foo-3, zex-4, bah-4, eek-3 ]     3             3            4
+    #6    [ foo-3, eek-5, zex-4 ]            3             5            4
+    #11   [ foo-3, zex-5, bah-2, eek-5 ]     3             5            5
+
+
+    """
+
+
+
+    def __init__(self, variants, package_requests):
+        self.variants = variants
+        self.fam_requires = self._curated_package_request(package_requests)
+
+    def _curated_package_request(self, package_request):
+        """
+        optimization: only leave the fam in the package request that we know can take effect in the sorting
+        """
+        fam_names_in_variants = set()
+
+        for variant in self.variants:
+            fam_names_in_variants.update(extract_family_name_from_requirements(variant))
+
+        fam_requires = extract_family_name_from_requirements(package_request)
+        curated_fam_requires = [fam for fam in fam_requires if fam in fam_names_in_variants]
+
+        return curated_fam_requires
+
+    def sort_variants(self):
+
+        return self._sort_variants_by_intersection_weight()
+
+    def _sort_variants_by_intersection_weight(self):
+        """
+        Slices the list of variants in groups by intersection weight and sort each slice by VersionRange
+
+        The intersection weight of a variant is the the amount of named packages in the fam requires that appear in the
+          variant regardless of the order
+
+        @return a list with the intersecting weighted variants_slices sorted
+        """
+        intersection_weight_dict = self._weight_variants_against_family_request()
+
+        ordered_variants = []
+        for weight in sorted(intersection_weight_dict.keys()):  # Sorted, so we start adding the least weight first
+            variants_slice = intersection_weight_dict[weight]
+            variants_sorted_by_version_range = self._sort_variants_by_version_range(variants_slice,
+                                                                                    self.fam_requires[:])
+            ordered_variants.extend(variants_sorted_by_version_range)
+
+        return ordered_variants
+
+    def _weight_variants_against_family_request(self):
+        """
+        Group the variants of the same weight
+        The weight to each variant is given by the intersection of its family names with the fam_requires
+
+        @return a dict with weight as keys containing variants with the same intersection weight
+        """
+        fam_requires_set = set(self.fam_requires)
+        weighted_dict = {}
+        for variant in self.variants:
+            weight = len(self._intersect_variant_with_package_request(fam_requires_set, variant))
+            weighted_dict.setdefault(weight, []).append(variant)
+
+        #TODO  to be correct a this point we should check every request in every variant to check if it contains
+        # an antipackage (conflict) and give it negative weight, but it might be costly given it is not a common case?
+        # Given that it is not a common case to have an anitpackage in the variants, and the fact that the
+        # The antipackage will end up with the least priority when we sort its group we might be ok not sorting it here
+
+        return weighted_dict
+
+    def _intersect_variant_with_package_request(self, fam_requires_set, variant):
+        """
+        Calculates the intersection of a variant and the fam_requires
+        """
+        fams = extract_family_name_from_requirements(variant)
+        intersection_set = set(fams) & fam_requires_set
+        return intersection_set
+
+    def _sort_variants_by_version_range(self, variants_slice, fam_requires):
+        """
+        Recursively start sorting the slice by VersionRange using the entries in the fam_requires
+            If the sort is ambiguous keep sorting using the next entry in the fam_requires
+
+                If we exhaust all the fam_requires and we still have ambiguous variants,
+                pick the one that pulls the least number of packages.
+
+                    If still ambiguous find the average positional weight of the fams not in the fam_requires and sort
+                       by the VersionRange of the next highest weighted fam
+
+        @param variants_slice: a slice of the original variants list
+        @param fam_requires: a list with families (packages names)
+        @return the variant_slice sorted by VersionRange.
+        """
+
+        ordered_variant_list = []
+
+        if fam_requires:
+            fam_name = fam_requires.pop(0)
+            groups = self.groups_by_version_ranges(fam_name, variants_slice)
+        else:
+            # We could not break the tie by the fam_requires. Try with the weight by number of packages
+            fam_name = None
+            groups = self.group_by_number_of_packages(variants_slice)
+
+        for _, tied_variants in sorted(groups.items(), key=itemgetter(0)):
+            if len(tied_variants) == 1:
+                # we broke the tie append
+                ordered_variant_list.append(tied_variants[0])
+            else:
+                if not fam_name:
+                    # If we were not able to break the tie based on the farm_requires, nor with by the number of
+                    # packages in the tied variants, we get a list of families by average positional weight
+                    # as the new key to sort by VersionRange
+                    fam_requires = self._get_list_of_key_by_positional_weight(variants_slice)
+
+                ordered_variant_list.extend(self._sort_variants_by_version_range(tied_variants, fam_requires[:]))
+
+        return ordered_variant_list
+
+    def groups_by_version_ranges(self, fam_name, variants_slice):
+        """
+        Groups the variant slice by VersionRange of a given fam_name
+
+        @param fam_name: a string with a package name
+        @param variants_slice: a list of variants
+        @return: a dict with VersionRanges as keys containing a list of variants with the same VersionRange
+        """
+        group_dict = {}
+        for variant in variants_slice:
+            version_range = self._get_version_range_of_request_on_variant(fam_name, variant)
+            group_dict.setdefault(version_range, []).append(variant)
+
+        return group_dict
+
+
+
+    def _get_version_range_of_request_on_variant(self, fam_name, variant):
+        """
+        Extracts the fam_name version range from the a variant
+
+        @param fam_name: a string with a package name
+        @param variant: a variant containing package requirements
+        @return: a VersionRange - The version range of the package if it exists, the exact VersionRange if the package
+        is a conflict, or the 'any VersionRange' if the the family is not found in the variant
+        """
+        matching_fam_names_in_variant = [req for req in variant if req.name == fam_name]
+        if matching_fam_names_in_variant:
+            # Get the highest version if thre is more than one matching name
+            requirement = sorted(matching_fam_names_in_variant).pop()
+            if not requirement.conflict:
+                return requirement.range
+            else:
+                # This stack on top of VersionRange("") when sorted
+                # TODO any other more meaningful VersionRange we know is going to be on top when we sort by range?
+                return VersionRange("==")
+        else:
+            return VersionRange("")
+
+
+
+    def group_by_number_of_packages(self, variants_slice):
+        """
+        Group the variants of the same weight
+        More weight is given to the variant with the least amount of packages
+
+        @param variants_slice: a list of variants
+        @return: a dict with weight as keys containing a list of variants with the same length weight
+        """
+        group_dict = {}
+
+        # find out the longest variant length
+        max_length = max(len(v) for v in variants_slice)
+
+        for variant in variants_slice:
+            group_dict.setdefault(max_length - len(variant), []).append(variant)
+        return group_dict
+
+
+    def _get_list_of_key_by_positional_weight(self, variants_slice):
+        """
+        Gets the positional averaged weight of the variants that do not appear in the fam_requires
+
+        weight=1 is given if the fam appears in index 0, weight=1/2 if appears in index 1, weight=1/3
+         if appears in index 2, and so on
+
+
+        @param variants_slice: a list of variants
+        @return: an ordered list of family names by averaged positional weight
+        """
+        remaining_families_sorted_by_positional_weight = []
+        averaged_weight_map = {}
+        for variant in variants_slice:
+            for w, req in enumerate(variant, start=1):
+                if req.name not in self.fam_requires:
+                    averaged_weight_map.setdefault(req.name, 0.0)
+                    averaged_weight_map[req.name] += 1.0/w
+
+        # sort by alphabetically first in case of tied weight
+        sorted_alphabetically = sorted(averaged_weight_map.items(), key=lambda x: x[0].lower())
+        # Now sorted by weight reversed, highest weight first
+        sorted_by_weight = sorted(sorted_alphabetically, key=lambda x: x[1], reverse=True)
+
+        remaining_families_sorted_by_positional_weight = [fam for fam, _ in sorted_by_weight]
+
+        return remaining_families_sorted_by_positional_weight
 
 
 class SolverState(object):
@@ -408,19 +818,19 @@ class PackageVariant(_Common):
 
 class _PackageVariantList(_Common):
     """A sorted list of package variants, loaded lazily."""
-    def __init__(self, package_name, package_paths=None, timestamp=0,
+    def __init__(self, package_name, package_paths=None, package_requests=None, timestamp=0,
                  building=False, package_load_callback=None):
         self.package_name = package_name
         self.package_paths = package_paths
+        self.package_requests = package_requests
         self.timestamp = timestamp
         self.building = building
         self.package_load_callback = package_load_callback
         self.variants = []
 
         it = iter_packages(self.package_name, paths=self.package_paths)
-        entries = ([x.version, x] for x in it)
-        self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
-        if not self.entries:
+        self.packages = sorted(it, key=lambda x: x.version)
+        if not self.packages:
             raise PackageFamilyNotFoundError("package family not found: %s"
                                              % package_name)
 
@@ -440,54 +850,90 @@ class _PackageVariantList(_Common):
                 are loaded. This value can only be True when max_packages is
                 non-zero.
         """
-        variants = []
         num_packages = 0
         is_partial = False
+        if self.packages:
+            loaded_variants = []
+            indexes = []
 
-        for entry in self.entries:
-            version, value = entry
-            if version not in range:
-                continue
-
-            if max_packages and (num_packages >= max_packages):
-                is_partial = True
-                break
-
-            if not isinstance(value, list):
-                package = value
-                if self.package_load_callback:
-                    self.package_load_callback(package)
-
-                # access to timestamp causes a package load
-                if self.timestamp and package.timestamp > self.timestamp:
+            for i, pkg in enumerate(self.packages):
+                # checking version against range before timestamp is important
+                # - metadata needs to be loaded to determine package timestamp.
+                if pkg.version not in range:
                     continue
 
-                value = []
-                for var in package.iter_variants():
-                    requires = var.get_requires(build_requires=self.building)
+                if max_packages and (num_packages >= max_packages):
+                    is_partial = True
+                    break
+
+                if not isinstance(pkg, list):
+                    if self.package_load_callback:
+                        self.package_load_callback(pkg)
+
+                if self.timestamp and pkg.timestamp > self.timestamp:
+                    continue
+
+                # Remove the current package from the package_requests ..since it can not appear in its variants.
+                # probably no much gain and we are creating a new list.. might remove this line?
+                package_requests = [r for r in self.package_requests if r.name != pkg.name]
+
+                indexes.append(i)
+                variants_to_sort = []
+                original_variants = []
+                for var in pkg.iter_variants():
+                    requires = var.get_requires(
+                        build_requires=self.building)
+                    variants_to_sort.append(requires)
+                    original_variants.append(var)
+
+                if any(variants_to_sort):
+                    # timings.start("solver.sort_variants")
+                    sorted_variants = VariantSorter(variants_to_sort, package_requests).sort_variants()
+                    # timings.end("solver.sort_variants")
+                else:
+                    sorted_variants = variants_to_sort
+
+                for var in original_variants:
+                    # Map the variants to the new indexes in the sorted_variants
+                    original_requires = var.get_requires(build_requires=self.building)
                     userdata = var.handle.to_dict()
+                    new_index = var.index
+                    if new_index is not None:
+                        new_index = sorted_variants.index(original_requires)
+
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
-                                             requires=requires,
-                                             index=var.index,
+                                             requires=original_requires,
+                                             index=new_index,
                                              userdata=userdata)
-                    value.append(variant)
-                entry[1] = value
-            variants.extend(value)
-            num_packages += 1
+                    loaded_variants.append(variant)
+                # sort all now by version and variant
+                loaded_variants = sorted(loaded_variants, key=lambda v: (v.version, v.index))
+
+                num_packages += 1
+
+            if loaded_variants:
+                self.variants = list(merge(self.variants, loaded_variants))
+                for i in reversed(indexes):
+                    del self.packages[i]
+
+        variants = []
+        for variant in self.variants:
+            if variant.version in range:
+                variants.append(variant)
 
         return (variants or None), is_partial
 
     def dump(self):
         print self.package_name
-        for version, variants in self.entries:
+        for version, variants in self.packages:
             print str(version)
             for variant in variants:
                 print "    %s" % str(variant)
 
     def __str__(self):
         strs = []
-        for _, variants in self.entries:
+        for _, variants in self.packages:
             strs.append(','.join(str(x) for x in variants))
         return "%s[%s]" % (self.package_name, ' '.join(strs))
 
@@ -522,31 +968,21 @@ class _PackageVariantSlice(_Common):
     @property
     def extractable(self):
         """True if there are possible remaining extractions."""
-        return not self.extracted_fams.issuperset(self.common_fams)
+        return bool(self.common_fams - self.extracted_fams)
 
     def intersect(self, range):
         """Remove variants whos version fall outside of the given range."""
-        if self.pr:
-            self.pr("intersecting %s wrt range '%s'...", self, range)
-
-        if range.is_any():
-            return self
-
-        variants = []
-        it = groupby(self.variants, lambda x: x.version)
-        it2 = range.contains_versions(it, key=lambda x: x[0], descending=True)
-        for contains, (_, variants_) in it2:
-            if contains:
-                variants.extend(variants_)
-
+        self.pr("intersecting %s wrt range '%s'..." % (str(self), str(range)))
+        variants = [x for x in self.variants if x.version in range]
         if not variants:
             return None
         elif len(variants) < len(self.variants):
-            return self._copy(variants)
+            slice = self._copy(variants)
+            return slice
         else:
             return self
 
-    def reduce_by(self, package_request):
+    def reduce(self, package_request):
         """Remove variants whos dependencies conflict with the given package
         request.
 
@@ -560,33 +996,33 @@ class _PackageVariantSlice(_Common):
 
         if self.pr:
             reqstr = _short_req_str(package_request)
-            self.pr("reducing %s wrt %s...", self, reqstr)
+            self.pr("reducing %s wrt %s..." % (str(self), reqstr))
 
         variants = []
         reductions = []
-        fn = lambda x: x.get(package_request.name)
 
-        for req, variants_ in groupby(self.variants, fn):
+        for variant in self.variants:
+            req = variant.get(package_request.name)
             if req and req.conflicts_with(package_request):
-                for variant in variants_:
-                    red = Reduction(name=variant.name,
-                                    version=variant.version,
-                                    variant_index=variant.index,
-                                    dependency=req,
-                                    conflicting_request=package_request)
-                    reductions.append(red)
-                    if self.pr:
-                        self.pr("removed %s (dep(%s) <--!--> %s)",
-                                red.reducee_str(),
-                                red.dependency,
-                                red.conflicting_request)
-            else:
-                variants.extend(variants_)
+                red = Reduction(name=variant.name,
+                                version=variant.version,
+                                variant_index=variant.index,
+                                dependency=req,
+                                conflicting_request=package_request)
+                reductions.append(red)
+                self.pr("removed %s (dep(%s) <--!--> %s)"
+                        % (red.reducee_str(),
+                           str(red.dependency),
+                           str(red.conflicting_request)))
+                continue
+
+            variants.append(variant)
 
         if not variants:
             return (None, reductions)
         elif reductions:
-            return (self._copy(variants), reductions)
+            slice = self._copy(variants)
+            return (slice, reductions)
         else:
             return (self, [])
 
@@ -596,73 +1032,72 @@ class _PackageVariantSlice(_Common):
         Note that conflict dependencies are never extracted, they are always
         resolved via reduction.
         """
-        if self.extractable:
-            extractable = self.common_fams - self.extracted_fams
+        extractable = self.common_fams - self.extracted_fams
+        if extractable:
             fam = iter(extractable).next()
             ranges = []
 
             for variant in self.variants:
                 req = variant.get(fam)
-                if not ranges or req.range != ranges[-1]:
-                    ranges.append(req.range)
+                ranges.append(req.range)
 
-            slice_ = copy.copy(self)
-            slice_.extracted_fams = self.extracted_fams | set([fam])
+            slice = copy.copy(self)
+            slice.extracted_fams = self.extracted_fams | set([fam])
 
-            range_ = ranges[0].union(ranges[1:])
-            common_req = Requirement.construct(fam, range_)
-            return (slice_, common_req)
+            range = ranges[0].union(ranges[1:])
+            common_req = Requirement.construct(fam, range)
+            return (slice, common_req)
         else:
             return (self, None)
 
     def split(self):
         """Split the slice."""
-        # assert(not self.extractable)
+        assert(not self.extractable)
         if len(self.variants) == 1:
             return None
         else:
-            it = enumerate(self.variants)
-            latest_variant = it.next()[1]
+            latest_variant = self.variants[-1]
             split_fams = None
             nleading = 1
 
             if len(self.variants) > 2:
                 fams = latest_variant.request_fams - self.extracted_fams
                 if fams:
-                    for j, variant in it:
+                    other_variants = reversed(self.variants[:-1])
+                    for j, variant in enumerate(other_variants):
                         next_fams = variant.request_fams & fams
                         if next_fams:
                             fams = next_fams
                         else:
                             split_fams = fams
-                            nleading = j
+                            nleading = 1+j
                             break
 
-            slice_ = self._copy(self.variants[:nleading])
-            next_slice = self._copy(self.variants[nleading:])
+            slice = self._copy(self.variants[-nleading:])
+            next_slice = self._copy(self.variants[:-nleading])
 
             if self.pr:
-                s = "split %s into %s and %s"
-                a = [self, slice_, next_slice]
+                s = "split %s into %s and %s " \
+                    % (str(self), str(slice), str(next_slice))
                 if split_fams is None:
-                    s += " on leading variant"
+                    s += "on leading variant"
                 else:
-                    s += " on %d leading variants with common dependencies: %s"
-                    a.extend([nleading, ", ".join(split_fams)])
-                self.pr(s, *a)
+                    s += "on %d leading variants with common dependencies: %s" \
+                        % (nleading, ", ".join(split_fams))
+                self.pr(s)
 
-            return (slice_, next_slice)
+            return (slice, next_slice)
 
     def dump(self):
         print self.package_name
-        print '\n'.join(map(str, self.variants))
+        print '\n'.join(str(x) for x in self.variants)
 
     def _copy(self, new_variants):
-        slice_ = copy.copy(self)
-        slice_.variants = new_variants
-        slice_.extracted_fams = set()
-        slice_._update()
-        return slice_
+        slice = copy.copy(self)
+        slice.variants = new_variants
+        slice.extracted_fams = set()
+        slice._update()
+        return slice
 
     def _update(self):
         # range
@@ -675,8 +1110,8 @@ class _PackageVariantSlice(_Common):
 
         for variant in self.variants:
             self.common_fams &= variant.request_fams
-            self.fam_requires |= (variant.request_fams |
-                                  variant.conflict_request_fams)
+            self.fam_requires |= variant.request_fams
+            self.fam_requires |= variant.conflict_request_fams
 
     def __len__(self):
         return len(self.variants)
@@ -714,12 +1149,15 @@ class _PackageVariantSlice(_Common):
         return s + strextr
 
 
+
 class PackageVariantCache(object):
-    def __init__(self, package_paths, timestamp=0, building=False,
+    def __init__(self, package_paths=None, package_requests=None, timestamp=0, building=False,
                  package_load_callback=None):
-        self.package_paths = package_paths
+        self.package_paths = (config.packages_path if package_paths is None
+                              else package_paths)
         self.timestamp = timestamp
         self.building = building
+        self.package_request = package_requests
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
@@ -745,6 +1183,7 @@ class PackageVariantCache(object):
         if variant_list is None:
             variant_list = _PackageVariantList(
                 package_name,
+                package_requests=self.package_request,
                 package_paths=self.package_paths,
                 timestamp=self.timestamp,
                 building=self.building,
@@ -809,20 +1248,19 @@ class _PackageScope(_Common):
             new_slice = self.variant_slice.intersect(range)
 
         if new_slice is None:
-            if self.pr:
-                self.pr("%s intersected with range '%s' resulted in no packages",
-                        self, range)
+            self.pr("%s intersected with range '%s' resulted in no packages"
+                    % (str(self), str(range)))
             return None
         elif new_slice is not self.variant_slice:
             scope = self._copy(new_slice)
-            if self.pr:
-                self.pr("%s was intersected to %s by range '%s'",
-                        self, scope, range)
+
+            self.pr("%s was intersected to %s by range '%s'"
+                    % (str(self), str(scope), str(range)))
             return scope
         else:
             return self
 
-    def reduce_by(self, package_request):
+    def reduce(self, package_request):
         """Reduce this scope wrt a package request.
 
         Returns:
@@ -831,12 +1269,13 @@ class _PackageScope(_Common):
             reductions, or None if the slice was completely reduced.
         """
         if not self.package_request.conflict:
-            new_slice, reductions = self.variant_slice.reduce_by(package_request)
+            new_slice, reductions = self.variant_slice.reduce(package_request)
 
             if new_slice is None:
                 if self.pr:
                     reqstr = _short_req_str(package_request)
-                    self.pr("%s was reduced to nothing by %s", self, reqstr)
+                    self.pr("%s was reduced to nothing by %s"
+                            % (str(self), reqstr))
                     self.pr.br()
                 return (None, reductions)
             elif new_slice is not self.variant_slice:
@@ -844,7 +1283,8 @@ class _PackageScope(_Common):
 
                 if self.pr:
                     reqstr = _short_req_str(package_request)
-                    self.pr("%s was reduced to %s by %s", self, scope, reqstr)
+                    self.pr("%s was reduced to %s by %s"
+                            % (str(self), str(scope), reqstr))
                     self.pr.br()
                 return (scope, reductions)
 
@@ -864,8 +1304,8 @@ class _PackageScope(_Common):
                 assert(new_slice is not self.variant_slice)
                 scope = copy.copy(self)
                 scope.variant_slice = new_slice
-                if self.pr:
-                    self.pr("extracted %s from %s", package_request, self)
+                self.pr("extracted %s from %s"
+                        % (str(package_request), str(self)))
                 return (scope, package_request)
 
         return (self, None)
@@ -923,7 +1363,7 @@ def _get_dependency_order(g, node_list):
     """Return list of nodes as close as possible to the ordering in node_list,
     but with child nodes earlier in the list than parents."""
     access_ = accessibility(g)
-    deps = dict((k, set(v) - set([k])) for k, v in access_.iteritems())
+    deps = dict((k, set(v)-set([k])) for k, v in access_.iteritems())
     nodes = node_list + list(set(g.nodes()) - set(node_list))
     ordered_nodes = []
 
@@ -937,7 +1377,7 @@ def _get_dependency_order(g, node_list):
         moved = False
         for i, n in enumerate(nodes[1:]):
             if n in n_deps:
-                nodes = [nodes[i + 1]] + nodes[:i + 1] + nodes[i + 2:]
+                nodes = [nodes[i+1]] + nodes[:i+1] + nodes[i+2:]
                 moved = True
                 break
 
@@ -946,7 +1386,6 @@ def _get_dependency_order(g, node_list):
             nodes = nodes[1:]
 
     return ordered_nodes
-
 
 class _ResolvePhase(_Common):
     """A resolve phase contains a full copy of the resolve state, and runs the
@@ -995,8 +1434,7 @@ class _ResolvePhase(_Common):
             phase.pending_reducts = set()
 
             if status is None:
-                phase.status = (SolverStatus.solved if phase._is_solved()
-                                else SolverStatus.exhausted)
+                phase.status = SolverStatus.solved if phase._is_solved() else SolverStatus.exhausted
             else:
                 phase.status = status
             return phase
@@ -1027,8 +1465,7 @@ class _ResolvePhase(_Common):
                         failure_reason = DependencyConflicts([conflict])
                         return _create_phase(SolverStatus.failed)
                     else:
-                        if self.pr:
-                            self.pr("merged extractions: %s", request_list)
+                        self.pr("merged extractions: %s" % str(request_list))
                         """
                         # flake8 founs this, I don't remember why it's here...
                         if len(request_list.requirements) < len(common_requests):
@@ -1068,17 +1505,16 @@ class _ResolvePhase(_Common):
                         for req in new_reqs:
                             scope = _PackageScope(req, solver=self.solver)
                             scopes.append(scope)
-                            if self.pr:
-                                self.pr("added %s", scope)
+                            self.pr("added %s" % str(scope))
 
                         m = len(new_reqs)
-                        for i in range(n, n + m):
-                            for j in range(n + m):
+                        for i in range(n, n+m):
+                            for j in range(n+m):
                                 if i != j:
                                     pending_reducts.add((i, j))
 
                         for i in range(n):
-                            for j in range(n, n + m):
+                            for j in range(n, n+m):
                                 pending_reducts.add((i, j))
                 else:
                     break
@@ -1088,22 +1524,20 @@ class _ResolvePhase(_Common):
 
             # iteratively reduce until no more reductions possible
             self.pr.subheader("REDUCING:")
-
-            if not self.solver.optimised:
-                # check all variants for reduction regardless
-                pending_reducts = set()
-                for i in range(len(scopes)):
-                    for j in range(len(scopes)):
-                        if i != j:
-                            pending_reducts.add((i, j))
-
             while pending_reducts:
-                new_pending_reducts = set()
+
+                if not self.solver.optimised:
+                    # check all variants for reduction regardless
+                    pending_reducts = set()
+                    for i in range(len(scopes)):
+                        for j in range(len(scopes)):
+                            if i != j:
+                                pending_reducts.add((i, j))
 
                 # the sort here gives reproducible results, since order of
                 # reducts affects the result
                 for i, j in sorted(pending_reducts):
-                    new_scope, reductions = scopes[j].reduce_by(
+                    new_scope, reductions = scopes[j].reduce(
                         scopes[i].package_request)
                     if new_scope is None:
                         failure_reason = TotalReduction(reductions)
@@ -1112,9 +1546,9 @@ class _ResolvePhase(_Common):
                         scopes[j] = new_scope
                         for i in range(len(scopes)):
                             if i != j:
-                                new_pending_reducts.add((j, i))
+                                pending_reducts.add((j, i))
 
-                pending_reducts = new_pending_reducts
+                    pending_reducts -= set([(i, j)])
 
         return _create_phase()
 
@@ -1223,231 +1657,179 @@ class _ResolvePhase(_Common):
         Returns:
             A pygraph.digraph object.
         """
-        g = digraph()
-        scopes = dict((x.package_name, x) for x in self.scopes)
+        edges = set()
+        edge_types = {}
+        src_nodes = set()
+        dest_nodes = set()
+        request_nodes = set()
+        requires_nodes = set()
+        solved_nodes = set()
         failure_nodes = set()
-        request_nodes = {}  # (request, node_id)
-        scope_nodes = {}  # (package_name, node_id)
+        scopes = dict((x.package_name, x) for x in self.scopes)
 
-        # -- graph creation basics
+        def _add_edge(src, dest, type_=None):
+            if src != dest:
+                src_nodes.add(src)
+                dest_nodes.add(dest)
+                e = (src, dest)
+                edges.add(e)
+                if type_:
+                    edge_types[e] = type_
+
+        def _str_scope(scope):
+            variant = scope._get_solved_variant()
+            return str(variant) if variant \
+                else "(REQUIRE)%s" % str(scope).replace('*', '')
+
+        for scope in self.scopes:
+            variant = scope._get_solved_variant()
+            if variant:
+                solved_nodes.add(str(variant))
+
+        # create (initial request --> scope) edges
+        for req in self.package_requests:
+            scope_ = scopes.get(req.name)
+            if scope_:
+                prefix = "(REQUIRE)" if req.conflict else "(REQUEST)"
+                req_str = "%s%s" % (prefix, str(req))
+                request_nodes.add(req_str)
+                _add_edge(req_str, _str_scope(scope_))
+
+        # for solved scopes, create:
+        # - (scope --> requirement) edge, and;
+        # - (requirement -> scope) edge, if it exists.
+        for scope in self.scopes:
+            variant = scope._get_solved_variant()
+            if variant:
+                for req in variant.requires_list.requirements:
+                    req_str = "(REQUIRE)%s" % str(req)
+                    requires_nodes.add(req_str)
+                    _add_edge(str(variant), req_str)
+
+                    scope_ = scopes.get(req.name)
+                    if scope_:
+                        # this may be a conflict not yet found because an
+                        # earlier conflict caused the solve to fail.
+                        if not req.conflicts_with(scope_.package_request):
+                            _add_edge(req_str, _str_scope(scope_))
+
+        # in an unfinished solve, there may be outstanding extractions - they
+        # are dependencies between scopes that are not yet solved. They need to
+        # be in the graph, because they may be related to conflicts.
+        for (src_fam, _), dest_req in self.extractions.iteritems():
+            scope_src = scopes.get(src_fam)
+            if scope_src:
+                str_dest_req = "(REQUIRE)%s" % str(dest_req)
+                requires_nodes.add(str_dest_req)
+                _add_edge(_str_scope(scope_src), str_dest_req)
+
+                scope_dest = scopes.get(dest_req.name)
+                if scope_dest:
+                    # this may be a conflict not yet found because an
+                    # earlier conflict caused the solve to fail.
+                    if not scope_dest.package_request.conflicts_with(dest_req):
+                        str_dest = _str_scope(scope_dest)
+                        _add_edge(str_dest_req, str_dest)
+
+        # show conflicts that caused a failed solve, if any
+        fr = self.failure_reason
+        if fr:
+            if isinstance(fr, TotalReduction):
+                for red in fr.reductions:
+                    scope = scopes.get(red.name)
+                    str_scope = _str_scope(scope)
+                    confl_scope = scopes.get(red.conflicting_request.name)
+                    str_confl_scope = _str_scope(confl_scope)
+                    str_reduct = "%s requires %s" \
+                                 % (red.reducee_str(), str(red.dependency))
+
+                    _add_edge(str_scope, str_reduct, "depends")
+                    _add_edge(str_reduct, str_confl_scope, "conflicts")
+                    failure_nodes.add(str_reduct)
+                    failure_nodes.add(str_confl_scope)
+            elif isinstance(fr, DependencyConflicts):
+                for conflict in fr.conflicts:
+                    scope = scopes.get(conflict.conflicting_request.name)
+                    dep_str = "(REQUIRE)%s" % str(conflict.dependency)
+                    failure_nodes.add(dep_str)
+
+                    if scope:
+                        scope_str = _str_scope(scope)
+                        _add_edge(dep_str, scope_str, "conflicts")
+                        failure_nodes.add(scope_str)
+                    else:
+                        req_str = "(REQUIRE)%s" \
+                            % str(conflict.conflicting_request)
+                        requires_nodes.add(req_str)
+                        _add_edge(dep_str, req_str, "conflicts")
+                        failure_nodes.add(req_str)
+            elif isinstance(fr, Cycle):
+                str_a = str(fr.packages[-1])
+                str_b = str(fr.packages[0])
+                failure_nodes.add(str_a)
+                failure_nodes.add(str_b)
+                _add_edge(str_a, str_b, "cycle_label")
+
+                for i, stmt in enumerate(fr.packages[:-1]):
+                    str_a = str(stmt)
+                    str_b = str(fr.packages[i+1])
+                    failure_nodes.add(str_a)
+                    failure_nodes.add(str_b)
+                    _add_edge(str_a, str_b, "cycle")
 
         node_color = "#F6F6F6"
         request_color = "#FFFFAA"
         solved_color = "#AAFFAA"
         node_fontsize = 10
-        counter = [1]
 
+        nodes = src_nodes | dest_nodes
+        g = digraph()
 
-        def _uid():
-            id_ = counter[0]
-            counter[0] += 1
-            return "_%d" % id_
+        def _node_label(n):
+            return n.replace("(REQUEST)", "").replace("(REQUIRE)", "")
 
+        for n in nodes:
+            attrs = [("label", _node_label(n)),
+                     ("fontsize", node_fontsize)]
+            if n in request_nodes:
+                attrs.append(("fillcolor", request_color))
+                attrs.append(("style", '"filled,dashed"'))
+            elif n in solved_nodes:
+                attrs.append(("fillcolor", solved_color))
+                attrs.append(("style", "filled"))
+            elif n in requires_nodes:
+                attrs.append(("fillcolor", node_color))
+                attrs.append(("style", '"filled,dashed"'))
+            else:
+                attrs.append(("fillcolor", node_color))
+                attrs.append(("style", "filled"))
 
-        def _add_edge(id1, id2, arrowsize=0.5):
-            e = (id1, id2)
-            if g.has_edge(e):
-                g.del_edge(e)
+            g.add_node(n, attrs=attrs)
+
+        for e in edges:
             g.add_edge(e)
-            g.add_edge_attribute(e, ("arrowsize", str(arrowsize)))
-            return e
-
-
-        def _add_extraction_merge_edge(id1, id2):
-            e = _add_edge(id1, id2, 1)
-            g.add_edge_attribute(e, ("arrowhead", "odot"))
-
-
-        def _add_conflict_edge(id1, id2):
-            e = _add_edge(id1, id2, 1)
-            g.set_edge_label(e, "CONFLICT")
-            g.add_edge_attribute(e, ("style", "bold"))
-            g.add_edge_attribute(e, ("color", "red"))
-            g.add_edge_attribute(e, ("fontcolor", "red"))
-
-
-        def _add_cycle_edge(id1, id2):
-            e = _add_edge(id1, id2, 1)
-            g.set_edge_label(e, "CYCLE")
-            g.add_edge_attribute(e, ("style", "bold"))
-            g.add_edge_attribute(e, ("color", "red"))
-            g.add_edge_attribute(e, ("fontcolor", "red"))
-
-
-        def _add_reduct_edge(id1, id2, label):
-            e = _add_edge(id1, id2, 1)
-            g.set_edge_label(e, label)
-            g.add_edge_attribute(e, ("fontsize", node_fontsize))
-
-
-        def _add_node(label, color, style):
-            attrs = [("label", label),
-                     ("fontsize", node_fontsize),
-                     ("fillcolor", color),
-                     ("style", '"%s"' % style)]
-            id_ = _uid()
-            g.add_node(id_, attrs=attrs)
-            return id_
-
-
-        def _add_request_node(request, initial_request=False):
-            id_ = request_nodes.get(request)
-            if id_ is not None:
-                return id_
-
-            label = str(request)
-            if initial_request:
-                color = request_color
-            else:
-                color = node_color
-
-            id_ = _add_node(label, color, "filled,dashed")
-            request_nodes[request] = id_
-            return id_
-
-
-        def _add_scope_node(scope):
-            id_ = scope_nodes.get(scope.package_name)
-            if id_ is not None:
-                return id_
-
-            variant = scope._get_solved_variant()
-            if variant:
-                label = str(variant)
-                color = solved_color
-                style = "filled"
-            elif scope.is_conflict:
-                label = str(scope)
-                color = node_color
-                style = "filled,dashed"
-            else:
-                label = str(scope)
-                color = node_color
-                style = "filled"
-
-            id_ = _add_node(label, color, style)
-            scope_nodes[scope.package_name] = id_
-            return id_
-
-
-        def _add_reduct_node(request):
-            return _add_node(str(request), node_color, "filled,dashed")
-
-
-        # -- generate the graph
-
-        # create initial request nodes
-        for request in self.package_requests:
-            _add_request_node(request, True)
-
-        # create scope nodes
-        for scope in self.scopes:
-            if scope.is_conflict:
-                id1 = request_nodes.get(scope.package_request)
-                if id1 is not None:
-                    # special case - a scope that matches an initial conflict request,
-                    # we switch nodes so the request node becomes a scope node
-                    scope_nodes[scope.package_name] = id1
-                    del request_nodes[scope.package_request]
-                    continue
-
-            _add_scope_node(scope)
-
-        # create (initial request -> scope) edges
-        for request in self.package_requests:
-            id1 = request_nodes.get(request)
-            if id1 is not None:
-                id2 = scope_nodes.get(request.name)
-                if id2 is not None:
-                    _add_edge(id1, id2)
-
-        # for solved scopes, create (scope -> requirement) edge
-        for scope in self.scopes:
-            variant = scope._get_solved_variant()
-            if variant:
-                id1 = scope_nodes[scope.package_name]
-
-                for request in variant.requires_list.requirements:
-                    id2 = _add_request_node(request)
-                    _add_edge(id1, id2)
-
-        # add extractions
-        for (src_fam, _), dest_req in self.extractions.iteritems():
-            id1 = scope_nodes.get(src_fam)
-            if id1 is not None:
-                id2 = _add_request_node(dest_req)
-                _add_edge(id1, id2)
-
-        # add extraction intersections
-        extracted_fams = set(x[1] for x in self.extractions.iterkeys())
-        for fam in extracted_fams:
-            requests = [v for k, v in self.extractions.iteritems() if k[1] == fam]
-            if len(requests) > 1:
-                reqlist = RequirementList(requests)
-                if not reqlist.conflict:
-                    merged_request = reqlist.get(fam)
-                    for request in requests:
-                        if merged_request != request:
-                            id1 = _add_request_node(request)
-                            id2 = _add_request_node(merged_request)
-                            _add_extraction_merge_edge(id1, id2)
-
-        # add conflicts
-        fr = self.failure_reason
-        if fr:
-            if isinstance(fr, DependencyConflicts):
-                for conflict in fr.conflicts:
-                    id1 = _add_request_node(conflict.dependency)
-                    id2 = scope_nodes.get(conflict.conflicting_request.name)
-                    if id2 is None:
-                        id2 = _add_request_node(conflict.conflicting_request)
-                    _add_conflict_edge(id1, id2)
-
-                    failure_nodes.add(id1)
-                    failure_nodes.add(id2)
-            elif isinstance(fr, TotalReduction):
-                if len(fr.reductions) == 1:
-                    # special case - singular total reduction
-                    reduct = fr.reductions[0]
-                    id1 = scope_nodes[reduct.name]
-                    id2 = _add_request_node(reduct.dependency)
-                    id3 = scope_nodes[reduct.conflicting_request.name]
-                    _add_edge(id1, id2)
-                    _add_conflict_edge(id2, id3)
-
-                    failure_nodes.add(id1)
-                    failure_nodes.add(id2)
-                    failure_nodes.add(id3)
-                else:
-                    for reduct in fr.reductions:
-                        id1 = scope_nodes[reduct.name]
-                        id2 = _add_reduct_node(reduct.dependency)
-                        id3 = scope_nodes[reduct.conflicting_request.name]
-                        _add_reduct_edge(id1, id2, reduct.reducee_str())
-                        _add_conflict_edge(id2, id3)
-
-                        failure_nodes.add(id1)
-                        failure_nodes.add(id2)
-                        failure_nodes.add(id3)
-            elif isinstance(fr, Cycle):
-                for i, pkg in enumerate(fr.packages):
-                    id1 = scope_nodes[pkg.name]
-                    failure_nodes.add(id1)
-                    pkg2 = fr.packages[(i + 1) % len(fr.packages)]
-                    id2 = scope_nodes[pkg2.name]
-                    _add_cycle_edge(id1, id2)
-
-        # connect leaf-node requests to a matching scope, if any
-        for request, id1 in request_nodes.iteritems():
-            if not g.neighbors(id1):  # leaf node
-                id2 = scope_nodes.get(request.name)
-                if id2 is not None:
-                    scope = scopes.get(request.name)
-                    if not request.conflicts_with(scope.package_request):
-                        _add_edge(id1, id2)
+            g.add_edge_attribute(e, ("arrowsize", "0.5"))
+            type_ = edge_types.get(e)
+            if type_:
+                if type_ == "depends":
+                    g.add_edge_attribute(e, ("style", "dashed"))
+                elif type_ == "conflicts":
+                    g.set_edge_label(e, "CONFLICT")
+                    g.add_edge_attribute(e, ("style", "bold"))
+                    g.add_edge_attribute(e, ("color", "red"))
+                    g.add_edge_attribute(e, ("fontcolor", "red"))
+                elif type_ == "cycle":
+                    g.add_edge_attribute(e, ("style", "bold"))
+                    g.add_edge_attribute(e, ("color", "red"))
+                    g.add_edge_attribute(e, ("fontcolor", "red"))
+                elif type_ == "cycle_label":
+                    g.set_edge_label(e, "CYCLE")
+                    g.add_edge_attribute(e, ("style", "bold"))
+                    g.add_edge_attribute(e, ("color", "red"))
+                    g.add_edge_attribute(e, ("fontcolor", "red"))
 
         # prune nodes not related to failure
-        if self.solver.prune_unfailed and failure_nodes:
+        if failure_nodes:
             access_dict = accessibility(g)
             del_nodes = set()
 
@@ -1499,6 +1881,9 @@ class _ResolvePhase(_Common):
         for scope in self.scopes:
             variant = scope._get_solved_variant()
             if variant:
+                # We changed the index to help the solver pick the 'preferred' variant
+                # At this point we should add it back for the original index
+                # variant.index = variant.userdata.variables.get('index', None)
                 variants.append(variant)
 
         return variants
@@ -1573,14 +1958,16 @@ class Solver(_Common):
         self._is_partial = False
         self._init()
 
+
+
         if package_cache:
             self.package_cache = package_cache
         else:
-            self.package_cache = PackageVariantCache(
-                self.package_paths,
-                timestamp=timestamp,
-                package_load_callback=package_load_callback,
-                building=building)
+            self.package_cache = PackageVariantCache(self.package_paths,
+                                                      package_requests=package_requests,
+                                                      timestamp=timestamp,
+                                                      package_load_callback=package_load_callback,
+                                                      building=building)
 
         # merge the request
         if self.pr:
@@ -1671,6 +2058,8 @@ class Solver(_Common):
             return None
 
         final_phase = self.phase_stack[-1]
+        from pprint import pprint as pp
+        pp(final_phase)
         return final_phase._get_solved_variants()
 
     def reset(self):
@@ -1884,6 +2273,7 @@ class Solver(_Common):
 
         return keep_going
 
+
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
         slice, is_partial = self.package_cache.get_variant_slice(
@@ -1898,6 +2288,7 @@ class Solver(_Common):
         end_time = time.time()
         self.load_time += (end_time - start_time)
         return slice
+
 
     def _push_phase(self, phase):
         depth = len(self.phase_stack)
@@ -1948,7 +2339,7 @@ class Solver(_Common):
         if depth is None:
             depth = len(self.phase_stack) - 1
         count = self.depth_counts[depth]
-        return "{%d,%d}" % (depth,count)
+        return "{%d,%d}" % (depth, count)
 
     def __str__(self):
         return "%s %s %s" % (self.status,
