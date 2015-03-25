@@ -156,6 +156,11 @@ class System(object):
         return getpass.getuser()
 
     @cached_property
+    def home(self):
+        """Get the home directory for the current user."""
+        return os.path.expanduser("~")
+
+    @cached_property
     def fqdn(self):
         """
         @returns Fully qualified domain name, eg 'somesvr.somestudio.com'
