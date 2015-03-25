@@ -483,6 +483,8 @@ class FileSystemPackageRepository(PackageRepository):
     @mem_cached(DataType.listdir, key_func=_get_family_dirs__key)
     def _get_family_dirs(self):
         dirs = []
+        if not os.path.isdir(self.location):
+            return dirs
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
             if os.path.isdir(path):
