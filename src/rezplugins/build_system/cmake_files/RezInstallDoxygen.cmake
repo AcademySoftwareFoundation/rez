@@ -63,7 +63,7 @@ FIND_PACKAGE(Doxygen)
 macro (rez_install_doxygen)
 
 	if(DOXYGEN_EXECUTABLE)
-		parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR;IMAGEPATH" "FORCE;DOXYPY" ${ARGN})
+		parse_arguments(INSTDOX "FILES;DESTINATION;DOXYFILE;DOXYDIR;IMAGEPATH" "FORCE;DOXYPY;USE_TAGFILES;GENERATE_TAGFILE" ${ARGN})
 
 		list(GET INSTDOX_DEFAULT_ARGS 0 label)
 		if(NOT label)
@@ -92,7 +92,7 @@ macro (rez_install_doxygen)
 		set(_filter_source_files "")
 		set(_input_filter "")
 		set(_opt_output_java "")
-		set(_extract_all "")	
+		set(_extract_all "")
 		if(INSTDOX_DOXYPY)
 			find_file(DOXYPY_SRC doxypy.py $ENV{REZ_DOXYPY_ROOT})
 			if(DOXYPY_SRC)
@@ -110,11 +110,24 @@ macro (rez_install_doxygen)
         set(_proj_desc $ENV{REZ_BUILD_PROJECT_DESCRIPTION})
 		string(REPLACE "\n" " " _proj_desc2 ${_proj_desc})
 
+		set(_tagfile "")
+		set(_tagfiles "")
+
+		if (INSTDOX_GENERATE_TAGFILE)
+		    set(_tagfile ${_proj_name}.tag)
+			set(_generate_tagfile "GENERATE_TAGFILE = ${_tagfile}")
+		endif ()
+
+		if (INSTDOX_USE_TAGFILES)
+			set(_tagfiles "TAGFILES += $(DOXYGEN_TAGFILES)")
+		endif ()
+
 		add_custom_command(
 			OUTPUT ${dest_dir}/Doxyfile
 			DEPENDS ${doxyfile}
 			COMMAND ${CMAKE_COMMAND} -E make_directory ${dest_dir}
 			COMMAND ${CMAKE_COMMAND} -E copy ${doxyfile} ${dest_dir}/Doxyfile
+			COMMAND chmod +w ${dest_dir}/Doxyfile
 			COMMAND echo PROJECT_NAME = \"${_proj_name}\" >> ${dest_dir}/Doxyfile
 			COMMAND echo PROJECT_NUMBER = \"${_proj_ver}\" >> ${dest_dir}/Doxyfile
 			COMMAND echo PROJECT_BRIEF = \"${_proj_desc2}\" >> ${dest_dir}/Doxyfile
@@ -122,6 +135,8 @@ macro (rez_install_doxygen)
 			COMMAND echo ${_input_filter} >> ${dest_dir}/Doxyfile
 			COMMAND echo ${_opt_output_java} >> ${dest_dir}/Doxyfile
 			COMMAND echo ${_extract_all} >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_tagfiles} >> ${dest_dir}/Doxyfile
+			COMMAND echo ${_generate_tagfile} >> ${dest_dir}/Doxyfile
 			COMMAND echo INPUT = ${INSTDOX_FILES} >> ${dest_dir}/Doxyfile
 			COMMAND echo IMAGE_PATH = ${CMAKE_SOURCE_DIR}/${INSTDOX_IMAGEPATH} >> ${dest_dir}/Doxyfile
 			COMMAND echo STRIP_FROM_PATH = ${CMAKE_SOURCE_DIR} >> ${dest_dir}/Doxyfile
@@ -141,7 +156,12 @@ macro (rez_install_doxygen)
 			# only install docs when installing centrally
 			add_custom_target(_install_${label} ALL DEPENDS ${label})
 			install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${doxydir} DESTINATION ${dest_dir})
-		endif()
+
+			if (INSTDOX_GENERATE_TAGFILE)
+				install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${dest_dir}/${_tagfile} DESTINATION ${dest_dir})
+			endif ()
+
+		endif(CENTRAL OR INSTDOX_FORCE)
 	else(DOXYGEN_EXECUTABLE)
 		message(WARNING "RezInstallDoxygen cannot find Doxygen - documentation was not built.")
 	endif(DOXYGEN_EXECUTABLE)

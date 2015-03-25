@@ -193,6 +193,7 @@ terminal_emulator_command:
 # configured separator will be used.
 env_var_separators:
     CMAKE_MODULE_PATH: ';'
+    DOXYGEN_TAGFILES: ' '
 
 
 ###############################################################################
