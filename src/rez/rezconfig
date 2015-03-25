@@ -164,6 +164,7 @@ terminal_emulator_command:
 # configured separator will be used.
 env_var_separators:
     CMAKE_MODULE_PATH: ';'
+    DOXYGEN_TAGFILES: ' '
 
 # Defines what suites on $PATH stay visible when a context in a suite is sourced.
 # Possible values are:
