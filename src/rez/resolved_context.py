@@ -1406,16 +1406,24 @@ class ResolvedContext(object):
                 executor.bind('root',       pkg.root)
                 executor.bind('base',       pkg.base)
 
+                exc = None
                 try:
                     executor.execute_code(commands.source)
+                except IndentationError as e:
+                    commands_ = commands.corrected_for_indent()
+                    if commands_ is commands:
+                        exc = e
+                    else:
+                        try:
+                            executor.execute_code(commands_.source)
+                        except error_class as e:
+                            exc = e
                 except error_class as e:
-                    try:
-                        if (type(e) == IndentationError):
-                            commands.maybe_indent()
-                            executor.execute_code(commands.source)
-                    except error_class as e:
-                        msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(e))
-                        raise PackageCommandError(msg)
+                    exc = e
+
+                if exc:
+                    msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(exc))
+                    raise PackageCommandError(msg)
 
         _heading("post system setup")
         # append suite path if there is an active parent suite

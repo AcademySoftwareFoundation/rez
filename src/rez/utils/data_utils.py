@@ -13,11 +13,6 @@ class SourceCode(object):
     def __init__(self, source):
         self.source = source.rstrip()
 
-    def maybe_indent(self):
-        if self.source and self.source[0] in (' ', '\t'):
-            # outer indent(s) follow, perhaps comments
-            self.source = "if True:\n" + self.source
-
     @classmethod
     def from_function(cls, func):
         loc = getsourcelines(func)[0][1:]
@@ -35,11 +30,20 @@ class SourceCode(object):
                     nextindex = nextindex+1 if nextindex < linescount else nextindex-1
                 firstchar = len(nextline)-len(nextline.lstrip())
                 codelines[i] = '%s%s' % (nextline[:firstchar], line)
-        code = '\n'.join(codelines)
+
+        code = '\n'.join(codelines).rstrip()
+        code = dedent(code)
 
         value = SourceCode.__new__(SourceCode)
-        value.source = code.rstrip()
+        value.source = code
         return value
+
+    def corrected_for_indent(self):
+        if self.source and self.source[0] in (' ', '\t'):
+            new_source = "if True:\n" + self.source
+            return SourceCode(new_source)
+        else:
+            return self
 
     def __eq__(self, other):
         return (isinstance(other, SourceCode)
