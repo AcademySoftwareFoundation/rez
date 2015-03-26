@@ -32,10 +32,10 @@ import os.path
 class SuiteVisibility(Enum):
     """Defines what suites on $PATH stay visible when a context in a suite is
     sourced."""
-    none = 0        # no suites are kept on PATH
-    parent = 1      # Keep the suite containing the context visible;
-    existing = 2    # Keep all suites visible that were on PATH at the time the
-                    # context was entered.
+    never = 0               # Don't attempt to keep any suites visible in a new env
+    always = 1              # Keep suites visible in any new env
+    parent = 2              # Keep only the parent suite of a tool visible
+    parent_priority = 3     # Keep all suites visible and the parent takes precedence
 
 
 class PatchLock(Enum):
@@ -1417,26 +1417,35 @@ class ResolvedContext(object):
 
         # suite visibility (if this is a context in a suite, existing suite(s)
         # may be kept on $PATH)
-        if self.parent_suite_path:
+        value = config.suite_visibility.lower()
+        try:
+            mode = SuiteVisibility[value]
+        except KeyError:
+            raise ConfigurationError("Invalid suite visiblity setting %r" % value)
+
+        if mode != SuiteVisibility.never:
             from rez.suite import Suite
 
-            value = config.suite_visibility.lower()
-            try:
-                mode = SuiteVisibility[value]
-            except KeyError:
-                raise ConfigurationError("Invalid suite visiblity setting %r" % value)
+            suite_paths = Suite.visible_suite_paths()
+            if suite_paths:
+                if mode == SuiteVisibility.always:
+                    for suite in suite_paths:
+                        suite_paths.append(suite.load_path)
+                elif self.parent_suite_path:
+                    if mode == SuiteVisibility.parent:
+                        suite_paths = [self.parent_suite_path]
+                    elif mode == SuiteVisibility.parent_priority:
+                        pop_parent = None
+                        try:
+                            parent_index = suite_paths.index(self.parent_suite_path)
+                            pop_parent = suite_paths.pop(parent_index)
+                        except ValueError:
+                            pass
+                        suite_paths.insert(0, (pop_parent or self.parent_suite_path))
 
-            suite_paths = []
-            if mode == SuiteVisibility.parent:
-                suite_paths.append(self.parent_suite_path)
-            elif mode == SuiteVisibility.existing:
-                suite_paths = Suite.visible_suite_paths()
-                if self.parent_suite_path not in suite_paths:
-                    suite_paths.insert(0, self.parent_suite_path)
-
-            for path in suite_paths:
-                tools_path = os.path.join(path, "bin")
-                executor.env.PATH.append(tools_path)
+                for path in suite_paths:
+                    tools_path = os.path.join(path, "bin")
+                    executor.env.PATH.append(tools_path)
 
         # append system paths
         executor.append_system_paths()
