@@ -85,7 +85,7 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
-    def build(self, context, build_path, install_path, install=False,
+    def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         def _pr(s):
             if self.verbose:
@@ -126,6 +126,7 @@ class CMakeBuildSystem(BuildSystem):
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package,
+                                     variant=variant,
                                      build_type=build_type)
 
         # run the build command and capture/print stderr at the same time
@@ -146,7 +147,8 @@ class CMakeBuildSystem(BuildSystem):
                                      module=("build_system", "cmake"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
-                                     build_dir=build_path)
+                                     build_dir=build_path,
+                                     variant_index=variant.index)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
@@ -167,12 +169,16 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, package, build_type):
+    def _add_build_actions(executor, context, package, variant, build_type):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
+
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
+        executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
+        # build always occurs on a filesystem package, thus 'filepath' attribute
+        # exists. This is not the case for packages in general.
         executor.env.REZ_BUILD_PROJECT_FILE = package.filepath
         executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
         executor.env.REZ_BUILD_PROJECT_NAME = package.name
@@ -187,15 +193,17 @@ class CMakeBuildSystem(BuildSystem):
             executor.env.REZ_IN_REZ_RELEASE = 1
 
 
-def _FWD__spawn_build_shell(working_dir, build_dir):
+def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     package = get_developer_package(working_dir)
+    variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
 
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
                                  package=package,
+                                 variant=variant,
                                  build_type=BuildType.local)
 
     retcode, _, _ = context.execute_shell(block=True,

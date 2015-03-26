@@ -117,13 +117,14 @@ class BuildSystem(object):
         """
         pass
 
-    def build(self, context, build_path, install_path, install=False,
+    def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         """Implement this method to perform the actual build.
 
         Args:
             context: A ResolvedContext object that the build process must be
                 executed within.
+            variant (`Variant`): The variant being built.
             build_path: Where to write temporary build files. May be relative
                 to working_dir.
             install_path: Where to install the build, if the build is installed.

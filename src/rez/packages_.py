@@ -153,6 +153,16 @@ class Package(PackageBaseResourceWrapper):
         for variant in repo.iter_variants(self.resource):
             yield Variant(variant)
 
+    def get_variant(self, index=None):
+        """Get the variant with the associated index.
+
+        Returns:
+            `Variant` object, or None if no variant with the given index exists.
+        """
+        for variant in self.iter_variants():
+            if variant.index == index:
+                return variant
+
 
 class Variant(PackageBaseResourceWrapper):
     """A package variant.
@@ -339,7 +349,8 @@ def get_developer_package(path):
         not normally appear on a `Package` object. A developer package is the
         only case where we know we can directly associate a 'package.*' file
         with a package - other packages can come from any kind of package repo,
-        which may or may not associate a single file with a single package.
+        which may or may not associate a single file with a single package (or
+        any file for that matter - it may come from a database).
 
     Args:
         path: Directory containing the package definition file.

@@ -117,7 +117,8 @@ class LocalBuildProcess(BuildProcessHelper):
         build_system_name = self.build_system.name()
         self._print("\nInvoking %s build system...", build_system_name)
         build_result = self.build_system.build(
-            context,
+            context=context,
+            variant=variant,
             build_path=variant_build_path,
             install_path=variant_install_path,
             install=install,
