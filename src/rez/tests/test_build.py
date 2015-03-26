@@ -34,10 +34,9 @@ class TestBuild(TestBase, TempdirMixin):
     @classmethod
     def _create_builder(cls, working_dir):
         buildsys = create_build_system(working_dir)
-        return create_build_process("local",
-                                    working_dir,
-                                    build_system=buildsys,
-                                    verbose=True)
+        return create_build_process(process_type="local",
+                                    working_dir=working_dir,
+                                    build_system=buildsys)
 
     @classmethod
     def _create_context(cls, *pkgs):
