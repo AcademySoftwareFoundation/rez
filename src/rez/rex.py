@@ -702,6 +702,16 @@ class EscapedString(object):
     def __repr__(self):
         return "%s(%r)" % (self.__class__.__name__, self.strings)
 
+    def __eq__(self, other):
+        if isinstance(other, basestring):
+            return (str(self) == str(other))
+        else:
+            return (isinstance(other, EscapedString)
+                    and other.strings == self.strings)
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def __add__(self, other):
         """Join two escaped strings together.
 
@@ -827,7 +837,18 @@ def expandable(value):
 #===============================================================================
 
 class NamespaceFormatter(Formatter):
-    ENV_VAR_REGEX = re.compile("\${(?P<var>.+?)}")
+    """String formatter that, as well as expanding '{variable}' strings, also
+    protects environment variable references such as ${THIS} so they do not get
+    expanded as though {THIS} is a formatting target. Also, environment variable
+    references such as $THIS are converted to ${THIS}, which gives consistency
+    across shells, and avoids some problems with non-curly-braced variables in
+    some situations.
+    """
+    ENV_VAR         = "[a-zA-Z_]+[a-zA-Z0-9_]*"
+    ENV_VAR_REF_1   = "\\${(%s?)}" % ENV_VAR
+    ENV_VAR_REF_2   = "\\$(%s?)" % ENV_VAR
+    ENV_VAR_REF     = "%s|%s" % (ENV_VAR_REF_1, ENV_VAR_REF_2)
+    ENV_VAR_REGEX   = re.compile(ENV_VAR_REF)
 
     def __init__(self, namespace):
         Formatter.__init__(self)
@@ -835,10 +856,11 @@ class NamespaceFormatter(Formatter):
 
     def format(self, format_string, *args, **kwargs):
         def escape_envvar(matchobj):
-            return "${{%s}}" % (matchobj.group("var"))
+            value = (x for x in matchobj.groups() if x is not None).next()
+            return "${{%s}}" % value
 
-        escaped_format_string = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
-        return Formatter.format(self, escaped_format_string, *args, **kwargs)
+        format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
+        return Formatter.format(self, format_string_, *args, **kwargs)
 
     def get_value(self, key, args, kwds):
         if isinstance(key, str):
