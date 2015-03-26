@@ -52,7 +52,7 @@ class BezBuildSystem(BuildSystem):
                                              build_args=build_args,
                                              child_build_args=child_build_args)
 
-    def build(self, context, build_path, install_path, install=False,
+    def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         # communicate args to bez by placing in a file
         doc = dict(
