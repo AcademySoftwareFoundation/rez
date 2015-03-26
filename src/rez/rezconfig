@@ -171,7 +171,7 @@ env_var_separators:
 # - 'parent': Keep the suite containing the context visible;
 # - 'existing': Keep all suites visible that were on PATH at the time the
 #   context was entered.
-context_suite_visibility: existing
+suite_visibility: existing
 
 
 ###############################################################################

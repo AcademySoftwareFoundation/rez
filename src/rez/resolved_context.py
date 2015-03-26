@@ -1420,7 +1420,7 @@ class ResolvedContext(object):
         if self.parent_suite_path:
             from rez.suite import Suite
 
-            value = config.context_suite_visibility.lower()
+            value = config.suite_visibility.lower()
             try:
                 mode = SuiteVisibility[value]
             except KeyError:
