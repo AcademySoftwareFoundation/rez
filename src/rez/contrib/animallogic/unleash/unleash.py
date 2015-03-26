@@ -24,7 +24,7 @@ USERNAME = os.getenv("USER")
 
 
 def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour=UNLEASH_FLAVOUR,
-            unleash_target=UNLEASH_TARGET, launcher_preset=LAUNCHER_PRESET, buildsys_type=None,     
+            unleash_target=UNLEASH_TARGET, launcher_preset=LAUNCHER_PRESET, buildsys_type=None,
             build_args=None, child_build_args=None, allow_not_latest=False, 
             ignore_auto_messages=False, opts=None):
 
@@ -58,7 +58,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
                                    working_dir,
                                    build_system=buildsys,
                                    vcs=vcs,
-                                   ensure_latest=(not opts.no_latest),
+                                   ensure_latest=(not allow_not_latest),
                                    verbose=True)
 
     install_path = builder.package.config.release_packages_path
