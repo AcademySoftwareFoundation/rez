@@ -1417,16 +1417,22 @@ class ResolvedContext(object):
                 executor.bind('root',       pkg.root)
                 executor.bind('base',       pkg.base)
 
+                # show a meaningful filename in traceback if an error occurs.
+                # Can't use an actual filepath because (a) the package may not
+                # have one and (b) it might be a yaml file (line numbers would
+                # not match up in this case).
+                filename = "<%s>" % pkg.uri
+
                 exc = None
                 try:
-                    executor.execute_code(commands.source)
+                    executor.execute_code(commands.source, filename=filename)
                 except IndentationError as e:
                     commands_ = commands.corrected_for_indent()
                     if commands_ is commands:
                         exc = e
                     else:
                         try:
-                            executor.execute_code(commands_.source)
+                            executor.execute_code(commands_.source, filename=filename)
                         except error_class as e:
                             exc = e
                 except error_class as e:
