@@ -21,6 +21,10 @@ def setup_parser(parser, completions=False):
         action="store_true",
         help="print only the resolve list")
     parser.add_argument(
+        "--so", "--source-order", dest="source_order", action="store_true",
+        help="print resolved packages in order they are sorted, rather than "
+        "alphabetical order")
+    parser.add_argument(
         "-t", "--tools", action="store_true",
         help="print a list of the executables available in the context")
     parser.add_argument(
@@ -131,7 +135,8 @@ def command(opts, parser, extra_arg_groups=None):
             func = view_graph if opts.graph else save_graph
             func(gstr, dest_file=opts.write_graph)
         else:
-            rc.print_info(verbosity=opts.verbose)
+            rc.print_info(verbosity=opts.verbose,
+                          source_order=opts.source_order)
         return
 
     if opts.format == 'table':
