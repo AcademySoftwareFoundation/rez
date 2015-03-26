@@ -765,7 +765,7 @@ class Cycle(FailureReason):
 
 class PackageVariant(_Common):
     """A variant of a package."""
-    def __init__(self, name, version, requires, index=None, userdata=None):
+    def __init__(self, name, version, requires, index=None, unsorted_index=None, userdata=None):
         """Create a package variant.
 
         Args:
@@ -774,11 +774,14 @@ class PackageVariant(_Common):
             requires: List of strings representing the package dependencies.
             index: Zero-based index of the variant within this package. If
                 None, this package does not have variants.
+            unsorted_index: auxiliary index to help restoring the original index before
+             the Variant Sorting algorithm has run
             userdata: Arbitrary extra data to attach to the variant.
         """
         self.name = name
         self.version = version
         self.index = index
+        self.unsorted_index = unsorted_index
         self.userdata = userdata
         self.requires_list = RequirementList(requires)
 
@@ -904,6 +907,7 @@ class _PackageVariantList(_Common):
                                              version=var.version,
                                              requires=original_requires,
                                              index=new_index,
+                                             unsorted_index=var.index,
                                              userdata=userdata)
                     value.append(variant)
 
@@ -2394,7 +2398,7 @@ class Solver(_Common):
 
     def _revert_sorted_indexes(self):
         # We changed the index to help the solver pick the 'preferred' variant
-        # Restoring the original index from the userdata (resource handle)
+        # Restore the original index from the unsorted_index.
 
         # Get the last (succeeded or failed) phase
         final_phase = self.phase_stack[-1]
@@ -2402,7 +2406,7 @@ class Solver(_Common):
         for scope in final_phase.scopes:
             variant = scope._get_solved_variant()
             if variant:
-                variant.index = variant.userdata.get('variables').get('index', None)
+                variant.index = variant.unsorted_index
 
     def __str__(self):
         return "%s %s %s" % (self.status,
