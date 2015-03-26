@@ -870,7 +870,7 @@ class RexExecutor(object):
                 import traceback
                 frames = traceback.extract_tb(sys.exc_traceback)
                 frames = [x for x in frames if x[0] == filename]
-                cls._patch_frames(frames, code)
+                cls._patch_frames(frames, code, filename)
                 cls._raise_rex_error(frames, e)
         return pyc
 
