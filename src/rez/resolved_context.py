@@ -583,8 +583,14 @@ class ResolvedContext(object):
             d["removed_packages"] = removed_packages
         return d
 
-    def print_info(self, buf=sys.stdout, verbosity=0, sort=False):
+    def print_info(self, buf=sys.stdout, verbosity=0, source_order=False):
         """Prints a message summarising the contents of the resolved context.
+
+        Args:
+            buf (file-like object): Where to print this info to.
+            verbosity (bool): Verbose mode.
+            source_order (bool): If True, print resolved packages in the order
+                they are sources, rather than alphabetical order.
         """
         _pr = Printer(buf)
 
@@ -650,12 +656,11 @@ class ResolvedContext(object):
         rows = []
         colors = []
 
-        pkgs = (self.resolved_packages or [])
-        if sort:
-            pkgs = sorted(self.resolved_packages,
-                          key=lambda rpkg : rpkg.name.lower())
+        resolved_packages = self.resolved_packages or []
+        if not source_order:
+            resolved_packages = sorted(resolved_packages, key=lambda x: x.name)
 
-        for pkg in pkgs:
+        for pkg in resolved_packages:
             t = []
             col = None
             if not os.path.exists(pkg.root):
