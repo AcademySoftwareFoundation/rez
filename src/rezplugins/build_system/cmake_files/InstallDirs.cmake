@@ -8,7 +8,7 @@
 # your needs, then you should use cmake's install(DIRECTORY) macro instead (and you should
 # use the values REZ_FILE_INSTALL_PERMISSIONS and REZ_EXECUTABLE_FILE_INSTALL_PERMISSIONS
 # to specify the permissions you want).If LOCAL_SYMLINK is preset it would create a symlink
-# from the build package back to the source code for development/testing purposes. That way 
+# from the build package back to the source code for development/testing purposes. That way
 # a rez-build is not needed every time that the code changes.
 #
 # Usage: install_dirs_(
@@ -50,8 +50,8 @@ macro (install_dirs_)
 	else(INSTD_EXECUTABLE)
 		set(perms ${REZ_FILE_INSTALL_PERMISSIONS})
 	endif(INSTD_EXECUTABLE)
-   
-    if(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
+
+    if(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTD_LOCAL_SYMLINK)
         install(DIRECTORY
             ${INSTD_DEFAULT_ARGS}
             DESTINATION ${dest_dir}
@@ -61,11 +61,11 @@ macro (install_dirs_)
     else()
         install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}${dest_dir})" )
         foreach(directory ${INSTD_DEFAULT_ARGS})
-            get_filename_component(DIR_NAME ${directory} NAME) 
+            get_filename_component(DIR_NAME ${directory} NAME)
             install(CODE "message (STATUS  \"Symlink : ${CMAKE_CURRENT_SOURCE_DIR}/${directory} -> ${CMAKE_INSTALL_PREFIX}${dest_dir}/${DIR_NAME}\" )" )
             install(CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${CMAKE_CURRENT_SOURCE_DIR}/${directory} ${CMAKE_INSTALL_PREFIX}${dest_dir}/${DIR_NAME})" )
         endforeach(directory ${INSTD_DEFAULT_ARGS})
-    endif(CENTRAL OR NOT INSTD_LOCAL_SYMLINK)
+    endif(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTD_LOCAL_SYMLINK)
 
 
 endmacro (install_dirs_)

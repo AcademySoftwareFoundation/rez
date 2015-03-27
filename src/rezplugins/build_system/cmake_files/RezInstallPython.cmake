@@ -5,7 +5,11 @@
 # except that it ensures that a python package is being used, and uses the appropriate python binary.
 #
 # Usage:
-# rez_install_python(<label> FILES <py_files> [RELATIVE <rel_path>] DESTINATION <rel_install_dir>)
+# rez_install_python(<label>
+#                    FILES <py_files>
+#                    [RELATIVE <rel_path>]
+#                    [LOCAL_SYMLINK]
+#                    DESTINATION <rel_install_dir>)
 #
 
 

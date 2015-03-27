@@ -9,6 +9,7 @@
 #	FILES <py_files>
 #	[RELATIVE <rel_path>]
 #	[BIN <py_binary>]
+#   [LOCAL_SYMLINK]
 #	DESTINATION <rel_install_dir>)
 #
 # 'label' is the cmake build target name for this set of python files.
@@ -18,8 +19,11 @@
 # 'bin' is the python binary to use. If supplied, the python files are compiled (but not
 # installed), to check for syntax errors.
 #
-# This macro behaves in the same way as rez_install_files with respect to the arguments RELATIVE and
-# DESTINATION - please see InstallFiles.cmake documentation for further information.
+# This macro behaves in the same way as rez_install_files with respect to the arguments
+# RELATIVE, DESTINATION and LOCAL_SYMLINK - please see InstallFiles.cmake documentation
+# for further information.
+#
+# A note on the use of LOCAL_SYMLINK: If set, pyc files are not generated.
 #
 
 
@@ -33,7 +37,7 @@ macro (install_python)
 	# parse args
 	# --------------------------------------------------------------------------
 
-	parse_arguments(INSTPY "FILES;DESTINATION;RELATIVE;BIN" "" ${ARGN})
+	parse_arguments(INSTPY "FILES;DESTINATION;RELATIVE;BIN" "LOCAL_SYMLINK" ${ARGN})
 
 	list(GET INSTPY_DEFAULT_ARGS 0 label)
 	if(NOT label)
@@ -55,6 +59,12 @@ macro (install_python)
 	endif(NOT INSTPY_FILES)
 
 	list(GET INSTPY_BIN 0 py_bin)
+
+	# cancel compiling if local symlinking enabled
+	if(INSTPY_LOCAL_SYMLINK)
+	    unset(py_bin)
+	    set(LOCAL_SYMLINK_ARG "LOCAL_SYMLINK")
+	endif(INSTPY_LOCAL_SYMLINK)
 
 
 	# --------------------------------------------------------------------------
@@ -93,7 +103,10 @@ macro (install_python)
 				DEPENDS ${fabs}
 			)
 
-			install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc} DESTINATION ${target_path})
+			install(
+				FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc}
+				DESTINATION ${target_path})
+
 			list(APPEND pycfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_fc})
 
 		endforeach(f ${INSTPY_FILES})
@@ -101,7 +114,11 @@ macro (install_python)
 		add_custom_target ( ${label} ALL DEPENDS ${pyfiles} ${pycfiles} )
 
 	else(py_bin)
-		install_files_(${INSTPY_FILES} RELATIVE ${rel_dir} DESTINATION ${dest_dir})
+		install_files_(
+			${INSTPY_FILES}
+			RELATIVE ${rel_dir}
+			${LOCAL_SYMLINK_ARG}
+			DESTINATION ${dest_dir})
 	endif(py_bin)
 
 endmacro (install_python)

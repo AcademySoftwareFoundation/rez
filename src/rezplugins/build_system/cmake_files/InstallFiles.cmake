@@ -2,9 +2,9 @@
 # install_files_
 # rez_install_files
 #
-# Macro for installing files. Unlike cmake's native 'install(FILES ...)' command, this macro
-# preserves directory structure. Don't confuse with cmake's deprecated 'install_files' function.
-# Files are installed as read-only.
+# Macro for installing files. Unlike cmake's native 'install(FILES ...)' command,
+# this macro preserves directory structure. Don't confuse with cmake's deprecated
+# 'install_files' function. Files are installed as read-only.
 #
 # Usage: install_files_(
 #	<files> [RELATIVE <rel_path>]
@@ -13,12 +13,13 @@
 #   [LOCAL_SYMLINK]
 # )
 #
-# 'files' can be relative or absolute. Subdirectories are copied intact. RELATIVE lets you
-# remove some of the file's relative path before it is installed. Note however that ALL files
-# must be within the RELATIVE path, if RELATIVE is specified. If EXECUTABLE is present then the
-# files will be installed with execute permissions. If LOCAL_SYMLINK is preset it would create a symlink
-# from the build package back to the source code for development/testing purposes. That way is not
-# needed to do a rez-build every time that the code changes
+# 'files' can be relative or absolute. Subdirectories are copied intact. RELATIVE lets
+# you remove some of the file's relative path before it is installed. Note however that
+# ALL files must be within the RELATIVE path, if RELATIVE is specified. If EXECUTABLE is
+# present then the files will be installed with execute permissions. If LOCAL_SYMLINK
+# is present it will create a symlink from the build package back to the source code
+# for development/testing purposes. That way it is not necessary to do a rez-build every
+# time the code changes.
 #
 # Example - take the files:
 #
@@ -131,13 +132,13 @@ macro (install_files_)
 	foreach(f ${INSTF_DEFAULT_ARGS})
 		get_target_filepath(${f} ${rel_dir} ${dest_dir} target_fpath)
 		get_filename_component(target_path ${target_fpath} PATH)
-        if(CENTRAL OR NOT INSTF_LOCAL_SYMLINK)
+        if(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTF_LOCAL_SYMLINK)
 		    install(FILES ${f} DESTINATION ${target_path} PERMISSIONS ${perms})
         else()
             install( CODE "message (STATUS  \"Symlink : ${CMAKE_INSTALL_PREFIX}/${target_fpath} -> ${f}\" )" )
             install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_INSTALL_PREFIX}/${target_path})" )
             install( CODE "execute_process(COMMAND ${CMAKE_COMMAND} -E create_symlink ${f} ${CMAKE_INSTALL_PREFIX}/${target_fpath})" )
-        endif(CENTRAL OR NOT INSTF_LOCAL_SYMLINK)
+        endif(REZ_BUILD_TYPE STREQUAL "central" OR NOT INSTF_LOCAL_SYMLINK)
 
 	endforeach(f ${INSTF_DEFAULT_ARGS})
 
