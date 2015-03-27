@@ -610,19 +610,22 @@ class FileSystemPackageRepository(PackageRepository):
                         "Attempting to install a variant (%r) into an existing "
                         "package without variants (%r)" % (variant, package))
 
+        variant_data = None
+        dry_run_varint = None
         if existing_package:
             # check if the variant is already there
+            parent_package = existing_package
+            package_data = existing_package.validated_data()
+            ext = os.path.splitext(existing_package.filepath)[-1][1:]
+            package_format = FileFormat[ext]
             variant_requires = variant.parent.variants[variant.index]
 
             for variant_ in self.iter_variants(existing_package):
                 variant_requires_ = existing_package.variants[variant_.index]
                 if variant_requires_ == variant_requires:
-                    return variant_
-
-            parent_package = existing_package
-            package_data = parent_package.validated_data()
-            ext = os.path.splitext(existing_package.filepath)[-1][1:]
-            package_format = FileFormat[ext]
+                    variant_data = variant.validated_data()
+                    dry_run_varint = variant_
+                    break
         else:
             parent_package = variant.parent
             package_data = parent_package.validated_data()
@@ -630,18 +633,33 @@ class FileSystemPackageRepository(PackageRepository):
             if "variants" in package_data:
                 del package_data["variants"]
 
-        if dry_run:
-            return None
 
+        if dry_run:
+            return dry_run_varint
+
+
+        maybe_install = True
         # merge the variant into the package
         if variant.index is None:
             new_index = None
-        else:
-            variant_requires = variant.parent.variants[variant.index]
+        elif variant_data is None:
+            # variant is not in package
+            variant_data = variant.validated_data()
+
             if not package_data.get("variants"):
                 package_data["variants"] = []
+
+            variant_requires=[]
+            for v in variant.parent.variants[variant.index]:
+                if v not in package_data["variants"]:
+                    variant_requires.append(v)
             package_data["variants"].append(variant_requires)
+
             new_index = len(package_data["variants"]) - 1
+        else:
+            # variant is package but might bring modifications
+            new_index = variant.index
+            maybe_install = False
 
         # a little data massaging is needed
         package_data["config"] = parent_package._data.get("config")
@@ -665,6 +683,39 @@ class FileSystemPackageRepository(PackageRepository):
         for key, value in overrides.iteritems():
             if package_data.get(key) is None:
                 package_data[key] = value
+
+
+        if variant_data.get("requires"):
+            parent_requires = []
+            for v in variant.parent.variants[variant.index]:
+                for r in variant_data["requires"]:
+                    if v != r:
+                        parent_requires.append(r)
+            variant_data["requires"] = parent_requires
+
+
+        if "base" in variant_data:
+            del variant_data["base"]
+        if "timestamp" in variant_data:
+            del variant_data["timestamp"]
+        if "uuid" in variant_data:
+            del variant_data["uuid"]
+
+
+        # look for differences
+        deltas = {}
+        for k, v in variant_data.iteritems():
+            if k in package_data and package_data[k] != v:
+                deltas[k] = v
+
+        if deltas:
+            package_data.update(deltas)
+        else:
+            # this variant doesn't bring
+            # to update to the package
+            #
+            if not maybe_install:
+                return variant
 
         filepath = os.path.join(path, "package.py")
         with open(filepath, 'w') as f:
