@@ -9,7 +9,6 @@ from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.backcompat import convert_old_commands
 from rez.vendor.version.requirement import Requirement
 from rez.contrib.animallogic.util import get_epoch_datetime_from_str
-from rezplugins.build_system.cmake import get_current_variant_index
 import rez.vendor.unittest2 as unittest
 import datetime
 import os
@@ -159,30 +158,6 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
 
         working_dir = os.path.join(self.src_root, "multiple_build_systems_without_cmake")
         self.assertRaises(BuildSystemError, create_build_system, working_dir, opts=TestCMakeBuildSystem.FakeArgParseOpts())
-
-    def test_current_variant_index_with_variants(self):
-
-        working_dir = os.path.join(self.src_root, "current_variant_index_with_variants")
-        package = get_developer_package(working_dir)
-
-        variants = list(package.iter_variants())
-        self.assertEqual(len(variants), 2)
-
-        for i, variant in enumerate(variants):
-            request = variant.get_requires(build_requires=True, private_build_requires=True)
-            context = ResolvedContext(request, building=True)
-            self.assertEqual(get_current_variant_index(context, package), i)
-
-    def test_current_variant_index_without_variants(self):
-
-        working_dir = os.path.join(self.src_root, "current_variant_index_without_variants")
-        package = get_developer_package(working_dir)
-
-        for i, variant in enumerate(package.iter_variants()):
-            self.assertEqual(i, 0)
-            request = variant.get_requires(build_requires=True, private_build_requires=True)
-            context = ResolvedContext(request, building=True)
-            self.assertEqual(get_current_variant_index(context, package), 0)
 
 
 class TestGetEpochDatetimeFromStr(TestBase):
