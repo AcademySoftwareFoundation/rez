@@ -109,11 +109,9 @@ def convert_old_commands(commands, annotate=True):
                     func = "appendenv" if idx == 0 else "prependenv"
                     parts = parts[1:] if idx == 0 else parts[:-1]
                     val = separator.join(parts)
-                    #val = convert_old_environment_variable_references(val)
                     loc.append("%s('%s', '%s')" % (func, var, _encode(val)))
                     continue
 
-            #value = convert_old_environment_variable_references(value)
             loc.append("setenv('%s', '%s')" % (var, _encode(value)))
         elif toks[0].startswith('#'):
             loc.append("comment('%s')" % _encode(' '.join(toks[1:])))

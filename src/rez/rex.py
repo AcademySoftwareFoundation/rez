@@ -6,7 +6,6 @@ import re
 import UserDict
 import inspect
 from string import Formatter
-from functools import partial
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
