@@ -64,6 +64,7 @@ def convert_old_commands(commands, annotate=True):
     from rez.utils.logging_ import print_debug
 
     def _encode(s):
+        s = s.replace('\\"', '"')
         return s.encode("string-escape")
 
     loc = []

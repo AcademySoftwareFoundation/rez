@@ -35,8 +35,7 @@ class TempdirMixin(object):
     @classmethod
     def tearDownClass(cls):
         if os.path.exists(cls.root):
-            #shutil.rmtree(cls.root)
-            pass
+            shutil.rmtree(cls.root)
 
 
 def shell_dependent(fn):

@@ -325,15 +325,15 @@ class TestRex(TestBase):
     def test_old_style_commands(self):
         """Convert old style commands to rex"""
         expected = ""
-        rez_commands = convert_old_environment_variable_references("")
+        rez_commands = convert_old_commands([], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "B"
-        rez_commands = convert_old_environment_variable_references("B")
+        expected = "setenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "B:{env.C}"
-        rez_commands = convert_old_environment_variable_references("B:$C")
+        expected = "setenv('A', 'B:$C')"
+        rez_commands = convert_old_commands(["export A=B:$C"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
         expected = "setenv('A', 'hey \"there\"')"
@@ -341,23 +341,22 @@ class TestRex(TestBase):
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "{env.A}:B"
-        rez_commands = convert_old_environment_variable_references("$A:B")
-
         expected = "appendenv('A', 'B')"
         rez_commands = convert_old_commands(["export A=$A:B"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "B:{env.A}"
-        rez_commands = convert_old_environment_variable_references("B:$A")
+        expected = "prependenv('A', 'B')"
+        rez_commands = convert_old_commands(["export A=B:$A"], annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "{env.A}:B:{env.C}"
-        rez_commands = convert_old_environment_variable_references("$A:B:$C")
+        expected = "appendenv('A', 'B:$C')"
+        rez_commands = convert_old_commands(["export A=$A:B:$C"],
+                                            annotate=False)
         self.assertEqual(rez_commands, expected)
 
-        expected = "{env.C}:B:{env.A}"
-        rez_commands = convert_old_environment_variable_references("$C:B:$A")
+        expected = "prependenv('A', '$C:B')"
+        rez_commands = convert_old_commands(["export A=$C:B:$A"],
+                                            annotate=False)
         self.assertEqual(rez_commands, expected)
 
 

@@ -116,19 +116,6 @@ class CSH(UnixShell):
     def _saferefenv(self, key):
         self._addline("if (!($?%s)) setenv %s" % (key, key))
 
-    def _escape(self, value):
-        value = self._escapeDoubleQuotes(value)
-        return self._escapeAntiPackage(value)
-
-    @staticmethod
-    def _escapeDoubleQuotes(value):
-        return value.replace('"', '"\\""')
-
-    @staticmethod
-    def _escapeAntiPackage(value):
-        return value.replace('!', '\\!')
-
-
     def setenv(self, key, value):
         value = self.escape_string(value)
         self._addline('setenv %s %s' % (key, value))

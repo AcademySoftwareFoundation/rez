@@ -312,7 +312,7 @@ class ActionManager(object):
 
         # expose env-vars from parent env if explicitly told to do so
         if (expanded_key not in self.environ) and \
-            ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
+                ((self.parent_variables is True) or (expanded_key in self.parent_variables)):
             self.environ[expanded_key] = self.parent_environ.get(expanded_key, '')
             if self.interpreter.expand_env_vars:
                 key_ = expanded_key
@@ -325,21 +325,12 @@ class ActionManager(object):
             env_sep = self._env_sep(expanded_key)
             self.actions.append(action(unexpanded_key, unexpanded_value))
 
-<<<<<<< HEAD
-            unexpanded_values = env_sep.join( \
-                addfunc(self._escape(unexpanded_value),
-                        [self._keytoken(expanded_key)]))
-
-            expanded_values = env_sep.join( \
-                addfunc(self._escape(expanded_value), parts))
-=======
             values = addfunc(unexpanded_value, [self._keytoken(expanded_key)])
             unexpanded_values = EscapedString.join(env_sep, values)
 
             parts = self.environ[expanded_key].split(env_sep)
             values = addfunc(expanded_value, parts)
             expanded_values = EscapedString.join(env_sep, values)
->>>>>>> 4f2d797... fixed string expansion and added unit test. 'shells' test passing.
 
             self.environ[expanded_key] = \
                 env_sep.join(addfunc(str(expanded_value), parts))
