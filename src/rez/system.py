@@ -191,13 +191,6 @@ class System(object):
         return str(uuid.uuid4())
 
     @cached_property
-    def home(self):
-        """
-        @returns The home directory of the current user
-        """
-        return os.path.expanduser('~')
-
-    @cached_property
     def rez_bin_path(self):
         """Get path containing rez binaries, or None if no binaries are
         available, or Rez is not a production install.
