@@ -1,0 +1,13 @@
+name: blah
+version: '1.2.0'
+
+description: >
+    a blah type thing.
+
+requires:
+- 'foo-4.3.5+'
+
+uuid: 34d94bed1a934bc4999bcf70a24106ce
+
+authors:
+- joe.bloggs
