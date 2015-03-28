@@ -576,8 +576,9 @@ class FileSystemPackageRepository(PackageRepository):
                 "Cannot install variant into combined-style package file %r."
                 % family.filepath)
 
-        # find the package if it exists
+        # find the package if it already exists
         existing_package = None
+
         for package in self.iter_packages(family):
             if package.version == variant.version:
                 # during a build, the family/version dirs get created ahead of
@@ -595,59 +596,89 @@ class FileSystemPackageRepository(PackageRepository):
                         "packages are not the same (UUID mismatch)"
                         % (variant, package))
 
+                existing_package = package
+
                 if variant.index is None:
                     if package.variants:
                         raise ResourceError(
                             "Attempting to install a package without variants "
                             "(%r) into an existing package with variants (%r)"
                             % (variant, package))
-                    else:
-                        it = self.iter_variants(package)
-                        return it.next()
-                elif package.variants:
-                    existing_package = package
-                else:
+                elif not package.variants:
                     raise ResourceError(
                         "Attempting to install a variant (%r) into an existing "
                         "package without variants (%r)" % (variant, package))
 
+        installed_variant_index = None
+        existing_package_data = None
+        existing_variants_data = None
+        new_package_data = variant.parent.validated_data()
+        new_package_data.pop("variants", None)
+        package_changed = False
+
         if existing_package:
-            # check if the variant is already there
+            existing_package_data = existing_package.validated_data()
+
+            # detect case where new variant introduces package changes outside of variant
+            data_1 = existing_package_data.copy()
+            data_2 = new_package_data.copy()
+            for attr in ("timestamp", "base", "variants"):
+                data_1.pop(attr, None)
+                data_2.pop(attr, None)
+            package_changed = (data_1 != data_2)
+
+        # special case - installing a no-variant pkg into a no-variant pkg
+        if existing_package and variant.index is None:
+            if dry_run and not package_changed:
+                variant_ = self.iter_variants(existing_package).next()
+                return variant_
+            else:
+                # just replace the package
+                existing_package = None
+
+        if existing_package:
+            # see if variant already exists in package
             variant_requires = variant.parent.variants[variant.index]
 
             for variant_ in self.iter_variants(existing_package):
                 variant_requires_ = existing_package.variants[variant_.index]
                 if variant_requires_ == variant_requires:
-                    return variant_
+                    installed_variant_index = variant_.index
+                    if dry_run and not package_changed:
+                        return variant_
+                    break
 
             parent_package = existing_package
-            package_data = parent_package.validated_data()
             ext = os.path.splitext(existing_package.filepath)[-1][1:]
             package_format = FileFormat[ext]
+
+            if package_changed:
+                # graft together new package data, with existing package variants,
+                # and other data that needs to stay unchanged (eg timestamp)
+                package_data = new_package_data
+                package_data["timestamp"] = existing_package_data.get("timestamp")
+                package_data["variants"] = existing_package_data.get("variants", [])
+            else:
+                package_data = existing_package_data
         else:
             parent_package = variant.parent
-            package_data = parent_package.validated_data()
+            package_data = new_package_data
             package_format = FileFormat.py
-            if "variants" in package_data:
-                del package_data["variants"]
 
         if dry_run:
             return None
 
-        # merge the variant into the package
-        if variant.index is None:
-            new_index = None
-        else:
+        # merge the new variant into the package
+        if installed_variant_index is None and variant.index is not None:
             variant_requires = variant.parent.variants[variant.index]
             if not package_data.get("variants"):
                 package_data["variants"] = []
             package_data["variants"].append(variant_requires)
-            new_index = len(package_data["variants"]) - 1
+            installed_variant_index = len(package_data["variants"]) - 1
 
         # a little data massaging is needed
         package_data["config"] = parent_package._data.get("config")
-        if "base" in package_data:
-            del package_data["base"]
+        package_data.pop("base", None)
 
         # create version dir and write out the new package definition file
         family_path = os.path.join(self.location, variant.name)
@@ -682,15 +713,14 @@ class FileSystemPackageRepository(PackageRepository):
             for package in self.iter_packages(family):
                 if package.version == variant.version:
                     for variant_ in self.iter_variants(package):
-                        if variant_.index == new_index:
+                        if variant_.index == installed_variant_index:
                             new_variant = variant_
                             break
                 elif new_variant:
                     break
 
         if not new_variant:
-            raise RezSystemError(
-                "Unexpected internal failure - expected installed variant")
+            raise RezSystemError("Internal failure - expected installed variant")
         return new_variant
 
 

@@ -58,10 +58,6 @@ class MemoryPackageResource(PackageResourceHelper):
         obj = VersionedObject.construct(self.name, self.version)
         return "%s:%s" % (self.location, str(obj))
 
-    #@property
-    #def base(self):
-    #    return "%s.%s" % (self.location, self.name)
-
     @property
     def base(self):
         return None  # memory types do not have 'base'
