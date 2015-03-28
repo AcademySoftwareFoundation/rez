@@ -3,7 +3,8 @@ Filesystem-based package repository
 """
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    VariantResourceHelper, PackageResourceHelper, package_pod_schema
+    VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
+    package_release_info_keys
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
@@ -622,7 +623,8 @@ class FileSystemPackageRepository(PackageRepository):
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()
             data_2 = new_package_data.copy()
-            for attr in ("timestamp", "base", "variants"):
+
+            for attr in package_release_info_keys + ("base", "variants"):
                 data_1.pop(attr, None)
                 data_2.pop(attr, None)
             package_changed = (data_1 != data_2)
