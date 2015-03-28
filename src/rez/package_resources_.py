@@ -12,6 +12,17 @@ from textwrap import dedent
 import os.path
 
 
+
+# package attributes related to release info
+package_release_info_keys = (
+    "timestamp",
+    'revision',
+    'changelog',
+    'release_message',
+    'previous_version',
+    'previous_revision')
+
+
 #------------------------------------------------------------------------------
 # utility schemas
 #------------------------------------------------------------------------------
