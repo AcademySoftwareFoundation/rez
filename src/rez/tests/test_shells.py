@@ -296,7 +296,7 @@ class TestShellsCommands(TestBase, TempdirMixin):
                  setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"
         """
         sh_expected=r'export VARIABLE_WITH_QUOTES="loadPlugin(\"mayaPlugin\")"'
-        csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin(\"\""mayaPlugin\"\"")"'
+        csh_expected=r'setenv VARIABLE_WITH_QUOTES "loadPlugin("\""mayaPlugin"\"")"'
 
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
