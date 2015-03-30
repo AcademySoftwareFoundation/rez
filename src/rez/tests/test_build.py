@@ -91,7 +91,7 @@ class TestBuild(TestBase, TempdirMixin):
     def _test_build_anti(self):
         """Build, install, test the anti package."""
         self._test_build("anti", "1.0.0")
-
+        self._create_context("anti==1.0.0")
 
     @shell_dependent
     @install_dependent
