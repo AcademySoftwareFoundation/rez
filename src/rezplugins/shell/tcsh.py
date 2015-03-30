@@ -29,6 +29,7 @@ class TCSH(CSH):
             else:
                 txt = txt.replace('\\', '\\\\')
                 txt = txt.replace('"', '"\\""')
+                txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt
             result += txt
         return result
