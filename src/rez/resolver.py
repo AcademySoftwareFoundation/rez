@@ -31,8 +31,7 @@ class Resolver(object):
     """
     def __init__(self, package_requests, package_paths, timestamp=0,
                  callback=None, building=False, verbosity=False, buf=None,
-                 package_load_callback=None, max_depth=0, start_depth=0,
-                 caching=True):
+                 package_load_callback=None, caching=True):
         """Create a Resolver.
 
         Args:
@@ -44,18 +43,6 @@ class Resolver(object):
                 prior to each package being loaded. It is passed a single
                 `Package` object.
             building: True if we're resolving for a build.
-            max_depth (int): If non-zero, this value limits the number of packages
-                that can be loaded for any given package name. This effectively
-                trims the search space - only the highest N package versions are
-                searched.
-            start_depth (int): If non-zero, an initial solve is performed with
-                `max_depth` set to this value. If this fails, the depth is doubled,
-                and another solve is performed. If `start_depth` is specified but
-                `max_depth` is not, the solve will iterate until all relevant
-                packages have been loaded. Using this argument  allows us to
-                perform something like a breadth-first search - we put off
-                loading older packages with the assumption that they aren't being
-                used anymore.
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used.
         """
@@ -68,11 +55,6 @@ class Resolver(object):
         self.verbosity = verbosity
         self.caching = caching
         self.buf = buf
-
-        self.max_depth = max_depth
-        self.start_depth = start_depth
-        if self.max_depth and self.start_depth:
-            assert self.max_depth >= self.start_depth
 
         self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
@@ -238,9 +220,7 @@ class Resolver(object):
                 request,
                 tuple(repo_ids),
                 self.building,
-                config.prune_failed_graph,
-                self.start_depth,
-                self.max_depth)
+                config.prune_failed_graph)
 
     def _solve(self):
         package_cache = PackageVariantCache(
@@ -250,45 +230,18 @@ class Resolver(object):
             package_load_callback=self.package_load_callback,
             building=self.building)
 
-        kwargs = dict(package_requests=self.package_requests,
-                      package_cache=package_cache,
-                      package_paths=self.package_paths,
-                      timestamp=self.timestamp,
-                      callback=self.callback,
-                      package_load_callback=self.package_load_callback,
-                      building=self.building,
-                      verbosity=self.verbosity,
-                      prune_unfailed=config.prune_failed_graph,
-                      buf=self.buf)
-
-        if self.start_depth:
-            # perform an iterative solve, doubling search depth until a solution
-            # is found or all packages are exhausted
-            depth = self.start_depth
-
-            while True:
-                solver = Solver(max_depth=depth, **kwargs)
-                solver.pr.header("SOLVING TO DEPTH %d..." % depth)
-                solver.solve()
-
-                if not solver.is_partial \
-                        or solver.status == SolverStatus.solved \
-                        or self.max_depth and depth >= self.max_depth:
-                    break
-                else:
-                    depth *= 2
-                    if self.max_depth:
-                        depth = min(depth, self.max_depth)
-
-        elif self.max_depth:
-            # perform a solve that loads only the first N packages of any
-            # given package request in the solve
-            solver = Solver(max_depth=self.max_depth, **kwargs)
-            solver.solve()
-        else:
-            # perform a solve that loads all relevant packages
-            solver = Solver(**kwargs)
-            solver.solve()
+        # perform the solve
+        solver = Solver(package_requests=self.package_requests,
+                        package_cache=package_cache,
+                        package_paths=self.package_paths,
+                        timestamp=self.timestamp,
+                        callback=self.callback,
+                        package_load_callback=self.package_load_callback,
+                        building=self.building,
+                        verbosity=self.verbosity,
+                        prune_unfailed=config.prune_failed_graph,
+                        buf=self.buf)
+        solver.solve()
 
         return solver
 
