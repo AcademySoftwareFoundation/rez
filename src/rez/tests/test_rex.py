@@ -7,7 +7,8 @@ from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
 from rez.tests.util import TestBase, TempdirMixin
-from rez.utils.backcompat import convert_old_commands
+from rez.utils.backcompat import convert_old_commands, \
+    convert_old_environment_variable_references
 import inspect
 import textwrap
 import os
@@ -404,6 +405,36 @@ class TestRex(TestBase):
                                             annotate=False)
         self.assertEqual(rez_commands, expected)
 
+    def test_convert_old_environment_variable_references(self):
+        """Convert old style commands to rex"""
+        expected = ""
+        rez_commands = convert_old_environment_variable_references("")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "B"
+        rez_commands = convert_old_environment_variable_references("B")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "B:{env.C}"
+        rez_commands = convert_old_environment_variable_references("B:$C")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "{env.A}:B"
+        rez_commands = convert_old_environment_variable_references("$A:B")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "B:{env.A}"
+        rez_commands = convert_old_environment_variable_references("B:$A")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "{env.A}:B:{env.C}"
+        rez_commands = convert_old_environment_variable_references("$A:B:$C")
+        self.assertEqual(rez_commands, expected)
+
+        expected = "{env.C}:B:{env.A}"
+        rez_commands = convert_old_environment_variable_references("$C:B:$A")
+        self.assertEqual(rez_commands, expected)
+
 
 class TestRexFlattenEnvironment(TestBase, TempdirMixin):
 
@@ -480,6 +511,7 @@ def get_test_suites():
     suite.addTest(TestRex("test_9"))
     suite.addTest(TestRex("test_version_binding"))
     suite.addTest(TestRex("test_old_style_commands"))
+    suite.addTest(TestRex("test_convert_old_environment_variable_references"))
     suite.addTest(TestRexFlattenEnvironment("test_variable_undefined_remains_undefined"))
     suite.addTest(TestRexFlattenEnvironment("test_variable_defined_but_empty_remains_empty"))
     suites.append(suite)
