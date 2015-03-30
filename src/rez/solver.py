@@ -425,34 +425,21 @@ class _PackageVariantList(_Common):
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.package_paths)))
 
-    def get_intersection(self, range, max_packages=0):
+    def get_intersection(self, range):
         """Get a list of variants that intersect with the given range.
 
         Args:
             range (`VersionRange`): Package version range.
-            max_packages (int): Load only the first N packages found, ignored
-                if zero.
 
         Returns:
-            Two-tuple:
-            - List of `PackageVariant` objects, in descending version order;
-            - bool indicating whether there are packages still to be loaded. If
-                True, more packages could be loaded, if False then all packages
-                are loaded. This value can only be True when max_packages is
-                non-zero.
+            List of `PackageVariant` objects, in descending version order.
         """
         variants = []
-        num_packages = 0
-        is_partial = False
 
         for entry in self.entries:
             version, value = entry
             if version not in range:
                 continue
-
-            if max_packages and (num_packages >= max_packages):
-                is_partial = True
-                break
 
             if not isinstance(value, list):
                 package = value
@@ -475,9 +462,8 @@ class _PackageVariantList(_Common):
                     value.append(variant)
                 entry[1] = value
             variants.extend(value)
-            num_packages += 1
 
-        return (variants or None), is_partial
+        return variants or None
 
     def dump(self):
         print self.package_name
@@ -724,23 +710,15 @@ class PackageVariantCache(object):
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range, max_packages=0):
+    def get_variant_slice(self, package_name, range):
         """Get a list of variants from the cache.
 
         Args:
             package_name (str): Name of package.
             range (`VersionRange`): Package version range.
-            max_packages (int): Load only the first N packages found, ignored
-                if zero. The return object's `is_partial` method indicates
-                whether more packages could have been loaded.
 
         Returns:
-            Two-tuple containing:
-            - `_PackageVariantSlice` object;
-            - bool indicating whether there are packages still to be loaded. If
-                True, more packages could be loaded, if False then all packages
-                are loaded. This value can only be True when max_packages is
-                non-zero.
+            `_PackageVariantSlice` object.
         """
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
@@ -752,12 +730,12 @@ class PackageVariantCache(object):
                 package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
-        variants, is_partial = variant_list.get_intersection(range, max_packages)
+        variants = variant_list.get_intersection(range)
         if not variants:
             return None, False
 
         slice_ = _PackageVariantSlice(package_name, variants=variants)
-        return slice_, is_partial
+        return slice_
 
 
 class _PackageScope(_Common):
@@ -1519,8 +1497,8 @@ class Solver(_Common):
 
     def __init__(self, package_requests, package_paths, timestamp=0,
                  callback=None, building=False, optimised=True, verbosity=0,
-                 buf=None, package_load_callback=None, max_depth=0,
-                 package_cache=None, prune_unfailed=True):
+                 buf=None, package_load_callback=None, package_cache=None,
+                 prune_unfailed=True):
         """Create a Solver.
 
         Args:
@@ -1541,10 +1519,6 @@ class Solver(_Common):
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
-            max_depth (int): If non-zero, this value limits the number of packages
-                that can be loaded for any given package name. This effectively
-                trims the search space - only the highest N package versions are
-                searched. See associated `is_partial` property.
             package_cache (`PackageVariantCache`): Provided variant cache. The
                 `Resolver` may use this to share a single cache across several
                 `Solver` instances.
@@ -1558,7 +1532,6 @@ class Solver(_Common):
         self.optimised = optimised
         self.timestamp = timestamp
         self.callback = callback
-        self.max_depth = max_depth
         self.prune_unfailed = prune_unfailed
         self.request_list = None
 
@@ -1571,7 +1544,6 @@ class Solver(_Common):
         self.solve_time = None
         self.load_time = None
         self.solve_begun = None
-        self._is_partial = False
         self._init()
 
         if package_cache:
@@ -1653,15 +1625,6 @@ class Solver(_Common):
     def cyclic_fail(self):
         """Return True if the solve failed due to a cycle, False otherwise."""
         return (self.phase_stack[-1].status == SolverStatus.cyclic)
-
-    @property
-    def is_partial(self):
-        """Returns True if this solve is 'partial'.
-
-        This means that more packages could have been loaded during the solve,
-        but they were not, due to the value of `max_depth`.
-        """
-        return self._is_partial
 
     @property
     def resolved_packages(self):
@@ -1887,18 +1850,15 @@ class Solver(_Common):
 
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
-        slice, is_partial = self.package_cache.get_variant_slice(
-            package_name=package_name,
-            range=range,
-            max_packages=self.max_depth)
+        slice_ = self.package_cache.get_variant_slice(package_name=package_name,
+                                                      range=range)
 
-        if slice is not None:
-            slice.pr = self.pr
-            self._is_partial |= is_partial
+        if slice_ is not None:
+            slice_.pr = self.pr
 
         end_time = time.time()
         self.load_time += (end_time - start_time)
-        return slice
+        return slice_
 
     def _push_phase(self, phase):
         depth = len(self.phase_stack)

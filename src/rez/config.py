@@ -201,8 +201,6 @@ config_schema = Schema({
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
     "resource_caching_maxsize":                     Int,
-    "resolve_max_depth":                            Int,
-    "resolve_start_depth":                          Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,
     "memcached_context_file_min_compress_len":      Int,
