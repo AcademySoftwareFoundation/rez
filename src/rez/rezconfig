@@ -195,14 +195,13 @@ env_var_separators:
     CMAKE_MODULE_PATH: ';'
     DOXYGEN_TAGFILES: ' '
 
-# Defines what suites on $PATH stay visible when a context in a suite is sourced.
+# Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
 # - 'never':   			Don't attempt to keep any suites visible in a new env
 # - 'always':  			Keep suites visible in any new env
 # - 'parent':  			Keep only the parent suite of a tool visible
 # - 'parent_priority':  Keep all suites visible and the parent takes precedence
 suite_visibility: always
-
 
 
 ###############################################################################
