@@ -4,7 +4,7 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_info_keys
+    package_release_keys
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
@@ -612,6 +612,7 @@ class FileSystemPackageRepository(PackageRepository):
         installed_variant_index = None
         existing_package_data = None
         existing_variants_data = None
+        release_data = {}
         new_package_data = variant.parent.validated_data()
         new_package_data.pop("variants", None)
         package_changed = False
@@ -623,9 +624,15 @@ class FileSystemPackageRepository(PackageRepository):
             data_1 = existing_package_data.copy()
             data_2 = new_package_data.copy()
 
-            for attr in package_release_info_keys + ("base", "variants"):
-                data_1.pop(attr, None)
-                data_2.pop(attr, None)
+            for key in package_release_keys:
+                data_2.pop(key, None)
+                value = data_1.pop(key, None)
+                if value is not None:
+                    release_data[key] = value
+
+            for key in ("base", "variants"):
+                data_1.pop(key, None)
+                data_2.pop(key, None)
             package_changed = (data_1 != data_2)
 
         # special case - installing a no-variant pkg into a no-variant pkg
@@ -657,7 +664,6 @@ class FileSystemPackageRepository(PackageRepository):
                 # graft together new package data, with existing package variants,
                 # and other data that needs to stay unchanged (eg timestamp)
                 package_data = new_package_data
-                package_data["timestamp"] = existing_package_data.get("timestamp")
                 package_data["variants"] = existing_package_data.get("variants", [])
             else:
                 package_data = existing_package_data
@@ -668,6 +674,10 @@ class FileSystemPackageRepository(PackageRepository):
 
         if dry_run:
             return None
+
+        # merge existing release data (if any) into the package. Note that when
+        # this data becomes variant-specific, this step will no longer be needed
+        package_data.update(release_data)
 
         # merge the new variant into the package
         if installed_variant_index is None and variant.index is not None:
