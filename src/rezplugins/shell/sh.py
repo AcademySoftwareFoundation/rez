@@ -83,7 +83,7 @@ class SH(UnixShell):
             source_bind_files=False)
 
     def _bind_interactive_rez(self):
-        if config.prompt:
+        if self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("PS1", "\\h:\\w]$ ")
             if not stored_prompt:

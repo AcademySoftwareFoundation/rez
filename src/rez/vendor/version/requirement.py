@@ -189,11 +189,7 @@ class Requirement(_Common):
         """Return a string representation that is safe for the current filesystem,
         and guarantees that no two different Requirement objects will encode to
         the same value."""
-        import platform
-        if platform.system() == "Windows":
-            raise NotImplementedError
-        else:
-            return safe_str(str(self))
+        return safe_str(str(self))
 
     def conflicts_with(self, other):
         """Returns True if this requirement conflicts with another."""

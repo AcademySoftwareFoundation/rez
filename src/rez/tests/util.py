@@ -38,14 +38,18 @@ class TempdirMixin(object):
             shutil.rmtree(cls.root)
 
 
-def shell_dependent(fn):
+def shell_dependent(exclude=None):
     """Function decorator that runs the function over all shell types."""
-    def _fn(self, *args, **kwargs):
-        for shell in get_shell_types():
-            print "\ntesting in shell: %s..." % shell
-            config.override("default_shell", shell)
-            fn(self, *args, **kwargs)
-    return _fn
+    def decorator(func):
+        def wrapper(self, *args, **kwargs):
+            for shell in get_shell_types():
+                if exclude and shell in exclude:
+                    self.skipTest("This test does not run on %s shell." % shell)
+                print "\ntesting in shell: %s..." % shell
+                config.override("default_shell", shell)
+                func(self, *args, **kwargs)
+        return wrapper
+    return decorator
 
 
 def install_dependent(fn):

@@ -72,7 +72,7 @@ class System(object):
         from rez.shells import get_shell_types
         shells = set(get_shell_types())
         if not shells:
-            raise RezSystemError("no shells available")
+            return "cmd"
 
         if self.platform == "windows":
             raise NotImplementedError
@@ -198,10 +198,10 @@ class System(object):
         binpath = None
         if sys.argv and sys.argv[0]:
             executable = sys.argv[0]
-            path = os.path.dirname(executable)
-            rezolve_exe = os.path.join(path, "rezolve")
-            if os.path.exists(rezolve_exe):
-                binpath = path
+            path = which("rezolve", env={"PATH":os.path.dirname(executable),
+                                         "PATHEXT":os.environ.get("PATHEXT",
+                                                                  "")})
+            binpath = os.path.dirname(path)
 
         # TODO: improve this, could still pick up non-production 'rezolve'
         if not binpath:

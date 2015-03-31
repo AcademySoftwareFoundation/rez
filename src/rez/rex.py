@@ -13,6 +13,7 @@ from rez.util import shlex_join
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.utils.logging_ import print_debug
+from rez.utils.platform_ import platform_
 from rez.vendor.enum import Enum
 from rez.contrib.animallogic.flattener import get_flattener_for_variable
 
@@ -300,11 +301,6 @@ class ActionManager(object):
             key, value = unexpanded_key, unexpanded_value
         self.interpreter.resetenv(key, value)
 
-    # we assume that ${THIS} is a valid variable ref in all shells
-    @staticmethod
-    def _keytoken(key):
-        return "${%s}" % key
-
     def _pendenv(self, key, value, action, interpfunc, addfunc):
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
@@ -401,6 +397,9 @@ class ActionManager(object):
     def shebang(self):
         self.actions.append(Shebang())
         self.interpreter.shebang()
+
+    def _keytoken(self, key):
+        return self.interpreter.get_key_token(key)
 
 
 #===============================================================================
@@ -633,6 +632,13 @@ class Python(ActionInterpreter):
 
     def shebang(self):
         pass
+
+    def get_key_token(self, key):
+        # Not sure if this actually needs to be returned here.  Prior to the
+        # Windows refactor this is the value this interpretter was receiving,
+        # but the concept doesn't really feel applicable to Python.  It's just
+        # here because the API requires it.
+        return "${%s}" % key
 
 
 #===============================================================================
@@ -1201,6 +1207,12 @@ class RexExecutor(object):
     def flatten(self, tmpdir, variables=None):
         def _debug(s):
             print_debug(s, module="flatten_env")
+
+        # Due to os.symlink issues on Windows it is not possible to flatten the
+        # environment.  So we ensure flattening is skipped regardless of the
+        # setting in the config file.
+        if platform_.name == "windows":
+            return
 
         variables = config.flatten_env_vars if not variables else variables
 

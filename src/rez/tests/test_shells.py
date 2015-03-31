@@ -9,11 +9,11 @@ from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
 from rez.rex import RexExecutor, literal, expandable
 import rez.vendor.unittest2 as unittest
-from rez.vendor.sh import sh
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.util import which
 from rez.bind import hello_world
+from rez.platform_ import platform_
 import subprocess
 import tempfile
 import inspect
@@ -52,7 +52,7 @@ class TestShells(TestBase, TempdirMixin):
         from rez.config import config
         return ResolvedContext(pkgs, caching=False)
 
-    @shell_dependent
+    @shell_dependent()
     def test_no_output(self):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
@@ -67,8 +67,12 @@ class TestShells(TestBase, TempdirMixin):
                 "startup scripts are printing to stdout. Please remove the "
                 "printout and try again.")
 
-    @shell_dependent
+    @shell_dependent(exclude=["cmd"])
     def test_command(self):
+        # TODO: issues with binding the 'hello_world' package means it is not
+        # possible to run this test on Windows.  The 'hello_world' executable
+        # is not registered correctly on Windows so always returned the
+        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -78,8 +82,12 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
-    @shell_dependent
+    @shell_dependent(exclude=["cmd"])
     def test_command_returncode(self):
+        # TODO: issues with binding the 'hello_world' package means it is not
+        # possible to run this test on Windows.  The 'hello_world' executable
+        # is not registered correctly on Windows so always returned the
+        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
@@ -92,7 +100,7 @@ class TestShells(TestBase, TempdirMixin):
                 p.wait()
                 self.assertEqual(p.returncode, 66)
 
-    @shell_dependent
+    @shell_dependent()
     def test_norc(self):
         sh = create_shell()
         _, norc, _, command = sh.startup_capabilities(norc=True, command=True)
@@ -104,7 +112,7 @@ class TestShells(TestBase, TempdirMixin):
                                 stdout=subprocess.PIPE)
             self.assertEqual(_stdout(p), "Hello Rez World!")
 
-    @shell_dependent
+    @shell_dependent()
     def test_stdin(self):
         sh = create_shell()
         _, _, stdin, _ = sh.startup_capabilities(stdin=True)
@@ -118,7 +126,7 @@ class TestShells(TestBase, TempdirMixin):
             stdout = stdout.strip()
             self.assertEqual(stdout, "Hello Rez World!")
 
-    @shell_dependent
+    @shell_dependent()
     def test_rcfile(self):
         sh = create_shell()
         rcfile, _, _, command = sh.startup_capabilities(rcfile=True, command=True)
@@ -135,9 +143,15 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(_stdout(p), "Hello Rez World!")
             os.remove(path)
 
-    @shell_dependent
+    @shell_dependent(exclude=["cmd"])
     @install_dependent
     def test_rez_env_output(self):
+        # TODO: this test does not run on Windows using the CMD shell as it
+        # does not accept commands from stdin.  Rather than explicitly skipping
+        # the test (via the decorator) perhaps we should check for startup
+        # capabilities as the other tests do.
+        from rez.vendor.sh import sh
+
         # here we are making sure that running a command via rez-env prints
         # exactly what we expect. We use 'sh' because subprocess strips special
         # characters such as color codes - we want to ensure that the output
@@ -152,7 +166,7 @@ class TestShells(TestBase, TempdirMixin):
         out = str(sh_out).strip()
         self.assertEqual(out, "hey")
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_rez_command(self):
         sh = create_shell()
@@ -168,7 +182,7 @@ class TestShells(TestBase, TempdirMixin):
             p.wait()
             self.assertEqual(p.returncode, 0)
 
-    @shell_dependent
+    @shell_dependent()
     def test_rex_code(self):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect."""
@@ -287,7 +301,7 @@ class TestShellsCommands(TestBase, TempdirMixin):
         return ResolvedContext(pkgs,
                                caching=False)
 
-    @shell_dependent
+    @shell_dependent()
     def test_escape_quoted_value_old_command(self):
         """Test that a command which contains quotes in the value gets escaped properly different shells
            from a old style resource definition (package.yaml) compatible with rez1
@@ -301,12 +315,13 @@ class TestShellsCommands(TestBase, TempdirMixin):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
-        context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
+        context_file = tempfile.mktemp(prefix='context_', suffix='.' + sh.file_extension())
+        env_command = "set" if platform_.name == "windows" else "env"
 
         if command:
             r = self._create_context(["shelltest"])
 
-            p = r.execute_shell(command="env", context_filepath=context_file)
+            p = r.execute_shell(command=env_command, context_filepath=context_file)
             p.wait()
             self.assertEqual(p.returncode, 0)
 
@@ -317,8 +332,10 @@ class TestShellsCommands(TestBase, TempdirMixin):
                         self.assertEqual(sh_expected, line.strip())
                     elif sh.name() in ['csh', 'tcsh']:
                         self.assertEqual(csh_expected, line.strip())
+                    # TODO: add a branch to the conditional for sh.name() == 'cmd' when this
+                    # shell has been updated to support quoting.
 
-    @shell_dependent
+    @shell_dependent()
     def test_escape_quoted_value_new_command(self):
         """Test that a command which contains quotes in the value gets escaped properly different shells
            from a new style resource definition (package.py)
@@ -338,12 +355,13 @@ class TestShellsCommands(TestBase, TempdirMixin):
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
 
-        context_file = tempfile.mktemp(prefix='context_', suffix='.rxt')
+        context_file = tempfile.mktemp(prefix='context_', suffix='.' + sh.file_extension())
+        env_command = "set" if platform_.name == "windows" else "env"
 
         if command:
             r = self._create_context(["shelltest2"])
 
-            p = r.execute_shell(command="env", context_filepath=context_file)
+            p = r.execute_shell(command=env_command, context_filepath=context_file)
             p.wait()
             self.assertEqual(p.returncode, 0)
 
@@ -359,6 +377,8 @@ class TestShellsCommands(TestBase, TempdirMixin):
                         self.assertEqual(escpaed_sh_expected, line.strip())
                     elif sh.name() in ['csh', 'tcsh']:
                         self.assertEqual(escpaed_csh_expected, line.strip())
+                    # TODO: add a branch to the conditional for sh.name() == 'cmd' when this
+                    # shell has been updated to support quoting.
 
 
 def get_test_suites():

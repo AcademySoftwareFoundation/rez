@@ -93,7 +93,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build("anti", "1.0.0")
         self._create_context("anti==1.0.0")
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_build_whack(self):
         """Test that a broken build fails correctly."""
@@ -101,7 +101,7 @@ class TestBuild(TestBase, TempdirMixin):
         builder = self._create_builder(working_dir)
         self.assertRaises(BuildError, builder.build, clean=True)
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_builds(self):
         """Test an interdependent set of builds."""
@@ -111,7 +111,7 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_loco()
         self._test_build_bah()
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_builds_anti(self):
         """Test we can

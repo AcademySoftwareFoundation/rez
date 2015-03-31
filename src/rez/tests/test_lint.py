@@ -80,7 +80,7 @@ class TestLintFailures(TestLint):
         self.assertConsumed((self.root, ["empty"]), consumed[0])
 
     def test_variable_with_duplicate_path(self):
-        os.environ[self.test_variable] = "/foo:/foo"
+        os.environ[self.test_variable] = os.pathsep.join(["/foo", "/foo"])
         consumed = linter(self.test_variable)
 
         self.assertEqual(2, len(consumed))

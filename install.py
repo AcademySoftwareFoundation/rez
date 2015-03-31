@@ -16,7 +16,9 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from build_utils.virtualenv.virtualenv import Logger, create_environment
+from rez.backport.shutilwhich import which
+from build_utils.virtualenv.virtualenv import Logger, create_environment, \
+    path_locations
 from build_utils.distlib.scripts import ScriptMaker
 
 
@@ -53,9 +55,9 @@ class _ScriptMaker(ScriptMaker):
 
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
-    venv_bin_path = os.path.join(dest_dir, "bin")
-    venv_py_executable = os.path.join(venv_bin_path, "python")
-    assert os.path.exists(venv_py_executable)
+    _, _, _, venv_bin_path = path_locations(dest_dir)
+    venv_py_executable = which("python", env={"PATH":venv_bin_path, 
+                                              "PATHEXT":os.environ.get("PATHEXT", "")})
 
     # delete rez bin files written by setuptools
     for name in bin_names:
@@ -126,8 +128,11 @@ if __name__ == "__main__":
     create_environment(dest_dir)
 
     # install rez from source
-    py_executable = os.path.join(dest_dir, "bin", "python")
-    setup_file=os.path.join('@CMAKE_CURRENT_BINARY_DIR@','setup.py')
+    _, _, _, venv_bin_dir = path_locations(dest_dir)
+    py_executable = which("python", env={"PATH":venv_bin_dir,
+                                         "PATHEXT":os.environ.get("PATHEXT",
+                                                                  "")})
+    setup_file = os.path.join('@CMAKE_CURRENT_BINARY_DIR@','setup.py')
     args = [py_executable, setup_file, "install"]
     if opts.verbose:
         print "running in %s: %s" % (source_path, " ".join(args))
@@ -141,7 +146,7 @@ if __name__ == "__main__":
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark venv as production rez install. Do not remove - rez uses this!
-    dest_bin_dir = os.path.join(dest_dir, "bin", "rez")
+    dest_bin_dir = os.path.join(venv_bin_dir, "bin", "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)

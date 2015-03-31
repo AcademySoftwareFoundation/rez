@@ -36,6 +36,7 @@ class TestSyncer(unittest.TestCase):
                                                        StubToolsetProxy())
         self.rez_service = StubRezService(self.resolved_packages)
         self.temp_fd, self.temp_name = tempfile.mkstemp()
+        os.close(self.temp_fd)
 
     def tearDown(self):
 
@@ -67,9 +68,8 @@ class TestSyncer(unittest.TestCase):
 
     def test_write_sync_file_without_head_and_tail(self):
 
-        fd = open(self.temp_name, "w")
-        fd.writelines(["abc\n"])
-        fd.close()
+        with open(self.temp_name, "w") as fd:
+            fd.writelines(["abc\n"])
 
         syncer = Syncer(self.launcher_service, self.rez_service, relative_path="/film/")
 
@@ -81,9 +81,8 @@ class TestSyncer(unittest.TestCase):
 
     def test_write_sync_file_with_head_and_tail(self):
 
-        fd = open(self.temp_name, "w")
-        fd.writelines(["abc\n\n# Start Rez Automated Package Sync List.\ntools/packages/package_1/1.2.3\n# End Rez Automated Package Sync List.\n\ndef\n"])
-        fd.close()
+        with open(self.temp_name, "w") as fd:
+            fd.writelines(["abc\n\n# Start Rez Automated Package Sync List.\ntools/packages/package_1/1.2.3\n# End Rez Automated Package Sync List.\n\ndef\n"])
 
         syncer = Syncer(self.launcher_service, self.rez_service, relative_path="/film/")
 
@@ -95,10 +94,10 @@ class TestSyncer(unittest.TestCase):
 
     def assert_files_equal(self, expected_name):
 
-        fd = open(self.temp_name)
-        actual_lines = fd.readlines()
+        with open(self.temp_name) as fd:
+            actual_lines = fd.readlines()
 
-        fd = open(expected_name)
-        expected_lines = fd.readlines()
+        with open(expected_name) as fd:
+            expected_lines = fd.readlines()
 
         self.assertEqual(expected_lines, actual_lines)

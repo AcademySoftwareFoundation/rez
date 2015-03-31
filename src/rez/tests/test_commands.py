@@ -7,6 +7,10 @@ import os
 
 
 class TestCommands(TestBase):
+    # Note some tests use a hardcoded '/' path separator instead of
+    # os.path.join.  This is because they are being compared against
+    # baked commands in existing package.yaml|py files in the data
+    # directory where the separator is static.
 
     @classmethod
     def get_packages_path(cls):
@@ -64,7 +68,7 @@ class TestCommands(TestBase):
                 Setenv('REXTEST_ROOT', base),
                 Setenv('REXTEST_VERSION', verstr),
                 Setenv('REXTEST_MAJOR_VERSION', str(pkg.version[0])),
-                Setenv('REXTEST_DIRS', os.path.join(base, "data")),
+                Setenv('REXTEST_DIRS', "/".join([base, "data"])),
                 Alias('rextest', 'foobar')]
         return cmds
 
@@ -112,10 +116,10 @@ class TestCommands(TestBase):
                 Setenv('REXTEST_ROOT', base),
                 Setenv('REXTEST_VERSION', "1.3"),
                 Setenv('REXTEST_MAJOR_VERSION', "1"),
-                Setenv('REXTEST_DIRS', os.path.join(base, "data")),
+                Setenv('REXTEST_DIRS', "/".join([base, "data"])),
                 Alias('rextest', 'foobar'),
                 # rextext2's commands
-                Appendenv('REXTEST_DIRS', os.path.join(base2, "data2")),
+                Appendenv('REXTEST_DIRS', "/".join([base2, "data2"])),
                 Setenv('REXTEST2_REXTEST_VER', '1.3'),
                 Setenv('REXTEST2_REXTEST_BASE',
                        os.path.join(self.packages_path, "rextest", "1.3"))]

@@ -44,7 +44,7 @@ class TestRelease(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_1(self):
         """Basic release."""
