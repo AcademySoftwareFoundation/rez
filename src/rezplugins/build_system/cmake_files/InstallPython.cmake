@@ -58,6 +58,10 @@ macro (install_python)
 		message(FATAL_ERROR "no files listed in call to install_python")
 	endif(NOT INSTPY_FILES)
 
+	if($ENV{REZ_BUILD_INSTALL_PYC})
+		set(install_pyc 1)
+	endif($ENV{REZ_BUILD_INSTALL_PYC})
+
 	list(GET INSTPY_BIN 0 py_bin)
 
 	# cancel compiling if local symlinking enabled
@@ -103,11 +107,11 @@ macro (install_python)
 				DEPENDS ${fabs}
 			)
 
-			install(
-				FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc}
-				DESTINATION ${target_path})
+			if(install_pyc)
+				install(FILES ${CMAKE_CURRENT_BINARY_DIR}/${local_fc} DESTINATION ${target_path})
+				list(APPEND pycfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_fc})
+			endif(install_pyc)
 
-			list(APPEND pycfiles ${CMAKE_CURRENT_BINARY_DIR}/${local_fc})
 
 		endforeach(f ${INSTPY_FILES})
 
