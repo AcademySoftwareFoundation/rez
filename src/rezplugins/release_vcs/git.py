@@ -178,8 +178,13 @@ class GitReleaseVCS(ReleaseVCS):
         if prev_commit:
             # git returns logs to last common ancestor, so even if previous
             # release was from a different branch, this is ok
-            commit_range = "%s..HEAD" % prev_commit
-            stdout = self.git("log", commit_range)
+            try:
+                commit_range = "%s..HEAD" % prev_commit
+                stdout = self.git("log", commit_range)
+            except ReleaseVCSError:
+                # Special case where the sha stored in the latest version does not exists due to the
+                # git ->github migration where we rewrote the history of the repos
+                stdout = self.git("log")
         else:
             stdout = self.git("log")
         return '\n'.join(stdout)
@@ -246,10 +251,15 @@ class GitReleaseVCS(ReleaseVCS):
         previous_commit = (previous_revision or {}).get("commit")
 
         if previous_commit:
-            hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
-            for hash_ in hashes:
-                commit_detail = self.git("log", hash_, "--name-only", "--no-merges", "-1", "--pretty=%s" % self.settings.commit_details_format)
-                commit_details.append("\n".join(commit_detail))
+            try:
+                hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
+                for hash_ in hashes:
+                    commit_detail = self.git("log", hash_, "--name-only", "--no-merges", "-1", "--pretty=%s" % self.settings.commit_details_format)
+                    commit_details.append("\n".join(commit_detail))
+            except ReleaseVCSError:
+                # Special case where the sha stored in the latest version does not exists due to the
+                # git ->github migration where we rewrote the history of the repos
+                pass
 
         return commit_details
 
@@ -258,14 +268,19 @@ class GitReleaseVCS(ReleaseVCS):
         previous_commit = (previous_revision or {}).get("commit")
 
         if previous_commit:
-            hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
-            for hash_ in hashes:
-                log = self.git("log", hash_, "--no-merges", "-1", "--pretty=format:%an: %s")
-                message = self._get_release_message_from_log(log[0])
+            try:
+                hashes = self.git("log", "-n", "100", "%s.." % previous_commit, "--no-merges", "--reverse",  "--pretty=%H", ".")
+                for hash_ in hashes:
+                    log = self.git("log", hash_, "--no-merges", "-1", "--pretty=format:%an: %s")
+                    message = self._get_release_message_from_log(log[0])
 
-                if message:
-                    author = self._get_author_from_log(log[0])
-                    automatic_release_comments.append([author, message])
+                    if message:
+                        author = self._get_author_from_log(log[0])
+                        automatic_release_comments.append([author, message])
+            except ReleaseVCSError:
+                # Special case where the sha stored in the latest version does not exists due to the
+                # git ->github migration where we rewrote the history of the repos
+                pass
 
         return automatic_release_comments
 
