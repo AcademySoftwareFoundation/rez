@@ -13,8 +13,8 @@ import os.path
 
 
 
-# package attributes related to release info
-package_release_info_keys = (
+# package attributes created at release time
+package_release_keys = (
     "timestamp",
     'revision',
     'changelog',

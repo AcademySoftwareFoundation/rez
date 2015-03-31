@@ -1,7 +1,7 @@
 
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
-from rez.package_resources_ import package_release_info_keys
+from rez.package_resources_ import package_release_keys
 from rez.package_repository import create_memory_package_repository
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
@@ -216,7 +216,7 @@ class TestPackages(TestBase, TempdirMixin):
 
         def _data(obj):
             d = obj.validated_data()
-            keys = package_release_info_keys + ("base",)
+            keys = package_release_keys + ("base",)
             for key in keys:
                 d.pop(key, None)
             return d
