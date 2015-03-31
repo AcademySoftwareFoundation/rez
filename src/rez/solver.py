@@ -121,7 +121,7 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList, extract_family_name_from_requirements
 from rez.vendor.enum import Enum
@@ -765,7 +765,7 @@ class Cycle(FailureReason):
 
 class PackageVariant(_Common):
     """A variant of a package."""
-    def __init__(self, name, version, requires, index=None, unsorted_index=None, userdata=None):
+    def __init__(self, name, version, requires, index=None, userdata=None):
         """Create a package variant.
 
         Args:
@@ -774,14 +774,11 @@ class PackageVariant(_Common):
             requires: List of strings representing the package dependencies.
             index: Zero-based index of the variant within this package. If
                 None, this package does not have variants.
-            unsorted_index: auxiliary index to help restoring the original index before
-             the Variant Sorting algorithm has run
             userdata: Arbitrary extra data to attach to the variant.
         """
         self.name = name
         self.version = version
         self.index = index
-        self.unsorted_index = unsorted_index
         self.userdata = userdata
         self.requires_list = RequirementList(requires)
 
@@ -818,12 +815,15 @@ class PackageVariant(_Common):
 
 
 class _PackageVariantList(_Common):
-    """A sorted list of package variants, loaded lazily."""
-    def __init__(self, package_name, package_paths=None, package_requests=None, timestamp=0,
+    """A list of package variants, loaded lazily.
+
+    Variants are sorted by descending version. However sorting within a version
+    is not done here - that only happens on a split().
+    """
+    def __init__(self, package_name, package_paths=None, timestamp=0,
                  building=False, package_load_callback=None):
         self.package_name = package_name
         self.package_paths = package_paths
-        self.package_requests = package_requests
         self.timestamp = timestamp
         self.building = building
         self.package_load_callback = package_load_callback
@@ -848,58 +848,34 @@ class _PackageVariantList(_Common):
         """
         variants = []
 
-        for i, entry in enumerate(self.entries):
+        for entry in self.entries:
             version, value = entry
             if version not in range:
                 continue
 
-            if not isinstance(value, list):
+            if isinstance(value, list):
+                variants.extend(value)
+            else:
+                # expand package entry into list of variants
                 package = value
                 if self.package_load_callback:
                     self.package_load_callback(package)
 
-                # access to timestamp causes a package load
                 if self.timestamp and package.timestamp > self.timestamp:
-                    continue
+                    continue  # access to timestamp causes a package load
 
-                # Remove the current package from the package_requests ..since it can not appear in its variants.
-                # probably no much gain and we are creating a new list.. might remove this line?
-                package_requests = [r for r in self.package_requests if r.name != package.name]
-
-                variants_to_sort = []
-                original_variants = []
+                variants_ = []
                 for var in package.iter_variants():
-                    requires = var.get_requires(
-                        build_requires=self.building)
-                    variants_to_sort.append(requires)
-                    original_variants.append(var)
-
-                if any(variants_to_sort):
-                    sorted_variants = VariantSorter(variants_to_sort, package_requests).sort_variants()
-                else:
-                    sorted_variants = variants_to_sort
-
-                value = []
-                for var in original_variants:
-                    # Map the variants to the new indexes in the sorted_variants
-                    new_index = var.index
-                    original_requires = var.get_requires(build_requires=self.building)
-                    if var.index is not None:
-                        new_index = sorted_variants.index(original_requires)
-
+                    requires = var.get_requires(build_requires=self.building)
                     userdata = var.handle.to_dict()
                     variant = PackageVariant(name=self.package_name,
                                              version=var.version,
-                                             requires=original_requires,
-                                             index=new_index,
-                                             unsorted_index=var.index,
+                                             requires=requires,
+                                             index=var.index,
                                              userdata=userdata)
-                    value.append(variant)
-
-                # sort all now by version and variant
-                value = sorted(value, key=lambda v: (v.version, v.index))
-                entry[1] = value
-            variants.extend(value)
+                    variants_.append(variant)
+                entry[1] = variants_
+                variants.extend(variants_)
 
         return variants or None
 
@@ -1040,43 +1016,84 @@ class _PackageVariantSlice(_Common):
         else:
             return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the slice."""
-        # assert(not self.extractable)
         if len(self.variants) == 1:
             return None
-        else:
-            it = enumerate(self.variants)
-            latest_variant = it.next()[1]
-            split_fams = None
-            nleading = 1
 
-            if len(self.variants) > 2:
-                fams = latest_variant.request_fams - self.extracted_fams
-                if fams:
-                    for j, variant in it:
-                        next_fams = variant.request_fams & fams
-                        if next_fams:
-                            fams = next_fams
-                        else:
-                            split_fams = fams
-                            nleading = j
-                            break
+        self.sort_variants(package_requests)
+        it = enumerate(self.variants)
+        latest_variant = it.next()[1]
+        split_fams = None
+        nleading = 1
 
-            slice_ = self._copy(self.variants[:nleading])
-            next_slice = self._copy(self.variants[nleading:])
+        if len(self.variants) > 2:
+            fams = latest_variant.request_fams - self.extracted_fams
+            if fams:
+                for j, variant in it:
+                    next_fams = variant.request_fams & fams
+                    if next_fams:
+                        fams = next_fams
+                    else:
+                        split_fams = fams
+                        nleading = j
+                        break
 
-            if self.pr:
-                s = "split %s into %s and %s"
-                a = [self, slice_, next_slice]
-                if split_fams is None:
-                    s += " on leading variant"
-                else:
-                    s += " on %d leading variants with common dependencies: %s"
-                    a.extend([nleading, ", ".join(split_fams)])
-                self.pr(s, *a)
+        slice_ = self._copy(self.variants[:nleading])
+        next_slice = self._copy(self.variants[nleading:])
 
-            return (slice_, next_slice)
+        if self.pr:
+            s = "split %s into %s and %s"
+            a = [self, slice_, next_slice]
+            if split_fams is None:
+                s += " on leading variant"
+            else:
+                s += " on %d leading variants with common dependencies: %s"
+                a.extend([nleading, ", ".join(split_fams)])
+            self.pr(s, *a)
+
+        return (slice_, next_slice)
+
+    def sort_variants(self, package_requests):
+        """Sort variants from most correct to consume, to least.
+
+        Note:
+            Assumes self.variants is already in version-descending order.
+        """
+        def key(variant):
+            k1 = []
+            names = set()
+            for i, request in enumerate(package_requests):
+                if not request.conflict:
+                    req = variant.requires_list.get(request.name)
+                    if req is not None:
+                        k1.append((-i, req.range))
+                        names.add(req.name)
+
+            k2 = []
+            for request in variant.requires_list:
+                if not request.conflict and request.name not in names:
+                    k2.append(request.range)
+
+            k = (k1, -len(k2), k2, variant.index)
+            return k
+
+        # (a) sort by highest versions of packages in current requests list
+        #     AND variant requires;
+        # (b) followed by least number of additional packages added to solve;
+        # (c) followed by highest versions of additional packages;
+        # (d) folowed by index (at this point we only need to sort on something
+        #     arbitrary, but repeatable).
+        variants2 = []
+        for _, it in groupby(self.variants, lambda x: x.version):
+            variants3 = list(it)
+            if len(variants3) == 1:
+                variants2.extend(variants3)
+            else:
+                variants4 = sorted(variants3, key=key, reverse=True)
+                variants2.extend(variants4)
+
+        self.variants = variants2
 
     def dump(self):
         print self.package_name
@@ -1140,10 +1157,9 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, package_paths, package_requests=None, timestamp=0,
-                 building=False, package_load_callback=None):
+    def __init__(self, package_paths, timestamp=0, building=False, 
+                 package_load_callback=None):
         self.package_paths = package_paths
-        self.package_requests = package_requests
         self.timestamp = timestamp
         self.building = building
         self.package_load_callback = package_load_callback
@@ -1163,7 +1179,6 @@ class PackageVariantCache(object):
         if variant_list is None:
             variant_list = _PackageVariantList(
                 package_name,
-                package_requests=self.package_requests,
                 package_paths=self.package_paths,
                 timestamp=self.timestamp,
                 building=self.building,
@@ -1289,18 +1304,18 @@ class _PackageScope(_Common):
 
         return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the scope.
 
         Returns:
-            A (_PackageScope,_PackageScope) tuple, where the first scope is
+            A (_PackageScope, _PackageScope) tuple, where the first scope is
             guaranteed to have a common dependency. Or None, if splitting is
             not applicable to this scope.
         """
         if self.package_request.conflict or (len(self.variant_slice) == 1):
             return None
         else:
-            r = self.variant_slice.split()
+            r = self.variant_slice.split(package_requests)
             if r is None:
                 return None
             else:
@@ -1609,7 +1624,7 @@ class _ResolvePhase(_Common):
 
         for i, scope in enumerate(self.scopes):
             if split is None:
-                r = scope.split()
+                r = scope.split(self.solver.package_requests)
                 if r is not None:
                     scope_, next_scope = r
                     scopes.append(scope_)
@@ -1991,7 +2006,6 @@ class Solver(_Common):
         else:
             self.package_cache = PackageVariantCache(
                 self.package_paths,
-                package_requests=self.package_requests,
                 timestamp=timestamp,
                 package_load_callback=package_load_callback,
                 building=building)
@@ -2153,8 +2167,6 @@ class Solver(_Common):
                 s = SolverState(self.num_solves, self.num_fails, new_phase)
                 self.pr.important(str(s))
 
-        # Finished solving, revert the indexed changed by the variant solving algorithm
-        self._revert_sorted_indexes()
         end_time = time.time()
         self.solve_time += (end_time - start_time)
 
@@ -2353,18 +2365,6 @@ class Solver(_Common):
             depth = len(self.phase_stack) - 1
         count = self.depth_counts[depth]
         return "{%d,%d}" % (depth,count)
-
-    def _revert_sorted_indexes(self):
-        # We changed the index to help the solver pick the 'preferred' variant
-        # Restore the original index from the unsorted_index.
-
-        # Get the last (succeeded or failed) phase
-        final_phase = self.phase_stack[-1]
-
-        for scope in final_phase.scopes:
-            variant = scope._get_solved_variant()
-            if variant:
-                variant.index = variant.unsorted_index
 
     def __str__(self):
         return "%s %s %s" % (self.status,

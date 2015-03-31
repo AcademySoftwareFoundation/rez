@@ -370,6 +370,10 @@ class RequirementList(_Common):
         """Set of conflict requirement names."""
         return self.conflict_names_
 
+    def __iter__(self):
+        for requirement in self.requirements_:
+            yield requirement
+
     def get(self, name):
         """Returns the Requirement for the given object, or None.
         """
