@@ -121,7 +121,7 @@ from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
@@ -407,7 +407,11 @@ class PackageVariant(_Common):
 
 
 class _PackageVariantList(_Common):
-    """A sorted list of package variants, loaded lazily."""
+    """A list of package variants, loaded lazily.
+
+    Variants are sorted by descending version. However sorting within a version
+    is not done here - that only happens on a split().
+    """
     def __init__(self, package_name, package_paths=None, timestamp=0,
                  building=False, package_load_callback=None):
         self.package_name = package_name
@@ -441,16 +445,18 @@ class _PackageVariantList(_Common):
             if version not in range:
                 continue
 
-            if not isinstance(value, list):
+            if isinstance(value, list):
+                variants.extend(value)
+            else:
+                # expand package entry into list of variants
                 package = value
                 if self.package_load_callback:
                     self.package_load_callback(package)
 
-                # access to timestamp causes a package load
                 if self.timestamp and package.timestamp > self.timestamp:
-                    continue
+                    continue  # access to timestamp causes a package load
 
-                value = []
+                variants_ = []
                 for var in package.iter_variants():
                     requires = var.get_requires(build_requires=self.building)
                     userdata = var.handle.to_dict()
@@ -459,9 +465,9 @@ class _PackageVariantList(_Common):
                                              requires=requires,
                                              index=var.index,
                                              userdata=userdata)
-                    value.append(variant)
-                entry[1] = value
-            variants.extend(value)
+                    variants_.append(variant)
+                entry[1] = variants_
+                variants.extend(variants_)
 
         return variants or None
 
@@ -602,43 +608,84 @@ class _PackageVariantSlice(_Common):
         else:
             return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the slice."""
-        # assert(not self.extractable)
         if len(self.variants) == 1:
             return None
-        else:
-            it = enumerate(self.variants)
-            latest_variant = it.next()[1]
-            split_fams = None
-            nleading = 1
 
-            if len(self.variants) > 2:
-                fams = latest_variant.request_fams - self.extracted_fams
-                if fams:
-                    for j, variant in it:
-                        next_fams = variant.request_fams & fams
-                        if next_fams:
-                            fams = next_fams
-                        else:
-                            split_fams = fams
-                            nleading = j
-                            break
+        self.sort_variants(package_requests)
+        it = enumerate(self.variants)
+        latest_variant = it.next()[1]
+        split_fams = None
+        nleading = 1
 
-            slice_ = self._copy(self.variants[:nleading])
-            next_slice = self._copy(self.variants[nleading:])
+        if len(self.variants) > 2:
+            fams = latest_variant.request_fams - self.extracted_fams
+            if fams:
+                for j, variant in it:
+                    next_fams = variant.request_fams & fams
+                    if next_fams:
+                        fams = next_fams
+                    else:
+                        split_fams = fams
+                        nleading = j
+                        break
 
-            if self.pr:
-                s = "split %s into %s and %s"
-                a = [self, slice_, next_slice]
-                if split_fams is None:
-                    s += " on leading variant"
-                else:
-                    s += " on %d leading variants with common dependencies: %s"
-                    a.extend([nleading, ", ".join(split_fams)])
-                self.pr(s, *a)
+        slice_ = self._copy(self.variants[:nleading])
+        next_slice = self._copy(self.variants[nleading:])
 
-            return (slice_, next_slice)
+        if self.pr:
+            s = "split %s into %s and %s"
+            a = [self, slice_, next_slice]
+            if split_fams is None:
+                s += " on leading variant"
+            else:
+                s += " on %d leading variants with common dependencies: %s"
+                a.extend([nleading, ", ".join(split_fams)])
+            self.pr(s, *a)
+
+        return (slice_, next_slice)
+
+    def sort_variants(self, package_requests):
+        """Sort variants from most correct to consume, to least.
+
+        Note:
+            Assumes self.variants is already in version-descending order.
+        """
+        def key(variant):
+            k1 = []
+            names = set()
+            for i, request in enumerate(package_requests):
+                if not request.conflict:
+                    req = variant.requires_list.get(request.name)
+                    if req is not None:
+                        k1.append((-i, req.range))
+                        names.add(req.name)
+
+            k2 = []
+            for request in variant.requires_list:
+                if not request.conflict and request.name not in names:
+                    k2.append(request.range)
+
+            k = (k1, -len(k2), k2, variant.index)
+            return k
+
+        # (a) sort by highest versions of packages in current requests list
+        #     AND variant requires;
+        # (b) followed by least number of additional packages added to solve;
+        # (c) followed by highest versions of additional packages;
+        # (d) folowed by index (at this point we only need to sort on something
+        #     arbitrary, but repeatable).
+        variants2 = []
+        for _, it in groupby(self.variants, lambda x: x.version):
+            variants3 = list(it)
+            if len(variants3) == 1:
+                variants2.extend(variants3)
+            else:
+                variants4 = sorted(variants3, key=key, reverse=True)
+                variants2.extend(variants4)
+
+        self.variants = variants2
 
     def dump(self):
         print self.package_name
@@ -849,18 +896,18 @@ class _PackageScope(_Common):
 
         return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the scope.
 
         Returns:
-            A (_PackageScope,_PackageScope) tuple, where the first scope is
+            A (_PackageScope, _PackageScope) tuple, where the first scope is
             guaranteed to have a common dependency. Or None, if splitting is
             not applicable to this scope.
         """
         if self.package_request.conflict or (len(self.variant_slice) == 1):
             return None
         else:
-            r = self.variant_slice.split()
+            r = self.variant_slice.split(package_requests)
             if r is None:
                 return None
             else:
@@ -1169,7 +1216,7 @@ class _ResolvePhase(_Common):
 
         for i, scope in enumerate(self.scopes):
             if split is None:
-                r = scope.split()
+                r = scope.split(self.solver.package_requests)
                 if r is not None:
                     scope_, next_scope = r
                     scopes.append(scope_)
