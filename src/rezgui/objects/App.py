@@ -63,13 +63,19 @@ class App(QtGui.QApplication):
         if context:
             with self.status("Validating %s..." % filepath):
                 QtGui.QApplication.setOverrideCursor(busy_cursor)
+                error = None
+
                 try:
                     context.validate()
                 except ResolvedContextError as e:
-                    QtGui.QMessageBox.critical(self, "Context validation failure", str(e))
-                    context = None
+                    error = str(e)
                 finally:
                     QtGui.QApplication.restoreOverrideCursor()
+
+                if error:
+                    QtGui.QMessageBox.critical(
+                        self.main_window, "Context validation failure", error)
+                    context = None
 
         if context:
             path = os.path.realpath(filepath)

@@ -13,7 +13,8 @@ from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages_ import get_variant, iter_packages
 from rez.shells import create_shell
-from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
+from rez.exceptions import ResolvedContextError, PackageCommandError, RezError, \
+    ConfigurationError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.version import VersionRange
@@ -26,6 +27,15 @@ import time
 import sys
 import os
 import os.path
+
+
+class SuiteVisibility(Enum):
+    """Defines what suites on $PATH stay visible when a context in a suite is
+    sourced."""
+    never = 0               # Don't attempt to keep any suites visible in a new env
+    always = 1              # Keep suites visible in any new env
+    parent = 2              # Keep only the parent suite of a tool visible
+    parent_priority = 3     # Keep all suites visible and the parent takes precedence
 
 
 class PatchLock(Enum):
@@ -474,10 +484,10 @@ class ResolvedContext(object):
     @classmethod
     def load(cls, path):
         """Load a resolved context from file."""
-        try:
-            return cls._load(path)
-        except Exception as e:
-            cls._load_error(e, path)
+        with open(path) as f:
+            context = cls.read_from_buffer(f, path)
+        context.set_load_path(path)
+        return context
 
     @classmethod
     def read_from_buffer(cls, buf, identifier_str=None):
@@ -1443,10 +1453,39 @@ class ResolvedContext(object):
                     raise PackageCommandError(msg)
 
         _heading("post system setup")
-        # append suite path if there is an active parent suite
-        if self.parent_suite_path:
-            tools_path = os.path.join(self.parent_suite_path, "bin")
-            executor.env.PATH.append(tools_path)
+
+        # suite visibility (if this is a context in a suite, existing suite(s)
+        # may be kept on $PATH)
+        value = config.suite_visibility.lower()
+        try:
+            mode = SuiteVisibility[value]
+        except KeyError:
+            raise ConfigurationError("Invalid suite visiblity setting %r" % value)
+        if mode != SuiteVisibility.never:
+            from rez.suite import Suite
+
+            suite_paths = []
+            visible_suite_paths = Suite.visible_suite_paths()
+
+            if visible_suite_paths:
+                if mode == SuiteVisibility.always:
+                    for suite in visible_suite_paths:
+                        suite_paths.append(suite)
+                elif self.parent_suite_path:
+                    if mode == SuiteVisibility.parent:
+                        suite_paths = [self.parent_suite_path]
+                    elif mode == SuiteVisibility.parent_priority:
+                        pop_parent = None
+                        try:
+                            parent_index = visible_suite_paths.index(self.parent_suite_path)
+                            pop_parent = visible_suite_paths.pop(parent_index)
+                        except ValueError:
+                            pass
+                        suite_paths.insert(0, (pop_parent or self.parent_suite_path))
+
+                for path in suite_paths:
+                    tools_path = os.path.join(path, "bin")
+                    executor.env.PATH.append(tools_path)
 
         # append system paths
         executor.append_system_paths()

@@ -13,3 +13,6 @@ cmake:
 
     # Optionally specify an explicit cmake executable to use for building.
     cmake_binary:
+
+    # If True, install pyc files when the 'rez_install_python' macro is used.
+    install_pyc: true
