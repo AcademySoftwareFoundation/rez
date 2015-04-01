@@ -151,7 +151,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # install variant into package repository
         if install:
-            variant.install(install_path)
+            variant.install("filesystem:%s" % install_path)
 
         return build_result.get("build_env_script")
 
