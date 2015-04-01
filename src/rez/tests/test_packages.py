@@ -260,7 +260,7 @@ class TestPackages(TestBase, TempdirMixin):
 
             # check that the change was applied. This effectively also checks that the
             # variant order hasn't changed.
-            installed_package = get_package(package.name, package.version, paths=[repo_path])
+            installed_package = get_package(package.name, package.version, paths=["filesystem:%s" % repo_path])
             data = _data(package)
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
