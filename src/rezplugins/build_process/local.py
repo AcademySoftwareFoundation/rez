@@ -4,6 +4,7 @@ Builds packages on local host
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, ReleaseError
+from rez.package_repository import package_repository_manager
 from rez.utils.colorize import Printer, warning
 import shutil
 import os

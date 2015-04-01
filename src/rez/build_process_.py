@@ -1,4 +1,5 @@
 from rez.packages_ import get_developer_package, iter_packages
+from rez.package_repository import package_repository_manager
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError
 from rez.resolved_context import ResolvedContext
