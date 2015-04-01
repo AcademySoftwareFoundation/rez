@@ -14,7 +14,7 @@ class TestRezSuites(TestBase, TempdirMixin):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "suites", "packages")
         cls.settings = dict(
-            packages_path=[packages_path],
+            packages_path=["filesystem:%s" % packages_path],
             implicit_packages=[],
             warn_untimestamped=False,
             resolve_caching=False)
