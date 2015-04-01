@@ -20,11 +20,11 @@ class TestSolver(TestBase):
 
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,
-                    "filesystem:" % self.packages_path,
+                    "filesystem:%s" % self.packages_path,
                     optimised=True,
                     verbosity=Solver.max_verbosity)
         s2 = Solver(reqs,
-                    "filesystem:" % self.packages_path,
+                    "filesystem:%s" % self.packages_path,
                     optimised=False,
                     verbosity=Solver.max_verbosity)
 
@@ -32,7 +32,7 @@ class TestSolver(TestBase):
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
             s = Solver(reqs_,
-                       "filesystem:" % self.packages_path,
+                       "filesystem:%s" % self.packages_path,
                        optimised=True,
                        verbosity=Solver.max_verbosity)
             s_perms.append(s)
