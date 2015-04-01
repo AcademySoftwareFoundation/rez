@@ -7,6 +7,7 @@ from rez.rex import RexExecutor, Python
 from rez.resolved_context import ResolvedContext
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.backcompat import convert_old_commands
+from rez.utils.platform_ import platform_
 from rez.vendor.version.requirement import Requirement
 from rez.contrib.animallogic.util import get_epoch_datetime_from_str
 import rez.vendor.unittest2 as unittest
@@ -252,6 +253,8 @@ class TestRexFlattener(TestBase):
 class TestRexDefaultFlattener(TestRexFlattener):
 
     def test_variable_defined_containing_missing_path_creates_empty_flatten(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         self.executor.setenv(self.variable, "/this/path/does/not/exist")
 
@@ -261,6 +264,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertNumberOfContents(0)
 
     def test_variable_defined_containing_empty_path(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -273,6 +278,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertNumberOfContents(0)
 
     def test_variable_defined_containing_path_with_single_file(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -288,6 +295,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
 
     def test_variable_defined_containing_path_with_single_directory(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -303,6 +312,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertReadlink("test", os.path.join(item, "test"))
 
     def test_variable_defined_containing_paths_duplicate_files(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item1 = os.path.join(self.root, "item1")
         self._makedirs(item1)
@@ -325,6 +336,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertReadlink("test2.sh", os.path.join(item2, "test2.sh"))
 
     def test_variable_defined_containing_path_which_is_single_file(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -341,6 +354,8 @@ class TestRexDefaultFlattener(TestRexFlattener):
         self.assertReadlink("test.sh", os.path.join(item, "test.sh"))
 
     def test_variable_defined_containing_complex_mixture(self):
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item1 = os.path.join(self.root, "item1")
         self._makedirs(item1)
@@ -392,6 +407,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -415,6 +432,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item/test.egg
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -434,6 +453,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item/
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -457,6 +478,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item/:self.root/item/test.egg
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -476,6 +499,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item/
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item = os.path.join(self.root, "item")
         self._makedirs(item)
@@ -497,6 +522,8 @@ class TestRexPythonPathFlattener(TestRexFlattener):
         """
         PYTHONPATH=self.root/item1:self.root/item2
         """
+        if platform_.name == "windows":
+            self.skipTest("This test does does not run on Windows as flattening is disabled.")
 
         item1 = os.path.join(self.root, "item1")
         self._makedirs(item1)
