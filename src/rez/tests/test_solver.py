@@ -212,7 +212,7 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            packages_path=[cls.install_root],
+            packages_path=["filesystem:%s" % cls.install_root],
             add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
