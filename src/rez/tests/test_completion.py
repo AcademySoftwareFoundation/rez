@@ -13,7 +13,7 @@ class TestCompletion(TestBase):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
         cls.settings = dict(
-            packages_path=[packages_path])
+            packages_path=["filesystem:%s" % packages_path])
 
         root_config_file = os.path.join(module_root_path, "rezconfig")
         cls.config = Config([root_config_file], locked=True)
