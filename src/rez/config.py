@@ -1,7 +1,7 @@
 from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, LazyAttributeMeta
-from rez.utils.formatting import expandvars
+from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
@@ -560,7 +560,7 @@ def expand_system_vars(data):
     def _expanded(value):
         if isinstance(value, basestring):
             value = expandvars(value)
-            value = os.path.expanduser(value)
+            value = expanduser(value)
             return scoped_format(value, system=system)
         elif isinstance(value, (list, tuple, set)):
             return [_expanded(x) for x in value]
