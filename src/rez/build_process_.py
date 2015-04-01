@@ -188,7 +188,8 @@ class BuildProcessHelper(BuildProcess):
     def pre_release(self):
         # test that the release path exists
         release_path = self.package.config.release_packages_path
-        if not os.path.exists(release_path):
+        repo = package_repository_manager.get_repository(release_path)
+        if not os.path.exists(repo.location):
             raise ReleaseError("Release path does not exist: %r" % release_path)
 
         # test that the repo is in a state to release

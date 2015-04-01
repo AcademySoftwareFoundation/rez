@@ -93,6 +93,7 @@ class LocalBuildProcess(BuildProcessHelper):
                             clean=False, install=False, **kwargs):
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
+        install_path = package_repository_manager.get_repository(install_path).location
         variant_install_path = self.get_package_install_path(install_path)
         variant_build_path = self.build_path
         if variant.subpath:
