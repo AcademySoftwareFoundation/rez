@@ -72,10 +72,10 @@ class System(object):
         from rez.shells import get_shell_types
         shells = set(get_shell_types())
         if not shells:
-            return "cmd"
+            raise RezSystemError("no shells available")
 
         if self.platform == "windows":
-            raise NotImplementedError
+            return "cmd"
         else:
             import subprocess as sp
             shell = None
