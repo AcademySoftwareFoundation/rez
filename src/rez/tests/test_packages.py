@@ -231,14 +231,14 @@ class TestPackages(TestBase, TempdirMixin):
 
             # install variants of the developer package into new repo
             variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
+            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
             self.assertEqual(result, None)
 
             for variant in package.iter_variants():
-                variant.install(repo_path)
+                variant.install("filesystem:%s" % repo_path)
 
             variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
+            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
             self.assertNotEqual(result, None)
 
             # now there should be a package that matches the dev package
@@ -254,9 +254,9 @@ class TestPackages(TestBase, TempdirMixin):
             # install a variant again. Even though the variant is already installed,
             # this should update the package, because data outside the variant changed.
             variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
+            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
             self.assertEqual(result, None)
-            variant.install(repo_path)
+            variant.install("filesystem:%s" % repo_path)
 
             # check that the change was applied. This effectively also checks that the
             # variant order hasn't changed.
