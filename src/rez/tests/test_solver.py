@@ -14,17 +14,17 @@ class TestSolver(TestBase):
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
-        cls.packages_path = [packages_path]
+        cls.packages_path = ["filesystem:%s" % packages_path]
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.packages_path])
+            packages_path=[cls.packages_path])
 
     def _create_solvers(self, reqs):
         s1 = Solver(reqs,
-                    "filesystem:%s" % self.packages_path,
+                    self.packages_path,
                     optimised=True,
                     verbosity=Solver.max_verbosity)
         s2 = Solver(reqs,
-                    "filesystem:%s" % self.packages_path,
+                    self.packages_path,
                     optimised=False,
                     verbosity=Solver.max_verbosity)
 
@@ -32,7 +32,7 @@ class TestSolver(TestBase):
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
             s = Solver(reqs_,
-                       "filesystem:%s" % self.packages_path,
+                       self.packages_path,
                        optimised=True,
                        verbosity=Solver.max_verbosity)
             s_perms.append(s)
