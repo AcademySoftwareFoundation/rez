@@ -13,7 +13,7 @@ from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.util import which
 from rez.bind import hello_world
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 import subprocess
 import tempfile
 import inspect

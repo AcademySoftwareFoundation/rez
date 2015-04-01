@@ -5,6 +5,7 @@ import textwrap
 import subprocess
 from rez.vendor import yaml, argparse
 from rez.utils.filesystem import TempDirs
+from rez.config import config
 
 
 def run():

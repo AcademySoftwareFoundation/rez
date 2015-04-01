@@ -1,7 +1,7 @@
 from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world
-from rez.platform_ import platform_
+from rez.utils.platform_ import platform_
 import rez.vendor.unittest2 as unittest
 import subprocess
 import os.path
