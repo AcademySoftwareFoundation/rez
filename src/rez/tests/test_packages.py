@@ -67,9 +67,9 @@ class TestPackages(TestBase, TempdirMixin):
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.settings = dict(
-            packages_path=[cls.solver_packages_path,
-                           cls.yaml_packages_path,
-                           cls.py_packages_path])
+            packages_path=["filesystem:%s" % cls.solver_packages_path,
+                           "filesystem:%s" % cls.yaml_packages_path,
+                           "filesystem:%s" % cls.py_packages_path])
 
     @classmethod
     def tearDownClass(cls):
