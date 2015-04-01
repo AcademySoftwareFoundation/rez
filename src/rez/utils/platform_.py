@@ -244,7 +244,7 @@ class WindowsPlatform(Platform):
                                   os.environ.get('PROCESSOR_ARCHITECTURE'))
             if arch:
                 return arch
-        return super(WindowsPlatform, self).arch
+        return super(WindowsPlatform, self)._arch()
 
     def _os(self):
         release, version, csd, ptype = platform.win32_ver()
