@@ -136,7 +136,7 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(tags, expected_value)
 
         # check the package install path contains the packages we expect
-        it = iter_packages("foo", paths=[self.install_root])
+        it = iter_packages("foo", paths=["filesystem:%s" % self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
