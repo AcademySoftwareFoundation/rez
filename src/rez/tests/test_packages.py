@@ -242,7 +242,7 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertNotEqual(result, None)
 
             # now there should be a package that matches the dev package
-            installed_package = get_package(package.name, package.version, paths=[repo_path])
+            installed_package = get_package(package.name, package.version, paths=["filesystem:%s" % repo_path])
             data = _data(package)
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
