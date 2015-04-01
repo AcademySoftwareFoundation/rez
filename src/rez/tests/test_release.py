@@ -31,7 +31,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         cls.settings = dict(
             packages_path=["filesystem:%s" % cls.install_root],
-            release_packages_path=cls.install_root,
+            release_packages_path="filesystem:%s" % cls.install_root,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[])

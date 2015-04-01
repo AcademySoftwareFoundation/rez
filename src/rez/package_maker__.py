@@ -122,7 +122,7 @@ def make_package(name, path, make_base=None, make_root=None):
     # post-with-block:
     package = maker.get_package()
     for variant in package.iter_variants():
-        variant_ = variant.install(path)
+        variant_ = variant.install("filesystem:%s" % path)
 
         base = variant_.base
         if make_base and base:
