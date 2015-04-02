@@ -190,6 +190,8 @@ class TestShells(TestBase, TempdirMixin):
     def test_rex_code(self):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect."""
+        windows = platform_.name == "windows"
+        
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -204,7 +206,7 @@ class TestShells(TestBase, TempdirMixin):
         def _rex_assigning():
             def _print(value):
                 env.FOO = value
-                info("${FOO}")
+                info("%FOO%" if windows else "${FOO}")
 
             env.GREET = "hi"
             env.WHO = "Gary"
@@ -226,12 +228,12 @@ class TestShells(TestBase, TempdirMixin):
             _print(literal("hello world"))
             _print(literal("hello 'world'"))
             _print(literal('hello "world"'))
-            _print("hey $WHO")
-            _print("hey ${WHO}")
-            _print(expandable("${GREET} ").e("$WHO"))
-            _print(expandable("${GREET} ").l("$WHO"))
+            _print("hey %WHO%" if windows else "hey $WHO")
+            _print("hey %WHO%" if windows else "hey ${WHO}")
+            _print(expandable("%GREET% " if windows else "${GREET} ").e("%WHO%" if windows else "$WHO"))
+            _print(expandable("%GREET% " if windows else "${GREET} ").l("$WHO"))
             _print(literal("${WHO}"))
-            _print(literal("${WHO}").e(" $WHO"))
+            _print(literal("${WHO}").e(" %WHO%" if windows else " $WHO"))
 
         expected_output = [
             "ello",
@@ -263,11 +265,11 @@ class TestShells(TestBase, TempdirMixin):
 
         def _rex_appending():
             env.FOO.append("hey")
-            info("${FOO}")
+            info("%FOO%" if windows else "${FOO}")
             env.FOO.append(literal("$DAVE"))
-            info("${FOO}")
+            info("%FOO%" if windows else "${FOO}")
             env.FOO.append("Dave's not here man")
-            info("${FOO}")
+            info("%FOO%" if windows else "${FOO}")
 
         expected_output = [
             "hey",

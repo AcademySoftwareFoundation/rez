@@ -185,7 +185,7 @@ class CMD(Shell):
 
     def info(self, value):
         for line in value.split('\n'):
-            self._addline('echo "%s"' % line)
+            self._addline('echo %s' % line)
 
     def error(self, value):
         for line in value.split('\n'):
