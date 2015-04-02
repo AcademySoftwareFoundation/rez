@@ -10,6 +10,7 @@ complete -F _rez_complete_fn rez-bind
 complete -F _rez_complete_fn rez-build
 complete -F _rez_complete_fn rez-config
 complete -F _rez_complete_fn rez-context
+complete -F _rez_complete_fn rez-plugins
 complete -F _rez_complete_fn rez-env
 complete -F _rez_complete_fn rez-help
 complete -F _rez_complete_fn rez-interpret

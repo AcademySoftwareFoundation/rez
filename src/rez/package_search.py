@@ -7,11 +7,12 @@ that do not provide an implementation.
 """
 
 
-from rez.packages_ import iter_package_families, iter_packages
-from rez.exceptions import PackageRequestError
+from rez.packages_ import iter_package_families, iter_packages, get_latest_package
+from rez.exceptions import PackageRequestError, PackageFamilyNotFoundError
 from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
+from rez.utils.formatting import PackageRequest
 
 
 def get_reverse_dependency_tree(package_name, depth=None, paths=None):
@@ -95,3 +96,37 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None):
         n += 1
 
     return pkgs_list, g
+
+
+def get_plugins(package_name, paths=None):
+    """Find packages that are plugins of the given package.
+
+    Args:
+        package_name (str): Name of the package.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
+
+    Returns: list of str - the packages that are plugins of the given package.
+    """
+    if isinstance(package_name, basestring):
+        package = PackageRequest(package_name)
+
+    pkg = get_latest_package(package.name, paths=paths)
+    if not pkg:
+        raise PackageFamilyNotFoundError("package family not found: %s " % package.name)
+    if not pkg.has_plugins:
+        return []
+
+    it = iter_package_families(paths)
+    package_names = set(x.name for x in it)
+
+    plugin_pkgs = []
+    for package_name_ in package_names:
+        plugin_pkg = get_latest_package(package_name_, paths=paths)
+        if not plugin_pkg.plugin_for:
+            continue
+        for plugin_for in plugin_pkg.plugin_for:
+            if plugin_for.name == pkg.name:
+                plugin_pkgs.append(package_name_)
+
+    return plugin_pkgs
