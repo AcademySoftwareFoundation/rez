@@ -52,8 +52,12 @@ class TestShells(TestBase, TempdirMixin):
         from rez.config import config
         return ResolvedContext(pkgs, caching=False)
 
-    @shell_dependent()
+    @shell_dependent(exclude=["cmd"])
     def test_no_output(self):
+        # TODO: issues with binding the 'hello_world' package means it is not
+        # possible to run this test on Windows.  The 'hello_world' executable
+        # is not registered correctly on Windows so always returned the
+        # incorrect error code.
         sh = create_shell()
         _, _, _, command = sh.startup_capabilities(command=True)
         if command:

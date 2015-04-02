@@ -121,7 +121,13 @@ class RezPluginType(object):
                         if hasattr(module, 'register_plugin') and \
                                 hasattr(module.register_plugin, '__call__'):
                             plugin_class = module.register_plugin()
-                            self.register_plugin(plugin_name, plugin_class, module)
+                            if plugin_class != None:
+                                self.register_plugin(plugin_name, plugin_class, module)
+                            else:
+                                if config.debug("plugins"):
+                                    print_warning(
+                                        "'register_plugin' function at %s: %s did not return a class."
+                                        % (path, modname))
                         else:
                             if config.debug("plugins"):
                                 print_warning(

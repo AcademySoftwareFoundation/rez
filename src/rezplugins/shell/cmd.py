@@ -127,7 +127,7 @@ class CMD(Shell):
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
             executor.env.REZ_ENV_PROMPT = newprompt
 
-        if startup_sequence["command"]:
+        if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])
             shell_command = startup_sequence["command"]
         else:
@@ -157,6 +157,9 @@ class CMD(Shell):
         p = subprocess.Popen(cmd, env=env, **Popen_args)
         return p
 
+    def escape_string(self, value):
+        return value
+
     def _saferefenv(self, key):
         pass
 
@@ -164,6 +167,7 @@ class CMD(Shell):
         pass
 
     def setenv(self, key, value):
+        value = self.escape_string(value)
         self._addline('set %s=%s' % (key, value))
 
     def unsetenv(self, key):
