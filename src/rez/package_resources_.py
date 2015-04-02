@@ -59,6 +59,10 @@ package_base_schema_dict.update({
     Optional('build_requires'):         [PackageRequest],
     Optional('private_build_requires'): [PackageRequest],
 
+    # plugins
+    Optional('has_plugins'):            bool,
+    Optional('plugin_for'):             [PackageRequest],
+
     # general
     Optional('uuid'):                   basestring,
     Optional('config'):                 Config,
@@ -136,6 +140,9 @@ package_pod_schema_dict.update({
     Optional('build_requires'):         [_package_request_schema],
     Optional('private_build_requires'): [_package_request_schema],
     Optional('variants'):               [[_package_request_schema]],
+
+    Optional('has_plugins'):            bool,
+    Optional('plugin_for'):             [_package_request_schema],
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 And(dict,

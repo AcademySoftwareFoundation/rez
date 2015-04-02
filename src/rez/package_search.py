@@ -7,57 +7,15 @@ that do not provide an implementation.
 """
 
 
-from rez.packages_ import iter_package_families, iter_packages
-from rez.exceptions import PackageRequestError
+from rez.packages_ import iter_package_families, iter_packages, get_latest_package
+from rez.exceptions import PackageRequestError, PackageFamilyNotFoundError
 from rez.util import ProgressBar
 from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
-
-import os
-import sys
-import pickle
-import time
+from rez.utils.formatting import PackageRequest
 
 
-
-REVERSE_FAMILY_DEPENDENCIES_CACHE = '/tmp/rez_reverse_lookup.dat'
-MINUTES_BEFORE_CACHE_EXPIRY = 10
-
-
-def _get_cached_reverse_lookup(minutes_before_cache_expiry=MINUTES_BEFORE_CACHE_EXPIRY):
-
-    """Try to returns a previously cached lookup dictionary
-
-    minutes_before_cache_expiry:
-        measured in minutes, to determine whether the cache is out-dated,
-        i.e. c_time - cache_file.st_mtime <= minutes_before_cache_expiry
-        default value is 10 (minutes)
-        * the caller may pass in a negative value to force-update the cache
-
-    Returns:
-        defaultdict
-    """
-
-    if not os.path.exists(REVERSE_FAMILY_DEPENDENCIES_CACHE):
-        return None
-    if not os.access(REVERSE_FAMILY_DEPENDENCIES_CACHE, os.R_OK):
-        sys.stderr.write('\nYou do not have enough permission to read the cache: %s\n' % REVERSE_FAMILY_DEPENDENCIES_CACHE)
-        return None
-    if (time.time() - os.stat(REVERSE_FAMILY_DEPENDENCIES_CACHE).st_mtime) / 60 >= minutes_before_cache_expiry:
-        return None
-    with open(REVERSE_FAMILY_DEPENDENCIES_CACHE, 'r') as fh:
-        return pickle.load(fh)
-
-
-def _save_reverse_lookup(lookup):
-
-    """Saves reverse lookup dictionary"""
-
-    with open(REVERSE_FAMILY_DEPENDENCIES_CACHE, 'w') as fh:
-        pickle.dump(lookup, fh)
-
-
-def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_update_cache=False):
+def get_reverse_dependency_tree(package_name, depth=None, paths=None):
     """Find packages that depend on the given package.
 
     This is a reverse dependency lookup. A tree is constructed, showing what
@@ -70,8 +28,6 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_upda
         depth (int): Tree depth limit, unlimited if None.
         paths (list of str): paths to search for packages, defaults to
             `config.packages_path`.
-        force_update_cache: whether to force-update the local cache file that stores the reverse family dependencies.
-                            by default this cache is updated every 10 minutes.
 
     Returns:
         A 2-tuple:
@@ -94,25 +50,20 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_upda
         return pkgs_list, g
 
     bar = ProgressBar("Searching", len(package_names))
+    lookup = defaultdict(set)
 
-    lookup = _get_cached_reverse_lookup(minutes_before_cache_expiry=-1 if force_update_cache else MINUTES_BEFORE_CACHE_EXPIRY)
-    if not lookup:
-        lookup = defaultdict(set)
+    for i, package_name_ in enumerate(package_names):
+        bar.next()
+        it = iter_packages(name=package_name_, paths=paths)
+        pkg = max(it, key=lambda x: x.version)
 
-        for i, package_name_ in enumerate(package_names):
-            bar.next()
-            it = iter_packages(name=package_name_, paths=paths)
-            pkg = max(it, key=lambda x: x.version)
+        requires = set(pkg.requires or [])
+        for req_list in (pkg.variants or []):
+            requires.update(req_list)
 
-            requires = set(pkg.requires or [])
-            for req_list in (pkg.variants or []):
-                requires.update(req_list)
-
-            for req in requires:
-                if not req.conflict:
-                    lookup[req.name].add(package_name_)
-
-        _save_reverse_lookup(lookup)
+        for req in requires:
+            if not req.conflict:
+                lookup[req.name].add(package_name_)
 
     # perform traversal
     bar.finish()
@@ -144,4 +95,38 @@ def get_reverse_dependency_tree(package_name, depth=None, paths=None, force_upda
         working_set = working_set_
         n += 1
 
-    return pkgs_list, g, lookup
+    return pkgs_list, g
+
+
+def get_plugins(package_name, paths=None):
+    """Find packages that are plugins of the given package.
+
+    Args:
+        package_name (str): Name of the package.
+        paths (list of str): paths to search for packages, defaults to
+            `config.packages_path`.
+
+    Returns: list of str - the packages that are plugins of the given package.
+    """
+    if isinstance(package_name, basestring):
+        package = PackageRequest(package_name)
+
+    pkg = get_latest_package(package.name, paths=paths)
+    if not pkg:
+        raise PackageFamilyNotFoundError("package family not found: %s " % package.name)
+    if not pkg.has_plugins:
+        return []
+
+    it = iter_package_families(paths)
+    package_names = set(x.name for x in it)
+
+    plugin_pkgs = []
+    for package_name_ in package_names:
+        plugin_pkg = get_latest_package(package_name_, paths=paths)
+        if not plugin_pkg.plugin_for:
+            continue
+        for plugin_for in plugin_pkg.plugin_for:
+            if plugin_for.name == pkg.name:
+                plugin_pkgs.append(package_name_)
+
+    return plugin_pkgs

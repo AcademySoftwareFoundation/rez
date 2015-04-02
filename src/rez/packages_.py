@@ -497,3 +497,18 @@ def _get_families(name, paths=None):
             entries.append((repo, family_resource))
 
     return entries
+
+
+def get_latest_package(name, range_=None, paths=None):
+    """Get the latest package for a given package name.
+
+    Returns:
+        `Package` object, or None if no package is found.
+    """
+    it = iter_packages(name, range_=range_, paths=paths)
+    entries = sorted(([x.version, x] for x in it), key=lambda x: x[0], reverse=True)
+    if not entries:
+        return None
+
+    _, pkg = entries[0]
+    return pkg
