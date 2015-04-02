@@ -2,6 +2,7 @@
 TCSH shell
 """
 from rez.shells import UnixShell
+from rez.utils.platform_ import platform_
 from rezplugins.shell.csh import CSH
 from rez import module_root_path
 from rez.rex import EscapedString
@@ -41,4 +42,5 @@ class TCSH(CSH):
 
 
 def register_plugin():
-    return TCSH
+    if platform_.name != "windows":
+        return TCSH

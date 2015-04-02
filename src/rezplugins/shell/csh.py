@@ -5,6 +5,7 @@ import pipes
 import os.path
 import subprocess
 from rez.config import config
+from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
 
@@ -134,4 +135,5 @@ class CSH(UnixShell):
 
 
 def register_plugin():
-    return CSH
+    if platform_.name != "windows":
+        return CSH

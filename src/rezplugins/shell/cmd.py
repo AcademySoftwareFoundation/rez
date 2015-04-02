@@ -5,6 +5,7 @@ from rez.config import config
 from rez.rex import RexExecutor
 from rez.shells import Shell
 from rez.system import system
+from rez.utils.platform_ import platform_
 import os
 import re
 import subprocess
@@ -202,4 +203,5 @@ class CMD(Shell):
 
 
 def register_plugin():
-    return CMD
+    if platform_.name == "windows":
+        return CMD
