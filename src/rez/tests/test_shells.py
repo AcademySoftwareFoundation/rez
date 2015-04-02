@@ -190,8 +190,6 @@ class TestShells(TestBase, TempdirMixin):
     def test_rex_code(self):
         """Test that Rex code run in the shell creates the environment variable
         values that we expect."""
-        windows = platform_.name == "windows"
-        
         def _execute_code(func, expected_output):
             loc = inspect.getsourcelines(func)[0][1:]
             code = textwrap.dedent('\n'.join(loc))
@@ -204,6 +202,9 @@ class TestShells(TestBase, TempdirMixin):
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
+            import os
+            windows = os.name == "nt"
+
             def _print(value):
                 env.FOO = value
                 info("%FOO%" if windows else "${FOO}")
@@ -264,6 +265,9 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_assigning, expected_output)
 
         def _rex_appending():
+            import os
+            windows = os.name == "nt"
+
             env.FOO.append("hey")
             info("%FOO%" if windows else "${FOO}")
             env.FOO.append(literal("$DAVE"))
