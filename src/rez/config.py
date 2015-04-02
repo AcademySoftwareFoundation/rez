@@ -1,6 +1,6 @@
 from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
-    convert_dicts, cached_property, LazyAttributeMeta
+    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
 from rez.utils.formatting import expandvars
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -151,6 +151,13 @@ class Dict(Setting):
                 % value)
 
 
+class VariantSelectMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.solver import VariantSelectMode
+        return Or(*(x.name for x in VariantSelectMode))
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -243,6 +250,7 @@ config_schema = Schema({
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "env_var_separators":                           Dict,
+    "variant_select_mode":                          VariantSelectMode_,
 
     # GUI settings
     "use_pyside":                                   Bool,
