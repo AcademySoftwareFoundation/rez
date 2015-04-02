@@ -61,7 +61,7 @@ package_base_schema_dict.update({
 
     # plugins
     Optional('has_plugins'):            bool,
-    Optional('plugin_for'):             [PackageRequest],
+    Optional('plugin_for'):             [basestring],
 
     # general
     Optional('uuid'):                   basestring,
@@ -142,7 +142,7 @@ package_pod_schema_dict.update({
     Optional('variants'):               [[_package_request_schema]],
 
     Optional('has_plugins'):            bool,
-    Optional('plugin_for'):             [_package_request_schema],
+    Optional('plugin_for'):             [basestring],
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 And(dict,
