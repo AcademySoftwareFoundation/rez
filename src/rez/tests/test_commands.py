@@ -20,7 +20,7 @@ class TestCommands(TestBase):
     @classmethod
     def setUpClass(cls):
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.get_packages_path()],
+            packages_path=[cls.get_packages_path()],
             resolve_caching=False,
             warn_untimestamped=False,
             warn_old_commands=False,

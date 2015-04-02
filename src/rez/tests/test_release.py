@@ -30,8 +30,8 @@ class TestRelease(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.install_root],
-            release_packages_path="filesystem:%s" % cls.install_root,
+            packages_path=[cls.install_root],
+            release_packages_path=cls.install_root,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[])
@@ -136,7 +136,7 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertEqual(tags, expected_value)
 
         # check the package install path contains the packages we expect
-        it = iter_packages("foo", paths=["filesystem:%s" % self.install_root])
+        it = iter_packages("foo", paths=[self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 

@@ -1,5 +1,4 @@
 from rez.packages_ import get_developer_package, iter_packages
-from rez.package_repository import package_repository_manager
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
     ReleaseHookCancellingError, RezError, ReleaseError, BuildError
 from rez.resolved_context import ResolvedContext
@@ -189,8 +188,7 @@ class BuildProcessHelper(BuildProcess):
     def pre_release(self):
         # test that the release path exists
         release_path = self.package.config.release_packages_path
-        repo = package_repository_manager.get_repository(release_path)
-        if not os.path.exists(repo.location):
+        if not os.path.exists(release_path):
             raise ReleaseError("Release path does not exist: %r" % release_path)
 
         # test that the repo is in a state to release

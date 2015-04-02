@@ -37,7 +37,7 @@ class TestShells(TestBase, TempdirMixin):
         hello_world.bind(packages_path)
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % packages_path],
+            packages_path=[packages_path],
             implicit_packages=[],
             warn_untimestamped=False,
             resolve_caching=False,
@@ -285,7 +285,7 @@ class TestShellsCommands(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.install_root],
+            packages_path=[cls.install_root],
             add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,

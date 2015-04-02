@@ -4,7 +4,6 @@ Builds packages on local host
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, ReleaseError
-from rez.package_repository import package_repository_manager
 from rez.utils.colorize import Printer, warning
 import shutil
 import os
@@ -94,7 +93,6 @@ class LocalBuildProcess(BuildProcessHelper):
                             clean=False, install=False, **kwargs):
         # create build/install paths
         install_path = install_path or self.package.config.local_packages_path
-        install_path = package_repository_manager.get_repository(install_path).location
         variant_install_path = self.get_package_install_path(install_path)
         variant_build_path = self.build_path
         if variant.subpath:
@@ -153,7 +151,7 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # install variant into package repository
         if install:
-            variant.install("filesystem:%s" % install_path)
+            variant.install(install_path)
 
         return build_result.get("build_env_script")
 

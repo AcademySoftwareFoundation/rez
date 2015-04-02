@@ -67,9 +67,9 @@ class TestPackages(TestBase, TempdirMixin):
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.solver_packages_path,
-                           "filesystem:%s" % cls.yaml_packages_path,
-                           "filesystem:%s" % cls.py_packages_path])
+            packages_path=[cls.solver_packages_path,
+                           cls.yaml_packages_path,
+                           cls.py_packages_path])
 
     @classmethod
     def tearDownClass(cls):
@@ -231,18 +231,18 @@ class TestPackages(TestBase, TempdirMixin):
 
             # install variants of the developer package into new repo
             variant = package.iter_variants().next()
-            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
+            result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
 
             for variant in package.iter_variants():
-                variant.install("filesystem:%s" % repo_path)
+                variant.install(repo_path)
 
             variant = package.iter_variants().next()
-            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
+            result = variant.install(repo_path, dry_run=True)
             self.assertNotEqual(result, None)
 
             # now there should be a package that matches the dev package
-            installed_package = get_package(package.name, package.version, paths=["filesystem:%s" % repo_path])
+            installed_package = get_package(package.name, package.version, paths=[repo_path])
             data = _data(package)
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
@@ -254,13 +254,13 @@ class TestPackages(TestBase, TempdirMixin):
             # install a variant again. Even though the variant is already installed,
             # this should update the package, because data outside the variant changed.
             variant = package.iter_variants().next()
-            result = variant.install("filesystem:%s" % repo_path, dry_run=True)
+            result = variant.install(repo_path, dry_run=True)
             self.assertEqual(result, None)
-            variant.install("filesystem:%s" % repo_path)
+            variant.install(repo_path)
 
             # check that the change was applied. This effectively also checks that the
             # variant order hasn't changed.
-            installed_package = get_package(package.name, package.version, paths=["filesystem:%s" % repo_path])
+            installed_package = get_package(package.name, package.version, paths=[repo_path])
             data = _data(package)
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)

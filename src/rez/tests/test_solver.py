@@ -14,7 +14,7 @@ class TestSolver(TestBase):
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
-        cls.packages_path = ["filesystem:%s" % packages_path]
+        cls.packages_path = [packages_path]
         cls.settings = dict(
             packages_path=[cls.packages_path])
 
@@ -212,7 +212,7 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         cls.install_root = os.path.join(cls.root, "packages")
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.install_root],
+            packages_path=[cls.install_root],
             add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,

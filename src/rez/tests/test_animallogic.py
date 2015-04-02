@@ -122,7 +122,7 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
         shutil.copytree(packages_path, cls.src_root)
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % cls.install_root],
+            packages_path=[cls.install_root],
             add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,

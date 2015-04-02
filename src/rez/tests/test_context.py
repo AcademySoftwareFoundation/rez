@@ -18,7 +18,7 @@ class TestContext(TestBase, TempdirMixin):
         hello_world.bind(packages_path)
 
         cls.settings = dict(
-            packages_path=["filesystem:%s" % packages_path],
+            packages_path=[packages_path],
             implicit_packages=[],
             warn_untimestamped=False,
             resolve_caching=False)
