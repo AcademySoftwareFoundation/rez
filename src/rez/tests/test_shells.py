@@ -198,7 +198,8 @@ class TestShells(TestBase, TempdirMixin):
 
             out, _ = p.communicate()
             self.assertEqual(p.returncode, 0)
-            output = out.strip().split('\n')
+            token = '\r\n' if platform_.name == 'windows' else '\n'
+            output = out.strip().split(token)
             self.assertEqual(output, expected_output)
 
         def _rex_assigning():
