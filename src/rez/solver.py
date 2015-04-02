@@ -116,6 +116,7 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   then creating a new phase would involve a deep copy of the entire state of the
   solver.
 """
+from rez.config import config
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
@@ -131,6 +132,12 @@ from itertools import groupby
 import copy
 import time
 import sys
+
+
+class VariantSelectMode(Enum):
+    """Variant selection mode."""
+    version_priority = 0
+    intersection_priority = 1
 
 
 class SolverStatus(Enum):
@@ -1057,6 +1064,20 @@ class _PackageVariantSlice(_Common):
     def sort_variants(self, package_requests):
         """Sort variants from most correct to consume, to least.
 
+        Sort rules:
+        version_priority:
+        - sort by highest versions of packages shared with request;
+        - THEN least number of additional packages added to solve;
+        - THEN highest versions of additional packages;
+        - THEN variant index (arbitrary but repeatable sort order).
+
+        intersection_priority:
+        - sort by highest number of packages shared with request;
+        - THEN highest versions of packages shared with request;
+        - THEN least number of additional packages added to solve;
+        - THEN highest versions of additional packages;
+        - THEN variant index (arbitrary but repeatable sort order).
+
         Note:
             Assumes self.variants is already in version-descending order.
         """
@@ -1075,15 +1096,13 @@ class _PackageVariantSlice(_Common):
                 if not request.conflict and request.name not in names:
                     k2.append(request.range)
 
-            k = (k1, -len(k2), k2, variant.index)
+            if config.variant_select_mode == VariantSelectMode.version_priority:
+                k = (k1, -len(k2), k2, variant.index)
+            else:  # VariantSelectMode.intersection_priority
+                k = (len(k1), k1, -len(k2), k2, variant.index)
+
             return k
 
-        # (a) sort by highest versions of packages in current requests list
-        #     AND variant requires;
-        # (b) followed by least number of additional packages added to solve;
-        # (c) followed by highest versions of additional packages;
-        # (d) folowed by index (at this point we only need to sort on something
-        #     arbitrary, but repeatable).
         variants2 = []
         for _, it in groupby(self.variants, lambda x: x.version):
             variants3 = list(it)

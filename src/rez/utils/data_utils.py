@@ -8,6 +8,10 @@ from threading import Lock
 from textwrap import dedent
 
 
+class _Missing: pass
+_missing = _Missing()
+
+
 class SourceCode(object):
     """Very simple wrapper for python source code."""
     def __init__(self, source):
@@ -61,7 +65,23 @@ class SourceCode(object):
 
 
 class cached_property(object):
-    """Simple property caching descriptor."""
+    """Simple property caching descriptor.
+
+    Example:
+
+        >>> class Foo(object):
+        >>>     @cached_property
+        >>>     def bah(self):
+        >>>         print 'bah'
+        >>>         return 1
+        >>>
+        >>> f = Foo()
+        >>> f.bah
+        bah
+        1
+        >>> f.bah
+        1
+    """
     def __init__(self, func, name=None):
         self.func = func
         self.name = name or func.__name__
@@ -76,6 +96,36 @@ class cached_property(object):
         except AttributeError:
             raise AttributeError("can't set attribute %r on %r"
                                  % (self.name, instance))
+        return result
+
+
+class cached_class_property(object):
+    """Simple class property caching descriptor.
+
+    Example:
+
+        >>> class Foo(object):
+        >>>     @cached_class_property
+        >>>     def bah(cls):
+        >>>         print 'bah'
+        >>>         return 1
+        >>>
+        >>> Foo.bah
+        bah
+        1
+        >>> Foo.bah
+        1
+    """
+    def __init__(self, func, name=None):
+        self.func = func
+
+    def __get__(self, instance, owner=None):
+        assert owner
+        name = "_class_property_" + self.func.__name__
+        result = getattr(owner, name, _missing)
+        if result is _missing:
+            result = self.func(owner)
+            setattr(owner, name, result)
         return result
 
 

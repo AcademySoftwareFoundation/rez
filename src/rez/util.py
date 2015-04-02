@@ -13,10 +13,11 @@ from rez.vendor.progress.bar import Bar
 
 DEV_NULL = open(os.devnull, 'w')
 
-
+"""
 class _Missing:
     pass
 _missing = _Missing()
+"""
 
 
 class ProgressBar(Bar):

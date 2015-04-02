@@ -1,7 +1,12 @@
 from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
+<<<<<<< HEAD
     convert_dicts, cached_property, LazyAttributeMeta
 from rez.utils.formatting import expandvars, expanduser
+=======
+    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
+from rez.utils.formatting import expandvars
+>>>>>>> 9f7d4a7... -added configurable solver variant sorting behaviour
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
@@ -151,6 +156,13 @@ class Dict(Setting):
                 % value)
 
 
+class VariantSelectMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.solver import VariantSelectMode
+        return Or(*(x.name for x in VariantSelectMode))
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -256,6 +268,7 @@ config_schema = Schema({
     "flatten_env":                                  Bool,
     "env_var_separators":                           Dict,
     "launch_python_exe":                            Dict,
+    "variant_select_mode":                          VariantSelectMode_,
 
     # GUI settings
     "use_pyside":                                   Bool,
