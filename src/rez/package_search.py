@@ -126,7 +126,7 @@ def get_plugins(package_name, paths=None):
         if not plugin_pkg.plugin_for:
             continue
         for plugin_for in plugin_pkg.plugin_for:
-            if plugin_for.name == pkg.name:
+            if plugin_for == pkg.name:
                 plugin_pkgs.append(package_name_)
 
     return plugin_pkgs
