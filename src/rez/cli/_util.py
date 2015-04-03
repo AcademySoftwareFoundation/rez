@@ -20,6 +20,7 @@ subcommands = [
     "launcher",
     "lint",
     "python",
+    "plugins",
     "release",
     "search",
     "view",

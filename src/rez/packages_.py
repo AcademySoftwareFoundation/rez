@@ -7,7 +7,7 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageMetadataError
+from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
@@ -488,6 +488,28 @@ def get_completions(prefix, paths=None, family_only=False):
     return words
 
 
+def get_latest_package(name, range_=None, paths=None, error=False):
+    """Get the latest package for a given package name.
+
+    Args:
+        name (str): Package name.
+        range_ (`VersionRange`): Version range to search within.
+        paths (list of str, optional): paths to search for package families,
+            defaults to `config.packages_path`.
+        error (bool): If True, raise an error if no package is found.
+
+    Returns:
+        `Package` object, or None if no package is found.
+    """
+    it = iter_packages(name, range_=range_, paths=paths)
+    try:
+        return max(it, key=lambda x: x.version)
+    except ValueError:  # empty sequence
+        if error:
+            raise PackageFamilyNotFoundError("No such package family %r" % name)
+        return None
+
+
 def _get_families(name, paths=None):
     entries = []
     for path in (paths or config.packages_path):
@@ -497,18 +519,3 @@ def _get_families(name, paths=None):
             entries.append((repo, family_resource))
 
     return entries
-
-
-def get_latest_package(name, range_=None, paths=None):
-    """Get the latest package for a given package name.
-
-    Returns:
-        `Package` object, or None if no package is found.
-    """
-    it = iter_packages(name, range_=range_, paths=paths)
-    entries = sorted(([x.version, x] for x in it), key=lambda x: x[0], reverse=True)
-    if not entries:
-        return None
-
-    _, pkg = entries[0]
-    return pkg
