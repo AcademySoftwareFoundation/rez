@@ -17,6 +17,7 @@ subcommands = [
     "help",
     "interpret",
     "python",
+    "plugins",
     "release",
     "search",
     "view",

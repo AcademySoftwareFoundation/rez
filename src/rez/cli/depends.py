@@ -1,5 +1,5 @@
 """
-Reverse dependency lookup.
+Perform a reverse package dependency lookup.
 """
 
 

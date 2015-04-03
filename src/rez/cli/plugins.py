@@ -1,5 +1,5 @@
 """
-Get a list of package's plugins.
+Get a list of a package's plugins.
 """
 
 
@@ -9,7 +9,7 @@ def setup_parser(parser, completions=False):
         help="set package search path")
     PKG_action = parser.add_argument(
         "PKG", type=str,
-        help="package that other packages depend on")
+        help="package to list plugins for")
 
     if completions:
         from rez.cli._complete_util import PackageFamilyCompleter
@@ -21,6 +21,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     import os
     import os.path
+    import sys
 
     config.override("warn_none", True)
 
@@ -30,9 +31,8 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    pkgs_list = get_plugins(
-        package_name=opts.PKG,
-        paths=pkg_paths)
-
+    pkgs_list = get_plugins(package_name=opts.PKG, paths=pkg_paths)
     if pkgs_list:
         print '\n'.join(pkgs_list)
+    else:
+        print >> sys.stderr, "package '%s' has no plugins." % opts.PKG
