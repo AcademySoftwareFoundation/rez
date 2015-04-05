@@ -168,7 +168,7 @@ class CMakeBuildSystem(BuildSystem):
         return ret
 
     @staticmethod
-    def _add_build_actions(executor, context, package, build_type):
+    def _add_build_actions(executor, context, package, variant, build_type):
         settings = package.config.plugins.build_system.cmake
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
