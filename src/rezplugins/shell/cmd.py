@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor
+from rez.rex import RexExecutor, literal
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
@@ -126,7 +126,7 @@ class CMD(Shell):
         if self.settings.prompt:
             newprompt = '%%REZ_ENV_PROMPT%%%s' % self.settings.prompt
             executor.interpreter._saferefenv('REZ_ENV_PROMPT')
-            executor.env.REZ_ENV_PROMPT = newprompt
+            executor.env.REZ_ENV_PROMPT = literal(newprompt)
 
         if startup_sequence["command"] is not None:
             _record_shell(executor, files=startup_sequence["files"])
