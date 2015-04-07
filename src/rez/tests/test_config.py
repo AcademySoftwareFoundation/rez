@@ -1,9 +1,8 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.exceptions import ConfigurationError
-from rez.config import Config
+from rez.config import Config, get_module_root_config
 from rez.system import system
-from rez import module_root_path
 from rez.utils.data_utils import RO_AttrDictWrapper
 from rez.packages_ import get_developer_package
 import os
@@ -14,7 +13,7 @@ class TestConfig(TestBase):
     @classmethod
     def setUpClass(cls):
         cls.settings = {}
-        cls.root_config_file = os.path.join(module_root_path, "rezconfig")
+        cls.root_config_file = get_module_root_config()
         path = os.path.dirname(__file__)
         cls.config_path = os.path.join(path, "data", "config")
 

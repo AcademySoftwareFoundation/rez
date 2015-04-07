@@ -1,8 +1,7 @@
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
-from rez.config import Config
+from rez.config import Config, get_module_root_config
 from rez.packages_ import get_completions
-from rez import module_root_path
 import os
 import os.path
 
@@ -15,8 +14,7 @@ class TestCompletion(TestBase):
         cls.settings = dict(
             packages_path=[packages_path])
 
-        root_config_file = os.path.join(module_root_path, "rezconfig")
-        cls.config = Config([root_config_file], locked=True)
+        cls.config = Config([get_module_root_config()], locked=True)
 
     def test_config(self):
         """Test config completion."""
