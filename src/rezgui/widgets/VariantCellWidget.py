@@ -2,7 +2,7 @@ from rezgui.qt import QtGui
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.resolved_context import PatchLock, get_lock_request
 from rez.vendor.version.requirement import RequirementList
 from rez.vendor.version.version import VersionRange
@@ -27,7 +27,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
 
         qname = self.variant.qualified_package_name
         self.label = QtGui.QLabel(qname)
-        desc = "%s@%s" % (qname, self.variant.search_path)
+        desc = "%s@%s" % (qname, self.variant.wrapped.location)
         self.label.setToolTip(desc)
 
         self.depends_icon = get_icon_widget("depends", "dependent package")
@@ -113,7 +113,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                 new_icons.append(("local", "package is local"))
 
             package_paths = self.context_model.packages_path
-            if self.variant.search_path in package_paths:
+            if self.variant.wrapped.location in package_paths:
                 # find all >= version packages, so we can determine tick type
                 ge_range = VersionRange.from_version(self.variant.version, ">=")
                 packages = None

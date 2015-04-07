@@ -1,5 +1,5 @@
 from rezgui.qt import QtGui
-from rez.util import readable_time_duration
+from rez.utils.formatting import readable_time_duration
 import os.path
 import time
 

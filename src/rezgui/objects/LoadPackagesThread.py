@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 
 
 class LoadPackagesThread(QtCore.QObject):
@@ -24,8 +24,7 @@ class LoadPackagesThread(QtCore.QObject):
         self.stopped = True
 
     def run(self):
-        it = iter_packages(name=self.package_name, paths=self.package_paths,
-                           range=self.range_)
+        it = iter_packages(name=self.package_name, paths=self.package_paths, range_=self.range_)
         packages = sorted(it, key=lambda x: x.version, reverse=True)
         num_packages = len(packages)
         self.progress.emit(0, num_packages)

@@ -1,7 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.util import get_timestamp_str, update_font, get_icon_widget, create_pane
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.vendor.version.version import VersionRange
 
 
@@ -69,7 +69,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
 
         package_paths = self.context_model.packages_path
 
-        if variant and variant.search_path in package_paths:
+        if variant and variant.wrapped.location in package_paths:
             self.version_index = -1
             self.reference_version_index = -1
             reference_version = None
@@ -122,7 +122,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                     in_future = False
 
                 item = _item()
-                txt = package.path + "  "
+                txt = package.uri + "  "
                 if in_future:
                     icon = get_icon_widget(
                         "clock_warning", "package did not exist at time of resolve")

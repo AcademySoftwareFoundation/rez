@@ -1,5 +1,5 @@
 from rezgui.qt import QtCore, QtGui
-from rez.packages import Package
+from rez.packages_ import Package
 
 
 class VariantsList(QtGui.QTableWidget):
@@ -28,7 +28,7 @@ class VariantsList(QtGui.QTableWidget):
         if package is not None:
             self.setRowCount(package.num_variants)
             for i, variant_ in enumerate(package.iter_variants()):
-                txt = "; ".join(str(x) for x in variant_.variant_requires())
+                txt = "; ".join(str(x) for x in variant_.requires)
                 item = QtGui.QTableWidgetItem(txt)
                 self.setItem(i, 0, item)
 

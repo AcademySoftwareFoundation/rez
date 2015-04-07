@@ -1,7 +1,7 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rez.util import readable_time_duration
+from rez.utils.formatting import readable_time_duration
 import time
 
 

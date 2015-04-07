@@ -7,7 +7,7 @@ from rezgui.widgets.IconButton import IconButton
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.vendor.version.requirement import Requirement
 from rez.vendor.version.version import VersionRange
 from functools import partial
@@ -32,7 +32,7 @@ class CompareCell(QtGui.QWidget):
         if self.left_variant and self.right_variant:
             self.side = "both"
             equal_versions = (self.left_variant.version == self.right_variant.version)
-            right_variant_visible = (self.right_variant.search_path in package_paths)
+            right_variant_visible = (self.right_variant.wrapped.location in package_paths)
             self.comparable = right_variant_visible and not equal_versions
 
             if self.comparable:
@@ -100,7 +100,7 @@ class CompareCell(QtGui.QWidget):
 
     def _clicked(self):
         def _var_str(var):
-            return "%s@%s" % (var.qualified_package_name, var.search_path)
+            return "%s@%s" % (var.qualified_package_name, var.wrapped.location)
 
         if self.comparable:
             from rezgui.dialogs.VariantVersionsDialog import VariantVersionsDialog

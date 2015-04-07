@@ -4,7 +4,7 @@ from rezgui.widgets.VariantVersionsTable import VariantVersionsTable
 from rezgui.widgets.PackageLoadingWidget import PackageLoadingWidget
 from rezgui.widgets.ChangelogEdit import ChangelogEdit
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rez.util import positional_number_string
+from rez.utils.formatting import positional_number_string
 from rez.vendor.version.version import VersionRange
 
 
@@ -81,7 +81,7 @@ class VariantVersionsWidget(PackageLoadingWidget, ContextViewMixin):
             return
 
         package_paths = self.context_model.packages_path
-        if self.variant.search_path not in package_paths:
+        if self.variant.wrapped.location not in package_paths:
             txt = "not on the package search path"
             self.label.setText(txt)
             return
