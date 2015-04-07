@@ -1,8 +1,6 @@
 """
 Perform a reverse package dependency lookup.
 """
-from rez import packages_
-from rez.vendor.version import version
 
 def setup_parser(parser, completions=False):
     parser.add_argument(
@@ -21,18 +19,12 @@ def setup_parser(parser, completions=False):
         "--wg", "--write-graph", dest="write_graph", type=str, metavar='FILE',
         help="write the dependency tree to FILE")
     parser.add_argument(
+        "-q", "--quiet", action="store_true",
+        help="don't print progress bar or depth indicators")
+    parser.add_argument(
         '--include-all', dest='include_all', action='store_true', default=False,
         help='display all the reverse package dependencies (by default it only displays the anti-packages)'
     )
-    parser.add_argument(
-        '-f', '--force-update-cache', dest='force_update_cache', action='store_true', default=False,
-        help='force-update the cache that stores the reverse package-family dependencies (this cache is automatically '
-             'regenerated every 10 minutes by default.'
-    )
-    parser.add_argument(
-        "-q", "--quiet", action="store_true",
-        help="don't print progress bar or depth indicators")
-
     PKG_action = parser.add_argument(
         "PKG", type=str,
         help="package that other packages depend on")
@@ -45,18 +37,18 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import get_reverse_dependency_tree
     from rez.utils.graph_utils import save_graph, view_graph
-    from rez.utils.colorize import Printer
     from rez.config import config
     from rez.vendor.pygraph.readwrite.dot import write as write_dot
+    from rez.utils.colorize import heading, Printer
+    from rez.utils.formatting import PackageRequest
     import os
     import os.path
 
-    _pr = Printer()
-
-    pkg_name, version_range_str = _extract_package_name_version(opts.PKG)
-
     config.override("warn_none", True)
     config.override("show_progress", (not opts.quiet))
+
+    request = PackageRequest(opts.PKG)
+    _pr = Printer()
 
     if opts.paths is None:
         pkg_paths = None
@@ -64,18 +56,13 @@ def command(opts, parser, extra_arg_groups=None):
         pkg_paths = opts.paths.split(os.pathsep)
         pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
 
-    pkgs_list, g, lookup = get_reverse_dependency_tree(
-        package_name=pkg_name,
+    pkgs_list, g = get_reverse_dependency_tree(
+        package_name=request.name,
         depth=opts.depth,
-        paths=pkg_paths,
-        force_update_cache=opts.force_update_cache)
+        paths=pkg_paths)
 
-    if len(pkgs_list) <= 2:
-        _pr('Can not find any package family depending on %s' % pkg_name)
-        return 0
-
-    if version_range_str:
-        collector = ReverseVersionDependenciesCollector(pkg_name, version_range_str, pkgs_list[1])
+    if not request.range.is_any():
+        collector = ReverseVersionDependenciesCollector(request.name, request.range, pkgs_list[1])
         printer = ReverseVersionDependenciesPrinter(_pr, opts.include_all)
         printer.do_print(collector.iter_dependencies(opts.include_all))
 
@@ -87,23 +74,14 @@ def command(opts, parser, extra_arg_groups=None):
             save_graph(gstr, dest_file=opts.write_graph)
         else:
             view_graph(gstr)
-        return 0
+    else:
+        _pr()
+        for i, pkgs in enumerate(pkgs_list):
+            if not opts.quiet:
+                _pr("# depth %d:" % i, heading)
+            _pr(' '.join(pkgs))
 
-    for i, pkgs in enumerate(pkgs_list):
-        if opts.quiet:
-            toks = pkgs
-        else:
-            toks = ["#%d:" % i] + pkgs
-        print ' '.join(toks)
-
-def _extract_package_name_version(input_pkg):
-
-    """Returns the package name and the version range string"""
-
-    name_and_version = input_pkg.split('-')
-    if len(name_and_version) != 2:
-        return input_pkg, ''
-    return name_and_version
+    return 0
 
 
 class DisplayablePackage(object):
@@ -161,21 +139,21 @@ class ReverseVersionDependenciesCollector(object):
     -range
     """
 
-    def __init__(self, requirement_name, version_range_str, package_families):
+    def __init__(self, requirement_name, version_range, package_families):
 
         """
         :param requirement_name:
             name of the required package
 
-        :param version_range_str:
-            the version range string of the required package
+        :param version_range:
+            the version range of the required package
 
         :param package_families:
             a list of names of the package families that are requiring the given package
         """
 
         self._requirement_name = requirement_name
-        self._requirement_version_range = version.VersionRange(version_range_str)
+        self._requirement_version_range = version_range
         self._package_families = package_families
 
     def iter_dependencies(self, include_all=True):
@@ -203,8 +181,9 @@ class ReverseVersionDependenciesCollector(object):
         :return
             A displayable package object.
         """
+        from rez.packages_ import iter_packages
 
-        package_obj = sorted(packages_.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
+        package_obj = sorted(iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
         for requirement in package_obj.requires:
             if requirement.name != self._requirement_name:
                 continue
@@ -212,6 +191,6 @@ class ReverseVersionDependenciesCollector(object):
                 package_obj.name,
                 str(package_obj.version),
                 str(requirement),
-                not requirement.range.issuperset(self._requirement_version_range)
+                not requirement.range.intersects(self._requirement_version_range)
             )
         return None
