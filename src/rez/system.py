@@ -201,7 +201,7 @@ class System(object):
             path = which("rezolve", env={"PATH":os.path.dirname(executable),
                                          "PATHEXT":os.environ.get("PATHEXT",
                                                                   "")})
-            binpath = os.path.dirname(path)
+            binpath = os.path.dirname(path) if path else None
 
         # TODO: improve this, could still pick up non-production 'rezolve'
         if not binpath:
