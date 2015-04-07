@@ -2,7 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.dialogs.ProcessDialog import ProcessDialog
 from rezgui.objects.App import app
 from rezgui.util import get_icon_widget, update_font, add_menu_action
-from rez.util import readable_time_duration
+from rez.utils.formatting import readable_time_duration
 from functools import partial
 import subprocess
 import time

@@ -13,7 +13,7 @@ from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.objects.App import app
 from rez.resolved_context import PatchLock
-from rez.util import readable_time_duration
+from rez.utils.formatting import readable_time_duration
 from functools import partial
 import time
 
