@@ -1,6 +1,7 @@
 from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
-    VariantResource, package_family_schema, package_schema, variant_schema
+    VariantResource, package_family_schema, package_schema, variant_schema, \
+    package_release_keys
 from rez.package_serialise import dump_package_data
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
@@ -87,19 +88,28 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
                 such as 'timestamp' and 'changelog'
         """
         data = self.validated_data().copy()
+
+        # config is a special case. We only really want to show any config settings
+        # that were in the package.py, not the entire Config contents that get
+        # grafted onto the Package/Variant instance. However Variant has an empy
+        # 'data' dict property, since it forwards data from its parent package.
+        data.pop("config", None)
+        if self.config:
+            if isinstance(self, Package):
+                config_dict = self.data.get("config")
+            else:
+                config_dict = self.parent.data.get("config")
+            data["config"] = config_dict
+
+        """
         if self.data:
             data["config"] = self.data.get("config")
         if "base" in data:
             del data["base"]
+        """
 
         if not include_release:
-            release_attributes = ("timestamp",
-                                  "revision",
-                                  "changelog",
-                                  "release_message",
-                                  "previous_version",
-                                  "previous_revision")
-            skip_attributes = (skip_attributes or []) + release_attributes
+            skip_attributes = list(skip_attributes or []) + list(package_release_keys)
 
         buf = buf or sys.stdout
         dump_package_data(data, buf=buf, format_=format_,

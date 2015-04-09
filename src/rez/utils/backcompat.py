@@ -13,7 +13,6 @@ variant_key_conversions = {
     "name":         "name",
     "version":      "version",
     "index":        "index",
-    "ext":          "ext",
     "search_path":  "location"
 }
 
@@ -25,8 +24,8 @@ def convert_old_variant_handle(handle_dict):
 
     for old_key, key in variant_key_conversions.iteritems():
         value = old_variables.get(old_key)
-        if value is not None:
-            variables[key] = value
+        #if value is not None:
+        variables[key] = value
 
     path = handle_dict["path"]
     filename = os.path.basename(path)
