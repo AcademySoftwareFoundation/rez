@@ -925,14 +925,13 @@ class ResolvedContext(object):
             style (): Style to format shell code in.
         """
         executor = self._create_executor(interpreter=create_shell(shell),
-                                         parent_environ=parent_environ,
-                                         style=style)
+                                         parent_environ=parent_environ)
 
         if self.load_path and os.path.isfile(self.load_path):
             executor.env.REZ_RXT_FILE = self.load_path
 
         self._execute(executor)
-        return executor.get_output()
+        return executor.get_output(style)
 
     @_on_success
     def get_actions(self, parent_environ=None):
@@ -1323,13 +1322,11 @@ class ResolvedContext(object):
         self.parent_suite_path = suite_path
         self.suite_context_name = context_name
 
-    def _create_executor(self, interpreter, parent_environ,
-                         style=OutputStyle.file):
+    def _create_executor(self, interpreter, parent_environ):
         parent_vars = True if config.all_parent_variables \
             else config.parent_variables
 
         return RexExecutor(interpreter=interpreter,
-                           output_style=style,
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 

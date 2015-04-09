@@ -6,7 +6,7 @@ their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
-from rez.rex import RexExecutor
+from rez.rex import RexExecutor, literal, expandable
 import rez.vendor.unittest2 as unittest
 from rez.vendor.sh import sh
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
@@ -180,7 +180,7 @@ class TestShells(TestBase, TempdirMixin):
             output = out.strip().split('\n')
             self.assertEqual(output, expected_output)
 
-        def _rex_code():
+        def _rex_assigning():
             def _print(value):
                 env.FOO = value
                 info("${FOO}")
@@ -235,9 +235,26 @@ class TestShells(TestBase, TempdirMixin):
             "hi Gary",
             "hi $WHO",
             "${WHO}",
-            "${WHO} Gary"]
+            "${WHO} Gary"
+        ]
 
-        _execute_code(_rex_code, expected_output)
+        _execute_code(_rex_assigning, expected_output)
+
+        def _rex_appending():
+            env.FOO.append("hey")
+            info("${FOO}")
+            env.FOO.append(literal("$DAVE"))
+            info("${FOO}")
+            env.FOO.append("Dave's not here man")
+            info("${FOO}")
+
+        expected_output = [
+            "hey",
+            os.pathsep.join(["hey", "$DAVE"]),
+            os.pathsep.join(["hey", "$DAVE", "Dave's not here man"])
+        ]
+
+        _execute_code(_rex_appending, expected_output)
 
 
 def get_test_suites():

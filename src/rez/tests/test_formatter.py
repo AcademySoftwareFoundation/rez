@@ -17,7 +17,8 @@ class TestFormatter(TestBase):
 
     def test_formatter_rex(self):
         self.assert_formatter_equal('Hello, ${world}!', 'Hello, ${world}!')
-        self.assert_formatter_equal('Hello, ${{world}}!', 'Hello, ${Earth}!', world="Earth")
+        self.assert_formatter_equal('Hello, $WORLD!', 'Hello, ${WORLD}!')
+        self.assert_formatter_equal('Hello, ${{world}}!', 'Hello, ${world}!', world="Earth")
         self.assert_formatter_equal('Hello, {world}!', 'Hello, Earth!', world="Earth")
 
     def test_formatter_stdlib(self):
