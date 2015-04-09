@@ -235,6 +235,7 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
             expected_package_version = Version(package_version)
             resolved_package_version = TestVariantResolutionOrder.getResolvedPackageVersion(resolved_context,
                                                                                             expected_package_name)
+            
             self.assertEqual(resolved_package_version, expected_package_version,
                              'wrong %s version selected' % expected_package_name )
 
@@ -369,9 +370,8 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         request = ['permuted_family_names_same_position_weight']
         # All have the same positional average weight
         # It should sort alphabetically first by bah then eek and then foo
-        expected_packages = ['bah-2.0.0', 'eek-1.0.1', 'foo-1.0.0']
+        expected_packages = ['bah-2.0.0', 'eek-1.0.0', 'foo-1.1.0']
         self._solve(request, expected_packages)
-
 
     def test_asymmetric_variant_selection(self):
         """
@@ -403,11 +403,11 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         self._solve(request, expected_packages, non_expected_packages)
 
         request = [ 'variant_with_antipackage', 'asymmetric_variants', 'bah']
-        expected_packages = ['bah-1.0.1', 'eek-1.0.0']
+        expected_packages = ['bah-1.0.0', 'eek-1.0.1']
         self._solve(request, expected_packages)
 
         request = [ 'variant_with_antipackage', 'asymmetric_variants', 'eek']
-        expected_packages = ['bah-1.0.1', 'eek-1.0.0']
+        expected_packages = ['bah-1.0.0', 'eek-1.0.1']
         self._solve(request, expected_packages)
 
         request = [ 'asymmetric_variants', 'variant_with_antipackage', 'eek', 'bah']
@@ -433,10 +433,6 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
 
         request = ['variant_with_weak_package_in_variant', 'bah-2']
         expected_packages = ['bah-2.0.0']
-        self._solve(request, expected_packages)
-
-        request = ['variant_with_weak_package_in_variant']
-        expected_packages = ['bah-1.0.1']
         self._solve(request, expected_packages)
 
     def test_package_name_in_require_and_variant(self):

@@ -157,6 +157,14 @@ implicit_packages = [
 # failure.
 prune_failed_graph = True
 
+# Variant select mode. This determines which variants in a package are preferred
+# during a solve. Valid options are:
+# - version_priority: Prefer variants that contain higher versions of packages
+#   present in the request;
+# - intersection_priority: Prefer variants that contain the most number of
+#   packages that are present in the request.
+variant_select_mode = 'intersection_priority'
+
 
 ###############################################################################
 # Environment Resolution

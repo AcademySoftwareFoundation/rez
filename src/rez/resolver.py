@@ -225,7 +225,6 @@ class Resolver(object):
     def _solve(self):
         package_cache = PackageVariantCache(
             self.package_paths,
-            package_requests=self.package_requests,
             timestamp=self.timestamp,
             package_load_callback=self.package_load_callback,
             building=self.building)
