@@ -2,7 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rezgui.models.ContextModel import ContextModel
 from rezgui.util import get_timestamp_str
-from rez.packages import iter_packages
+from rez.packages_ import iter_packages
 from rez.exceptions import RezError
 
 
@@ -70,7 +70,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
         QtGui.QApplication.setOverrideCursor(busy_cursor)
         try:
-            packages = list(iter_packages(name=package_name,
+            packages = list(iter_packages(name=str(package_name),
                             paths=package_paths))
         except RezError:
             packages = []
@@ -84,7 +84,7 @@ class PackageVersionsTable(QtGui.QTableWidget, ContextViewMixin):
         for i, package in enumerate(sorted(packages, key=lambda x: x.version,
                                            reverse=True)):
             version_str = str(package.version) + ' '
-            path_str = package.path + "  "
+            path_str = package.uri + "  "
             release_str = get_timestamp_str(package.timestamp) \
                 if package.timestamp else '-'
             enabled = self.callback(package) if self.callback else True

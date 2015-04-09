@@ -9,7 +9,7 @@ from rezgui.widgets.ChangelogEdit import VariantChangelogEdit
 from rezgui.widgets.VariantDetailsWidget import VariantDetailsWidget
 
 from rezgui.widgets.VariantsList import VariantsList
-from rez.packages import Package, Variant
+from rez.packages_ import Package, Variant
 
 
 class PackageTabWidget(QtGui.QTabWidget, ContextViewMixin):

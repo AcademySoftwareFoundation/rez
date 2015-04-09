@@ -87,17 +87,18 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
                 such as 'timestamp' and 'changelog'
         """
         data = self.validated_data().copy()
-        data["config"] = self.data.get("config")
+        if self.data:
+            data["config"] = self.data.get("config")
         if "base" in data:
             del data["base"]
 
         if not include_release:
-            release_attributes = ["timestamp",
+            release_attributes = ("timestamp",
                                   "revision",
                                   "changelog",
                                   "release_message",
                                   "previous_version",
-                                  "previous_revision"]
+                                  "previous_revision")
             skip_attributes = (skip_attributes or []) + release_attributes
 
         buf = buf or sys.stdout

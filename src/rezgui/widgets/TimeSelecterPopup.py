@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import update_font, create_pane
-from rez.util import readable_time_duration
+from rez.utils.formatting import readable_time_duration
 import math
 
 

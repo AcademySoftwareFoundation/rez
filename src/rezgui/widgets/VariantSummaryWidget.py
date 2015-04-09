@@ -1,6 +1,6 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane, get_timestamp_str
-from rez.packages import Package, Variant
+from rez.packages_ import Package, Variant
 from rez.util import find_last_sublist
 
 
@@ -45,9 +45,14 @@ class VariantSummaryWidget(QtGui.QWidget):
         else:
             self.setEnabled(True)
             if isinstance(variant, Package):
-                label = str(variant)
+                label_name = variant.qualified_name
+                location = variant.uri
             else:
-                label = "%s@%s" % (variant.qualified_package_name, variant.search_path)
+                label_name = variant.qualified_package_name
+                location = variant.parent.uri
+
+            label = "%s@%s" % (label_name, variant.wrapped.location)
+
             self.label.setText(label)
             self.table.clear()
             rows = []
@@ -58,8 +63,8 @@ class VariantSummaryWidget(QtGui.QWidget):
                 if len(desc) > max_chars:
                     desc = desc[:max_chars] + "..."
                 rows.append(("description: ", desc))
-            if variant.path:
-                rows.append(("location: ", variant.path))
+            if variant.uri:
+                rows.append(("location: ", location))
             if variant.timestamp:
                 release_time_str = get_timestamp_str(variant.timestamp)
                 rows.append(("released: ", release_time_str))
@@ -70,12 +75,11 @@ class VariantSummaryWidget(QtGui.QWidget):
                 var_strs = [str(x) for x in variant.requires]
                 if isinstance(variant, Variant):
                     # put variant-specific requires in square brackets
-                    var_reqs = variant.variant_requires()
-                    if var_reqs:
-                        index = find_last_sublist(variant.requires, var_reqs)
+                    if variant.requires:
+                        index = find_last_sublist(variant.requires, variant.requires)
                         if index is not None:
                             var_strs[index] = "[%s" % var_strs[index]
-                            index2 = index + len(var_reqs) - 1
+                            index2 = index + len(variant.requires) - 1
                             var_strs[index2] = "%s]" % var_strs[index2]
                 txt = "; ".join(var_strs)
                 rows.append(("requires: ", txt))
