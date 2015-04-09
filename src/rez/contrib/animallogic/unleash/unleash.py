@@ -62,7 +62,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
                                    verbose=True)
 
     install_path = builder.package.config.release_packages_path
-    last_release = builder._get_last_release(install_path)
+    last_release = builder.get_previous_release()
 
     if last_release:
         previous_revision = last_release.revision
@@ -87,7 +87,7 @@ def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour
     builder.release()
 
     install_path = package.config.unleash_packages_path
-    base = builder._get_base_install_path(install_path)
+    base = builder.get_package_install_path(install_path)
 
     unleash_command = "python %s -p %s -v %s -b %s -f %s -t %s -m \\'%s\\' -d \\'%s\\' %s" % \
                       (UNLEASHER_COMMAND, name, version, base, unleash_flavour, 
