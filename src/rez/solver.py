@@ -662,14 +662,22 @@ class _PackageVariantSlice(_Common):
         - sort by highest versions of packages shared with request;
         - THEN least number of additional packages added to solve;
         - THEN highest versions of additional packages;
-        - THEN variant index (arbitrary but repeatable sort order).
+        - THEN alphabetical on name of additional packages;
+        - THEN variant index.
 
         intersection_priority:
         - sort by highest number of packages shared with request;
         - THEN highest versions of packages shared with request;
         - THEN least number of additional packages added to solve;
         - THEN highest versions of additional packages;
-        - THEN variant index (arbitrary but repeatable sort order).
+        - THEN alphabetical on name of additional packages;
+        - THEN variant index.
+
+        Note:
+            In theory 'variant.index' should never factor into the sort unless
+            two variants are identical (which shouldn't happen) - this is jusst
+            here as a safety measure so that sorting is guaranteed repeatable
+            regardless.
 
         Note:
             Assumes self.variants is already in version-descending order.
@@ -687,7 +695,7 @@ class _PackageVariantSlice(_Common):
             k2 = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    k2.append(request.range)
+                    k2.append((request.range, request.name))
 
             if config.variant_select_mode == VariantSelectMode.version_priority:
                 k = (k1, -len(k2), k2, variant.index)
