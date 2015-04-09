@@ -88,7 +88,7 @@ class VariantVersionsTable(QtGui.QTableWidget, ContextViewMixin):
                 else:
                     packages = [x for x in preloaded_packages if x.version in range_]
             else:
-                it = iter_packages(name=variant.name, paths=package_paths, range=range_)
+                it = iter_packages(name=variant.name, paths=package_paths, range_=range_)
                 packages = sorted(it, key=lambda x: x.version, reverse=True)
 
             self.setRowCount(len(packages))

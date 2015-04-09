@@ -102,7 +102,7 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         return self.context_model.packages_path
 
     def _textEdited(self, txt):
-        words = get_completions(txt,
+        words = get_completions(str(txt),
                                 paths=self._paths,
                                 family_only=self.family_only)
         self.completions.setStringList(list(reversed(list(words))))
@@ -140,7 +140,7 @@ class PackageLineEdit(QtGui.QLineEdit, ContextViewMixin):
         if not req.conflict:
             try:
                 it = iter_packages(name=req.name,
-                                   range=req.range,
+                                   range_=req.range,
                                    paths=self._paths)
                 pkg = sorted(it, key=lambda x: x.version)[-1]
             except Exception:

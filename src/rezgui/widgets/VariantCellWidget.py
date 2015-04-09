@@ -118,7 +118,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                 ge_range = VersionRange.from_version(self.variant.version, ">=")
                 packages = None
                 try:
-                    it = iter_packages(name=self.variant.name, range=ge_range,
+                    it = iter_packages(name=self.variant.name, range_=ge_range,
                                        paths=package_paths)
 
                     packages = sorted(it, key=lambda x: x.version)
