@@ -187,6 +187,8 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
+        # Required for backwards compatibility :-(
+        executor.env.REZ_BUILD_VARIANT_NUMBER = variant.index or 0
         # build always occurs on a filesystem package, thus 'filepath' attribute
         # exists. This is not the case for packages in general.
         executor.env.REZ_BUILD_PROJECT_FILE = package.filepath
