@@ -123,18 +123,9 @@ class TestCMakeBuildSystem(TestBase, TempdirMixin):
 
         cls.settings = dict(
             packages_path=[cls.install_root],
-            add_bootstrap_path=False,
             resolve_caching=False,
             warn_untimestamped=False,
             implicit_packages=[])
-
-        working_dir = os.path.join(cls.src_root, "foo", "1.0.0")
-        builder = cls._create_builder(working_dir)
-        builder.build(install_path=cls.install_root, install=True, clean=True)
-
-        working_dir = os.path.join(cls.src_root, "foo", "1.1.0")
-        builder = cls._create_builder(working_dir)
-        builder.build(install_path=cls.install_root, install=True, clean=True)
 
     @classmethod
     def tearDownClass(cls):
