@@ -434,6 +434,11 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         expected_packages = ['bah-2.0.0']
         self._solve(request, expected_packages)
 
+        request = ['variant_with_weak_package_in_variant']
+        non_expected_packages = ['bah']
+        expected_packages = ['variant_with_weak_package_in_variant-1']
+        self._solve(request, expected_packages, non_expected_packages)
+
     def test_package_name_in_require_and_variant(self):
         """
         Test weird but valid case where a package family name appears in the requires and also in the variants
