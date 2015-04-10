@@ -224,7 +224,7 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
     def tearDownClass(cls):
         TempdirMixin.tearDownClass()
 
-    def _solve(self, request, expected_packages=[], non_expected_packages=[], fails_to_resolve=False):
+    def _solve(self, request, expected_packages=[], not_expected_packages=[], fails_to_resolve=False):
 
         resolved_context = ResolvedContext(request)
         if fails_to_resolve:
@@ -239,10 +239,10 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
             self.assertEqual(resolved_package_version, expected_package_version,
                              'wrong %s version selected' % expected_package_name )
 
-        for non_expected in non_expected_packages:
+        for not_expected in not_expected_packages:
             for package in resolved_context.resolved_packages:
-                self.assertNotEquals(package.name, non_expected,
-                                     '%s should not be in the resolved packages' % non_expected)
+                self.assertNotEquals(package.name, not_expected,
+                                     '%s should not be in the resolved packages' % not_expected)
 
         return resolved_context
 
@@ -362,16 +362,33 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         expected_packages = ['bah-2.0.0', 'eek-1.0.1']
         self._solve(request, expected_packages)
 
-    def test_variant_with_same_positional_weight(self):
+    def test_default_to_higher_version_in_variants(self):
         """
-        Test that when we have a tie on positional average weight we pick the a fam name by alphabetical order
+        Test that when no package in the variants are specified, we choose the same variant (if available) for all
+        the packages regardless how they appear in the package description.
+        If the packages have version it defaults to the higher version
         """
 
-        request = ['permuted_family_names_same_position_weight']
-        # All have the same positional average weight
-        # It should sort alphabetically first by bah then eek and then foo
-        expected_packages = ['bah-2.0.0', 'eek-1.0.0', 'foo-1.1.0']
+        request = ['variant_ordered_alphabetically_diff_version', 'variant_ordered_alphabetically_reversed_diff_version']
+        expected_packages = ['bah-2.0.0']
+        not_expected_packages = ['eek-1.0.1']
+        self._solve(request, expected_packages, not_expected_packages )
+
+    def test_default_to_reversed_alphabetical_order(self):
+        """
+        Test that when no package in the variants are specified, we choose the same variant (if available) for all
+        the packages regardless how they appear in the package description.
+        The behaviour is that it chooses higher version and if still ambiguous then it sorts them
+        in reversed alphabetical order.
+        """
+
+        request = ['variant_ordered_alphabetically_same_version', 'variant_ordered_alphabetically_reversed_same_version']
+        expected_packages = ['eek-1.0.1']
+        not_expected_packages = ['bah-1.0.1']
         self._solve(request, expected_packages)
+
+
+
 
     def test_asymmetric_variant_selection(self):
         """
@@ -389,8 +406,8 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
 
         request = ['asymmetric_variants',  'bah']
         expected_packages = ['bah-2.0.0']
-        non_expected_packages = ['eek']
-        self._solve(request, expected_packages, non_expected_packages)
+        not_expected_packages = ['eek']
+        self._solve(request, expected_packages, not_expected_packages)
 
     def test_variant_with_antipackage(self):
         """
@@ -399,8 +416,8 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
 
         request = ['asymmetric_variants', '!eek', 'bah']
         expected_packages = ['bah-2.0.0']
-        non_expected_packages = ['eek']
-        self._solve(request, expected_packages, non_expected_packages)
+        not_expected_packages = ['eek']
+        self._solve(request, expected_packages, not_expected_packages)
 
         request = [ 'variant_with_antipackage', 'asymmetric_variants', 'bah']
         expected_packages = ['bah-1.0.0', 'eek-1.0.1']
@@ -436,9 +453,9 @@ class TestVariantResolutionOrder(TestBase, TempdirMixin):
         self._solve(request, expected_packages)
 
         request = ['variant_with_weak_package_in_variant']
-        non_expected_packages = ['bah']
+        not_expected_packages = ['bah']
         expected_packages = ['variant_with_weak_package_in_variant-1']
-        self._solve(request, expected_packages, non_expected_packages)
+        self._solve(request, expected_packages, not_expected_packages)
 
     def test_package_name_in_require_and_variant(self):
         """
