@@ -11,6 +11,7 @@ from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
+from rez.shells import create_shell
 import functools
 import os.path
 import sys
@@ -103,12 +104,14 @@ class CMakeBuildSystem(BuildSystem):
         if not found_exe:
             raise RezCMakeError("cmake binary does not exist: %s" % exe)
 
+        sh = create_shell()
+
         # assemble cmake command
         cmd = [found_exe, "-d", self.working_dir]
         cmd += (self.settings.cmake_args or [])
         cmd += (self.build_args or [])
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
-        cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
+        cmd.append("-DCMAKE_MODULE_PATH=%s" % sh.get_key_token("CMAKE_MODULE_PATH"))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
         cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
