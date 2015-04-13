@@ -11,10 +11,10 @@ cmake = {
 
     # A list of default arguments to be passed to the cmake binary.
     "cmake_args" : [
-                    '-Wno-dev'
-                    '-DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE'
-                    '-D_ECLIPSE_VERSION=4.3'
-                    '--no-warn-unused-cli'
+                    '-Wno-dev',
+                    '-DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE',
+                    '-D_ECLIPSE_VERSION=4.3',
+                    '--no-warn-unused-cli',
                    ],
 
     # Optionally specify an explicit cmake executable to use for building.
