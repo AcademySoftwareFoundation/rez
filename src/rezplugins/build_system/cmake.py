@@ -33,6 +33,7 @@ class CMakeBuildSystem(BuildSystem):
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
                      'make':        "Unix Makefiles",
+                     'nmake':       "NMake Makefiles",
                      'xcode':       "Xcode"}
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
@@ -41,7 +42,8 @@ class CMakeBuildSystem(BuildSystem):
         "build_target":     Or(*build_targets),
         "build_system":     Or(*build_systems.keys()),
         "cmake_args":       [basestring],
-        "cmake_binary":     Or(None, basestring)}
+        "cmake_binary":     Or(None, basestring),
+        "make_binary":     Or(None, basestring)}
 
     @classmethod
     def name(cls):
@@ -153,7 +155,10 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
-        cmd = ["make"]
+        if self.settings.make_binary:
+            cmd = [self.settings.make_binary]
+        else:
+            cmd = ["make"]
         cmd += (self.child_build_args or [])
 
         # execute make within the build env
