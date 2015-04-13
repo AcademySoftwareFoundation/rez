@@ -207,6 +207,14 @@ class PackageRepositoryResource(Resource):
         """
         raise NotImplementedError
 
+    @property
+    def is_local(self):
+        """Returns True if the variant is from a local package"""
+        # Base implementation returns False, because currently, a file is local
+        # only if it was found inside the directory defined by the
+        # local_packages_path - which means only FileSystem resources can be
+        # local... so override a "real" check for is_local in those subclasses
+        return False
 
 class PackageFamilyResource(PackageRepositoryResource):
     """A package family.
@@ -382,3 +390,8 @@ class VariantResourceHelper(VariantResource):
     def _load(self):
         # doesn't have its own data, forwards on from parent instead
         return None
+
+    @property
+    def is_local(self):
+        """Returns True if the family is from a local package"""
+        return self.parent.is_local

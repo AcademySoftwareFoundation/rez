@@ -38,8 +38,8 @@ class TempDirs(object):
         self.clear()
 
 
-def is_subdirectory(path_a, path_b):
-    """Returns True if `path_a` is a subdirectory of `path_b`."""
+def is_subpath(path_a, path_b):
+    """Returns True if `path_a` is a subpath of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
     relative = os.path.relpath(path_a, path_b)

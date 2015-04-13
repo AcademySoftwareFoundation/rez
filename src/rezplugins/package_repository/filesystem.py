@@ -2,12 +2,13 @@
 Filesystem-based package repository
 """
 from rez.package_repository import PackageRepository
-from rez.package_resources_ import PackageFamilyResource, PackageResource, \
+from rez.package_resources_ import PackageFamilyResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
     package_release_keys
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
-from rez.utils.formatting import is_valid_package_name, PackageRequest
+from rez.utils.formatting import is_valid_package_name
+from rez.utils.filesystem import is_subpath
 from rez.utils.resources import cached_property
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
@@ -17,7 +18,6 @@ from rez.vendor.schema.schema import Schema, Optional, And, Use
 from rez.vendor.version.version import Version, VersionRange
 import time
 import os.path
-import os
 
 
 #------------------------------------------------------------------------------
@@ -52,6 +52,11 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     @cached_property
     def path(self):
         return os.path.join(self.location, self.name)
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the family is from a local package"""
+        return is_subpath(self.path, config.local_packages_path)
 
     def get_last_release_time(self):
         # this repository makes sure to update path mtime every time a
@@ -121,6 +126,11 @@ class FileSystemPackageResource(PackageResourceHelper):
     @cached_property
     def filepath(self):
         return self._filepath_and_format[0]
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the package is from a local package"""
+        return is_subpath(self.path, config.local_packages_path)
 
     @cached_property
     def file_format(self):
@@ -236,6 +246,11 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
         filename = "%s.%s" % (self.name, self.ext)
         return os.path.join(self.location, filename)
 
+    @cached_property
+    def is_local(self):
+        """Returns True if the family is from a local package"""
+        return is_subpath(self.filepath, config.local_packages_path)
+
     def _uri(self):
         return self.filepath
 
@@ -281,6 +296,11 @@ class FileSystemCombinedPackageResource(PackageResourceHelper):
     def _uri(self):
         ver_str = self.get("version", "")
         return "%s<%s>" % (self.parent.filepath, ver_str)
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the package is from a local package"""
+        return self.parent.is_local
 
     @cached_property
     def parent(self):

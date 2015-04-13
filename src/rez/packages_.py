@@ -5,7 +5,6 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
 from rez.package_serialise import dump_package_data
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
-from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError
@@ -73,8 +72,13 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
     @cached_property
     def is_local(self):
-        """Returns True if the variant is from a local package"""
+        """Returns True if the package/variant is from a local package"""
         return is_subdirectory(self.base, config.local_packages_path)
+
+    @cached_property
+    def is_local(self):
+        """Returns True if the package/variant is from a local package"""
+        return self.wrapped.is_local
 
     def print_info(self, buf=None, format_=FileFormat.yaml,
                    skip_attributes=None, include_release=False):

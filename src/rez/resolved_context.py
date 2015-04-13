@@ -653,14 +653,15 @@ class ResolvedContext(object):
         for pkg in resolved_packages:
             t = []
             col = None
-            if not os.path.exists(pkg.root):
+            if pkg.root and not os.path.exists(pkg.root):
                 t.append('NOT FOUND')
                 col = critical
             if pkg.is_local:
                 t.append('local')
                 col = local
             t = '(%s)' % ', '.join(t) if t else ''
-            rows.append((pkg.qualified_package_name, pkg.root, t))
+            location = pkg.root or pkg.base or pkg.uri
+            rows.append((pkg.qualified_package_name, location, t))
             colors.append(col)
 
         for col, line in zip(colors, columnise(rows)):
