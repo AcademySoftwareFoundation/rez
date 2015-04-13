@@ -11,10 +11,10 @@ macro (rez_project)
 	# As a Windows compiler and build environment isn't correctly setup (yet),
 	# stop CMake performing automatic compiler discovery (and failing).
     if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        project(${REZ_BUILD_PROJECT_NAME} NONE)
+    elseif()
         project(${REZ_BUILD_PROJECT_NAME})
     endif()
-        project(${REZ_BUILD_PROJECT_NAME})
-    end()
 
 	# this ensures there is always an 'install' target, otherwise packages with
 	# an empty build will fail to install
