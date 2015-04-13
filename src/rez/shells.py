@@ -134,6 +134,16 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
+    def join(self, command):
+        """
+        Args:
+            command: 
+                A sequence of program arguments to be joined into a single
+                string that can be executed in the current shell.
+        Returns:
+            A string object representing the command.
+        """
+        raise NotImplementedError
 
 class UnixShell(Shell):
     """
@@ -353,3 +363,6 @@ class UnixShell(Shell):
 
     def get_key_token(self, key):
         return "${%s}" % key
+
+    def join(self, command):
+        return shlex_join(command)

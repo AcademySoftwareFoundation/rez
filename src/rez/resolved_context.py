@@ -1078,8 +1078,11 @@ class ResolvedContext(object):
             If blocking: A 3-tuple of (returncode, stdout, stderr);
             If non-blocking - A subprocess.Popen object for the shell process.
         """
+        # create the shell
+        sh = create_shell(shell)
+
         if hasattr(command, "__iter__"):
-            command = shlex_join(command)
+            command = sh.join(command)
 
         # start a new session if specified
         if start_new_session:
@@ -1099,9 +1102,6 @@ class ResolvedContext(object):
         # block if the shell is likely to be interactive
         if block is None:
             block = not (command or stdin)
-
-        # create the shell
-        sh = create_shell(shell)
 
         # context and rxt files
         tmpdir = tmpdir or self.tmpdir_manager.mkdtemp()

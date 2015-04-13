@@ -6,6 +6,7 @@ from rez.rex import RexExecutor, literal
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
+from rez.util import shlex_join
 import os
 import re
 import subprocess
@@ -200,6 +201,9 @@ class CMD(Shell):
 
     def get_key_token(self, key):
         return "%%%s%%" % key
+
+    def join(self, command):
+        return shlex_join(command).replace("'", '"')
 
 
 def register_plugin():
