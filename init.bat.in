@@ -1,0 +1,52 @@
+::
+:: System initialization script for rez. Source this file in order to use rez. 
+:: You probably want to do that in ~/.bashrc or equivalent startup script.
+::
+
+:: Rez version.
+set REZ_VERSION=@REZ_VERSION@
+
+:: Where Rez is installed.
+set REZ_PATH=@rez_path@
+
+:: Set debug mode by default.
+set REZ_DEBUG=1
+
+:: Add Rez to our environment.
+set PATH=%REZ_PATH%\Scripts\rez:%PATH%
+
+:: where rez will publish local packages to (ie those installed with rez-build -- -- install)
+IF NOT DEFINED REZ_LOCAL_PACKAGES_PATH (
+	set REZ_LOCAL_PACKAGES_PATH=%HOMEDRIVE%%HOMEPATH%\packages
+)
+
+:: where unleash will publish packages to (ie those released with rez-unleash)
+IF NOT DEFINED REZ_UNLEASH_PACKAGES_PATH (
+	set REZ_UNLEASH_PACKAGES_PATH=C:\temp\rezunleash
+)
+
+:: where rez will publish packages to (ie those released with rez-release)
+IF NOT DEFINED REZ_RELEASE_PACKAGES_PATH (
+	set REZ_RELEASE_PACKAGES_PATH=T:\film\tools\packages
+)
+
+:: where rez searches for packages
+IF NOT DEFINED REZ_PACKAGES_PATH (
+	set REZ_PACKAGES_PATH=%REZ_LOCAL_PACKAGES_PATH%;%REZ_RELEASE_PACKAGES_PATH%
+)
+
+:: where rez will look for additional configuration
+IF NOT DEFINED REZ_CONFIG_FILE (
+    set REZ_CONFIG_FILE=T:\film\tools\packages\rez\rezconfig
+)
+
+:: Tell Rez where our downloads live.
+set REZ_EXTERNAL_PACKAGES_DOWNLOADS=T:\film\tools\packages\downloads
+
+:: Add some alias for Rez to use.
+doskey b=rez build --build-target RelWithDebInfo --install -- -- -j 16
+doskey b0=rez build --build-target RelWithDebInfo --variants 0 --install -- -- -j 16
+doskey b1=rez build --build-target RelWithDebInfo --variants 1 --install -- -- -j 16
+doskey b2=rez build --build-target RelWithDebInfo --variants 2 --install -- -- -j 16
+doskey b3=rez build --build-target RelWithDebInfo --variants 3 --install -- -- -j 16
+doskey b4=rez build --build-target RelWithDebInfo --variants 4 --install -- -- -j 16

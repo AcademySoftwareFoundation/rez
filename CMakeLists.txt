@@ -15,8 +15,14 @@ file(RELATIVE_PATH relative_path ${CMAKE_CURRENT_BINARY_DIR} ${relative_path_to_
 
 get_filename_component(relative_path_to_install ${CMAKE_SOURCE_DIR}/install.py  PATH)
 
+set(bin_dir bin)
+if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+    set(bin_dir Scripts)
+endif()
+
 configure_file(init.csh.in init.csh @ONLY)
 configure_file(init.sh.in init.sh @ONLY)
+configure_file(init.bat.in init.bat @ONLY)
 configure_file(setup.py setup.py @ONLY)
 configure_file(install.py install.py @ONLY)
 configure_file(src/rez/utils/_version.py.in ${relative_path_to_install}/src/rez/utils/_version.py @ONLY)
@@ -24,8 +30,9 @@ configure_file(src/rez/utils/_version.py.in ${relative_path_to_install}/src/rez/
 set(install_py ${CMAKE_CURRENT_BINARY_DIR}/install.py)
 
 install(CODE "execute_process(COMMAND $ENV{PYTHON_EXE} ${install_py} -v ${rez_path})")
-install(FILES ${CMAKE_BINARY_DIR}/init.sh DESTINATION bin)
-install(FILES ${CMAKE_BINARY_DIR}/init.csh DESTINATION bin)
+install(FILES ${CMAKE_BINARY_DIR}/init.sh DESTINATION ${bin_dir})
+install(FILES ${CMAKE_BINARY_DIR}/init.csh DESTINATION ${bin_dir})
+install(FILES ${CMAKE_BINARY_DIR}/init.bat DESTINATION ${bin_dir})
 install(FILES ${CMAKE_SOURCE_DIR}/src/rez/completion/_rez_completion
     DESTINATION bin/rez PERMISSIONS OWNER_READ OWNER_EXECUTE GROUP_EXECUTE GROUP_READ WORLD_EXECUTE WORLD_READ )
 
