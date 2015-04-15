@@ -11,13 +11,7 @@ from rez.config import config
 def launch_dora_from_context_file(contextFile):
 
     print >> sys.stdout, "Getting dora environment ..."
-
-    if config.local_packages_path in config.packages_path:
-        packages_path = config.packages_path.remove(config.local_packages_path)
-    else:
-        packages_path = config.packages_path
-
-    rc = ResolvedContext(['dora'], package_paths=packages_path)
+    rc = ResolvedContext(['dora'], package_paths=config.nonlocal_packages_path)
     doraEnvironment = rc.get_environ()
     env = dict(os.environ)
     doraCommand = '%s -i %s ' % (doraEnvironment.get('DORA_EXE'), contextFile)
