@@ -38,7 +38,20 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def _operating_system_to_dict(self, operating_system):
 
-        return {'name':operating_system.name}
+        return None if operating_system is None else {'name':operating_system.name}
+
+    def _setting_to_dict(self, setting):
+
+        return {
+                "id": setting.id,
+                "type": self._setting_type_to_dict(setting.setting_type),
+                "name": setting.name,
+                "value": setting.value,
+                "opSystem": self._operating_system_to_dict(setting.operating_system),
+                "tags": None,
+                "sourcePresetId": setting.parent_id,
+                "lock": None,
+               }
 
     def _get_parent_id_for_preset_path(self, preset_path, date=None):
 
@@ -144,8 +157,9 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def add_settings_to_preset(self, settings, preset_path, username=None):
 
-        for setting in settings:
-            self.add_setting_to_preset(setting, preset_path, username=username)
+        print settings
+
+        return self._preset_proxy.addSettings(self._strip_prefix_from_path(preset_path), username, [self._setting_to_dict(setting) for setting in settings])
 
     def create_preset(self, preset_path, description, username=None):
 

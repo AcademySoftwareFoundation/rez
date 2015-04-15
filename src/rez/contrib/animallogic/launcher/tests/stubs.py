@@ -37,6 +37,10 @@ class StubPresetProxy(object):
 
         return name, value, type_
 
+    def addSettings(self, path, username, settings):
+
+        return settings
+
     def addReference(self, destination_path, referencePath, username, description):
 
         if not all([destination_path, referencePath, username]):

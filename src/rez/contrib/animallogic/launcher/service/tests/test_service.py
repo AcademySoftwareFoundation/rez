@@ -116,6 +116,15 @@ class TestLauncherHessianService_AddSettingToPreset(BaseTestLauncherHessianServi
         self.assertEqual(self.new_setting.value, value)
         self.assertEqual({'name':self.new_setting.setting_type.launcher_type}, setting_type_as_dict)
 
+    def test_add_settings_to_preset(self):
+
+        launcher_service = LauncherHessianService(StubPresetProxy({}, ""), StubToolsetProxy({}, ""))
+
+        settings = launcher_service.add_settings_to_preset([self.new_setting], "/preset/path", self.username)
+        self.assertEqual(self.new_setting.name, settings[0]["name"])
+        self.assertEqual(self.new_setting.value, settings[0]["value"])
+        self.assertEqual({'name':self.new_setting.setting_type.launcher_type}, settings[0]["type"])
+
 
 class TestLauncherHessianService_CreatePreset(BaseTestLauncherHessianService):
 
