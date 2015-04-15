@@ -10,6 +10,7 @@ subcommands = [
     "build",
     "config",
     "context",
+    "copy",
     "complete",
     "depends",
     "env",

@@ -1,7 +1,7 @@
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_resources_ import package_release_keys
-from rez.package_repository import create_memory_package_repository
+from rez.package_repository import package_repository_manager, get_package_repository_types
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import SourceCode
@@ -63,6 +63,8 @@ class TestPackages(TestBase, TempdirMixin):
 
     @classmethod
     def tearDownClass(cls):
+        repo_path = "mongo:%s" % os.path.join(cls.root, "packages")
+        package_repository_manager.get_repository(repo_path).packages.drop()
         TempdirMixin.tearDownClass()
 
     def test_1(self):
@@ -199,11 +201,7 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertEqual(variant.parent, package)
 
     def test_7(self):
-        """test variant installation."""
-        repo_path = os.path.join(self.root, "packages")
-        if not os.path.exists(repo_path):
-            os.makedirs(repo_path)
-
+        """test variant installation for repositories which implement Variant.install"""
         def _data(obj):
             d = obj.validated_data()
             keys = package_release_keys + ("base",)
@@ -211,49 +209,61 @@ class TestPackages(TestBase, TempdirMixin):
                 d.pop(key, None)
             return d
 
-        # package with variants and package without
-        dev_pkgs_list = (("developer", "developer_changed"),
-                         ("developer_novar", "developer_novar_changed"))
+        def _install(repo_path):
+            # package with variants and package without
+            dev_pkgs_list = (("developer", "developer_changed"),
+                             ("developer_novar", "developer_novar_changed"))
 
-        for path1, path2 in dev_pkgs_list:
-            path = os.path.join(self.packages_base_path, path1)
-            package = get_developer_package(path)
+            for path1, path2 in dev_pkgs_list:
+                path = os.path.join(self.packages_base_path, path1)
+                package = get_developer_package(path)
 
-            # install variants of the developer package into new repo
-            variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
-            self.assertEqual(result, None)
+                # install variants of the developer package into new repo
+                variant = package.iter_variants().next()
+                result = variant.install(repo_path, dry_run=True)
+                self.assertEqual(result, None)
 
-            for variant in package.iter_variants():
+                for variant in package.iter_variants():
+                    variant.install(repo_path)
+
+                variant = package.iter_variants().next()
+                result = variant.install(repo_path, dry_run=True)
+                self.assertNotEqual(result, None)
+
+                # now there should be a package that matches the dev package
+                installed_package = get_package(package.name, package.version, paths=[repo_path])
+                data = _data(package)
+                data_ = _data(installed_package)
+                self.assertDictEqual(data, data_)
+
+                # make a change in the dev pkg, outside of the variants.
+                path = os.path.join(self.packages_base_path, path2)
+                package = get_developer_package(path)
+
+                # install a variant again. Even though the variant is already installed,
+                # this should update the package, because data outside the variant changed.
+                variant = package.iter_variants().next()
+                result = variant.install(repo_path, dry_run=True)
+                self.assertEqual(result, None)
                 variant.install(repo_path)
 
-            variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
-            self.assertNotEqual(result, None)
+                # check that the change was applied. This effectively also checks that the
+                # variant order hasn't changed.
+                installed_package = get_package(package.name, package.version, paths=[repo_path])
+                data = _data(package)
+                data_ = _data(installed_package)
+                self.assertDictEqual(data, data_)
 
-            # now there should be a package that matches the dev package
-            installed_package = get_package(package.name, package.version, paths=[repo_path])
-            data = _data(package)
-            data_ = _data(installed_package)
-            self.assertDictEqual(data, data_)
+        _repo_path = os.path.join(self.root, "packages")
+        if not os.path.exists(_repo_path):
+            os.makedirs(_repo_path)
 
-            # make a change in the dev pkg, outside of the variants.
-            path = os.path.join(self.packages_base_path, path2)
-            package = get_developer_package(path)
-
-            # install a variant again. Even though the variant is already installed,
-            # this should update the package, because data outside the variant changed.
-            variant = package.iter_variants().next()
-            result = variant.install(repo_path, dry_run=True)
-            self.assertEqual(result, None)
-            variant.install(repo_path)
-
-            # check that the change was applied. This effectively also checks that the
-            # variant order hasn't changed.
-            installed_package = get_package(package.name, package.version, paths=[repo_path])
-            data = _data(package)
-            data_ = _data(installed_package)
-            self.assertDictEqual(data, data_)
+        for repo in get_package_repository_types():
+            location = "%s:%s" % (repo, _repo_path)
+            try:
+                _install(location)
+            except NotImplementedError:
+                pass
 
 
 def get_test_suites():

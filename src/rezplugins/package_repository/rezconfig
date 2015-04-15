@@ -4,3 +4,7 @@ filesystem:
     # once (which could result in a variant install getting lost). The timeout
     # value is in seconds. A value of zero indicates no timeout.
     file_lock_timeout: 10
+mongo:
+    host: localhost
+    port: 27017
+    db_name: local
