@@ -157,8 +157,6 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def add_settings_to_preset(self, settings, preset_path, username=None):
 
-        print settings
-
         return self._preset_proxy.addSettings(self._strip_prefix_from_path(preset_path), username, [self._setting_to_dict(setting) for setting in settings])
 
     def create_preset(self, preset_path, description, username=None):
