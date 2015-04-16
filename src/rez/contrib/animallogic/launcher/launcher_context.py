@@ -21,7 +21,7 @@ class LauncherContext(object):
             resolved_context_kwargs["max_fails"] = int(kwargs["max_fails"])
 
         if "caching" in kwargs:
-            resolved_context_kwargs["max_fails"] = bool(kwargs["caching"])
+            resolved_context_kwargs["caching"] = bool(kwargs["caching"])
 
         self._resolved_context = ResolvedContext(requestedPackages, **resolved_context_kwargs)
 
