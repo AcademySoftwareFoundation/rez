@@ -85,7 +85,7 @@ memcached_uri:
 
 # A list of clients domains where the memcache feature should be activated
 # if a client domain name is different from the active domains memcache will be disabled
-memcache_active_client_domains:
+memcached_active_client_domains:
 - al.com.au
 
 # Bytecount beyond which memcached entries are compressed, for cached package

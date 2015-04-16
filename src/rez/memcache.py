@@ -6,6 +6,7 @@ from rez.config import config
 from rez.utils.data_utils import cached_property
 from rez.vendor.enum import Enum
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
+from rez.system import system
 from hashlib import md5
 
 
@@ -80,9 +81,15 @@ class Client(object):
         self._get_stats("reset")
 
     @cached_property
+    def is_enabled_for_client_domain(self):
+        active_domains = config.memcached_active_client_domains
+        domain = system.fqdn.split(".", 1)[-1]
+        return domain in active_domains
+
+    @cached_property
     def client(self):
         uris = config.memcached_uri
-        if uris:
+        if uris and self.is_enabled_for_client_domain:
             mc = Client_(uris)
             mc.set("__test__", 1)
             if mc.get("__test__") == 1:

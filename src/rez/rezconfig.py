@@ -115,6 +115,12 @@ memcached_uri = [
                  'memcache.al.com.au:11211',
                 ]
 
+# A list of clients domains where the memcache feature should be activated
+# if a client domain name is different from the active domains memcache will be disabled
+memcached_active_client_domains = [
+                                   'al.com.au'
+                                  ]
+
 # Bytecount beyond which memcached entries are compressed, for cached package
 # files (such as package.yaml, package.py). Zero means never compress.
 memcached_package_file_min_compress_len = 16384

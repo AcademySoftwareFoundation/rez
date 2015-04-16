@@ -179,7 +179,7 @@ config_schema = Schema({
     "implicit_styles":                              OptionalStrList,
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
-    "memcache_active_client_domains":               OptionalStrList,
+    "memcaches_active_client_domains":              OptionalStrList,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
     "unleash_packages_path":                        Str,
