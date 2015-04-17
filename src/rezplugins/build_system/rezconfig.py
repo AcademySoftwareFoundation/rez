@@ -2,7 +2,7 @@ import os
 
 cmake = {
     # The name of the CMake build system to use, valid options are
-    # eclipse, make, xcode and codeblocks.
+    # eclipse, make, nmake, xcode and codeblocks.
     "build_system": "make",
 
     # The name of the CMake build target to use, valid options are Debug,

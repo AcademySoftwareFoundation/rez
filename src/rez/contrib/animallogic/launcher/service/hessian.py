@@ -38,7 +38,7 @@ class LauncherHessianService(LauncherServiceInterface):
 
     def _operating_system_to_dict(self, operating_system):
 
-        return None if operating_system is None else {'name':operating_system.name}
+        return {'name':operating_system.name} if operating_system else None
 
     def _setting_to_dict(self, setting):
 

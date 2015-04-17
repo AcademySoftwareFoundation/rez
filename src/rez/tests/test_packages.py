@@ -1,4 +1,3 @@
-
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_resources_ import package_release_keys
