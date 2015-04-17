@@ -44,7 +44,7 @@ class TestRelease(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    @shell_dependent
+    @shell_dependent()
     @install_dependent
     def test_1(self):
         """Basic release."""
@@ -146,7 +146,7 @@ class TestRelease(TestBase, TempdirMixin):
 
 
 def get_test_suites():
-    # TODO variant-based test
+    # TODO: variant-based test
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestRelease("test_1"))

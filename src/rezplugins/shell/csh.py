@@ -5,6 +5,7 @@ import pipes
 import os.path
 import subprocess
 from rez.config import config
+from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
 
@@ -94,12 +95,13 @@ class CSH(UnixShell):
                     txt = "'%s'" % txt
             else:
                 txt = txt.replace('"', '"\\""')
+                txt = txt.replace('!', '\\!')
                 txt = '"%s"' % txt
             result += txt
         return result
 
     def _bind_interactive_rez(self):
-        if config.prompt:
+        if self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("prompt", "[%m %c]%# ")
             if not stored_prompt:
@@ -133,4 +135,5 @@ class CSH(UnixShell):
 
 
 def register_plugin():
-    return CSH
+    if platform_.name != "windows":
+        return CSH

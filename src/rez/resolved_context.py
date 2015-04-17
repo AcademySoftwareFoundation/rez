@@ -337,7 +337,7 @@ class ResolvedContext(object):
         import copy
         return copy.copy(self)
 
-    # TODO deprecate in favor of patch() method
+    # TODO: deprecate in favor of patch() method
     def get_patched_request(self, package_requests=None,
                             package_subtractions=None, strict=False, rank=0):
         """Get a 'patched' request.
@@ -1088,8 +1088,11 @@ class ResolvedContext(object):
             If blocking: A 3-tuple of (returncode, stdout, stderr);
             If non-blocking - A subprocess.Popen object for the shell process.
         """
+        # create the shell
+        sh = create_shell(shell)
+
         if hasattr(command, "__iter__"):
-            command = shlex_join(command)
+            command = sh.join(command)
 
         # start a new session if specified
         if start_new_session:
@@ -1109,9 +1112,6 @@ class ResolvedContext(object):
         # block if the shell is likely to be interactive
         if block is None:
             block = not (command or stdin)
-
-        # create the shell
-        sh = create_shell(shell)
 
         # context and rxt files
         tmpdir = self.tmpdir_manager.mkdtemp()

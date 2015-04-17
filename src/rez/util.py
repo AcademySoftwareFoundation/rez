@@ -29,9 +29,9 @@ class ProgressBar(Bar):
         super(Bar, self).__init__(label, max=max, bar_prefix=' [', bar_suffix='] ')
 
 
-# TODO use distlib.ScriptMaker
-# TODO or, do the work ourselves to make this cross platform
-# FIXME *nix only
+# TODO: use distlib.ScriptMaker
+# TODO: or, do the work ourselves to make this cross platform
+# FIXME: *nix only
 def create_executable_script(filepath, body, program=None):
     """Create an executable script.
 
@@ -51,11 +51,16 @@ def create_executable_script(filepath, body, program=None):
         body += '\n'
 
     with open(filepath, 'w') as f:
-        # TODO make cross platform
+        # TODO: make cross platform
         f.write("#!/usr/bin/env %s\n" % program)
         f.write(body)
 
-    os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+    # TODO: Although Windows supports os.chmod you can only set the readonly
+    # flag. Setting the file readonly breaks the unit tests that expect to
+    # clean up the files once the test has run.  Temporarily we don't bother
+    # setting the permissions, but this will need to change.
+    if os.name == "posix":
+    	os.chmod(filepath, stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
              | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
 
@@ -101,10 +106,10 @@ def shlex_join(value):
 
 
 # returns path to first program in the list to be successfully found
-def which(*programs):
+def which(*programs, **shutilwhich_kwargs):
     from rez.backport.shutilwhich import which as which_
     for prog in programs:
-        path = which_(prog)
+        path = which_(prog, **shutilwhich_kwargs)
         if path:
             return path
     return None

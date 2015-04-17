@@ -27,6 +27,7 @@
 # Windows \ (unescaped) should be used.
 #------------------------------------------------------------------------------
 
+import os
 
 ###############################################################################
 # Paths
@@ -34,21 +35,22 @@
 
 # The package search path. Rez uses this to find packages. A package with the
 # same name and version in an earlier path takes precedence.
-packages_path:
-- '~/packages'           # locally installed pkgs, not yet deployed
-- '~/.rez/packages/int'  # internally developed pkgs, deployed
-- '~/.rez/packages/ext'  # external (3rd party) pkgs, such as houdini, boost
+packages_path = [
+				 '~/packages',           # locally installed pkgs, not yet deployed
+				 '~/.rez/packages/int',  # internally developed pkgs, deployed
+ 				 '~/.rez/packages/ext',  # external (3rd party) pkgs, such as houdini, boost
+				]
 
 # The path that Rez will locally install packages to when rez-build is used
-local_packages_path: '~/packages'
+local_packages_path = '~/packages'
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-release_packages_path: '~/.rez/packages/int'
+release_packages_path = '~/.rez/packages/int'
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to '/tmp'.
-tmpdir:
+tmpdir = None
 
 
 ###############################################################################
@@ -56,10 +58,10 @@ tmpdir:
 ###############################################################################
 
 # Search path for plugins
-plugin_path: []
+plugin_path = []
 
 # Search path for bind modules
-bind_module_path: []
+bind_module_path = []
 
 
 ###############################################################################
@@ -67,33 +69,33 @@ bind_module_path: []
 ###############################################################################
 
 # Use available caching mechanisms to speed up resolves when applicable.
-resolve_caching: true
+resolve_caching = True
 
 # The size of the local (in-process) resource cache. Resources include package
 # families, packages and variants. A value of 0 disables caching; -1 sets a cache
 # of unlimited size. The size refers to the number of entries, not byte count.
-resource_caching_maxsize: -1
+resource_caching_maxsize = -1
 
 # Uris of running memcached server(s) to use as a file and resolve cache. For
 # example, the uri '127.0.0.1:11211' points to memcached running on localhost on
 # its default port. Must be either null, or a list of strings.
-memcached_uri:
+memcached_uri = []
 
 # Bytecount beyond which memcached entries are compressed, for cached package
 # files (such as package.yaml, package.py). Zero means never compress.
-memcached_package_file_min_compress_len: 16384
+memcached_package_file_min_compress_len = 16384
 
 # Bytecount beyond which memcached entries are compressed, for cached context
 # files (aka .rxt files). Zero means never compress.
-memcached_context_file_min_compress_len: 1
+memcached_context_file_min_compress_len = 1
 
 # Bytecount beyond which memcached entries are compressed, for directory listings.
 # Zero means never compress.
-memcached_listdir_min_compress_len: 16384
+memcached_listdir_min_compress_len = 16384
 
 # Bytecount beyond which memcached entries are compressed, for resolves. Zero
 # means never compress.
-memcached_resolve_min_compress_len: 1
+memcached_resolve_min_compress_len = 1
 
 
 ###############################################################################
@@ -104,12 +106,12 @@ memcached_resolve_min_compress_len: 1
 # package.yaml files, and data validation. You would only turn this off for
 # debugging purposes.
 # TODO DEPRECATE
-resource_caching: true
+resource_caching = True
 
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
 # this adversely impacts package load times.
-max_package_changelog_chars: 1024
+max_package_changelog_chars = 5
 
 
 ###############################################################################
@@ -118,10 +120,11 @@ max_package_changelog_chars: 1024
 
 # Packages that are implicitly added to all package resolves, unless the
 # --no-implicit flag is used.
-implicit_packages:
-- '~platform=={system.platform}'
-- '~arch=={system.arch}'
-- '~os=={system.os}'
+implicit_packages = [
+					 '~platform=={system.platform}',
+					 '~arch=={system.arch}',
+					 '~os=={system.os}',
+					]
 
 # 'start_depth' and 'max_depth' are used to delay loading older packages until
 # necessary. More recent packages are searched first, and then if a solution is
@@ -145,14 +148,14 @@ implicit_packages:
 # Note that depth settings still work when resolving with a timestamp - the
 # latest N packages *at that time* will be used in the search.
 #
-resolve_start_depth: 1
-resolve_max_depth: 0
+resolve_start_depth = 1
+resolve_max_depth = 0
 
 # If true, then when a resolve graph is generated during a failed solve, packages
 # unrelated to the failure are pruned from the graph. An 'unrelated' package is
 # one that is not a dependency ancestor of any packages directly involved in the
 # failure.
-prune_failed_graph: true
+prune_failed_graph = True
 
 
 ###############################################################################
@@ -170,8 +173,8 @@ prune_failed_graph: true
 # is ignored. Be aware that if you make variables such as PATH, PYTHONPATH or
 # app plugin paths parent variables, you are exposing yourself to potentially
 # incorrect behaviour within a resolved environment.
-parent_variables: []
-all_parent_variables: false
+parent_variables = []
+all_parent_variables = False
 
 # When two or more packages in a resolve attempt to set the same environment
 # variable, Rez's default behaviour is to flag this as a conflict and abort the
@@ -179,25 +182,26 @@ all_parent_variables: false
 # Rex command 'resetenv' instead of 'setenv'. However, you can also turn off this
 # behaviour globally - for certain variables, by adding them to 'resetting_variables',
 # and for all variables, by setting 'all_resetting_variables' to true.
-resetting_variables: []
-all_resetting_variables: false
+resetting_variables = []
+all_resetting_variables = False
 
 # The default shell type to use when creating resolved environments (eg when using
 # rez-env, or calling ResolvedContext.execute_shell). If empty or null, the
 # current shell is used (for eg, 'bash').
-default_shell: ''
+default_shell = ''
 
 # The command to use to launch a new Rez environment in a separate terminal (this
 # is enabled using rez-env's 'detached' option). If None, it is detected.
-terminal_emulator_command:
+terminal_emulator_command = None
 
 # This setting can be used to override the separator used for environment
 # variables that represent a list of items. By default, the value of os.pathsep
 # will be used, unless the environment variable is list here, in which case the
 # configured separator will be used.
-env_var_separators:
-    CMAKE_MODULE_PATH: ';'
-    DOXYGEN_TAGFILES: ' '
+env_var_separators = {
+				      'CMAKE_MODULE_PATH': ';',
+					  'DOXYGEN_TAGFILES': ' ',
+					 }
 
 # Defines what suites on $PATH stay visible when a new rez environment is resolved.
 # Possible values are:
@@ -205,7 +209,7 @@ env_var_separators:
 # - 'always':  			Keep suites visible in any new env
 # - 'parent':  			Keep only the parent suite of a tool visible
 # - 'parent_priority':  Keep all suites visible and the parent takes precedence
-suite_visibility: always
+suite_visibility = 'always'
 
 
 ###############################################################################
@@ -216,33 +220,33 @@ suite_visibility: always
 # tools such as rez-env. For example, if the target shell type is 'sh', and
 # the 'rcfile' param is used, you would get a warning, because the sh shell
 # does not support rcfile.
-warn_shell_startup: false
+warn_shell_startup = False
 
 # If true, print a warning when an untimestamped package is found.
-warn_untimestamped: false
+warn_untimestamped = False
 
 # Turn on all warnings
-warn_all: false
+warn_all = False
 
 # Turn off all warnings. This overrides warn_all.
-warn_none: false
+warn_none = False
 
 # Print debugging info when loading plugins
-debug_plugins: false
+debug_plugins = False
 
 # Print debugging info such as VCS commands during package release
-debug_package_release: false
+debug_package_release = False
 
 # Print debugging info in binding modules. Binding modules should print using
 # the bind_utils.log() function - it is controlled with this setting
-debug_bind_modules: false
+debug_bind_modules = False
 
 # Print debugging info when searching and loading resources.
 # TODO update new resources system to use this
-debug_resources: false
+debug_resources = False
 
 # Print debugging info related to use of memcached during a resolve
-debug_resolve_memcache: false
+debug_resolve_memcache = False
 
 # Send human-readable strings as memcached keys - this gives a higher chance of
 # key conflicts, but also means you can run 'memcached -vv' to debug hits/misses
@@ -250,19 +254,19 @@ debug_resolve_memcache: false
 # Debug memcache usage. This doesn't spam stdout, instead it sends human-readable
 # strings as memcached keys (that you can read by running 'memcached -vv' as the
 # server).
-debug_memcache: false
+debug_memcache = False
 
 # Turn on all debugging messages
-debug_all: false
+debug_all = False
 
 # Turn off all debugging messages. This overrides debug_all.
-debug_none: false
+debug_none = False
 
 # When an error is encountered in rex code, rez catches the error and processes
 # it, removing internal info (such as the stacktrace inside rez itself) that is
 # generally not interesting to the package author. If set to False, rex errors
 # are left uncaught, which can be useful for debugging purposes.
-catch_rex_errors: true
+catch_rex_errors = True
 
 
 ###############################################################################
@@ -271,7 +275,7 @@ catch_rex_errors: true
 
 # The default working directory for a package build, relative to the package
 # source directory (this is typically where temporary build files are written).
-build_directory: build
+build_directory = 'build'
 
 
 ###############################################################################
@@ -283,7 +287,7 @@ build_directory: build
 # release hook plugin being loaded does not mean it will run - it needs to be
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
-release_hooks: []
+release_hooks = []
 
 
 ###############################################################################
@@ -293,7 +297,7 @@ release_hooks: []
 # The prefix character used to pass rez-specific commandline arguments to alias
 # scripts in a suite. This must be a character other than '-', so that it doesn't
 # clash with the wrapped tools' own commandline arguments.
-suite_alias_prefix_char: '+'
+suite_alias_prefix_char = '+'
 
 
 ###############################################################################
@@ -302,28 +306,28 @@ suite_alias_prefix_char: '+'
 
 # Suppress all extraneous output - warnings, debug messages, progress indicators
 # and so on. Overrides all warn_xxx and debug_xxx settings.
-quiet: false
+quiet = False
 
 # Show progress bars where applicable
-show_progress: true
+show_progress = True
 
 # The editor used to get user input in some cases.
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
-editor:
+editor = None
 
 # The program used to view images by tools such as 'rez-context -g'
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
-image_viewer:
+image_viewer = None
 
 # The browser used to view documentation; the rez-help tool uses this
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
-browser:
+browser = None
 
 # The default image format that dot-graphs are rendered to.
-dot_image_format: png
+dot_image_format = 'png'
 
 # If true, prefixes the prompt, suffixes if false
-prefix_prompt: true
+prefix_prompt = True
 
 
 ###############################################################################
@@ -343,55 +347,60 @@ prefix_prompt: true
 # style: dim, normal, bright
 
 # Enables/disables colorization globally.
-color_enabled: true
+if os.name == "posix":
+    color_enabled = True
+else:
+    color_enabled = False
 
 #------------------------------------------------------------------------------
 # Logging colors
 #------------------------------------------------------------------------------
-critical_fore: red
-critical_back:
-critical_styles:
-- 'bright'
+critical_fore = 'red'
+critical_back = None
+critical_styles = [
+                   'bright',
+                  ]
 
-error_fore: red
-error_back:
-error_styles:
+error_fore = 'red'
+error_back = None
+error_styles = None
 
-warning_fore: yellow
-warning_back:
-warning_styles:
+warning_fore = 'yellow'
+warning_back = None
+warning_styles = None
 
-info_fore:
-info_back:
-info_styles:
+info_fore = None
+info_back = None
+info_styles = None
 
-debug_fore: blue
-debug_back:
-debug_styles:
+debug_fore = 'blue'
+debug_back = None
+debug_styles = None
 
 #------------------------------------------------------------------------------
 # Context-sensitive colors
 #------------------------------------------------------------------------------
 # Heading
-heading_fore:
-heading_back:
-heading_styles:
-- 'bright'
+heading_fore = None
+heading_back = None
+heading_styles = [
+                  'bright',
+                 ]
 
 # Local packages
-local_fore: green
-local_back:
-local_styles:
+local_fore = 'green'
+local_back = None
+local_styles = None
 
 # Implicit packages
-implicit_fore: cyan
-implicit_back:
-implicit_styles:
+implicit_fore = 'cyan'
+implicit_back = None
+implicit_styles = None
 
 # Tool aliases in suites
-alias_fore: cyan
-alias_back:
-alias_styles:
+alias_fore = 'cyan'
+alias_back = None
+alias_styles = None
 
 
 ###############################################################################
@@ -401,29 +410,29 @@ alias_styles:
 # Warn or disallow when a package contains a package name that does not match
 # the name specified in the directory structure. When this occurs, the
 # directory package name is used in preference.
-warn_package_name_mismatch: true
-error_package_name_mismatch: false
+warn_package_name_mismatch = True
+error_package_name_mismatch = False
 
 # Warn or disallow when a package contains a version number that does not match
 # the version specified in the directory structure. When this occurs, the
 # directory version number is used in preference.
-warn_version_mismatch: true
-error_version_mismatch: false
+warn_version_mismatch = True
+error_version_mismatch = False
 
 # Warn or disallow when a package is found to contain a non-string version. This
 # was possible in Rez-1 but was an oversight - versions could be integer or
 # float, as well as string. When this occurs, the directory version number is
 # used in preference.
-warn_nonstring_version: true
-error_nonstring_version: false
+warn_nonstring_version = True
+error_nonstring_version = False
 
 # Warn or disallow when a package is found to contain old rez-1-style commands.
-warn_old_commands: true
-error_old_commands: false
+warn_old_commands = True
+error_old_commands = False
 
 # Print old commands and their converted rex equivalent. Note that this can
 # cause very verbose output.
-debug_old_commands: false
+debug_old_commands = False
 
 # Warn or disallow an extra commands entry called 'commands2'. This is provided
 # as a temporary measure for porting packages to rez-based commands without
@@ -432,8 +441,8 @@ debug_old_commands: false
 # style commands. Once you have fully deprecated Rez-1, you should stop using
 # 'commands2'.
 # TODO DEPRECATE
-warn_commands2: false
-error_commands2: false
+warn_commands2 = False
+error_commands2 = False
 
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
@@ -447,7 +456,7 @@ error_commands2: false
 #   REZ_RESOLVE_MODE    not set
 #   REZ_RAW_REQUEST     not set
 #   REZ_IN_REZ_RELEASE  not set
-rez_1_environment_variables: true
+rez_1_environment_variables = True
 
 # If True, Rez will continue to generate the given CMake variables at build and
 # release time, even though their use has been deprecated in Rez-2.  The
@@ -455,7 +464,7 @@ rez_1_environment_variables: true
 #   REZ-1               REZ-2
 #   -----               -----
 #   CENTRAL             REZ_BUILD_TYPE
-rez_1_cmake_variables: true
+rez_1_cmake_variables = True
 
 # If True, override all compatibility-related settings so that Rez-1 support is
 # deprecated. This means that:
@@ -465,7 +474,7 @@ rez_1_cmake_variables: true
 # * rez_1_cmake_variables will be set to False.
 # You should aim to do this - it will mean your packages are more strictly
 # validated, and you can more easily use future versions of Rez.
-disable_rez_1_compatibility: false
+disable_rez_1_compatibility = False
 
 
 ###############################################################################
@@ -473,7 +482,7 @@ disable_rez_1_compatibility: false
 ###############################################################################
 
 # Where Rez's own documentation is hosted
-documentation_url: http://nerdvegas.github.io/rez/
+documentation_url = ' http://nerdvegas.github.io/rez/'
 
 
 ###############################################################################
@@ -484,19 +493,21 @@ documentation_url: http://nerdvegas.github.io/rez/
 # 'rezconfig' file accompanying that plugin. The settings listed here are
 # common to all plugins of that type.
 
-plugins:
-    release_vcs:
-        # Format string used to determine the VCS tag name when releasing. This
-        # will be formatted using the package being released - any package
-        # attribute can be referenced in this string, eg '{name}'.
-        tag_name: '{qualified_name}'
+plugins = {
+           'release_vcs': {
+                           # Format string used to determine the VCS tag name when releasing. This
+                           # will be formatted using the package being released - any package
+                           # attribute can be referenced in this string, eg '{name}'.
+                           'tag_name': '{qualified_name}',
 
-        # A list of branches that a user is allowed to rez-release from. This
-        # can be used to block releases from development or feature branches,
-        # and support a workflow such as 'gitflow'.  Each branch name should be
-        # a regular expression that can be used with re.match(), for example
-        # '^master$'.
-        releasable_branches:
+                           # A list of branches that a user is allowed to rez-release from. This
+                           # can be used to block releases from development or feature branches,
+                           # and support a workflow such as 'gitflow'.  Each branch name should be
+                           # a regular expression that can be used with re.match(), for example
+                           # '^master$'.
+                           'releasable_branches': [],
+                          }
+          }
 
 
 
@@ -512,5 +523,5 @@ plugins:
 # Setting either of these options to true will force rez to select that qt
 # binding. If both are false, the qt binding is detected. Setting both to true
 # will cause an error.
-use_pyside: false
-use_pyqt: false
+use_pyside = False
+use_pyqt = False

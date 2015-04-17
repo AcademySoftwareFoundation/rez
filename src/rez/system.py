@@ -60,7 +60,7 @@ class System(object):
                 "arch-%s" % self.arch,
                 "os-%s" % self.os]
 
-    # TODO move shell detection into shell plugins
+    # TODO: move shell detection into shell plugins
     @cached_property
     def shell(self):
         """Get the current shell.
@@ -75,7 +75,7 @@ class System(object):
             raise RezSystemError("no shells available")
 
         if self.platform == "windows":
-            raise NotImplementedError
+            return "cmd"
         else:
             import subprocess as sp
             shell = None
@@ -190,12 +190,12 @@ class System(object):
         binpath = None
         if sys.argv and sys.argv[0]:
             executable = sys.argv[0]
-            path = os.path.dirname(executable)
-            rezolve_exe = os.path.join(path, "rezolve")
-            if os.path.exists(rezolve_exe):
-                binpath = path
+            path = which("rezolve", env={"PATH":os.path.dirname(executable),
+                                         "PATHEXT":os.environ.get("PATHEXT",
+                                                                  "")})
+            binpath = os.path.dirname(path) if path else None
 
-        # TODO improve this, could still pick up non-production 'rezolve'
+        # TODO: improve this, could still pick up non-production 'rezolve'
         if not binpath:
             path = which("rezolve")
             if path:

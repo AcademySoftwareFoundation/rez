@@ -8,6 +8,7 @@ from rez.exceptions import PackageRequestError
 from pprint import pformat
 import os
 import re
+import time
 
 
 PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
@@ -423,3 +424,60 @@ def positional_number_string(n):
     elif n == 1:
         return "first"
     return "zeroeth"
+
+
+def expanduser(path):
+    """Expand paths beginning with '~'.
+    
+    True story... the implementation of os.path.expanduser differs between
+    Windows (nt) and Linux (posix).  On posix platforms the `pwd` module is
+    used so '~foo' will only expand if 'foo' is a valid user.  This is nice. On
+    nt platforms the same check is not made - the '~' is always expanded based
+    using string manipulation and environment variables.  This is bad.
+
+    As a result, due to the way expansion is hard wired into the `config`
+    module this means weak implicit packages (for example) in the config are
+    expanded from '~os=={system.os}' to 'C:/Users/os=={system.os}' on nt
+    platforms.
+
+    Ideally, `PathStrList` based `Settings` would be the only setting type to
+    use the `os.path.expanduser` method, thereby making it explicit that this
+    level of expansion should take place.  This works for the main `Config`
+    class however `_PluginConfig` follows a different code path that makes this
+    all but impossible without a larger refactor (see comment in `_to_schema`
+    method).  Therefore, to keep the behaviour consistent across all types of
+    configuration and platform we change the os.path.expanduser implementation.
+
+    As it is highly unlikely we should need to refer to someone else's home
+    directory (thereby triggering the above 'feature') we use a custom
+    `expanduser` method which can only expand '~'.  Others the path is returned
+    without expansion applied."""
+    if os.name == "nt":
+        userpath = path
+        if not path.startswith('~'):
+            return path
+
+        i = path.find(os.path.sep, 1)
+        if i < 0:
+            i = len(path)
+        if i != 1:
+            return path
+
+        if 'HOME' in os.environ:
+            userhome = os.environ['HOME']
+        elif 'USERPROFILE' in os.environ:
+            userhome = os.environ['USERPROFILE']
+        elif not 'HOMEPATH' in os.environ:
+            return path
+        else:
+            try:
+                drive = os.environ['HOMEDRIVE']
+            except KeyError:
+                drive = ''
+            userhome = os.path.join(drive, os.environ['HOMEPATH'])
+        userpath = userhome + path[i:]
+
+    else:
+        userpath = os.path.expanduser(path)
+
+    return userpath

@@ -238,7 +238,7 @@ class PackageRepositoryManager(object):
             `PackageRepository` instance.
         """
         # normalise
-        parts = path.split(':', 1)
+        parts = path.split('@', 1)
         if len(parts) == 1:
             parts = ("filesystem", parts[0])
 

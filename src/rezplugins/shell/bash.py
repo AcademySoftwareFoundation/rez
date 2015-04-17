@@ -4,6 +4,7 @@ Bash shell
 import os
 import os.path
 from rez.shells import UnixShell
+from rez.utils.platform_ import platform_
 from rezplugins.shell.sh import SH
 from rez import module_root_path
 
@@ -79,4 +80,5 @@ class Bash(SH):
 
 
 def register_plugin():
-    return Bash
+    if platform_.name != "windows":
+        return Bash

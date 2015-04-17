@@ -11,6 +11,7 @@ from rez.utils.platform_ import platform_
 from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
+from rez.shells import create_shell
 import functools
 import os.path
 import sys
@@ -33,6 +34,7 @@ class CMakeBuildSystem(BuildSystem):
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
                      'codeblocks':  "CodeBlocks - Unix Makefiles",
                      'make':        "Unix Makefiles",
+                     'nmake':       "NMake Makefiles",
                      'xcode':       "Xcode"}
 
     build_targets = ["Debug", "Release", "RelWithDebInfo"]
@@ -41,7 +43,8 @@ class CMakeBuildSystem(BuildSystem):
         "build_target":     Or(*build_targets),
         "build_system":     Or(*build_systems.keys()),
         "cmake_args":       [basestring],
-        "cmake_binary":     Or(None, basestring)}
+        "cmake_binary":     Or(None, basestring),
+        "make_binary":     Or(None, basestring)}
 
     @classmethod
     def name(cls):
@@ -101,12 +104,14 @@ class CMakeBuildSystem(BuildSystem):
         if not found_exe:
             raise RezCMakeError("cmake binary does not exist: %s" % exe)
 
+        sh = create_shell()
+
         # assemble cmake command
         cmd = [found_exe, "-d", self.working_dir]
         cmd += (self.settings.cmake_args or [])
         cmd += (self.build_args or [])
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
-        cmd.append("-DCMAKE_MODULE_PATH=${CMAKE_MODULE_PATH}")
+        cmd.append("-DCMAKE_MODULE_PATH=%s" % sh.get_key_token("CMAKE_MODULE_PATH"))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
         cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
@@ -153,10 +158,11 @@ class CMakeBuildSystem(BuildSystem):
             return ret
 
         # assemble make command
-        cmd = ["make"]
+        if self.settings.make_binary:
+            cmd = [self.settings.make_binary]
+        else:
+            cmd = ["make"]
         cmd += (self.child_build_args or [])
-        if install and "install" not in cmd:
-            cmd.append("install")
 
         # execute make within the build env
         _pr("\nExecuting: %s" % ' '.join(cmd))
@@ -164,6 +170,16 @@ class CMakeBuildSystem(BuildSystem):
                                               block=True,
                                               cwd=build_path,
                                               actions_callback=callback)
+        if not retcode and install and "install" not in cmd:
+            cmd.append("install")
+
+            # execute make install within the build env
+            _pr("\nExecuting: %s" % ' '.join(cmd))
+            retcode, _, _ = context.execute_shell(command=cmd,
+                                                  block=True,
+                                                  cwd=build_path,
+                                                  actions_callback=callback)
+
         ret["success"] = (not retcode)
         return ret
 

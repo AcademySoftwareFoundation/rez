@@ -6,6 +6,7 @@ from rez.utils.logging_ import print_debug
 import re
 import os
 import os.path
+import textwrap
 
 
 variant_key_conversions = {
@@ -73,7 +74,11 @@ def convert_old_commands(commands, annotate=True):
                     value = value[1:-1]
                     break
 
-            separator = config.env_var_separators.get(var, os.pathsep)
+            # As the only old-style commands were Linux/Bash based,
+            # we assume using the default separator ":" is ok - we don't
+            # need to use os.pathsep as we don't expected to see a
+            # Windows path here.
+            separator = config.env_var_separators.get(var, ":")
 
             # This is a special case.  We don't want to include "';'" in
             # our env var separators map as it's not really the correct

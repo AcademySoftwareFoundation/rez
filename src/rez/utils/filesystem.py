@@ -9,6 +9,7 @@ import os.path
 import shutil
 import os
 import re
+import stat
 
 
 class TempDirs(object):

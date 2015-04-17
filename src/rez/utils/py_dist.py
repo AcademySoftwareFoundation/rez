@@ -1,7 +1,6 @@
 """
 Functions for converting python distributions to rez packages.
 """
-from rez.util import _mkdirs
 from rez.exceptions import RezSystemError
 import pkg_resources
 import shutil
@@ -23,7 +22,7 @@ def convert_name(name):
     return name.replace('-', '_')
 
 
-# TODO change this when version submod is rewritten
+# TODO: change this when version submod is rewritten
 # This is just a temporary simplistic implementation for now
 def convert_version(version):
     """Convert a python distribution version into a rez-safe version string."""
@@ -39,7 +38,7 @@ def convert_version(version):
     return str(version)
 
 
-# TODO add native Requirement conversion support into new version submod
+# TODO: add native Requirement conversion support into new version submod
 def convert_requirement(req):
     """
     Converts a pkg_resources.Requirement object into a list of Rez package
@@ -115,7 +114,7 @@ def get_dist_dependencies(name, recurse=True):
     return reqs
 
 
-# TODO doesn't deal with executable scripts yet
+# TODO: doesn't deal with executable scripts yet
 def convert_dist(name, dest_path, make_variant=True, ignore_dirs=None,
                  python_requirement="major_minor"):
     """Convert an already installed python distribution into a rez package.

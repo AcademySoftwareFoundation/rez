@@ -68,7 +68,7 @@ class Status(object):
             return Suite.load(self.context.parent_suite_path)
         return None
 
-    # TODO store this info in env-var instead, remove suite info from context.
+    # TODO: store this info in env-var instead, remove suite info from context.
     @cached_property
     def active_suite_context_name(self):
         """Get the name of the currently active context in a parent suite.

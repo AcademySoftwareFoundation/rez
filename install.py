@@ -16,7 +16,9 @@ src_path = os.path.join(source_path, "src")
 sys.path.insert(0, src_path)
 
 from rez.utils._version import _rez_version
-from build_utils.virtualenv.virtualenv import Logger, create_environment
+from rez.backport.shutilwhich import which
+from build_utils.virtualenv.virtualenv import Logger, create_environment, \
+    path_locations
 from build_utils.distlib.scripts import ScriptMaker
 
 
@@ -53,20 +55,22 @@ class _ScriptMaker(ScriptMaker):
 
 def patch_rez_binaries(dest_dir):
     bin_names = os.listdir(bin_path)
-    venv_bin_path = os.path.join(dest_dir, "bin")
-    venv_py_executable = os.path.join(venv_bin_path, "python")
-    assert os.path.exists(venv_py_executable)
+    _, _, _, venv_bin_path = path_locations(dest_dir)
+    venv_py_executable = which("python", env={"PATH":venv_bin_path, 
+                                              "PATHEXT":os.environ.get("PATHEXT", "")})
 
     # delete rez bin files written by setuptools
     for name in bin_names:
         filepath = os.path.join(venv_bin_path, name)
-        if os.path.exists(filepath):
+        if os.path.isfile(filepath):
             os.remove(filepath)
 
     # write patched bins instead. These go into 'bin/rez' subdirectory, which
     # gives us a bin dir containing only rez binaries. This is what we want -
     # we don't want resolved envs accidentally getting the venv's 'python'.
     dest_bin_path = os.path.join(venv_bin_path, "rez")
+    if os.path.exists(dest_bin_path):
+        shutil.rmtree(dest_bin_path)
     os.makedirs(dest_bin_path)
 
     maker = _ScriptMaker(bin_path, dest_bin_path)
@@ -89,6 +93,8 @@ def copy_completion_scripts(dest_dir):
 
     if completion_path:
         dest_path = os.path.join(dest_dir, "completion")
+        if os.path.exists(dest_path):
+            shutil.rmtree(dest_path)
         shutil.copytree(completion_path, dest_path)
         return dest_path
 
@@ -122,7 +128,10 @@ if __name__ == "__main__":
     create_environment(dest_dir)
 
     # install rez from source
-    py_executable = os.path.join(dest_dir, "bin", "python")
+    _, _, _, venv_bin_dir = path_locations(dest_dir)
+    py_executable = which("python", env={"PATH":venv_bin_dir,
+                                         "PATHEXT":os.environ.get("PATHEXT",
+                                                                  "")})
     args = [py_executable, "setup.py", "install"]
     if opts.verbose:
         print "running in %s: %s" % (source_path, " ".join(args))
@@ -136,7 +145,7 @@ if __name__ == "__main__":
     completion_path = copy_completion_scripts(dest_dir)
 
     # mark venv as production rez install. Do not remove - rez uses this!
-    dest_bin_dir = os.path.join(dest_dir, "bin", "rez")
+    dest_bin_dir = os.path.join(venv_bin_dir, "rez")
     validation_file = os.path.join(dest_bin_dir, ".rez_production_install")
     with open(validation_file, 'w') as f:
         f.write(_rez_version)

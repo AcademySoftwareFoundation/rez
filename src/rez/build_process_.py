@@ -1,6 +1,6 @@
 from rez.packages_ import get_developer_package, iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
-    ReleaseHookCancellingError, RezError, ReleaseError
+    ReleaseHookCancellingError, RezError, ReleaseError, BuildError
 from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus

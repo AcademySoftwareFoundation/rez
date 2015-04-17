@@ -29,7 +29,7 @@ class TestSolver(TestBase):
         perms = itertools.permutations(reqs)
         for reqs_ in perms:
             s = Solver(reqs_,
-                        self.packages_path,
+                       self.packages_path,
                        optimised=True,
                        verbosity=Solver.max_verbosity)
             s_perms.append(s)

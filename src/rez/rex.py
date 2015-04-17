@@ -298,11 +298,6 @@ class ActionManager(object):
             key, value = unexpanded_key, unexpanded_value
         self.interpreter.resetenv(key, value)
 
-    # we assume that ${THIS} is a valid variable ref in all shells
-    @staticmethod
-    def _keytoken(key):
-        return "${%s}" % key
-
     def _pendenv(self, key, value, action, interpfunc, addfunc):
         unexpanded_key, expanded_key = self._key(key)
         unexpanded_value, expanded_value = self._value(value)
@@ -399,6 +394,9 @@ class ActionManager(object):
     def shebang(self):
         self.actions.append(Shebang())
         self.interpreter.shebang()
+
+    def _keytoken(self, key):
+        return self.interpreter.get_key_token(key)
 
 
 #===============================================================================
@@ -631,6 +629,13 @@ class Python(ActionInterpreter):
 
     def shebang(self):
         pass
+
+    def get_key_token(self, key):
+        # Not sure if this actually needs to be returned here.  Prior to the
+        # Windows refactor this is the value this interpretter was receiving,
+        # but the concept doesn't really feel applicable to Python.  It's just
+        # here because the API requires it.
+        return "${%s}" % key
 
 
 #===============================================================================

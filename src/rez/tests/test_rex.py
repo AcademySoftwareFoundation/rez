@@ -352,7 +352,7 @@ class TestRex(TestBase):
                        Appendenv('FOO', 'like, $SHE said, ${BAH}')],
                    expected_output = {
                        'BAH': 'omg',
-                       'FOO': 'omg:${BAH}:like, $SHE said, omg'})
+                       'FOO': os.pathsep.join(['omg', '${BAH}', 'like']) + ', $SHE said, omg'})
 
     def test_version_binding(self):
         """Test the Rex binding of the Version class."""

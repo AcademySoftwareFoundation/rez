@@ -6,6 +6,7 @@ import os.path
 import pipes
 import subprocess
 from rez.config import config
+from rez.utils.platform_ import platform_
 from rez.shells import UnixShell
 from rez.rex import EscapedString
 
@@ -83,7 +84,7 @@ class SH(UnixShell):
             source_bind_files=False)
 
     def _bind_interactive_rez(self):
-        if config.prompt:
+        if self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("PS1", "\\h:\\w]$ ")
             if not stored_prompt:
@@ -135,4 +136,5 @@ class SH(UnixShell):
 
 
 def register_plugin():
-    return SH
+    if platform_.name != "windows":
+        return SH

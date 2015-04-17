@@ -4,6 +4,8 @@ import os.path
 import textwrap
 import subprocess
 from rez.vendor import yaml, argparse
+from rez.utils.filesystem import TempDirs
+from rez.config import config
 
 
 def run():
@@ -44,10 +46,16 @@ def run():
                instpath=doc["install_path"],
                targets=str(opts.TARGET or None))
 
-    cli_code = textwrap.dedent(code).strip().replace('\n', ';')
+    cli_code = textwrap.dedent(code).replace("\\", "\\\\")
+
+    tmpdir_manager = TempDirs(config.tmpdir, prefix="bez_")
+    bezfile = os.path.join(tmpdir_manager.mkdtemp(), "bezfile")
+    with open(bezfile, "w") as fd:
+        fd.write(cli_code)
 
     print "executing rezbuild.py..."
-    cmd = ["python", "-c", cli_code]
+    cmd = ["python", bezfile]
     p = subprocess.Popen(cmd)
     p.wait()
+    tmpdir_manager.clear()
     sys.exit(p.returncode)

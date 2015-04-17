@@ -115,7 +115,7 @@ def command(opts, parser, extra_arg_groups=None):
 
         if opts.fail_graph:
             if e.context.graph:
-                from rez.dot import view_graph
+                from rez.utils.graph_utils import view_graph
                 g = e.context.graph(as_dot=True)
                 view_graph(g)
             else:
