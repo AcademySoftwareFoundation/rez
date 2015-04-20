@@ -117,6 +117,10 @@ macro(rez_install_cmake)
 	# NOTE: this does somewhat break backward compatibility in that
 	# 	    the cmake file is never written to the build directory.
 	set(auto_args "${ARGN} PROJECT_NAME ${REZ_BUILD_PROJECT_NAME}")
+    set(POSIX_CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
+    if (CMAKE_SYSTEM_NAME STREQUAL "Windows")
+        string(REPLACE "\\" "/" POSIX_CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}")
+    endif()
 	install(CODE "
 		set(REZ_BUILD_ENV 1)
 		list(APPEND CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH})
