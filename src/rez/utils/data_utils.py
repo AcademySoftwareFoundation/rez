@@ -2,8 +2,9 @@
 Utilities related to managing data types.
 """
 from rez.vendor.schema.schema import Schema, Optional
+from rez.exceptions import RexError
 from collections import MutableMapping
-from inspect import getsourcelines
+from inspect import getsourcelines, getargspec
 from threading import Lock
 from textwrap import dedent
 
@@ -15,6 +16,13 @@ class SourceCode(object):
 
     @classmethod
     def from_function(cls, func):
+        argspec = getargspec(func)
+        if argspec.args or argspec.varargs or argspec.keywords:
+            raise RexError('top level functions in python rez package files '
+                           'cannot take any arguments')
+
+        # now that we've verified that the func takes no args, can strip out
+        # the first line of the sourcecode, with the argspec of the func...
         loc = getsourcelines(func)[0][1:]
         code = dedent(''.join(loc))
 
@@ -56,8 +64,7 @@ class SourceCode(object):
         return self.source
 
     def __repr__(self):
-        txt = str(self).replace('\n', "\\n")
-        return "%s(%s)" % (self.__class__.__name__, txt)
+        return "%s(%r)" % (self.__class__.__name__, self.source)
 
 
 class cached_property(object):
