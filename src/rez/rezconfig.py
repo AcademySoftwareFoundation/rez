@@ -1,4 +1,4 @@
-#------------------------------------------------------------------------------
+g#------------------------------------------------------------------------------
 # Rez configuration settings. Do not change this file.
 #
 # Settings are determined in the following way:
@@ -27,7 +27,7 @@
 # Windows \ (unescaped) should be used.
 #------------------------------------------------------------------------------
 
-import os
+import sys
 
 ###############################################################################
 # Paths
@@ -35,40 +35,51 @@ import os
 
 # The package search path. Rez uses this to find packages. A package with the
 # same name and version in an earlier path takes precedence.
-if os.name == "posix":
+if sys.platform == 'linux2':
     packages_path = [
                      '~/packages',           # locally installed pkgs, not yet deployed
                      '/film/tools/packages', # internally developed pkgs, deployed
                     ]
-else:
+
+elif sys.platform == 'darwin':
     packages_path = [
-                     '~\\packages',           # locally installed pkgs, not yet deployed
-                     'T:\\film\\tools\\packages', # internally developed pkgs, deployed
+                     '~/packages',
+                     '/film/tools/osx/packages',
+                    ]
+
+elif sys.platform == 'win32':
+    packages_path = [
+                     '~\\packages',
+                     'T:\\film\\tools\\windows\\packages',
                     ]
 
 # The path that Rez will locally install packages to when rez-build is used
-if os.name == "posix":
+if sys.platform in ('linux2', 'darwin'):
     local_packages_path = '~/packages'
 else:
     local_packages_path = '~\\packages'
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-if os.name == "posix":
+if sys.platform == 'linux2':
     release_packages_path = '/film/tools/packages'
-else:
-    release_packages_path = 'T:\\film\\tools\\packages'
+
+elif sys.platform == 'darwin':
+    release_packages_path = '/film/tools/osx/packages'
+
+elif sys.platform == 'win32':
+    release_packages_path = 'T:\\film\\tools\\windows\\packages'
 
 # The path that Rez unleash will use as a local staging area before deploying to
 # the release packages path using Unleash.
-if os.name == "posix":
+if sys.platform in ('linux2', 'darwin'):
     unleash_packages_path = '/var/tmp/rezunleash'
 else:
     unleash_packages_path = 'C:\\temp\\rezunleash'
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to '/tmp'.
-if os.name == "posix":
+if sys.platform in ('linux2', 'darwin'):
     tmpdir = '/tmp'
 else:
     tmpdir = 'C:\\temp'
@@ -145,11 +156,13 @@ max_package_changelog_chars = 5
 # --no-implicit flag is used.
 implicit_packages = [
                      '{system.os}',
-                     'ALBlacklist',
                      '~platform=={system.platform}',
                      '~arch=={system.arch}',
                      '~os=={system.os}',
                     ]
+
+if sys.platform == 'linux2':
+    implicit_packages.insert(1, 'ALBlacklist')
 
 # If true, then when a resolve graph is generated during a failed solve, packages
 # unrelated to the failure are pruned from the graph. An 'unrelated' package is
@@ -248,7 +261,7 @@ lint_variables = [
 # Due to problems with os.symlink (unsupported) on windows, flattening is
 # explicitly not supported on Windows, regardless of the value set here.  This
 # is handled in the rex.py module.
-if os.name == "posix":
+if sys.platform in ('linux2', 'darwin'):
     flatten_env = True
 else:
     flatten_env = False
@@ -408,7 +421,7 @@ prefix_prompt = True
 # style: dim, normal, bright
 
 # Enables/disables colorization globally.
-if os.name == "posix":
+if sys.platform in ('linux2', 'darwin'):
     color_enabled = True
 else:
     color_enabled = False
