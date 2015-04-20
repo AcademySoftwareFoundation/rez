@@ -114,8 +114,7 @@ class TestBuild(TestBase, TempdirMixin):
     @shell_dependent()
     @install_dependent
     def test_builds_anti(self):
-        """Test we can
-         build packages that contain anti packages"""
+        """Test we can build packages that contain anti packages"""
         self._test_build_build_util()
         self._test_build_floob()
         self._test_build_anti()
