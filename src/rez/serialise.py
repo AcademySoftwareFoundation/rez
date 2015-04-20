@@ -52,7 +52,7 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
 
 def _load_from_file__key(filepath, *nargs, **kwargs):
     st = os.stat(filepath)
-    return (filepath, st.st_ino, st.st_mtime)
+    return (filepath, st.st_ino, st.st_atime, st.st_mtime)
 
 
 @mem_cached(DataType.package_file, key_func=_load_from_file__key)

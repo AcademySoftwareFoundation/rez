@@ -1,4 +1,3 @@
-from rez.utils.data_utils import cached_property
 from rez.solver import Solver, SolverStatus, PackageVariantCache
 from rez.package_repository import package_repository_manager
 from rez.memcache import memcache_client, DataType
@@ -129,6 +128,151 @@ class Resolver(object):
         return self.graph_
 
     def _get_cached_solve(self):
+        """Find a memcached resolve.
+
+        If there is NOT a resolve timestamp:
+            - fetch a non-timestamped memcache entry;
+            - if no entry, then fail;
+            - if packages have changed, then:
+              - delete the entry;
+              -  fail;
+            - if no packages in the entry have been released since, then
+              - use the entry and return;
+            - else:
+              - delete the entry;
+              - fail.
+
+        If there IS a resolve timestamp (let us call this T):
+            - fetch a non-timestamped memcache entry;
+            - if entry then:
+              - if no packages have changed, then:
+                - if no packages in the entry have been released since:
+                  - if no packages in the entry were released after T, then
+                    - use the entry and return;
+                - else:
+                  - delete the entry;
+              - else:
+                - delete the entry;
+            - fetch a timestamped (T) memcache entry;
+            - if no entry, then fail;
+            - if packages have changed, then:
+              - delete the entry;
+              - fail;
+            - else:
+              - use the entry.
+
+        This behaviour exists specifically so that resolves that do use a
+        timestamp but set that to the current time, can be reused by other
+        resolves if nothing has changed. Older resolves however, can only be
+        reused if the timestamp matches exactly (but this might happen a lot -
+        consider a workflow where a work area is tied down to a particular
+        timestamp in order to 'lock' it from any further software releases).
+        """
+        if not (config.resolve_caching
+                and self.caching
+                and memcache_client.enabled):
+            return None
+
+        def _hit(data):
+            solver_dict, _, _ = data
+            return solver_dict
+
+        def _miss():
+            self._print("No cache key retrieved")
+            return None
+
+        def _delete_cache_entry(key):
+            memcache_client.delete(DataType.resolve, key)
+            self._print("Discarded entry: %r", key)
+
+        def _retrieve(timestamped):
+            key = self._memcache_key(timestamped=timestamped)
+            self._print("Retrieving memcache key: %r", key)
+            data = memcache_client.get(DataType.resolve, key)
+            return key, data
+
+        def _packages_changed(key, data):
+            solver_dict, _, variant_states_dict = data
+            for variant_handle in solver_dict.get("variant_handles", []):
+                variant = get_variant(variant_handle)
+                old_state = variant_states_dict.get(variant.name)
+                repo = variant.resource._repository
+                new_state = repo.get_variant_state_handle(variant.resource)
+
+                if old_state != new_state:
+                    self._print("%r has been modified", variant.qualified_name)
+                    return True
+            return False
+
+        def _releases_since_solve(key, data):
+            _, release_times_dict, _ = data
+            for package_name, release_time in release_times_dict.iteritems():
+                time_ = get_last_release_time(package_name, self.package_paths)
+                if time_ != release_time:
+                    self._print(
+                        "A newer version of %r (%d) has been released since the "
+                        "resolve was cached (latest release in cache was %d) "
+                        "(entry: %r)", package_name, time_, release_time, key)
+                    return True
+            return False
+
+        def _timestamp_is_earlier(key, data):
+            _, release_times_dict, _ = data
+            for package_name, release_time in release_times_dict.iteritems():
+                if self.timestamp < release_time:
+                    self._print("Resolve timestamp (%d) is earlier than %r in "
+                                "solve (%d) (entry: %r)", self.timestamp,
+                                package_name, release_time, key)
+                    return True
+            return False
+
+        key, data = _retrieve(False)
+
+        if self.timestamp:
+            if data:
+                if _packages_changed(key, data):
+                    _delete_cache_entry(key)
+                elif _releases_since_solve(key, data):
+                    _delete_cache_entry(key)
+                elif not _timestamp_is_earlier(key, data):
+                    return _hit()
+
+            key, data = _retrieve(True)
+            if not data:
+                return _miss()
+            if _packages_changed(key, data):
+                _delete_cache_entry(key)
+                return _miss()
+            else:
+                return _hit(data)
+        else:
+            if not data:
+                return _miss()
+            if _packages_changed(key, data):
+                _delete_cache_entry(key)
+                return _miss()
+            if _releases_since_solve(key, data):
+                _delete_cache_entry(key)
+                return _miss()
+            else:
+                return _hit(data)
+
+
+
+        """
+        data = _retrieve(False)
+        if not data and not self.timestamp:
+            return _miss()
+
+        if self.timestamp:
+            pass
+        elif _releases_since_solve(data):
+            return _miss()
+        else:
+            pass
+
+
+
         # find a memcached resolve. This only works for a resolve whos
         # timestamp is >= the most recent release of any package in the
         # resolve.
@@ -185,15 +329,30 @@ class Resolver(object):
                 return None
 
         return solver_dict
+        """
 
     def _set_cached_solve(self, solver_dict):
-        if not (self.caching and memcache_client.enabled):
+        """Store a solve to memcached.
+
+        If there is NOT a resolve timestamp:
+            - store the solve to a non-timestamped entry.
+
+        If there IS a resolve timestamp (let us call this T):
+            - if NO newer package in the solve has been released since T,
+              - then store the solve to a non-timestamped entry;
+            - else:
+              - store the solve to a timestamped entry.
+        """
+        if not (config.resolve_caching
+                and self.caching
+                and memcache_client.enabled):
             return
 
         if self.status_ != ResolverStatus.solved:
             return  # don't cache failed solves
 
         # most recent release times get stored with solve result in the cache
+        releases_since_solve = False
         release_times_dict = {}
         variant_states_dict = {}
 
@@ -207,38 +366,38 @@ class Resolver(object):
                             variant.name)
                 return
 
-            # don't cache if timestamp is < most recent package release
             if self.timestamp and self.timestamp < time_:
-                self._print("Did not send memcache key: the resolve timestamp "
-                            "(%d) is earlier than the latest release time of "
-                            "%r (%d)", self.timestamp, variant.name, time_)
-                return
+                releases_since_solve = True
 
             release_times_dict[variant.name] = time_
             repo = variant.resource._repository
             variant_states_dict[variant.name] = \
                 repo.get_variant_state_handle(variant.resource)
 
-        key = self._memcache_key
+        timestamped = (self.timestamp and releases_since_solve)
+        key = self._memcache_key(timestamped=timestamped)
         data = (solver_dict, release_times_dict, variant_states_dict)
         memcache_client.set(DataType.resolve, key, data)
         self._print("Sent memcache key: %r", key)
 
-    @cached_property
-    def _memcache_key(self):
-        # makes a key suitable as a memcache entry
+    def _memcache_key(self, timestamped=False):
+        """Makes a key suitable as a memcache entry."""
         request = tuple(map(str, self.package_requests))
         repo_ids = []
         for path in self.package_paths:
             repo = package_repository_manager.get_repository(path)
             repo_ids.append(repo.uid)
 
-        return (request,
-                tuple(repo_ids),
-                self.building,
-                config.prune_failed_graph,
-                self.start_depth,
-                self.max_depth)
+        t = [request,
+             tuple(repo_ids),
+             self.building,
+             config.prune_failed_graph,
+             self.start_depth,
+             self.max_depth]
+        if timestamped and self.timestamp:
+            t.append(self.timestamp)
+
+        return tuple(t)
 
     def _solve(self):
         package_cache = PackageVariantCache(

@@ -62,8 +62,14 @@ bind_module_path: []
 # Caching
 ###############################################################################
 
-# Use available caching mechanisms to speed up resolves when applicable.
+# Cache resolves.
 resolve_caching: true
+
+# Cache package file reads
+cache_package_files: true
+
+# Cache directory traversals
+cache_listdir: true
 
 # The size of the local (in-process) resource cache. Resources include package
 # families, packages and variants. A value of 0 disables caching; -1 sets a cache
@@ -95,12 +101,6 @@ memcached_resolve_min_compress_len: 1
 ###############################################################################
 # Misc
 ###############################################################################
-
-# If True, enable resource caching. This caches things such as disk reads of
-# package.yaml files, and data validation. You would only turn this off for
-# debugging purposes.
-# TODO DEPRECATE
-resource_caching: true
 
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and

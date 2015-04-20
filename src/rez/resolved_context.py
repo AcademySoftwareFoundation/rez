@@ -123,8 +123,7 @@ class ResolvedContext(object):
                 released at exactly this time will not be ignored.
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
-                False, caches will not be used. If None, defaults to
-                config.resolve_caching.
+                False, caches will not be used.
             package_paths: List of paths to search for pkgs, defaults to
                 config.packages_path.
             add_implicit_packages: If True, the implicit package list defined
@@ -159,7 +158,7 @@ class ResolvedContext(object):
         self.timestamp = self.requested_timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
-        self.caching = config.resolve_caching if caching is None else caching
+        self.caching = caching
         self.max_depth = (config.resolve_max_depth if max_depth is None
                           else max_depth)
         self.start_depth = (config.resolve_start_depth if start_depth is None

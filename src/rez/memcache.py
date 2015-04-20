@@ -10,12 +10,16 @@ from hashlib import md5
 
 
 class DataType(Enum):
-    package_file = (1, config.memcached_package_file_min_compress_len)  # data from a package file
-    listdir = (2, config.memcached_listdir_min_compress_len)            # cached os.listdir result
-    resolve = (3, config.memcached_resolve_min_compress_len)            # a package request solve
+    # data from a package file
+    package_file = (1, config.cache_package_files, config.memcached_package_file_min_compress_len)
+    # cached os.listdir result
+    listdir = (2, config.cache_listdir, config.memcached_listdir_min_compress_len)
+    # a package request solve
+    resolve = (3, config.resolve_caching, config.memcached_resolve_min_compress_len)
 
-    def __init__(self, id_, min_compress_len):
+    def __init__(self, id_, enabled, min_compress_len):
         self.id_ = id_
+        self.enabled = enabled
         self.min_compress_len = min_compress_len
 
 
@@ -203,7 +207,7 @@ def mem_cached(data_type, key_func=None, from_cache_func=None,
         def wrapper(*nargs, **kwargs):
             data_type_ = kwargs.pop("_data_type", data_type)
 
-            if memcache_client.enabled:
+            if memcache_client.enabled and data_type_.enabled:
                 if key_func is None:
                     key = (nargs, frozenset(kwargs.items()))
                 else:
