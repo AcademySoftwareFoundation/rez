@@ -92,6 +92,11 @@ class VersionBinding(Binding):
     def __str__(self):
         return str(self.__version)
 
+    def __iter__(self):
+        # without this, the binding will iterate infinitely, returning more
+        # None objects...
+        return iter(self.__version)
+
 
 class VariantBinding(Binding):
     """Binds a packages.Variant object."""
