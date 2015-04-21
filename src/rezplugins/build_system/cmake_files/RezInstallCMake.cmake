@@ -123,7 +123,7 @@ macro(rez_install_cmake)
 	endif()
 	install(CODE "
 		set(REZ_BUILD_ENV 1)
-		list(APPEND CMAKE_MODULE_PATH ${out})
+		list(APPEND CMAKE_MODULE_PATH ${POSIX_CMAKE_MODULE_PATH})
 		include(RezInstallCMake)
 		_rez_install_auto_cmake(${auto_args})
 	    set(REZ_BUILD_ENV 0)
