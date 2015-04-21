@@ -139,7 +139,7 @@ def load_yaml(stream, **kwargs):
                     continue
                 if getattr(mark, 'name') == '<string>':
                     mark.name = stream.name
-        raise
+        raise e
 
 def load_txt(stream, **kwargs):
     """Load text data from a stream.
