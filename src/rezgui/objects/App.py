@@ -2,7 +2,7 @@ from rezgui.qt import QtCore, QtGui
 from rezgui.objects.Config import Config
 from rezgui.objects.ProcessTrackerThread import ProcessTrackerThread
 from rezgui import organisation_name, application_name
-from rez.resolved_context import ResolvedContext
+from rez.resolved_context import ResolvedContext, ResolvedContextError
 from rez.util import propertycache
 from rez.vendor import yaml
 from contextlib import contextmanager
@@ -55,7 +55,7 @@ class App(QtGui.QApplication):
             try:
                 context = ResolvedContext.load(filepath)
             except ResolvedContextError as e:
-                QtGui.QMessageBox.critical(self, "Failed to load context", str(e))
+                QtGui.QMessageBox.critical(self.main_window, "Failed to load context", str(e))
             finally:
                 QtGui.QApplication.restoreOverrideCursor()
 
@@ -65,7 +65,7 @@ class App(QtGui.QApplication):
                 try:
                     context.validate()
                 except ResolvedContextError as e:
-                    QtGui.QMessageBox.critical(self, "Context validation failure", str(e))
+                    QtGui.QMessageBox.critical(self.main_window, "Context validation failure", str(e))
                     context = None
                 finally:
                     QtGui.QApplication.restoreOverrideCursor()
