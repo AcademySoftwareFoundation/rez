@@ -116,12 +116,13 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   then creating a new phase would involve a deep copy of the entire state of the
   solver.
 """
+from rez.config import config
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.vendor.version.version import VersionRange
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
@@ -130,6 +131,12 @@ from itertools import groupby
 import copy
 import time
 import sys
+
+
+class VariantSelectMode(Enum):
+    """Variant selection mode."""
+    version_priority = 0
+    intersection_priority = 1
 
 
 class SolverStatus(Enum):
@@ -407,7 +414,11 @@ class PackageVariant(_Common):
 
 
 class _PackageVariantList(_Common):
-    """A sorted list of package variants, loaded lazily."""
+    """A list of package variants, loaded lazily.
+
+    Variants are sorted by descending version. However sorting within a version
+    is not done here - that only happens on a split().
+    """
     def __init__(self, package_name, package_paths=None, timestamp=0,
                  building=False, package_load_callback=None):
         self.package_name = package_name
@@ -425,45 +436,34 @@ class _PackageVariantList(_Common):
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.package_paths)))
 
-    def get_intersection(self, range, max_packages=0):
+    def get_intersection(self, range):
         """Get a list of variants that intersect with the given range.
 
         Args:
             range (`VersionRange`): Package version range.
-            max_packages (int): Load only the first N packages found, ignored
-                if zero.
 
         Returns:
-            Two-tuple:
-            - List of `PackageVariant` objects, in descending version order;
-            - bool indicating whether there are packages still to be loaded. If
-                True, more packages could be loaded, if False then all packages
-                are loaded. This value can only be True when max_packages is
-                non-zero.
+            List of `PackageVariant` objects, in descending version order.
         """
         variants = []
-        num_packages = 0
-        is_partial = False
 
         for entry in self.entries:
             version, value = entry
             if version not in range:
                 continue
 
-            if max_packages and (num_packages >= max_packages):
-                is_partial = True
-                break
-
-            if not isinstance(value, list):
+            if isinstance(value, list):
+                variants.extend(value)
+            else:
+                # expand package entry into list of variants
                 package = value
                 if self.package_load_callback:
                     self.package_load_callback(package)
 
-                # access to timestamp causes a package load
                 if self.timestamp and package.timestamp > self.timestamp:
-                    continue
+                    continue  # access to timestamp causes a package load
 
-                value = []
+                variants_ = []
                 for var in package.iter_variants():
                     requires = var.get_requires(build_requires=self.building)
                     userdata = var.handle.to_dict()
@@ -472,12 +472,11 @@ class _PackageVariantList(_Common):
                                              requires=requires,
                                              index=var.index,
                                              userdata=userdata)
-                    value.append(variant)
-                entry[1] = value
-            variants.extend(value)
-            num_packages += 1
+                    variants_.append(variant)
+                entry[1] = variants_
+                variants.extend(variants_)
 
-        return (variants or None), is_partial
+        return variants or None
 
     def dump(self):
         print self.package_name
@@ -616,43 +615,104 @@ class _PackageVariantSlice(_Common):
         else:
             return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the slice."""
-        # assert(not self.extractable)
         if len(self.variants) == 1:
             return None
-        else:
-            it = enumerate(self.variants)
-            latest_variant = it.next()[1]
-            split_fams = None
-            nleading = 1
 
-            if len(self.variants) > 2:
-                fams = latest_variant.request_fams - self.extracted_fams
-                if fams:
-                    for j, variant in it:
-                        next_fams = variant.request_fams & fams
-                        if next_fams:
-                            fams = next_fams
-                        else:
-                            split_fams = fams
-                            nleading = j
-                            break
+        self.sort_variants(package_requests)
+        it = enumerate(self.variants)
+        latest_variant = it.next()[1]
+        split_fams = None
+        nleading = 1
 
-            slice_ = self._copy(self.variants[:nleading])
-            next_slice = self._copy(self.variants[nleading:])
+        if len(self.variants) > 2:
+            fams = latest_variant.request_fams - self.extracted_fams
+            if fams:
+                for j, variant in it:
+                    next_fams = variant.request_fams & fams
+                    if next_fams:
+                        fams = next_fams
+                    else:
+                        split_fams = fams
+                        nleading = j
+                        break
 
-            if self.pr:
-                s = "split %s into %s and %s"
-                a = [self, slice_, next_slice]
-                if split_fams is None:
-                    s += " on leading variant"
-                else:
-                    s += " on %d leading variants with common dependencies: %s"
-                    a.extend([nleading, ", ".join(split_fams)])
-                self.pr(s, *a)
+        slice_ = self._copy(self.variants[:nleading])
+        next_slice = self._copy(self.variants[nleading:])
 
-            return (slice_, next_slice)
+        if self.pr:
+            s = "split %s into %s and %s"
+            a = [self, slice_, next_slice]
+            if split_fams is None:
+                s += " on leading variant"
+            else:
+                s += " on %d leading variants with common dependencies: %s"
+                a.extend([nleading, ", ".join(split_fams)])
+            self.pr(s, *a)
+
+        return (slice_, next_slice)
+
+    def sort_variants(self, package_requests):
+        """Sort variants from most correct to consume, to least.
+
+        Sort rules:
+        version_priority:
+        - sort by highest versions of packages shared with request;
+        - THEN least number of additional packages added to solve;
+        - THEN highest versions of additional packages;
+        - THEN alphabetical on name of additional packages;
+        - THEN variant index.
+
+        intersection_priority:
+        - sort by highest number of packages shared with request;
+        - THEN highest versions of packages shared with request;
+        - THEN least number of additional packages added to solve;
+        - THEN highest versions of additional packages;
+        - THEN alphabetical on name of additional packages;
+        - THEN variant index.
+
+        Note:
+            In theory 'variant.index' should never factor into the sort unless
+            two variants are identical (which shouldn't happen) - this is jusst
+            here as a safety measure so that sorting is guaranteed repeatable
+            regardless.
+
+        Note:
+            Assumes self.variants is already in version-descending order.
+        """
+        def key(variant):
+            k1 = []
+            names = set()
+            for i, request in enumerate(package_requests):
+                if not request.conflict:
+                    req = variant.requires_list.get(request.name)
+                    if req is not None:
+                        k1.append((-i, req.range))
+                        names.add(req.name)
+
+            k2 = []
+            for request in variant.requires_list:
+                if not request.conflict and request.name not in names:
+                    k2.append((request.range, request.name))
+
+            if config.variant_select_mode == VariantSelectMode.version_priority:
+                k = (k1, -len(k2), k2, variant.index)
+            else:  # VariantSelectMode.intersection_priority
+                k = (len(k1), k1, -len(k2), k2, variant.index)
+
+            return k
+
+        variants2 = []
+        for _, it in groupby(self.variants, lambda x: x.version):
+            variants3 = list(it)
+            if len(variants3) == 1:
+                variants2.extend(variants3)
+            else:
+                variants4 = sorted(variants3, key=key, reverse=True)
+                variants2.extend(variants4)
+
+        self.variants = variants2
 
     def dump(self):
         print self.package_name
@@ -724,23 +784,15 @@ class PackageVariantCache(object):
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range, max_packages=0):
+    def get_variant_slice(self, package_name, range):
         """Get a list of variants from the cache.
 
         Args:
             package_name (str): Name of package.
             range (`VersionRange`): Package version range.
-            max_packages (int): Load only the first N packages found, ignored
-                if zero. The return object's `is_partial` method indicates
-                whether more packages could have been loaded.
 
         Returns:
-            Two-tuple containing:
-            - `_PackageVariantSlice` object;
-            - bool indicating whether there are packages still to be loaded. If
-                True, more packages could be loaded, if False then all packages
-                are loaded. This value can only be True when max_packages is
-                non-zero.
+            `_PackageVariantSlice` object.
         """
         variant_list = self.variant_lists.get(package_name)
         if variant_list is None:
@@ -752,12 +804,12 @@ class PackageVariantCache(object):
                 package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
-        variants, is_partial = variant_list.get_intersection(range, max_packages)
+        variants = variant_list.get_intersection(range)
         if not variants:
             return None, False
 
         slice_ = _PackageVariantSlice(package_name, variants=variants)
-        return slice_, is_partial
+        return slice_
 
 
 class _PackageScope(_Common):
@@ -871,18 +923,18 @@ class _PackageScope(_Common):
 
         return (self, None)
 
-    def split(self):
+    def split(self, package_requests):
         """Split the scope.
 
         Returns:
-            A (_PackageScope,_PackageScope) tuple, where the first scope is
+            A (_PackageScope, _PackageScope) tuple, where the first scope is
             guaranteed to have a common dependency. Or None, if splitting is
             not applicable to this scope.
         """
         if self.package_request.conflict or (len(self.variant_slice) == 1):
             return None
         else:
-            r = self.variant_slice.split()
+            r = self.variant_slice.split(package_requests)
             if r is None:
                 return None
             else:
@@ -1191,7 +1243,7 @@ class _ResolvePhase(_Common):
 
         for i, scope in enumerate(self.scopes):
             if split is None:
-                r = scope.split()
+                r = scope.split(self.solver.package_requests)
                 if r is not None:
                     scope_, next_scope = r
                     scopes.append(scope_)
@@ -1519,8 +1571,8 @@ class Solver(_Common):
 
     def __init__(self, package_requests, package_paths, timestamp=0,
                  callback=None, building=False, optimised=True, verbosity=0,
-                 buf=None, package_load_callback=None, max_depth=0,
-                 package_cache=None, prune_unfailed=True):
+                 buf=None, package_load_callback=None, package_cache=None,
+                 prune_unfailed=True):
         """Create a Solver.
 
         Args:
@@ -1541,10 +1593,6 @@ class Solver(_Common):
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
-            max_depth (int): If non-zero, this value limits the number of packages
-                that can be loaded for any given package name. This effectively
-                trims the search space - only the highest N package versions are
-                searched. See associated `is_partial` property.
             package_cache (`PackageVariantCache`): Provided variant cache. The
                 `Resolver` may use this to share a single cache across several
                 `Solver` instances.
@@ -1558,7 +1606,6 @@ class Solver(_Common):
         self.optimised = optimised
         self.timestamp = timestamp
         self.callback = callback
-        self.max_depth = max_depth
         self.prune_unfailed = prune_unfailed
         self.request_list = None
 
@@ -1571,7 +1618,6 @@ class Solver(_Common):
         self.solve_time = None
         self.load_time = None
         self.solve_begun = None
-        self._is_partial = False
         self._init()
 
         if package_cache:
@@ -1653,15 +1699,6 @@ class Solver(_Common):
     def cyclic_fail(self):
         """Return True if the solve failed due to a cycle, False otherwise."""
         return (self.phase_stack[-1].status == SolverStatus.cyclic)
-
-    @property
-    def is_partial(self):
-        """Returns True if this solve is 'partial'.
-
-        This means that more packages could have been loaded during the solve,
-        but they were not, due to the value of `max_depth`.
-        """
-        return self._is_partial
 
     @property
     def resolved_packages(self):
@@ -1887,18 +1924,15 @@ class Solver(_Common):
 
     def _get_variant_slice(self, package_name, range):
         start_time = time.time()
-        slice, is_partial = self.package_cache.get_variant_slice(
-            package_name=package_name,
-            range=range,
-            max_packages=self.max_depth)
+        slice_ = self.package_cache.get_variant_slice(package_name=package_name,
+                                                      range=range)
 
-        if slice is not None:
-            slice.pr = self.pr
-            self._is_partial |= is_partial
+        if slice_ is not None:
+            slice_.pr = self.pr
 
         end_time = time.time()
         self.load_time += (end_time - start_time)
-        return slice
+        return slice_
 
     def _push_phase(self, phase):
         depth = len(self.phase_stack)

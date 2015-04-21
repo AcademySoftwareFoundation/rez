@@ -10,8 +10,6 @@ def setup_parser(parser, completions=False):
     from rez.shells import get_shell_types
 
     shells = get_shell_types()
-    depths = (config.resolve_start_depth, config.resolve_max_depth)
-    depths_str = ", ".join(map(str, depths))
 
     parser.add_argument(
         "--shell", dest="shell", type=str, choices=shells,
@@ -81,9 +79,6 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--new-session", action="store_true",
         help="start the shell in a new process group")
-    parser.add_argument(
-        "--depth", type=int, nargs=2, metavar=("START", "MAX"),
-        help="set resolve start-depth and max-depth (default: %s)" % depths_str)
     parser.add_argument(
         "--detached", action="store_true",
         help="open a separate terminal")
@@ -157,19 +152,14 @@ def command(opts, parser, extra_arg_groups=None):
         context = None
 
     if context is None:
-        kwargs = dict(package_requests=request,
-                      timestamp=t,
-                      package_paths=pkg_paths,
-                      add_implicit_packages=(not opts.no_implicit),
-                      verbosity=opts.verbose,
-                      max_fails=opts.max_fails,
-                      time_limit=opts.time_limit,
-                      caching=(not opts.no_cache))
-        if opts.depth:
-            kwargs["start_depth"] = opts.depth[0]
-            kwargs["max_depth"] = opts.depth[1]
-
-        context = ResolvedContext(**kwargs)
+        context = ResolvedContext(package_requests=request,
+                                  timestamp=t,
+                                  package_paths=pkg_paths,
+                                  add_implicit_packages=(not opts.no_implicit),
+                                  verbosity=opts.verbose,
+                                  max_fails=opts.max_fails,
+                                  time_limit=opts.time_limit,
+                                  caching=(not opts.no_cache))
 
     success = (context.status == ResolverStatus.solved)
     if not success:

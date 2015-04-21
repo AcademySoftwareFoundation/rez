@@ -126,36 +126,19 @@ implicit_packages = [
     "~os=={system.os}",
 ]
 
-# "start_depth" and "max_depth" are used to delay loading older packages until
-# necessary. More recent packages are searched first, and then if a solution is
-# not found, older packages may be searched in subsequent solves.
-#
-# This often results in faster solves, because generally speaking, older packages
-# are used less often. If "start_depth" is specified, multiple solves are performed,
-# with the depth doubling until either all relevant packages are being loaded, or
-# a solution is found. Some examples of possible scenarios are:
-#
-# max_depth  start_depth  effect
-# ---------  -----------  ------
-# 0          0            All packages are loaded; one solve is performed.
-# N          0            Only the latest N packages are loaded; one solve is
-#                         performed.
-# 0          N            Multiple solves are performed, with the search depth N
-#                         doubling with each solve.
-# M          N            Multiple solves are performed, with the search depth N
-#                         doubling with each solve. The depth is truncated at M.
-#
-# Note that depth settings still work when resolving with a timestamp - the
-# latest N packages *at that time* will be used in the search.
-#
-resolve_start_depth = 1
-resolve_max_depth = 0
-
 # If true, then when a resolve graph is generated during a failed solve, packages
 # unrelated to the failure are pruned from the graph. An "unrelated" package is
 # one that is not a dependency ancestor of any packages directly involved in the
 # failure.
 prune_failed_graph = True
+
+# Variant select mode. This determines which variants in a package are preferred
+# during a solve. Valid options are:
+# - version_priority: Prefer variants that contain higher versions of packages
+#   present in the request;
+# - intersection_priority: Prefer variants that contain the most number of
+#   packages that are present in the request.
+variant_select_mode = "version_priority"
 
 
 ###############################################################################

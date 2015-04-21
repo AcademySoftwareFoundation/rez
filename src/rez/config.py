@@ -1,6 +1,6 @@
 from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
-    convert_dicts, cached_property, LazyAttributeMeta
+    convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
 from rez.utils.formatting import expandvars, expanduser
 from rez.utils.logging_ import get_debug_printer
 from rez.utils.scope import scoped_format
@@ -17,19 +17,6 @@ from inspect import ismodule
 import os
 import os.path
 import copy
-
-
-# -----------------------------------------------------------------------------
-# Enumerations
-# -----------------------------------------------------------------------------
-
-class SuiteVisibility(Enum):
-    """Defines what suites on $PATH stay visible when a new rez environment is
-    resolved."""
-    never = 0               # Don't attempt to keep any suites visible in a new env
-    always = 1              # Keep suites visible in any new env
-    parent = 2              # Keep only the parent suite of a tool visible
-    parent_priority = 3     # Keep all suites visible and the parent takes precedence
 
 
 # -----------------------------------------------------------------------------
@@ -167,7 +154,17 @@ class Dict(Setting):
 
 
 class SuiteVisibility_(Str):
-    schema = Or(*(x.name for x in SuiteVisibility))
+    @cached_class_property
+    def schema(cls):
+        from rez.resolved_context import SuiteVisibility
+        return Or(*(x.name for x in SuiteVisibility))
+
+
+class VariantSelectMode_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.solver import VariantSelectMode
+        return Or(*(x.name for x in VariantSelectMode))
 
 
 config_schema = Schema({
@@ -220,8 +217,6 @@ config_schema = Schema({
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
     "resource_caching_maxsize":                     Int,
-    "resolve_max_depth":                            Int,
-    "resolve_start_depth":                          Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,
     "memcached_context_file_min_compress_len":      Int,
@@ -264,6 +259,7 @@ config_schema = Schema({
     "rez_1_cmake_variables":                        Bool,
     "disable_rez_1_compatibility":                  Bool,
     "env_var_separators":                           Dict,
+    "variant_select_mode":                          VariantSelectMode_,
 
     # GUI settings
     "use_pyside":                                   Bool,

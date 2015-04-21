@@ -3,7 +3,7 @@ from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
-from rez.config import config, SuiteVisibility
+from rez.config import config
 from rez.util import shlex_join, dedup
 from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest
@@ -27,6 +27,15 @@ import time
 import sys
 import os
 import os.path
+
+
+class SuiteVisibility(Enum):
+    """Defines what suites on $PATH stay visible when a new rez environment is
+    resolved."""
+    never = 0               # Don't attempt to keep any suites visible in a new env
+    always = 1              # Keep suites visible in any new env
+    parent = 2              # Keep only the parent suite of a tool visible
+    parent_priority = 3     # Keep all suites visible and the parent takes precedence
 
 
 class PatchLock(Enum):
@@ -112,8 +121,7 @@ class ResolvedContext(object):
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
                  add_implicit_packages=True, max_fails=-1, time_limit=-1,
-                 callback=None, package_load_callback=None, max_depth=None,
-                 start_depth=None, buf=None):
+                 callback=None, package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -138,18 +146,6 @@ class ResolvedContext(object):
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
-            max_depth (int): If non-zero, this value limits the number of packages
-                that can be loaded for any given package name. This effectively
-                trims the search space - only the highest N package versions are
-                searched. If None, the system configured value is used.
-            start_depth (int): If non-zero, an initial solve is performed with
-                `max_depth` set to this value. If this fails, the depth is doubled,
-                and another solve is performed. If `start_depth` is specified but
-                `max_depth` is not, the solve will iterate until all relevant
-                packages have been loaded. Using this argument  allows us to
-                perform something like a breadth-first search - we put off
-                loading older packages with the assumption that they aren't being
-                used anymore. If None, the system configured value is used.
             buf (file-like object): Where to print verbose output to, defaults
                 to stdout.
         """
@@ -161,10 +157,6 @@ class ResolvedContext(object):
         self.building = building
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
-        self.max_depth = (config.resolve_max_depth if max_depth is None
-                          else max_depth)
-        self.start_depth = (config.resolve_start_depth if start_depth is None
-                            else start_depth)
 
         self._package_requests = []
         for req in package_requests:
@@ -224,8 +216,6 @@ class ResolvedContext(object):
                             callback=callback_,
                             package_load_callback=package_load_callback,
                             verbosity=verbosity,
-                            max_depth=self.max_depth,
-                            start_depth=self.start_depth,
                             buf=buf)
         resolver.solve()
 
@@ -666,8 +656,6 @@ class ResolvedContext(object):
             _pr()
             actual_solve_time = self.solve_time - self.load_time
             _pr("resolve details:", heading)
-            _pr("start depth: %s" % (self.start_depth or '-'))
-            _pr("max depth:   %s" % (self.max_depth or '-'))
             _pr("load time:   %.02f secs" % self.load_time)
             _pr("solve time:  %.02f secs" % actual_solve_time)
             _pr("from cache:  %s" % self.from_cache)
@@ -1168,8 +1156,6 @@ class ResolvedContext(object):
             implicit_packages=[str(x) for x in self.implicit_packages],
             package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
-            max_depth=(self.max_depth or 0),
-            start_depth=(self.start_depth or 0),
 
             default_patch_lock=self.default_patch_lock.name,
             patch_locks=patch_locks,
@@ -1277,11 +1263,6 @@ class ResolvedContext(object):
         r.default_patch_lock = PatchLock[d.get("default_patch_lock", "no_lock")]
         patch_locks = d.get("patch_locks", {})
         r.patch_locks = dict((k, PatchLock[v]) for k, v in patch_locks)
-
-        # -- SINCE SERIALIZE VERSION 3.1
-
-        r.max_depth = d.get("max_depth", 0)
-        r.start_depth = d.get("start_depth", 0)
 
         # -- SINCE SERIALIZE VERSION 4.0
 
