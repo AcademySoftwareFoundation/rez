@@ -122,9 +122,24 @@ def load_yaml(stream, **kwargs):
     Returns:
         dict.
     """
+    # if there's an error parsing the yaml, and you pass yaml.load a string,
+    # it will print lines of context, but will print "<string>" instead of a
+    # filename; if you pass a stream, it will print the filename, but no lines
+    # of context.
+    # Get the best of both worlds, by passing it a string, then replacing
+    # "<string>" with the filename if there's an error...
     content = stream.read()
-    return yaml.load(content) or {}
-
+    try:
+        return yaml.load(content) or {}
+    except Exception, e:
+        if stream.name and stream.name != '<string>':
+            for mark_name in 'context_mark', 'problem_mark':
+                mark = getattr(e, mark_name, None)
+                if mark is None:
+                    continue
+                if getattr(mark, 'name') == '<string>':
+                    mark.name = stream.name
+        raise
 
 def load_txt(stream, **kwargs):
     """Load text data from a stream.
