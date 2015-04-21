@@ -13,6 +13,7 @@ from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
+from inspect import ismodule
 import os
 import os.path
 import copy
@@ -609,12 +610,10 @@ def _load_config_py(filepath):
             exec_(code, _globs_=globs)
         except Exception, e:
             raise ConfigurationError("Error loading configuration from %s: %s"
-                                 % (filepath, str(e)))
+                                     % (filepath, str(e)))
 
     for k, v in globs.iteritems():
-        if type(v).__name__ == "module":
-            continue
-        if k != '__builtins__':
+        if k != '__builtins__' and not ismodule(v):
             result[k] = v
     return result
 
@@ -632,8 +631,9 @@ def _load_config_yaml(filepath):
 
 def _load_config_from_filepaths(filepaths):
     data = {}
+    loaders = [(".py", _load_config_py),
+               ("", _load_config_yaml)]
 
-    loaders = [(".py", _load_config_py), ("", _load_config_yaml)]
     for filepath in filepaths:
         for extension, loader in loaders:
             filepath_with_extension = filepath + extension
