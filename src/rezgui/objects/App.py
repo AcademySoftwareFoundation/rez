@@ -56,7 +56,8 @@ class App(QtGui.QApplication):
             try:
                 context = ResolvedContext.load(filepath)
             except ResolvedContextError as e:
-                QtGui.QMessageBox.critical(self, "Failed to load context", str(e))
+                QtGui.QMessageBox.critical(self.main_window,
+                                           "Failed to load context", str(e))
             finally:
                 QtGui.QApplication.restoreOverrideCursor()
 
