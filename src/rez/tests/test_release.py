@@ -5,18 +5,15 @@ from rez.release_vcs import create_release_vcs
 from rez.packages_ import iter_packages
 from rez.vendor import yaml
 from rez.system import system
-from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
+from rez.exceptions import ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
-import rez.bind.platform
-import rez.bind.arch
-import rez.bind.os
-import rez.bind.python
 import shutil
 import os.path
+from rez.config import config
 
 
 class TestRelease(TestBase, TempdirMixin):
@@ -48,6 +45,7 @@ class TestRelease(TestBase, TempdirMixin):
     @install_dependent
     def test_1(self):
         """Basic release."""
+        src_path = os.path.join(self.src_path, 'one_dot_zero')
 
         # start fresh
         system.clear_caches()
@@ -55,7 +53,7 @@ class TestRelease(TestBase, TempdirMixin):
             shutil.rmtree(self.install_root)
         if os.path.exists(self.src_root):
             shutil.rmtree(self.src_root)
-        shutil.copytree(self.src_path, self.src_root)
+        shutil.copytree(src_path, self.src_root)
 
         working_dir = self.src_root
         packagefile = os.path.join(working_dir, "package.yaml")
@@ -144,12 +142,91 @@ class TestRelease(TestBase, TempdirMixin):
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
+    def test_2(self):
+        """exclude/include release."""
+        src_path = os.path.join(self.src_path, 'one_dot_zero_beta')
+        # start fresh
+        system.clear_caches()
+        if os.path.exists(self.install_root):
+            shutil.rmtree(self.install_root)
+        if os.path.exists(self.src_root):
+            shutil.rmtree(self.src_root)
+        shutil.copytree(src_path, self.src_root)
+
+        working_dir = self.src_root
+
+        packagefile = os.path.join(working_dir, "package.yaml")
+        with open(packagefile) as f:
+            package_data = yaml.load(f.read())
+
+        def _write_package():
+            with open(packagefile, 'w') as f:
+                dump_package_data(package_data, f, format_=FileFormat.yaml)
+
+        # create the build system
+        buildsys = create_build_system(working_dir, verbose=True)
+
+        stubfile = os.path.join(working_dir, ".stub")
+        with open(stubfile, 'w'):
+            pass
+        vcs = create_release_vcs(working_dir)
+
+        def _create_builder(ensure_latest=True):
+            return create_build_process(process_type="local",
+                                        working_dir=working_dir,
+                                        build_system=buildsys,
+                                        vcs=vcs,
+                                        ensure_latest=ensure_latest,
+                                        verbose=True)
+
+        config.override("exclude_packages", ['foo-*beta'])
+        config.override("include_packages", ['2*beta'])
+
+        os.mkdir(self.install_root)
+        builder = _create_builder()
+        builder.release()
+        # check a file to see the release made it
+        filepath = os.path.join(self.install_root,
+                                "foo", "1.0-beta", "data", "data.txt")
+        self.assertTrue(os.path.exists(filepath))
+
+        # update package version and release again
+        package_data["version"] = "2.1-beta"
+        _write_package()
+        builder = _create_builder()
+        builder.release()
+
+        # update package version and release again
+        package_data["version"] = "3.1-beta"
+        _write_package()
+        builder = _create_builder()
+        builder.release()
+
+        # check the vcs contains the tags we expect
+        expected_value = set(["foo-1.0-beta", "foo-2.1-beta", "foo-3.1-beta"])
+        with open(stubfile) as f:
+            stub_data = yaml.load(f.read())
+        tags = set(stub_data.get("tags", {}).keys())
+        self.assertEqual(tags, expected_value)
+
+        # skip package masking so that all packages are visible
+        # effectively exclude/include is skipped
+        it = iter_packages("foo", paths=[self.install_root], skip_masking=True)
+        qnames = set(x.qualified_name for x in it)
+        self.assertEqual(qnames, expected_value)
+
+        expected_visible_value = set(["foo-2.1-beta"])
+        # check that the only visible foo package matches '2*beta'
+        it = iter_packages("foo", paths=[self.install_root])
+        qnames = set(x.qualified_name for x in it)
+        self.assertEqual(qnames, expected_visible_value)
+
 
 def get_test_suites():
-    # TODO variant-based test
     suites = []
     suite = unittest.TestSuite()
     suite.addTest(TestRelease("test_1"))
+    suite.addTest(TestRelease("test_2"))
     suites.append(suite)
     return suites
 

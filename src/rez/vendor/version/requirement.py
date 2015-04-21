@@ -109,41 +109,56 @@ class Requirement(_Common):
     sep_regex = re.compile(r'[-@#=<>]')
 
     def __init__(self, s):
-        self.name_ = None
-        self.range_ = None
-        self.negate_ = False
-        self.conflict_ = False
-        self.sep_ = '-'
-        if s is None:
-            return
+        self.name_, self.range_,\
+            self.negate_, self.conflict_,\
+            self.sep_ = self.from_string(s)
 
-        self.conflict_ = s.startswith('!')
-        if self.conflict_:
-            s = s[1:]
-        elif s.startswith('~'):
-            s = s[1:]
-            self.negate_ = True
-            self.conflict_ = True
+    @classmethod
+    def from_string(cls, s, range_func=VersionRange):
+        """Create a requirement directly from an object name and VersionRange.
 
-        m = self.sep_regex.search(s)
-        if m:
-            i = m.start()
-            self.name_ = s[:i]
-            req_str = s[i:]
-            if req_str[0] in ('-', '@', '#'):
-                self.sep_ = req_str[0]
-                req_str = req_str[1:]
+        Args:
+            name: Object name string.
+            range: VersionRange object. If None, an unversioned requirement is
+                created.
+        """
+        name_ = None
+        range_ = None
+        negate_ = False
+        conflict_ = False
+        sep_ = '-'
 
-            self.range_ = VersionRange(req_str)
-            if self.negate_:
-                self.range_ = ~self.range_
-        elif self.negate_:
-            self.name_ = s
-            # rare case - '~foo' equates to no effect
-            self.range_ = None
-        else:
-            self.name_ = s
-            self.range_ = VersionRange()
+        if s is not None:
+            conflict_ = s.startswith('!')
+            if conflict_:
+                s = s[1:]
+            elif s.startswith('~'):
+                s = s[1:]
+                negate_ = True
+                conflict_ = True
+
+            m = cls.sep_regex.search(s)
+            if m:
+                i = m.start()
+                name_ = s[:i]
+                req_str = s[i:]
+                if req_str[0] in ('-', '@', '#'):
+                    sep_ = req_str[0]
+                    req_str = req_str[1:]
+
+                range_ = range_func(req_str)
+                if negate_:
+                    range_ = ~range_
+            elif negate_:
+                name_ = s
+                # rare case - '~foo' equates to no effect
+                range_ = None
+            else:
+                name_ = s
+                range_ = range_func()
+
+        return (name_, range_, negate_, conflict_, sep_)
+
 
     @classmethod
     def construct(cls, name, range=None):

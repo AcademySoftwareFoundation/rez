@@ -151,7 +151,7 @@ resolve_max_depth: 0
 prune_failed_graph: true
 
 
-###############################################################################
+###############################################################################f
 # Environment Resolution
 ###############################################################################
 
@@ -280,7 +280,8 @@ build_directory: build
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
 release_hooks: []
-
+exclude_packages: []
+include_packages: []
 
 ###############################################################################
 # Suites

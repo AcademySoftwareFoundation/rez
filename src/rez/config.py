@@ -11,12 +11,14 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.vendor.version.requirement import  Requirement
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 import os
 import os.path
 import copy
-
+import fnmatch
+import re
 
 # -----------------------------------------------------------------------------
 # Enumerations
@@ -187,6 +189,8 @@ config_schema = Schema({
     "implicit_styles":                              OptionalStrList,
     "alias_styles":                                 OptionalStrList,
     "memcached_uri":                                OptionalStrList,
+    "include_packages":                             OptionalStrList,
+    "exclude_packages":                             OptionalStrList,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
     "dot_image_format":                             Str,
@@ -362,6 +366,33 @@ class Config(object):
         until necessary."""
         plugin_data = self._data.get("plugins", {})
         return _PluginConfigs(plugin_data)
+
+    @cached_property
+    def masks(self):
+        """"""
+        def _gen_regex_mask(matches):
+            d = {}
+            for match in matches:
+                family_name, range_str, _, _, _ = Requirement.from_string(match, range_func=str)
+                if not range_str and '*' in family_name:
+                    range_str = family_name
+                    family_name = None
+                regexs = d.get(family_name, [])
+                regexs.append(fnmatch.translate(range_str))
+                d.update({family_name: regexs})
+            d = {} if not len(d) else\
+                [{j: re.compile('|'.join(k))} for j, k in d.iteritems()][-1]
+            return d
+
+        exclude_matches = self._data.get("exclude_packages", []) +\
+            self.overrides.get("exclude_packages", [])
+
+        include_matches = self._data.get("include_packages", []) +\
+            self.overrides.get("include_packages", [])
+
+        exclude_mask = _gen_regex_mask(exclude_matches)
+        include_mask = _gen_regex_mask(include_matches)
+        return (exclude_mask, include_mask)
 
     @property
     def data(self):

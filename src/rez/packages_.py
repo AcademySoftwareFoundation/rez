@@ -13,7 +13,6 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
-from rez.system import system
 import os.path
 import sys
 
@@ -289,7 +288,7 @@ def iter_package_families(paths=None):
             yield PackageFamily(resource)
 
 
-def iter_packages(name, range_=None, paths=None):
+def iter_packages(name, range_=None, paths=None, skip_masking=False):
     """Iterate over `Package` instances, in no particular order.
 
     Packages of the same name and version earlier in the search path take
@@ -320,6 +319,9 @@ def iter_packages(name, range_=None, paths=None):
                 if isinstance(range_, basestring):
                     range_ = VersionRange(range_)
                 if package_resource.version not in range_:
+                    continue
+            if not skip_masking:
+                if _is_masked(package_resource):
                     continue
 
             yield Package(package_resource)
@@ -530,3 +532,19 @@ def _get_families(name, paths=None):
             entries.append((repo, family_resource))
 
     return entries
+
+
+def _is_masked(package_resource):
+    excluded, included = config.masks
+    n = package_resource.name
+    v = str(package_resource.version)
+    eFamily = excluded.get(n, None)
+    eNone = excluded.get(None, None)
+    if (eFamily and eFamily.match(v)) or (eNone and eNone.match(v)):
+        iFamily = included.get(n, None)
+        iNone = included.get(None, None)
+        if (iFamily and iFamily.match(v)) or (iNone and iNone.match(v)):
+            return False
+        else:
+            return True
+    return False
