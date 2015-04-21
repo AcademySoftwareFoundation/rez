@@ -63,7 +63,8 @@ class PackageRepository(object):
     def uid(self):
         """Returns a unique identifier for this repository.
 
-        This is necessary for memcached caching.
+        This must be a persistent identifier, for example a filepath, or
+        database address + index, and so on.
 
         Returns:
             hashable value: Value that uniquely identifies this repository.
@@ -200,7 +201,7 @@ class PackageRepository(object):
         """Unique identifier implementation.
 
         You may need to provide your own implementation. For example, consider
-        the 'filesystem' repository. A default uri might be 'filesystem:/tmp_pkgs'.
+        the 'filesystem' repository. A default uri might be 'filesystem@/tmp_pkgs'.
         However /tmp_pkgs is probably a local path for each user, so this would
         not actually uniquely identify the repository - probably the inode number
         needs to be incorporated also.
@@ -231,7 +232,7 @@ class PackageRepositoryManager(object):
         Args:
             path (str): Entry from the 'packages_path' config setting. This may
                 simply be a path (which is managed by the 'filesystem' package
-                repository plugin), or a string in the form "type:location",
+                repository plugin), or a string in the form "type@location",
                 where 'type' identifies the repository plugin type to use.
 
         Returns:
@@ -246,8 +247,25 @@ class PackageRepositoryManager(object):
         if repo_type == "filesystem":
             location = os.path.realpath(location)
 
-        normalised_path = "%s:%s" % (repo_type, location)
+        normalised_path = "%s@%s" % (repo_type, location)
         return self._get_repository(normalised_path)
+
+    def are_same(self, path_1, path_2):
+        """Test that `path_1` and `path_2` refer to the same repository.
+
+        This is more reliable than testing that the strings match, since slightly
+        different strings might refer to the same repository (consider small
+        differences in a filesystem path for example, eg '//svr/foo', '/svr/foo').
+
+        Returns:
+            True if the paths refer to the same repository, False otherwise.
+        """
+        if path_1 == path_2:
+            return True
+
+        repo_1 = self.get_repository(path_1)
+        repo_2 = self.get_repository(path_2)
+        return (repo_1.uid == repo_2.uid)
 
     def get_resource(self, resource_handle):
         """Get a resource.
@@ -260,7 +278,7 @@ class PackageRepositoryManager(object):
         """
         repo_type = resource_handle.get("repository_type")
         location = resource_handle.get("location")
-        path = "%s:%s" % (repo_type, location)
+        path = "%s@%s" % (repo_type, location)
 
         repo = self.get_repository(path)
         resource = repo.get_resource_from_handle(resource_handle)
@@ -274,7 +292,7 @@ class PackageRepositoryManager(object):
 
     @lru_cache(maxsize=None)
     def _get_repository(self, path):
-        repo_type, location = path.split(':', 1)
+        repo_type, location = path.split('@', 1)
         cls = plugin_manager.get_plugin_class('package_repository', repo_type)
         repo = cls(location, self.pool)
         return repo

@@ -1,4 +1,5 @@
 from rez import __version__, module_root_path
+from rez.package_repository import package_repository_manager
 from rez.solver import SolverCallbackReturn
 from rez.resolver import Resolver, ResolverStatus
 from rez.system import system
@@ -605,21 +606,16 @@ class ResolvedContext(object):
         _pr()
 
         if verbosity:
+            _pr("search paths:", heading)
             rows = []
             colors = []
-            local_packages_path = os.path.realpath(config.local_packages_path)
-            _pr("search paths:", heading)
-
             for path in self.package_paths:
-                label = ""
-                col = None
-                path_ = os.path.realpath(path)
-                if not os.path.exists(path_):
-                    label = "(NOT FOUND)"
-                    col = critical
-                elif path_ == local_packages_path:
+                if package_repository_manager.are_same(path, config.local_packages_path):
                     label = "(local)"
                     col = local
+                else:
+                    label = ""
+                    col = None
                 rows.append((path, label))
                 colors.append(col)
 
@@ -653,7 +649,7 @@ class ResolvedContext(object):
         for pkg in resolved_packages:
             t = []
             col = None
-            if not os.path.exists(pkg.root):
+            if pkg.root and not os.path.exists(pkg.root):
                 t.append('NOT FOUND')
                 col = critical
             if pkg.is_local:
