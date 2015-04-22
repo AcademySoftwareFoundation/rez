@@ -1,22 +1,17 @@
 """Enables unit testing from root directory of source."""
-import sys
 import os.path
 import inspect
 
 
-_test_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
-sys.path.insert(0, os.path.join(_test_dir, '..', 'src'))
+def load_tests(loader, standard_tests, pattern):
+    root_test_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
+    src_dir = os.path.join(root_test_dir, '..', 'src')
+    src_test_dir = os.path.join(src_dir, 'rez', 'tests')
 
-from rez.tests.test_build import TestBuild
-from rez.tests.test_commands import TestCommands
-from rez.tests.test_context import TestContext
-from rez.tests.test_formatter import TestFormatter
-from rez.tests.test_rex import TestRex
-from rez.tests.test_shells import TestShells
-from rez.tests.test_solver import TestSolver
-from rez.tests.test_resources import TestResources
-from rez.tests.test_packages import TestPackages
-from rez.tests.test_config import TestConfig
-from rez.tests.test_release import TestRelease
-from rez.tests.test_completion import TestCompletion
-from rez.tests.test_version import TestVersions
+    if not pattern:
+        pattern = 'test_*.py'
+    suite = loader.discover(src_test_dir, pattern=pattern,
+                            top_level_dir=src_dir)
+    if standard_tests:
+        suite.addTests(standard_tests)
+    return suite
