@@ -5,13 +5,14 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
     package_release_keys
+from rez.serialise import clear_file_caches
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
-from rez.memcache import mem_cached, DataType
+from rez.utils.memcached import memcached
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use
 from rez.vendor.version.version import Version, VersionRange
@@ -474,14 +475,21 @@ class FileSystemPackageRepository(PackageRepository):
         self._get_family.cache_clear()
         self._get_packages.cache_clear()
         self._get_variants.cache_clear()
+        self._get_family_dirs.forget()
+        self._get_version_dirs.forget()
+        # unfortunately we need to clear file cache across the board
+        clear_file_caches()
 
     # -- internal
 
     def _get_family_dirs__key(self):
         st = os.stat(self.location)
-        return (self.location, st.st_ino, st.st_mtime)
+        return str(("listdir", self.location, st.st_ino, st.st_mtime))
 
-    @mem_cached(DataType.listdir, key_func=_get_family_dirs__key)
+    @memcached(servers=config.memcached_uri if config.cache_listdir else None,
+               min_compress_len=config.memcached_listdir_min_compress_len,
+               key=_get_family_dirs__key,
+               debug=config.debug_memcache)
     def _get_family_dirs(self):
         dirs = []
         if not os.path.isdir(self.location):
@@ -499,9 +507,12 @@ class FileSystemPackageRepository(PackageRepository):
 
     def _get_version_dirs__key(self, root):
         st = os.stat(root)
-        return (root, st.st_ino, st.st_mtime)
+        return str(("listdir", root, st.st_ino, st.st_mtime))
 
-    @mem_cached(DataType.listdir, key_func=_get_version_dirs__key)
+    @memcached(servers=config.memcached_uri if config.cache_listdir else None,
+               min_compress_len=config.memcached_listdir_min_compress_len,
+               key=_get_version_dirs__key,
+               debug=config.debug_memcache)
     def _get_version_dirs(self, root):
         dirs = []
         for name in os.listdir(root):

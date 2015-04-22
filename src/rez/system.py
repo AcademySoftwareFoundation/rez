@@ -224,9 +224,6 @@ class System(object):
 
         txt = "Rez %s" % __version__
         txt += "\n\n%s" % plugin_manager.get_summary_string()
-
-        if memcache_client.enabled:
-            txt += "\n\n%s" % memcache_client.get_summary_string()
         return txt
 
     def clear_caches(self, hard=False):
