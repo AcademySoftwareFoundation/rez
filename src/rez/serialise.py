@@ -4,7 +4,8 @@ Read and write data from file. File caching via a memcached server is supported.
 from rez.utils.scope import ScopeContext
 from rez.utils.data_utils import SourceCode
 from rez.exceptions import ResourceError
-from rez.memcache import mem_cached, DataType
+from rez.utils.memcached import memcached
+from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from inspect import isfunction
@@ -52,10 +53,13 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
 
 def _load_from_file__key(filepath, *nargs, **kwargs):
     st = os.stat(filepath)
-    return (filepath, st.st_ino, st.st_mtime)
+    return str(("package_file", filepath, st.st_ino, st.st_atime, st.st_mtime))
 
 
-@mem_cached(DataType.package_file, key_func=_load_from_file__key)
+@memcached(servers=config.memcached_uri if config.cache_package_files else None,
+           min_compress_len=config.memcached_package_file_min_compress_len,
+           key=_load_from_file__key,
+           debug=config.debug_memcache)
 def _load_from_file(filepath, format_, update_data_callback):
     load_func = load_functions[format_]
     with open(filepath) as f:
@@ -152,6 +156,11 @@ def load_txt(stream, **kwargs):
     """
     content = stream.read()
     return content
+
+
+def clear_file_caches():
+    """Clear any cached files."""
+    _load_from_file.forget()
 
 
 load_functions = {FileFormat.py:      load_py,

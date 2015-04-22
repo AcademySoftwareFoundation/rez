@@ -71,6 +71,12 @@ bind_module_path = []
 # Use available caching mechanisms to speed up resolves when applicable.
 resolve_caching = True
 
+# Cache package file reads
+cache_package_files = True
+
+# Cache directory traversals
+cache_listdir = True
+
 # The size of the local (in-process) resource cache. Resources include package
 # families, packages and variants. A value of 0 disables caching; -1 sets a cache
 # of unlimited size. The size refers to the number of entries, not byte count.
