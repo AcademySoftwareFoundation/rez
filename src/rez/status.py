@@ -271,10 +271,10 @@ class Status(object):
             else:
                 name = package.qualified_package_name  # Variant
             _pr("Package:  %s" % name)
+            path_str = "URI:      %s" % package.uri
             if package.is_local:
-                _pr("Path:     %s  (local)" % package.path, local)
-            else:
-                _pr("Path:     %s" % package.search_path)
+                path_str += "  (local)"
+            _pr(path_str)
 
         try:
             req = PackageRequest(request_str)
