@@ -108,12 +108,6 @@ memcached_resolve_min_compress_len = 1
 # Misc
 ###############################################################################
 
-# If True, enable resource caching. This caches things such as disk reads of
-# package.yaml files, and data validation. You would only turn this off for
-# debugging purposes.
-# TODO DEPRECATE
-resource_caching = True
-
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
 # this adversely impacts package load times.
