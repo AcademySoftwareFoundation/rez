@@ -2,12 +2,16 @@
 Binds a python executable as a rez package.
 """
 from __future__ import absolute_import
+
+import os
+import sys
+
+from rez.bind._utils import check_version, find_exe, extract_version, make_dirs
 from rez.package_maker__ import make_package
-from rez.bind._utils import check_version, find_exe, extract_version
-from rez.vendor.version.version import Version
 from rez.system import system
 from rez.utils.lint_helper import env
-import sys
+from rez.utils.platform_ import platform_
+from rez.vendor.version.version import Version
 
 
 def setup_parser(parser):
