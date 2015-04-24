@@ -1569,7 +1569,7 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, package_requests, package_paths, timestamp=0,
+    def __init__(self, package_requests, package_paths, package_filter=None,
                  callback=None, building=False, optimised=True, verbosity=0,
                  buf=None, package_load_callback=None, package_cache=None,
                  prune_unfailed=True):
@@ -1579,6 +1579,7 @@ class Solver(_Common):
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs.
+            package_filter (`PackageFilter`): Filter for excluding some packages.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1604,7 +1605,7 @@ class Solver(_Common):
         self.package_paths = package_paths
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
-        self.timestamp = timestamp
+        self.package_filter = package_filter
         self.callback = callback
         self.prune_unfailed = prune_unfailed
         self.request_list = None
