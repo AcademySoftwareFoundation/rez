@@ -58,7 +58,7 @@ class Setting(object):
             return self.config.overrides[self.key]
 
         # next, env-var
-        if not self.config.locked:
+        if self._env_var_name and not self.config.locked:
             value = os.getenv(self._env_var_name)
             if value is not None:
                 return self._parse_env_var(value)
@@ -153,6 +153,11 @@ class Dict(Setting):
                 % value)
 
 
+class OptionalDictList(Setting):
+    schema = Or(None, [dict])
+    _env_var_name = None
+
+
 class SuiteVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -237,6 +242,7 @@ config_schema = Schema({
     "debug_package_release":                        Bool,
     "debug_bind_modules":                           Bool,
     "debug_resources":                              Bool,
+    "debug_package_exclusions":                     Bool,
     "debug_resolve_memcache":                       Bool,
     "debug_memcache":                               Bool,
     "debug_all":                                    Bool,
@@ -261,6 +267,7 @@ config_schema = Schema({
     "disable_rez_1_compatibility":                  Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
+    "package_filters":                              OptionalDictList,
 
     # GUI settings
     "use_pyside":                                   Bool,

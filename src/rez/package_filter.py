@@ -1,28 +1,12 @@
 from rez.packages_ import iter_packages
+from rez.exceptions import ConfigurationError
 from rez.utils.data_utils import cached_property
-from rez.vendor.version.requirement import VersionedObject
-from hashlib import sha1
+from rez.vendor.version.requirement import VersionedObject, Requirement
 import fnmatch
 import re
 
 
-class PackageFilter(object):
-    """A package filter.
-
-    A package filter is a set of rules that hides some packages but leaves others
-    visible. For example, a package filter might be used to hide all packages
-    whos version ends in the string '.beta'. A package filter might also be used
-    simply to act as a blacklist, hiding some specific packages that are known
-    to be problematic.
-
-    Rules can be added as 'exclusion' or 'inclusion' rules. A package is only
-    excluded iff it matches one or more exclusion rules, and does not match any
-    inclusion rules.
-    """
-    def __init__(self):
-        self._excludes = {}
-        self._includes = {}
-
+class PackageFilterBase(object):
     def excludes(self, package):
         """Determine if the filter excludes the given package.
 
@@ -30,32 +14,26 @@ class PackageFilter(object):
             package (`Package`): Package to filter.
 
         Returns:
-            bool: True if the package is excluded, False otherwise.
+            `Rule` object that excludes the package, or None if the package was
+            not excluded.
         """
-        if not self._excludes:
-            return False  # quick out
+        raise NotImplementedError
 
-        def _match(rules):
-            if rules:
-                for rule in rules:
-                    if rule.match(package):
-                        return True
-            return False
+    def add_exclusion(self, rule):
+        """Add an exclusion rule.
 
-        excludes = self._excludes.get(package.name)
-        excl = _match(excludes)
-        if not excl:
-            excludes = self._excludes.get(None)
-            excl = _match(excludes)
+        Args:
+            rule (`Rule`): Rule to exclude on.
+        """
+        raise NotImplementedError
 
-        if excl:
-            includes = self._includes.get(package.name)
-            excl = not _match(includes)
-            if excl:
-                includes = self._includes.get(None)
-                excl = not _match(includes)
+    def add_inclusion(self, rule):
+        """Add an inclusion rule.
 
-        return excl
+        Args:
+            rule (`Rule`): Rule to include on.
+        """
+        raise NotImplementedError
 
     def iter_packages(self, name, range_=None, paths=None):
         """Same as iter_packages in packages.py, but also applies this filter.
@@ -74,24 +52,67 @@ class PackageFilter(object):
             if not self.excludes(package):
                 yield package
 
-    def add_exclusion(self, rule):
-        """Add an exclusion rule.
+    def __repr__(self):
+        return "%s(%s)" % (self.__class__.__name__, str(self))
 
-        Args:
-            rule (`Rule`): Rule to exclude on.
-        """
+
+class PackageFilter(PackageFilterBase):
+    """A package filter.
+
+    A package filter is a set of rules that hides some packages but leaves others
+    visible. For example, a package filter might be used to hide all packages
+    whos version ends in the string '.beta'. A package filter might also be used
+    simply to act as a blacklist, hiding some specific packages that are known
+    to be problematic.
+
+    Rules can be added as 'exclusion' or 'inclusion' rules. A package is only
+    excluded iff it matches one or more exclusion rules, and does not match any
+    inclusion rules.
+    """
+    def __init__(self):
+        self._excludes = {}
+        self._includes = {}
+
+    def excludes(self, package):
+        if not self._excludes:
+            return None  # quick out
+
+        def _match(rules):
+            if rules:
+                for rule in rules:
+                    if rule.match(package):
+                        return rule
+            return None
+
+        excludes = self._excludes.get(package.name)
+        excl = _match(excludes)
+        if not excl:
+            excludes = self._excludes.get(None)
+            excl = _match(excludes)
+
+        if excl:
+            includes = self._includes.get(package.name)
+            incl = _match(includes)
+            if incl:
+                excl = None
+            else:
+                includes = self._includes.get(None)
+                if _match(includes):
+                    excl = None
+
+        return excl
+
+    def add_exclusion(self, rule):
         self._add_rule(self._excludes, rule)
 
     def add_inclusion(self, rule):
-        """Add an inclusion rule.
-
-        Args:
-            rule (`Rule`): Rule to include on.
-        """
         self._add_rule(self._includes, rule)
 
     def copy(self):
-        """Return a shallow copy of the filter."""
+        """Return a shallow copy of the filter.
+
+        Adding rules to the copy will not alter the source.
+        """
         other = PackageFilter.__new__(PackageFilter)
         other._excludes = self._excludes.copy()
         other._includes = self._includes.copy()
@@ -105,16 +126,6 @@ class PackageFilter(object):
         for rule in other._includes.itervalues():
             result.add_inclusion(rule)
         return result
-
-    @cached_property
-    def sha(self):
-        """Get the sha1 hash string of this filter.
-
-        This is needed because package filters have to be incorporated into
-        cache keys when storing resolves, but filters don't have a bounded
-        length.
-        """
-        return sha1(str(self)).hexdigest()
 
     @cached_property
     def cost(self):
@@ -138,18 +149,65 @@ class PackageFilter(object):
         family = rule.family()
         rules_ = rules_dict.get(family, [])
         rules_dict[family] = sorted(rules_ + [rule], key=lambda x: x.cost())
-        cached_property.uncache(self, "sha")
         cached_property.uncache(self, "cost")
 
     def __str__(self):
-        def _fn(x):
-            return (x.cost(), str(x))
+        return str((sorted(self._excludes.items()),
+                   sorted(self._includes.items())))
 
-        return str((sorted(self._excludes.values(), key=_fn),
-                   sorted(self._includes.values(), key=_fn)))
 
-    def __repr__(self):
-        return "%s(%s)" % (self.__class__.__name__, str(self))
+class PackageFilterList(PackageFilterBase):
+    """A list of package filters.
+
+    A package is excluded by a filter list iff any filter within the list
+    excludes it.
+    """
+    def __init__(self):
+        self.filters = []
+
+    def add_filter(self, package_filter):
+        """Add a filter to the list.
+
+        Args:
+            package_filter (`PackageFilter`): Filter to add.
+        """
+        filters = self.filters + [package_filter]
+        self.filters = sorted(filters, key=lambda x: x.cost)
+
+    def add_exclusion(self, rule):
+        f = PackageFilter()
+        f.add_exclusion(rule)
+        self.add_filter(f)
+
+    def add_inclusion(self, rule):
+        """
+        Note:
+            Adding an inclusion to a filter list applies that inclusion across
+            all filters.
+        """
+        f = PackageFilter()
+        f.add_inclusion(rule)
+        self.filters = [(x + f) for x in self.filters]
+
+    def excludes(self, package):
+        for f in self.filters:
+            rule = f.excludes(package)
+            if rule:
+                return rule
+        return None
+
+    def copy(self):
+        """Return a copy of the filter list.
+
+        Adding rules to the copy will not alter the source.
+        """
+        other = PackageFilterList.__new__(PackageFilterList)
+        other.filters = [x.copy() for x in self.filters]
+        return other
+
+    def __str__(self):
+        filters = sorted(self.filters, key=lambda x: (x.cost, str(x)))
+        return str(tuple(filters))
 
 
 class Rule(object):
@@ -177,8 +235,65 @@ class Rule(object):
         raise NotImplementedError
 
     @classmethod
-    def _extract_family(cls, s):
-        m = cls.family_re.match(s)
+    def parse_rule(cls, txt):
+        """Parse a rule from a string.
+
+        See rezconfig.package_filters for an overview of valid strings.
+
+        Args:
+            txt (str): String to parse.
+
+        Returns:
+            `Rule` instance.
+        """
+        types = {"glob": GlobRule,
+                 "range": RangeRule,
+                 "before": TimestampRule,
+                 "after": TimestampRule}
+
+        # parse form 'x(y)' into x, y
+        label, txt = Rule._parse_label(txt)
+        if label is None:
+            if '*' in txt:
+                label = "glob"
+            else:
+                label = "range"
+        elif label not in types:
+            raise ConfigurationError(
+                "'%s' is not a valid package filter type" % label)
+
+        rule_cls = types[label]
+        txt_ = "%s(%s)" % (label, txt)
+
+        try:
+            rule = rule_cls._parse(txt_)
+        except Exception as e:
+            raise ConfigurationError("Error parsing package filter '%s': %s: %s"
+                                     % (txt_, e.__class__.__name__, str(e)))
+        return rule
+
+    @classmethod
+    def _parse(cls, txt):
+        """Create a rule from a string.
+
+        Returns:
+            `Rule` instance, or None if the string does not represent an instance
+            of this rule type.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def _parse_label(cls, txt):
+        m = cls.label_re.match(txt)
+        if m:
+            label, txt = m.groups()
+            return label, txt
+        else:
+            return None, txt
+
+    @classmethod
+    def _extract_family(cls, txt):
+        m = cls.family_re.match(txt)
         if m:
             return m.group()[:-1]
         return None
@@ -187,29 +302,7 @@ class Rule(object):
         return str(self)
 
     family_re = re.compile("[^*?]+" + VersionedObject.sep_regex_str)
-
-
-class FamilyRule(Rule):
-    """A rule that matches all packages in a given package family.
-    """
-    name = "family"
-
-    def __init__(self, family):
-        """Create a family rule.
-
-        Args:
-            family (str): Package family.
-        """
-        self._family = family
-
-    def match(self, package):
-        return (package.name == self._family)
-
-    def cost(self):
-        return 1
-
-    def __str__(self):
-        return "all(%s)" % self._family
+    label_re = re.compile("^([^(]+)\\(([^\\(\\)]+)\\)$")
 
 
 class GlobRule(Rule):
@@ -235,17 +328,22 @@ class GlobRule(Rule):
     def cost(self):
         return 10
 
+    @classmethod
+    def _parse(cls, txt):
+        _, txt = Rule._parse_label(txt)
+        return cls(txt)
+
     def __str__(self):
         return "%s(%s)" % (self.name, self.txt)
 
 
-class RequirementRule(Rule):
+class RangeRule(Rule):
     """A rule that matches a package if that package does not conflict with a
     given requirement.
 
     For example, the package 'foo-1.2' would match the requirement rule 'foo<10'.
     """
-    name = "requirement"
+    name = "range"
 
     def __init__(self, requirement):
         self._requirement = requirement
@@ -257,6 +355,11 @@ class RequirementRule(Rule):
 
     def cost(self):
         return 10
+
+    @classmethod
+    def _parse(cls, txt):
+        _, txt = Rule._parse_label(txt)
+        return cls(Requirement(txt))
 
     def __str__(self):
         return "%s(%s)" % (self.name, str(self._requirement))
@@ -308,6 +411,26 @@ class TimestampRule(Rule):
     def cost(self):
         # This is expensive because it causes a package load
         return 1000
+
+    @classmethod
+    def after(cls, timestamp, family=None):
+        return cls(timestamp, family=family, reverse=True)
+
+    @classmethod
+    def before(cls, timestamp, family=None):
+        return cls(timestamp, family=family)
+
+    @classmethod
+    def _parse(cls, txt):
+        label, txt = Rule._parse_label(txt)
+        if ':' in txt:
+            family, txt = txt.split(':', 1)
+        else:
+            family = None
+
+        timestamp = int(txt)
+        reverse = (label == "after")
+        return cls(timestamp, family=family, reverse=reverse)
 
     def __str__(self):
         label = "after" if self.reverse else "before"

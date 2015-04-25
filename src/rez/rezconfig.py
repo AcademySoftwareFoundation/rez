@@ -180,11 +180,12 @@ variant_select_mode = "version_priority"
 #
 # Following are examples of all the possible rules:
 #
-# all(bah):             Matches all packages within the given family.
-# glob(*.beta):         Matches packages matching the glob pattern.
-# requirement(foo-5+):  Matches packages within the given requirement.
-# before(1429830188):   Matches packages released before the given date.
-# after(1429830188):    Matches packages released after the given date.
+# glob(*.beta)          Matches packages matching the glob pattern.
+# requirement(foo-5+)   Matches packages within the given requirement.
+# before(1429830188)    Matches packages released before the given date.
+# after(1429830188)     Matches packages released after the given date.
+# *.beta                Same as glob(*.beta)
+# foo-5+                Same as range(foo-5+)
 package_filters = None
 
 
@@ -275,11 +276,11 @@ debug_bind_modules = False
 # TODO update new resources system to use this
 debug_resources = False
 
+# Print packages that are excluded from the resolve, and the filter rule responsible.
+debug_package_exclusions = False
+
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
-
-# Send human-readable strings as memcached keys - this gives a higher chance of
-# key conflicts, but also means you can run "memcached -vv" to debug hits/misses
 
 # Debug memcache usage. This doesn"t spam stdout, instead it sends human-readable
 # strings as memcached keys (that you can read by running "memcached -vv" as the
