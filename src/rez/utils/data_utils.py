@@ -23,7 +23,7 @@ class SourceCode(object):
         argspec = getargspec(func)
         if argspec.args or argspec.varargs or argspec.keywords:
             raise RexError('top level functions in python rez package files '
-                           'cannot take any arguments')
+                           'cannot take any arguments: %s' % func.__name__)
 
         # now that we've verified that the func takes no args, can strip out
         # the first line of the sourcecode, with the argspec of the func...
