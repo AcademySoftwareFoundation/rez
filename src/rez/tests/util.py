@@ -37,6 +37,44 @@ class TempdirMixin(object):
         if os.path.exists(cls.root):
             shutil.rmtree(cls.root)
 
+def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
+    """Attempts to find the given relative path to_find in the given path
+    """
+    if pathsep is None:
+        pathsep = os.pathsep
+    paths = path_str.split(pathsep)
+    if reverse:
+        paths = reversed(paths)
+    for path in paths:
+        test_path = os.path.join(path, to_find)
+        if os.path.isfile(test_path):
+            return test_path
+    return None
+
+_CMAKE_EXISTS = None
+
+def cmake_exists():
+    """Tests whether cmake is available"""
+    global _CMAKE_EXISTS
+    if _CMAKE_EXISTS is None:
+        import subprocess
+        import errno
+
+        with open(os.devnull, 'wb') as DEVNULL:
+            try:
+                subprocess.check_call(['cmake', '-h'], stdout=DEVNULL,
+                                      stderr=DEVNULL)
+            except (OSError, IOError, subprocess.CalledProcessError):
+                _CMAKE_EXISTS = False
+            else:
+                _CMAKE_EXISTS = True
+    return _CMAKE_EXISTS
+
+def cmake_dependent(fn):
+    """Function decorator that skips the test if cmake is not available"""
+    if not cmake_exists():
+        return unittest.skip('cmake not available')(fn)
+    return fn
 
 def shell_dependent(exclude=None):
     """Function decorator that runs the function over all shell types."""
