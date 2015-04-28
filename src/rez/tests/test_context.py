@@ -39,8 +39,8 @@ class TestContext(TestBase, TempdirMixin):
         """Test command execution in context."""
         if platform_.name == "windows":
             self.skipTest("This test does not run on Windows due to problems"
-                          "with the automated binding of the 'hello_world'"
-                          "executable.")
+                          " with the automated binding of the 'hello_world'"
+                          " executable.")
 
         r = ResolvedContext(["hello_world"])
         p = r.execute_command(["hello_world"], stdout=subprocess.PIPE)
