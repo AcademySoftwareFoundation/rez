@@ -1,7 +1,7 @@
 from rez.utils.data_utils import cached_property
 from rez.solver import Solver, SolverStatus, PackageVariantCache
 from rez.package_repository import package_repository_manager
-from rez.memcache import memcache_client, DataType
+from rez.memcache import memcache_client, memcache_disconnect, DataType
 from rez.packages_ import get_variant, get_last_release_time
 from rez.config import config
 from rez.vendor.enum import Enum
@@ -67,6 +67,7 @@ class Resolver(object):
 
         self._print = config.debug_printer("resolve_memcache")
 
+    @memcache_disconnect
     def solve(self):
         """Perform the solve.
         """

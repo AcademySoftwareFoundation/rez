@@ -101,6 +101,11 @@ class Client(object):
                 Printer(sys.stderr)(msg, error)
         return None
 
+    def disconnect(self):
+        if self.enabled:
+            self.client.disconnect_all()
+            self.client = None
+
     def get_summary_string(self):
         from rez.utils.formatting import columnise, readable_time_duration, \
             readable_memory_size
@@ -162,6 +167,13 @@ class DoNotCache(object):
 class _None(object):
     pass
 
+
+def memcache_disconnect(func):
+    def func_wrapper(*args, **kwargs):
+        func(*args, **kwargs)
+        memcache_client.disconnect()
+
+    return func_wrapper
 
 def mem_cached(data_type, key_func=None, from_cache_func=None,
                to_cache_func=None, value_func=None):
