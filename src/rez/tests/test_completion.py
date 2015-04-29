@@ -49,6 +49,7 @@ class TestCompletion(TestBase):
                  'package_name_in_require_and_variant', 'asymmetric_variants',
                  'multi_version_variant_higher_to_lower_version_order',
                  'multi_version_variant_lower_to_higher_version_order',
+                 'permuted_family_names_same_position_weight',
                  'variant_ordered_alphabetically_reversed_same_version',
                  'variant_ordered_alphabetically_reversed_diff_version',
                  'variant_ordered_alphabetically_same_version',
