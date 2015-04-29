@@ -33,5 +33,4 @@ commands:
 - export REZ_RELEASE_PACKAGES_PATH=/film/tools/packages
 - export REZ_PACKAGES_PATH=$REZ_LOCAL_PACKAGES_PATH:$REZ_RELEASE_PACKAGES_PATH
 - export REZ_EXTERNAL_PACKAGES_DOWNLOADS=/film/tools/packages/downloads
-- export REZ_CONFIG_FILE=/film/tools/packages/rez/rezconfig
 - export REZ_DEBUG=1
