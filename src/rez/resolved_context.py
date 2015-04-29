@@ -1414,7 +1414,8 @@ class ResolvedContext(object):
                     exc = e
 
                 if exc:
-                    msg = "Error in commands in package %r:\n%s" % (pkg.uri, str(exc))
+                    msg = "Error in %s in package %r:\n%s" % (attr, pkg.uri,
+                                                              str(exc))
                     raise PackageCommandError(msg)
 
         _heading("post system setup")
