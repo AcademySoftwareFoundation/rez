@@ -20,6 +20,15 @@ class DataType(Enum):
         self.min_compress_len = min_compress_len
 
 
+def is_connected(func):
+    def func_wrapper(*args, **kwargs):
+        if memcache_client.enabled:
+            func(*args, **kwargs)
+        else:
+            return
+    return func_wrapper
+
+
 class Client(object):
     def __init__(self):
         self.key_offset = __version__
@@ -32,11 +41,13 @@ class Client(object):
     def enabled(self):
         return (self.client is not None)
 
+    @is_connected
     def set(self, type_, key, value):
         h = self._key_hash_fn(type_, key)
         data = (type_.id_, key, value)
         self.client.set(h, data, min_compress_len=type_.min_compress_len)
 
+    @is_connected
     def get(self, type_, key):
         h = self._key_hash_fn(type_, key)
         hit = self.client.get(h)
@@ -46,10 +57,12 @@ class Client(object):
                 return value
         return None
 
+    @is_connected
     def delete(self, type_, key):
         h = self._key_hash_fn(type_, key)
         self.client.delete(h)
 
+    @is_connected
     def flush(self, hard=False):
         """Drop existing entries from the cache.
 
@@ -101,10 +114,9 @@ class Client(object):
                 Printer(sys.stderr)(msg, error)
         return None
 
+    @is_connected
     def disconnect(self):
-        if self.enabled:
-            self.client.disconnect_all()
-            self.client = None
+        self.client.disconnect_all()
 
     def get_summary_string(self):
         from rez.utils.formatting import columnise, readable_time_duration, \
@@ -151,6 +163,7 @@ class Client(object):
         value = "%s:%s:%s" % (h, type_.name, str_key)
         return value[:SERVER_MAX_KEY_LENGTH]
 
+    @is_connected
     def _get_stats(self, stat_args=None):
         return self.client.get_stats(stat_args=stat_args)
 
