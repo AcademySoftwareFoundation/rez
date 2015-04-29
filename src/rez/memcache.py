@@ -23,9 +23,9 @@ class DataType(Enum):
 def is_connected(func):
     def func_wrapper(*args, **kwargs):
         if memcache_client.enabled:
-            func(*args, **kwargs)
+            return func(*args, **kwargs)
         else:
-            return
+            return None
     return func_wrapper
 
 
