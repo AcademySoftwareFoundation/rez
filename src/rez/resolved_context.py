@@ -13,6 +13,7 @@ from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
 from rez.packages_ import get_variant, iter_packages
+from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.vendor.pygraph.readwrite.dot import write as write_dot
@@ -94,7 +95,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 0)
+    serialize_version = (4, 1)
     tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_context_")
 
     class Callback(object):
@@ -120,8 +121,9 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 add_implicit_packages=True, max_fails=-1, time_limit=-1,
-                 callback=None, package_load_callback=None, buf=None):
+                 package_filter=None, add_implicit_packages=True, max_fails=-1,
+                 time_limit=-1, callback=None, package_load_callback=None,
+                 buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -132,9 +134,13 @@ class ResolvedContext(object):
                 released at exactly this time will not be ignored.
             building: True if we're resolving for a build.
             caching: If True, cache(s) may be used to speed the resolve. If
-                False, caches will not be used.
+                False, caches will not be used. If None, config.resolve_caching
+                is used.
             package_paths: List of paths to search for pkgs, defaults to
                 config.packages_path.
+            package_filter (`PackageFilterBase`): Filter used to exclude certain
+                packages. Defaults to settings from config.package_filter. Use
+                `package_filter.no_filter` to remove all filtering.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -155,7 +161,7 @@ class ResolvedContext(object):
         self.timestamp = self.requested_timestamp or int(time.time())
         self.building = building
         self.implicit_packages = []
-        self.caching = caching
+        self.caching = config.resolve_caching if caching is None else caching
 
         self._package_requests = []
         for req in package_requests:
@@ -166,10 +172,13 @@ class ResolvedContext(object):
         if add_implicit_packages:
             self.implicit_packages = [PackageRequest(x)
                                       for x in config.implicit_packages]
-        # package paths
+
         self.package_paths = (config.packages_path if package_paths is None
                               else package_paths)
         self.package_paths = list(dedup(self.package_paths))
+
+        self.package_filter = (PackageFilterList.singleton if package_filter is None
+                               else package_filter)
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
@@ -209,7 +218,8 @@ class ResolvedContext(object):
 
         resolver = Resolver(package_requests=request,
                             package_paths=self.package_paths,
-                            timestamp=self.timestamp,
+                            package_filter=self.package_filter,
+                            timestamp=self.requested_timestamp,
                             building=self.building,
                             caching=self.caching,
                             callback=callback_,
@@ -611,6 +621,13 @@ class ResolvedContext(object):
             for col, line in zip(colors, columnise(rows)):
                 _pr(line, col)
             _pr()
+
+            if self.package_filter:
+                data = self.package_filter.to_pod()
+                txt = dump_yaml(data)
+                _pr("package filters:", heading)
+                _pr(txt)
+                _pr()
 
         _pr("requested packages:", heading)
         rows = []
@@ -1155,6 +1172,7 @@ class ResolvedContext(object):
             implicit_packages=[str(x) for x in self.implicit_packages],
             package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
+            package_filter=self.package_filter.to_pod(),
 
             default_patch_lock=self.default_patch_lock.name,
             patch_locks=patch_locks,
@@ -1267,17 +1285,12 @@ class ResolvedContext(object):
 
         r.from_cache = d.get("from_cache", False)
 
-        return r
+        # -- SINCE SERIALIZE VERSION 4.1
 
-    """
-    @classmethod
-    def _load(cls, path):
-        with open(path) as f:
-            content = f.read()
-        doc = yaml.load(content)
-        context = cls.from_dict(doc, path)
-        return context
-    """
+        data = d.get("package_filter", [])
+        r.package_filter = PackageFilterList.from_pod(data)
+
+        return r
 
     @classmethod
     def _read_from_buffer(cls, buf, identifier_str=None):

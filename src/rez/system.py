@@ -220,7 +220,6 @@ class System(object):
             String.
         """
         from rez.plugin_managers import plugin_manager
-        from rez.memcache import memcache_client
 
         txt = "Rez %s" % __version__
         txt += "\n\n%s" % plugin_manager.get_summary_string()
@@ -240,10 +239,11 @@ class System(object):
                 this option is for debugging purposes.
         """
         from rez.package_repository import package_repository_manager
-        from rez.memcache import memcache_client
+        from rez.utils.memcached import get_memcached_client
 
         package_repository_manager.clear_caches()
         if hard:
+            memcache_client = get_memcached_client()
             memcache_client.flush()
 
     @classmethod

@@ -17,13 +17,13 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.utils.memcached import Client
     from rez.utils.yaml import dump_yaml
+    from rez.utils.memcached import get_memcached_client
     from rez.utils.formatting import columnise, readable_time_duration, \
         readable_memory_size
     import sys
 
-    memcache_client = Client(servers=config.memcached_uri)
+    memcache_client = get_memcached_client()
 
     if not memcache_client:
         print >> sys.stderr, "memcaching is not enabled."

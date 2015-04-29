@@ -103,13 +103,6 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
                 config_dict = self.parent.data.get("config")
             data["config"] = config_dict
 
-        """
-        if self.data:
-            data["config"] = self.data.get("config")
-        if "base" in data:
-            del data["base"]
-        """
-
         if not include_release:
             skip_attributes = list(skip_attributes or []) + list(package_release_keys)
 

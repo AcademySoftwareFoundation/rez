@@ -117,6 +117,7 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   solver.
 """
 from rez.config import config
+from rez.utils.logging_ import print_debug
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
@@ -419,16 +420,20 @@ class _PackageVariantList(_Common):
     Variants are sorted by descending version. However sorting within a version
     is not done here - that only happens on a split().
     """
-    def __init__(self, package_name, package_paths=None, timestamp=0,
+    def __init__(self, package_name, package_paths=None, package_filter=None,
                  building=False, package_load_callback=None):
         self.package_name = package_name
         self.package_paths = package_paths
-        self.timestamp = timestamp
+        self.package_filter = package_filter
         self.building = building
         self.package_load_callback = package_load_callback
         self.variants = []
 
+        # note: we do not apply package filters here, because doing so might
+        # cause package loads (eg, timestamp rules). We only apply filters
+        # during an intersection, which minimises the amount of filtering.
         it = iter_packages(self.package_name, paths=self.package_paths)
+
         entries = ([x.version, x] for x in it)
         self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
         if not self.entries:
@@ -455,13 +460,20 @@ class _PackageVariantList(_Common):
             if isinstance(value, list):
                 variants.extend(value)
             else:
-                # expand package entry into list of variants
                 package = value
+
+                # apply package filter
+                if self.package_filter:
+                    rule = self.package_filter.excludes(package)
+                    if rule:
+                        if config.debug_package_exclusions:
+                            print_debug("Package '%s' was excluded by rule '%s'"
+                                        % (package.qualified_name, str(rule)))
+                        continue
+
+                # expand package entry into list of variants
                 if self.package_load_callback:
                     self.package_load_callback(package)
-
-                if self.timestamp and package.timestamp > self.timestamp:
-                    continue  # access to timestamp causes a package load
 
                 variants_ = []
                 for var in package.iter_variants():
@@ -776,10 +788,10 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, package_paths, timestamp=0, building=False,
+    def __init__(self, package_paths, package_filter=None, building=False,
                  package_load_callback=None):
         self.package_paths = package_paths
-        self.timestamp = timestamp
+        self.package_filter = package_filter
         self.building = building
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
@@ -799,14 +811,14 @@ class PackageVariantCache(object):
             variant_list = _PackageVariantList(
                 package_name,
                 package_paths=self.package_paths,
-                timestamp=self.timestamp,
+                package_filter=self.package_filter,
                 building=self.building,
                 package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
         variants = variant_list.get_intersection(range)
         if not variants:
-            return None, False
+            return None
 
         slice_ = _PackageVariantSlice(package_name, variants=variants)
         return slice_
@@ -1569,16 +1581,16 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, package_requests, package_paths, timestamp=0,
+    def __init__(self, package_requests, package_paths, package_filter=None,
                  callback=None, building=False, optimised=True, verbosity=0,
-                 buf=None, package_load_callback=None, package_cache=None,
-                 prune_unfailed=True):
+                 buf=None, package_load_callback=None, prune_unfailed=True):
         """Create a Solver.
 
         Args:
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs.
+            package_filter (`PackageFilterBase`): Filter for excluding packages.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1593,18 +1605,15 @@ class Solver(_Common):
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
                 `Package` object.
-            package_cache (`PackageVariantCache`): Provided variant cache. The
-                `Resolver` may use this to share a single cache across several
-                `Solver` instances.
             prune_unfailed (bool): If the solve failed, and `prune_unfailed` is
                 True, any packages unrelated to the conflict are removed from
                 the graph.
         """
         self.package_requests = package_requests
         self.package_paths = package_paths
+        self.package_filter = package_filter
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
-        self.timestamp = timestamp
         self.callback = callback
         self.prune_unfailed = prune_unfailed
         self.request_list = None
@@ -1620,14 +1629,11 @@ class Solver(_Common):
         self.solve_begun = None
         self._init()
 
-        if package_cache:
-            self.package_cache = package_cache
-        else:
-            self.package_cache = PackageVariantCache(
-                self.package_paths,
-                timestamp=timestamp,
-                package_load_callback=package_load_callback,
-                building=building)
+        self.package_cache = PackageVariantCache(
+            self.package_paths,
+            package_filter=self.package_filter,
+            package_load_callback=package_load_callback,
+            building=building)
 
         # merge the request
         if self.pr:

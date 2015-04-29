@@ -38,8 +38,7 @@ class TestShells(TestBase, TempdirMixin):
         cls.settings = dict(
             packages_path=[packages_path],
             implicit_packages=[],
-            warn_untimestamped=False,
-            resolve_caching=False)
+            warn_untimestamped=False)
 
     @classmethod
     def tearDownClass(cls):

@@ -111,7 +111,7 @@ memcached_resolve_min_compress_len = 1
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
 # this adversely impacts package load times.
-max_package_changelog_chars = 5
+max_package_changelog_chars = 1024
 
 
 ###############################################################################
@@ -139,6 +139,51 @@ prune_failed_graph = True
 # - intersection_priority: Prefer variants that contain the most number of
 #   packages that are present in the request.
 variant_select_mode = "version_priority"
+
+# Package filter. One or more filters can be listed, each with a list of
+# exclusion and inclusion rules. These filters are applied to each package
+# during a resolve, and if any filter excludes a package, that package is not
+# included in the resolve. Here is a simple example:
+#
+# package_filter:
+#     excludes:
+#     - glob(*.beta)
+#     includes:
+#     - glob(foo-*)
+#
+# This is an example of a single filter with one exclusion rule and one inclusion
+# rule. The filter will ignore all packages with versions ending in '.beta',
+# except for package 'foo' (which it will accept all versions of). A filter will
+# only exclude a package iff that package matches at least one exclusion rule,
+# and does not match any inclusion rule.
+#
+# Here is another example, which excludes all beta packages, and all packages
+# except 'foo' that are released after a certain date. Note that in order to
+# use multiple filters, you need to supply a list of dicts, rather than just a
+# dict:
+#
+# package_filter:
+# - excludes:
+#   - glob(*.beta)
+# - excludes:
+#   - after(1429830188)
+#   includes:
+#   - all(foo)
+#
+# This example shows why multiple filters are supported - with only one filter,
+# it would not be possible to exclude all beta packages (including foo), but also
+# exclude all packages after a certain date, except for foo.
+#
+# Following are examples of all the possible rules:
+#
+# glob(*.beta)          Matches packages matching the glob pattern.
+# regex(.*-\\.beta)     Matches packages matching re-style regex.
+# requirement(foo-5+)   Matches packages within the given requirement.
+# before(1429830188)    Matches packages released before the given date.
+# after(1429830188)     Matches packages released after the given date.
+# *.beta                Same as glob(*.beta)
+# foo-5+                Same as range(foo-5+)
+package_filter = None
 
 
 ###############################################################################
@@ -214,6 +259,9 @@ warn_all = False
 # Turn off all warnings. This overrides warn_all.
 warn_none = False
 
+# Print info whenever a file is loaded from disk.
+debug_file_loads = False
+
 # Print debugging info when loading plugins
 debug_plugins = False
 
@@ -228,11 +276,11 @@ debug_bind_modules = False
 # TODO update new resources system to use this
 debug_resources = False
 
+# Print packages that are excluded from the resolve, and the filter rule responsible.
+debug_package_exclusions = False
+
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
-
-# Send human-readable strings as memcached keys - this gives a higher chance of
-# key conflicts, but also means you can run "memcached -vv" to debug hits/misses
 
 # Debug memcache usage. This doesn"t spam stdout, instead it sends human-readable
 # strings as memcached keys (that you can read by running "memcached -vv" as the
