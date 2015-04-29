@@ -7,7 +7,7 @@ from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
+from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
@@ -104,7 +104,8 @@ class StrList(Setting):
 
 
 class OptionalStrList(StrList):
-    schema = Or(None, [basestring])
+    schema = Or(And(None, Use(lambda x: [])),
+                [basestring])
 
 
 class PathList(StrList):
@@ -153,8 +154,10 @@ class Dict(Setting):
                 % value)
 
 
-class OptionalDictList(Setting):
-    schema = Or(None, [dict])
+class OptionalDictOrDictList(Setting):
+    schema = Or(And(None, Use(lambda x: [])),
+                And(dict, Use(lambda x: [x])),
+                [dict])
     _env_var_name = None
 
 
@@ -238,6 +241,7 @@ config_schema = Schema({
     "warn_untimestamped":                           Bool,
     "warn_all":                                     Bool,
     "warn_none":                                    Bool,
+    "debug_file_loads":                             Bool,
     "debug_plugins":                                Bool,
     "debug_package_release":                        Bool,
     "debug_bind_modules":                           Bool,
@@ -267,7 +271,7 @@ config_schema = Schema({
     "disable_rez_1_compatibility":                  Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
-    "package_filters":                              OptionalDictList,
+    "package_filter":                               OptionalDictOrDictList,
 
     # GUI settings
     "use_pyside":                                   Bool,

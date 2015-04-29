@@ -10,7 +10,6 @@ class TestImports(TestBase):
         import rez.build_system
         import rez.config
         import rez.exceptions
-        import rez.memcache
         import rez.package_help
         import rez.package_maker__
         import rez.package_repository
@@ -45,6 +44,7 @@ class TestImports(TestBase):
         import rez.utils.resources
         import rez.utils.schema
         import rez.utils.scope
+        import rez.utils.memcached
         import rez.utils.yaml
 
 def get_test_suites():

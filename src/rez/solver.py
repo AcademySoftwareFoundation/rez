@@ -463,12 +463,13 @@ class _PackageVariantList(_Common):
                 package = value
 
                 # apply package filter
-                rule = self.package_filter.excludes(package)
-                if rule:
-                    if config.debug_package_exclusions:
-                        print_debug("Package '%s' was excluded by rule '%s'"
-                                    % (package.qualified_name, str(rule)))
-                    continue
+                if self.package_filter:
+                    rule = self.package_filter.excludes(package)
+                    if rule:
+                        if config.debug_package_exclusions:
+                            print_debug("Package '%s' was excluded by rule '%s'"
+                                        % (package.qualified_name, str(rule)))
+                        continue
 
                 # expand package entry into list of variants
                 if self.package_load_callback:
@@ -817,7 +818,7 @@ class PackageVariantCache(object):
 
         variants = variant_list.get_intersection(range)
         if not variants:
-            return None, False
+            return None
 
         slice_ = _PackageVariantSlice(package_name, variants=variants)
         return slice_

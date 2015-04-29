@@ -1,7 +1,9 @@
 from rez.packages_ import iter_packages
 from rez.exceptions import ConfigurationError
-from rez.utils.data_utils import cached_property
+from rez.config import config
+from rez.utils.data_utils import cached_property, cached_class_property
 from rez.vendor.version.requirement import VersionedObject, Requirement
+from hashlib import sha1
 import fnmatch
 import re
 
@@ -35,6 +37,15 @@ class PackageFilterBase(object):
         """
         raise NotImplementedError
 
+    @classmethod
+    def from_pod(cls, data):
+        """Convert from POD types to equivalent package filter."""
+        raise NotImplementedError
+
+    def to_pod(self):
+        """Convert to POD type, suitable for storing in an rxt file."""
+        raise NotImplementedError
+
     def iter_packages(self, name, range_=None, paths=None):
         """Same as iter_packages in packages.py, but also applies this filter.
 
@@ -51,6 +62,19 @@ class PackageFilterBase(object):
         for package in iter_packages(name, range_, paths):
             if not self.excludes(package):
                 yield package
+
+    @property
+    def hash(self):
+        """Get a hash of the filter.
+
+        This is needed because package filters are incorporate into memcached
+        keys for cached resolves. The actual filter contents are not used because
+        they are unbounded - the total number of rules in a filter could be high.
+
+        Returns:
+            str: hash value.
+        """
+        return sha1(str(self)).hexdigest()
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
@@ -127,6 +151,9 @@ class PackageFilter(PackageFilterBase):
             result.add_inclusion(rule)
         return result
 
+    def __nonzero__(self):
+        return bool(self._excludes)
+
     @cached_property
     def cost(self):
         """Get the approximate cost of this filter.
@@ -144,6 +171,30 @@ class PackageFilter(PackageFilterBase):
                 cost = cost / float(10)
             total += cost
         return total
+
+    @classmethod
+    def from_pod(cls, data):
+        f = PackageFilter()
+        for namespace, func in (("excludes", f.add_exclusion),
+                                ("includes", f.add_inclusion)):
+            rule_strs = data.get(namespace, [])
+            if isinstance(rule_strs, basestring):
+                rule_strs = [rule_strs]
+            for rule_str in rule_strs:
+                rule = Rule.parse_rule(rule_str)
+                func(rule)
+        return f
+
+    def to_pod(self):
+        data = {}
+        for namespace, dict_ in (("excludes", self._excludes),
+                                 ("includes", self._includes)):
+            if dict_:
+                rules = []
+                for rules_ in dict_.itervalues():
+                    rules.extend(map(str, rules_))
+                data[namespace] = rules
+        return data
 
     def _add_rule(self, rules_dict, rule):
         family = rule.family()
@@ -175,9 +226,13 @@ class PackageFilterList(PackageFilterBase):
         self.filters = sorted(filters, key=lambda x: x.cost)
 
     def add_exclusion(self, rule):
-        f = PackageFilter()
-        f.add_exclusion(rule)
-        self.add_filter(f)
+        if self.filters:
+            f = self.filters[-1]
+            f.add_exclusion(rule)
+        else:
+            f = PackageFilter()
+            f.add_exclusion(rule)
+            self.add_filter(f)
 
     def add_inclusion(self, rule):
         """
@@ -205,9 +260,35 @@ class PackageFilterList(PackageFilterBase):
         other.filters = [x.copy() for x in self.filters]
         return other
 
+    @classmethod
+    def from_pod(cls, data):
+        flist = PackageFilterList()
+        for dict_ in data:
+            f = PackageFilter.from_pod(dict_)
+            flist.add_filter(f)
+        return flist
+
+    def to_pod(self):
+        data = []
+        for f in self.filters:
+            data.append(f.to_pod())
+        return data
+
+    def __nonzero__(self):
+        return any(self.filters)
+
     def __str__(self):
         filters = sorted(self.filters, key=lambda x: (x.cost, str(x)))
         return str(tuple(filters))
+
+    @cached_class_property
+    def singleton(cls):
+        """Filter list as configured by rezconfig.package_filter."""
+        return cls.from_pod(config.package_filter)
+
+
+# filter that does not exclude any packages
+no_filter = PackageFilterList()
 
 
 class Rule(object):
@@ -238,7 +319,7 @@ class Rule(object):
     def parse_rule(cls, txt):
         """Parse a rule from a string.
 
-        See rezconfig.package_filters for an overview of valid strings.
+        See rezconfig.package_filter for an overview of valid strings.
 
         Args:
             txt (str): String to parse.
@@ -247,6 +328,7 @@ class Rule(object):
             `Rule` instance.
         """
         types = {"glob": GlobRule,
+                 "regex": RegexRule,
                  "range": RangeRule,
                  "before": TimestampRule,
                  "after": TimestampRule}
@@ -305,7 +387,41 @@ class Rule(object):
     label_re = re.compile("^([^(]+)\\(([^\\(\\)]+)\\)$")
 
 
-class GlobRule(Rule):
+class RegexRuleBase(Rule):
+    def match(self, package):
+        return bool(self.regex.match(package.qualified_name))
+
+    def cost(self):
+        return 10
+
+    @classmethod
+    def _parse(cls, txt):
+        _, txt = Rule._parse_label(txt)
+        return cls(txt)
+
+    def __str__(self):
+        return "%s(%s)" % (self.name, self.txt)
+
+
+class RegexRule(RegexRuleBase):
+    """A rule that matches a package if its qualified name matches a regex string.
+
+    For example, the package 'foo-1.beta' would match the regex rule '.*\\.beta$'.
+    """
+    name = "regex"
+
+    def __init__(self, s):
+        """Create a regex rule.
+
+        Args:
+            s (str): Regex pattern. Eg '.*\\.beta$'.
+        """
+        self.txt = s
+        self._family = self._extract_family(s)
+        self.regex = re.compile(s)
+
+
+class GlobRule(RegexRuleBase):
     """A rule that matches a package if its qualified name matches a glob string.
 
     For example, the package 'foo-1.2' would match the glob rule 'foo-*'.
@@ -321,20 +437,6 @@ class GlobRule(Rule):
         self.txt = s
         self._family = self._extract_family(s)
         self.regex = re.compile(fnmatch.translate(s))
-
-    def match(self, package):
-        return bool(self.regex.match(package.qualified_name))
-
-    def cost(self):
-        return 10
-
-    @classmethod
-    def _parse(cls, txt):
-        _, txt = Rule._parse_label(txt)
-        return cls(txt)
-
-    def __str__(self):
-        return "%s(%s)" % (self.name, self.txt)
 
 
 class RangeRule(Rule):
@@ -404,9 +506,9 @@ class TimestampRule(Rule):
 
     def match(self, package):
         if self.reverse:
-            return (package.timestamp >= self.timestamp)
+            return (package.timestamp > self.timestamp)
         else:
-            return (package.timestamp < self.timestamp)
+            return (package.timestamp <= self.timestamp)
 
     def cost(self):
         # This is expensive because it causes a package load

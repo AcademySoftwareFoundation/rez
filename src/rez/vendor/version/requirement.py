@@ -208,10 +208,10 @@ class Requirement(_Common):
         else:  # VersionedObject
             if (self.name_ != other.name_) or (self.range is None):
                 return False
-            elif self.conflict:
-                return (other.version_ not in self.range_)
-            else:
+            if self.conflict:
                 return (other.version_ in self.range_)
+            else:
+                return (other.version_ not in self.range_)
 
     def merged(self, other):
         """Returns the merged result of two requirements.

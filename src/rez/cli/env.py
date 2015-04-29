@@ -62,6 +62,18 @@ def setup_parser(parser, completions=False):
         help="use a previously saved context. Resolve settings, such as PKG, "
         "--ni etc are ignored in this case")
     parser.add_argument(
+        "--exclude", type=str, nargs='+', metavar="RULE",
+        help="add package exclusion filters, eg '*.beta'. Note that these are "
+        "added to the globally configured exclusions")
+    parser.add_argument(
+        "--include", type=str, nargs='+', metavar="RULE",
+        help="add package inclusion filters, eg 'mypkg', 'boost-*'. Note that "
+        "these are added to the globally configured inclusions")
+    parser.add_argument(
+        "--no-filters", dest="no_filters", action="store_true",
+        help="turn off package filters. Note that any filters specified with "
+        "--exclude/--include are still applied")
+    parser.add_argument(
         "-p", "--patch", action="store_true",
         help="patch the current context to create a new context")
     parser.add_argument(
@@ -104,6 +116,7 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.resolved_context import ResolvedContext
     from rez.resolver import ResolverStatus
+    from rez.package_filter import PackageFilterList, Rule
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
     import select
@@ -152,9 +165,25 @@ def command(opts, parser, extra_arg_groups=None):
         context = None
 
     if context is None:
+        # create package filters
+        if opts.no_filters:
+            package_filter = PackageFilterList()
+        else:
+            package_filter = PackageFilterList.singleton.copy()
+
+        for rule_str in (opts.exclude or []):
+            rule = Rule.parse_rule(rule_str)
+            package_filter.add_exclusion(rule)
+
+        for rule_str in (opts.include or []):
+            rule = Rule.parse_rule(rule_str)
+            package_filter.add_inclusion(rule)
+
+        # perform the resolve
         context = ResolvedContext(package_requests=request,
                                   timestamp=t,
                                   package_paths=pkg_paths,
+                                  package_filter=package_filter,
                                   add_implicit_packages=(not opts.no_implicit),
                                   verbosity=opts.verbose,
                                   max_fails=opts.max_fails,

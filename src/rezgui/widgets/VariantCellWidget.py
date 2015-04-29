@@ -3,6 +3,7 @@ from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_fo
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
 from rez.packages_ import iter_packages
+from rez.package_filter import PackageFilterList
 from rez.resolved_context import PatchLock, get_lock_request
 from rez.vendor.version.requirement import RequirementList
 from rez.vendor.version.version import VersionRange
@@ -113,6 +114,8 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                 new_icons.append(("local", "package is local"))
 
             package_paths = self.context_model.packages_path
+            package_filter = PackageFilterList.from_pod(self.context_model.package_filter)
+
             if self.variant.wrapped.location in package_paths:
                 # find all >= version packages, so we can determine tick type
                 ge_range = VersionRange.from_version(self.variant.version, ">=")
@@ -128,6 +131,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                 # apply a tick icon if appropriate
                 ticked = False
                 if packages:
+
                     # test if variant is latest package
                     latest_pkg = packages[-1]
                     if self.variant.version == latest_pkg.version:
@@ -155,8 +159,20 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                                 latest_pkg = packages_[-1]
                                 if self.variant.version == latest_pkg.version:
                                     new_icons.append(("yellow_tick",
-                                                      "package is latest within request"))
+                                                      "package is latest possible"))
                                     ticked = True
+
+                    packages2 = [x for x in (packages_ or packages)
+                                 if x.version > self.variant.version]
+
+                    # test if variant is latest within package filter
+                    if (not ticked
+                            and packages2
+                            and package_filter):
+                        if all(package_filter.excludes(x) for x in packages2):
+                            new_icons.append(("yellow_tick",
+                                              "package is latest possible"))
+                            ticked = True
 
                     # test if variant was latest package at time of resolve
                     if not ticked and self.variant.timestamp:
@@ -180,8 +196,7 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                             and self.variant.timestamp
                             and range_ is not None
                             and packages_ is not None):
-                        untimestamped_packages = [x for x in packages_
-                                                  if not x.timestamp]
+                        untimestamped_packages = any(x for x in packages_ if not x.timestamp)
                         if not untimestamped_packages:
                             resolve_time = self.context().timestamp
                             old_packages = [x for x in packages_
@@ -191,8 +206,25 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
                                 if self.variant.version == latest_pkg.version:
                                     new_icons.append(
                                         ("yellow_white_tick",
-                                         "package was latest within request, "
-                                         "at time of resolve"))
+                                         "package was latest possible at time of resolve"))
+                                    ticked = True
+
+                    # test if variant is within package filter, and was latest
+                    # possible at the time of resolve
+                    if (not ticked
+                            and packages2
+                            and package_filter
+                            and self.variant.timestamp):
+                        untimestamped_packages = any(x for x in (packages_ or packages)
+                                                     if not x.timestamp)
+                        if not untimestamped_packages:
+                            newer_package = any(x for x in packages2
+                                                if not package_filter.excludes(x)
+                                                and x.timestamp <= resolve_time)
+                            if not newer_package:
+                                    new_icons.append(
+                                        ("yellow_white_tick",
+                                         "package was latest possible at time of resolve"))
                                     ticked = True
 
                     # bring in the old man

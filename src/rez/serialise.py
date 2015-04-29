@@ -3,6 +3,7 @@ Read and write data from file. File caching via a memcached server is supported.
 """
 from rez.utils.scope import ScopeContext
 from rez.utils.data_utils import SourceCode
+from rez.utils.logging_ import print_debug
 from rez.exceptions import ResourceError
 from rez.utils.memcached import memcached
 from rez.config import config
@@ -62,6 +63,10 @@ def _load_from_file__key(filepath, *nargs, **kwargs):
            debug=config.debug_memcache)
 def _load_from_file(filepath, format_, update_data_callback):
     load_func = load_functions[format_]
+
+    if config.debug("file_loads"):
+        print_debug("Loading file: %s" % filepath)
+
     with open(filepath) as f:
         result = load_func(f, filepath=filepath)
 

@@ -56,6 +56,13 @@ class Resolver(object):
         self.caching = caching
         self.buf = buf
 
+        # store hash of pre-timestamp-combined package filter. This is used in
+        # the memcached key
+        if package_filter:
+            self.package_filter_hash = package_filter.hash
+        else:
+            self.package_filter_hash = ''
+
         # combine timestamp and package filter into single filter
         if self.timestamp:
             if package_filter:
@@ -156,7 +163,7 @@ class Resolver(object):
             - else:
               - use the entry.
 
-        This behaviour exists specifically so that resolves that do use a
+        This behaviour exists specifically so that resolves that use use a
         timestamp but set that to the current time, can be reused by other
         resolves if nothing has changed. Older resolves however, can only be
         reused if the timestamp matches exactly (but this might happen a lot -
@@ -175,7 +182,7 @@ class Resolver(object):
             return None
 
         def _delete_cache_entry(key):
-            self.memcache_client.delete(DataType.resolve, key)
+            self.memcache_client.delete(key)
             self._print("Discarded entry: %r", key)
 
         def _retrieve(timestamped):
@@ -308,6 +315,7 @@ class Resolver(object):
         t = ["resolve",
              request,
              tuple(repo_ids),
+             self.package_filter_hash,
              self.building,
              config.prune_failed_graph]
 

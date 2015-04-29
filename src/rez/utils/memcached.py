@@ -5,6 +5,12 @@ from hashlib import md5
 from uuid import uuid4
 
 
+def get_memcached_client():
+    """Get a configured memcached client."""
+    from rez.config import config
+    return Client(servers=config.memcached_uri)
+
+
 class Client(object):
     """Wrapper for memcache.Client instance.
 
