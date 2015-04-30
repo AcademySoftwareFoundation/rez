@@ -23,6 +23,7 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils.yaml import dump_yaml
 import getpass
+import traceback
 import inspect
 import time
 import sys
@@ -162,6 +163,7 @@ class ResolvedContext(object):
         self.building = building
         self.implicit_packages = []
         self.caching = config.resolve_caching if caching is None else caching
+        self.verbosity = verbosity
 
         self._package_requests = []
         for req in package_requests:
@@ -1412,23 +1414,30 @@ class ResolvedContext(object):
                 filename = "<%s>" % pkg.uri
 
                 exc = None
+                trace = None
                 try:
                     executor.execute_code(commands.source, filename=filename)
                 except IndentationError as e:
                     commands_ = commands.corrected_for_indent()
                     if commands_ is commands:
                         exc = e
+                        trace = traceback.format_exc()
                     else:
                         try:
                             executor.execute_code(commands_.source, filename=filename)
                         except error_class as e:
                             exc = e
+                            trace = traceback.format_exc()
                 except error_class as e:
                     exc = e
+                    trace = traceback.format_exc()
 
                 if exc:
-                    msg = "Error in %s in package %r:\n%s" % (attr, pkg.uri,
-                                                              str(exc))
+                    msg = "Error in %s in package %r:\n" % (attr, pkg.uri)
+                    if self.verbosity >= 2:
+                        msg += trace
+                    else:
+                        msg += str(exc)
                     raise PackageCommandError(msg)
 
         _heading("post system setup")
