@@ -847,9 +847,10 @@ class NamespaceFormatter(Formatter):
     across shells, and avoids some problems with non-curly-braced variables in
     some situations.
     """
-    ENV_VAR         = "[a-zA-Z_]+[a-zA-Z0-9_]*"
-    ENV_VAR_REF_1   = "\\${(%s?)}" % ENV_VAR
-    ENV_VAR_REF_2   = "\\$(%s?)" % ENV_VAR
+    # Note: the regex used here matches more than just posix environment variable
+    # names, because special shell expansion characters may be present.
+    ENV_VAR_REF_1   = "\\${([^\\{\\}]+?)}"  # ${ENVVAR}
+    ENV_VAR_REF_2   = "\\$([a-zA-Z_]+[a-zA-Z0-9_]*?)"  # $ENVVAR
     ENV_VAR_REF     = "%s|%s" % (ENV_VAR_REF_1, ENV_VAR_REF_2)
     ENV_VAR_REGEX   = re.compile(ENV_VAR_REF)
 

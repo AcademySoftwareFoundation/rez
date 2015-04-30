@@ -105,6 +105,11 @@ class cached_property(object):
                                  % (self.name, instance))
         return result
 
+    @classmethod
+    def uncache(cls, instance, name):
+        if hasattr(instance, name):
+            delattr(instance, name)
+
 
 class cached_class_property(object):
     """Simple class property caching descriptor.

@@ -1,6 +1,7 @@
 from rez.solver import Solver, SolverStatus, PackageVariantCache
 from rez.package_repository import package_repository_manager
 from rez.packages_ import get_variant, get_last_release_time
+from rez.package_filter import PackageFilterList, TimestampRule
 from rez.utils.memcached import Client
 from rez.config import config
 from rez.vendor.enum import Enum
@@ -27,15 +28,16 @@ class Resolver(object):
     The Resolver uses a combination of Solver(s) and cache(s) to resolve a
     package request as quickly as possible.
     """
-    def __init__(self, package_requests, package_paths, timestamp=0,
-                 callback=None, building=False, verbosity=False, buf=None,
-                 package_load_callback=None, caching=True):
+    def __init__(self, package_requests, package_paths, package_filter=None,
+                 timestamp=0, callback=None, building=False, verbosity=False,
+                 buf=None, package_load_callback=None, caching=True):
         """Create a Resolver.
 
         Args:
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs.
+            package_filter (`PackageFilterList`): Package filter.
             callback: See `Solver`.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
@@ -53,6 +55,24 @@ class Resolver(object):
         self.verbosity = verbosity
         self.caching = caching
         self.buf = buf
+
+        # store hash of pre-timestamp-combined package filter. This is used in
+        # the memcached key
+        if package_filter:
+            self.package_filter_hash = package_filter.hash
+        else:
+            self.package_filter_hash = ''
+
+        # combine timestamp and package filter into single filter
+        if self.timestamp:
+            if package_filter:
+                self.package_filter = package_filter.copy()
+            else:
+                self.package_filter = PackageFilterList()
+            rule = TimestampRule.after(self.timestamp)
+            self.package_filter.add_exclusion(rule)
+        else:
+            self.package_filter = package_filter
 
         self.status_ = ResolverStatus.pending
         self.resolved_packages_ = None
@@ -143,7 +163,7 @@ class Resolver(object):
             - else:
               - use the entry.
 
-        This behaviour exists specifically so that resolves that do use a
+        This behaviour exists specifically so that resolves that use use a
         timestamp but set that to the current time, can be reused by other
         resolves if nothing has changed. Older resolves however, can only be
         reused if the timestamp matches exactly (but this might happen a lot -
@@ -162,7 +182,7 @@ class Resolver(object):
             return None
 
         def _delete_cache_entry(key):
-            self.memcache_client.delete(DataType.resolve, key)
+            self.memcache_client.delete(key)
             self._print("Discarded entry: %r", key)
 
         def _retrieve(timestamped):
@@ -295,6 +315,7 @@ class Resolver(object):
         t = ["resolve",
              request,
              tuple(repo_ids),
+             self.package_filter_hash,
              self.building,
              config.prune_failed_graph]
 
@@ -304,17 +325,9 @@ class Resolver(object):
         return str(tuple(t))
 
     def _solve(self):
-        package_cache = PackageVariantCache(
-            self.package_paths,
-            timestamp=self.timestamp,
-            package_load_callback=self.package_load_callback,
-            building=self.building)
-
-        # perform the solve
         solver = Solver(package_requests=self.package_requests,
-                        package_cache=package_cache,
                         package_paths=self.package_paths,
-                        timestamp=self.timestamp,
+                        package_filter=self.package_filter,
                         callback=self.callback,
                         package_load_callback=self.package_load_callback,
                         building=self.building,
@@ -371,5 +384,6 @@ class Resolver(object):
             failure_description=failure_description,
             variant_handles=variant_handles)
 
-    memcache_client = Client(servers=config.memcached_uri if config.resolve_caching else None,
+    memcache_client = Client(servers=(config.memcached_uri
+                                      if config.resolve_caching else None),
                              debug=config.debug_memcache)

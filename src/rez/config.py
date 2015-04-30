@@ -7,7 +7,7 @@ from rez.utils.scope import scoped_format
 from rez.exceptions import ConfigurationError
 from rez import module_root_path
 from rez.system import system
-from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or
+from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
@@ -58,7 +58,7 @@ class Setting(object):
             return self.config.overrides[self.key]
 
         # next, env-var
-        if not self.config.locked:
+        if self._env_var_name and not self.config.locked:
             value = os.getenv(self._env_var_name)
             if value is not None:
                 return self._parse_env_var(value)
@@ -104,7 +104,8 @@ class StrList(Setting):
 
 
 class OptionalStrList(StrList):
-    schema = Or(None, [basestring])
+    schema = Or(And(None, Use(lambda x: [])),
+                [basestring])
 
 
 class PathList(StrList):
@@ -151,6 +152,13 @@ class Dict(Setting):
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
                 % value)
+
+
+class OptionalDictOrDictList(Setting):
+    schema = Or(And(None, Use(lambda x: [])),
+                And(dict, Use(lambda x: [x])),
+                [dict])
+    _env_var_name = None
 
 
 class SuiteVisibility_(Str):
@@ -233,10 +241,12 @@ config_schema = Schema({
     "warn_untimestamped":                           Bool,
     "warn_all":                                     Bool,
     "warn_none":                                    Bool,
+    "debug_file_loads":                             Bool,
     "debug_plugins":                                Bool,
     "debug_package_release":                        Bool,
     "debug_bind_modules":                           Bool,
     "debug_resources":                              Bool,
+    "debug_package_exclusions":                     Bool,
     "debug_resolve_memcache":                       Bool,
     "debug_memcache":                               Bool,
     "debug_all":                                    Bool,
@@ -261,6 +271,7 @@ config_schema = Schema({
     "disable_rez_1_compatibility":                  Bool,
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
+    "package_filter":                               OptionalDictOrDictList,
 
     # GUI settings
     "use_pyside":                                   Bool,

@@ -12,7 +12,8 @@ class TestCompletion(TestBase):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
         cls.settings = dict(
-            packages_path=[packages_path])
+            packages_path=[packages_path],
+            package_filter=None)
 
         cls.config = Config([get_module_root_config()], locked=True)
 

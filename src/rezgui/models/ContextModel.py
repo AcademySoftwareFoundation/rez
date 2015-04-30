@@ -1,5 +1,6 @@
 from rezgui.qt import QtCore
 from rez.resolved_context import ResolvedContext, PatchLock, get_lock_request
+from rez.package_filter import PackageFilterList
 from rez.config import config
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from collections import defaultdict
@@ -23,6 +24,7 @@ class ContextModel(QtCore.QObject):
     LOCKS_CHANGED = 4
     CONTEXT_CHANGED = 8
     LOADPATH_CHANGED = 16
+    PACKAGE_FILTER_CHANGED = 32
 
     def __init__(self, context=None, parent=None):
         super(ContextModel, self).__init__(parent)
@@ -36,6 +38,7 @@ class ContextModel(QtCore.QObject):
         self.request = []
         self.packages_path = config.packages_path
         self.implicit_packages = config.implicit_packages
+        self.package_filter = config.package_filter
         self.default_patch_lock = PatchLock.no_lock
         self.patch_locks = {}
 
@@ -51,6 +54,7 @@ class ContextModel(QtCore.QObject):
         other.request = self.request[:]
         other.packages_path = self.packages_path
         other.implicit_packages = self.implicit_packages
+        other.package_filter = self.package_filter
         other.default_patch_lock = self.default_patch_lock
         other.patch_locks = copy.deepcopy(self.patch_locks)
         return other
@@ -132,6 +136,9 @@ class ContextModel(QtCore.QObject):
     def set_packages_path(self, packages_path):
         self._attr_changed("packages_path", packages_path, self.PACKAGES_PATH_CHANGED)
 
+    def set_package_filter(self, package_filter):
+        self._attr_changed("package_filter", package_filter, self.PACKAGE_FILTER_CHANGED)
+
     def save(self, filepath):
         assert self._context
         assert not self._stale
@@ -168,9 +175,12 @@ class ContextModel(QtCore.QObject):
         Returns:
             `ResolvedContext` object, which may be a successful or failed solve.
         """
+        package_filter = PackageFilterList.from_pod(self.package_filter)
+
         context = ResolvedContext(
             self.request,
             package_paths=self.packages_path,
+            package_filter=package_filter,
             verbosity=verbosity,
             max_fails=max_fails,
             timestamp=timestamp,
@@ -202,7 +212,8 @@ class ContextModel(QtCore.QObject):
                               self.REQUEST_CHANGED |
                               self.PACKAGES_PATH_CHANGED |
                               self.LOCKS_CHANGED |
-                              self.LOADPATH_CHANGED)
+                              self.LOADPATH_CHANGED |
+                              self.PACKAGE_FILTER_CHANGED)
 
     def _set_context(self, context, emit=True):
         self._context = context
@@ -212,6 +223,7 @@ class ContextModel(QtCore.QObject):
         self.request = [str(x) for x in context.requested_packages()]
         self.packages_path = context.package_paths
         self.implicit_packages = context.implicit_packages[:]
+        self.package_filter = context.package_filter.to_pod()
         self.default_patch_lock = context.default_patch_lock
         self.patch_locks = copy.deepcopy(context.patch_locks)
         if emit:
