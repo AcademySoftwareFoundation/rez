@@ -154,6 +154,7 @@ def get_test_suites():
     suite.addTest(TestBuild("test_build_whack"))
     suite.addTest(TestBuild("test_builds"))
     suite.addTest(TestBuild("test_builds_anti"))
+    suite.addTest(TestBuild("test_build_cmake"))
     suites.append(suite)
     return suites
 
