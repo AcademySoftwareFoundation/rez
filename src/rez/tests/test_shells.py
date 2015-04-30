@@ -37,6 +37,7 @@ class TestShells(TestBase, TempdirMixin):
 
         cls.settings = dict(
             packages_path=[packages_path],
+            package_filter=None,
             implicit_packages=[],
             warn_untimestamped=False)
 
