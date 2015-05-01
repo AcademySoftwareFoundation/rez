@@ -88,7 +88,7 @@ class SH(UnixShell):
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("PS1", "\\h:\\w]$ ")
             if not stored_prompt:
-                self.setenv("REZ_STORED_PROMPT", '"%s"' % curr_prompt)
+                self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
             new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
             new_prompt = (new_prompt + " %s") if config.prefix_prompt \
