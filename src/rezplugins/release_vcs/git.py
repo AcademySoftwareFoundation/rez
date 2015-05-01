@@ -4,6 +4,8 @@ Git version control
 from rez.release_vcs import ReleaseVCS
 from rez.utils.logging_ import print_error, print_warning, print_debug
 from rez.exceptions import ReleaseVCSError
+from rez.vendor.sh.sh import git
+from shutil import rmtree
 import functools
 import os.path
 import re
@@ -201,6 +203,19 @@ class GitReleaseVCS(ReleaseVCS):
         remote_uri = '/'.join((remote, remote_branch))
         print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
         self.git("push", remote, tag_name)
+
+    @classmethod
+    def export(cls, revision, path):
+        url = revision["fetch_url"]
+        commit = revision["commit"]
+        path_, dirname = os.path.split(path)
+        gitdir = os.path.join(path, ".git")
+
+        os.chdir(path_)
+        git.clone(url, dirname)
+        os.chdir(path)
+        git.checkout(commit)
+        rmtree(gitdir)
 
 
 def register_plugin():

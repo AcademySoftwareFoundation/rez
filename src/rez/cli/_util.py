@@ -26,6 +26,7 @@ subcommands = [
     "memcache",
     "selftest",
     "yaml2py",
+    "diff",
     "gui"]
 
 

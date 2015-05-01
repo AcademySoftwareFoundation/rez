@@ -73,6 +73,11 @@ class ReleaseVCS(object):
     def get_current_revision(self):
         """Get the current revision, this can be any type (str, dict etc)
         appropriate to your VCS implementation.
+
+        Note:
+            You must ensure that a revision contains enough information to
+            clone/export/checkout the repo elsewhere - otherwise you will not
+            be able to implement `export`.
         """
         raise NotImplementedError
 
@@ -102,6 +107,20 @@ class ReleaseVCS(object):
         Args:
             tag_name (str): Tag name to write to the repo.
             message (str): Message string to associate with the release.
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def export(cls, revision, path):
+        """Export the repository to the given path at the given revision.
+
+        Note:
+            The directory at `path` must not exist, but the parent directory
+            must exist.
+
+        Args:
+            revision (object): Revision to export; current revision if None.
+            path (str): Directory to export the repository to.
         """
         raise NotImplementedError
 

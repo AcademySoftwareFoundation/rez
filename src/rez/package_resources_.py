@@ -20,7 +20,8 @@ package_release_keys = (
     'changelog',
     'release_message',
     'previous_version',
-    'previous_revision')
+    'previous_revision',
+    'vcs')
 
 
 #------------------------------------------------------------------------------
@@ -81,6 +82,7 @@ package_base_schema_dict.update({
     Optional('release_message'):        Or(None, basestring),
     Optional('previous_version'):       Version,
     Optional('previous_revision'):      object,
+    Optional('vcs'):                    basestring,
 
     # custom keys
     Optional('custom'):                 dict
@@ -160,6 +162,7 @@ package_pod_schema_dict.update({
     Optional('release_message'):        Or(None, basestring),
     Optional('previous_version'):       And(basestring, Use(Version)),
     Optional('previous_revision'):      object,
+    Optional('vcs'):                    basestring,
 
     Optional('custom'):                 dict
 })

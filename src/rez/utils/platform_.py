@@ -53,6 +53,11 @@ class Platform(object):
         return self._editor()
 
     @cached_property
+    def difftool(self):
+        """Return the system default file diff tool."""
+        return self._difftool()
+
+    @cached_property
     def tmpdir(self):
         """Return system default temporary directory path."""
         return self._tmpdir()
@@ -72,6 +77,9 @@ class Platform(object):
         raise NotImplementedError
 
     def _editor(self):
+        raise NotImplementedError
+
+    def _difftool(self):
         raise NotImplementedError
 
     def _tmpdir(self):
@@ -199,6 +207,10 @@ class LinuxPlatform(_UnixPlatform):
             from rez.util import which
             ed = which("xdg-open", "vim", "vi")
         return ed
+
+    def _difftool(self):
+        from rez.util import which
+        return which("kdiff3", "meld", "diff")
 
 
 # -----------------------------------------------------------------------------

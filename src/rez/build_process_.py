@@ -283,7 +283,8 @@ class BuildProcessHelper(BuildProcess):
         if maxlen and changelog and len(changelog) > maxlen + 3:
             changelog = changelog[:maxlen] + "..."
 
-        return dict(revision=revision,
+        return dict(vcs=self.vcs.name(),
+                    revision=revision,
                     changelog=changelog,
                     previous_version=previous_version,
                     previous_revision=previous_revision)

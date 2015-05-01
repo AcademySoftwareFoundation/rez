@@ -354,6 +354,10 @@ image_viewer = None
 # On osx, set this to "open -a <your-app>" if you want to use a specific app.
 browser = None
 
+# The viewer used to view file diffs. On osx, set this to "open -a <your-app>"
+# if you want to use a specific app.
+difftool = None
+
 # The default image format that dot-graphs are rendered to.
 dot_image_format = "png"
 

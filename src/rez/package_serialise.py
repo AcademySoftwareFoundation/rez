@@ -30,6 +30,7 @@ package_key_order = [
     'timestamp',
     'release_message',
     'changelog',
+    'vcs',
     'revision',
     'previous_version',
     'previous_revision']

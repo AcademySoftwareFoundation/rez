@@ -344,6 +344,21 @@ def get_package(name, version, paths=None):
         return None
 
 
+def get_package_from_string(txt, paths=None):
+    """Get a package given a string.
+
+    Args:
+        txt (str): String such as 'foo', 'bah-1.3'.
+        paths (list of str, optional): paths to search for package, defaults
+            to `config.packages_path`.
+
+    Returns:
+        `Package` instance, or None if no package was found.
+    """
+    o = VersionedObject(txt)
+    return get_package(o.name, o.version, paths=paths)
+
+
 def get_developer_package(path):
     """Load a developer package.
 

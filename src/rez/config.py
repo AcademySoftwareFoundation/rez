@@ -205,6 +205,7 @@ config_schema = Schema({
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
     "image_viewer":                                 OptionalStr,
+    "difftool":                                     OptionalStr,
     "browser":                                      OptionalStr,
     "critical_fore":                                OptionalStr,
     "critical_back":                                OptionalStr,
@@ -478,6 +479,10 @@ class Config(object):
     def _get_editor(self):
         from rez.utils.platform_ import platform_
         return platform_.editor
+
+    def _get_difftool(self):
+        from rez.utils.platform_ import platform_
+        return platform_.difftool
 
 
 class _PluginConfigs(object):
