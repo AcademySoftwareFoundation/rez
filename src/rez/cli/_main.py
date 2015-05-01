@@ -51,6 +51,8 @@ def _add_common_args(parser):
                         help="verbose mode, repeat for more verbosity")
     parser.add_argument("--debug", dest="debug", action="store_true",
                         help=SUPPRESS)
+    parser.add_argument("--profile", dest="profile", type=str,
+                        help=SUPPRESS)
 
 
 class InfoAction(_StoreTrueAction):
@@ -103,14 +105,22 @@ def run(command=None):
     else:
         exc_type = RezError
 
-    try:
-        returncode = opts.func(opts, opts.parser, arg_groups[1:])
-    except (NotImplementedError, RezSystemError) as e:
-        import traceback
-        raise Exception(traceback.format_exc())
-    except exc_type as e:
-        print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
-        sys.exit(1)
+    def run_cmd():
+        return opts.func(opts, opts.parser, arg_groups[1:])
+
+    if opts.profile:
+        import cProfile
+        cProfile.runctx("run_cmd()", globals(), locals(), filename=opts.profile)
+        returncode = 0
+    else:
+        try:
+            returncode = run_cmd()
+        except (NotImplementedError, RezSystemError) as e:
+            import traceback
+            raise Exception(traceback.format_exc())
+        except exc_type as e:
+            print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
+            sys.exit(1)
 
     sys.exit(returncode or 0)
 
