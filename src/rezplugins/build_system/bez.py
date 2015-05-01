@@ -23,17 +23,6 @@ class BezBuildSystem(BuildSystem):
     build environment. If you have a specific interpreter you want to use, it
     needs to be available as a rez python package, and you should list it as a
     private build requirement in your package.
-
-    The function signature of 'build' is as follows:
-
-    build(source_path, build_path, install_path, targets):
-        Args:
-            source_path (str): Path containing the project;
-            build_path (str): Path to store build files;
-            install_path (str): Path to install targets to, if install is True;
-            targets (list of str): List of targets to build, assume build all if
-                None. Your build code should recognise 'install' as a special
-                build target, meaning to install the entire build.
     """
     @classmethod
     def name(cls):

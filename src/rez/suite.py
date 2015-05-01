@@ -196,12 +196,12 @@ class Suite(object):
         """Set a context's suffix.
 
         This will be applied to all wrappers for the tools in this context. For
-        example, a tool called 'foo' would appear as 'foo<prefix>' in the
+        example, a tool called 'foo' would appear as 'foo<suffix>' in the
         suite's bin path.
 
         Args:
-            name (str): Name of the context to prefix.
-            prefix (str): Prefix to apply to tools.
+            name (str): Name of the context to suffix.
+            suffix (str): Suffix to apply to tools.
         """
         data = self._context(name)
         data["suffix"] = suffix
