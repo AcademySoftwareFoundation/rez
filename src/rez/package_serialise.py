@@ -142,7 +142,7 @@ def _dump_package_data_py(items, buf):
         elif key == "config":
             # config is a scope
             attrs_txt = dict_to_attributes_code(dict(config=value))
-            txt = "with scope('config'):\n%s" % indent(attrs_txt)
+            txt = "with scope('config') as config:\n%s" % indent(attrs_txt)
         elif isinstance(value, SourceCode):
             # source code becomes a python function
             if key in ("commands", "pre_commands", "post_commands"):

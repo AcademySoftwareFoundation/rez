@@ -13,6 +13,40 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--reset-stats", action="store_true",
         help="reset statistics")
+    parser.add_argument(
+        "--poll", action="store_true",
+        help="continually poll, showing get/sets per second")
+    parser.add_argument(
+        "--interval", type=float, metavar="SECS", default=1.0,
+        help="interval (in seconds) used when polling (default: %(default)s)")
+
+
+def poll(client, interval):
+    import time
+
+    prev_entry = None
+    print "%-64s %-16s %-16s" % ("SERVER", "GET/s", "SET/s")
+
+    while True:
+        stats = dict(client.get_stats())
+        entry = (time.time(), stats)
+
+        if prev_entry:
+            prev_t, prev_stats = prev_entry
+            t, stats = entry
+
+            dt = t - prev_t
+            for instance, payload in stats.iteritems():
+                prev_payload = prev_stats.get(instance)
+                if prev_payload:
+                    gets = int(payload["cmd_get"]) - int(prev_payload["cmd_get"])
+                    sets = int(payload["cmd_set"]) - int(prev_payload["cmd_set"])
+                    gets_per_sec = gets / dt
+                    sets_per_sec = sets / dt
+                    print "%-64s %-16g %-16g" % (instance, gets_per_sec, sets_per_sec)
+
+        prev_entry = entry
+        time.sleep(interval)
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -28,6 +62,10 @@ def command(opts, parser, extra_arg_groups=None):
     if not memcache_client:
         print >> sys.stderr, "memcaching is not enabled."
         sys.exit(1)
+
+    if opts.poll:
+        poll(memcache_client, opts.interval)
+        return
 
     if opts.flush:
         memcache_client.flush(hard=True)
