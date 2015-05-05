@@ -85,18 +85,13 @@ class SH(UnixShell):
 
     def _bind_interactive_rez(self):
         if self.settings.prompt:
-            stored_prompt = os.getenv("REZ_STORED_PROMPT")
-            curr_prompt = stored_prompt or os.getenv("PS1", "\\h:\\w]$ ")
-            if not stored_prompt:
-                self.setenv("REZ_STORED_PROMPT", curr_prompt)
+            self._addline('if [ -z "$REZ_STORED_PROMPT" ]; then export REZ_STORED_PROMPT=$PS1; fi')
 
-            new_prompt = "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]"
-            new_prompt = (new_prompt + " %s") if config.prefix_prompt \
-                else ("%s " + new_prompt)
-
-            new_prompt = new_prompt % curr_prompt
-            new_prompt = self.escape_string(new_prompt)
-            self._addline('export PS1=%s' % new_prompt)
+            if config.prefix_prompt:
+                cmd = 'export PS1="%s $REZ_STORED_PROMPT"'
+            else:
+                cmd = 'export PS1="$REZ_STORED_PROMPT" %s'
+            self._addline(cmd % "\[\e[1m\]$REZ_ENV_PROMPT\[\e[0m\]")
 
     def setenv(self, key, value):
         value = self.escape_string(value)
