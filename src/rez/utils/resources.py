@@ -73,13 +73,19 @@ class Resource(object):
     schema = None
     schema_error = Exception
 
+    @classmethod
+    def normalize_variables(cls, variables):
+        """Give subclasses a chance to standardize values for certain variables
+        """
+        return variables
+
     def __init__(self, variables=None):
         self.variables = variables or {}
 
     @cached_property
     def handle(self):
         """Get the resource handle."""
-        return ResourceHandle(self.key, self.variables)
+        return self._repository.make_resource_handle(self.key, **self.variables)
 
     @cached_property
     def _data(self):
@@ -132,11 +138,20 @@ class ResourceHandle(object):
         return self.variables.get(key, default)
 
     def to_dict(self):
+        """Serialize the contents of this resource handle to a dictionary
+        representation.
+        """
         return dict(key=self.key, variables=self.variables)
 
     @classmethod
     def from_dict(cls, d):
-        return ResourceHandle(**d)
+        """Return a `ResourceHandle` instance from a serialized dict
+
+        This should ONLY be used with dicts created with ResourceHandle.to_dict;
+        if you wish to create a "new" ResourceHandle, you should do it through
+        PackageRepository.make_resource_handle
+        """
+        return cls(**d)
 
     def __str__(self):
         return "<%s%r>" % (self.key, self.variables)
@@ -182,23 +197,21 @@ class ResourcePool(object):
 
         self.resource_classes[resource_key] = resource_class
 
-    def get_resource(self, resource_key, variables=None):
-        handle = ResourceHandle(resource_key, variables)
-        return self.get_resource_from_handle(handle)
-
     def get_resource_from_handle(self, resource_handle):
         return self.cached_get_resource(resource_handle)
 
     def clear_caches(self):
         self.cached_get_resource.cache_clear()
 
-    def _get_resource(self, resource_handle):
-        resource_key = resource_handle.key
+    def get_resource_class(self, resource_key):
         resource_class = self.resource_classes.get(resource_key)
         if resource_class is None:
             raise ResourceError("Error getting resource from pool: Unknown "
                                 "resource type %r" % resource_key)
+        return resource_class
 
+    def _get_resource(self, resource_handle):
+        resource_class = self.get_resource_class(resource_handle.key)
         return resource_class(resource_handle.variables)
 
 

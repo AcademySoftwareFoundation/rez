@@ -415,19 +415,19 @@ def create_package(name, data):
 
 
 def get_variant(variant_handle):
-    """Create a variant given its handle.
+    """Create a variant given its handle (or serialized dict equivalent)
 
     Args:
         variant_handle (`ResourceHandle` or dict): Resource handle, or
-            equivalent dict.
+            equivalent serialized dict representation from
+            ResourceHandle.to_dict
 
     Returns:
         `Variant`.
     """
     if isinstance(variant_handle, dict):
         variant_handle = ResourceHandle.from_dict(variant_handle)
-
-    variant_resource = package_repository_manager.get_resource(variant_handle)
+    variant_resource = package_repository_manager.get_resource_from_handle(variant_handle)
     variant = Variant(variant_resource)
     return variant
 

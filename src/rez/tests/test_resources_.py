@@ -4,6 +4,7 @@ test core resource system
 from rez.tests.util import TestBase
 from rez.utils.resources import Resource, ResourcePool, ResourceHandle, \
     ResourceWrapper
+from rez.package_repository import PackageRepository
 from rez.utils.schema import Required
 from rez.exceptions import ResourceError
 import rez.vendor.unittest2 as unittest
@@ -83,12 +84,26 @@ class KittenResource(PetResource):
 class PuppyResource(PetResource):
     key = "puppy"
 
+class PetPool(ResourcePool):
+    # don't want to define get_resource on normal pool object anymore,
+    # because it's dangerous, since we always want ResourceHandle creation to
+    #  go through the PackageRepository.make_resource_handle (so resource
+    # classes can normalize them). But for testing, this is handy...
+    def get_resource(self, resource_key, variables=None):
+        variables = variables or {}
+        handle = ResourceHandle(resource_key, variables)
+        return self.get_resource_from_handle(handle)
 
-class PetRepository(object):
+class PetRepository(PackageRepository):
     def __init__(self, pool):
         self.pool = pool
         self.pool.register_resource(KittenResource)
         self.pool.register_resource(PuppyResource)
+        self.location = 'Pets R Us'
+
+    @classmethod
+    def name(cls):
+        return "pet_repository"
 
     def get_kitten(self, name):
         return self._get_pet("kitten", name)
@@ -130,7 +145,7 @@ class Puppy(Pet):
 
 class PetStore(object):
     def __init__(self):
-        self.pool = ResourcePool(cache_size=None)
+        self.pool = PetPool(cache_size=None)
         self.repo = PetRepository(self.pool)
 
     def get_kitten(self, name):
@@ -142,6 +157,7 @@ class PetStore(object):
     def _get_pet(self, species, cls_, name):
         fn = getattr(self.repo, "get_%s" % species)
         resource = fn(name)
+        resource._repository = self.repo
 
         return cls_(resource) if resource else None
 
@@ -151,7 +167,7 @@ class PetStore(object):
 class TestResources_(TestBase):
     def test_1(self):
         """resource registration test."""
-        pool = ResourcePool(cache_size=None)
+        pool = PetPool(cache_size=None)
 
         with self.assertRaises(ResourceError):
             pool.get_resource("resource.a")
@@ -169,27 +185,28 @@ class TestResources_(TestBase):
 
     def test_2(self):
         """basic resource loading test."""
-        pool = ResourcePool(cache_size=None)
-        pool.register_resource(ResourceA)
-        pool.register_resource(ResourceB)
+        repo = PetRepository(PetPool(cache_size=None))
+        repo.pool.register_resource(ResourceA)
+        repo.pool.register_resource(ResourceB)
 
         # test that resource matches our request, and its data isn't loaded
-        variables = dict(foo="hey", bah="ho")
-        resource = pool.get_resource("resource.a", variables)
+        variables = dict(foo="hey", bah="ho", repository_type='pet_repository',
+                         location='Pets R Us')
+        resource = repo.get_resource("resource.a", **variables)
         self.assertTrue(isinstance(resource, ResourceA))
         self.assertEqual(resource.variables, variables)
 
         # test that a request via a resource's own handle gives the same resource
-        resource_ = pool.get_resource_from_handle(resource.handle)
+        resource_ = repo.get_resource_from_handle(resource.handle)
         self.assertTrue(resource_ is resource)
 
         # test that the same request again gives the cached resource
-        resource_ = pool.get_resource("resource.a", variables)
+        resource_ = repo.get_resource("resource.a", **variables)
         self.assertTrue(resource_ is resource)
 
         # clear caches, then test that the same request gives a new resource
-        pool.clear_caches()
-        resource_ = pool.get_resource("resource.a", variables)
+        repo.clear_caches()
+        resource_ = repo.get_resource("resource.a", **variables)
         self.assertEqual(resource_.variables, variables)
         self.assertTrue(resource_ is not resource)
 
