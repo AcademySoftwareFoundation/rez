@@ -3,16 +3,20 @@ Bash shell
 """
 import os
 import os.path
-from rez.shells import UnixShell
+from rez.shells import Shell
 from rez.utils.platform_ import platform_
+from rez.utils.data_utils import cached_class_property
 from rezplugins.shell.sh import SH
 from rez import module_root_path
 
 
 class Bash(SH):
-    executable = UnixShell.find_executable('bash')
     rcfile_arg = '--rcfile'
     norc_arg = '--norc'
+
+    @cached_class_property
+    def executable(cls):
+        return Shell.find_executable('bash')
 
     @classmethod
     def name(cls):

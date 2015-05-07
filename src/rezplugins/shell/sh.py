@@ -7,15 +7,19 @@ import pipes
 import subprocess
 from rez.config import config
 from rez.utils.platform_ import platform_
-from rez.shells import UnixShell
+from rez.utils.data_utils import cached_class_property
+from rez.shells import Shell, UnixShell
 from rez.rex import EscapedString
 
 
 class SH(UnixShell):
-    executable = UnixShell.find_executable('sh')
     norc_arg = '--noprofile'
     histfile = "~/.bash_history"
     histvar = "HISTFILE"
+
+    @cached_class_property
+    def executable(cls):
+        return Shell.find_executable('sh')
 
     @classmethod
     def name(cls):

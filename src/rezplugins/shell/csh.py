@@ -6,16 +6,20 @@ import os.path
 import subprocess
 from rez.config import config
 from rez.utils.platform_ import platform_
-from rez.shells import UnixShell
+from rez.utils.data_utils import cached_class_property
+from rez.shells import Shell, UnixShell
 from rez.rex import EscapedString
 
 
 class CSH(UnixShell):
-    executable = UnixShell.find_executable('csh')
     norc_arg = '-f'
     last_command_status = '$status'
     histfile = "~/.history"
     histvar = "histfile"
+
+    @cached_class_property
+    def executable(cls):
+        return Shell.find_executable('csh')
 
     @classmethod
     def name(cls):
