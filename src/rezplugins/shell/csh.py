@@ -101,7 +101,8 @@ class CSH(UnixShell):
         return result
 
     def _bind_interactive_rez(self):
-        if self.settings.prompt:
+        if config.set_prompt and self.settings.prompt:
+            # TODO: Do more like in sh.py, much less error prone
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("prompt", "[%m %c]%# ")
             if not stored_prompt:

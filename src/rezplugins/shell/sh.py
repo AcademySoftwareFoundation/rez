@@ -84,9 +84,8 @@ class SH(UnixShell):
             source_bind_files=False)
 
     def _bind_interactive_rez(self):
-        if self.settings.prompt:
+        if config.set_prompt and self.settings.prompt:
             self._addline('if [ -z "$REZ_STORED_PROMPT" ]; then export REZ_STORED_PROMPT=$PS1; fi')
-
             if config.prefix_prompt:
                 cmd = 'export PS1="%s $REZ_STORED_PROMPT"'
             else:

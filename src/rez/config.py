@@ -255,6 +255,7 @@ config_schema = Schema({
     "quiet":                                        Bool,
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
+    "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
     "warn_old_commands":                            Bool,
     "error_old_commands":                           Bool,

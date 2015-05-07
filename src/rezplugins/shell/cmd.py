@@ -85,7 +85,7 @@ class CMD(Shell):
         return cls.syspaths
 
     def _bind_interactive_rez(self):
-        if self.settings.prompt:
+        if config.prompt and self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
             curr_prompt = stored_prompt or os.getenv("PROMPT", "foobar")
             if not stored_prompt:

@@ -361,7 +361,18 @@ difftool = None
 # The default image format that dot-graphs are rendered to.
 dot_image_format = "png"
 
-# If true, prefixes the prompt, suffixes if false
+# If true, tools such as rez-env will update the prompt when moving into a new
+# resolved shell. Prompt nerds might do fancy things with their prompt that Rez
+# can't deal with (but it can deal with a lot - colors etc - so try it first).
+# By setting this to false, Rez will not change the prompt. Instead, you will
+# probably want to set it yourself in your startup script (.bashrc etc). You will
+# probably want to use the environment variable $REZ_ENV_PROMPT, which contains
+# the set of characters that are normally prefixed/suffixed to the prompt, ie
+# '>', '>>' etc.
+set_prompt = True
+
+# If true, prefixes the prompt, suffixes if false. Ignored if 'set_prompt' is
+# false.
 prefix_prompt = True
 
 
