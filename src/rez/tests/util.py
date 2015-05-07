@@ -6,6 +6,7 @@ import tempfile
 import shutil
 import os.path
 import os
+import functools
 
 
 class TestBase(unittest.TestCase):
@@ -79,6 +80,7 @@ def cmake_dependent(fn):
 def shell_dependent(exclude=None):
     """Function decorator that runs the function over all shell types."""
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
             for shell in get_shell_types():
                 if exclude and shell in exclude:
@@ -93,6 +95,7 @@ def shell_dependent(exclude=None):
 def install_dependent(fn):
     """Function decorator that skips tests if not run via 'rez-selftest' tool,
     from a production install"""
+    @functools.wraps(fn)
     def _fn(self, *args, **kwargs):
         if os.getenv("__REZ_SELFTEST_RUNNING") and system.is_production_rez_install:
             fn(self, *args, **kwargs)

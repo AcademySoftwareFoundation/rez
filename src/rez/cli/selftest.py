@@ -2,69 +2,77 @@
 Run unit tests.
 '''
 
+import inspect
+import os
+import rez.vendor.argparse as argparse
+
+cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
+src_rez_dir = os.path.dirname(cli_dir)
+src_dir = os.path.dirname(src_rez_dir)
+tests_dir = os.path.join(src_rez_dir, 'tests')
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("--shells", action="store_true",
-                        help="test shell invocation")
-    parser.add_argument("--solver", action="store_true",
-                        help="test dependency resolving algorithm")
-    parser.add_argument("--formatter", action="store_true",
-                        help="test rex string formatting")
-    parser.add_argument("--commands", action="store_true",
-                        help="test package commands")
-    parser.add_argument("--rex", action="store_true",
-                        help="test the rex command generator API")
-    parser.add_argument("--build", action="store_true",
-                        help="test the build system")
-    parser.add_argument("--release", action="store_true",
-                        help="test the release system")
-    parser.add_argument("--context", action="store_true",
-                        help="test resolved contexts")
-    parser.add_argument("--resources_", action="store_true",
-                        help="test core resource system")
-    parser.add_argument("--packages", action="store_true",
-                        help="test package iteration and serialization")
-    parser.add_argument("--config", action="store_true",
-                        help="test configuration settings")
-    parser.add_argument("--completion", action="store_true",
-                        help="test completions")
-    parser.add_argument("--suites", action="store_true",
-                        help="test suites")
-    parser.add_argument("--imports", action="store_true",
-                        help="test importing of all source")
-    parser.add_argument("--version", action="store_true",
-                        help="test versions")
-    parser.add_argument("--schema", action="store_true",
-                        help="test schema validation")
+    parser.add_argument("-t", "--test", action="append",
+                        help="a specific test module/class/method to run; may "
+                             "be repeated multiple times; if not tests are "
+                             "given, all tests are run")
 
+    # add shorcut args, so you can do, ie:
+    #     rez-selftest --resources
+    # instead of:
+    #     rez-selftest --test rez.test.test_resources
 
-def get_suites(opts):
-    from rez.backport.importlib import import_module
+    # first, build a dict of test_modules, from name to package name
+    test_modules = {}
 
-    tests = ("shells", "solver", "formatter", "commands", "rex", "build",
-             "release", "context", "resources_", "packages", "config",
-             "completion", "suites", "imports", "version", "schema")
-    suites = []
-    test_all = all(not getattr(opts, test) for test in tests)
+    test_prefix = 'test_'
+    for entry in os.listdir(tests_dir):
+        if not entry.startswith(test_prefix):
+            continue
+        module_name = None
 
-    for test in tests:
-        if test_all or getattr(opts, test):
-            module = import_module('rez.tests.test_%s' % test)
-            get_test_suites_func = getattr(module, 'get_test_suites')
-            suites += get_test_suites_func()
+        path = os.path.join(tests_dir, entry)
+        if os.path.isdir(path):
+            if os.path.isfile(os.path.join(path, '__init__.py')):
+                # it's a test package, add it
+                module_name = entry
+        elif entry.endswith('.py'):
+            # it's a test module, add it
+            module_name = os.path.splitext(entry)[0]
 
-    return suites
+        if module_name:
+            name = module_name[len(test_prefix):]
+            package_name = 'rez.tests.%s' % module_name
+            test_modules[name] = package_name
+
+    # make an Action that will append the appropriate test to the "--test" arg
+    class AddTestModuleAction(argparse.Action):
+        def __call__(self, parser, namespace, values, option_string=None):
+            #print '%r %r %r' % (namespace, values, option_string)
+            name = option_string.lstrip('-')
+            package_name = test_modules[name]
+            if namespace.test is None:
+                namespace.test = []
+            namespace.test.append(package_name)
+
+    # now, create a shortcut arg for each module...
+    for name in sorted(test_modules):
+        package_name = test_modules[name]
+        parser.add_argument("--%s" % name, action=AddTestModuleAction, nargs=0,
+                            help="test %s - shortcut for '--test %s'"
+                                 % (name, package_name),)
 
 
 def command(opts, parser, extra_arg_groups=None):
-    import unittest
     import sys
-    import os
+    from rez.vendor.unittest2.main import main
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
-    suites = get_suites(opts)
-    test_suite = unittest.TestSuite(suites)
-    result = unittest.TextTestRunner(verbosity=opts.verbose).run(test_suite)
-    if not result.wasSuccessful():
-        sys.exit(1)
+    argv = [sys.argv[0]]
+    if not opts.test:
+        argv.extend(['discover', '--start-directory', src_dir])
+    else:
+        argv.extend(opts.test)
+
+    main(module=None, argv=argv, verbosity=opts.verbose)
