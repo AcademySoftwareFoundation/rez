@@ -1,26 +1,29 @@
 ## Introduction
 
-Rez is a cross-platform, LGPL Licensed python library and set of utilities for
-building and installing packages, and resolving environments containing these
-packages at runtime, avoiding version conflicts. The main tools are:
+Rez is a cross-platform software package management API and set of tools. Rez can
+build and install packages, and resolve environments at runtime that use a dependency
+resolution algorithm to avoid version conflicts. The main tools are:
 
-* **rez-env** - Creates a configured shell containing a set of requested packages.
-  Supports **bash** and **tcsh**, and mimics the startup sequences of the native shell.
+* **rez-env**: Creates a configured shell containing a set of requested packages.
+  Supports *bash*, *tcsh* and *cmd* (Windows), and can be extended to other shells.
 
-* **rez-build** - Builds a package of any type (python, C++ etc), and installs it
-  locally for testing. Supports **cmake**.
+* **rez-build**: Builds a package of any type (python, C++ etc), and installs it
+  locally for testing. Supports *cmake*, and can be extended to other build systems.
 
-* **rez-release** - Builds and centrally deploys a package, and updates the associated
-  source control repository (creating tags etc). Supports **git**, **mercurial**
-  and **svn**.
+* **rez-release**: Builds and centrally deploys a package, and updates the associated
+  source control repository (creating tags etc). Supports *git*, *mercurial*
+  and *svn*, and can be extended to other repository types.
 
-Unlike many packaging systems, Rez is able to install many different versions of
-the same packages. When you use the rez-env tool, a new environment is dynamically
-created, containing the requested packages. Rez resolves environments at runtime,
-rather than install time - however, you are able to store a resolve to disk, and
-reuse it at a later date.
+* **rez-gui**: A fully fledged graphical interface for creating resolved environments,
+  launching tools and comparing different environments.
 
-Here's an example which places the user into a resolved shell containing the
+Rez is able to install more than one version of each package, and it keeps them in
+a package repository on disk. By using the API or *rez-env* tool, new environments
+can be constructed at runtime, and commands can be executed within these environments.
+They can also be saved to disk, and reused later to construct the same environment
+again.
+
+Here is an example which places the user into a resolved shell containing the
 requested packages:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
@@ -53,7 +56,7 @@ version 12.5 or greater, and runs the command 'hescape -h' inside that environme
     -s: specify starting desktop by name
     -foreground: starts process in foreground
 
-Resolved environments can also be created programmatically:
+Resolved environments can also be created via the API:
 
     >>> from rez.resolved_context import ResolvedContext
     >>>
@@ -75,15 +78,46 @@ Resolved environments can also be created programmatically:
     >>>
     >>> import subprocess
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
-    >>> stdout,stderr = p.communicate()
+    >>> out, err = p.communicate()
     >>>
-    >>> print stdout
+    >>> print out
     '/software/ext/houdini/12.5.562/bin/hescape'
+
+
+## Installation
+
+To install Rez, download the source, and then from the source directory, run the
+following command (replacing DEST_DIR with your preferred installation path):
+
+    ]$ python ./install.py -v DEST_DIR
+
+This installs the Rez command line tools. It will print a message at the end
+telling you how to use Rez when the installation has completed. Rez is not a
+normal Python package and so you do not typically install it with pip or setup.py.
+
+To install the API, you have two options - you can either install it as a typical
+Python package, or (and more usefully) you can install it as a Rez package itself.
+
+To install Rez as a Rez package:
+
+    ]$ rez-bind rez
+    created package 'rez-2.0.0' in /home/ajohns/packages
+    # Now we can resolve a rez environment, and use the API
+    ]$ rez-env rez -- python -c 'import rez; print rez.__version__'
+    2.0.0
+
+To install Rez as a standard python module:
+
+    ]$ pip install rez
+
+Or, to install from source:
+
+    ]$ python setup.py install
 
 
 ## Features
 
-* Supports Linux and OSX;
+* Supports Linux, OSX and Windows;
 * Allows for a fast and efficient build-install-test cycle;
 * Creates shells of type: bash, tcsh, other (shells can be added as plugins);
 * Contains a deployment system supporting git, mercurial and svn (as plugins);
@@ -106,26 +140,6 @@ Resolved environments can also be created programmatically:
 * Package definitions are a single, succinct file;
 * Packages define their effect on the environment (adding to PATH etc) in a
   platform- and shell- agnostic way, using a dedicated python API;
-* Has a memcached-based caching system, for caching environment resolves.
-
-
-## Installation
-
-To install Rez, download the source, and then from the source directory, run the following command (replacing DEST_DIR with your preferred installation path):
-
-    python ./install.py -v DEST_DIR
-
-This performs a 'production' install - a standalone installation that ensures that the Rez command line tools are always available, even when within a resolved environment. This is the recommended installation procedure.
-
-You can also install Rez as a standard python package. If you do this however, the command line tools are only available some of the time. To install Rez as a standard python module:
-
-    pip install rez
-
-Or, to install from source:
-
-    python setup.py install
-
-
-## Documentation
-
-TODO
+* Has a memcached-based caching system, for caching environment resolves;
+* Has a package filtering feature, allowing for staged package releases such as
+  alpha and beta packages.
