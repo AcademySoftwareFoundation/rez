@@ -1,3 +1,6 @@
+"""
+test the rex command generator API
+"""
 from rez.rex import RexExecutor, Python, Setenv, Appendenv, Prependenv, Info, \
     Comment, Alias, Command, Source, Error, Shebang, Unsetenv, expandable, \
     literal

@@ -5,62 +5,40 @@ Run unit tests.
 import inspect
 import os
 import rez.vendor.argparse as argparse
+from pkgutil import iter_modules
+from fnmatch import fnmatch
+
 
 cli_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 src_rez_dir = os.path.dirname(cli_dir)
-src_dir = os.path.dirname(src_rez_dir)
 tests_dir = os.path.join(src_rez_dir, 'tests')
 
+all_tests = []
+selected_tests = []
+
+
 def setup_parser(parser, completions=False):
-    parser.add_argument("-t", "--test", action="append",
-                        help="a specific test module/class/method to run; may "
-                             "be repeated multiple times; if not tests are "
-                             "given, all tests are run")
-
-    # add shorcut args, so you can do, ie:
-    #     rez-selftest --resources
-    # instead of:
-    #     rez-selftest --test rez.test.test_resources
-
-    # first, build a dict of test_modules, from name to package name
-    test_modules = {}
-
-    test_prefix = 'test_'
-    for entry in os.listdir(tests_dir):
-        if not entry.startswith(test_prefix):
-            continue
-        module_name = None
-
-        path = os.path.join(tests_dir, entry)
-        if os.path.isdir(path):
-            if os.path.isfile(os.path.join(path, '__init__.py')):
-                # it's a test package, add it
-                module_name = entry
-        elif entry.endswith('.py'):
-            # it's a test module, add it
-            module_name = os.path.splitext(entry)[0]
-
-        if module_name:
-            name = module_name[len(test_prefix):]
-            package_name = 'rez.tests.%s' % module_name
-            test_modules[name] = package_name
-
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
         def __call__(self, parser, namespace, values, option_string=None):
-            #print '%r %r %r' % (namespace, values, option_string)
             name = option_string.lstrip('-')
-            package_name = test_modules[name]
-            if namespace.test is None:
-                namespace.test = []
-            namespace.test.append(package_name)
+            selected_tests.append(name)
 
-    # now, create a shortcut arg for each module...
-    for name in sorted(test_modules):
-        package_name = test_modules[name]
-        parser.add_argument("--%s" % name, action=AddTestModuleAction, nargs=0,
-                            help="test %s - shortcut for '--test %s'"
-                                 % (name, package_name),)
+    # find unit tests
+    tests = []
+    prefix = "test_"
+    for importer, name, ispkg in iter_modules([tests_dir]):
+        if not ispkg and name.startswith(prefix):
+            module = importer.find_module(name).load_module(name)
+            name_ = name[len(prefix):]
+            all_tests.append(name_)
+            tests.append((name_, module))
+
+    # create argparse entry for each unit test
+    for name, module in sorted(tests):
+        parser.add_argument(
+            "--%s" % name, action=AddTestModuleAction, nargs=0,
+            help=module.__doc__.strip().rstrip('.'))
 
 
 def command(opts, parser, extra_arg_groups=None):
@@ -68,11 +46,8 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.vendor.unittest2.main import main
 
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
+    tests = sorted(selected_tests or all_tests)
+    tests = [("rez.tests.test_%s" % x) for x in tests]
 
-    argv = [sys.argv[0]]
-    if not opts.test:
-        argv.extend(['discover', '--start-directory', src_dir])
-    else:
-        argv.extend(opts.test)
-
+    argv = [sys.argv[0]] + tests
     main(module=None, argv=argv, verbosity=opts.verbose)

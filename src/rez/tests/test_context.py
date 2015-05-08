@@ -1,3 +1,6 @@
+"""
+test resolved contexts
+"""
 from rez.tests.util import TestBase, TempdirMixin
 from rez.resolved_context import ResolvedContext
 from rez.bind import hello_world

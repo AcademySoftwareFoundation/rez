@@ -1,3 +1,6 @@
+"""
+test core resource system
+"""
 from rez.tests.util import TestBase
 from rez.utils.resources import Resource, ResourcePool, ResourceHandle, \
     ResourceWrapper

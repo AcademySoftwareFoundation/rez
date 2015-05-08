@@ -1,3 +1,6 @@
+"""
+test completions
+"""
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 from rez.config import Config, get_module_root_config

@@ -1,3 +1,6 @@
+"""
+test dependency resolving algorithm
+"""
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 import rez.vendor.unittest2 as unittest

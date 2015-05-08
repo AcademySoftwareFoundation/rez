@@ -1,3 +1,6 @@
+"""
+test the build system
+"""
 from rez.build_process_ import create_build_process
 from rez.build_system import create_build_system
 from rez.resolved_context import ResolvedContext
@@ -27,6 +30,7 @@ class TestBuild(TestBase, TempdirMixin):
             package_filter=None,
             resolve_caching=False,
             warn_untimestamped=False,
+            warn_old_commands=False,
             implicit_packages=[])
 
     @classmethod

@@ -1,8 +1,6 @@
 """
-Test noninteractive invocation of each type of shell (bash etc), and ensure that
-their behaviour is correct wrt shell options such as --rcfile, -c, --stdin etc.
+test shell invocation
 """
-
 from rez.system import system
 from rez.shells import create_shell
 from rez.resolved_context import ResolvedContext
