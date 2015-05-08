@@ -40,6 +40,16 @@ class Platform(object):
         return self._terminal_emulator_command()
 
     @cached_property
+    def new_session_popen_args(self):
+        """Return the arguments to pass to subprocess.Popen in order to execute
+        a shell in a new process group.
+
+        Returns:
+            Dict: kwargs to pass to subprocess.Popen.
+        """
+        return self._new_session_popen_args()
+
+    @cached_property
     def image_viewer(self):
         """Returns the system default image viewer.
 
@@ -71,6 +81,9 @@ class Platform(object):
         raise NotImplementedError
 
     def _terminal_emulator_command(self):
+        raise NotImplementedError
+
+    def _new_session_popen_args(self):
         raise NotImplementedError
 
     def _image_viewer(self):
@@ -193,9 +206,12 @@ class LinuxPlatform(_UnixPlatform):
 
         term = os.path.basename(term)
         if term in ("x-terminal-emulator", "konsole"):
-            return [term, "--noclose", "-e"]
+            return "%s --noclose -e" % term
         else:
-            return [term, "-hold", "-e"]
+            return "%s -hold -e" % term
+
+    def _new_session_popen_args(self):
+        return dict(preexec_fn=os.setpgrp)
 
     def _image_viewer(self):
         from rez.util import which
@@ -231,9 +247,9 @@ class OSXPlatform(_UnixPlatform):
 
         term = os.path.basename(term)
         if term == "x-terminal-emulator":
-            return [term, "--noclose", "-e"]
+            return "%s --noclose -e" % term
         else:
-            return [term, "-hold", "-e"]
+            return "%s -hold -e" % term
 
     def _image_viewer(self):
         return "open"
@@ -281,6 +297,10 @@ class WindowsPlatform(Platform):
         # os.system("file.txt") will open default editor on windows
         return ''
 
+    def _new_session_popen_args(self):
+        # https://msdn.microsoft.com/en-us/library/windows/desktop/ms684863%28v=vs.85%29.aspx
+        return dict(creationflags=0x00000010)
+
     def symlink(self, source, link_name):
         # If we are already in a version of python that supports symlinks then
         # just use the os module, otherwise fall back on ctypes.  It requires
@@ -299,7 +319,7 @@ class WindowsPlatform(Platform):
                 raise ctypes.WinError()
 
     def _terminal_emulator_command(self):
-        return ["CMD.exe", "/Q", "/K"]
+        return "CMD.exe /Q /K"
 
 
 # singleton

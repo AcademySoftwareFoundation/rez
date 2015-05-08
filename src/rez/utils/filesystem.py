@@ -20,8 +20,11 @@ class TempDirs(object):
         self.dirs = set()
         self.lock = Lock()
 
-    def mkdtemp(self):
+    def mkdtemp(self, cleanup=True):
         path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
+        if not cleanup:
+            return path
+
         try:
             self.lock.acquire()
             self.dirs.add(path)

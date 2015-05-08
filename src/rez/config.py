@@ -154,6 +154,11 @@ class Dict(Setting):
                 % value)
 
 
+class OptionalDict(Setting):
+    schema = Or(And(None, Use(lambda x: {})),
+                dict)
+
+
 class OptionalDictOrDictList(Setting):
     schema = Or(And(None, Use(lambda x: [])),
                 And(dict, Use(lambda x: [x])),
@@ -274,6 +279,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
+    "new_session_popen_args":                       OptionalDict,
 
     # GUI settings
     "use_pyside":                                   Bool,
@@ -484,6 +490,14 @@ class Config(object):
     def _get_difftool(self):
         from rez.utils.platform_ import platform_
         return platform_.difftool
+
+    def _get_terminal_emulator_command(self):
+        from rez.utils.platform_ import platform_
+        return platform_.terminal_emulator_command
+
+    def _get_new_session_popen_args(self):
+        from rez.utils.platform_ import platform_
+        return platform_.new_session_popen_args
 
 
 class _PluginConfigs(object):

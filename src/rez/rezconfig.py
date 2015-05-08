@@ -222,6 +222,11 @@ default_shell = ""
 # is enabled using rez-env's "detached" option). If None, it is detected.
 terminal_emulator_command = None
 
+# subprocess.Popen arguments to use in order to execute a shell in a new process
+# group (see ResolvedContext.execute_shell, 'start_new_session'). Dict of
+# (Popen argument, value).
+new_session_popen_args = None
+
 # This setting can be used to override the separator used for environment
 # variables that represent a list of items. By default, the value of os.pathsep
 # will be used, unless the environment variable is list here, in which case the

@@ -22,6 +22,7 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils.yaml import dump_yaml
+from tempfile import mkdtemp
 import getpass
 import traceback
 import inspect
@@ -1090,7 +1091,6 @@ class ResolvedContext(object):
             If blocking: A 3-tuple of (returncode, stdout, stderr);
             If non-blocking - A subprocess.Popen object for the shell process.
         """
-        # create the shell
         sh = create_shell(shell)
 
         if hasattr(command, "__iter__"):
@@ -1098,25 +1098,22 @@ class ResolvedContext(object):
 
         # start a new session if specified
         if start_new_session:
-            Popen_args["preexec_fn"] = os.setpgrp
+            Popen_args.update(config.new_session_popen_args)
 
         # open a separate terminal if specified
         if detached:
             term_cmd = config.terminal_emulator_command
             if term_cmd:
-                term_cmd = term_cmd.strip().split()
-            else:
-                from rez.utils.platform_ import platform_
-                term_cmd = platform_.terminal_emulator_command
-            if term_cmd:
-                pre_command = term_cmd
+                pre_command = term_cmd.strip().split()
 
         # block if the shell is likely to be interactive
         if block is None:
             block = not (command or stdin)
 
-        # context and rxt files
-        tmpdir = self.tmpdir_manager.mkdtemp()
+        # context and rxt files. If running detached, don't cleanup files, because
+        # rez-env returns too early and deletes the tmp files before the detached
+        # process can use them
+        tmpdir = self.tmpdir_manager.mkdtemp(cleanup=not detached)
 
         if self.load_path and os.path.isfile(self.load_path):
             rxt_file = self.load_path
