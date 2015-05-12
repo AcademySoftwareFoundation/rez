@@ -1077,11 +1077,15 @@ class RexExecutor(object):
         paths_str = os.pathsep.join(paths)
         self.env.PATH.append(paths_str)
 
-    def append_rez_path(self):
-        """Append rez path to $PATH, so that rez cli tools are available in
+    def prepend_rez_path(self):
+        """Prepend rez path to $PATH, so that rez cli tools are available in
         the generated environment."""
+        # We prepend because we want to make sure that if, ie, the user calls
+        # a production-installed rez binary, but has another version of rez on
+        # their path, that it uses the production-installed binaries in any
+        # subprocesses
         if system.rez_bin_path:
-            self.env.PATH.append(system.rez_bin_path)
+            self.env.PATH.prepend(system.rez_bin_path)
 
     @classmethod
     def compile_code(cls, code, filename=None, exec_namespace=None):
