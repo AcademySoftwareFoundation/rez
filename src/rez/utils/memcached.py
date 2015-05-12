@@ -1,3 +1,4 @@
+from rez import __version__
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
 from functools import update_wrapper
 from inspect import getargspec
@@ -69,7 +70,7 @@ class Client(object):
 
     def set(self, key, val, time=0, min_compress_len=0):
         """See memcache.Client."""
-        key = "%s:%s" % (self.current, key)
+        key = self._qualified_key(key)
         hashed_key = self.key_hasher(key)
         val = (key, val)
 
@@ -86,7 +87,7 @@ class Client(object):
             from `memcache.Client`, which returns None on cache miss, and thus
             cannot cache the value None itself.
         """
-        key = "%s:%s" % (self.current, key)
+        key = self._qualified_key(key)
         hashed_key = self.key_hasher(key)
         entry = self.client.get(hashed_key)
 
@@ -98,7 +99,7 @@ class Client(object):
 
     def delete(self, key):
         """See memcache.Client."""
-        key = "%s:%s" % (self.current, key)
+        key = self._qualified_key(key)
         hashed_key = self.key_hasher(key)
         self.client.delete(hashed_key)
 
@@ -131,6 +132,9 @@ class Client(object):
     def reset_stats(self):
         """Reset the server stats."""
         self._get_stats("reset")
+
+    def _qualified_key(self, key):
+        return "%s:%s:%s" % (__version__, self.current, key)
 
     def _get_stats(self, stat_args=None):
         return self.client.get_stats(stat_args=stat_args)

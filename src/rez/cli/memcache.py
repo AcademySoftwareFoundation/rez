@@ -87,7 +87,7 @@ def command(opts, parser, extra_arg_groups=None):
     # print stats summary
     if not stats:
         print >> sys.stderr, "memcached servers are not responding."
-        return
+        sys.exit(1)
 
     rows = [["CACHE SERVER", "UPTIME", "HITS", "MISSES", "HIT RATIO", "MEMORY", "USED"],
             ["------------", "------", "----", "------", "---------", "------", "----"]]

@@ -417,8 +417,11 @@ class FileSystemPackageRepository(PackageRepository):
         self.settings = config.plugins.package_repository.filesystem
 
     def _uid(self):
-        st = os.stat(self.location)
-        return ("filesystem", self.location, st.st_ino)
+        t = ["filesystem", self.location]
+        if os.path.exists(self.location):
+            st = os.stat(self.location)
+            t.append(st.st_ino)
+        return tuple(t)
 
     def get_package_family(self, name):
         return self._get_family(name)
