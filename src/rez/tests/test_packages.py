@@ -260,5 +260,17 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertDictEqual(data, data_)
 
 
+class TestMemoryPackages(TestBase):
+    def test_1_memory_variant_parent(self):
+        """Test that a package's variant's parent is the original package
+        """
+        desc = 'the foo package'
+        package = create_package('foo', {'description': desc})
+        self.assertEqual(package.description, desc)
+        variant = package.iter_variants().next()
+        parent_package = variant.parent
+        self.assertEqual(package.description, desc)
+
+
 if __name__ == '__main__':
     unittest.main()
