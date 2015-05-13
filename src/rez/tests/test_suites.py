@@ -136,15 +136,5 @@ class TestRezSuites(TestBase, TempdirMixin):
         self._test_serialization(s)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestRezSuites("test_1"))
-    suite.addTest(TestRezSuites("test_2"))
-    suite.addTest(TestRezSuites("test_3"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

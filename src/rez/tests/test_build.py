@@ -12,6 +12,7 @@ from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
 import shutil
 import os.path
 
+# TODO: variant-based test
 
 class TestBuild(TestBase, TempdirMixin):
 
@@ -150,17 +151,6 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_translate_lib()
         self._test_build_sup_world()
 
-
-def get_test_suites():
-    # TODO: variant-based test
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestBuild("test_build_whack"))
-    suite.addTest(TestBuild("test_builds"))
-    suite.addTest(TestBuild("test_builds_anti"))
-    suite.addTest(TestBuild("test_build_cmake"))
-    suites.append(suite)
-    return suites
 
 if __name__ == '__main__':
     unittest.main()

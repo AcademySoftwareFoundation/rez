@@ -181,17 +181,5 @@ class TestConfig(TestBase):
             _ = c.debug_all
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestConfig("test_1"))
-    suite.addTest(TestConfig("test_2"))
-    suite.addTest(TestConfig("test_3"))
-    suite.addTest(TestConfig("test_4"))
-    suite.addTest(TestConfig("test_5"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

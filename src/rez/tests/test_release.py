@@ -21,6 +21,7 @@ import rez.bind.python
 import shutil
 import os.path
 
+# TODO: variant-based test
 
 class TestRelease(TestBase, TempdirMixin):
     @classmethod
@@ -147,15 +148,6 @@ class TestRelease(TestBase, TempdirMixin):
         it = iter_packages("foo", paths=[self.install_root])
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
-
-
-def get_test_suites():
-    # TODO: variant-based test
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestRelease("test_1"))
-    suites.append(suite)
-    return suites
 
 
 if __name__ == '__main__':

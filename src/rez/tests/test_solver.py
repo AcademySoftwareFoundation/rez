@@ -196,19 +196,5 @@ class TestSolver(TestBase):
         self.assertFalse(isinstance(s.failure_reason(), Cycle))
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestSolver("test_1"))
-    suite.addTest(TestSolver("test_2"))
-    suite.addTest(TestSolver("test_3"))
-    suite.addTest(TestSolver("test_4"))
-    suite.addTest(TestSolver("test_5"))
-    suite.addTest(TestSolver("test_6"))
-    suite.addTest(TestSolver("test_7"))
-    suite.addTest(TestSolver("test_8"))
-    suites.append(suite)
-    return suites
-
 if __name__ == '__main__':
     unittest.main()

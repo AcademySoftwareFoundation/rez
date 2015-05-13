@@ -408,23 +408,5 @@ class TestRex(TestBase):
         self.assertEqual(rez_commands, expected)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestRex("test_1"))
-    suite.addTest(TestRex("test_2"))
-    suite.addTest(TestRex("test_3"))
-    suite.addTest(TestRex("test_4"))
-    suite.addTest(TestRex("test_5"))
-    suite.addTest(TestRex("test_6"))
-    suite.addTest(TestRex("test_7"))
-    suite.addTest(TestRex("test_8"))
-    suite.addTest(TestRex("test_9"))
-    suite.addTest(TestRex("test_version_binding"))
-    suite.addTest(TestRex("test_old_style_commands"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()
