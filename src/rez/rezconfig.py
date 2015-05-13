@@ -103,6 +103,18 @@ memcached_listdir_min_compress_len = 16384
 # means never compress.
 memcached_resolve_min_compress_len = 1
 
+# Rez keeps a memcached client resident for this many seconds after use before
+# evicting it from a local cache. This avoids the overhead of reconnecting many
+# times during a resolve, but also stops a rez-based process from keeping a
+# connection open - which can cause too many connections to the server if there
+# are a lot of processes that use Rez (such as farm jobs). You will probably not
+# need to change this value.
+memcached_client_cache_timeout = 10
+
+# Related to above, this is the time between checks to see if the local memcached
+# client should be evicted. You will probably not need to change this value.
+memcached_client_cache_resolution = 1
+
 
 ###############################################################################
 # Misc

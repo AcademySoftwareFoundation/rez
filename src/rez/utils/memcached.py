@@ -1,4 +1,6 @@
 from rez import __version__
+from rez.config import config
+from rez.utils.timeout_cache import timeout_cache
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
 from functools import update_wrapper
 from inspect import getargspec
@@ -6,10 +8,20 @@ from hashlib import md5
 from uuid import uuid4
 
 
-def get_memcached_client():
-    """Get a configured memcached client."""
-    from rez.config import config
-    return Client(servers=config.memcached_uri)
+@timeout_cache(timeout=config.memcached_client_cache_timeout,
+               resolution=config.memcached_client_cache_resolution)
+def get_memcached_client(servers=config.memcached_uri, debug=False):
+    """Get a configured memcached client.
+
+    This is decorated with a timeout cache so that the latency of reconnection
+    is avoided, but also so that long-running processes do not keep a memcached
+    connection open - this can result in too many open connections on a server,
+    especially if many processes use Rez (such as farm jobs).
+
+    Returns:
+        `Client` instance.
+    """
+    return Client(servers=servers, debug=debug)
 
 
 class Client(object):
@@ -230,13 +242,17 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     def identity(value, *nargs, **kwargs):
         return value
 
+    def get_client():
+        return get_memcached_client(servers, debug=debug)
+
     from_cache = from_cache or identity
     to_cache = to_cache or identity
-    client = Client(servers, debug=debug)
 
     def decorator(func):
         if servers:
             def wrapper(*nargs, **kwargs):
+                client = get_client()
+
                 if key:
                     cache_key = key(*nargs, **kwargs)
                 else:
@@ -271,7 +287,7 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
             that entries set by the current process will no longer be seen during
             this process.
             """
-            client.flush()
+            get_client().flush()
 
         wrapper.forget = forget
         wrapper.__wrapped__ = func
