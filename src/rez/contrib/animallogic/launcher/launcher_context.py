@@ -46,10 +46,7 @@ class LauncherContext(object):
         self._resolved_context.apply()
 
     def get_shell_code(self):
-        return self._resolved_context.get_shell_code()
-
-    def graph(self, as_dot=False):
-        return self._resolved_context.graph(as_dot=as_dot)
+        self._resolved_context.get_shell_code()
 
     @property
     def success(self):
