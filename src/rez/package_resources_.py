@@ -226,6 +226,16 @@ class PackageResource(PackageRepositoryResource):
     A repository implementation's package resource(s) must derive from this
     class. It must satisfy the schema `package_schema`.
     """
+
+    @classmethod
+    def normalize_variables(cls, variables):
+        """Make sure version is treated consistently
+        """
+        # if the version is False, empty string, etc, throw it out
+        if variables.get('version', True) in ('', False, '_NO_VERSION', None):
+            del variables['version']
+        return variables
+
     @cached_property
     def version(self):
         ver_str = self.get("version", "")
