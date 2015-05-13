@@ -44,7 +44,13 @@ def is_subdirectory(path_a, path_b):
     """Returns True if `path_a` is a subdirectory of `path_b`."""
     path_a = os.path.realpath(path_a)
     path_b = os.path.realpath(path_b)
-    relative = os.path.relpath(path_a, path_b)
+    try:
+        relative = os.path.relpath(path_a, path_b)
+    except ValueError:
+        # On Windows a ValueError is raised if the paths are on different
+        # drives, UNC roots, or are mixing drive and UNC root specifications.
+        # This of course means path_a can't be a subdirectory of path_b.
+        return False
     return (not relative.startswith(os.pardir + os.sep))
 
 
