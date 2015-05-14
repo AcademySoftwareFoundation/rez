@@ -29,16 +29,6 @@ class PackageDefinitionFileMissing(PackageMetadataError):
     pass
 
 
-# get a file that could be .yaml or .py
-def _get_file(path, name):
-    for format_ in (FileFormat.py, FileFormat.yaml):
-        filename = "%s.%s" % (name, format_.extension)
-        filepath = os.path.join(path, filename)
-        if os.path.isfile(filepath):
-            return filepath, format_
-    return None, None
-
-
 #------------------------------------------------------------------------------
 # resources
 #------------------------------------------------------------------------------
@@ -65,7 +55,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
     def iter_packages(self):
         # check for unversioned package
-        filepath, _ = _get_file(self.path, "package")
+        filepath, _ = self._repository._get_file(self.path, "package")
         if filepath:
             package = self._repository.get_resource(
                 FileSystemPackageResource.key,
@@ -76,6 +66,10 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
         # versioned packages
         for version_str in self._repository._get_version_dirs(self.path):
+            path = os.path.join(self.path, version_str)
+            if not self._repository._get_file(path, "package")[0]:
+                continue
+
             package = self._repository.get_resource(
                 FileSystemPackageResource.key,
                 location=self.location,
@@ -129,7 +123,7 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     @cached_property
     def _filepath_and_format(self):
-        return _get_file(self.path, "package")
+        return self._repository._get_file(self.path, "package")
 
     def _load(self):
         if self.filepath is None:
@@ -480,6 +474,7 @@ class FileSystemPackageRepository(PackageRepository):
         self._get_family.cache_clear()
         self._get_packages.cache_clear()
         self._get_variants.cache_clear()
+        self._get_file.cache_clear()
         self._get_family_dirs.forget()
         self._get_version_dirs.forget()
         # unfortunately we need to clear file cache across the board
@@ -556,7 +551,7 @@ class FileSystemPackageRepository(PackageRepository):
                 name=name)
             return family
         else:
-            filepath, format_ = _get_file(self.location, name)
+            filepath, format_ = self._get_file(self.location, name)
             if filepath:
                 family = self.get_resource(
                     FileSystemCombinedPackageFamilyResource.key,
@@ -573,6 +568,15 @@ class FileSystemPackageRepository(PackageRepository):
     @lru_cache(maxsize=None)
     def _get_variants(self, package_resource):
         return [x for x in package_resource.iter_variants()]
+
+    @lru_cache(maxsize=None)
+    def _get_file(self, path, name):
+        for format_ in (FileFormat.py, FileFormat.yaml):
+            filename = "%s.%s" % (name, format_.extension)
+            filepath = os.path.join(path, filename)
+            if os.path.isfile(filepath):
+                return filepath, format_
+        return None, None
 
     def _create_family(self, name):
         path = os.path.join(self.location, name)

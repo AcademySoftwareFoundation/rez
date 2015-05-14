@@ -172,7 +172,7 @@ class _ScopedInstanceManager(local):
         self.clients = {}
 
     def acquire(self, servers, debug=False):
-        key = (tuple(servers), debug)
+        key = (tuple(servers or []), debug)
         entry = self.clients.get(key)
         if entry:
             entry[1] += 1
