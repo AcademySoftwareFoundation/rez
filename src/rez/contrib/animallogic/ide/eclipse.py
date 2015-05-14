@@ -489,31 +489,12 @@ class EclipseProjectBuilder(object):
         for i, variant in enumerate(self.variants):
             subpath = variant.subpath if variant.subpath else ''
             resolved_context_file = os.path.join('build', subpath, 'build.rxt')
+            tmpdir = os.path.join(self.working_directory, 'build', subpath)
             context = ResolvedContext.load(resolved_context_file)
 
-            callback = functools.partial(CMakeBuildSystem._add_build_actions,
-                                         context=context,
-                                         package=self.package,
-                                         build_type=BuildType.local)
-            
-            tmp = tempfile.NamedTemporaryFile()
-            context.execute_shell(block=True,
-                                  command='env > %s'%tmp.name,
-                                  actions_callback=callback)
-            
-            target_environ = {}
-            for line in open(tmp.name).readlines():
-                line = line.strip()
-                if not line or line.startswith('#'):
-                    continue
-                eqIndex = line.find('=')
-                if eqIndex == -1:
-                    continue
-                key = line[:eqIndex]
-                val = line[eqIndex+1:] # strip double quotes
-                target_environ[key] = val
+            target_environ = context.get_environ(tmpdir=tmpdir)
             target_environ['module'] = ''  # for eclipse to stop complaining about syntax errors!
-            
+
             for key, value in target_environ.items():
                 if self.bracket_regex.search(value):
                     continue
@@ -533,4 +514,3 @@ environment/project/cdt.managedbuild.toolchain.gnu.base.%(i)s/appendContributed=
             fd.write(settings)
 
         logger.info('Build .settings/org.eclipse.cdt.core.prefs file for %r and %d variants.' % (self.name, len(self.variants)))
-

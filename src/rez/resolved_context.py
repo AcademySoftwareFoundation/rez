@@ -809,7 +809,7 @@ class ResolvedContext(object):
             raise ResolvedContextError("%s: %s" % (e.__class__.__name__, str(e)))
 
     @_on_success
-    def get_environ(self, parent_environ=None):
+    def get_environ(self, parent_environ=None, tmpdir=None):
         """Get the environ dict resulting from interpreting this context.
 
         @param parent_environ Environment to interpret the context within,
@@ -819,7 +819,7 @@ class ResolvedContext(object):
         """
         interp = Python(target_environ={}, passive=True)
         executor = self._create_executor(interp, parent_environ)
-        self._execute(executor)
+        self._execute(executor, tmpdir=tmpdir)
         return executor.get_output()
 
     @_on_success
