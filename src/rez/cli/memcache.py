@@ -40,7 +40,7 @@ def poll(client, interval):
             dt = t - prev_t
             for instance, payload in stats.iteritems():
                 prev_payload = prev_stats.get(instance)
-                if prev_payload:
+                if payload and prev_payload:
                     # stats
                     gets = int(payload["cmd_get"]) - int(prev_payload["cmd_get"])
                     sets = int(payload["cmd_set"]) - int(prev_payload["cmd_set"])
@@ -49,7 +49,7 @@ def poll(client, interval):
 
                     # test get/set
                     uri = instance.split()[0]
-                    client = Client([uri])
+                    client = Client([uri], debug=True)
                     t1 = time.time()
                     client.set("__TEST__", 1)
                     t2 = time.time()
@@ -70,12 +70,13 @@ def poll(client, interval):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.utils.yaml import dump_yaml
-    from rez.utils.memcached import get_memcached_client
+    from rez.utils.memcached import Client
     from rez.utils.formatting import columnise, readable_time_duration, \
         readable_memory_size
     import sys
 
-    memcache_client = get_memcached_client()
+    memcache_client = Client(servers=config.memcached_uri,
+                             debug=config.debug_memcache)
 
     if not memcache_client:
         print >> sys.stderr, "memcaching is not enabled."
