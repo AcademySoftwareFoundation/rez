@@ -1226,6 +1226,10 @@ class RexExecutor(object):
                     continue
 
                 target_root = os.path.join(tmpdir, variable)
+                if os.path.exists(target_root):
+                    print_warning("%s - has already been flattened to %s." % (variable, target_root))
+                    continue
+
                 os.makedirs(target_root)
 
                 _debug("%s - currently set to: %s." % (variable, paths))
