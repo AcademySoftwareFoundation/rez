@@ -63,15 +63,5 @@ class TestContext(TestBase, TempdirMixin):
         self.assertEqual(r.resolved_packages, r2.resolved_packages)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestContext("test_create_context"))
-    suite.addTest(TestContext("test_execute_command"))
-    suite.addTest(TestContext("test_serialize"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

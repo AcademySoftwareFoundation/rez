@@ -280,15 +280,5 @@ class TestResources_(TestBase):
                                       owner="joe.bloggs"))
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestResources_("test_1"))
-    suite.addTest(TestResources_("test_2"))
-    suite.addTest(TestResources_("test_3"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

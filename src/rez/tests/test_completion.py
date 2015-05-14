@@ -57,14 +57,5 @@ class TestCompletion(TestBase):
         _eq("pyfoo-3.0", ["pyfoo-3.0.0"])
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestCompletion("test_config"))
-    suite.addTest(TestCompletion("test_packages"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

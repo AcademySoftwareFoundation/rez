@@ -260,19 +260,5 @@ class TestPackages(TestBase, TempdirMixin):
             self.assertDictEqual(data, data_)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestPackages("test_1"))
-    suite.addTest(TestPackages("test_2"))
-    suite.addTest(TestPackages("test_3"))
-    suite.addTest(TestPackages("test_4"))
-    suite.addTest(TestPackages("test_5"))
-    suite.addTest(TestPackages("test_6"))
-    suite.addTest(TestPackages("test_7"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()

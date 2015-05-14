@@ -259,13 +259,5 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0:=s}", ValueError, '')
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestFormatter("test_formatter_stdlib"))
-    suite.addTest(TestFormatter("test_formatter_rex"))
-    suites.append(suite)
-    return suites
-
 if __name__ == '__main__':
     unittest.main()

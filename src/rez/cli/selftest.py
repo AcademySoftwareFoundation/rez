@@ -14,8 +14,7 @@ tests_dir = os.path.join(src_rez_dir, 'tests')
 all_module_tests = []
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("-t", "--test", action="append", dest="named_tests",
-                        metavar="NAMED_TEST", default=[],
+    parser.add_argument("tests", metavar="NAMED_TEST", default=[], nargs="*",
                         help="a specific test module/class/method to run; may "
                              "be repeated multiple times; if no tests are "
                              "given, through this or other flags, all tests "
@@ -52,12 +51,12 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.vendor.unittest2.main import main
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
 
-    if not opts.module_tests and not opts.named_tests:
+    if not opts.module_tests and not opts.tests:
         module_tests = all_module_tests
     else:
         module_tests = opts.module_tests
     module_tests = [("rez.tests.test_%s" % x) for x in sorted(module_tests)]
-    tests = module_tests + opts.named_tests
+    tests = module_tests + opts.tests
 
     argv = [sys.argv[0]] + tests
     main(module=None, argv=argv, verbosity=opts.verbose)

@@ -50,13 +50,6 @@ class TestImports(TestBase):
         import rez.utils.memcached
         import rez.utils.yaml
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestImports("test_1"))
-    suites.append(suite)
-    return suites
-
 
 if __name__ == '__main__':
     unittest.main()

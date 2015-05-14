@@ -281,20 +281,5 @@ class TestShells(TestBase, TempdirMixin):
         _execute_code(_rex_appending, expected_output)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestShells("test_no_output"))
-    suite.addTest(TestShells("test_command"))
-    suite.addTest(TestShells("test_command_returncode"))
-    suite.addTest(TestShells("test_norc"))
-    suite.addTest(TestShells("test_stdin"))
-    suite.addTest(TestShells("test_rcfile"))
-    suite.addTest(TestShells("test_rez_env_output"))
-    suite.addTest(TestShells("test_rez_command"))
-    suite.addTest(TestShells("test_rex_code"))
-    suites.append(suite)
-    return suites
-
 if __name__ == '__main__':
     unittest.main()

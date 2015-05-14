@@ -133,16 +133,5 @@ class TestCommands(TestBase):
         self._test_package(pkg, {"REXTEST_DIRS": "TEST"}, cmds)
 
 
-def get_test_suites():
-    suites = []
-    suite = unittest.TestSuite()
-    suite.addTest(TestCommands("test_old_yaml"))
-    suite.addTest(TestCommands("test_new_yaml"))
-    suite.addTest(TestCommands("test_py"))
-    suite.addTest(TestCommands("test_2"))
-    suites.append(suite)
-    return suites
-
-
 if __name__ == '__main__':
     unittest.main()
