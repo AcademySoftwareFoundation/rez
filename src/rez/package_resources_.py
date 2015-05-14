@@ -4,7 +4,7 @@ from rez.utils.logging_ import print_warning
 from rez.utils.data_utils import cached_property, SourceCode, \
     AttributeForwardMeta, LazyAttributeMeta
 from rez.utils.formatting import PackageRequest
-from rez.exceptions import PackageMetadataError
+from rez.exceptions import ResourceError, PackageMetadataError
 from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
@@ -186,9 +186,17 @@ class PackageRepositoryResource(Resource):
     schema_error = PackageMetadataError
     repository_type = None
 
+    @classmethod
+    def normalize_variables(cls, variables):
+        if "repository_type" not in variables or "location" not in \
+                variables:
+            raise ResourceError("%s resources require a repository_type and "
+                                "location" % cls.__name__)
+        return super(PackageRepositoryResource, cls).normalize_variables(
+            variables)
+
     def __init__(self, variables=None):
         super(PackageRepositoryResource, self).__init__(variables)
-        self._repository = None
 
     @cached_property
     def uri(self):
@@ -234,7 +242,7 @@ class PackageResource(PackageRepositoryResource):
         # if the version is False, empty string, etc, throw it out
         if variables.get('version', True) in ('', False, '_NO_VERSION', None):
             del variables['version']
-        return variables
+        return super(PackageResource, cls).normalize_variables(variables)
 
     @cached_property
     def version(self):

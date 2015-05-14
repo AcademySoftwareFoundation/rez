@@ -80,12 +80,12 @@ class Resource(object):
         return variables
 
     def __init__(self, variables=None):
-        self.variables = variables or {}
+        self.variables = self.normalize_variables(variables or {})
 
     @cached_property
     def handle(self):
         """Get the resource handle."""
-        return self._repository.make_resource_handle(self.key, **self.variables)
+        return ResourceHandle(self.key,self.variables)
 
     @cached_property
     def _data(self):
