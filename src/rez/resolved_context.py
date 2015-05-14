@@ -1445,8 +1445,8 @@ class ResolvedContext(object):
         # append system paths
         executor.append_system_paths()
 
-        # append rez path
-        executor.append_rez_path()
+        # prepend rez path
+        executor.prepend_rez_path()
 
     def _append_suite_paths(self, executor):
         from rez.suite import Suite
