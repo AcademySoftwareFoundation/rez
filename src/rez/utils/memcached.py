@@ -1,27 +1,13 @@
 from rez import __version__
 from rez.config import config
-from rez.utils.timeout_cache import timeout_cache
+from rez.utils.logging_ import print_debug
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
+from threading import local
+from contextlib import contextmanager
 from functools import update_wrapper
-from inspect import getargspec
+from inspect import getargspec, isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
-
-
-@timeout_cache(timeout=config.memcached_client_cache_timeout,
-               resolution=config.memcached_client_cache_resolution)
-def get_memcached_client(servers=config.memcached_uri, debug=False):
-    """Get a configured memcached client.
-
-    This is decorated with a timeout cache so that the latency of reconnection
-    is avoided, but also so that long-running processes do not keep a memcached
-    connection open - this can result in too many open connections on a server,
-    especially if many processes use Rez (such as farm jobs).
-
-    Returns:
-        `Client` instance.
-    """
-    return Client(servers=servers, debug=debug)
 
 
 class Client(object):
@@ -62,6 +48,7 @@ class Client(object):
             `memcache.Client` instance.
         """
         if self._client is None:
+            #print "Connected memcached client %s" % str(self)
             self._client = Client_(self.servers)
         return self._client
 
@@ -82,6 +69,9 @@ class Client(object):
 
     def set(self, key, val, time=0, min_compress_len=0):
         """See memcache.Client."""
+        if not self.servers:
+            return
+
         key = self._qualified_key(key)
         hashed_key = self.key_hasher(key)
         val = (key, val)
@@ -99,6 +89,9 @@ class Client(object):
             from `memcache.Client`, which returns None on cache miss, and thus
             cannot cache the value None itself.
         """
+        if not self.servers:
+            return self.miss
+
         key = self._qualified_key(key)
         hashed_key = self.key_hasher(key)
         entry = self.client.get(hashed_key)
@@ -111,9 +104,10 @@ class Client(object):
 
     def delete(self, key):
         """See memcache.Client."""
-        key = self._qualified_key(key)
-        hashed_key = self.key_hasher(key)
-        self.client.delete(hashed_key)
+        if self.servers:
+            key = self._qualified_key(key)
+            hashed_key = self.key_hasher(key)
+            self.client.delete(hashed_key)
 
     def flush(self, hard=False):
         """Drop existing entries from the cache.
@@ -123,6 +117,8 @@ class Client(object):
                 server(s), which affects all users. If False, only the local
                 process is affected.
         """
+        if not self.servers:
+            return
         if hard:
             self.client.flush_all()
             self.reset_stats()
@@ -145,6 +141,12 @@ class Client(object):
         """Reset the server stats."""
         self._get_stats("reset")
 
+    def disconnect(self):
+        """Disconnect from server(s). Behaviour is undefined after this call."""
+        if self.servers and self._client:
+            self._client.disconnect_all()
+        #print "Disconnected memcached client %s" % str(self)
+
     def _qualified_key(self, key):
         return "%s:%s:%s" % (__version__, self.current, key)
 
@@ -163,6 +165,77 @@ class Client(object):
         value = value[:SERVER_MAX_KEY_LENGTH]
         value = re.sub("[^0-9a-zA-Z]+", '_', value)
         return value
+
+
+class _ScopedInstanceManager(local):
+    def __init__(self):
+        self.clients = {}
+
+    def acquire(self, servers, debug=False):
+        key = (tuple(servers), debug)
+        entry = self.clients.get(key)
+        if entry:
+            entry[1] += 1
+            return entry[0], key
+        else:
+            client = Client(servers, debug=debug)
+            self.clients[key] = [client, 1]
+            return client, key
+
+    def release(self, key):
+        entry = self.clients.get(key)
+        assert entry
+
+        entry[1] -= 1
+        if not entry[1]:
+            client = entry[0]
+            del self.clients[key]
+            client.disconnect()
+
+
+scoped_instance_manager = _ScopedInstanceManager()
+
+
+@contextmanager
+def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
+    """Get a shared memcached instance.
+
+    This function shares the same memcached instance across nested invocations.
+    This is done so that memcached connections can be kept to a minimum, but at
+    the same time unnecessary extra reconnections are avoided. Typically an
+    initial scope (using 'with' construct) is made around parts of code that hit
+    the cache server many times - such as a resolve, or executing a context. On
+    exist of the topmost scope, the memcached client is disconnected.
+
+    Returns:
+        `Client`: Memcached instance.
+    """
+    key = None
+    try:
+        client, key = scoped_instance_manager.acquire(servers, debug=debug)
+        yield client
+    finally:
+        if key:
+            scoped_instance_manager.release(key)
+
+
+def pool_memcached_connections(func):
+    """Function decorator to pool memcached connections.
+
+    Use this to wrap functions that might make multiple calls to memcached. This
+    will cause a single memcached client to be shared for all connections.
+    """
+    if isgeneratorfunction(func):
+        def wrapper(*nargs, **kwargs):
+            with memcached_client():
+                for result in func(*nargs, **kwargs):
+                    yield result
+    else:
+        def wrapper(*nargs, **kwargs):
+            with memcached_client():
+                return func(*nargs, **kwargs)
+
+    return update_wrapper(wrapper, func)
 
 
 def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
@@ -242,39 +315,35 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
     def identity(value, *nargs, **kwargs):
         return value
 
-    def get_client():
-        return get_memcached_client(servers, debug=debug)
-
     from_cache = from_cache or identity
     to_cache = to_cache or identity
 
     def decorator(func):
         if servers:
             def wrapper(*nargs, **kwargs):
-                client = get_client()
+                with memcached_client(servers, debug=debug) as client:
+                    if key:
+                        cache_key = key(*nargs, **kwargs)
+                    else:
+                        cache_key = default_key(func, *nargs, **kwargs)
 
-                if key:
-                    cache_key = key(*nargs, **kwargs)
-                else:
-                    cache_key = default_key(func, *nargs, **kwargs)
+                    # get
+                    result = client.get(cache_key)
+                    if result is not client.miss:
+                        return from_cache(result, *nargs, **kwargs)
 
-                # get
-                result = client.get(cache_key)
-                if result is not client.miss:
-                    return from_cache(result, *nargs, **kwargs)
+                    # cache miss - run target function
+                    result = func(*nargs, **kwargs)
+                    if isinstance(result, DoNotCache):
+                        return result.result
 
-                # cache miss - run target function
-                result = func(*nargs, **kwargs)
-                if isinstance(result, DoNotCache):
-                    return result.result
-
-                # store
-                cache_result = to_cache(result, *nargs, **kwargs)
-                client.set(key=cache_key,
-                           val=cache_result,
-                           time=time,
-                           min_compress_len=min_compress_len)
-                return result
+                    # store
+                    cache_result = to_cache(result, *nargs, **kwargs)
+                    client.set(key=cache_key,
+                               val=cache_result,
+                               time=time,
+                               min_compress_len=min_compress_len)
+                    return result
         else:
             def wrapper(*nargs, **kwargs):
                 return func(*nargs, **kwargs)
@@ -287,7 +356,8 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
             that entries set by the current process will no longer be seen during
             this process.
             """
-            get_client().flush()
+            with memcached_client(servers, debug=debug) as client:
+                client.flush()
 
         wrapper.forget = forget
         wrapper.__wrapped__ = func

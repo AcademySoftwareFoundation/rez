@@ -2,9 +2,10 @@ from rez.solver import Solver, SolverStatus, PackageVariantCache
 from rez.package_repository import package_repository_manager
 from rez.packages_ import get_variant, get_last_release_time
 from rez.package_filter import PackageFilterList, TimestampRule
-from rez.utils.memcached import Client
+from rez.utils.memcached import memcached_client, pool_memcached_connections
 from rez.config import config
 from rez.vendor.enum import Enum
+from contextlib import contextmanager
 import os
 
 
@@ -79,12 +80,14 @@ class Resolver(object):
         self.failure_description = None
         self.graph_ = None
         self.from_cache = False
+        self.memcached_servers = config.memcached_uri if config.resolve_caching else None
 
         self.solve_time = 0.0  # time spent solving
         self.load_time = 0.0   # time spent loading package resources
 
         self._print = config.debug_printer("resolve_memcache")
 
+    @pool_memcached_connections
     def solve(self):
         """Perform the solve.
         """
@@ -170,7 +173,7 @@ class Resolver(object):
         consider a workflow where a work area is tied down to a particular
         timestamp in order to 'lock' it from any further software releases).
         """
-        if not (self.caching and self.memcache_client):
+        if not (self.caching and self.memcached_servers):
             return None
 
         def _hit(data):
@@ -182,13 +185,15 @@ class Resolver(object):
             return None
 
         def _delete_cache_entry(key):
-            self.memcache_client.delete(key)
+            with self._memcached_client() as client:
+                client.delete(key)
             self._print("Discarded entry: %r", key)
 
         def _retrieve(timestamped):
             key = self._memcache_key(timestamped=timestamped)
             self._print("Retrieving memcache key: %r", key)
-            data = self.memcache_client.get(key)
+            with self._memcached_client() as client:
+                data = client.get(key)
             return key, data
 
         def _packages_changed(key, data):
@@ -257,6 +262,12 @@ class Resolver(object):
             else:
                 return _hit(data)
 
+    @contextmanager
+    def _memcached_client(self):
+        with memcached_client(self.memcached_servers,
+                              debug=config.debug_memcache) as client:
+            yield client
+
     def _set_cached_solve(self, solver_dict):
         """Store a solve to memcached.
 
@@ -272,7 +283,7 @@ class Resolver(object):
         if self.status_ != ResolverStatus.solved:
             return  # don't cache failed solves
 
-        if not (self.caching and self.memcache_client):
+        if not (self.caching and self.memcached_servers):
             return
 
         # most recent release times get stored with solve result in the cache
@@ -301,7 +312,8 @@ class Resolver(object):
         timestamped = (self.timestamp and releases_since_solve)
         key = self._memcache_key(timestamped=timestamped)
         data = (solver_dict, release_times_dict, variant_states_dict)
-        self.memcache_client.set(key, data)
+        with self._memcached_client() as client:
+            client.set(key, data)
         self._print("Sent memcache key: %r", key)
 
     def _memcache_key(self, timestamped=False):
@@ -384,6 +396,8 @@ class Resolver(object):
             failure_description=failure_description,
             variant_handles=variant_handles)
 
+    """
     memcache_client = Client(servers=(config.memcached_uri
                                       if config.resolve_caching else None),
                              debug=config.debug_memcache)
+    """

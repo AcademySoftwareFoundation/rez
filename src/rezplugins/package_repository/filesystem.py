@@ -12,7 +12,7 @@ from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
-from rez.utils.memcached import memcached
+from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.backport.lru_cache import lru_cache
 from rez.vendor.schema.schema import Schema, Optional, And, Use
 from rez.vendor.version.version import Version, VersionRange
@@ -426,10 +426,12 @@ class FileSystemPackageRepository(PackageRepository):
     def get_package_family(self, name):
         return self._get_family(name)
 
+    @pool_memcached_connections
     def iter_package_families(self):
         for family in self._get_families():
             yield family
 
+    @pool_memcached_connections
     def iter_packages(self, package_family_resource):
         for package in self._get_packages(package_family_resource):
             yield package

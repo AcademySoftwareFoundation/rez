@@ -8,6 +8,7 @@ from rez.util import shlex_join, dedup
 from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.filesystem import TempDirs
+from rez.utils.memcached import pool_memcached_connections
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -576,6 +577,7 @@ class ResolvedContext(object):
             d["removed_packages"] = removed_packages
         return d
 
+    @pool_memcached_connections
     def print_info(self, buf=sys.stdout, verbosity=0, source_order=False):
         """Prints a message summarising the contents of the resolved context.
 
@@ -1318,6 +1320,7 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
+    @pool_memcached_connections
     def _execute(self, executor):
         br = '#' * 80
         br_minor = '-' * 80

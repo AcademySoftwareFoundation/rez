@@ -239,12 +239,12 @@ class System(object):
                 this option is for debugging purposes.
         """
         from rez.package_repository import package_repository_manager
-        from rez.utils.memcached import get_memcached_client
+        from rez.utils.memcached import memcached_client
 
         package_repository_manager.clear_caches()
         if hard:
-            memcache_client = get_memcached_client()
-            memcache_client.flush()
+            with memcached_client() as client:
+                client.flush()
 
     @classmethod
     def _make_safe_version_string(cls, s):
