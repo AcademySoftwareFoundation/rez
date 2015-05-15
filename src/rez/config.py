@@ -1,3 +1,4 @@
+from rez import __version__
 from rez.util import deep_update
 from rez.utils.data_utils import AttrDictWrapper, RO_AttrDictWrapper, \
     convert_dicts, cached_property, cached_class_property, LazyAttributeMeta
@@ -390,7 +391,10 @@ class Config(object):
             if key == "plugins":
                 d[key] = self.plugins.data()
             else:
-                d[key] = getattr(self, key)
+                try:
+                    d[key] = getattr(self, key)
+                except AttributeError:
+                    pass  # unknown key, just leave it unchanged
         return d
 
     @property
@@ -461,9 +465,10 @@ class Config(object):
         filepath = os.getenv("REZ_CONFIG_FILE")
         if filepath and os.path.isfile(filepath):
             filepaths.append(filepath)
+
         filepath = os.path.expanduser("~/.rezconfig")
-        if os.path.isfile(filepath):
-            filepaths.append(filepath)
+        filepaths.append(filepath)
+
         return Config(filepaths, overrides)
 
     def __str__(self):
@@ -629,7 +634,7 @@ def _create_locked_config(overrides=None):
 def _load_config_py(filepath):
     from rez.vendor.six.six import exec_
 
-    globs = {}
+    globs = dict(rez_version=__version__)
     result = {}
 
     with open(filepath) as f:
