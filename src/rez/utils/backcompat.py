@@ -48,14 +48,37 @@ def convert_old_command_expansions(command):
     return command
 
 
+within_unescaped_quotes_regex = re.compile('(?<!\\\\)"(.*?)(?<!\\\\)"')
+
+
 def convert_old_commands(commands, annotate=True):
     """Converts old-style package commands into equivalent Rex code."""
     from rez.config import config
     from rez.utils.logging_ import print_debug
 
+    def _repl(s):
+        return s.replace('\\"', '"')
+
     def _encode(s):
-        s = s.replace('\\"', '"')
-        return repr(s)
+        # this replaces all occurrances of '\"' with '"', *except* for those
+        # occurrances of '\"' that are within double quotes, which themselves
+        # are not escaped. In other words, the string:
+        # 'hey "there \"you\" " \"dude\" '
+        # ..will convert to:
+        # 'hey "there \"you\" " "dude" '
+        s_new = ''
+        prev_i = 0
+
+        for m in within_unescaped_quotes_regex.finditer(s):
+            s_ = s[prev_i:m.start()]
+            s_new += _repl(s_)
+
+            s_new += s[m.start():m.end()]
+            prev_i = m.end()
+
+        s_ = s[prev_i:]
+        s_new += _repl(s_)
+        return repr(s_new)
 
     loc = []
 
