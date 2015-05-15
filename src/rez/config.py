@@ -327,6 +327,7 @@ class Config(object):
                 ignored.
         """
         self.filepaths = filepaths
+        self._sourced_filepaths = None
         self.overrides = overrides or {}
         self.locked = locked
 
@@ -372,6 +373,22 @@ class Config(object):
         """Returns a printer object suitably enabled based on the given key."""
         enabled = self.debug(key)
         return get_debug_printer(enabled)
+
+    @cached_property
+    def sourced_filepaths(self):
+        """Get the list of files actually sourced to create the config.
+
+        Note:
+            `self.filepaths` refers to the filepaths used to search for the
+            configs, which does dot necessarily match the files used. For example,
+            some files may not exist, while others are chosen as rezconfig.py in
+            preference to rezconfig, rezconfig.yaml.
+
+        Returns:
+            List of str: The sourced files.
+        """
+        _ = self._data  # force a config load
+        return self._sourced_filepaths
 
     @cached_property
     def plugins(self):
@@ -452,7 +469,7 @@ class Config(object):
 
     @cached_property
     def _data(self):
-        data = _load_config_from_filepaths(self.filepaths)
+        data, self._sourced_filepaths = _load_config_from_filepaths(self.filepaths)
         deep_update(data, self.overrides)
         return data
 
@@ -466,7 +483,7 @@ class Config(object):
         if filepath and os.path.isfile(filepath):
             filepaths.append(filepath)
 
-        filepath = os.path.expanduser("~/.rezconfig")
+        filepath = os.path.expanduser("~/.rezconfig.py")
         filepaths.append(filepath)
 
         return Config(filepaths, overrides)
@@ -664,23 +681,27 @@ def _load_config_yaml(filepath):
 
 def _load_config_from_filepaths(filepaths):
     data = {}
-    loaders = [(".py", _load_config_py),
-               ("", _load_config_yaml)]
+    sourced_filepaths = []
+    loaders = ((".py", _load_config_py),
+               ("", _load_config_yaml))
 
     for filepath in filepaths:
         for extension, loader in loaders:
-            filepath_with_extension = filepath + extension
-            if not os.path.isfile(filepath_with_extension):
+            no_ext = os.path.splitext(filepath)[0]
+            filepath_with_ext = no_ext + extension
+            if not os.path.isfile(filepath_with_ext):
                 continue
-            data_ = loader(filepath_with_extension)
+
+            data_ = loader(filepath_with_ext)
             deep_update(data, data_)
+            sourced_filepaths.append(filepath_with_ext)
             break
 
-    return data
+    return data, sourced_filepaths
 
 
 def get_module_root_config():
-    return os.path.join(module_root_path, "rezconfig")
+    return os.path.join(module_root_path, "rezconfig.py")
 
 
 # singleton
