@@ -14,5 +14,55 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser=None, extra_arg_groups=None):
-    from rezgui.app import run
-    run(opts, parser)
+    from rez.exceptions import RezGuiQTImportError
+
+    try:
+        from rezgui.app import run
+        run(opts, parser)
+    except RezGuiQTImportError as e:
+        # In order for rez-gui to work, PyQt/PySide needs to be installed into
+        # Rez's installation virtualenv. Many studios will already have PyQt/
+        # PySide available as rez packages though, and installing them again is
+        # a pain.
+        #
+        # An alternative approach is to use the 'rezgui' rez package, which can
+        # be created using the 'rez-bind' tool. This circumvents the rez install,
+        # by pulling in PyQt/PySide dependencies (and rez itself) as rez packages.
+        # With this approach, you can run rez-gui like so:
+        #
+        # ]$ rez-env rezgui pyside -- rez-gui
+        #
+        # A studio will often wrap this into a script or function, or use a rez
+        # suite, to provide this wrapped rez-gui binary instead. However, when
+        # rez resolves an environment, it prefixes $PATH with its bin directory
+        # once more, which can cause the native 'rez-gui' binary to become
+        # visible once more (and that's us here in the file you're reading!).
+        #
+        # In order to fix this, here we remove ourself from PATH and attempt to
+        # run rez-gui again.
+        import sys
+        import os
+        import os.path
+        import subprocess
+
+        binary_filepath = os.path.realpath(sys.argv[0])
+        current_bin_path = os.path.dirname(binary_filepath)
+        paths = os.environ.get("PATH", "").split(os.pathsep)
+
+        # strip us out of PATH
+        new_paths = []
+        for i, path in enumerate(paths):
+            if path and (os.path.realpath(path) != current_bin_path):
+                new_paths.append(path)
+
+        # find other rez-gui
+        env = os.environ.copy()
+        env["PATH"] = os.pathsep.join(new_paths)
+        # TODO: should this be 'rez-gui.py' on Windows?
+        executable = which("rez-gui", env=env)
+        if not executable:
+            raise e
+
+        # run other gui (replaces current process)
+        executable = os.path.abspath(executable)
+        os.execve(executable, sys.argv[1:], env)
