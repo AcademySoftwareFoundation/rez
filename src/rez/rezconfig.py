@@ -1,33 +1,36 @@
-#------------------------------------------------------------------------------
-# Rez configuration settings. Do not change this file.
-#
-# Settings are determined in the following way:
-# 1) The setting is first read from this file;
-# 2) The setting is then overridden if it is present in another settings file
-#    pointed at by the $REZ_CONFIG_FILE environment variable;
-# 3) The setting is further overriden if it is present in $HOME/.rezconfig;
-# 4) The setting is overridden again if the environment variable $REZ_XXX is
-#    present, where XXX is the uppercase version of the setting key. For example,
-#    "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
-#    separated either with "," or blank space.
-# 5) This is a special case applied only during a package build or release. In
-#    this case, if the package definition file contains a "config" section,
-#    settings in this section will override all others.
-#
-# Note that in the case of plugin settings (anything under the "plugins"
-# section of the config), (4) does not apply.
-#
-# Variable expansion can be used in configuration settings. The following
-# expansions are supported:
-# - Any property of the system object: Eg "{system.platform}" (see system.py)
-# - Any environment variable: Eg "${HOME}"
-#
-# Paths should use the path separator appropriate for the operating system
-# (based on Python's os.path.sep).  So for Linux paths, / should be used.  On
-# Windows \ (unescaped) should be used.
-#------------------------------------------------------------------------------
+"""
+Rez configuration settings. Do not change this file.
 
+Settings are determined in the following way:
+1) The setting is first read from this file;
+2) The setting is then overridden if it is present in another settings file
+   pointed at by the $REZ_CONFIG_FILE environment variable;
+3) The setting is further overriden if it is present in $HOME/.rezconfig;
+4) The setting is overridden again if the environment variable $REZ_XXX is
+   present, where XXX is the uppercase version of the setting key. For example,
+   "image_viewer" will be overriden by $REZ_IMAGE_VIEWER. List values can be
+   separated either with "," or blank space.
+5) This is a special case applied only during a package build or release. In
+   this case, if the package definition file contains a "config" section,
+   settings in this section will override all others.
+
+Note that in the case of plugin settings (anything under the "plugins" section
+of the config), (4) does not apply.
+
+Variable expansion can be used in configuration settings. The following
+expansions are supported:
+- Any property of the system object: Eg "{system.platform}" (see system.py)
+- Any environment variable: Eg "${HOME}"
+
+The following variables are provided if you are using rezconfig.py files:
+- 'rez_version': The current version of rez.
+
+Paths should use the path separator appropriate for the operating system
+(based on Python's os.path.sep).  So for Linux paths, / should be used. On
+Windows \ (unescaped) should be used.
+"""
 import os
+
 
 ###############################################################################
 # Paths
@@ -102,16 +105,6 @@ memcached_listdir_min_compress_len = 16384
 # Bytecount beyond which memcached entries are compressed, for resolves. Zero
 # means never compress.
 memcached_resolve_min_compress_len = 1
-
-
-###############################################################################
-# Misc
-###############################################################################
-
-# If not zero, truncates all package changelog entries to this maximum length.
-# You should set this value - changelogs can theoretically be very large, and
-# this adversely impacts package load times.
-max_package_changelog_chars = 1024
 
 
 ###############################################################################
@@ -379,6 +372,16 @@ set_prompt = True
 # If true, prefixes the prompt, suffixes if false. Ignored if 'set_prompt' is
 # false.
 prefix_prompt = True
+
+
+###############################################################################
+# Misc
+###############################################################################
+
+# If not zero, truncates all package changelog entries to this maximum length.
+# You should set this value - changelogs can theoretically be very large, and
+# this adversely impacts package load times.
+max_package_changelog_chars = 1024
 
 
 ###############################################################################
