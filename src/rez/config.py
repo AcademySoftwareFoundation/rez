@@ -687,8 +687,12 @@ def _load_config_from_filepaths(filepaths):
 
     for filepath in filepaths:
         for extension, loader in loaders:
-            no_ext = os.path.splitext(filepath)[0]
-            filepath_with_ext = no_ext + extension
+            if extension:
+                no_ext = os.path.splitext(filepath)[0]
+                filepath_with_ext = no_ext + extension
+            else:
+                filepath_with_ext = filepath
+
             if not os.path.isfile(filepath_with_ext):
                 continue
 
