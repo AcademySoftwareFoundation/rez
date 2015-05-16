@@ -4,3 +4,15 @@ filesystem:
     # once (which could result in a variant install getting lost). The timeout
     # value is in seconds. A value of zero indicates no timeout.
     file_lock_timeout: 10
+
+    # The relative directory, under the repository location, where file locks
+    # are created. You might need to use this option when file permissions are
+    # locked down so that only certain users can release certain packages. In
+    # this scenario, package releases may fail because a user with limited
+    # permissions will fail to create the lockfile in the repository root. By
+    # providing a subdirectory, you can open up the permissions on this
+    # directory only. If null, lockfiles are left created in the root.
+    #
+    # Note: The directory can have any name, but we suggest '.lock' as the
+    # standard convention.
+    file_lock_dir:

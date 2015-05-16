@@ -7,14 +7,15 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     package_release_keys
 from rez.serialise import clear_file_caches
 from rez.package_serialise import dump_package_data
-from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
+from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
+    ConfigurationError, PackageRepositoryError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.utils.memcached import memcached, pool_memcached_connections
 from rez.backport.lru_cache import lru_cache
-from rez.vendor.schema.schema import Schema, Optional, And, Use
+from rez.vendor.schema.schema import Schema, Optional, And, Use, Or
 from rez.vendor.version.version import Version, VersionRange
 import time
 import os.path
@@ -387,7 +388,8 @@ class FileSystemPackageRepository(PackageRepository):
                 requires:
                 - python-2.6
     """
-    schema_dict = {"file_lock_timeout": int}
+    schema_dict = {"file_lock_timeout": int,
+                   "file_lock_dir": Or(None, str)}
 
     @classmethod
     def name(cls):
@@ -447,6 +449,21 @@ class FileSystemPackageRepository(PackageRepository):
     def get_last_release_time(self, package_family_resource):
         return package_family_resource.get_last_release_time()
 
+    @cached_property
+    def file_lock_dir(self):
+        dirname = self.settings.file_lock_dir
+        if not dirname:
+            return None
+
+        path = os.path.join(self.location, dirname)
+        path_ = os.path.dirname(path)
+        if os.path.realpath(path_) != os.path.realpath(self.location):
+            raise ConfigurationError(
+                "filesystem package repository setting 'file_lock_dir' must be "
+                "a single relative directory such as '.lock'")
+
+        return os.path.basename(path)
+
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
         if variant_resource._repository is self:
             return variant_resource
@@ -455,7 +472,16 @@ class FileSystemPackageRepository(PackageRepository):
         filename = ".lock.%s" % variant_resource.name
         if variant_resource.version:
             filename += "-%s" % str(variant_resource.version)
-        lock_file = os.path.join(self.location, filename)
+
+        path = self.location
+        if self.file_lock_dir:
+            path = os.path.join(path, self.file_lock_dir)
+        if not os.path.exists(path):
+            raise PackageRepositoryError(
+                "Lockfile directory %s does not exist - please create and try "
+                "again" % path)
+
+        lock_file = os.path.join(path, filename)
         lock = LockFile(lock_file)
 
         try:
@@ -497,7 +523,7 @@ class FileSystemPackageRepository(PackageRepository):
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
             if os.path.isdir(path):
-                if is_valid_package_name(name):
+                if is_valid_package_name(name) and name != self.file_lock_dir:
                     dirs.append((name, None))
             else:
                 name_, ext_ = os.path.splitext(name)

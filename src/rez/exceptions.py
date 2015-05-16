@@ -153,6 +153,11 @@ class SuiteError(RezError):
     pass
 
 
+class PackageRepositoryError(RezError):
+    """Base class for package repository- related errors."""
+    pass
+
+
 class RezGuiQTImportError(ImportError):
     """A special case - see cli/gui.py
     """
