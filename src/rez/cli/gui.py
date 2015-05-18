@@ -43,7 +43,7 @@ def command(opts, parser=None, extra_arg_groups=None):
         import sys
         import os
         import os.path
-        import subprocess
+        from rez.backport.shutilwhich import which
 
         binary_filepath = os.path.realpath(sys.argv[0])
         current_bin_path = os.path.dirname(binary_filepath)
