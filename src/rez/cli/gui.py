@@ -38,8 +38,8 @@ def command(opts, parser=None, extra_arg_groups=None):
         # once more, which can cause the native 'rez-gui' binary to become
         # visible once more (and that's us here in the file you're reading!).
         #
-        # In order to fix this, here we remove ourself from PATH and attempt to
-        # run rez-gui again.
+        # In order to fix this, we find the other rez-gui binary, move its path
+        # to the front of PATH, and try again.
         import sys
         import os
         import os.path
@@ -49,20 +49,20 @@ def command(opts, parser=None, extra_arg_groups=None):
         current_bin_path = os.path.dirname(binary_filepath)
         paths = os.environ.get("PATH", "").split(os.pathsep)
 
-        # strip us out of PATH
-        new_paths = []
+        # find other rez-gui
+        reduced_paths = []
         for i, path in enumerate(paths):
             if path and (os.path.realpath(path) != current_bin_path):
-                new_paths.append(path)
+                reduced_paths.append(path)
 
-        # find other rez-gui
         env = os.environ.copy()
-        env["PATH"] = os.pathsep.join(new_paths)
-        # TODO: should this be 'rez-gui.py' on Windows?
+        env["PATH"] = os.pathsep.join(reduced_paths)
         executable = which("rez-gui", env=env)
         if not executable:
             raise e
 
         # run other gui (replaces current process)
+        new_paths = [os.path.dirname(executable)] + paths
+        env["PATH"] = os.pathsep.join(new_paths)
         executable = os.path.abspath(executable)
         os.execve(executable, sys.argv[1:], env)
