@@ -65,7 +65,6 @@ class InfoAction(_StoreTrueAction):
         sys.exit(0)
 
 
-
 def run(command=None):
     setup_logging()
 

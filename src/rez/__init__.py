@@ -1,6 +1,4 @@
 from rez.utils._version import _rez_version
-import logging.config
-import os
 
 
 __version__ = _rez_version
