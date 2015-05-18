@@ -1,11 +1,13 @@
 """
 The main command-line entry point.
 """
+import os
+import logging.config
 import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.exceptions import RezError, RezSystemError
-from rez import __version__
+from rez import __version__, module_root_path
 
 
 class SetupRezSubParser(object):
@@ -63,7 +65,15 @@ class InfoAction(_StoreTrueAction):
         sys.exit(0)
 
 
+def setup_logging():
+    logging_conf_file = os.environ.get('REZ_LOGGING_CONF',
+                                       os.path.join(module_root_path, 'logging.conf'))
+    logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
+
+
 def run(command=None):
+    setup_logging()
+
     parser = LazyArgumentParser("rez")
 
     parser.add_argument("-i", "--info", action=InfoAction,
