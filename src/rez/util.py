@@ -186,9 +186,3 @@ def deep_update(dict1, dict2):
 #def _atexit():
 #    from rez.resolved_context import ResolvedContext
 #    ResolvedContext.tmpdir_manager.clear()
-
-
-def setup_logging():
-    logging_conf_file = os.environ.get('REZ_LOGGING_CONF',
-                                       os.path.join(module_root_path, 'logging.conf'))
-    logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)

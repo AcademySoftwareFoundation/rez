@@ -6,7 +6,7 @@ import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.exceptions import RezError, RezSystemError
-from rez.util import setup_logging
+from rez.utils.logging_ import setup_logging
 from rez import __version__
 
 
