@@ -33,6 +33,14 @@ import os
 import os.path
 
 
+class RezToolsVisibility(Enum):
+    """Determines if/how rez cli tools are added back to PATH within a
+    resolved environment."""
+    never = 0               # Don't expose rez in resolved env
+    append = 1              # Append to PATH in resolved env
+    prepend = 2             # Prepend to PATH in resolved env
+
+
 class SuiteVisibility(Enum):
     """Defines what suites on $PATH stay visible when a new rez environment is
     resolved."""
@@ -1138,6 +1146,9 @@ class ResolvedContext(object):
         with open(context_file, 'w') as f:
             f.write(context_code)
 
+        quiet = quiet or (RezToolsVisibility[config.rez_tools_visibility]
+                          == RezToolsVisibility.never)
+
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
                            tmpdir,
@@ -1448,8 +1459,13 @@ class ResolvedContext(object):
         # append system paths
         executor.append_system_paths()
 
-        # prepend rez path
-        executor.prepend_rez_path()
+        # add rez path so that rez commandline tools are still available within
+        # the resolved environment
+        mode = RezToolsVisibility[config.rez_tools_visibility]
+        if mode == RezToolsVisibility.append:
+            executor.append_rez_path()
+        elif mode == RezToolsVisibility.prepend:
+            executor.prepend_rez_path()
 
     def _append_suite_paths(self, executor):
         from rez.suite import Suite

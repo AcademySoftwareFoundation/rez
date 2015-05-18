@@ -237,6 +237,14 @@ env_var_separators = {
 # - "parent_priority":  Keep all suites visible and the parent takes precedence
 suite_visibility = "always"
 
+# Defines how Rez's command line tools are added back to PATH within a resolved
+# environment. Valid values are:
+# - "append": Rez tools are appended to PATH (default);
+# - "prepend": Rez tools are prepended to PATH;
+# - "never": Rez tools are not added back to PATH - rez will not be available
+#   within resolved shells.
+rez_tools_visibility = "append"
+
 
 ###############################################################################
 # Debugging

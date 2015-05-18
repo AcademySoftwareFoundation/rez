@@ -181,6 +181,13 @@ class VariantSelectMode_(Str):
         return Or(*(x.name for x in VariantSelectMode))
 
 
+class RezToolsVisibility_(Str):
+    @cached_class_property
+    def schema(cls):
+        from rez.resolved_context import RezToolsVisibility
+        return Or(*(x.name for x in RezToolsVisibility))
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -205,6 +212,7 @@ config_schema = Schema({
     "build_directory":                              Str,
     "documentation_url":                            Str,
     "suite_visibility":                             SuiteVisibility_,
+    "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
     "tmpdir":                                       OptionalStr,
     "default_shell":                                OptionalStr,
