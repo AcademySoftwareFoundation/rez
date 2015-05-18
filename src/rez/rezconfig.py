@@ -587,7 +587,6 @@ plugins = {
                            # '^master$'.
                            'releasable_branches': [
                                                    '^master$',
-                                                   '^AL_master$',
                                                    '^hotfix',
                                                    '^release-',
                                                    '^AL_2\.0$',
