@@ -491,7 +491,7 @@ class Config(object):
         if filepath and os.path.isfile(filepath):
             filepaths.append(filepath)
 
-        filepath = os.path.expanduser("~/.rezconfig.py")
+        filepath = os.path.expanduser("~/.rezconfig")
         filepaths.append(filepath)
 
         return Config(filepaths, overrides)
@@ -681,10 +681,15 @@ def _load_config_yaml(filepath):
     with open(filepath) as f:
         content = f.read()
     try:
-        return yaml.load(content) or {}
+        doc = yaml.load(content) or {}
     except YAMLError as e:
         raise ConfigurationError("Error loading configuration from %s: %s"
                                  % (filepath, str(e)))
+
+    if not isinstance(doc, dict):
+        raise ConfigurationError("Error loading configuration from %s: Expected "
+                                 "dict, got %s" % (filepath, type(doc).__name__))
+    return doc
 
 
 def _load_config_from_filepaths(filepaths):

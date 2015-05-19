@@ -7,6 +7,7 @@ import atexit
 import os
 import os.path
 import copy
+from rez.exceptions import RezError
 from rez.utils.yaml import dump_yaml
 from rez.vendor.progress.bar import Bar
 
@@ -185,5 +186,8 @@ def deep_update(dict1, dict2):
 
 @atexit.register
 def _atexit():
-    from rez.resolved_context import ResolvedContext
-    ResolvedContext.tmpdir_manager.clear()
+    try:
+        from rez.resolved_context import ResolvedContext
+        ResolvedContext.tmpdir_manager.clear()
+    except RezError:
+        pass
