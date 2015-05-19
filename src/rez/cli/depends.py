@@ -183,8 +183,8 @@ class ReverseVersionDependenciesCollector(object):
         """
         from rez.packages_ import iter_packages
 
-        package_obj = sorted(iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
-        for requirement in package_obj.requires:
+        package_obj = sorted(packages.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
+        for requirement in package_obj.requires or []:
             if requirement.name != self._requirement_name:
                 continue
             return DisplayablePackage(
