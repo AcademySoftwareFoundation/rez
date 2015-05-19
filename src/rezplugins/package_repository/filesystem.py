@@ -47,7 +47,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
     def get_last_release_time(self):
         # this repository makes sure to update path mtime every time a
-        # variant is added to the repository [TODO: coming]
+        # variant is added to the repository
         path = os.path.join(self.location, self.name)
         try:
             return os.path.getmtime(path)

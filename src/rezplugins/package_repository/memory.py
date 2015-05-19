@@ -143,7 +143,7 @@ class MemoryPackageRepository(PackageRepository):
         Returns:
             `MemoryPackageRepository` object.
         """
-        location = "<dict at %d>" % id(repository_data)
+        location = "<dict at %s>" % hex(id(repository_data))
         resource_pool = ResourcePool(cache_size=None)
         repo = MemoryPackageRepository(location, resource_pool)
         repo.data = repository_data

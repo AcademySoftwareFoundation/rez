@@ -2,7 +2,7 @@ from rezgui.qt import QtGui
 from rezgui.util import create_pane, get_icon_widget, add_menu_action, update_font
 from rezgui.models.ContextModel import ContextModel
 from rezgui.mixins.ContextViewMixin import ContextViewMixin
-from rez.packages_ import iter_packages
+from rez.packages_ import PackageSearchPath
 from rez.package_filter import PackageFilterList
 from rez.resolved_context import PatchLock, get_lock_request
 from rez.vendor.version.requirement import RequirementList
@@ -113,16 +113,17 @@ class VariantCellWidget(QtGui.QWidget, ContextViewMixin):
             if self.variant.is_local:
                 new_icons.append(("local", "package is local"))
 
-            package_paths = self.context_model.packages_path
+            package_paths = PackageSearchPath(self.context_model.packages_path)
             package_filter = PackageFilterList.from_pod(self.context_model.package_filter)
 
-            if self.variant.wrapped.location in package_paths:
+            # TODO: move this all into a thread, it's blocking up the GUI during context load
+            if self.variant in package_paths:
                 # find all >= version packages, so we can determine tick type
                 ge_range = VersionRange.from_version(self.variant.version, ">=")
                 packages = None
                 try:
-                    it = iter_packages(name=self.variant.name, range_=ge_range,
-                                       paths=package_paths)
+                    it = package_paths.iter_packages(name=self.variant.name,
+                                                     range_=ge_range)
 
                     packages = sorted(it, key=lambda x: x.version)
                 except:
