@@ -31,8 +31,10 @@ See the 'pets' unit test in tests/test_resources.py for a complete example.
 """
 from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
     LazyAttributeMeta
+from rez.config import config
 from rez.exceptions import ResourceError
 from rez.backport.lru_cache import lru_cache
+from rez.utils.logging_ import print_debug
 
 
 class Resource(object):
@@ -83,7 +85,13 @@ class Resource(object):
 
     @cached_property
     def _data(self):
-        return self._load() if self.schema else None
+        if not self.schema:
+            return None
+
+        data = self._load()
+        if config.debug("resources"):
+            print_debug("Loaded resource: %s" % str(self))
+        return data
 
     def get(self, key, default=None):
         """Get the value of a resource variable."""

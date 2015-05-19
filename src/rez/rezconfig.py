@@ -279,7 +279,6 @@ debug_package_release = False
 debug_bind_modules = False
 
 # Print debugging info when searching and loading resources.
-# TODO update new resources system to use this
 debug_resources = False
 
 # Print packages that are excluded from the resolve, and the filter rule responsible.

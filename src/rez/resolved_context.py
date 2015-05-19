@@ -875,7 +875,7 @@ class ResolvedContext(object):
         """Returns the commandline tools available in the context.
 
         Args:
-            request_only: If True, only return the key from resolved packages
+            request_only: If True, only return the tools from resolved packages
                 that were also present in the request.
 
         Returns:
