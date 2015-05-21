@@ -1,4 +1,5 @@
 import logging
+import logging.config
 import os
 from rez import module_root_path
 
