@@ -147,6 +147,11 @@ class System(object):
                                 shell = "bash"  # fall back on bash
                             else:
                                 shell = iter(shells).next()  # give up - just choose a shell
+
+            # TODO: remove this when/if dash support added
+            if shell == "dash":
+                shell = "bash"
+
             return shell
 
     @cached_property
