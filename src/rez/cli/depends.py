@@ -2,6 +2,7 @@
 Perform a reverse package dependency lookup.
 """
 
+
 def setup_parser(parser, completions=False):
     parser.add_argument(
         "-d", "--depth", type=int,
@@ -181,7 +182,7 @@ class ReverseVersionDependenciesCollector(object):
         :return
             A displayable package object.
         """
-        from rez.packages_ import iter_packages
+        from rez import packages
 
         package_obj = sorted(packages.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
         requires = set(package_obj.requires or [])
