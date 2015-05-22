@@ -214,18 +214,15 @@ class LinuxPlatform(_UnixPlatform):
         return dict(preexec_fn=os.setpgrp)
 
     def _image_viewer(self):
-        from rez.util import which
         return which("xdg-open", "eog", "kview")
 
     def _editor(self):
         ed = os.getenv("EDITOR")
         if ed is None:
-            from rez.util import which
             ed = which("xdg-open", "vim", "vi")
         return ed
 
     def _difftool(self):
-        from rez.util import which
         return which("kdiff3", "meld", "diff")
 
 
@@ -257,6 +254,11 @@ class OSXPlatform(_UnixPlatform):
     def _editor(self):
         return "open"
 
+    def _difftool(self):
+        return which("kdiff3", "meld", "diff")
+
+    def _new_session_popen_args(self):
+        return dict(preexec_fn=os.setpgrp)
 
 # -----------------------------------------------------------------------------
 # Windows
@@ -320,6 +322,9 @@ class WindowsPlatform(Platform):
 
     def _terminal_emulator_command(self):
         return "CMD.exe /Q /K"
+
+    def _difftool(self):
+        return "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\Bin\\x64\\WinDiff.Exe"
 
 
 # singleton
