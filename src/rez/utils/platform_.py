@@ -293,18 +293,15 @@ class LinuxPlatform(_UnixPlatform):
             return "%s -hold -e" % term
 
     def _image_viewer(self):
-        from rez.util import which
         return which("xdg-open", "eog", "kview")
 
     def _editor(self):
         ed = os.getenv("EDITOR")
         if ed is None:
-            from rez.util import which
-            ed = which("vi", "vim", "xdg-open")
+            ed = which("xdg-open", "vim", "vi")
         return ed
 
     def _difftool(self):
-        from rez.util import which
         return which("kdiff3", "meld", "diff")
 
     @classmethod
@@ -447,9 +444,10 @@ class OSXPlatform(_UnixPlatform):
         return self._physical_cores_from_osx_sysctl()
 
     def _difftool(self):
-        from rez.util import which
-        return which("meld", "diff")
+        return which("kdiff3", "meld", "diff")
 
+    def _new_session_popen_args(self):
+        return dict(preexec_fn=os.setpgrp)
 
 # -----------------------------------------------------------------------------
 # Windows
@@ -543,6 +541,9 @@ class WindowsPlatform(Platform):
         # although meld would be preferred, fc ships with all Windows versions back to DOS
         from rez.util import which
         return which("meld", "fc")
+
+    def _difftool(self):
+        return "C:\\Program Files\\Microsoft SDKs\\Windows\\v7.1\\Bin\\x64\\WinDiff.Exe"
 
 
 # singleton
