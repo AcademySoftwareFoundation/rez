@@ -43,13 +43,11 @@ class LauncherHessianService(LauncherServiceInterface):
     def _setting_to_dict(self, setting):
 
         return {
-                "id": setting.id,
                 "type": self._setting_type_to_dict(setting.setting_type),
                 "name": setting.name,
                 "value": setting.value,
                 "opSystem": self._operating_system_to_dict(setting.operating_system),
                 "tags": None,
-                "sourcePresetId": setting.parent_id,
                 "lock": None,
                }
 
