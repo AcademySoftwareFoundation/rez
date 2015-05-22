@@ -182,9 +182,9 @@ class ReverseVersionDependenciesCollector(object):
         :return
             A displayable package object.
         """
-        from rez import packages
+        from rez.packages_ import iter_packages
 
-        package_obj = sorted(packages.iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
+        package_obj = sorted(iter_packages(package_family_name), reverse=True, key=lambda x: x.version)[0]
         requires = set(package_obj.requires or [])
         for package_variant in (package_obj.variants or []):
             requires |= set(package_variant)
