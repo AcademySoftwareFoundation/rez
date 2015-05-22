@@ -593,7 +593,7 @@ class ResolvedContext(object):
             buf (file-like object): Where to print this info to.
             verbosity (bool): Verbose mode.
             source_order (bool): If True, print resolved packages in the order
-                they are sources, rather than alphabetical order.
+                they are sourced, rather than alphabetical order.
         """
         _pr = Printer(buf)
 
