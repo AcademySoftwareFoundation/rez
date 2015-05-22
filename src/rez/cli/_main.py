@@ -5,6 +5,7 @@ import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
 from rez.exceptions import RezError, RezSystemError
+from rez.utils.logging_ import setup_logging
 from rez import __version__
 
 
@@ -66,6 +67,8 @@ class InfoAction(_StoreTrueAction):
 
 
 def run(command=None):
+    setup_logging()
+
     parser = LazyArgumentParser("rez")
 
     parser.add_argument("-i", "--info", action=InfoAction,
