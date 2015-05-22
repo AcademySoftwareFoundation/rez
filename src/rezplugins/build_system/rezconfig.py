@@ -3,7 +3,7 @@ import os
 
 cmake = {
     # The name of the CMake build system to use, valid options are
-    # eclipse, make, xcode and codeblocks.
+    # eclipse, make, nmake, xcode and codeblocks.
     "build_system": "make",
 
     # The name of the CMake build target to use, valid options are Debug,
@@ -12,10 +12,7 @@ cmake = {
 
     # A list of default arguments to be passed to the cmake binary.
     "cmake_args" : [
-        '-Wno-dev',
-        '-DCMAKE_ECLIPSE_GENERATE_SOURCE_PROJECT=TRUE',
-        '-D_ECLIPSE_VERSION=4.3',
-        '--no-warn-unused-cli',
+        '-DCMAKE_SKIP_RPATH=1',
     ],
 
     # Optionally specify an explicit cmake executable to use for building.
