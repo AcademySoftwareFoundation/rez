@@ -10,8 +10,8 @@ fields = sorted((
     'pre_commands', 'tools', 'uuid', 'build_requires', 'version', 'timestamp',
     'release_message', 'private_build_requires', 'revision', 'description',
     'base', 'authors', 'variants', 'commands', 'name', 'changelog',
-    'post_commands', 'requires', 'root', 'index', 'uri', 'num_variants',
-    'qualified_name'))
+    'post_commands', 'requires', 'root', 'repository_path', 'repository_type',
+    'index', 'uri', 'num_variants', 'qualified_name'))
 
 
 def setup_parser(parser, completions=False):
@@ -79,6 +79,7 @@ def command(opts, parser, extra_arg_groups=None):
     import os.path
     import fnmatch
     import sys
+    from collections import defaultdict
 
     error_class = None if opts.debug else RezError
 
@@ -121,17 +122,24 @@ def command(opts, parser, extra_arg_groups=None):
 
     # families
     found = False
-    family_names = []
+    family_names = set()
+    seen = set()
+
     families = iter_package_families(paths=pkg_paths)
     if opts.sort:
         families = sorted(families, key=lambda x: x.name)
     for family in families:
-        if family.name not in family_names and \
-                fnmatch.fnmatch(family.name, name_pattern):
-            family_names.append(family.name)
+        loc = (family.wrapped.repository_type, family.name)
+        if loc not in seen and fnmatch.fnmatch(family.name, name_pattern):
+            seen.add(loc)
+            family_names.add(family.name)
             if type_ == "auto":
                 type_ = "package" if family.name == name_pattern else "family"
             if type_ == "family":
+                # here we should print considering families
+                # could be have the same name but
+                # come from between different repos
+                # print loc
                 print family.name
                 found = True
 
@@ -150,6 +158,7 @@ def command(opts, parser, extra_arg_groups=None):
             lines = txt.split("\\n")
             for line in lines:
                 try:
+                    # print r.format
                     line_ = r.format(line)
                 except error_class as e:
                     _handle(e)

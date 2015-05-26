@@ -428,7 +428,7 @@ def positional_number_string(n):
 
 def expanduser(path):
     """Expand paths beginning with '~'.
-    
+
     True story... the implementation of os.path.expanduser differs between
     Windows (nt) and Linux (posix).  On posix platforms the `pwd` module is
     used so '~foo' will only expand if 'foo' is a valid user.  This is nice. On

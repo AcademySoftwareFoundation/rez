@@ -63,8 +63,6 @@ class TestPackages(TestBase, TempdirMixin):
 
     @classmethod
     def tearDownClass(cls):
-        repo_path = "mongo:%s" % os.path.join(cls.root, "packages")
-        package_repository_manager.get_repository(repo_path).packages.drop()
         TempdirMixin.tearDownClass()
 
     def test_1(self):
@@ -258,10 +256,13 @@ class TestPackages(TestBase, TempdirMixin):
         if not os.path.exists(_repo_path):
             os.makedirs(_repo_path)
 
+
         for repo in get_package_repository_types():
-            location = "%s:%s" % (repo, _repo_path)
+            location = "%s@%s" % (repo, _repo_path)
             try:
                 _install(location)
+                if repo == 'mongo':
+                    package_repository_manager.get_repository(location).packages.drop()
             except NotImplementedError:
                 pass
 

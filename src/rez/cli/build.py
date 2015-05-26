@@ -51,6 +51,10 @@ def setup_parser(parser, completions=False):
         "-p", "--prefix", type=str, metavar='PATH',
         help="install to a custom path.")
     parser.add_argument(
+        "-r", "--repo-prefix", dest="repo_prefix", type=str, metavar='PATH',
+        help="install to a custom repository location. "
+            "for example: mongo@host=localhost,db=local,port=27017,namespace=/svr/packages.")
+    parser.add_argument(
         "--fail-graph", action="store_true",
         help="if the build environment fails to resolve due to a conflict, "
         "display the resolve graph as an image.")
@@ -107,6 +111,7 @@ def command(opts, parser, extra_arg_groups=None):
 
     try:
         builder.build(install_path=opts.prefix,
+                      repo_path=opts.repo_prefix,
                       clean=opts.clean,
                       install=opts.install,
                       variants=opts.variants)

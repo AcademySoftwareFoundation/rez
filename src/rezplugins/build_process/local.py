@@ -3,7 +3,7 @@ Builds packages on local host
 """
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
-from rez.exceptions import BuildError, ReleaseError
+from rez.exceptions import BuildError
 from rez.utils.colorize import Printer, warning
 import shutil
 import os
@@ -18,7 +18,7 @@ class LocalBuildProcess(BuildProcessHelper):
     def name(cls):
         return "local"
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path=None, repo_path=None, clean=False, install=False, variants=None):
         self._print_header("Building %s..." % self.package.qualified_name)
 
         # build variants
@@ -26,6 +26,7 @@ class LocalBuildProcess(BuildProcessHelper):
             self._build_variant,
             variants=variants,
             install_path=install_path,
+            repo_path=repo_path,
             clean=clean,
             install=install)
 
@@ -46,7 +47,6 @@ class LocalBuildProcess(BuildProcessHelper):
         release_path = self.package.config.release_packages_path
         release_data = self.get_release_data()
         changelog = release_data.get("changelog")
-        revision = release_data.get("revision")
         previous_version = release_data.get("previous_version")
         previous_revision = release_data.get("previous_revision")
 
@@ -135,13 +135,18 @@ class LocalBuildProcess(BuildProcessHelper):
 
         return build_result
 
-    def _build_variant(self, variant, install_path=None, clean=False,
+    def _build_variant(self, variant, install_path=None, repo_path=None, clean=False,
                        install=False, **kwargs):
         if variant.index is not None:
             self._print_header("Building variant %s..." % self._n_of_m(variant))
 
         # build and possibly install variant
+
         install_path = install_path or self.package.config.local_packages_path
+        repo_path = repo_path or self.package.config.local_packages_repository_path
+        if repo_path.endswith('@'):
+            repo_path += install_path
+
         build_result = self._build_variant_base(
             build_type=BuildType.local,
             variant=variant,
@@ -151,15 +156,16 @@ class LocalBuildProcess(BuildProcessHelper):
 
         # install variant into package repository
         if install:
-            variant.install(install_path)
+            variant.install(repo_path)
 
         return build_result.get("build_env_script")
 
     def _release_variant(self, variant, release_message=None, **kwargs):
         release_path = self.package.config.release_packages_path
+        repo_path = self.package.config.release_packages_repository_path
 
         # test if variant has already been released
-        variant_ = variant.install(release_path, dry_run=True)
+        variant_ = variant.install(repo_path, dry_run=True)
         if variant_ is not None:
             self._print_header("Skipping %s: destination variant already exists (%r)"
                                % (self._n_of_m(variant), variant_.uri))
@@ -179,7 +185,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # add release info to variant, and install it into package repository
         release_data = self.get_release_data()
         release_data["release_message"] = release_message
-        variant_ = variant.install(release_path, overrides=release_data)
+        variant_ = variant.install(repo_path, overrides=release_data)
         return variant_
 
 

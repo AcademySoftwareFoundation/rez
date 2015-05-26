@@ -5,7 +5,6 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
 from rez.package_serialise import dump_package_data
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
-from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError
@@ -13,7 +12,6 @@ from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
-from rez.system import system
 import os.path
 import sys
 
@@ -61,6 +59,14 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     @property
     def uri(self):
         return self.resource.uri
+
+    @cached_property
+    def repository_path(self):
+        return str(self.resource._repository.name() + '@' + self.resource._repository.location)
+
+    @cached_property
+    def repository_type(self):
+        return str(self.resource._repository.name())
 
     @property
     def config(self):
@@ -313,7 +319,7 @@ def iter_packages(name, range_=None, paths=None):
     seen = set()
     for repo, family_resource in entries:
         for package_resource in repo.iter_packages(family_resource):
-            key = (package_resource.name, package_resource.version)
+            key = (package_resource.repository_type, package_resource.name, package_resource.version)
             if key in seen:
                 continue
 

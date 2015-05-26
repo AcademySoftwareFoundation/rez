@@ -1,25 +1,20 @@
 from rez.vendor.version.requirement import VersionedObject
 from rez.package_repository import PackageRepository
+from rez.package_serialise import package_serialise_schema
 from rez.package_resources_ import PackageFamilyResource, VariantResourceHelper,\
     PackageResourceHelper, package_pod_schema, package_release_keys
-
-from rez.package_maker__ import package_schema
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError
 from rez.utils.formatting import is_valid_package_name
 from rez.utils.resources import cached_property
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
+import datetime
 import time
 import os.path
 import os
-# from pprint import pprint as pp
-
-import pickle
-import sys
-sys.path.insert(1, '/home/fpiparo2/packages/pymongo/2.8/platform-linux/arch-x86_64/os-Ubuntu-12.04/python-2.7.3/libpython/')
 
 from pymongo import MongoClient
-from bson.binary import Binary
+
 
 class PackageDefinitionFileMissing(PackageMetadataError):
     pass
@@ -29,9 +24,11 @@ class PackageDefinitionFileMissing(PackageMetadataError):
 #------------------------------------------------------------------------------
 
 
-name_only = {'_id': 0, 'versions': 0, 'data': 0}
-name_versions = {'_id': 0, 'data': 0}
-name_versions_data = {'data': 1, '_id': 0}
+name_only = {'_id': 0, 'payload': 0, 'date': 0, 'payload.data': 0}
+name_versions = {'_id': 0, 'date': 0, 'payload.data': 0}
+name_date = {'_id': 0, 'payload': 0}
+name_versions_date = {'_id': 0, 'payload.data': 0}
+name_versions_date_data = {'_id': 0}
 
 
 class MongoPackageFamilyResource(PackageFamilyResource):
@@ -46,32 +43,21 @@ class MongoPackageFamilyResource(PackageFamilyResource):
         return os.path.join(self.location, self.name)
 
     def get_last_release_time(self):
-        # this repository makes sure to update path mtime every time a
-        # variant is added to the repository [TODO: coming]
-        path = os.path.join(self.location, self.name)
+        data = self._repository.packages.find_one({'name': self.name}, name_date) or {}
         try:
-            return os.path.getmtime(path)
-        except OSError:
+            return time.mktime(data.get('date').timetuple())
+        except AttributeError:
             return 0
 
     def iter_packages(self):
         data = self._repository.packages.find_one({'name': self.name}, name_versions) or {}
-        # check for unversioned package
-        if 'versions' not in data:
-            package = self._repository.get_resource(
-                MongoPackageResource.key,
-                location=self.location,
-                name=self.name)
-            yield package
-            return
 
-        # versioned packages
-        for version_str in data.get('versions', {}):
+        for d in data.get('payload', []):
             package = self._repository.get_resource(
                 MongoPackageResource.key,
                 location=self.location,
                 name=self.name,
-                version=version_str)
+                version=d['version'])
             yield package
 
 
@@ -87,7 +73,7 @@ class MongoPackageResource(PackageResourceHelper):
 
     @property
     def base(self):
-        return self.location
+        return "%s:%s" % (self.location, self.name)
 
     def iter_variants(self):
         num_variants = len(self._data.get("variants", []))
@@ -115,11 +101,15 @@ class MongoPackageResource(PackageResourceHelper):
         return family
 
     def _load(self):
-        family_data = self._repository.packages.find_one({'name': self.name}, name_versions_data) or {}
-        package_data = pickle.loads(family_data.get('data', {}))
-        package_data = package_schema.validate(package_data)
+        family_data = self._repository.packages.find_one({'name': self.name
+                                                          }, name_versions_date_data) or {}
 
-        return package_data
+        payload_data = family_data.get('payload', [])
+        version_data = None
+        expected_version = self.get("version")
+        for f in payload_data:
+            if expected_version == f['version']:
+                return f.get('data', {})
 
 
 class MongoVariantResource(VariantResourceHelper):
@@ -154,10 +144,11 @@ class MongoPackageRepository(PackageRepository):
          location (str): Path containing the package repository.
         """
         # mongo:host=svr,port=1001,namespace=/svr/packages
+
         settings = config.plugins.package_repository.mongo
         parts = location.split(',', 3)
 
-        host, port, ns = [settings.host, settings.port, None]
+        host, db_name, port, ns = [settings.host, settings.db_name, settings.port, None]
         for part in parts:
             args = part.split('=', 2)
             if len(args) != 2:
@@ -165,30 +156,32 @@ class MongoPackageRepository(PackageRepository):
             k, v = args[0], args[1]
             if k.startswith('host'):
                 host = str(v)
+            elif k.startswith('db'):
+                db_name = str(v)
             elif k.startswith('port'):
                 port = int(v)
             elif k.startswith('namespace'):
                 ns = str(v)
 
         if not ns:
-            if len(parts) == 1:
+            if len(parts) == 1 and parts[0]:
                 ns = location
             else:
                 raise RuntimeError
 
         client = MongoClient(host, port)
-        db = client[settings.db_name]
+        db = client[db_name]
+
         self.packages = db[ns]
 
-        super(MongoPackageRepository, self).__init__(location, resource_pool)
+        qualified_location = "host=%s,db=%s,port=%s,namespace=%s" % (host, db_name, port, ns)
+        super(MongoPackageRepository, self).__init__(qualified_location, resource_pool)
         self.register_resource(MongoPackageFamilyResource)
         self.register_resource(MongoPackageResource)
         self.register_resource(MongoVariantResource)
 
     def _uid(self):
-        # st = os.stat(self.location)
-        #st.st_ino
-        return ("mongo", self.location)
+        return (self.location)
 
     def get_package_family(self, name):
         return self._get_family(name)
@@ -240,14 +233,14 @@ class MongoPackageRepository(PackageRepository):
             family = self.get_resource(
                 MongoPackageFamilyResource.key,
                 location=self.location,
-                name=name)
+                name=name['name'])
             families.append(family)
         return families
 
     @lru_cache(maxsize=None)
     def _get_family(self, name):
         is_valid_package_name(name, raise_error=True)
-        pkg = self.packages.find_one({'name': name}, {'_id': 0, 'versions': 0, 'data': 0})
+        pkg = self.packages.find_one({'name': name}, name_only)
         if pkg:
             family = self.get_resource(
                 MongoPackageFamilyResource.key,
@@ -272,12 +265,13 @@ class MongoPackageRepository(PackageRepository):
     def _create_variant(self, variant, dry_run=False, overrides=None):
         # find or create the package family
         family = self.get_package_family(variant.name)
+        was_new = False
         if not family:
+            was_new = True
             family = self._create_family(variant.name)
 
         # find the package if it already exists
         existing_package = None
-
         for package in self.iter_packages(family):
             if package.version == variant.version:
                 # during a build, the family/version dirs get created ahead of
@@ -352,6 +346,8 @@ class MongoPackageRepository(PackageRepository):
                 if variant_requires_ == variant_requires:
                     installed_variant_index = variant_.index
                     if dry_run and not package_changed:
+                        # we should stop here and not install
+                        # even when not in dry_run but some UT fails
                         return variant_
                     break
 
@@ -370,6 +366,8 @@ class MongoPackageRepository(PackageRepository):
             package_data = new_package_data
 
         if dry_run:
+            if was_new:
+                self.packages.drop()
             return None
 
         # merge existing release data (if any) into the package. Note that when
@@ -399,22 +397,37 @@ class MongoPackageRepository(PackageRepository):
 
         package_data = dict((k, v) for k, v in package_data.iteritems() if v is not None)
         package = {'name': variant.name}
-        out = package.copy()
-        versions = str(variant.version)
-        out.update({'versions': versions})
-        data = {'data': Binary(pickle.dumps(package_data, protocol=2))}
-        out.update(data)
+        version = str(variant.version)
+        data = package_serialise_schema.validate(package_data)
 
-        # print "FIND_AND_MODIFY"
-        # pp(package_data)
+        latest_package_payload_per_version = -1
+        db_pkg = self.packages.find_one(package).get('payload', [])
+        if db_pkg:
+            # find the latest version data in the array
+            # and set it with the new information
+            version_data = None
+            expected_version = str(variant.version)
+            for c, f in enumerate(db_pkg):
+                if expected_version == f['version']:
+                    latest_package_payload_per_version = c
 
-        self.packages.find_and_modify(package,
-                                      {'$set': data,
-                                       '$addToSet': {'versions': versions}},
-                                      upsert=True)
+        if latest_package_payload_per_version == -1:
+            db_pkg.append( {'version': version,
+                            'data': data
+                            }
+                         )
+        else:
+            db_pkg[latest_package_payload_per_version] = {'version': version,
+                                                          'data': data
+                                                         }
 
-        # touch the family dir, this keeps memcached resolves updated properly
-        # os.utime(family_path, None)
+        # utcnow() is the equivalent of touch[ing] the family dir for the filesystem repo.
+        # this keeps memcached resolves updated properly
+        self.packages.update(package,
+                            {
+                             '$set': {'date': datetime.datetime.utcnow(),
+                                      'payload': db_pkg}},
+                            upsert=True)
 
         # load new variant
         new_variant = None

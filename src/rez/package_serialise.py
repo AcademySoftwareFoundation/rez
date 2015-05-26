@@ -41,7 +41,7 @@ version_schema = Or(basestring, And(Version, Use(str)))
 package_request_schema = Or(basestring, And(PackageRequest, Use(str)))
 
 
-source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
+source_code_schema = Or(basestring, And(SourceCode, Use(str)))
 
 
 # package serialisation schema

@@ -81,16 +81,19 @@ class BuildProcess(object):
         self.build_path = os.path.join(self.working_dir,
                                        self.package.config.build_directory)
 
-    def build(self, install_path=None, clean=False, install=False, variants=None):
+    def build(self, install_path=None, repository_path=None, clean=False, install=False, variants=None):
         """Perform the build process.
 
         Iterates over the package's variants, resolves the environment for
         each, and runs the build system within each resolved environment.
 
         Args:
-            install_path (str): The package repository path to install the
+            install_path (str): The filesystem package repository path to install the
                 package to, if installing. If None, defaults to
                 `config.local_packages_path`.
+            repository_path (str): The package repository location to install the
+                package to, if installing. If None, defaults to
+                `config.local_packages_repository_path` or filesystem@config.local_packages_path .
             clean (bool): If True, clear any previous build first. Otherwise,
                 rebuild over the top of a previous build.
             install (bool): If True, install the build.

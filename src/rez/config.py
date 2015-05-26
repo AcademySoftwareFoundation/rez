@@ -187,6 +187,8 @@ config_schema = Schema({
     "memcached_uri":                                OptionalStrList,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
+    "local_packages_repository_path":               Str,
+    "release_packages_repository_path":             Str,
     "dot_image_format":                             Str,
     "build_directory":                              Str,
     "documentation_url":                            Str,
