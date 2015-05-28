@@ -22,10 +22,12 @@ def setup_parser(parser, completions=False):
 
 
 def poll(client, interval):
+    from rez.utils.memcached import Client
     import time
 
     prev_entry = None
-    print "%-64s %-16s %-16s" % ("SERVER", "GET/s", "SET/s")
+    print "%-64s %-16s %-16s %-16s %-16s %-16s" \
+        % ("SERVER", "CONNS", "GET/s", "SET/s", "TEST_GET", "TEST_SET")
 
     while True:
         stats = dict(client.get_stats())
@@ -38,12 +40,28 @@ def poll(client, interval):
             dt = t - prev_t
             for instance, payload in stats.iteritems():
                 prev_payload = prev_stats.get(instance)
-                if prev_payload:
+                if payload and prev_payload:
+                    # stats
                     gets = int(payload["cmd_get"]) - int(prev_payload["cmd_get"])
                     sets = int(payload["cmd_set"]) - int(prev_payload["cmd_set"])
                     gets_per_sec = gets / dt
                     sets_per_sec = sets / dt
-                    print "%-64s %-16g %-16g" % (instance, gets_per_sec, sets_per_sec)
+
+                    # test get/set
+                    uri = instance.split()[0]
+                    client = Client([uri], debug=True)
+                    t1 = time.time()
+                    client.set("__TEST__", 1)
+                    t2 = time.time()
+                    test_set = t2 - t1
+                    client.get("__TEST__")
+                    test_get = time.time() - t2
+
+                    nconns = int(payload["curr_connections"])
+
+                    print "%-64s %-16d %-16g %-16g %-16g %-16g" \
+                        % (instance, nconns, gets_per_sec, sets_per_sec,
+                           test_get, test_set)
 
         prev_entry = entry
         time.sleep(interval)
@@ -52,12 +70,13 @@ def poll(client, interval):
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
     from rez.utils.yaml import dump_yaml
-    from rez.utils.memcached import get_memcached_client
+    from rez.utils.memcached import Client
     from rez.utils.formatting import columnise, readable_time_duration, \
         readable_memory_size
     import sys
 
-    memcache_client = get_memcached_client()
+    memcache_client = Client(servers=config.memcached_uri,
+                             debug=config.debug_memcache)
 
     if not memcache_client:
         print >> sys.stderr, "memcaching is not enabled."
@@ -77,17 +96,22 @@ def command(opts, parser, extra_arg_groups=None):
         print "memcached servers are stat reset."
         return
 
+    def _fail():
+        print >> sys.stderr, "memcached servers are not responding."
+        sys.exit(1)
+
     stats = memcache_client.get_stats()
     if opts.stats:
         if stats:
             txt = dump_yaml(stats)
             print txt
+        else:
+            _fail()
         return
 
     # print stats summary
     if not stats:
-        print >> sys.stderr, "memcached servers are not responding."
-        sys.exit(1)
+        _fail()
 
     rows = [["CACHE SERVER", "UPTIME", "HITS", "MISSES", "HIT RATIO", "MEMORY", "USED"],
             ["------------", "------", "----", "------", "---------", "------", "----"]]

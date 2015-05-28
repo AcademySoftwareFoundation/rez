@@ -260,6 +260,53 @@ class Variant(PackageBaseResourceWrapper):
             return Variant(resource)
 
 
+class PackageSearchPath(object):
+    """A list of package repositories.
+
+    For example, $REZ_PACKAGES_PATH refers to a list of repositories.
+    """
+    def __init__(self, packages_path):
+        """Create a package repository list.
+
+        Args:
+            packages_path (list of str): List of package repositories.
+        """
+        self.paths = packages_path
+
+    def iter_packages(self, name, range_=None):
+        """See `iter_packages`.
+
+        Returns:
+            `Package` iterator.
+        """
+        for package in iter_packages(name=name, range_=range_, paths=self.paths):
+            yield package
+
+    def __contains__(self, package):
+        """See if a package is in this list of repositories.
+
+        Note:
+            This does not verify the existance of the resource, only that the
+            resource's repository is in this list.
+
+        Args:
+            package (`Package` or `Variant`): Package to search for.
+
+        Returns:
+            bool: True if the resource is in the list of repositories, False
+            otherwise.
+        """
+        return (package.resource._repository.uid in self._repository_uids)
+
+    @cached_property
+    def _repository_uids(self):
+        uids = set()
+        for path in self.paths:
+            repo = package_repository_manager.get_repository(path)
+            uids.add(repo.uid)
+        return uids
+
+
 #------------------------------------------------------------------------------
 # resource acquisition functions
 #------------------------------------------------------------------------------

@@ -8,6 +8,7 @@ from rez.util import shlex_join, dedup
 from rez.utils.colorize import critical, heading, local, implicit, Printer
 from rez.utils.formatting import columnise, PackageRequest
 from rez.utils.filesystem import TempDirs
+from rez.utils.memcached import pool_memcached_connections
 from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
@@ -30,6 +31,14 @@ import time
 import sys
 import os
 import os.path
+
+
+class RezToolsVisibility(Enum):
+    """Determines if/how rez cli tools are added back to PATH within a
+    resolved environment."""
+    never = 0               # Don't expose rez in resolved env
+    append = 1              # Append to PATH in resolved env
+    prepend = 2             # Prepend to PATH in resolved env
 
 
 class SuiteVisibility(Enum):
@@ -576,6 +585,7 @@ class ResolvedContext(object):
             d["removed_packages"] = removed_packages
         return d
 
+    @pool_memcached_connections
     def print_info(self, buf=sys.stdout, verbosity=0, source_order=False):
         """Prints a message summarising the contents of the resolved context.
 
@@ -865,7 +875,7 @@ class ResolvedContext(object):
         """Returns the commandline tools available in the context.
 
         Args:
-            request_only: If True, only return the key from resolved packages
+            request_only: If True, only return the tools from resolved packages
                 that were also present in the request.
 
         Returns:
@@ -1136,6 +1146,9 @@ class ResolvedContext(object):
         with open(context_file, 'w') as f:
             f.write(context_code)
 
+        quiet = quiet or (RezToolsVisibility[config.rez_tools_visibility]
+                          == RezToolsVisibility.never)
+
         # spawn the shell subprocess
         p = sh.spawn_shell(context_file,
                            tmpdir,
@@ -1318,6 +1331,7 @@ class ResolvedContext(object):
                            parent_environ=parent_environ,
                            parent_variables=parent_vars)
 
+    @pool_memcached_connections
     def _execute(self, executor):
         br = '#' * 80
         br_minor = '-' * 80
@@ -1445,8 +1459,13 @@ class ResolvedContext(object):
         # append system paths
         executor.append_system_paths()
 
-        # prepend rez path
-        executor.prepend_rez_path()
+        # add rez path so that rez commandline tools are still available within
+        # the resolved environment
+        mode = RezToolsVisibility[config.rez_tools_visibility]
+        if mode == RezToolsVisibility.append:
+            executor.append_rez_path()
+        elif mode == RezToolsVisibility.prepend:
+            executor.prepend_rez_path()
 
     def _append_suite_paths(self, executor):
         from rez.suite import Suite

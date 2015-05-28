@@ -3,6 +3,7 @@ Abstraction for PyQt/PySide import.
 """
 import sys
 from rez.config import config
+from rez.exceptions import RezGuiQTImportError
 from rez.utils.lint_helper import used
 
 
@@ -31,8 +32,9 @@ if USE_PYSIDE is None:
                 used(PySide)
                 USE_PYSIDE = True
             except ImportError:
-                raise Exception("rez-gui requires either PyQt4 or PySide; "
-                                "neither package could be imported.")
+                raise RezGuiQTImportError(
+                    "rez-gui requires either PyQt4 or PySide; "
+                    "neither package could be imported.")
 
 if USE_PYSIDE:
     from PySide import QtGui, QtCore

@@ -35,7 +35,8 @@ def prune_graph(graph_str, package_name):
         if attr:
             label = attr[0][1]
             try:
-                request = PackageRequest(label)
+                req_str = _request_from_label(label)
+                request = PackageRequest(req_str)
             except PackageRequestError:
                 continue
 
@@ -126,3 +127,8 @@ def _write_graph(graph_str, dest_file=None):
     print "rendering image to " + dest_file + "..."
     save_graph(graph_str, dest_file)
     return dest_file
+
+
+# converts string like '"PyQt-4.8.0[1]"' to 'PyQt-4.8.0'
+def _request_from_label(label):
+    return label.strip('"').strip("'").rsplit('[', 1)[0]

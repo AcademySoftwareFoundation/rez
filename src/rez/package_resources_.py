@@ -4,7 +4,7 @@ from rez.utils.logging_ import print_warning
 from rez.utils.data_utils import cached_property, SourceCode, \
     AttributeForwardMeta, LazyAttributeMeta
 from rez.utils.formatting import PackageRequest
-from rez.exceptions import ResourceError, PackageMetadataError
+from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
 from rez.vendor.version.version import Version
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
@@ -374,7 +374,13 @@ class VariantResourceHelper(VariantResource):
         if self.index is None:
             return None
         else:
-            reqs = self.parent.variants[self.index]
+            try:
+                reqs = self.parent.variants[self.index]
+            except IndexError:
+                raise ResourceError(
+                    "Unexpected error - variant %s cannot be found in its "
+                    "parent package %s" % (self.uri, self.parent.uri))
+
             dirs = [x.safe_str() for x in reqs]
             subpath = os.path.join(*dirs)
             return subpath

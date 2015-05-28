@@ -17,7 +17,6 @@ http://bugs.python.org/issue14373
 
 from functools import update_wrapper
 from threading import RLock
-from inspect import ismethod as ismethod_
 
 
 def _make_key(args, kwds):
