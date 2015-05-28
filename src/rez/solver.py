@@ -669,6 +669,7 @@ class _PackageVariantSlice(_Common):
         """Sort variants from most correct to consume, to least.
 
         Sort rules:
+
         version_priority:
         - sort by highest versions of packages shared with request;
         - THEN least number of additional packages added to solve;
@@ -678,11 +679,7 @@ class _PackageVariantSlice(_Common):
 
         intersection_priority:
         - sort by highest number of packages shared with request;
-        - THEN highest versions of packages shared with request;
-        - THEN least number of additional packages added to solve;
-        - THEN highest versions of additional packages;
-        - THEN alphabetical on name of additional packages;
-        - THEN variant index.
+        - THEN sort according to version_priority
 
         Note:
             In theory 'variant.index' should never factor into the sort unless
@@ -694,37 +691,42 @@ class _PackageVariantSlice(_Common):
             Assumes self.variants is already in version-descending order.
         """
         def key(variant):
-            k1 = []
+            requested_key = []
             names = set()
             for i, request in enumerate(package_requests):
                 if not request.conflict:
                     req = variant.requires_list.get(request.name)
                     if req is not None:
-                        k1.append((-i, req.range))
+                        requested_key.append((-i, req.range))
                         names.add(req.name)
 
-            k2 = []
+            additional_key = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    k2.append((request.range, request.name))
+                    additional_key.append((request.range, request.name))
 
             if config.variant_select_mode == VariantSelectMode.version_priority:
-                k = (k1, -len(k2), k2, variant.index)
+                k = (requested_key,
+                     -len(additional_key),
+                     additional_key,
+                     variant.index)
             else:  # VariantSelectMode.intersection_priority
-                k = (len(k1), k1, -len(k2), k2, variant.index)
+                k = (len(requested_key),
+                     requested_key,
+                     -len(additional_key),
+                     additional_key,
+                     variant.index)
 
             return k
 
-        variants2 = []
+        resorted_variants = []
         for _, it in groupby(self.variants, lambda x: x.version):
-            variants3 = list(it)
-            if len(variants3) == 1:
-                variants2.extend(variants3)
-            else:
-                variants4 = sorted(variants3, key=key, reverse=True)
-                variants2.extend(variants4)
+            version_variants = list(it)
+            if len(version_variants) != 1:
+                version_variants.sort(key=key, reverse=True)
+            resorted_variants.extend(version_variants)
 
-        self.variants = variants2
+        self.variants = resorted_variants
 
     def dump(self):
         print self.package_name
