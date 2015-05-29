@@ -12,6 +12,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.vendor.version.version import VersionRange
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 from inspect import ismodule
@@ -166,6 +167,29 @@ class OptionalDictOrDictList(Setting):
     _env_var_name = None
 
 
+class VersionPriorityDict(Setting):
+    schema = Or(And(None, Use(lambda x: {})),
+                Schema({
+                    str: And(
+                        [Or(
+                                # Allow False, or "", which is converted to
+                                # False
+                                lambda x: x is False,
+                                And(lambda x: isinstance(x, basestring)
+                                              and not x,
+                                    Use(bool)),
+                                # Or a VersionRange,
+                                VersionRange,
+                                # ...or value which can be converted to a
+                                # VersionRange
+                                And(basestring, Use(VersionRange)),
+                                And(Or(int, float), Use(str),
+                                    Use(VersionRange)))],
+                        # Verify that there's at most one False
+                        lambda x: x.count(False) <= 1)
+                })
+    )
+
 class SuiteVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -314,6 +338,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
+    "version_priorities":                           VersionPriorityDict,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings
