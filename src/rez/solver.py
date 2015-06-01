@@ -427,7 +427,6 @@ class _PackageVariantList(_Common):
         self.package_filter = package_filter
         self.building = building
         self.package_load_callback = package_load_callback
-        self.variants = []
 
         # note: we do not apply package filters here, because doing so might
         # cause package loads (eg, timestamp rules). We only apply filters
