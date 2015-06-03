@@ -141,6 +141,26 @@ prune_failed_graph = True
 #   present in the request;
 # - intersection_priority: Prefer variants that contain the most number of
 #   packages that are present in the request.
+#
+# As an example, suppose you have a package foo which has two variants:
+#
+#    ["bar-3.0", "baz-2.1"], ["bar-2.8", "burgle-1.0"]
+# if you do:
+#
+#    rez-env foo bar
+#
+# ...then, in either variant_select_mode, it will prefer the first variant,
+# ["bar-3.0", "baz-2.1"], because it has a higher version of the first variant
+# requirement (bar). However, if we instead do:
+#
+#    rez-env foo bar burgle
+#
+# ...we get different behavior. version_priority mode will still return
+# ["bar-3.0", "baz-2.1"], because the first requirement's version is higher.
+#
+# However, intersection_priority mode will pick the second variant,
+# ["bar-2.8", "burgle-1.0"], because it contains more packages that were in the
+# original request (burgle).
 variant_select_mode = "version_priority"
 
 # Package filter. One or more filters can be listed, each with a list of
