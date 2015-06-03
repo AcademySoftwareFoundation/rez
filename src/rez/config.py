@@ -338,7 +338,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
-    "version_priorities":                           VersionPriorityDict,
+    "version_priority":                             VersionPriorityDict,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings

@@ -374,8 +374,8 @@ def _package_version_sort_key(family_name, version, sort_key_cache):
     if key is not None:
         return key
 
-    version_priorities = config.version_priorities.get(family_name, [])
-    ver_key = _package_version_sort_key2(version_priorities, version)
+    version_priority = config.version_priority.get(family_name, [])
+    ver_key = _package_version_sort_key2(version_priority, version)
 
     # need to make sure that we always sort first by package, then by
     # version; this ensures that versions for the same package are always
@@ -387,34 +387,34 @@ def _package_version_sort_key(family_name, version, sort_key_cache):
     family_cache[version] = key
     return key
 
-def _package_version_sort_key2(version_priorities, version):
+def _package_version_sort_key2(version_priority, version):
     if isinstance(version, VersionRange):
-        return tuple(_package_version_sort_key2(version_priorities, bound)
+        return tuple(_package_version_sort_key2(version_priority, bound)
                      for bound in version.bounds)
     elif isinstance(version, _Bound):
         return (
-            _package_version_sort_key2(version_priorities, version.lower),
-            _package_version_sort_key2(version_priorities, version.upper),
+            _package_version_sort_key2(version_priority, version.lower),
+            _package_version_sort_key2(version_priority, version.upper),
         )
     elif isinstance(version, (_LowerBound, _UpperBound)):
         ver, inclusive_key = version._sort_key()[1]
         return (
-            _package_version_sort_key2(version_priorities, ver),
+            _package_version_sort_key2(version_priority, ver),
             inclusive_key,
         )
     elif isinstance(version, Version):
         # finally, the bit that we actually use the version_sort_order for...
 
         default_key = -1
-        for sort_order_index, range in enumerate(version_priorities):
-            # in the config, version_priorities are given in decreasing
+        for sort_order_index, range in enumerate(version_priority):
+            # in the config, version_priority is given in decreasing
             # priority order... however, we want a sort key that sorts in the
             #  same way that versions do - where higher values are higher
             # priority - so we need to take the inverse of the index
-            sort_key = len(version_priorities) - sort_order_index
+            sort_key = len(version_priority) - sort_order_index
             if range in (False, ""):
                 if default_key is not -1:
-                    raise ValueError("version_priorities may only have one "
+                    raise ValueError("version_priority may only have one "
                                      "False / empty value")
                 default_key = sort_key
                 continue
@@ -625,8 +625,8 @@ class _PackageVariantSlice(_Common):
         return not self.extracted_fams.issuperset(self.common_fams)
 
     @cached_property
-    def has_custom_version_priorities(self):
-        return self.package_name in config.version_priorities
+    def has_custom_version_priority(self):
+        return self.package_name in config.version_priority
 
     def intersect(self, range):
         """Remove variants whos version fall outside of the given range."""
@@ -638,7 +638,7 @@ class _PackageVariantSlice(_Common):
 
         variants = []
         it = groupby(self.variants, lambda x: x.version)
-        if self.has_custom_version_priorities:
+        if self.has_custom_version_priority:
             # if we're using custom priorities, then the order of self.variants
             # may not be in standard version order, so we can't use
             # range.contains_versions (which requires items to be pre-sorted by
@@ -792,7 +792,7 @@ class _PackageVariantSlice(_Common):
 
         Note:
             For the purposes of this sorting, "higest versions" may be
-            customized by the "version_priorities" config setting,
+            customized by the "version_priority" config setting,
             on a per-family basis
         """
         def key(variant):

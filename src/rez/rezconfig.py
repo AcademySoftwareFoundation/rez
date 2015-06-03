@@ -208,7 +208,7 @@ variant_select_mode = "version_priority"
 # foo-5+                Same as range(foo-5+)
 package_filter = None
 
-# Version priorities. Used to customize which version of a package is
+# Version priority. Used to customize which version of a package is
 # preferred when solving. Should be a dict which maps from a package family
 # name to a list of version ranges to prioritize, in decreasing priority order.
 #
@@ -221,9 +221,9 @@ package_filter = None
 #
 #   [3.2, 3.0, 2.1, 2.0, 1.4, 1.2, 1.1, 1.0]
 #
-# However, if you set version_priorities like this:
+# However, if you set version_priority like this:
 #
-# version_priorities:
+# version_priority:
 #   splunge:
 #   - 2
 #   - 1.1+<1.4
@@ -235,7 +235,7 @@ package_filter = None
 # decreasing version order (like normal) and then appended to this list (so they
 # have lower priority). So if you do:
 #
-# version_priorities:
+# version_priority:
 #   splunge:
 #   - 3.0
 #
@@ -247,7 +247,7 @@ package_filter = None
 # You may also include a single False or empty string in the list, in which case
 # all "other" versions will be placed at that spot. ie
 #
-# version_priorities:
+# version_priority:
 #   splunge:
 #   - ""
 #   - 3+
@@ -258,14 +258,14 @@ package_filter = None
 #
 # Note that you could also have gotten the same result by doing:
 #
-# version_priorities:
+# version_priority:
 #   splunge:
 #   - <3
 #
 # If a version matches more than one range expression, it will be placed at
 # the highest-priority matching spot, so:
 #
-# version_priorities:
+# version_priority:
 #   splunge: [1.2+<=2.0, 1.1+<3]
 #
 # gives:
@@ -274,12 +274,12 @@ package_filter = None
 # Also note that this does not change the version sort order for any purpose but
 # determining solving priorities - for instance, even if version priorities is:
 #
-# version_priorities:
+# version_priority:
 #   splunge: [2, 3, 1]
 #
 # The expression splunge-1+<3 would still match version 2.
 
-version_priorities = None
+version_priority = None
 
 ###############################################################################
 # Environment Resolution
