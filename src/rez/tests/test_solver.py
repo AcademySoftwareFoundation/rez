@@ -371,6 +371,87 @@ class TestSolver(TestBase):
         self._solve(["python<2.7"],
                     ["python-2.6.8[]"])
 
+    def test_19_latest(self):
+        """Test setting a package to latest version_priority
+        """
+        config.override("version_priority", {})
+        self._solve(["python"],
+                    ["python-2.7.0[]"])
+        self._solve(["python", "!python-2.7.0"],
+                    ["python-2.6.8[]"])
+        self._solve(["python-2.6"],
+                    ["python-2.6.8[]"])
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.8[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+        config.override("version_priority", {"python": "latest"})
+        self._solve(["python"],
+                    ["python-2.7.0[]"])
+        self._solve(["python", "!python-2.7.0"],
+                    ["python-2.6.8[]"])
+        self._solve(["python-2.6"],
+                    ["python-2.6.8[]"])
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.8[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+    def test_20_earliest(self):
+        """Test setting a package to earliest version_priority
+        """
+        config.override("version_priority", {"python": "earliest"})
+        self._solve(["python"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.7.0"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.5.2"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.0[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+    def test_21_earliest_is_requirement(self):
+        """Test setting a package to earliest version_priority, when it is a
+        requirement
+        """
+        config.override("version_priority", {"python": "earliest"})
+        self._solve(["pyfoo"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]"])
+        self._solve(["pyfoo-3.0"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.1"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]"])
+        self._solve(["pybah"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+        self._solve(["pybah-4"],
+                    ["python-2.6.0[]", "pybah-4[]"])
+        self._solve(["pybah-5"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+
+    def test_22_earliest_has_requirement(self):
+        """Test setting a package to earliest version_priority, when it has a
+        requirement
+        """
+        config.override("version_priority", {"pyfoo": "earliest",
+                                             "pybah": "earliest"})
+        self._solve(["pyfoo"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.0"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.1"],
+                    ["python-2.6.8[]", "pyfoo-3.1.0[]"])
+        self._solve(["pybah"],
+                    ["python-2.6.8[]", "pybah-4[]"])
+        self._solve(["pybah-4"],
+                    ["python-2.6.8[]", "pybah-4[]"])
+        self._solve(["pybah-5"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -167,29 +167,6 @@ class OptionalDictOrDictList(Setting):
     _env_var_name = None
 
 
-class VersionPriorityDict(Setting):
-    schema = Or(And(None, Use(lambda x: {})),
-                Schema({
-                    str: And(
-                        [Or(
-                                # Allow False, or "", which is converted to
-                                # False
-                                lambda x: x is False,
-                                And(lambda x: isinstance(x, basestring)
-                                              and not x,
-                                    Use(bool)),
-                                # Or a VersionRange,
-                                VersionRange,
-                                # ...or value which can be converted to a
-                                # VersionRange
-                                And(basestring, Use(VersionRange)),
-                                And(Or(int, float), Use(str),
-                                    Use(VersionRange)))],
-                        # Verify that there's at most one False
-                        lambda x: x.count(False) <= 1)
-                })
-    )
-
 class SuiteVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -202,6 +179,43 @@ class VariantSelectMode_(Str):
     def schema(cls):
         from rez.solver import VariantSelectMode
         return Or(*(x.name for x in VariantSelectMode))
+
+
+class VersionPriority_(Setting):
+    @cached_class_property
+    def schema(cls):
+        from rez.solver import VersionPriorityMode
+        return Or(
+            {},
+            # None, in which case it's an empty dict..
+            And(None, Use(lambda x: {})),
+            # Or they give a dict, mapping from package name to setting...
+            Schema({
+                str: Or(
+                    # each package is either "lastest" / "earliest", or...
+                    VersionPriorityMode,
+                    And(Or(*(x.name for x in VersionPriorityMode)),
+                        Use(VersionPriorityMode.__getitem__)),
+
+                    # ...a list, giving an explicit version priority
+                    And(
+                        [Or(
+                            # Allow False, or "", which is converted to
+                            # False
+                            False,
+                            And("", Use(bool)),
+                            # Or a VersionRange,
+                            VersionRange,
+                            # ...or value which can be converted to a
+                            # VersionRange
+                            And(basestring, Use(VersionRange)),
+                            And(Or(int, float), Use(str),
+                                Use(VersionRange)))],
+                        # Verify that there's at most one False
+                        lambda x: x.count(False) <= 1)
+                )
+            }),
+        )
 
 
 class RezToolsVisibility_(Str):
@@ -338,7 +352,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
-    "version_priority":                             VersionPriorityDict,
+    "version_priority":                             VersionPriority_,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings

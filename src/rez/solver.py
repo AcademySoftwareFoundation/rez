@@ -125,7 +125,7 @@ from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
 from rez.vendor.version.version import VersionRange, _Bound, _LowerBound, \
-    _UpperBound, Version
+    _UpperBound, Version, _Comparable
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
@@ -141,6 +141,29 @@ class VariantSelectMode(Enum):
     version_priority = 0
     intersection_priority = 1
 
+
+class VersionPriorityMode(Enum):
+    """Mode for determining which version to use when solving."""
+    latest = 0
+    earliest = 1
+
+class ReverseSorted(_Comparable):
+    """Used to add objects (ie, Version, VersionRange) to a sort key, but with
+    reverse sorting
+    """
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __eq__(self, other):
+        return self.obj == other.obj
+
+    def __lt__(self, other):
+        if self.obj == other.obj:
+            return False
+        return not self.obj < other.obj
+
+    def __repr__(self):
+        return '%s(%r)' % (type(self).__name__, self.obj)
 
 class SolverStatus(Enum):
     """Enum to represent the current state of a solver instance.  The enum
@@ -374,7 +397,8 @@ def _package_version_sort_key(family_name, version, sort_key_cache):
     if key is not None:
         return key
 
-    version_priority = config.version_priority.get(family_name, [])
+    version_priority = config.version_priority.get(family_name,
+                                                   VersionPriorityMode.latest)
     ver_key = _package_version_sort_key2(version_priority, version)
 
     # need to make sure that we always sort first by package, then by
@@ -388,6 +412,19 @@ def _package_version_sort_key(family_name, version, sort_key_cache):
     return key
 
 def _package_version_sort_key2(version_priority, version):
+    if isinstance(version_priority, VersionPriorityMode):
+        # note that if the version_priority is a VersionPriorityMode,
+        # we return only one item, instead of a tuple of 2 items... but this
+        # should be ok, since all packages in a familty will share the same
+        # setting, and _package_version_sort_key will sort by family first
+        if version_priority == VersionPriorityMode.latest:
+            return version
+        elif version_priority == VersionPriorityMode.earliest:
+            return ReverseSorted(version)
+        else:
+            # should never get here...
+            raise ValueError(version_priority)
+
     if isinstance(version, VersionRange):
         return tuple(_package_version_sort_key2(version_priority, bound)
                      for bound in version.bounds)
