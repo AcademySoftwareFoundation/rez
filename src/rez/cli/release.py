@@ -7,8 +7,8 @@ import os
 def setup_parser(parser, completions=False):
     from rez.cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
+    from rez.vendor.argparse import SUPPRESS
     vcs_types = get_release_vcs_types()
-
     parser.add_argument(
         "-m", "--message", type=str,
         help="release message")
@@ -18,6 +18,9 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "--no-latest", dest="no_latest", action="store_true",
         help="allows release of version earlier than the latest release.")
+    parser.add_argument(
+        "--no-update-repo", dest="no_update_repo", default=False, action="store_true",
+        help=SUPPRESS)
     setup_parser_common(parser)
 
 
@@ -48,6 +51,7 @@ def command(opts, parser, extra_arg_groups=None):
                                    build_system=buildsys,
                                    vcs=vcs,
                                    ensure_latest=(not opts.no_latest),
+                                   no_update_repo=opts.no_update_repo,
                                    verbose=True)
 
     builder.release(release_message=opts.message,

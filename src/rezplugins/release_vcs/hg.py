@@ -51,7 +51,7 @@ class HgReleaseVCS(ReleaseVCS):
         else:
             self.hg('tag', '-f', tag_name)
 
-    def validate_repostate(self):
+    def validate_repostate(self, no_update_repo=False):
         def _check(modified, path):
             if modified:
                 modified = [line.split()[-1] for line in modified]

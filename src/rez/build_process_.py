@@ -17,7 +17,7 @@ def get_build_process_types():
 
 
 def create_build_process(process_type, working_dir, build_system, vcs=None,
-                         ensure_latest=True, verbose=False):
+                         ensure_latest=True, no_update_repo=False, verbose=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
@@ -29,6 +29,7 @@ def create_build_process(process_type, working_dir, build_system, vcs=None,
                build_system=build_system,
                vcs=vcs,
                ensure_latest=ensure_latest,
+               no_update_repo=no_update_repo,
                verbose=verbose)
 
 
@@ -53,7 +54,7 @@ class BuildProcess(object):
         raise NotImplementedError
 
     def __init__(self, working_dir, build_system, vcs=None, ensure_latest=True,
-                 verbose=False):
+                 no_update_repo=False, verbose=False):
         """Create a BuildProcess.
 
         Args:
@@ -63,12 +64,15 @@ class BuildProcess(object):
                 process. If None, the package will only be built, not released.
             ensure_latest: If True, do not allow the release process to occur
                 if an newer versioned package is already released.
+            no_update_repo: If True, do not allow the release process to get the changelog,
+                and release the tag
         """
         self.verbose = verbose
         self.working_dir = working_dir
         self.build_system = build_system
         self.vcs = vcs
         self.ensure_latest = ensure_latest
+        self.no_update_repo = no_update_repo
 
         if vcs and vcs.path != working_dir:
             raise BuildProcessError(
@@ -194,7 +198,7 @@ class BuildProcessHelper(BuildProcess):
         # test that the repo is in a state to release
         assert self.vcs
         self._print("Checking state of repository...")
-        self.vcs.validate_repostate()
+        self.vcs.validate_repostate(no_update_repo=self.no_update_repo)
 
         it = iter_packages(self.package.name, paths=[release_path])
         packages = sorted(it, key=lambda x: x.version, reverse=True)
@@ -229,6 +233,8 @@ class BuildProcessHelper(BuildProcess):
 
         # write a tag for the new release into the vcs
         assert self.vcs
+        if self.no_update_repo:
+            return
         self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
 
     def run_hooks(self, hook_event, **kwargs):
