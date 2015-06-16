@@ -92,9 +92,11 @@ def unleash(working_dir, message, username=system.user, test=False, unleash_flav
     if system.platform == "windows":
         quote = "\"" 
         unleasher_command = UNLEASHER_COMMAND.replace("\\", "\\\\")
+        base = base.replace("\\", "/")
     else:
         quote = "\\'"
         unleasher_command = UNLEASHER_COMMAND
+        base = base
 
     unleash_command = "python %s -p %s -v %s -b %s -f %s -t %s -m %s%s%s -d %s%s%s %s" % \
                       (unleasher_command, name, version, base, unleash_flavour, 
