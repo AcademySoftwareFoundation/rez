@@ -620,6 +620,14 @@ launch_python_exe = {
                     }
 
 
+# The launcher command line script for each platform (used by Unleash).
+launcher2cl_command = {
+                       'linux': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
+                       'windows': '/film/tools/packages/launcher2CL/36.0.0/bin/launch.bat',
+                       'osx': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
+                      }
+
+
 
 ###############################################################################
 # Unleash
@@ -637,7 +645,6 @@ unleash_flavour = 'package'
 
 # The default Unleash target to use with rez-unleash.
 unleash_target = 'film_tools_packages'
-
 
 
 ###############################################################################

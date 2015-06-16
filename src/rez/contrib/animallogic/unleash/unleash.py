@@ -7,8 +7,8 @@ from rez.contrib.animallogic.unleash.exceptions import UnleashError
 from rez.utils.logging_ import print_warning
 from rez.utils.colorize import Printer, _color
 from rez.system import system
+from rez.utils.platform_ import platform_
 import os
-import re
 import subprocess
 import sys
 import urllib2
@@ -16,7 +16,7 @@ import urllib2
 
 ARK_URL = config.ark_url
 LAUNCHER_PRESET = config.unleash_launcher_preset
-LAUNCHER_COMMAND = "/film/tools/launcher2CL/current/generic/launch-linux.sh"
+LAUNCHER_COMMAND = config.launch_python_exe[platform_.name]
 UNLEASH_FLAVOUR = config.unleash_flavour
 UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(__file__)
