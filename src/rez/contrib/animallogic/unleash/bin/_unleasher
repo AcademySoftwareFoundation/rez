@@ -57,7 +57,9 @@ class Unleash(object):
 
         else:
             files = self.getFilesFromPackage()
-            self._client.addBuild(self.name, self.version, self.flavour, files, deleteoldfiles=True)
+            build = self._client.addBuild(self.name, self.version, self.flavour, files, deleteoldfiles=True)
+            if not build.status:
+                raise UnleashError("Unable to add build flavour '%s' for '%s' version '%s' : %s" % (self.flavour, self.name, self.version, build.message))
 
     def createRelease(self):
         """
@@ -71,7 +73,9 @@ class Unleash(object):
             raise UnleashError("The '%s' flavour has already been released to the target '%s' for '%s' version '%s'." % (self.flavour, self.target, self.name, self.version))
 
         else:
-            self._client.releaseTool(self.name, self.version, self.flavour, self.target, self.message)
+            release = self._client.releaseTool(self.name, self.version, self.flavour, self.target, self.message)
+            if not release.status:
+                raise UnleashError("Unable to release build flavour '%s' to the target '%s' for '%s' version '%s' : %s" % (self.flavour, self.target, self.name, self.version, release.message))
 
     def getFilesFromPackage(self):
         """

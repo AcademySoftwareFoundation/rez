@@ -89,9 +89,17 @@ def unleash(working_dir, message, username=system.user, test=False, unleash_flav
     install_path = package.config.unleash_packages_path
     base = builder.get_package_install_path(install_path)
 
-    unleash_command = "python %s -p %s -v %s -b %s -f %s -t %s -m \\'%s\\' -d \\'%s\\' %s" % \
-                      (UNLEASHER_COMMAND, name, version, base, unleash_flavour, 
-                      unleash_target, encode(builder.release_message), encode(description), "-e" if test else "")
+    if system.platform == "windows":
+        quote = "\"" 
+        unleasher_command = UNLEASHER_COMMAND.replace("\\", "\\\\")
+    else:
+        quote = "\\'"
+        unleasher_command = UNLEASHER_COMMAND
+
+    unleash_command = "python %s -p %s -v %s -b %s -f %s -t %s -m %s%s%s -d %s%s%s %s" % \
+                      (unleasher_command, name, version, base, unleash_flavour, 
+                      unleash_target, quote, encode(builder.release_message), quote,
+                      quote, encode(description), quote, "-e" if test else "")
 
     launch_command = [LAUNCHER_COMMAND, 
                         "-l", "shell", "-r",
