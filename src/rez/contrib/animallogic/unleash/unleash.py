@@ -6,6 +6,7 @@ from rez.build_process_ import create_build_process
 from rez.contrib.animallogic.unleash.exceptions import UnleashError
 from rez.utils.logging_ import print_warning
 from rez.utils.colorize import Printer, _color
+from rez.system import system
 import os
 import re
 import subprocess
@@ -20,10 +21,9 @@ UNLEASH_FLAVOUR = config.unleash_flavour
 UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(__file__)
 UNLEASHER_COMMAND = os.path.join(ROOT_PATH, "bin", "_unleasher")
-USERNAME = os.getenv("USER")
 
 
-def unleash(working_dir, message, username=USERNAME, test=False, unleash_flavour=UNLEASH_FLAVOUR,
+def unleash(working_dir, message, username=system.user, test=False, unleash_flavour=UNLEASH_FLAVOUR,
             unleash_target=UNLEASH_TARGET, launcher_preset=LAUNCHER_PRESET, buildsys_type=None,
             build_args=None, child_build_args=None, allow_not_latest=False, 
             ignore_auto_messages=False, opts=None):
