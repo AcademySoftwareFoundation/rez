@@ -4,10 +4,10 @@ Build a package from source and deploy it using the Unleash subsystem.
 
 from rez.cli.build import setup_parser_common, get_build_args
 from rez.release_vcs import get_release_vcs_types
+from rez.system import system
 from rez.contrib.animallogic.unleash.unleash import LAUNCHER_PRESET
 from rez.contrib.animallogic.unleash.unleash import UNLEASH_FLAVOUR
 from rez.contrib.animallogic.unleash.unleash import UNLEASH_TARGET
-from rez.contrib.animallogic.unleash.unleash import USERNAME
 from rez.contrib.animallogic.unleash.unleash import unleash
 from rez.contrib.animallogic.unleash.exceptions import UnleashError
 import os
@@ -21,7 +21,7 @@ def setup_parser(parser, completions=False):
                         help="Do not extract release messages from the SCM commit log.")
     parser.add_argument("--allow-not-latest", "--no-latest", dest="allow_not_latest", action="store_true", default=False, 
                         help="Allows release of version earlier than the latest release.")
-    parser.add_argument("-u", "--user", dest="username", default=USERNAME,
+    parser.add_argument("-u", "--user", dest="username", default=system.user,
                         help="Username for the current release - can be used when running through Jenkins.")
     parser.add_argument("-p", "--preset", dest="launcher_preset", default=LAUNCHER_PRESET,
                         help="The name of the launcher preset to run Unleash under.")
@@ -55,7 +55,7 @@ def command(opts, parser, extra_arg_groups=None):
         print "Warning: the -c/--no-clean/ flag has no effect."
 
     if not opts.username:
-        raise UnleashError("Unable to determine the current user using the USER environment variable.")
+        raise UnleashError("Unable to determine the current user.")
 
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
