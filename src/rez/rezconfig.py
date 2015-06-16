@@ -621,11 +621,11 @@ launch_python_exe = {
 
 
 # The launcher command line script for each platform (used by Unleash).
-launcher2cl_command = {
-                       'linux': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
-                       'windows': '/film/tools/packages/launcher2CL/36.0.0/bin/launch.bat',
-                       'osx': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
-                      }
+launcher2cl_exe = {
+                   'linux': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
+                   'windows': '/film/tools/packages/launcher2CL/36.0.0/bin/launch.bat',
+                   'osx': '/film/tools/packages/launcher2CL/36.0.0/bin/launch-linux.sh',
+                  }
 
 
 

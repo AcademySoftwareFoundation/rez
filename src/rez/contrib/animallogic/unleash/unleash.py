@@ -16,7 +16,7 @@ import urllib2
 
 ARK_URL = config.ark_url
 LAUNCHER_PRESET = config.unleash_launcher_preset
-LAUNCHER_COMMAND = config.launch_python_exe[platform_.name]
+LAUNCHER_COMMAND = config.launcher2cl_exe[platform_.name]
 UNLEASH_FLAVOUR = config.unleash_flavour
 UNLEASH_TARGET = config.unleash_target
 ROOT_PATH = os.path.dirname(__file__)

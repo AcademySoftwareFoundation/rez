@@ -265,7 +265,7 @@ config_schema = Schema({
     "flatten_env":                                  Bool,
     "env_var_separators":                           Dict,
     "launch_python_exe":                            Dict,
-    "launcher2cl_command":                          Dict,
+    "launcher2cl_exe":                              Dict,
     "variant_select_mode":                          VariantSelectMode_,
 
     # GUI settings
