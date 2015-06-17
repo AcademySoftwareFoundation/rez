@@ -25,6 +25,10 @@ def setup_parser(parser, completions=False):
         help="print resolved packages in order they are sorted, rather than "
         "alphabetical order")
     parser.add_argument(
+        "--su", "--show-uris", dest="show_uris", action="store_true",
+        help="list resolved package's URIs, rather than the default 'root' "
+        "filepath")
+    parser.add_argument(
         "-t", "--tools", action="store_true",
         help="print a list of the executables available in the context")
     parser.add_argument(
@@ -136,7 +140,8 @@ def command(opts, parser, extra_arg_groups=None):
             func(gstr, dest_file=opts.write_graph)
         else:
             rc.print_info(verbosity=opts.verbose,
-                          source_order=opts.source_order)
+                          source_order=opts.source_order,
+                          show_resolved_uris=opts.show_uris)
         return
 
     if opts.format == 'table':

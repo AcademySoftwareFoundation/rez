@@ -161,7 +161,7 @@ variant_select_mode = "version_priority"
 # - excludes:
 #   - after(1429830188)
 #   includes:
-#   - all(foo)
+#   - foo  # same as range(foo), same as glob(foo-*)
 #
 # This example shows why multiple filters are supported - with only one filter,
 # it would not be possible to exclude all beta packages (including foo), but also

@@ -549,6 +549,7 @@ class FileSystemPackageRepository(PackageRepository):
                 dirs.append(name)
         return dirs
 
+    # TODO: replace with cached_property
     @lru_cache(maxsize=None)
     def _get_families(self):
         families = []
@@ -567,6 +568,7 @@ class FileSystemPackageRepository(PackageRepository):
             families.append(family)
         return families
 
+    # TODO: create lru_cache manually in __init__, safer
     @lru_cache(maxsize=None)
     def _get_family(self, name):
         is_valid_package_name(name, raise_error=True)

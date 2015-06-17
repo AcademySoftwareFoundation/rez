@@ -488,8 +488,7 @@ class Config(object):
         filepaths = []
         filepaths.append(get_module_root_config())
         filepath = os.getenv("REZ_CONFIG_FILE")
-        if filepath and os.path.isfile(filepath):
-            filepaths.append(filepath)
+        filepaths.append(filepath)
 
         filepath = os.path.expanduser("~/.rezconfig")
         filepaths.append(filepath)

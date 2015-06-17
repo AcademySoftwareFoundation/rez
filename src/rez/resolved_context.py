@@ -586,7 +586,8 @@ class ResolvedContext(object):
         return d
 
     @pool_memcached_connections
-    def print_info(self, buf=sys.stdout, verbosity=0, source_order=False):
+    def print_info(self, buf=sys.stdout, verbosity=0, source_order=False,
+                   show_resolved_uris=False):
         """Prints a message summarising the contents of the resolved context.
 
         Args:
@@ -594,6 +595,9 @@ class ResolvedContext(object):
             verbosity (bool): Verbose mode.
             source_order (bool): If True, print resolved packages in the order
                 they are sources, rather than alphabetical order.
+            show_resolved_uris (bool): By default, resolved packages have their
+                'root' property listed, or their 'uri' if 'root' is None. Use
+                this option to list 'uri' regardless.
         """
         _pr = Printer(buf)
 
@@ -668,14 +672,23 @@ class ResolvedContext(object):
         for pkg in resolved_packages:
             t = []
             col = None
-            if pkg.root and not os.path.exists(pkg.root):
-                t.append('NOT FOUND')
-                col = critical
+            location = None
+
+            # print root/uri
+            if show_resolved_uris or not pkg.root:
+                location = pkg.uri
+            else:
+                location = pkg.root
+                if not os.path.exists(pkg.root):
+                    t.append('NOT FOUND')
+                    col = critical
+
             if pkg.is_local:
                 t.append('local')
                 col = local
+
             t = '(%s)' % ', '.join(t) if t else ''
-            rows.append((pkg.qualified_package_name, pkg.root, t))
+            rows.append((pkg.qualified_package_name, location, t))
             colors.append(col)
 
         for col, line in zip(colors, columnise(rows)):
