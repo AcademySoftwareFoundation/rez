@@ -2,7 +2,6 @@
 import logging
 import os
 import re
-import functools
 
 import xml.etree.cElementTree as etree
 
@@ -11,7 +10,6 @@ from rezplugins.build_system.cmake import CMakeBuildSystem
 from rez.packages_ import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.rex import Python
-import tempfile
 
 
 logger = logging.getLogger(__name__)
@@ -482,6 +480,20 @@ class EclipseProjectBuilder(object):
         self.pretty_print(pydev_project, '.pydevproject', prefix='<?eclipse-pydev version="1.0"?>\n')
         logger.info('Build .pydevproject file for %r and variant %d (%s).' % (self.name, variant_index, variant.subpath))
 
+    def _get_environment_from_context_file(self, resolved_context_file, tmpdir=None):
+        
+        context = ResolvedContext.load(resolved_context_file)
+        interpreter = Python(target_environ={}, passive=True)
+        executor = context._create_executor(interpreter, None)
+
+        CMakeBuildSystem._add_build_actions(executor=executor,
+                                            context=context,
+                                            package=self.package,
+                                            build_type=BuildType.local)
+        context._execute(executor, tmpdir=tmpdir)
+
+        return executor.get_output()
+
     def build_cproject_settings(self):
 
         settings = 'eclipse.preferences.version=1\n'
@@ -490,9 +502,7 @@ class EclipseProjectBuilder(object):
             subpath = variant.subpath if variant.subpath else ''
             resolved_context_file = os.path.join('build', subpath, 'build.rxt')
             tmpdir = os.path.join(self.working_directory, 'build', subpath)
-            context = ResolvedContext.load(resolved_context_file)
-
-            target_environ = context.get_environ(tmpdir=tmpdir)
+            target_environ = self._get_environment_from_context_file(resolved_context_file, tmpdir)
             target_environ['module'] = ''  # for eclipse to stop complaining about syntax errors!
 
             for key, value in target_environ.items():
