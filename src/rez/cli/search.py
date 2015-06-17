@@ -43,12 +43,12 @@ def setup_parser(parser, completions=False):
         "--nw", "--no-warnings", dest="no_warnings", action="store_true",
         help="suppress warnings")
     parser.add_argument(
-        "--before", type=str,
+        "--before", type=str, default='0',
         help="only show packages released before the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
     parser.add_argument(
-        "--after", type=str,
+        "--after", type=str, default='0',
         help="only show packages released after the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
@@ -64,17 +64,17 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     from rez.package_search import resource_search
     from rez.utils.formatting import get_epoch_time_from_str
+    from rez.config import config
 
-    before_time = 0
-    after_time = 0
-    if opts.before:
-        before_time = get_epoch_time_from_str(opts.before)
-    if opts.after:
-        after_time = get_epoch_time_from_str(opts.after)
+    before_time = get_epoch_time_from_str(opts.before)
+    after_time = get_epoch_time_from_str(opts.after)
     if after_time and before_time and (after_time >= before_time):
         parser.error("non-overlapping --before and --after")
 
-    found, output = resource_search(opts.PKG,
+    if opts.no_warnings:
+        config.override("warn_none", True)
+
+    search_result = resource_search(opts.PKG,
                                     package_paths=opts.paths,
                                     resource_type=opts.type,
                                     no_local=opts.no_local,
@@ -82,14 +82,13 @@ def command(opts, parser, extra_arg_groups=None):
                                     after_time=opts.after,
                                     before_time=opts.before,
                                     validate=opts.validate,
-                                    output_format=opts.format,
                                     sort_results=opts.sort,
                                     search_for_errors=opts.errors,
-                                    suppress_warning=opts.no_warnings,
-                                    suppress_new_lines=opts.no_newlines,
                                     debug=opts.debug)
-    if found:
-        print output
+
+    if search_result:
+        for resourceOutputSearch in search_result:
+            resourceOutputSearch.print_resource(opts.format, opts.no_newlines)
     else:
         if opts.errors:
             print "no erroneous packages found"
