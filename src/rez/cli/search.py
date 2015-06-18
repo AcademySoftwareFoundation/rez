@@ -86,19 +86,17 @@ def command(opts, parser, extra_arg_groups=None):
                                        debug=opts.debug)
 
     search_results = resource_searcher.search()
+    resource_printer = ResourceSearchResultPrinter()
 
     if search_results:
         resource_formatter = ResourceSearchResultFormatter(opts.format, opts.no_newlines, opts.debug)
-        resource_printer = ResourceSearchResultPrinter()
-        for search_result in search_results:
-            formatted_search_results = resource_formatter.format_search_result(search_result)
-            for formatted_search_result in formatted_search_results:
-                resource_printer.print_search_result(formatted_search_result[0], formatted_search_result[1])
+        formatted_search_results = resource_formatter.format_search_results(search_results)
+        resource_printer.print_formatted_search_results(formatted_search_results)
     else:
         if opts.errors:
-            print "no erroneous packages found"
+            resource_printer.print_formatted_search_result("no erroneous packages found")
         else:
-            print "no matches found"
+            resource_printer.print_formatted_search_result("no matches found")
             sys.exit(-1)
 
 
