@@ -13,8 +13,7 @@ import sys
 from rez.packages_ import iter_package_families, iter_packages, get_latest_package
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.util import ProgressBar
-from rez.utils.colorize import critical, info, Printer
-from rez.utils.logging_ import print_error
+from rez.utils.colorize import critical, info, error, Printer
 from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
 from rez.utils.formatting import get_epoch_time_from_str,  expand_abbreviations
@@ -183,6 +182,12 @@ class ResourceSearchResultFormatter(object):
         self.suppress_new_lines = suppress_new_lines
         self.debug = debug
 
+    def format_search_results(self, search_results):
+        formatted_search_results = []
+        for search_result in search_results:
+            formatted_search_results.extend(self.format_search_result(search_result))
+        return formatted_search_results
+
     def format_search_result(self, resource_search_result):
         """
         resource_search_result: a ResourceSearchResult
@@ -191,7 +196,7 @@ class ResourceSearchResultFormatter(object):
 
         formatted_search_results = []
         if resource_search_result.has_validation_error():
-            formatted_search_results.append((resource_search_result.resource.qualified_name, info))
+            formatted_search_results.append((resource_search_result.resource.qualified_name, error))
             formatted_search_results.append((resource_search_result.validation_error, critical))
 
         elif self.output_format:
@@ -221,8 +226,15 @@ class ResourceSearchResultPrinter(object):
         """
         self.pr = Printer(buf)
 
-    def print_search_result(self, message, style):
+    def print_formatted_search_result(self, message, style=info):
         self.pr(message, style)
+
+    def print_formatted_search_results(self, formatted_search_results):
+
+        for formatted_search_result in formatted_search_results:
+            self.print_formatted_search_result(formatted_search_result[0], formatted_search_result[1])
+
+
 
 class ResourceSearch(object):
     """
@@ -324,25 +336,25 @@ class ResourceSearch(object):
         for package in packages:
 
             if self.search_for_errors:
-                error = self._check_for_resource_error(package)
-                if error:
-                    search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=error))
+                val_error = self._check_for_resource_error(package)
+                if val_error:
+                    search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=val_error))
             elif self.resource_type == "package":
-                error = self._check_for_resource_error(package)
-                search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=error))
-                if self.validate and error:
+                val_error = self._check_for_resource_error(package)
+                search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=val_error))
+                if self.validate and val_error:
                     break
 
             elif self.resource_type == "variant":
-                error = self._check_for_resource_error(package)
-                if error:
-                    search_result.append(ResourceSearchResult(package, "package", validation_error=error))
+                val_error = self._check_for_resource_error(package)
+                if val_error:
+                    search_result.append(ResourceSearchResult(package, "package", validation_error=val_error))
                     continue
 
                 for variant in package.iter_variants():
-                    error = self._check_for_resource_error(package)
-                    search_result.append(ResourceSearchResult(variant, self.resource_type, validation_error=error))
-                    if self.validate and error:
+                    val_error = self._check_for_resource_error(package)
+                    search_result.append(ResourceSearchResult(variant, self.resource_type, validation_error=val_error))
+                    if self.validate and val_error:
                         break
                     else:
                         continue
