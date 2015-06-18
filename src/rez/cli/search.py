@@ -4,7 +4,6 @@ Search for packages.
 
 import sys
 
-
 def setup_parser(parser, completions=False):
     from rez.package_search import fields
     types_ = ("package", "family", "variant", "auto")
@@ -62,7 +61,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.package_search import resource_search
+    from rez.package_search import ResourceSearch, ResourceSearchResultFormatter, ResourceSearchResultPrinter
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
 
@@ -74,21 +73,27 @@ def command(opts, parser, extra_arg_groups=None):
     if opts.no_warnings:
         config.override("warn_none", True)
 
-    search_result = resource_search(opts.PKG,
-                                    package_paths=opts.paths,
-                                    resource_type=opts.type,
-                                    no_local=opts.no_local,
-                                    latest=opts.latest,
-                                    after_time=opts.after,
-                                    before_time=opts.before,
-                                    validate=opts.validate,
-                                    sort_results=opts.sort,
-                                    search_for_errors=opts.errors,
-                                    debug=opts.debug)
+    resource_searcher = ResourceSearch(opts.PKG,
+                                       package_paths=opts.paths,
+                                       resource_type=opts.type,
+                                       no_local=opts.no_local,
+                                       latest=opts.latest,
+                                       after_time=opts.after,
+                                       before_time=opts.before,
+                                       validate=opts.validate,
+                                       sort_results=opts.sort,
+                                       search_for_errors=opts.errors,
+                                       debug=opts.debug)
 
-    if search_result:
-        for resourceOutputSearch in search_result:
-            resourceOutputSearch.print_resource(opts.format, opts.no_newlines)
+    search_results = resource_searcher.search()
+
+    if search_results:
+        resource_formatter = ResourceSearchResultFormatter(opts.format, opts.no_newlines, opts.debug)
+        resource_printer = ResourceSearchResultPrinter()
+        for search_result in search_results:
+            formatted_search_results = resource_formatter.format_search_result(search_result)
+            for formatted_search_result in formatted_search_results:
+                resource_printer.print_search_result(formatted_search_result[0], formatted_search_result[1])
     else:
         if opts.errors:
             print "no erroneous packages found"
