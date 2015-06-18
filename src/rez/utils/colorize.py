@@ -296,6 +296,5 @@ class Printer(object):
 
     def get(self, msg, style=None):
         if style and self.tty:
-            msg = style\
-                (msg)
+            msg = style(msg)
         return msg
