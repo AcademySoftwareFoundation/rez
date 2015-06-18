@@ -8,10 +8,12 @@ that do not provide an implementation.
 
 import os
 import fnmatch
+import sys
 
 from rez.packages_ import iter_package_families, iter_packages, get_latest_package
 from rez.exceptions import PackageFamilyNotFoundError
 from rez.util import ProgressBar
+from rez.utils.colorize import critical, info, Printer
 from rez.utils.logging_ import print_error
 from rez.vendor.pygraph.classes.digraph import digraph
 from collections import defaultdict
@@ -154,9 +156,9 @@ def get_plugins(package_name, paths=None):
     bar.finish()
     return plugin_pkgs
 
-class ResourceOutputSearch(object):
+class ResourceSearchResult(object):
     """
-    Resource with type and validation errors found when performing a search
+    Data container to store the result of a rez search
     """
     def __init__(self, resource, resource_type, validation_error=None):
         self.resource = resource
@@ -166,244 +168,274 @@ class ResourceOutputSearch(object):
     def has_validation_error(self):
         return bool(self.validation_error)
 
-    def print_resource(self, output_format, suppress_new_lines=False, debug=False):
+class ResourceSearchResultFormatter(object):
+    """
+    Formats the output of a search based on some options.
+    """
+
+    def __init__(self, output_format, suppress_new_lines=False, debug=False):
         """
         output_format: Format package output, --format='{qualified_name} | {description}
         sort_results: Print results in sorted order
         """
-        error_class = None if debug else RezError
 
-        if self.validation_error:
-            print self.resource.qualified_name
-            print_error(self.validation_error)
+        self.output_format = output_format
+        self.suppress_new_lines = suppress_new_lines
+        self.debug = debug
 
-        elif output_format:
-            txt = expand_abbreviations(output_format, fields)
+    def format_search_result(self, resource_search_result):
+        """
+        resource_search_result: a ResourceSearchResult
+        """
+        error_class = None if self.debug else RezError
+
+        formatted_search_results = []
+        if resource_search_result.has_validation_error():
+            formatted_search_results.append((resource_search_result.resource.qualified_name, info))
+            formatted_search_results.append((resource_search_result.validation_error, critical))
+
+        elif self.output_format:
+            txt = expand_abbreviations(self.output_format, fields)
             lines = txt.split("\\n")
 
             for line in lines:
                 try:
-                    line_ = self.resource.format(line)
+                    line_ = resource_search_result.resource.format(line)
                 except error_class as e:
-                    print_error(str(e))
+                    formatted_search_results.append((str(e), critical))
                     break
-                if suppress_new_lines:
+                if self.suppress_new_lines:
                     line_ = line_.replace('\n', "\\n")
-                print line_
+                formatted_search_results.append((line_, info))
         else:
-            print self.resource.qualified_name
+            formatted_search_results.append((resource_search_result.resource.qualified_name, info))
 
+        return formatted_search_results
 
+class ResourceSearchResultPrinter(object):
 
+    def __init__(self, buf=sys.stdout):
+        """
+        Args:
+            buf (file-like object): Where to print this info to.
+        """
+        self.pr = Printer(buf)
 
-def resource_search(resources_request, package_paths=None, resource_type="auto", no_local=False,
-                    latest=False, after_time=0, before_time=0, validate=False, sort_results=False,
-                    search_for_errors=False, debug=False):
+    def print_search_result(self, message, style):
+        self.pr(message, style)
+
+class ResourceSearch(object):
     """
-    Search resource information and return a formatted output
-
-    Args:
-        resources_request: Resource to search, glob-style patterns are supported
-        package_paths: Package search path
-        resource_type: type of resource to search for. If 'auto', either packages or package families
-            are searched, depending on NAME and VERSION
-        no_local: Do not look in local paths
-        latest: When searching packages, only show the latest version of each package.
-        after_time: Only show packages released after the given time. Supported formats are:
-            epoch time (eg 1393014494), or relative time (eg -10s, -5m, -0.5h, -10d)
-        before_time: Only show packages released before the given time. Supported formats are:
-            epoch time (eg 1393014494), or relative time (eg -10s, -5m, -0.5h, -10d)
-        validate: Validate each resource that is found
-        search_for_errors: Search for packages containing errors
-
-    return: search_result, a list of ResourceOutputSearch objects
-
+    Search resource information
     """
+    def __init__(self, resources_request, package_paths=None, resource_type="auto", no_local=False,
+                 latest=False, after_time=0, before_time=0, validate=False, sort_results=False,
+                 search_for_errors=False, debug=False):
+        """
+        Args:
+            resources_request: Resource to search, glob-style patterns are supported
+            package_paths: Package search path
+            resource_type: type of resource to search for. If 'auto', either packages or package families
+                are searched, depending on NAME and VERSION
+            no_local: Do not look in local paths
+            latest: When searching packages, only show the latest version of each package.
+            after_time: Only show packages released after the given time. Supported formats are:
+                epoch time (eg 1393014494), or relative time (eg -10s, -5m, -0.5h, -10d)
+            before_time: Only show packages released before the given time. Supported formats are:
+                epoch time (eg 1393014494), or relative time (eg -10s, -5m, -0.5h, -10d)
+            validate: Validate each resource that is found
+            search_for_errors: Search for packages containing errors
 
-    before_time = get_epoch_time_from_str(before_time)
-    after_time = get_epoch_time_from_str(after_time)
+        return: search_result, a list of ResourceSearchResult objects
 
-    search_result = []
+        """
+        self.resources_request = resources_request
+        self.package_paths = package_paths
+        self.resource_type = resource_type
+        self.no_local = no_local
+        self.latest = latest
+        self.after_time = after_time
+        self.before_time = before_time
+        self.validate = validate
+        self.sort_results = sort_results
+        self.search_for_errors = search_for_errors
+        self.debug = debug
 
-    pkg_paths = _configure_package_paths(no_local, package_paths)
+    def search(self):
 
-    name_pattern, version_range = _get_name_pattern_and_version_range(resources_request)
+        before_time = get_epoch_time_from_str(self.before_time)
+        after_time = get_epoch_time_from_str(self.after_time)
 
-    family_names = _get_matching_families(pkg_paths, name_pattern)
+        search_result = []
 
-    if sort_results:
-        family_names = sorted(family_names)
+        self._configure_package_paths()
 
-    if resource_type == "auto":
-        resource_type = _work_out_resource_type(family_names, name_pattern, version_range)
+        name_pattern, version_range = self._get_name_pattern_and_version_range()
 
-    if resource_type == "family":
-        for family in family_names:
-            search_result.append(ResourceOutputSearch(family, resource_type))
+        family_names = self._get_families_matching_pattern(name_pattern)
 
-    elif resource_type in ("package", "variant"):
+        if self.sort_results:
+            family_names = sorted(family_names)
 
-        _modify_output_configs(search_for_errors, resource_type)
+        if self.resource_type == "auto":
+            self.resource_type = self._work_out_resource_type(family_names, name_pattern, version_range)
 
-        for name in family_names:
+        if self.resource_type == "family":
+            for family in family_names:
+                search_result.append(ResourceSearchResult(family, self.resource_type))
 
-            packages = iter_packages(name, version_range, paths=pkg_paths)
-            packages = sorted(packages, key=lambda x: x.version) if sort_results else packages
+        elif self.resource_type in ("package", "variant"):
 
-            packages = filter_packages_by_time(packages, latest, before_time, after_time)
+            self._modify_output_configs()
 
-            search_result.extend(_validate_resources(packages, validate, search_for_errors, resource_type, debug))
+            for name in family_names:
 
-    return search_result
+                packages = iter_packages(name, version_range, paths=self.package_paths)
+                packages = sorted(packages, key=lambda x: x.version) if self.sort_results else packages
+
+                packages = self.filter_packages_by_time(packages, before_time, after_time)
+
+                search_result.extend(self._validate_resources(packages))
+
+        return search_result
 
 
-def _configure_package_paths(no_local, package_paths):
+    def _configure_package_paths(self,):
 
-    if package_paths is None:
-        pkg_paths = config.nonlocal_packages_path if no_local else None
-    else:
-        pkg_paths = (package_paths or "").split(os.pathsep)
-        pkg_paths = [os.path.expanduser(x) for x in pkg_paths if x]
-    return pkg_paths
+        if self.package_paths is None:
+            self.package_paths = config.nonlocal_packages_path if self.no_local else None
+        else:
+            self.package_paths = (self.package_paths or "").split(os.pathsep)
+            self.package_paths = [os.path.expanduser(x) for x in self.package_paths if x]
 
-def _check_for_resource_error(resource, debug):
+    def _check_for_resource_error(self,resource):
 
-    error_class = None if debug else RezError
+        error_class = None if self.debug else RezError
 
-    try:
-        resource.validate_data()
-        return None
-    except error_class as e:
-        return str(e)
+        try:
+            resource.validate_data()
+            return None
+        except error_class as e:
+            return str(e)
 
-def _validate_resources(packages, validate, search_for_errors, resource_type, debug):
+    def _validate_resources(self, packages):
 
-    search_result = []
-    for package in packages:
+        search_result = []
+        for package in packages:
 
-        if search_for_errors:
-            error = _check_for_resource_error(package, debug)
-            if error:
-                search_result.append(ResourceOutputSearch(package, resource_type, validation_error=error))
-        elif resource_type == "package":
-            error = _check_for_resource_error(package, debug)
-            search_result.append(ResourceOutputSearch(package, resource_type, validation_error=error))
-            if validate and error:
-                break
-
-        elif resource_type == "variant":
-            error = _check_for_resource_error(package, debug)
-            if error:
-                search_result.append(ResourceOutputSearch(package, "package", validation_error=error))
-                continue
-
-            for variant in package.iter_variants():
-                error = _check_for_resource_error(package, debug)
-                search_result.append(ResourceOutputSearch(variant, resource_type, validation_error=error))
-                if validate and error:
+            if self.search_for_errors:
+                error = self._check_for_resource_error(package)
+                if error:
+                    search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=error))
+            elif self.resource_type == "package":
+                error = self._check_for_resource_error(package)
+                search_result.append(ResourceSearchResult(package, self.resource_type, validation_error=error))
+                if self.validate and error:
                     break
-                else:
+
+            elif self.resource_type == "variant":
+                error = self._check_for_resource_error(package)
+                if error:
+                    search_result.append(ResourceSearchResult(package, "package", validation_error=error))
                     continue
 
-    return search_result
+                for variant in package.iter_variants():
+                    error = self._check_for_resource_error(package)
+                    search_result.append(ResourceSearchResult(variant, self.resource_type, validation_error=error))
+                    if self.validate and error:
+                        break
+                    else:
+                        continue
 
-def filter_packages_by_time(packages, latest, before_time, after_time):
-    """
-    Filter out packages that were released with a timestamp that is after_time > timestamp > before_time
+        return search_result
 
-    Args:
-         packages: A list of packages
-         latest: when searching packages, only show the latest version of each
-         before_time: timestamp, packages released before the given timestamp will be filtered out
-         after_time: timestamp, packages released after the given timestamp will be filtered out
+    def filter_packages_by_time(self, packages, before_time, after_time):
+        """
+        Filter out packages that were released with a timestamp that is after_time > timestamp > before_time
 
-    return: A list with the filtered packages
-    """
-    filtered_packages = []
+        Args:
+             packages: A list of packages
+             before_time: timestamp, packages released before the given timestamp will be filtered out
+             after_time: timestamp, packages released after the given timestamp will be filtered out
 
-    if latest and packages:
-        packages = sorted(packages, key=lambda x: x.version)
-        packages = [packages[-1]]
+        return: A list with the filtered packages
+        """
+        filtered_packages = []
 
-    for package in packages:
-        if ((before_time or after_time) and package.timestamp
-            and (before_time and package.timestamp >= before_time or after_time and package.timestamp <= after_time)):
-            continue
-        filtered_packages.append(package)
+        if self.latest and packages:
+            packages = sorted(packages, key=lambda x: x.version)
+            packages = [packages[-1]]
 
-    return filtered_packages
+        for package in packages:
+            if ((before_time or after_time) and package.timestamp
+                and (before_time and package.timestamp >= before_time or after_time and package.timestamp <= after_time)):
+                continue
+            filtered_packages.append(package)
 
+        return filtered_packages
 
+    def _modify_output_configs(self):
 
-def _modify_output_configs(search_for_errors, resource_type):
+        if self.search_for_errors or self.resource_type == "package":
+            # turn some of the nastier rez-1 warnings into errors
+            config.override("error_package_name_mismatch", True)
+            config.override("error_version_mismatch", True)
+            config.override("error_nonstring_version", True)
 
-    if search_for_errors or resource_type == "package":
-        # turn some of the nastier rez-1 warnings into errors
-        config.override("error_package_name_mismatch", True)
-        config.override("error_version_mismatch", True)
-        config.override("error_nonstring_version", True)
+    def _work_out_resource_type(self, family_names, name_pattern, version_range):
+        """
+        Find out what type of resource it is based on the pattern of the request
 
+        Args:
+            family_names: A list with family names
+            name_pattern: the name part of a package or family
+            version_range: Version range
 
-def _work_out_resource_type(family_names, name_pattern, version_range):
-    """
-    Find out what type of resource it is based on the pattern of the request
+        return: the resource_type, whether it is package or family
+        """
+        resource_type = 'auto'
+        if version_range:
+            return "package"
 
-    Args:
-        family_names: A list with family names
-        name_pattern: the name part of a package or family
-        version_range: Version range
+        for family in family_names:
+            resource_type = "package" if family == name_pattern else "family"
+        return resource_type
 
-    return: the resource_type, whether it is package or family
-    """
-    resource_type = 'auto'
-    if version_range:
-        return "package"
+    def _get_name_pattern_and_version_range(self):
+        """
+        Works out the patten to search based on tht resource request.
 
-    for family in family_names:
-        resource_type = "package" if family == name_pattern else "family"
-    return resource_type
+        return: a pattern with the name and a version range (if it is a package)
+        """
 
+        name_pattern = self.resources_request or '*'
+        version_range = None
+        if self.resources_request:
+            try:
+                req = Requirement(self.resources_request)
+                name_pattern = req.name
+                if not req.range.is_any():
+                    version_range = req.range
+            except:
+                pass
+        return name_pattern, version_range
 
-def _get_name_pattern_and_version_range(resources_request=None):
-    """
-    Works out the patten to search based on tht resource request.
+    def _get_families_matching_pattern(self, name_pattern):
+        """
+        Get the families matching the given patten
 
-    Args:
-        resource_request: the name of the resource, family name, package name, etc.
+        Args:
+            name_pattern: the name part of a package or family
 
-    return: a pattern with the name and a version range (if it is a package)
-    """
+        return: a list with the matching families
+        """
 
-    name_pattern = resources_request or '*'
-    version_range = None
-    if resources_request:
-        try:
-            req = Requirement(resources_request)
-            name_pattern = req.name
-            if not req.range.is_any():
-                version_range = req.range
-        except:
-            pass
-    return name_pattern, version_range
+        family_names = []
+        families = iter_package_families(paths=self.package_paths)
 
+        for family in families:
+            if family.name not in family_names and fnmatch.fnmatch(family.name, name_pattern):
+                family_names.append(family.name)
 
-def _get_matching_families(packages_paths, name_pattern):
-    """
-    Get the families matching the given patten
-
-    Args:
-        package_paths: Package search path
-        name_pattern: the name part of a package or family
-
-    return: a list with the matching families
-    """
-
-    family_names = []
-    families = iter_package_families(paths=packages_paths)
-
-    for family in families:
-        if family.name not in family_names and fnmatch.fnmatch(family.name, name_pattern):
-            family_names.append(family.name)
-
-    return family_names
+        return family_names
 
