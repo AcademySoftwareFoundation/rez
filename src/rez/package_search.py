@@ -217,7 +217,7 @@ class ResourceSearchResultFormatter(object):
 
         return formatted_search_results
 
-class ResourceSearchResultPrinter(object):
+class FormattedResourceSearchResultPrinter(object):
 
     def __init__(self, buf=sys.stdout):
         """
@@ -226,13 +226,13 @@ class ResourceSearchResultPrinter(object):
         """
         self.pr = Printer(buf)
 
-    def print_formatted_search_result(self, message, style=info):
+    def print_search_result(self, message, style=info):
         self.pr(message, style)
 
-    def print_formatted_search_results(self, formatted_search_results):
+    def print_search_results(self, formatted_search_results):
 
         for formatted_search_result in formatted_search_results:
-            self.print_formatted_search_result(formatted_search_result[0], formatted_search_result[1])
+            self.print_search_result(formatted_search_result[0], formatted_search_result[1])
 
 
 
