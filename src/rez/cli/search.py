@@ -61,7 +61,7 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.package_search import ResourceSearch, ResourceSearchResultFormatter, ResourceSearchResultPrinter
+    from rez.package_search import ResourceSearch, ResourceSearchResultFormatter, FormattedResourceSearchResultPrinter
     from rez.utils.formatting import get_epoch_time_from_str
     from rez.config import config
 
@@ -86,17 +86,17 @@ def command(opts, parser, extra_arg_groups=None):
                                        debug=opts.debug)
 
     search_results = resource_searcher.search()
-    resource_printer = ResourceSearchResultPrinter()
+    resource_printer = FormattedResourceSearchResultPrinter()
 
     if search_results:
         resource_formatter = ResourceSearchResultFormatter(opts.format, opts.no_newlines, opts.debug)
         formatted_search_results = resource_formatter.format_search_results(search_results)
-        resource_printer.print_formatted_search_results(formatted_search_results)
+        resource_printer.print_search_results(formatted_search_results)
     else:
         if opts.errors:
-            resource_printer.print_formatted_search_result("no erroneous packages found")
+            resource_printer.print_search_result("no erroneous packages found")
         else:
-            resource_printer.print_formatted_search_result("no matches found")
+            resource_printer.print_search_result("no matches found")
             sys.exit(-1)
 
 
