@@ -245,6 +245,11 @@ suite_visibility = "always"
 #   within resolved shells.
 rez_tools_visibility = "append"
 
+# Defines when package commands are sourced during the startup sequence of an
+# interactive shell. If True, package commands are sourced before startup
+# scripts (such as .bashrc). If False, package commands are sourced after.
+package_commands_sourced_first = True
+
 
 ###############################################################################
 # Debugging

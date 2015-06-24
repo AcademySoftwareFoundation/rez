@@ -252,6 +252,7 @@ config_schema = Schema({
     "prune_failed_graph":                           Bool,
     "all_parent_variables":                         Bool,
     "all_resetting_variables":                      Bool,
+    "package_commands_sourced_first":               Bool,
     "warn_shell_startup":                           Bool,
     "warn_untimestamped":                           Bool,
     "warn_all":                                     Bool,

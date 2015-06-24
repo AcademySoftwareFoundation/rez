@@ -105,7 +105,7 @@ class SH(UnixShell):
 
     def alias(self, key, value):
         value = EscapedString.disallow(value)
-        cmd = "function {key}() {{ {value}; }};export -f {key};"
+        cmd = 'function {key}() {{ {value} "$@"; }};export -f {key};'
         self._addline(cmd.format(key=key, value=value))
 
     def source(self, value):

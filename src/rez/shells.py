@@ -106,7 +106,8 @@ class Shell(ActionInterpreter):
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, **Popen_args):
+                    pre_command=None, add_rez=True,
+                    package_commands_sourced_first=None, **Popen_args):
         """Spawn a possibly interactive subshell.
         Args:
             context:_file File that must be sourced in the new shell, this
@@ -127,6 +128,11 @@ class Shell(ActionInterpreter):
                 any stdout from startup scripts.
             pre_command: Command to inject before the shell command itself. This
                 is for internal use.
+            add_rez: If True, assume this shell is being used with rez, and do
+                things such as set the prompt etc.
+            package_commands_sourced_first: If True, source the context file before
+                sourcing startup scripts (such as .bashrc). If False, source
+                the context file AFTER. If None, use the configured setting.
             popen_args: args to pass to the shell process object constructor.
 
         Returns:
@@ -137,7 +143,7 @@ class Shell(ActionInterpreter):
     def join(self, command):
         """
         Args:
-            command: 
+            command:
                 A sequence of program arguments to be joined into a single
                 string that can be executed in the current shell.
         Returns:
@@ -194,7 +200,8 @@ class UnixShell(Shell):
 
     def spawn_shell(self, context_file, tmpdir, rcfile=None, norc=False,
                     stdin=False, command=None, env=None, quiet=False,
-                    pre_command=None, **Popen_args):
+                    pre_command=None, add_rez=True,
+                    package_commands_sourced_first=None, **Popen_args):
 
         d = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         envvar = d["envvar"]
@@ -203,18 +210,25 @@ class UnixShell(Shell):
         do_rcfile = d["do_rcfile"]
         shell_command = None
 
+        if package_commands_sourced_first is None:
+            package_commands_sourced_first = config.package_commands_sourced_first
+
         def _record_shell(ex, files, bind_rez=True, print_msg=False):
-            # TODO: make context sourcing position configurable?
-            if bind_rez:
+            if bind_rez and package_commands_sourced_first:
                 ex.source(context_file)
+
             for file_ in files:
                 if os.path.exists(os.path.expanduser(file_)):
                     ex.source(file_)
+
+            if bind_rez and not package_commands_sourced_first:
+                ex.source(context_file)
+
             if envvar:
                 ex.unsetenv(envvar)
-            if bind_rez:
+            if add_rez and bind_rez:
                 ex.interpreter._bind_interactive_rez()
-            if print_msg and not quiet:
+            if print_msg and add_rez and not quiet:
                 ex.info('')
                 ex.info('You are now in a rez-configured environment.')
                 ex.info('')
