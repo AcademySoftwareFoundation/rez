@@ -58,22 +58,26 @@ class SvnReleaseVCS(ReleaseVCS):
     def name(cls):
         return 'svn'
 
-    def __init__(self, path):
-        super(SvnReleaseVCS, self).__init__(path)
+    def __init__(self, pkg_root, vcs_root=None):
+        super(SvnReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
 
         self.svnc = svn_get_client()
-        svn_entry = self.svnc.info(self.path)
+        svn_entry = self.svnc.info(self.pkg_root)
         if not svn_entry:
             raise SvnReleaseVCSError("%s is not an svn working copy"
-                                     % self.path)
+                                     % self.pkg_root)
         self.this_url = str(svn_entry["url"])
 
     @classmethod
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.svn'))
 
+    @classmethod
+    def search_parents_for_root(cls):
+        return False
+
     def validate_repostate(self):
-        status_list = self.svnc.status(self.path, get_all=False, update=True)
+        status_list = self.svnc.status(self.pkg_root, get_all=False, update=True)
         status_list_known = []
 
         for status in status_list:
@@ -83,7 +87,7 @@ class SvnReleaseVCS(ReleaseVCS):
         if status_list_known:
             raise ReleaseVCSError(
                 "'%s' is not in a state to release - you may need to svn-checkin "
-                "and/or svn-update: %s" % (self.path, str(status_list_known)))
+                "and/or svn-update: %s" % (self.pkg_root, str(status_list_known)))
 
     def _create_tag_impl(self, tag_name, message=None):
         tag_url = self.get_tag_url(tag_name)
@@ -100,7 +104,7 @@ class SvnReleaseVCS(ReleaseVCS):
         pos_br = self.this_url.find("/branches")
         pos = max(pos_tr, pos_br)
         if (pos == -1):
-            raise ReleaseVCSError("%s is not in a branch or trunk" % self.path)
+            raise ReleaseVCSError("%s is not in a branch or trunk" % self.pkg_root)
         base_url = self.this_url[:pos]
         tag_url = base_url + "/tags"
 

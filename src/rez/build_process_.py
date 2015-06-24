@@ -70,7 +70,7 @@ class BuildProcess(object):
         self.vcs = vcs
         self.ensure_latest = ensure_latest
 
-        if vcs and vcs.path != working_dir:
+        if vcs and vcs.pkg_root != working_dir:
             raise BuildProcessError(
                 "Build process was instantiated with a mismatched VCS instance")
 

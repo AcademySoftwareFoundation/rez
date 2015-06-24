@@ -24,18 +24,23 @@ class GitReleaseVCS(ReleaseVCS):
     def name(cls):
         return 'git'
 
-    def __init__(self, path):
-        super(GitReleaseVCS, self).__init__(path)
+    def __init__(self, pkg_root, vcs_root=None):
+        super(GitReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.executable = self.find_executable('git')
 
         try:
             self.git("rev-parse")
         except ReleaseVCSError:
-            raise GitReleaseVCSError("%s is not a git repository" % path)
+            raise GitReleaseVCSError("%s is not a git repository" %
+                                     self.vcs_root)
 
     @classmethod
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.git'))
+
+    @classmethod
+    def search_parents_for_root(cls):
+        return True
 
     def git(self, *nargs):
         return self._cmd(self.executable, *nargs)

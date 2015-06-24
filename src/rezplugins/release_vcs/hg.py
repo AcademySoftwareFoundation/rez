@@ -16,19 +16,19 @@ class HgReleaseVCS(ReleaseVCS):
     def name(cls):
         return 'hg'
 
-    def __init__(self, path):
-        super(HgReleaseVCS, self).__init__(path)
+    def __init__(self, pkg_root, vcs_root=None):
+        super(HgReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.executable = self.find_executable('hg')
 
-        hgdir = os.path.join(self.path, '.hg')
+        hgdir = os.path.join(self.vcs_root, '.hg')
         if not os.path.isdir(hgdir):
             raise HgReleaseVCSError(
-                "'%s' is not a mercurial working copy" % self.path)
+                "'%s' is not a mercurial working copy" % self.vcs_root)
         try:
-            assert self.hg('root')[0] == self.path
+            assert self.hg('root')[0] == self.vcs_root
         except AssertionError:
             raise HgReleaseVCSError(
-                "'%s' is not the root of a mercurial working copy" % self.path)
+                "'%s' is not the root of a mercurial working copy" % self.vcs_root)
         except Exception, err:
             raise HgReleaseVCSError("failed to call hg binary: " + str(err))
 
@@ -39,6 +39,10 @@ class HgReleaseVCS(ReleaseVCS):
     @classmethod
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.hg'))
+
+    @classmethod
+    def search_parents_for_root(cls):
+        return True
 
     def hg(self, *nargs, **kwargs):
         if kwargs.pop('patch', False):
@@ -75,7 +79,7 @@ class HgReleaseVCS(ReleaseVCS):
                     "%s is not in a state to release - please commit outstanding "
                     "changes: %s" % (path, ', '.join(modified)))
 
-        _check(self.hg('status', '-m', '-a'), self.path)
+        _check(self.hg('status', '-m', '-a'), self.vcs_root)
         if self.patch_path:
             _check(self.hg('status', '-m', '-a', '--mq'), self.patch_path)
 
