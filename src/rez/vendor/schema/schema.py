@@ -12,22 +12,12 @@ class SchemaError(Exception):
 
     @property
     def code(self):
-        # It appears that the uniq method is attempting to return a unique list
-        # however this seems like a very heavy handed way of doing it.  The
-        # original implementation is left commented, with an optimised
-        # alternative provided instead.
-#        def uniq(seq):
-#            seen = set()
-#            seen_add = seen.add
-#            return [x for x in seq if x not in seen and not seen_add(x)]
-#        a = uniq(i for i in self.autos if i is not None)
-#        e = uniq(i for i in self.errors if i is not None)
-        a = set(self.autos)
-        e = set(self.errors)
-        if None in a:
-            a.remove(None)
-        if None in e:
-            e.remove(None)
+        def uniq(seq):
+            seen = set()
+            seen_add = seen.add
+            return [x for x in seq if x not in seen and not seen_add(x)]
+        a = uniq(i for i in self.autos if i is not None)
+        e = uniq(i for i in self.errors if i is not None)
         if e:
             return '\n'.join(e)
         return '\n'.join(a)
