@@ -1,5 +1,8 @@
 # REZ: added a .rez to version
-__version__ = '0.3.1.rez'
+# REZ: added date to version to indicate a non-official release
+__version__ = '0.3.1.2015-03-04.rez'
+# REZ: added a __revision__ attr
+__revision__ = '916ba05e22b7b370b3586f97c40695e7b9e7fe33'
 
 
 class SchemaError(Exception):
