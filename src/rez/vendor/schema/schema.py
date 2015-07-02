@@ -1,4 +1,5 @@
-__version__ = '0.3.0'
+# REZ: added a .rez to version
+__version__ = '0.3.0.rez'
 
 
 class SchemaError(Exception):
