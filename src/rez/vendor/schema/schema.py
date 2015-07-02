@@ -1,5 +1,5 @@
 # REZ: added a .rez to version
-__version__ = '0.3.0.rez'
+__version__ = '0.3.1.rez'
 
 
 class SchemaError(Exception):
@@ -91,7 +91,7 @@ def priority(s):
         if hasattr(s, "_schema"):
             p.extend(priority(s._schema))
         return p
-    if type_of_s is type:
+    if issubclass(type_of_s, type):
         return [3]
     if callable(s):
         return [2]
@@ -220,7 +220,7 @@ class Schema(object):
             except BaseException as x:
                 raise SchemaError('%r.validate(%r) raised %r' % (s, data, x),
                                   self._error)
-        if type_of_s is type:
+        if issubclass(type_of_s, type):
             if isinstance(data, s):
                 return data
             else:
