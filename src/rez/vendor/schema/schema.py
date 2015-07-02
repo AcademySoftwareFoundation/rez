@@ -31,7 +31,7 @@ class And(object):
         self._error = kw.get('error')
 
     def __repr__(self):
-        # Switched to use a map operation instead of list comprehension.
+        # REZ: Switched to use a map operation instead of list comprehension.
         return '%s(%s)' % (self.__class__.__name__,
                            ', '.join(map(repr, self._args)))
 
@@ -76,8 +76,10 @@ class Use(object):
 
 def priority(s):
     """Return priority for a give object."""
-    # Previously this value was calculated in place many times which is
-    # expensive.  Do it once early.
+    # REZ: Previously this value was calculated in place many times which is
+    #      expensive.  Do it once early.
+    # REZ: Changed this to output a list, so that can nicely sort "validate"
+    #      items by the sub-priority of their schema
     type_of_s = type(s)
     if type_of_s in (list, tuple, set, frozenset):
         return [6]
@@ -107,51 +109,53 @@ class Schema(object):
 
     def validate(self, data):
         s = self._schema
-        # Previously this value was calculated in place many times which is
-        # expensive.  Do it once early.
+        # REZ: Previously this value was calculated in place many times which is
+        #      expensive.  Do it once early.
         type_of_s = type(s)
         e = self._error
         if type_of_s in (list, tuple, set, frozenset):
             data = Schema(type_of_s, error=e).validate(data)
             return type_of_s(Or(*s, error=e).validate(d) for d in data)
         if type_of_s is dict:
-            # Here we are validating that the data is an instance of the same
-            # type as the schema (a dict).  However creating a whole new
-            # instance of ourselves is wasteful.  Instead we inline the check
-            # that would have be undertaken.  The previous approach remains
-            # commented below.
+            # REZ: Here we are validating that the data is an instance of the
+            #      same type as the schema (a dict).  However creating a whole
+            #      new instance of ourselves is wasteful.  Instead we inline
+            #      the check that would have be undertaken.  The previous
+            #      approach remains commented below.
 #            data = Schema(dict, error=e).validate(data)
             if not isinstance(data, dict):
                 raise SchemaError('%r should be instance of %r' % (data, s), e)
             new = type(data)()  # new - is a dict of the validated values
             x = None
             coverage = set()  # non-optional schema keys that were matched
-            # For each key and value find a schema entry matching them, if any.
-            # As there is not a one-to-one mapping between keys in the
-            # dictionary being validated and the schema this section would
-            # attempt to find the correct section of the schema to use by
-            # calling itself.  For example, to validate the following:
+            # REZ: For each key and value find a schema entry matching them,
+            #      if any. As there is not a one-to-one mapping between keys
+            #      in the dictionary being validated and the schema this
+            #      section would attempt to find the correct section of the
+            #      schema to use by calling itself. For example, to validate
+            #      the following:
             #
-            # schema = Schema({
-            #     Optional('foo'):int
-            #     Optional(basestring):int
-            # })
+            #      schema = Schema({
+            #          Optional('foo'):int
+            #          Optional(basestring):int
+            #      })
             #
-            # data = {
-            #     'foo':1,
-            #     'bar':1,
-            # }
+            #      data = {
+            #          'foo':1,
+            #          'bar':1,
+            #      }
             #
-            # a prioritised list of keys from the schema are validated against
-            # the current key being validated from the data. If that validation
-            # passes then the value from the schema is used to validate the
-            # value of the current key. This is very inefficient as every key
-            # in data is (potentially) being compared against every key in
-            # schema. This is expensive. Now, we use the same approach as
-            # rez.util._LazyAttributeValidator and try and build a mapping
-            # between schema keys and data keys, resorting to the original
-            # approach only in the (very) few cases where this map is
-            # insufficient.
+            #      a prioritised list of keys from the schema are validated
+            #      against the current key being validated from the data. If
+            #      that validation passes then the value from the schema is
+            #      used to validate the value of the current key. This is
+            #      very inefficient as every key in data is (potentially)
+            #      being compared against every key in schema. This is
+            #      expensive. Now, we use the same approach as
+            #      rez.util._LazyAttributeValidator and try and build a
+            #      mapping between schema keys and data keys, resorting to
+            #      the original approach only in the (very) few cases where
+            #      this map is insufficient.
             sorted_skeys = None
             schema_key_map = {}
             for key in s:
@@ -196,6 +200,7 @@ class Schema(object):
                     if x is not None:
                         raise SchemaError(['invalid value for key %r' % key] +
                                           x.autos, [e] + x.errors)
+            # REZ: we now check for Optional as we add to coverage
 #            coverage = set(k for k in coverage if type(k) is not Optional)
             required = set(k for k in s if type(k) is not Optional)
             if coverage != required:
