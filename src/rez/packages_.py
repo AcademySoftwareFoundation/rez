@@ -326,6 +326,8 @@ def iter_package_families(paths=None):
         `PackageFamily` iterator.
     """
     for path in (paths or config.packages_path):
+        if not os.path.isdir(path):
+            continue
         repo = package_repository_manager.get_repository(path)
         for resource in repo.iter_package_families():
             yield PackageFamily(resource)
