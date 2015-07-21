@@ -73,7 +73,8 @@ class GitReleaseVCS(ReleaseVCS):
                                   "--symbolic-full-name", "@{u}")[0]
             return remote_uri.split('/', 1)
         except Exception as e:
-            if "No upstream branch" not in str(e):
+            if ("No upstream branch" not in str(e)
+                    and "No upstream configured" not in str(e)):
                 raise e
         return (None, None)
 
