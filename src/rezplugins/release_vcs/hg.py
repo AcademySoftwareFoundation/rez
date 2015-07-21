@@ -3,6 +3,7 @@ Mercurial version control
 """
 from rez.release_vcs import ReleaseVCS
 from rez.exceptions import ReleaseVCSError
+from rez.utils.logging_ import print_debug, print_error
 import os.path
 
 
@@ -39,17 +40,126 @@ class HgReleaseVCS(ReleaseVCS):
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.hg'))
 
-    def hg(self, *nargs):
+    def hg(self, *nargs, **kwargs):
+        if kwargs.pop('patch', False):
+            nargs += ('--mq',)
+        if kwargs:
+            raise HgReleaseVCSError("Unrecognized keyword args to hg command:"
+                                    " %s" % ", ".join(kwargs))
         return self._cmd(self.executable, *nargs)
 
-    def _create_tag_impl(self, tag_name, message=None):
+    def _create_tag_highlevel(self, tag_name, message=None):
+        """Create a tag on the toplevel repo if there is no patch repo,
+        or a tag on the patch repo and bookmark on the top repo if there is a
+        patch repo
+
+        Returns a list where each entry is a dict for each bookmark or tag
+        created, which looks like {'type': ('bookmark' or 'tag'), 'patch': bool}
+        """
+        results = []
         if self.patch_path:
-            # patch queue
-            self.hg('tag', '-f', tag_name, '--message', message, '--mq')
+            # make a tag on the patch queue
+            tagged = self._create_tag_lowlevel(tag_name, message=message,
+                                               patch=True)
+            if tagged:
+                results.append({'type': 'tag', 'patch': True})
+
             # use a bookmark on the main repo since we can't change it
             self.hg('bookmark', '-f', tag_name)
+            results.append({'type': 'bookmark', 'patch': False})
         else:
-            self.hg('tag', '-f', tag_name)
+            tagged = self._create_tag_lowlevel(tag_name, message=message,
+                                               patch=False)
+            if tagged:
+                results.append({'type': 'tag', 'patch': False})
+        return results
+
+    def _create_tag_lowlevel(self, tag_name, message=None, force=True,
+                             patch=False):
+        """Create a tag on the toplevel or patch repo
+
+        If the tag exists, and force is False, no tag is made. If force is True,
+        and a tag exists, but it is a direct ancestor of the current commit,
+        and there is no difference in filestate between the current commit
+        and the tagged commit, no tag is made. Otherwise, the old tag is
+        overwritten to point at the current commit.
+
+        Returns True or False indicating whether the tag was actually committed
+        """
+        # check if tag already exists, and if it does, if it is a direct
+        # ancestor, and there is NO difference in the files between the tagged
+        # state and current state
+        #
+        # This check is mainly to avoid re-creating the same tag over and over
+        # on what is essentially the same commit, since tagging will
+        # technically create a new commit, and update the working copy to it.
+        #
+        # Without this check, say you were releasing to three different
+        # locations, one right after another; the first would create the tag,
+        # and a new tag commit.  The second would then recreate the exact same
+        # tag, but now pointing at the commit that made the first tag.
+        # The third would create the tag a THIRD time, but now pointing at the
+        # commit that created the 2nd tag.
+        tags = self.get_tags(patch=patch)
+
+        old_commit = tags.get(tag_name)
+        if old_commit is not None:
+            if not force:
+                return False
+            old_rev = old_commit['rev']
+            # ok, now check to see if direct ancestor...
+            if self.is_ancestor(old_rev, '.', patch=patch):
+                # ...and if filestates are same
+                altered = self.hg('status', '--rev', old_rev, '--rev', '.',
+                                  '--no-status')
+                if not altered or altered == ['.hgtags']:
+                    force = False
+            if not force:
+                return False
+
+        tag_args = ['tag', tag_name]
+        if message:
+            tag_args += ['--message', message]
+
+        # we should be ok with ALWAYS having force flag on now, since we should
+        # have already checked if the commit exists.. but be paranoid, in case
+        # we've missed some edge case...
+        if force:
+            tag_args += ['--force']
+        self.hg(patch=patch, *tag_args)
+        return True
+
+    def get_tags(self, patch=False):
+        lines = self.hg('tags', patch=patch)
+
+        # results will look like:
+        # tip                              157:2d82ff68b9f5
+        # ilmbase-2.1.0                    156:a27f2a7b3375
+
+        # since I don't know if spaces are allowed in tag names, we do an
+        # rsplit, once, since we KNOW how the right side should be formatted
+        tags = dict(line.rstrip().rsplit(None, 1) for line in lines
+                    if line.strip())
+        for tag_name, tag_info in tags.iteritems():
+            rev, shortnode = tag_info.split(':')
+            tags[tag_name] = {'rev': rev, 'shortnode': shortnode}
+        return tags
+
+    def is_ancestor(self, commit1, commit2, patch=False):
+        """Returns True if commit1 is a direct ancestor of commit2, or False
+        otherwise.
+
+        This method considers a commit to be a direct ancestor of itself"""
+        result = self.hg("log", "-r", "first(%s::%s)" % (commit1, commit2),
+                         "--template", "exists", patch=patch)
+        return "exists" in result
+
+    def get_paths(self, patch=False):
+        paths = self.hg("paths", patch=patch)
+        return dict(line.split(' = ', 1) for line in paths if line)
+
+    def get_default_url(self, patch=False):
+        return self.get_paths(patch=patch).get('default')
 
     def validate_repostate(self):
         def _check(modified, path):
@@ -63,8 +173,76 @@ class HgReleaseVCS(ReleaseVCS):
         if self.patch_path:
             _check(self.hg('status', '-m', '-a', '--mq'), self.patch_path)
 
+    def get_current_revision(self):
+        doc = {
+            'commit': self.hg("log", "--template", "{node}", "-r", ".")[0],
+            'branch': self.hg("branch")[0],
+        }
+
+        def _get(key, fn):
+            try:
+                value = fn()
+                doc[key] = value
+                return (value is not None)
+            except Exception as e:
+                print_error("Error retrieving %s: %s" % (key, str(e)))
+                return False
+
+        _get("push_url", self.get_default_url)
+
+        return doc
+
     def get_changelog(self, previous_revision=None):
-        return "TODO"
+        prev_commit = None
+        if previous_revision is not None:
+            try:
+                prev_commit = previous_revision["commit"]
+            except:
+                if self.package.config.debug("package_release"):
+                    print_debug("couldn't determine previous commit from: %r"
+                                % previous_revision)
+
+        if prev_commit:
+            # git behavior is to simply print the log from the last common
+            # ancsestor... which is apparently desired. so we'll mimic that
+            commit_range = "ancestor(%s, .)::." % prev_commit
+            stdout = self.hg("log", "-r", commit_range)
+        else:
+            stdout = self.hg("log")
+        return '\n'.join(stdout)
+
+    def create_release_tag(self, tag_name, message=None):
+        # check if tag already exists, and if it does, if it is a direct
+        # ancestor, and there is NO difference in the files between the tagged
+        # state and current state
+        #
+        # This check is mainly to avoid re-creating the same tag over and over
+        # on what is essentially the same commit, since tagging will
+        # technically create a new commit, and update the working copy to it.
+        #
+        # Without this check, say you were releasing to three different
+        # locations, one right after another; the first would create the tag,
+        # and a new tag commit.  The second would then recreate the exact same
+        # tag, but now pointing at the commit that made the first tag.
+        # The third would create the tag a THIRD time, but now pointing at the
+        # commit that created the 2nd tag.
+
+        # create tag
+        print "Creating tag '%s'..." % tag_name
+        created_tags = self._create_tag_highlevel(tag_name, message=message)
+
+        # push tags / bookmarks
+        for result in created_tags:
+            patch = result['patch']
+            url = self.get_default_url(patch=patch)
+            if not url:
+                continue
+            if result['type'] == 'bookmark':
+                self.hg('push', '--bookmark', tag_name, url, patch=patch)
+            elif result['type'] == 'tag':
+                self.hg('push', url, patch=patch)
+            else:
+                raise ValueError(result['type'])
 
 
 def register_plugin():
