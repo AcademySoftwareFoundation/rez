@@ -62,11 +62,22 @@ command:
 
     # List of commands to execute prior to build, in given order.
     # Each item is a dict containing:
-    # - 'command' (str): Command to execute;
+    # - 'command' (str): Command to execute, OR;
     # - 'args' (str or list of str) (optional): Arguments to the command. If a
     #   string, args are split by whitespace;
     # - 'user' (str) (optional): User to execute the commands as, defaults to
     #   current user.
+    # - 'env' (dict): Environment variables to set for the command. They are
+    #   added to the current env.
+    #
+    # Command arguments are formatted and the following objects are available:
+    # - package: The package that is being released.
+    # - system: The system object.
+    # - release: Namespace for info about the current release, contains:
+    #   - path: Installation path of release.
+    #
+    # Also, any environment variables references in command arguments are
+    # expanded also.
     #
     # Example:
     # pre_build_commands
