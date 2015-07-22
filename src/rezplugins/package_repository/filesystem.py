@@ -516,10 +516,10 @@ class FileSystemPackageRepository(PackageRepository):
 
     def _get_family_dirs__key(self):
         if os.path.isdir(self.location):
-            return str(("listdir", self.location))
-        else:
             st = os.stat(self.location)
             return str(("listdir", self.location, st.st_ino, st.st_mtime))
+        else:
+            return str(("listdir", self.location))
 
     @memcached(servers=config.memcached_uri if config.cache_listdir else None,
                min_compress_len=config.memcached_listdir_min_compress_len,
