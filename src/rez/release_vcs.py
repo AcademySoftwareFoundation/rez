@@ -66,7 +66,7 @@ class ReleaseVCS(object):
         """Return True if this release mode works with the given root path."""
         raise NotImplementedError
 
-    def validate_repostate(self):
+    def validate_repostate(self, no_update_repo=False):
         """Ensure that the VCS working copy is up-to-date."""
         raise NotImplementedError
 

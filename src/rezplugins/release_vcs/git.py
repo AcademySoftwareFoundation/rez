@@ -78,7 +78,7 @@ class GitReleaseVCS(ReleaseVCS):
                 raise e
         return (None, None)
 
-    def validate_repostate(self):
+    def validate_repostate(self, no_update_repo=False):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
@@ -86,12 +86,13 @@ class GitReleaseVCS(ReleaseVCS):
         remote, remote_branch = self.get_tracking_branch()
 
         # check for upstream branch
-        if remote is None and not self.settings.allow_no_upstream:
-            raise ReleaseVCSError(
-                "Release cancelled: there is no upstream branch (git cannot see "
-                "a remote repo - you should probably FIX THIS FIRST!). To allow "
-                "the release, set the config entry "
-                "'plugins.release_vcs.git.allow_no_upstream' to true.")
+        if not no_update_repo:
+            if remote is None and (not self.settings.allow_no_upstream):
+                raise ReleaseVCSError(
+                    "Release cancelled: there is no upstream branch (git cannot see "
+                    "a remote repo - you should probably FIX THIS FIRST!). To allow "
+                    "the release, set the config entry "
+                    "'plugins.release_vcs.git.allow_no_upstream' to true.")
 
         # check we are releasing from a valid branch
         releasable_branches = self.type_settings.releasable_branches
