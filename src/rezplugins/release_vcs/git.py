@@ -78,7 +78,7 @@ class GitReleaseVCS(ReleaseVCS):
                 raise e
         return (None, None)
 
-    def validate_repostate(self, no_update_repo=False):
+    def validate_repostate(self):
         b = self.git("rev-parse", "--is-bare-repository")
         if b == "true":
             raise ReleaseVCSError("Could not release: bare git repository")
@@ -86,13 +86,12 @@ class GitReleaseVCS(ReleaseVCS):
         remote, remote_branch = self.get_tracking_branch()
 
         # check for upstream branch
-        if not no_update_repo:
-            if remote is None and (not self.settings.allow_no_upstream):
-                raise ReleaseVCSError(
-                    "Release cancelled: there is no upstream branch (git cannot see "
-                    "a remote repo - you should probably FIX THIS FIRST!). To allow "
-                    "the release, set the config entry "
-                    "'plugins.release_vcs.git.allow_no_upstream' to true.")
+        if remote is None and (not self.settings.allow_no_upstream):
+            raise ReleaseVCSError(
+                "Release cancelled: there is no upstream branch (git cannot see "
+                "a remote repo - you should probably FIX THIS FIRST!). To allow "
+                "the release, set the config entry "
+                "'plugins.release_vcs.git.allow_no_upstream' to true.")
 
         # check we are releasing from a valid branch
         releasable_branches = self.type_settings.releasable_branches
@@ -147,6 +146,7 @@ class GitReleaseVCS(ReleaseVCS):
             stdout = self.git("log", commit_range)
         else:
             stdout = self.git("log")
+
         return '\n'.join(stdout)
 
     def get_current_revision(self):
@@ -185,10 +185,12 @@ class GitReleaseVCS(ReleaseVCS):
             _get("push_url", functools.partial(_url, "push"))
         return doc
 
-    def create_release_tag(self, tag_name, message=None):
-        # check if tag already exists
+    def tag_exists(self, tag_name):
         tags = self.git("tag")
-        if tag_name in tags:  # already exists
+        return (tag_name in tags)
+
+    def create_release_tag(self, tag_name, message=None):
+        if self.tag_exists(tag_name):
             return
 
         # create tag

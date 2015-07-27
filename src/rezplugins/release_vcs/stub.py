@@ -27,7 +27,7 @@ class StubReleaseVCS(ReleaseVCS):
     def is_valid_root(cls, path):
         return os.path.exists(os.path.join(path, '.stub'))
 
-    def validate_repostate(self, no_update_repo=False):
+    def validate_repostate(self):
         pass
 
     def get_current_revision(self):

@@ -98,6 +98,17 @@ class ReleaseVCS(object):
         """
         raise NotImplementedError
 
+    def tag_exists(self, tag_name):
+        """Test if a tag exists in the repo.
+
+        Args:
+            tag_name (str): Tag name to check for.
+
+        Returns:
+            bool: True if the tag exists, False otherwise.
+        """
+        raise NotImplementedError
+
     def create_release_tag(self, tag_name, message=None):
         """Create a tag in the repo.
 

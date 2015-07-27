@@ -72,7 +72,7 @@ class SvnReleaseVCS(ReleaseVCS):
     def is_valid_root(cls, path):
         return os.path.isdir(os.path.join(path, '.svn'))
 
-    def validate_repostate(self, no_update_repo=False):
+    def validate_repostate(self):
         status_list = self.svnc.status(self.path, get_all=False, update=True)
         status_list_known = []
 

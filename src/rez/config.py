@@ -301,7 +301,8 @@ config_schema = Schema({
 _plugin_config_dict = {
     "release_vcs": {
         "tag_name":                     basestring,
-        "releasable_branches":          Or(None, [basestring])
+        "releasable_branches":          Or(None, [basestring]),
+        "check_tag":                    bool
     }
 }
 

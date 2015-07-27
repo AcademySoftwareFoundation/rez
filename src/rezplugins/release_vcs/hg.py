@@ -161,7 +161,7 @@ class HgReleaseVCS(ReleaseVCS):
     def get_default_url(self, patch=False):
         return self.get_paths(patch=patch).get('default')
 
-    def validate_repostate(self, no_update_repo=False):
+    def validate_repostate(self):
         def _check(modified, path):
             if modified:
                 modified = [line.split()[-1] for line in modified]
