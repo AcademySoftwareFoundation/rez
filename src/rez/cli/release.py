@@ -23,10 +23,10 @@ def setup_parser(parser, completions=False):
         "the current version. If the config setting plugins.release_vcs.check_tag "
         "is false, this option has no effect.")
     parser.add_argument(
-        "--skip-errors", dest="skip_errors", action="store_true",
-        help="release even if errors occur. DO NOT use this option unless you "
-        "absolutely must release a package, despite there being a problem (such "
-        "as inability to contact the repository server")
+        "--skip-repo-errors", dest="skip_repo_errors", action="store_true",
+        help="release even if repository-related errors occur. DO NOT use this "
+        "option unless you absolutely must release a package, despite there being "
+        "a problem (such as inability to contact the repository server")
     setup_parser_common(parser)
 
 
@@ -57,7 +57,7 @@ def command(opts, parser, extra_arg_groups=None):
                                    build_system=buildsys,
                                    vcs=vcs,
                                    ensure_latest=(not opts.no_latest),
-                                   skip_errors=opts.skip_errors,
+                                   skip_repo_errors=opts.skip_repo_errors,
                                    ignore_existing_tag=opts.ignore_existing_tag,
                                    verbose=True)
 

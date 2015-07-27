@@ -20,7 +20,7 @@ def get_build_process_types():
 
 
 def create_build_process(process_type, working_dir, build_system, vcs=None,
-                         ensure_latest=True, skip_errors=False,
+                         ensure_latest=True, skip_repo_errors=False,
                          ignore_existing_tag=False, verbose=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
@@ -33,7 +33,7 @@ def create_build_process(process_type, working_dir, build_system, vcs=None,
                build_system=build_system,
                vcs=vcs,
                ensure_latest=ensure_latest,
-               skip_errors=skip_errors,
+               skip_repo_errors=skip_repo_errors,
                ignore_existing_tag=ignore_existing_tag,
                verbose=verbose)
 
@@ -59,7 +59,7 @@ class BuildProcess(object):
         raise NotImplementedError
 
     def __init__(self, working_dir, build_system, vcs=None, ensure_latest=True,
-                 skip_errors=False, ignore_existing_tag=False, verbose=False):
+                 skip_repo_errors=False, ignore_existing_tag=False, verbose=False):
         """Create a BuildProcess.
 
         Args:
@@ -69,7 +69,7 @@ class BuildProcess(object):
                 process. If None, the package will only be built, not released.
             ensure_latest: If True, do not allow the release process to occur
                 if an newer versioned package is already released.
-            skip_errors: If True, proceed with the release even when errors
+            skip_repo_errors: If True, proceed with the release even when errors
                 occur. BE CAREFUL using this option, it is here in case a package
                 needs to be released urgently even though there is some problem
                 with reading or writing the repository.
@@ -82,7 +82,7 @@ class BuildProcess(object):
         self.build_system = build_system
         self.vcs = vcs
         self.ensure_latest = ensure_latest
-        self.skip_errors = skip_errors
+        self.skip_repo_errors = skip_repo_errors
         self.ignore_existing_tag = ignore_existing_tag
 
         if vcs and vcs.path != working_dir:
@@ -143,7 +143,7 @@ class BuildProcessHelper(BuildProcess):
     """
     @contextmanager
     def repo_operation(self):
-        exc_type = ReleaseVCSError if self.skip_errors else None
+        exc_type = ReleaseVCSError if self.skip_repo_errors else None
         try:
             yield
         except exc_type as e:
