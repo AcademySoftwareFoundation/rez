@@ -1,0 +1,7 @@
+This is a repository of package installers. Each directory contains a rez
+project that you need to build (using rez-build) or release (using rez-release).
+
+Please note that these projects are for reference and may not do exactly as you
+need. You are encouraged to fork and modify them to suite your studio's purposes,
+but please consider contributing back any general changes that would be of
+benefit to the wider public.

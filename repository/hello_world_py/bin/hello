@@ -1,0 +1,4 @@
+#!/usr/bin/env python
+
+from hello_world import hello
+hello()
