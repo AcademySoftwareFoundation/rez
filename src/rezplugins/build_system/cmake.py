@@ -29,6 +29,12 @@ class CMakeBuildSystem(BuildSystem):
     library of cmake macros in the 'cmake_files' directory; these are added to
     cmake's searchpath and are available to use in your own CMakeLists.txt
     file.
+
+    The following CMake variables are available:
+    - REZ_BUILD_TYPE: One of 'local', 'central'. Describes whether an install
+      is going to the local packages path, or the release packages path.
+    - REZ_BUILD_INSTALL: One of 0 or 1. If 1, an installation is taking place;
+      if 0, just a build is occurring.
     """
 
     build_systems = {'eclipse':     "Eclipse CDT4 - Unix Makefiles",
@@ -112,10 +118,12 @@ class CMakeBuildSystem(BuildSystem):
         cmd = [found_exe, "-d", self.working_dir]
         cmd += (self.settings.cmake_args or [])
         cmd += (self.build_args or [])
+
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
         cmd.append("-DCMAKE_MODULE_PATH=%s" % sh.get_key_token("CMAKE_MODULE_PATH"))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
         cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)
+        cmd.append("-DREZ_BUILD_INSTALL=%d" % (1 if install else 0))
         cmd.extend(["-G", self.build_systems[self.cmake_build_system]])
 
         if config.rez_1_cmake_variables and \
