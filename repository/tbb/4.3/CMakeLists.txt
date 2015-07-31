@@ -4,6 +4,10 @@ include(RezBuild)
 include(ExternalProject)
 
 
+set(tbb_version $ENV{REZ_BUILD_PROJECT_VERSION})
+set(url_base $ENV{REZ_REPO_PAYLOAD_DIR}/tbb)
+set(url_tbb ${url_base}/tbb-${tbb_version}.tgz)
+
 if(${REZ_BUILD_INSTALL})
     set(install_cmd make --directory ${CMAKE_BINARY_DIR} install_tbb)
 else()
@@ -12,7 +16,8 @@ endif()
 
 ExternalProject_add(
     tbb
-    URL $ENV{REZ_REPO_PAYLOAD_DIR}/tbb-${REZ_BUILD_PROJECT_VERSION}.tgz
+    URL ${url_tbb}
+    PREFIX tbb
     UPDATE_COMMAND ""
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND "${install_cmd}"
@@ -28,4 +33,5 @@ add_custom_target(
     COMMENT "Installing tbb..."
     COMMAND python install.py ${SOURCE_DIR} ${CMAKE_INSTALL_PREFIX}
     WORKING_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}
+    VERBATIM
 )

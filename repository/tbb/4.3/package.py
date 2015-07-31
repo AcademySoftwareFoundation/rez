@@ -17,7 +17,6 @@ variants = [
 
 uuid = "repository.tbb"
 
-
 def commands():
     env.LD_LIBRARY_PATH.append("{root}/lib/release")
 

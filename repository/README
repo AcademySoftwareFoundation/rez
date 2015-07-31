@@ -1,11 +1,16 @@
 This is a repository of package installers. Each directory contains a rez
-project that you need to build (using rez-build) or release (using rez-release).
+project that you can build (using rez-build) or release (using rez-release).
+Doing so will build or release the associated software (gcc, boost etc) as a
+rez package.
 
 Please note that this project repository is for reference only. You should copy
 them into your own repo - at that point you can set the correct versions, put a
-requirement on your operating system of choice, and so on. Where package versions
-contain an 'x', they indicate that you need to replace 'x' with a version of the
-software you have downloaded, and then the install should work.
+requirement on your operating system of choice, and so on.
+
+These installer packages make heavy use of the 'ExternalProject_add' CMake macro.
+You can modify calls to this macro in the CMakeLists.txt to do things such as
+apply your own patches. You would include these patches in your own package
+repository so that you retain a change history of them.
 
 Once you have these installer packages in your own repo (or repos) you will be
 able to rez-build and rez-release them. You can keep them all within a single
