@@ -18,4 +18,4 @@ variants = [
 uuid = "repository.gcc"
 
 def commands():
-    pass
+    env.PATH.append("{root}/bin")
