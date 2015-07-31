@@ -16,12 +16,15 @@
 # If the file doesn't exist, an error is raised. If it does, the path is written
 # to 'variable'.
 #
+# This macro is used by many of the packages found in the 'repository' directory.
+#
 
+macro (rez_set_archive variable RELATIVE_PATH)
 
-macro (rez_set_archive)
-
-    if(not ENV{REZ_REPO_PAYLOAD_DIR})
-        message(FATAL_ERROR "REZ_REPO_PAYLOAD_DIR must be set")
+	if(NOT DEFINED ENV{REZ_REPO_PAYLOAD_DIR})
+        message(FATAL_ERROR "REZ_REPO_PAYLOAD_DIR environment variable is not set")
     endif()
+
+    set(${variable} $ENV{REZ_REPO_PAYLOAD_DIR}/${RELATIVE_PATH})
 
 endmacro (rez_set_archive)

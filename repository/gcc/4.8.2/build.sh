@@ -11,7 +11,7 @@ mpc_ver=$7
 cd ${build_dir}
 
 if [ ! -d gcc-${gcc_ver} ]; then
-    archive=${archive_dir}/gcc-${gcc_ver}.tar.bz2
+    archive=${archive_dir}/gcc/gcc-${gcc_ver}.tar.bz2
     echo "Extracting gcc from ${archive}..."
     tar xjf ${archive}
 fi
@@ -21,7 +21,7 @@ cd gcc-${gcc_ver}
 echo "Extracting prerequisites..."
 if [ ! -L gmp ]; then
     echo "gmp..."
-    tar xjf ${archive_dir}/gmp-${gmp_ver}.tar.bz2
+    tar xjf ${archive_dir}/gcc/gmp-${gmp_ver}.tar.bz2
     ln -s gmp-${gmp_ver} gmp
 
     # weirdly, without the following fix we sometimes get the following error while
@@ -42,13 +42,13 @@ fi
 
 if [ ! -L mpfr ]; then
     echo "mpfr..."
-    tar xjf ${archive_dir}/mpfr-${mpfr_ver}.tar.bz2
+    tar xjf ${archive_dir}/gcc/mpfr-${mpfr_ver}.tar.bz2
     ln -s mpfr-${mpfr_ver} mpfr
 fi
 
 if [ ! -L mpc ]; then
     echo "mpc..."
-    tar xzf ${archive_dir}/mpc-${mpc_ver}.tar.gz
+    tar xzf ${archive_dir}/gcc/mpc-${mpc_ver}.tar.gz
     ln -s mpc-${mpc_ver} mpc
 fi
 
