@@ -20,5 +20,5 @@ uuid = "repository.tbb"
 def commands():
     env.LD_LIBRARY_PATH.append("{root}/lib/release")
 
-    if 1:  # building  TODO fix rez issue
+    if building:
         env.TBB_INCLUDE_DIR = "{root}/include"
