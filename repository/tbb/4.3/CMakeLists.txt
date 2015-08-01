@@ -5,7 +5,11 @@ include(RezRepository)
 include(ExternalProject)
 
 set(tbb_version $ENV{REZ_BUILD_PROJECT_VERSION})
-rez_set_archive(url_tbb tbb/tbb-${tbb_version}.tgz)
+
+rez_set_archive(
+    url_tbb tbb/tbb-${tbb_version}.tgz
+    https://www.threadingbuildingblocks.org/sites/default/files/software_releases/source/tbb43_20150611oss_src.tgz
+)
 
 ExternalProject_add(
     tbb
@@ -15,7 +19,7 @@ ExternalProject_add(
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ""
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make VERBOSE=1
+    BUILD_COMMAND make -j8 VERBOSE=1
 )
 
 ExternalProject_Get_Property(tbb SOURCE_DIR)

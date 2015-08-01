@@ -63,4 +63,4 @@ else
 fi
 
 # build
-make
+make -j8

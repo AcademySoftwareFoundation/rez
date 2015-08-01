@@ -3,7 +3,7 @@ name = "gcc"
 version = "4.8.2"
 
 authors = [
-    "ajohns"
+    "GNU"
 ]
 
 description = \
@@ -13,6 +13,18 @@ description = \
 
 variants = [
     ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04"]
+]
+
+tools = [
+    "gcc",
+    "g++",
+    "c++",
+    "cpp",
+    "gcc-ar",
+    "gcc-ranlib",
+    "gfortran",
+    "gcc-nm",
+    "gcov"
 ]
 
 uuid = "repository.gcc"

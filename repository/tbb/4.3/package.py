@@ -3,7 +3,7 @@ name = "tbb"
 version = "4.3"
 
 authors = [
-    "ajohns"
+    "Intel"
 ]
 
 description = \

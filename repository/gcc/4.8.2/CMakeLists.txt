@@ -19,10 +19,22 @@ set(mpfr_version 2.4.2)
 set(mpc_version 0.8.1)
 set(gcc_version $ENV{REZ_BUILD_PROJECT_VERSION})
 
-rez_set_archive(url_gmp gcc/gmp-${gmp_version}.tar.bz2)
-rez_set_archive(url_mpfr gcc/mpfr-${mpfr_version}.tar.bz2)
-rez_set_archive(url_mpc gcc/mpc-${mpc_version}.tar.gz)
-rez_set_archive(url_gcc gcc/gcc-${gcc_version}.tar.bz2)
+rez_set_archive(
+	url_gmp gcc/gmp-${gmp_version}.tar.bz2
+	http://ftp.gnu.org/gnu/gmp/gmp-${gmp_version}.tar.bz2
+)
+rez_set_archive(
+	url_mpfr gcc/mpfr-${mpfr_version}.tar.bz2
+	http://www.mpfr.org/mpfr-current/mpfr-${mpfr_version}.tar.bz2
+)
+rez_set_archive(
+	url_mpc gcc/mpc-${mpc_version}.tar.gz
+	http://ftp.gnu.org/gnu/mpc/mpc-${mpc_version}.tar.gz
+)
+rez_set_archive(
+	url_gcc gcc/gcc-${gcc_version}.tar.bz2
+	ftp://ftp.gnu.org/gnu/gcc/gcc-${gcc_version}/gcc-${gcc_version}.tar.bz2
+)
 
 add_custom_target(
     build_gcc

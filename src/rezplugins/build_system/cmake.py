@@ -137,6 +137,8 @@ class CMakeBuildSystem(BuildSystem):
             build_path = os.path.join(self.working_dir, build_path)
             build_path = os.path.realpath(build_path)
 
+        env_ = self._build_env()
+
         callback = functools.partial(self._add_build_actions,
                                      context=context,
                                      package=self.package,
@@ -147,6 +149,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
+                                              parent_environ=env_,
                                               actions_callback=callback)
         ret = {}
         if retcode:
@@ -179,6 +182,7 @@ class CMakeBuildSystem(BuildSystem):
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
                                               cwd=build_path,
+                                              parent_environ=env_,
                                               actions_callback=callback)
         if not retcode and install and "install" not in cmd:
             cmd.append("install")
@@ -188,10 +192,17 @@ class CMakeBuildSystem(BuildSystem):
             retcode, _, _ = context.execute_shell(command=cmd,
                                                   block=True,
                                                   cwd=build_path,
+                                                  parent_environ=env_,
                                                   actions_callback=callback)
 
         ret["success"] = (not retcode)
         return ret
+
+    @staticmethod
+    def _build_env():
+        env_ = os.environ.copy()
+        env_["REZ_BUILD_ENV"] = "1"
+        return env_
 
     @staticmethod
     def _add_build_actions(executor, context, package, variant, build_type):
@@ -201,7 +212,7 @@ class CMakeBuildSystem(BuildSystem):
 
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
-        executor.env.REZ_BUILD_ENV = 1
+        #executor.env.REZ_BUILD_ENV = 1
         executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
         # build always occurs on a filesystem package, thus 'filepath' attribute
         # exists. This is not the case for packages in general.
@@ -228,6 +239,8 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
     variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
 
+    env_ = CMakeBuildSystem._build_env()
+
     callback = functools.partial(CMakeBuildSystem._add_build_actions,
                                  context=context,
                                  package=package,
@@ -236,6 +249,7 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
 
     retcode, _, _ = context.execute_shell(block=True,
                                           cwd=build_dir,
+                                          parent_environ=env_,
                                           actions_callback=callback)
     sys.exit(retcode)
 
