@@ -16,7 +16,7 @@ requires = [
 ]
 
 variants = [
-    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04"]
+    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04", "gcc-4.8.2"]
 ]
 
 tools = [

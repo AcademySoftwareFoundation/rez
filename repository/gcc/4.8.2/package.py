@@ -31,3 +31,7 @@ uuid = "repository.gcc"
 
 def commands():
     env.PATH.append("{root}/bin")
+
+    if building:
+        env.CC = "{root}/bin/gcc"
+        env.CXX = "{root}/bin/g++"
