@@ -6,7 +6,6 @@ from rez.rex import RexExecutor, literal
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
-from rez.utils.data_utils import cached_class_property
 from rez.util import shlex_join
 import os
 import re
@@ -18,10 +17,13 @@ class CMD(Shell):
     # commands for the Windows Command Prompt (cmd).  It can be found here :
     # http://ss64.com/nt/cmd.html
     syspaths = None
+    _executable = None
 
-    @cached_class_property
+    @property
     def executable(cls):
-        return Shell.find_executable('cmd')
+        if cls._executable is None:
+            cls._executable = Shell.find_executable('cmd')
+        return cls._executable
 
     @classmethod
     def name(cls):

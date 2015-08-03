@@ -5,7 +5,6 @@ import os
 import os.path
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
-from rez.utils.data_utils import cached_class_property
 from rezplugins.shell.sh import SH
 from rez import module_root_path
 
@@ -13,10 +12,13 @@ from rez import module_root_path
 class Bash(SH):
     rcfile_arg = '--rcfile'
     norc_arg = '--norc'
+    _executable = None
 
-    @cached_class_property
+    @property
     def executable(cls):
-        return Shell.find_executable('bash')
+        if cls._executable is None:
+            cls._executable = Shell.find_executable('bash')
+        return cls._executable
 
     @classmethod
     def name(cls):

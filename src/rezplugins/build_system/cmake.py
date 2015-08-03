@@ -194,7 +194,6 @@ class CMakeBuildSystem(BuildSystem):
             retcode, _, _ = context.execute_shell(command=cmd,
                                                   block=True,
                                                   cwd=build_path,
-                                                  parent_environ=env_,
                                                   actions_callback=callback)
 
         ret["success"] = (not retcode)

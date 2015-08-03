@@ -57,6 +57,14 @@ class Shell(ActionInterpreter):
         """
         raise NotImplementedError
 
+    #@cached_class_property
+    #def executable(cls):
+    #    name = cls.name()
+    #    exe = which(name)
+    #    if not exe:
+    #        raise RuntimeError("Couldn't find executable '%s'." % name)
+    #    return exe
+
     @classmethod
     def get_syspaths(cls):
         raise NotImplementedError
@@ -83,7 +91,7 @@ class Shell(ActionInterpreter):
 
     def new_shell(self):
         """Returns A new, reset shell of the same type."""
-        return type(self)()
+        return self.__class__()
 
     @classmethod
     def _unsupported_option(cls, option, val):

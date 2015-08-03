@@ -3,7 +3,6 @@ TCSH shell
 """
 from rez.shells import Shell
 from rez.utils.platform_ import platform_
-from rez.utils.data_utils import cached_class_property
 from rezplugins.shell.csh import CSH
 from rez import module_root_path
 from rez.rex import EscapedString
@@ -12,10 +11,13 @@ import pipes
 
 
 class TCSH(CSH):
+    _executable = None
 
-    @cached_class_property
+    @property
     def executable(cls):
-        return Shell.find_executable('tcsh')
+        if cls._executable is None:
+            cls._executable = Shell.find_executable('tcsh')
+        return cls._executable
 
     @classmethod
     def name(cls):
