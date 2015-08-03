@@ -273,3 +273,13 @@ def test_encode_decode():
 
     # u'\u20ac' == Euro symbol
     do_test(u"\u20ac3 ~= $4.06", '_3e282ac3_020_07e_03d_020_0244.06')
+
+def walk_up_dirs(path):
+    """Yields absolute directories starting with the given path, and iterating
+    up through all it's parents, until it reaches a root directory"""
+    prev_path = None
+    current_path = os.path.abspath(path)
+    while current_path != prev_path:
+        yield current_path
+        prev_path = current_path
+        current_path = os.path.dirname(prev_path)

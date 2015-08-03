@@ -15,8 +15,8 @@ class StubReleaseVCS(ReleaseVCS):
     A writable '.stub' file must be present in the project root. Any created
     tags are written to this yaml file.
     """
-    def __init__(self, path):
-        super(StubReleaseVCS, self).__init__(path)
+    def __init__(self, pkg_root, vcs_root=None):
+        super(StubReleaseVCS, self).__init__(pkg_root, vcs_root=vcs_root)
         self.time = int(time.time())
 
     @classmethod
@@ -26,6 +26,10 @@ class StubReleaseVCS(ReleaseVCS):
     @classmethod
     def is_valid_root(cls, path):
         return os.path.exists(os.path.join(path, '.stub'))
+
+    @classmethod
+    def search_parents_for_root(cls):
+        return False
 
     def validate_repostate(self):
         pass
@@ -60,11 +64,11 @@ class StubReleaseVCS(ReleaseVCS):
         self._write_stub(data)
 
     def _read_stub(self):
-        with open(os.path.join(self.path, '.stub')) as f:
+        with open(os.path.join(self.vcs_root, '.stub')) as f:
             return yaml.load(f.read()) or {}
 
     def _write_stub(self, data):
-        with open(os.path.join(self.path, '.stub'), 'w') as f:
+        with open(os.path.join(self.vcs_root, '.stub'), 'w') as f:
             f.write(dump_yaml(data))
 
 

@@ -2,6 +2,7 @@ from rez.exceptions import ReleaseVCSError
 from rez.packages_ import get_developer_package
 from rez.util import which
 from rez.utils.logging_ import print_debug
+from rez.utils.filesystem import walk_up_dirs
 import subprocess
 
 
@@ -21,30 +22,58 @@ def create_release_vcs(path, vcs_name=None):
         cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
         return cls(path)
 
-    clss = []
+    classes_by_level = {}
     for vcs_name in vcs_types:
         cls = plugin_manager.get_plugin_class('release_vcs', vcs_name)
-        if cls.is_valid_root(path):
-            clss.append(cls)
+        result = cls.find_vcs_root(path)
+        if not result:
+            continue
+        vcs_path, levels_up = result
+        classes_by_level.setdefault(levels_up, []).append((cls, vcs_path))
+
+    if not classes_by_level:
+        raise ReleaseVCSError("No version control system for package "
+                      "releasing is associated with the path %s" % path)
+
+    # it's ok to have multiple results, as long as there is only one at the
+    # "closest" directory up from this dir - ie, if we start at:
+    #    /blah/foo/pkg_root
+    # and these dirs exist:
+    #    /blah/.hg
+    #    /blah/foo/.git
+    # ...then this is ok, because /blah/foo/.git is "closer" to the original
+    # dir, and will be picked. However, if these two directories exist:
+    #    /blah/foo/.git
+    #    /blah/foo/.hg
+    # ...then we error, because we can't decide which to use
+
+    lowest_level = sorted(classes_by_level)[0]
+    clss = classes_by_level[lowest_level]
     if len(clss) > 1:
-        clss_str = ", ".join(x.name() for x in clss)
+        clss_str = ", ".join(x[0].name() for x in clss)
         raise ReleaseVCSError("Several version control systems are associated "
                               "with the path %s: %s. Use rez-release --vcs to "
                               "choose." % (path, clss_str))
-    elif not clss:
-        raise ReleaseVCSError("No version control system for package "
-                              "releasing is associated with the path %s" % path)
     else:
-        return clss[0](path)
+        cls, vcs_root = clss[0]
+        return cls(pkg_root=path, vcs_root=vcs_root)
 
 
 class ReleaseVCS(object):
     """A version control system (VCS) used to release Rez packages.
     """
-    def __init__(self, path):
-        assert(self.is_valid_root(path))
-        self.path = path
-        self.package = get_developer_package(path)
+    def __init__(self, pkg_root, vcs_root=None):
+        if vcs_root is None:
+            result = self.find_vcs_root(pkg_root)
+            if not result:
+                raise ReleaseVCSError("Could not find %s repository for the "
+                                      "path %s" % (self.name(), pkg_root))
+            vcs_root = result[0]
+        else:
+            assert(self.is_valid_root(vcs_root))
+        self.vcs_root = vcs_root
+        self.pkg_root = pkg_root
+        self.package = get_developer_package(pkg_root)
         self.type_settings = self.package.config.plugins.release_vcs
         self.settings = self.type_settings.get(self.name())
 
@@ -63,8 +92,40 @@ class ReleaseVCS(object):
 
     @classmethod
     def is_valid_root(cls, path):
-        """Return True if this release mode works with the given root path."""
+        """Return True if the given path is a valid root directory for this
+        version control system.
+
+        Note that this is different than whether the path is under the
+        control of this type of vcs; to answer that question,
+        use find_vcs_root"""
         raise NotImplementedError
+
+    @classmethod
+    def search_parents_for_root(cls):
+        """Return True if this vcs type should check parent directories to
+        find the root directory
+        """
+        raise NotImplementedError
+
+    @classmethod
+    def find_vcs_root(cls, path):
+        """Try to find a version control root directory of this type for the
+        given path.
+
+        If successful, returns (vcs_root, levels_up), where vcs_root is the
+        path to the version control root directory it found, and levels_up is an
+        integer indicating how many parent directories it had to search through
+        to find it, where 0 means it was found in the indicated path, 1 means it
+        was found in that path's parent, etc. If not sucessful, returns None
+        """
+        if cls.search_parents_for_root():
+            valid_dirs = walk_up_dirs(path)
+        else:
+            valid_dirs = [path]
+        for i, current_path in enumerate(valid_dirs):
+            if cls.is_valid_root(current_path):
+                return current_path, i
+        return None
 
     def validate_repostate(self, no_update_repo=False):
         """Ensure that the VCS working copy is up-to-date."""
@@ -142,7 +203,7 @@ class ReleaseVCS(object):
             print_debug("Running command: %s" % cmd_str)
 
         p = subprocess.Popen(nargs, stdout=subprocess.PIPE,
-                             stderr=subprocess.PIPE, cwd=self.path)
+                             stderr=subprocess.PIPE, cwd=self.pkg_root)
         out, err = p.communicate()
         if p.returncode:
             raise ReleaseVCSError("command failed: %s\n%s" % (cmd_str, err))

@@ -85,7 +85,7 @@ class BuildProcess(object):
         self.skip_repo_errors = skip_repo_errors
         self.ignore_existing_tag = ignore_existing_tag
 
-        if vcs and vcs.path != working_dir:
+        if vcs and vcs.pkg_root != working_dir:
             raise BuildProcessError(
                 "Build process was instantiated with a mismatched VCS instance")
 
