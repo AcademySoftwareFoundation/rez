@@ -127,7 +127,7 @@ class ReleaseVCS(object):
                 return current_path, i
         return None
 
-    def validate_repostate(self):
+    def validate_repostate(self, no_update_repo=False):
         """Ensure that the VCS working copy is up-to-date."""
         raise NotImplementedError
 
@@ -156,6 +156,17 @@ class ReleaseVCS(object):
 
         Returns:
             Changelog, as a string.
+        """
+        raise NotImplementedError
+
+    def tag_exists(self, tag_name):
+        """Test if a tag exists in the repo.
+
+        Args:
+            tag_name (str): Tag name to check for.
+
+        Returns:
+            bool: True if the tag exists, False otherwise.
         """
         raise NotImplementedError
 

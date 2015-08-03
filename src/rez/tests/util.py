@@ -19,7 +19,9 @@ class TestBase(unittest.TestCase):
         self.maxDiff = None
         # shield unit tests from any user config overrides
         os.environ["REZ_QUIET"] = "true"
-        self._config = _create_locked_config(self.settings)
+        # to make sure config changes from one test don't affect another, copy
+        # the overrides dict...
+        self._config = _create_locked_config(dict(self.settings))
         config._swap(self._config)
 
     def tearDown(self):

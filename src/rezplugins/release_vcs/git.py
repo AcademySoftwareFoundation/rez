@@ -78,7 +78,8 @@ class GitReleaseVCS(ReleaseVCS):
                                   "--symbolic-full-name", "@{u}")[0]
             return remote_uri.split('/', 1)
         except Exception as e:
-            if "No upstream branch" not in str(e):
+            if ("No upstream branch" not in str(e)
+                    and "No upstream configured" not in str(e)):
                 raise e
         return (None, None)
 
@@ -90,7 +91,7 @@ class GitReleaseVCS(ReleaseVCS):
         remote, remote_branch = self.get_tracking_branch()
 
         # check for upstream branch
-        if remote is None and not self.settings.allow_no_upstream:
+        if remote is None and (not self.settings.allow_no_upstream):
             raise ReleaseVCSError(
                 "Release cancelled: there is no upstream branch (git cannot see "
                 "a remote repo - you should probably FIX THIS FIRST!). To allow "
@@ -150,6 +151,7 @@ class GitReleaseVCS(ReleaseVCS):
             stdout = self.git("log", commit_range)
         else:
             stdout = self.git("log")
+
         return '\n'.join(stdout)
 
     def get_current_revision(self):
@@ -188,10 +190,12 @@ class GitReleaseVCS(ReleaseVCS):
             _get("push_url", functools.partial(_url, "push"))
         return doc
 
-    def create_release_tag(self, tag_name, message=None):
-        # check if tag already exists
+    def tag_exists(self, tag_name):
         tags = self.git("tag")
-        if tag_name in tags:  # already exists
+        return (tag_name in tags)
+
+    def create_release_tag(self, tag_name, message=None):
+        if self.tag_exists(tag_name):
             return
 
         # create tag

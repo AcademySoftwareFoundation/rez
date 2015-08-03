@@ -240,9 +240,8 @@ class PackageFilterList(PackageFilterBase):
             Adding an inclusion to a filter list applies that inclusion across
             all filters.
         """
-        f = PackageFilter()
-        f.add_inclusion(rule)
-        self.filters = [(x + f) for x in self.filters]
+        for f in self.filters:
+            f.add_inclusion(rule)
 
     def excludes(self, package):
         for f in self.filters:

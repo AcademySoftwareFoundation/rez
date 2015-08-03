@@ -9,6 +9,7 @@ from rez.utils.data_utils import LazySingleton, cached_property
 from rez.utils.logging_ import print_debug, print_warning
 from rez.exceptions import RezPluginError
 import os.path
+import sys
 
 
 # modified from pkgutil standard library:
@@ -117,7 +118,11 @@ class RezPluginType(object):
                         print_debug("loading %s plugin at %s: %s..."
                                     % (self.type_name, path, modname))
                     try:
-                        module = loader.find_module(modname).load_module(modname)
+                        # load_module will force reload the module if it's
+                        # already loaded, so check for that
+                        module = sys.modules.get(modname)
+                        if module is None:
+                            module = loader.find_module(modname).load_module(modname)
                         if hasattr(module, 'register_plugin') and \
                                 hasattr(module.register_plugin, '__call__'):
                             plugin_class = module.register_plugin()

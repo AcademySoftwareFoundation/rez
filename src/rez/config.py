@@ -252,6 +252,7 @@ config_schema = Schema({
     "prune_failed_graph":                           Bool,
     "all_parent_variables":                         Bool,
     "all_resetting_variables":                      Bool,
+    "package_commands_sourced_first":               Bool,
     "warn_shell_startup":                           Bool,
     "warn_untimestamped":                           Bool,
     "warn_all":                                     Bool,
@@ -300,7 +301,8 @@ config_schema = Schema({
 _plugin_config_dict = {
     "release_vcs": {
         "tag_name":                     basestring,
-        "releasable_branches":          Or(None, [basestring])
+        "releasable_branches":          Or(None, [basestring]),
+        "check_tag":                    bool
     }
 }
 
@@ -488,7 +490,7 @@ class Config(object):
         filepaths = []
         filepaths.append(get_module_root_config())
         filepath = os.getenv("REZ_CONFIG_FILE")
-        if filepath and os.path.isfile(filepath):
+        if filepath:
             filepaths.append(filepath)
 
         filepath = os.path.expanduser("~/.rezconfig")

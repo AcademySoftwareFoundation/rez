@@ -8,16 +8,25 @@ def setup_parser(parser, completions=False):
     from rez.cli.build import setup_parser_common
     from rez.release_vcs import get_release_vcs_types
     vcs_types = get_release_vcs_types()
-
     parser.add_argument(
         "-m", "--message", type=str,
         help="release message")
     parser.add_argument(
         "--vcs", type=str, choices=vcs_types,
-        help="force the vcs system to use")
+        help="force the vcs type to use")
     parser.add_argument(
         "--no-latest", dest="no_latest", action="store_true",
         help="allows release of version earlier than the latest release.")
+    parser.add_argument(
+        "--ignore-existing-tag", dest="ignore_existing_tag", action="store_true",
+        help="perform the release even if the repository is already tagged at "
+        "the current version. If the config setting plugins.release_vcs.check_tag "
+        "is false, this option has no effect.")
+    parser.add_argument(
+        "--skip-repo-errors", dest="skip_repo_errors", action="store_true",
+        help="release even if repository-related errors occur. DO NOT use this "
+        "option unless you absolutely must release a package, despite there being "
+        "a problem (such as inability to contact the repository server")
     setup_parser_common(parser)
 
 
@@ -48,6 +57,8 @@ def command(opts, parser, extra_arg_groups=None):
                                    build_system=buildsys,
                                    vcs=vcs,
                                    ensure_latest=(not opts.no_latest),
+                                   skip_repo_errors=opts.skip_repo_errors,
+                                   ignore_existing_tag=opts.ignore_existing_tag,
                                    verbose=True)
 
     builder.release(release_message=opts.message,

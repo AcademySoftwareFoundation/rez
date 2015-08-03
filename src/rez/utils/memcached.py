@@ -1,4 +1,3 @@
-from rez import __version__
 from rez.config import config
 from rez.utils.logging_ import print_debug
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
@@ -8,6 +7,10 @@ from functools import update_wrapper
 from inspect import getargspec, isgeneratorfunction
 from hashlib import md5
 from uuid import uuid4
+
+
+# this version should be changed if and when the caching interface changes
+cache_interface_version = 1
 
 
 class Client(object):
@@ -148,7 +151,7 @@ class Client(object):
         #print "Disconnected memcached client %s" % str(self)
 
     def _qualified_key(self, key):
-        return "%s:%s:%s" % (__version__, self.current, key)
+        return "%s:%s:%s" % (cache_interface_version, self.current, key)
 
     def _get_stats(self, stat_args=None):
         return self.client.get_stats(stat_args=stat_args)

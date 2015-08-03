@@ -1,11 +1,14 @@
 from rez.packages_ import get_developer_package, iter_packages
 from rez.exceptions import BuildProcessError, BuildContextResolveError, \
-    ReleaseHookCancellingError, RezError, ReleaseError, BuildError
+    ReleaseHookCancellingError, RezError, ReleaseError, BuildError, \
+    ReleaseVCSError
+from rez.utils.logging_ import print_warning
 from rez.resolved_context import ResolvedContext
 from rez.release_hook import create_release_hooks
 from rez.resolver import ResolverStatus
 from rez.config import config
 from rez.vendor.enum import Enum
+from contextlib import contextmanager
 import getpass
 import os.path
 
@@ -17,7 +20,8 @@ def get_build_process_types():
 
 
 def create_build_process(process_type, working_dir, build_system, vcs=None,
-                         ensure_latest=True, verbose=False):
+                         ensure_latest=True, skip_repo_errors=False,
+                         ignore_existing_tag=False, verbose=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
     process_types = get_build_process_types()
@@ -29,6 +33,8 @@ def create_build_process(process_type, working_dir, build_system, vcs=None,
                build_system=build_system,
                vcs=vcs,
                ensure_latest=ensure_latest,
+               skip_repo_errors=skip_repo_errors,
+               ignore_existing_tag=ignore_existing_tag,
                verbose=verbose)
 
 
@@ -53,7 +59,7 @@ class BuildProcess(object):
         raise NotImplementedError
 
     def __init__(self, working_dir, build_system, vcs=None, ensure_latest=True,
-                 verbose=False):
+                 skip_repo_errors=False, ignore_existing_tag=False, verbose=False):
         """Create a BuildProcess.
 
         Args:
@@ -63,12 +69,21 @@ class BuildProcess(object):
                 process. If None, the package will only be built, not released.
             ensure_latest: If True, do not allow the release process to occur
                 if an newer versioned package is already released.
+            skip_repo_errors: If True, proceed with the release even when errors
+                occur. BE CAREFUL using this option, it is here in case a package
+                needs to be released urgently even though there is some problem
+                with reading or writing the repository.
+            ignore_existing_tag: Perform the release even if the repository is
+                already tagged at the current version. If the config setting
+                plugins.release_vcs.check_tag is False, this has no effect.
         """
         self.verbose = verbose
         self.working_dir = working_dir
         self.build_system = build_system
         self.vcs = vcs
         self.ensure_latest = ensure_latest
+        self.skip_repo_errors = skip_repo_errors
+        self.ignore_existing_tag = ignore_existing_tag
 
         if vcs and vcs.pkg_root != working_dir:
             raise BuildProcessError(
@@ -126,6 +141,14 @@ class BuildProcess(object):
 class BuildProcessHelper(BuildProcess):
     """A BuildProcess base class with some useful functionality.
     """
+    @contextmanager
+    def repo_operation(self):
+        exc_type = ReleaseVCSError if self.skip_repo_errors else None
+        try:
+            yield
+        except exc_type as e:
+            print_warning("THE FOLLOWING ERROR WAS SKIPPED:\n%s" % str(e))
+
     def visit_variants(self, func, variants=None, **kwargs):
         """Iterate over variants and call a function on each."""
         if variants:
@@ -186,6 +209,8 @@ class BuildProcessHelper(BuildProcess):
         return context, rxt_filepath
 
     def pre_release(self):
+        release_settings = self.package.config.plugins.release_vcs
+
         # test that the release path exists
         release_path = self.package.config.release_packages_path
         if not os.path.exists(release_path):
@@ -194,7 +219,21 @@ class BuildProcessHelper(BuildProcess):
         # test that the repo is in a state to release
         assert self.vcs
         self._print("Checking state of repository...")
-        self.vcs.validate_repostate()
+        with self.repo_operation():
+            self.vcs.validate_repostate()
+
+        # check if the repo is already tagged at the current version
+        if release_settings.check_tag and not self.ignore_existing_tag:
+            tag_name = self.get_current_tag_name()
+            tag_exists = False
+            with self.repo_operation():
+                tag_exists = self.vcs.tag_exists(tag_name)
+
+            if tag_exists:
+                raise ReleaseError(
+                    "Cannot release - the current package version '%s' is already "
+                    "tagged in the repository. Use --ignore-existing-tag to "
+                    "force the release" % self.package.version)
 
         it = iter_packages(self.package.name, paths=[release_path])
         packages = sorted(it, key=lambda x: x.version, reverse=True)
@@ -218,7 +257,14 @@ class BuildProcessHelper(BuildProcess):
                     break
 
     def post_release(self, release_message=None):
-        # format tag
+        tag_name = self.get_current_tag_name()
+
+        # write a tag for the new release into the vcs
+        assert self.vcs
+        with self.repo_operation():
+            self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
+
+    def get_current_tag_name(self):
         release_settings = self.package.config.plugins.release_vcs
         try:
             tag_name = self.package.format(release_settings.tag_name)
@@ -226,10 +272,7 @@ class BuildProcessHelper(BuildProcess):
             raise ReleaseError("Error formatting release tag name: %s" % str(e))
         if not tag_name:
             tag_name = "unversioned"
-
-        # write a tag for the new release into the vcs
-        assert self.vcs
-        self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
+        return tag_name
 
     def run_hooks(self, hook_event, **kwargs):
         for hook in self.hooks:
@@ -274,8 +317,13 @@ class BuildProcessHelper(BuildProcess):
             previous_revision = None
 
         assert self.vcs
-        revision = self.vcs.get_current_revision()
-        changelog = self.vcs.get_changelog(previous_revision)
+        revision = None
+        changelog = None
+
+        with self.repo_operation():
+            revision = self.vcs.get_current_revision()
+        with self.repo_operation():
+            changelog = self.vcs.get_changelog(previous_revision)
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that
