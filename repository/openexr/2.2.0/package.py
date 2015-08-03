@@ -1,4 +1,4 @@
-name = "OpenEXR"
+name = "openexr"
 
 version = "2.2.0"
 
@@ -15,8 +15,12 @@ requires = [
     "ilmbase-2.2"
 ]
 
+build_requires = [
+    "gcc-4.8.2"
+]
+
 variants = [
-    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04", "gcc-4.8.2"]
+    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04"]
 ]
 
 tools = [

@@ -318,6 +318,11 @@ catch_rex_errors = True
 # source directory (this is typically where temporary build files are written).
 build_directory = "build"
 
+# The number of threads a build system should use, eg the make '-j' option. If
+# zero, this is set to the number of processes on the build host. This setting
+# is exposed as the environment variable $REZ_BUILD_THREAD_COUNT during builds.
+build_thread_count = 0
+
 
 ###############################################################################
 # Release

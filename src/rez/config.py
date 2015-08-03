@@ -123,7 +123,6 @@ class Int(Setting):
             raise ConfigurationError("expected %s to be an integer"
                                      % self._env_var_name)
 
-
 class Bool(Setting):
     schema = Schema(bool)
     true_words = frozenset(["1", "true", "yes", "y", "on"])
@@ -239,6 +238,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
+    "build_thread_count":                           Int,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,

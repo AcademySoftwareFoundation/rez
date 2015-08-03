@@ -1379,6 +1379,9 @@ class ResolvedContext(object):
         executor.setenv("REZ_USED_RESOLVE", resolve_str)
         executor.setenv("REZ_USED_PACKAGES_PATH", package_paths_str)
 
+        if self.building:
+            executor.setenv("REZ_BUILD_ENV", "1")
+
         # rez-1 environment variables, set in backwards compatibility mode
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility:
@@ -1393,7 +1396,8 @@ class ResolvedContext(object):
         executor.bind('request', RequirementsBinding(self._package_requests))
         executor.bind('implicits', RequirementsBinding(self.implicit_packages))
         executor.bind('resolve', VariantsBinding(resolved_pkgs))
-        executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
+        #executor.bind('building', bool(os.getenv('REZ_BUILD_ENV')))
+        executor.bind('building', self.building)
 
         #
         # -- apply each resolved package to the execution context

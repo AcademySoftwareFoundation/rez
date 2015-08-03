@@ -63,4 +63,4 @@ else
 fi
 
 # build
-make -j8
+make -j${REZ_BUILD_THREAD_COUNT}

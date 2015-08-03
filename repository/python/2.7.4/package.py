@@ -11,12 +11,25 @@ description = \
     The Python programming language.
     """
 
+build_requires = [
+    "gcc-4.8.2"
+]
+
 variants = [
-    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04", "gcc-4.8.2"]
+    ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04"]
 ]
 
 tools = [
-    "python"
+    "2to3",
+    "idle",
+    "pydoc",
+    "python",
+    "python2",
+    "python2.7",
+    "python2.7-config",
+    "python2-config",
+    "python-config",
+    "smtpd.py"
 ]
 
 uuid = "repository.python"

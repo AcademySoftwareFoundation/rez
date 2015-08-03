@@ -28,8 +28,8 @@
 #
 # CUSTOM_STRING: Any additional data to be written to the cmake file.
 #
-# USE_SYSTEM_INCLUDE_DIRS: When used with rez_find_packages, this flag will 
-#               cause the INCLUDE_DIRS of this package to be declared as SYSTEM 
+# USE_SYSTEM_INCLUDE_DIRS: When used with rez_find_packages, this flag will
+#               cause the INCLUDE_DIRS of this package to be declared as SYSTEM
 #               directories, removing warnings etc at compile time.
 
 if(NOT REZ_BUILD_ENV)

@@ -19,7 +19,7 @@ ExternalProject_add(
     CONFIGURE_COMMAND ""
     INSTALL_COMMAND ""
     BUILD_IN_SOURCE 1
-    BUILD_COMMAND make -j8 VERBOSE=1
+    BUILD_COMMAND make -j$ENV{REZ_BUILD_THREAD_COUNT} VERBOSE=1
 )
 
 ExternalProject_Get_Property(tbb SOURCE_DIR)
