@@ -91,6 +91,7 @@ class TestRelease(TestBase, TempdirMixin):
                                         build_system=buildsys,
                                         vcs=vcs,
                                         ensure_latest=ensure_latest,
+                                        ignore_existing_tag=True,
                                         verbose=True)
 
         # release should fail because release path does not exist

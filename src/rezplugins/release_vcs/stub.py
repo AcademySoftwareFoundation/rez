@@ -43,6 +43,10 @@ class StubReleaseVCS(ReleaseVCS):
         else:
             return "This is the first commit"
 
+    def tag_exists(self, tag_name):
+        data = self._read_stub()
+        return tag_name in data.get("tags", [])
+
     def create_release_tag(self, tag_name, message=None):
         data = self._read_stub()
         if "tags" not in data:
