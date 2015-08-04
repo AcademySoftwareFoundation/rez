@@ -6,6 +6,33 @@ import tempfile
 
 from schema import Schema, Use, And, Or, Optional, SchemaError
 
+# REZ: These are some regular expressions used in converting from original
+#      pytest format to standard unittest format
+#
+# re search:
+# with SE: (\w[^\n]*)\(([^)]*)\)(\s*#[^\n]*)?\n
+# re replace:
+# self.assertRaises(SchemaError, \1, \2)\3\n
+#
+# [Note that you still need to de-indent after applying this]
+# re search:
+# (    ( *))with SE:\n\1    try:\n((?:(?:\1        [^\n]*| *)\n)*?)\1    except SchemaError as e:\n((?:(?:\1        [^\n]*| *)\n)*?)\1        raise\n
+# re replace:
+# \1    try:\n\3\1        self.fail("SchemaError should have been raised")\n\1    except SchemaError as e:\n\4
+#
+# [Note that if you apply this after the new setUpClass method is created, you
+#  need to skip applying this for the first match, where cls.test_file_name is
+#  assigned!]
+# re search:
+# '(\./)?LICENSE-MIT'
+# re replace:
+# self.test_file_name
+#
+# re search:
+# ^\n\n( *)def test_([a-zA-Z0-9_]+)\(\):
+# re replace:
+# \n\1def test_\2(self):
+
 
 try:
     basestring
@@ -59,11 +86,10 @@ class TestSchema(unittest.TestCase):
         assert Schema(
                 Use(open)).validate(self.test_file_name).read().startswith('Copyright')
         self.assertRaises(SchemaError, Schema(Use(open)).validate, 'NON-EXISTENT')
-
         assert Schema(os.path.exists).validate('.') == '.'
         self.assertRaises(SchemaError, Schema(os.path.exists).validate, './non-existent/')
         assert Schema(os.path.isfile).validate(self.test_file_name) == self.test_file_name
-        self.assertRaises(SchemaError, Schema(os.path.exists).validate, 'NON-EXISTENT')
+        self.assertRaises(SchemaError, Schema(os.path.isfile).validate, 'NON-EXISTENT')
 
     def test_and(self):
         assert And(int, lambda n: 0 < n < 5).validate(3) == 3
@@ -105,7 +131,8 @@ class TestSchema(unittest.TestCase):
         assert Schema({'key': int}).validate({'key': 5}) == {'key': 5}
         assert Schema({'n': int, 'f': float}).validate(
                 {'n': 5, 'f': 3.14}) == {'n': 5, 'f': 3.14}
-        self.assertRaises(SchemaError, Schema({'n': int, 'f': float}).validate, {'n': 3.14, 'f': 5})
+        self.assertRaises(SchemaError, Schema({'n': int, 'f': float}).validate, 
+                {'n': 3.14, 'f': 5})
         try:
             Schema({'key': 5}).validate({})
             self.fail("SchemaError should have been raised")
@@ -148,6 +175,22 @@ class TestSchema(unittest.TestCase):
         assert Schema({'a': 1, Optional('b'): 2}).validate({'a': 1}) == {'a': 1}
         assert Schema({'a': 1, Optional('b'): 2}).validate(
                 {'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
+        # Make sure Optionals are favored over types:
+        assert Schema({basestring: 1,
+                       Optional('b'): 2}).validate({'a': 1, 'b': 2}) == {'a': 1, 'b': 2}
+    
+    
+    def test_dict_optional_defaults(self):
+        # Optionals fill out their defaults:
+        assert Schema({Optional('a', default=1): 11,
+                       Optional('b', default=2): 22}).validate({'a': 11}) == {'a': 11, 'b': 2}
+    
+        # Optionals take precedence over types. Here, the "a" is served by the
+        # Optional:
+        assert Schema({Optional('a', default=1): 11,
+                       basestring: 22}).validate({'b': 22}) == {'a': 1, 'b': 22}
+    
+        self.assertRaises(TypeError, Optional, And(str, Use(int)), default=7)
 
     def test_complex(self):
         s = Schema({'<file>': And([Use(open)], lambda l: len(l)),
@@ -295,11 +338,11 @@ class TestSchema(unittest.TestCase):
         except SchemaError as e:
             assert e.code == 'Error:\n--count should be integer 0 < n < 5'
         try:
-            s.validate({'<files>': [], '<path>': self.test_file_name, '--count': '2'})
+            s.validate({'<files>': [], '<path>': './hai', '--count': '2'})
         except SchemaError as e:
-            assert e.code == 'Error:\n<path> should exist%s'
+            assert e.code == 'Error:\n<path> should exist'
         try:
-            s.validate({'<files>': [self.test_file_name], '<path>': './', '--count': '2'})
+            s.validate({'<files>': ['hai'], '<path>': './', '--count': '2'})
         except SchemaError as e:
             assert e.code == 'Error:\n<files> should be readable'
 
