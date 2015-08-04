@@ -72,7 +72,9 @@ class MemoryPackageResource(PackageResourceHelper):
 
     def _load(self):
         family_data = self._repository.data.get(self.name, {})
-        version_str = self.get("version", "_NO_VERSION")
+        version_str = self.get("version")
+        if not version_str:
+            version_str = "_NO_VERSION"
         package_data = family_data.get(version_str, {})
         return package_data
 

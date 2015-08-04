@@ -3,6 +3,7 @@ from rez.utils.data_utils import cached_property
 from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
+from rez.exceptions import ResourceError
 import os.path
 
 
@@ -187,12 +188,71 @@ class PackageRepository(object):
         """
         return 0
 
-    def get_resource(self, resource_key, **variables):
-        variables["repository_type"] = self.name()
-        handle = ResourceHandle(resource_key, variables)
-        return self.get_resource_from_handle(handle)
+    def make_resource_handle(self, resource_key, **variables):
+        """Create a `ResourceHandle`
 
-    def get_resource_from_handle(self, resource_handle):
+        Nearly all `ResourceHandle` creation should go through here, because it
+        gives the various resource classes a chance to normalize / standardize
+        the resource handles, to improve caching / comparison / etc.
+        """
+        if variables.get("repository_type", self.name()) != self.name():
+            raise ResourceError("repository_type mismatch - requested %r, "
+                                "repository_type is %r"
+                                % (variables["repository_type"], self.name()))
+
+        variables["repository_type"] = self.name()
+
+        if variables.get("location", self.location) != self.location:
+            raise ResourceError("location mismatch - requested %r, repository "
+                                "location is %r" % (variables["location"],
+                                                    self.location))
+        variables["location"] = self.location
+
+        resource_cls = self.pool.get_resource_class(resource_key)
+        variables = resource_cls.normalize_variables(variables)
+        return ResourceHandle(resource_key, variables)
+
+    def get_resource(self, resource_key, **variables):
+        """Get a resource.
+
+        Attempts to get and return a cached version of the resource if
+        available, otherwise a new resource object is created and returned.
+
+        Args:
+            resource_key (`str`):  Name of the type of `Resources` to find
+            variables: data to identify / store on the resource
+
+        Returns:
+            `PackageRepositoryResource` instance.
+        """
+        handle = self.make_resource_handle(resource_key, **variables)
+        return self.get_resource_from_handle(handle, verify_repo=False)
+
+    def get_resource_from_handle(self, resource_handle, verify_repo=True):
+        """Get a resource.
+
+        Args:
+            resource_handle (`ResourceHandle`): Handle of the resource.
+
+        Returns:
+            `PackageRepositoryResource` instance.
+        """
+        if verify_repo:
+            # we could fix the handle at this point, but handles should
+            # always be made from repo.make_resource_handle... for now,
+            # at least, error to catch any "incorrect" construction of
+            # handles...
+            if resource_handle.variables.get("repository_type") != self.name():
+                raise ResourceError("repository_type mismatch - requested %r, "
+                                    "repository_type is %r"
+                                    % (resource_handle.variables["repository_type"],
+                                       self.name()))
+
+            if resource_handle.variables.get("location") != self.location:
+                raise ResourceError("location mismatch - requested %r, "
+                                    "repository location is %r "
+                                    % (resource_handle.variables["location"],
+                                       self.location))
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
@@ -223,6 +283,7 @@ class PackageRepositoryManager(object):
         cache_size = config.resource_caching_maxsize
         if cache_size < 0:
             cache_size = None
+        self.cache_size = cache_size
         self.pool = ResourcePool(cache_size=cache_size)
 
     @lru_cache(maxsize=None)
@@ -267,7 +328,29 @@ class PackageRepositoryManager(object):
         repo_2 = self.get_repository(path_2)
         return (repo_1.uid == repo_2.uid)
 
-    def get_resource(self, resource_handle):
+    def get_resource(self, resource_key, repository_type, location,
+                     **variables):
+        """Get a resource.
+
+        Attempts to get and return a cached version of the resource if
+        available, otherwise a new resource object is created and returned.
+
+        Args:
+            resource_key (`str`):  Name of the type of `Resources` to find
+            repository_type (`str`): What sort of repository to look for the
+                resource in
+            location (`str`): location for the repository
+            variables: data to identify / store on the resource
+
+        Returns:
+            `PackageRepositoryResource` instance.
+        """
+        path = "%s@%s" % (repository_type, location)
+        repo = self.get_repository(path)
+        resource = repo.get_resource(**variables)
+        return resource
+
+    def get_resource_from_handle(self, resource_handle):
         """Get a resource.
 
         Args:
@@ -278,8 +361,11 @@ class PackageRepositoryManager(object):
         """
         repo_type = resource_handle.get("repository_type")
         location = resource_handle.get("location")
+        if not (repo_type and location):
+            raise ValueError("PackageRepositoryManager requires "
+                             "resource_handle objects to have a "
+                             "repository_type and location defined")
         path = "%s@%s" % (repo_type, location)
-
         repo = self.get_repository(path)
         resource = repo.get_resource_from_handle(resource_handle)
         return resource

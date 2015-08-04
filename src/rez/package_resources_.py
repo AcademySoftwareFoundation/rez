@@ -186,9 +186,17 @@ class PackageRepositoryResource(Resource):
     schema_error = PackageMetadataError
     repository_type = None
 
+    @classmethod
+    def normalize_variables(cls, variables):
+        if "repository_type" not in variables or "location" not in \
+                variables:
+            raise ResourceError("%s resources require a repository_type and "
+                                "location" % cls.__name__)
+        return super(PackageRepositoryResource, cls).normalize_variables(
+            variables)
+
     def __init__(self, variables=None):
         super(PackageRepositoryResource, self).__init__(variables)
-        self._repository = None
 
     @cached_property
     def uri(self):
@@ -226,6 +234,16 @@ class PackageResource(PackageRepositoryResource):
     A repository implementation's package resource(s) must derive from this
     class. It must satisfy the schema `package_schema`.
     """
+
+    @classmethod
+    def normalize_variables(cls, variables):
+        """Make sure version is treated consistently
+        """
+        # if the version is False, empty string, etc, throw it out
+        if variables.get('version', True) in ('', False, '_NO_VERSION', None):
+            del variables['version']
+        return super(PackageResource, cls).normalize_variables(variables)
+
     @cached_property
     def version(self):
         ver_str = self.get("version", "")
