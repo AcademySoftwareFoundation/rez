@@ -146,3 +146,53 @@ def install_dependent(fn):
             print ("\nskipping test, must be run via 'rez-selftest' tool, from "
                    "a PRODUCTION rez installation.")
     return _fn
+
+def get_cli_output(args):
+    """Invoke the named command-line rez command, with the given string
+    command line args
+
+    Note that it does this by calling rez.cli._main.run within the same
+    python process, for efficiency; if for some reason this is not sufficient
+    encapsulation / etc, you can use subprocess to invoke the rez as a
+    separate process
+
+    Returns
+    -------
+    stdout : basestring
+        the captured output to sys.stdout
+    exitcode : int
+        the returncode from the command
+    """
+
+    import sys
+    from StringIO import StringIO
+
+    command = args[0]
+    other_args = list(args[1:])
+    if command.startswith('rez-'):
+        command = command[4:]
+
+    # swap out sys.stdout, so we can capture it...
+    old_stdout = sys.stdout
+    captured_stdout = StringIO()
+    sys.stdout = captured_stdout
+
+    exitcode = None
+    try:
+        # ...and swap out argv...
+        old_argv = sys.argv
+        new_argv = ['rez-%s' % command] + other_args
+        sys.argv = new_argv
+        try:
+            try:
+                # and finally invoke the "command-line" rez-COMMAND
+                from rez.cli._main import run
+                run(command)
+            except SystemExit as e:
+                exitcode = e.args[0]
+        finally:
+            sys.argv = old_argv
+    finally:
+        sys.stdout = old_stdout
+
+    return captured_stdout.getvalue(), exitcode
