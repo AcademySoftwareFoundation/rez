@@ -418,7 +418,7 @@ def _package_version_sort_key2(version_priority, version):
     if isinstance(version_priority, VersionPriorityMode):
         # note that if the version_priority is a VersionPriorityMode,
         # we return only one item, instead of a tuple of 2 items... but this
-        # should be ok, since all packages in a familty will share the same
+        # should be ok, since all packages in a family will share the same
         # setting, and _package_version_sort_key will sort by family first
         if version_priority == VersionPriorityMode.latest:
             return version
