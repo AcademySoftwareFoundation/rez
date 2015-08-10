@@ -17,16 +17,57 @@ class TestBase(unittest.TestCase):
 
     def setUp(self):
         self.maxDiff = None
-        # shield unit tests from any user config overrides
         os.environ["REZ_QUIET"] = "true"
+
+        # shield unit tests from any user config overrides
+        self.setup_config()
+
+    def tearDown(self):
+        self.teardown_config()
+
+    # These are moved into their own functions so update_settings can call
+    # them without having to call setUp / tearDown, and without worrying
+    # about future or subclass modifications to those methods...
+    def setup_config(self):
         # to make sure config changes from one test don't affect another, copy
         # the overrides dict...
         self._config = _create_locked_config(dict(self.settings))
         config._swap(self._config)
 
-    def tearDown(self):
+    def teardown_config(self):
+        # moved to it's own section because it's called in update_settings...
+        # so if in the future, tearDown does more than call this,
+        # update_settings is still valid
         config._swap(self._config)
         self._config = None
+
+    def update_settings(self, new_settings, override=False):
+        """Can be called within test methods to modify settings on a
+        per-test basis (as opposed cls.settings, which modifies it for all
+        tests on the class)
+
+        new_settings : dict
+            the updated settings to override the config with
+        override : bool
+            normally, the resulting config will be the result of merging
+            the base cls.settings with the new_settings - ie, like doing
+            cls.settings.update(new_settings).  If this is True, however,
+            then the cls.settings will be ignored entirely, and the
+            new_settings will be the only configuration settings applied
+        """
+        # restore the "normal" config...
+        self.teardown_config()
+
+        # ...then copy the class settings dict to instance, so we can
+        # modify...
+        if override:
+            self.settings = dict(new_settings)
+        else:
+            self.settings = dict(self.settings)
+            self.settings.update(new_settings)
+
+        # now swap the config back in...
+        self.setup_config()
 
 
 class TempdirMixin(object):
