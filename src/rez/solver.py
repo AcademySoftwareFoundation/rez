@@ -392,13 +392,16 @@ def _package_version_sort_key(family_name, version, sort_key_cache):
     """Given a package and a version-like-object, returns a sort key that takes
     customized version prioritization into account
     """
+    from rez.config import VersionPriority_
+    format_ver_prio = VersionPriority_.version_priority_entry_convert_schema.validate
+
     family_cache = sort_key_cache.setdefault(family_name, {})
     key = family_cache.get(version)
     if key is not None:
         return key
 
-    version_priority = config.version_priority.get(family_name,
-                                                   VersionPriorityMode.latest)
+    version_priority = config.version_priority.get(family_name, "latest")
+    version_priority = format_ver_prio(version_priority)
     ver_key = _package_version_sort_key2(version_priority, version)
 
     # need to make sure that we always sort first by package, then by
