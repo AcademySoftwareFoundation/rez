@@ -46,6 +46,9 @@ class TestBase(unittest.TestCase):
         per-test basis (as opposed cls.settings, which modifies it for all
         tests on the class)
 
+        Note that multiple calls will not "accumulate" updates, but will
+        instead patch the class's settings with the new_settings each time.
+
         new_settings : dict
             the updated settings to override the config with
         override : bool
@@ -63,7 +66,7 @@ class TestBase(unittest.TestCase):
         if override:
             self.settings = dict(new_settings)
         else:
-            self.settings = dict(self.settings)
+            self.settings = dict(type(self).settings)
             self.settings.update(new_settings)
 
         # now swap the config back in...
