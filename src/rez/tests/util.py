@@ -174,28 +174,48 @@ def get_cli_output(args):
     other_args = list(args[1:])
     if command.startswith('rez-'):
         command = command[4:]
-
-    # swap out sys.stdout, so we can capture it...
-    old_stdout = sys.stdout
-    captured_stdout = StringIO()
-    sys.stdout = captured_stdout
-
     exitcode = None
-    try:
-        # ...and swap out argv...
-        old_argv = sys.argv
-        new_argv = ['rez-%s' % command] + other_args
-        sys.argv = new_argv
-        try:
-            try:
-                # and finally invoke the "command-line" rez-COMMAND
-                from rez.cli._main import run
-                run(command)
-            except SystemExit as e:
-                exitcode = e.args[0]
-        finally:
-            sys.argv = old_argv
-    finally:
-        sys.stdout = old_stdout
 
-    return captured_stdout.getvalue(), exitcode
+    # first swap sys.argv...
+    old_argv = sys.argv
+    new_argv = ['rez-%s' % command] + other_args
+    sys.argv = new_argv
+    try:
+
+        # then redirect stdout using os.dup2
+
+        # we can't just ye' ol sys.stdout swap trick, because some places may
+        # still be holding onto references to the "real" sys.stdout - ie, if
+        # a function has a kwarg default (as in rez.status.Status.print_info)
+        # So, instead we swap at a file-descriptor level... potentially less
+        # portable, but has been tested to work on linux, osx, and windows...
+        with tempfile.TemporaryFile(bufsize=0, prefix='rez_cliout') as tf:
+            new_fileno = tf.fileno()
+            old_fileno = sys.stdout.fileno()
+            old_fileno_dupe = os.dup(old_fileno)
+
+            # make sure we flush before any switches...
+            sys.stdout.flush()
+            # ...then redirect stdout to our temp file...
+            os.dup2(new_fileno, old_fileno)
+            try:
+                try:
+                    # and finally invoke the "command-line" rez-COMMAND
+                    from rez.cli._main import run
+                    run(command)
+                except SystemExit as e:
+                    exitcode = e.args[0]
+            finally:
+                # restore stdout
+                sys.stdout.flush()
+                tf.flush()
+                os.dup2(old_fileno_dupe, old_fileno)
+
+            # ok, now read the output we redirected to the file...
+            tf.seek(0, os.SEEK_SET)
+            output = tf.read()
+    finally:
+        # restore argv...
+        sys.argv = old_argv
+
+    return output, exitcode
