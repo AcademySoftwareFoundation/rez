@@ -238,6 +238,8 @@ config_schema = Schema({
     "suite_alias_prefix_char":                      Char,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
+    "logfile":                                      OptionalStr,
+    "logfile_by_command":                           Or({}, {str: basestring}),
     "default_shell":                                OptionalStr,
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
