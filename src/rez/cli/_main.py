@@ -4,7 +4,8 @@ The main command-line entry point.
 import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
-from rez.exceptions import RezError, RezSystemError
+from rez.exceptions import RezError, RezSystemError, CallbackAbort
+from rez.config import config
 from rez import __version__
 
 
@@ -53,6 +54,33 @@ def _add_common_args(parser):
                         help=SUPPRESS)
     parser.add_argument("--profile", dest="profile", type=str,
                         help=SUPPRESS)
+    parser.add_argument("--pre-callback",
+                        help="python code to execute before the command is "
+                             "run; you raise a CallbackAbort to signal that"
+                             "the command should not be run (other "
+                             "exceptions will also cancel the command, "
+                             "but will also print a traceback). The callback "
+                             "is executed in a context where the following "
+                             "names are available: opts - the parsed "
+                             "command-line options; arg_groups - the args, "
+                             "separated into different groups by '--' "
+                             "characters; CallbackAbort - the error to "
+                             "raise to signal early termination, provided "
+                             "in the namespace for convenience")
+    parser.add_argument("--post-callback",
+                        help="python code to execute after the command is "
+                             "run; the command obviously can't be "
+                             "cancelled, but you may still raise a "
+                             "CallbackAbort to cause the command to return "
+                             "a non-zero exitcode if desired. The callback "
+                             "is executed in a context with all the "
+                             "names available in the pre-callback, "
+                             "in addition to the following: returncode - the "
+                             "returncode of the command, if it completed "
+                             "successfully, and None if it did not; "
+                             "error - None if the command completed "
+                             "succesfully, and the exception instance if it "
+                             "did not")
 
 
 class InfoAction(_StoreTrueAction):
@@ -72,6 +100,7 @@ def run(command=None):
                         help="print information about rez and exit")
     parser.add_argument("-V", "--version", action="version",
                         version="Rez %s" % __version__)
+    parser.add_argument
 
     # add args common to all subcommands... we add them both to the top parser,
     # AND to the subparsers, for two reasons:
@@ -105,8 +134,53 @@ def run(command=None):
     else:
         exc_type = RezError
 
+    pre_callback = opts.pre_callback
+    if pre_callback is None:
+        pre_callback = config.pre_callbacks.get(opts.cmd)
+    post_callback = opts.post_callback
+    if post_callback is None:
+        post_callback = config.post_callbacks.get(opts.cmd)
+
+    if post_callback is not None or pre_callback is not None:
+        callback_globals = dict(__builtins__)
+        callback_globals['opts'] = opts
+        callback_globals['arg_groups'] = arg_groups
+        callback_globals['CallbackAbort'] = CallbackAbort
+
+    if pre_callback is not None:
+        try:
+            exec compile(pre_callback, '<rez pre-callback>', 'exec') in \
+                callback_globals
+        except CallbackAbort as e:
+            print >> sys.stderr, "rez: command aborted by pre-callback: %s" \
+                                 % e
+            sys.exit(e.returncode)
+
+    if post_callback is not None:
+        def do_post_callback(returncode, error):
+            callback_globals['returncode'] = returncode
+            callback_globals['error'] = error
+            try:
+                exec compile(post_callback, '<rez post-callback>', 'exec') \
+                    in callback_globals
+            except CallbackAbort as e:
+                print >> sys.stderr, "rez: returncode changed to %s by " \
+                                     "post-callback: %s" % (e.returncode,
+                                                            e)
+                sys.exit(e.returncode)
+    else:
+        def do_post_callback(returncode, error):
+            pass
+
     def run_cmd():
-        return opts.func(opts, opts.parser, arg_groups[1:])
+        try:
+            returncode = opts.func(opts, opts.parser, arg_groups[1:])
+        except Exception as e:
+            do_post_callback(None, e)
+            raise e
+        else:
+            do_post_callback(returncode, None)
+        return returncode
 
     if opts.profile:
         import cProfile
@@ -121,6 +195,8 @@ def run(command=None):
         except exc_type as e:
             print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
             sys.exit(1)
+
+
 
     sys.exit(returncode or 0)
 

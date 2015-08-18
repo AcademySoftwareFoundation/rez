@@ -162,3 +162,13 @@ class RezGuiQTImportError(ImportError):
     """A special case - see cli/gui.py
     """
     pass
+
+class CallbackAbort(RezError):
+    """Raised to signal that a pre-callback should abort execution; the
+    message will be printed, but no traceback will be (by default).  A custom
+    returncode that the process should return on exit may also be specified.
+    """
+
+    def __init__(self, value=None, returncode=200):
+        self.returncode = value
+        super(CallbackAbort, self).__init__(value=value)
