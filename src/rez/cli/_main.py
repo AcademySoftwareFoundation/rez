@@ -80,7 +80,10 @@ def _add_common_args(parser):
                              "successfully, and None if it did not; "
                              "error - None if the command completed "
                              "succesfully, and the exception instance if it "
-                             "did not")
+                             "did not. Note that for commands which can "
+                             "start interactive shells, such as rez-env, "
+                             "this command will not be run until after the "
+                             "shell exits")
 
 
 class InfoAction(_StoreTrueAction):
@@ -177,7 +180,10 @@ def run(command=None):
             returncode = opts.func(opts, opts.parser, arg_groups[1:])
         except Exception as e:
             do_post_callback(None, e)
-            raise e
+            raise
+        except SystemExit as e:
+            do_post_callback(e.code, None)
+            raise
         else:
             do_post_callback(returncode, None)
         return returncode

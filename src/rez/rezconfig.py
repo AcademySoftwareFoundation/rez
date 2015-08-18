@@ -429,6 +429,8 @@ pre_callbacks = {}
 #       and None if it did not
 #   error - None if the command completed succesfully, and the exception
 #       instance if it did not
+# Note that for commands which can start interactive shells, such as rez-env,
+# this command will not be run until after the shell exits
 
 post_callbacks = {}
 
