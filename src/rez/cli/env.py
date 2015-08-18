@@ -37,6 +37,9 @@ def setup_parser(parser, completions=False):
         "--nl", "--no-local", dest="no_local", action="store_true",
         help="don't load local packages")
     parser.add_argument(
+        "-b", "--build", action="store_true",
+        help="create a build environment")
+    parser.add_argument(
         "--paths", type=str, default=None,
         help="set package search path")
     parser.add_argument(
@@ -183,6 +186,7 @@ def command(opts, parser, extra_arg_groups=None):
         context = ResolvedContext(package_requests=request,
                                   timestamp=t,
                                   package_paths=pkg_paths,
+                                  building=opts.build,
                                   package_filter=package_filter,
                                   add_implicit_packages=(not opts.no_implicit),
                                   verbosity=opts.verbose,

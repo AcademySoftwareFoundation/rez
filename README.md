@@ -91,6 +91,10 @@ following command (replacing DEST_DIR with your preferred installation path):
 
     ]$ python ./install.py -v DEST_DIR
 
+Please note that if this fails, there may be a problem with the python executable
+you are using (it may be a custom python build). In this case try using
+/usr/bin/python instead.
+
 This installs the Rez command line tools. It will print a message at the end
 telling you how to use Rez when the installation has completed. Rez is not a
 normal Python package and so you do not typically install it with pip or setup.py.
