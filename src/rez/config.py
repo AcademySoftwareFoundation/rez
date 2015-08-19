@@ -13,7 +13,6 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
-from UserDict import UserDict
 from inspect import ismodule
 import os
 import os.path
@@ -147,7 +146,7 @@ class Dict(Setting):
     def _parse_env_var(self, value):
         items = value.split(",")
         try:
-            return UserDict([item.split(":") for item in items])
+            return dict([item.split(":") for item in items])
         except ValueError:
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
