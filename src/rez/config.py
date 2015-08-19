@@ -158,6 +158,12 @@ class OptionalDict(Dict):
                 dict)
 
 
+class OptionalStrDict(Dict):
+    schema = Or(And(None, Use(lambda x: {}),),
+                {},
+                {str: basestring})
+
+
 class OptionalDictOrDictList(Setting):
     schema = Or(And(None, Use(lambda x: [])),
                 And(dict, Use(lambda x: [x])),
@@ -239,7 +245,7 @@ config_schema = Schema({
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
     "logfile":                                      OptionalStr,
-    "logfile_by_command":                           Or({}, {str: basestring}),
+    "logfile_by_command":                           OptionalStrDict,
     "default_shell":                                OptionalStr,
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
