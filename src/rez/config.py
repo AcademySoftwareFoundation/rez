@@ -153,7 +153,7 @@ class Dict(Setting):
                 % value)
 
 
-class OptionalDict(Setting):
+class OptionalDict(Dict):
     schema = Or(And(None, Use(lambda x: {})),
                 dict)
 
