@@ -168,7 +168,7 @@ class HgReleaseVCS(ReleaseVCS):
     def get_default_url(self, patch=False):
         return self.get_paths(patch=patch).get('default')
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         def _check(modified, path):
             if modified:
                 modified = [line.split()[-1] for line in modified]
@@ -179,6 +179,21 @@ class HgReleaseVCS(ReleaseVCS):
         _check(self.hg('status', '-m', '-a'), self.vcs_root)
         if self.patch_path:
             _check(self.hg('status', '-m', '-a', '--mq'), self.patch_path)
+
+        # ensure that package.yaml is in the repo...
+        self.assert_required_files(build_process)
+
+    def contains_files(self, paths):
+        output = self.hg('status', '--all', *paths)
+        for line in output:
+            if not line.strip():
+                continue
+            # R = removed
+            # ? = not tracked
+            # I = ignored
+            if line[0] in "R?I":
+                return False
+        return True
 
     def get_current_revision(self):
         doc = {

@@ -1,0 +1,3 @@
+Some other file called rezbuild.py that lives at the root of the git repo...
+rez shouldn't be fooled if this file is in the repo, but the "real"
+rezbuild.py isn't!

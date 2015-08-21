@@ -99,29 +99,49 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
     return None
 
 _CMAKE_EXISTS = None
+_GIT_EXISTS = None
+_HG_EXISTS = None
 
-def cmake_exists():
-    """Tests whether cmake is available"""
-    global _CMAKE_EXISTS
-    if _CMAKE_EXISTS is None:
-        import subprocess
-        import errno
+def _make_checker_and_skipper(binary_name, global_var_name):
+    """Creates two functions - the first checks if the given binary exists,
+    the second is a decorator which can be used to skip tests if it doesn't
+    exist"""
+    def check_exists():
+        exists = globals().get(global_var_name)
+        if exists is None:
+            import subprocess
+            import errno
 
-        with open(os.devnull, 'wb') as DEVNULL:
-            try:
-                subprocess.check_call(['cmake', '-h'], stdout=DEVNULL,
-                                      stderr=DEVNULL)
-            except (OSError, IOError, subprocess.CalledProcessError):
-                _CMAKE_EXISTS = False
-            else:
-                _CMAKE_EXISTS = True
-    return _CMAKE_EXISTS
+            with open(os.devnull, 'wb') as DEVNULL:
+                try:
+                    subprocess.check_call([binary_name, '--help'],
+                                          stdout=DEVNULL, stderr=DEVNULL)
+                except (OSError, IOError, subprocess.CalledProcessError):
+                    exists = False
+                else:
+                    exists = True
+            globals()[global_var_name] = exists
+        return exists
+    check_exists.__name__ = "%s_exists" % binary_name
+    check_exists.__doct__ = "Tests whether %s is available" % binary_name
 
-def cmake_dependent(fn):
-    """Function decorator that skips the test if cmake is not available"""
-    if not cmake_exists():
-        return unittest.skip('cmake not available')(fn)
-    return fn
+    def skip_decorator(fn):
+        if not check_exists():
+            return unittest.skip('%s not available' % binary_name)(fn)
+        return fn
+    skip_decorator.__name__ = "%s_dependent" % binary_name
+    skip_decorator.__doc__ = "Function decorator that skips the test if " \
+                             "%s is not available" % binary_name
+
+    return check_exists, skip_decorator
+
+cmake_exists, cmake_dependent = _make_checker_and_skipper("cmake",
+                                                          "_CMAKE_EXISTS")
+
+git_exists, git_dependent = _make_checker_and_skipper("git", "_GIT_EXISTS")
+
+hg_exists, hg_dependent = _make_checker_and_skipper("hg", "_HG_EXISTS")
+
 
 def shell_dependent(exclude=None):
     """Function decorator that runs the function over all shell types."""

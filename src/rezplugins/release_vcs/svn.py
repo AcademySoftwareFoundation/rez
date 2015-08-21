@@ -76,7 +76,7 @@ class SvnReleaseVCS(ReleaseVCS):
     def search_parents_for_root(cls):
         return False
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         status_list = self.svnc.status(self.pkg_root, get_all=False, update=True)
         status_list_known = []
 

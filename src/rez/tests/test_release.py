@@ -11,7 +11,7 @@ from rez.system import system
 from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
-    install_dependent
+    install_dependent, git_dependent, hg_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
 import rez.bind.platform
@@ -20,8 +20,8 @@ import rez.bind.os
 import rez.bind.python
 import shutil
 import os.path
+import subprocess
 
-# TODO: variant-based test
 
 class TestRelease(TestBase, TempdirMixin):
     @classmethod
@@ -39,7 +39,8 @@ class TestRelease(TestBase, TempdirMixin):
             release_packages_path=cls.install_root,
             resolve_caching=False,
             warn_untimestamped=False,
-            implicit_packages=[])
+            implicit_packages=[],
+            plugins={'release_vcs': {'git': {'allow_no_upstream': True}}})
 
     @classmethod
     def tearDownClass(cls):
@@ -49,7 +50,7 @@ class TestRelease(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    def _setup_release(self, subdir):
+    def _setup_release(self, subdir, build_subdir=None):
         self.src_origin = os.path.join(self.src_origin_root, subdir)
 
         # start fresh
@@ -60,26 +61,18 @@ class TestRelease(TestBase, TempdirMixin):
             shutil.rmtree(self.src_root)
         shutil.copytree(self.src_origin, self.src_root)
 
-        self.packagefile = os.path.join(self.src_root, "package.yaml")
+        if build_subdir is None:
+            self.build_dir = self.src_root
+        else:
+            self.build_dir = os.path.join(self.src_root, build_subdir)
+
+        self.packagefile = os.path.join(self.build_dir, "package.yaml")
         with open(self.packagefile) as f:
             self.package_data = yaml.load(f.read())
 
         # create the build system
-        self.buildsys = create_build_system(self.src_root, verbose=True)
+        self.buildsys = create_build_system(self.build_dir, verbose=True)
         self.assertEqual(self.buildsys.name(), "bez")
-
-        # create the vcs - should error because stub file doesn't exist yet
-        with self.assertRaises(ReleaseVCSError):
-            create_release_vcs(self.src_root)
-
-        # make the stub file
-        self.stubfile = os.path.join(self.src_root, ".stub")
-        with open(self.stubfile, 'w'):
-            pass
-
-        # create the vcs - should work now
-        self.vcs = create_release_vcs(self.src_root)
-        self.assertEqual(self.vcs.name(), "stub")
 
     def _write_package(self):
         with open(self.packagefile, 'w') as f:
@@ -87,7 +80,7 @@ class TestRelease(TestBase, TempdirMixin):
 
     def _create_builder(self, ensure_latest=True):
         return create_build_process(process_type="local",
-                                    working_dir=self.src_root,
+                                    working_dir=self.build_dir,
                                     build_system=self.buildsys,
                                     vcs=self.vcs,
                                     ensure_latest=ensure_latest,
@@ -112,6 +105,20 @@ class TestRelease(TestBase, TempdirMixin):
         """Basic release."""
         # release should fail because release path does not exist
         self._setup_release("basic")
+
+        # create the vcs - should error because stub file doesn't exist yet
+        with self.assertRaises(ReleaseVCSError):
+            create_release_vcs(self.build_dir)
+
+        # make the stub file
+        stubfile = os.path.join(self.build_dir, ".stub")
+        with open(stubfile, 'w'):
+            pass
+
+        # create the vcs - should work now
+        self.vcs = create_release_vcs(self.build_dir)
+        self.assertEqual(self.vcs.name(), "stub")
+
         builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
@@ -157,7 +164,7 @@ class TestRelease(TestBase, TempdirMixin):
 
         # check the vcs contains the tags we expect
         expected_value = set(["foo-1.0", "foo-1.0.1", "foo-1.1"])
-        with open(self.stubfile) as f:
+        with open(stubfile) as f:
             stub_data = yaml.load(f.read())
         tags = set(stub_data.get("tags", {}).keys())
         self.assertEqual(tags, expected_value)
@@ -171,10 +178,11 @@ class TestRelease(TestBase, TempdirMixin):
         """Test variant installation on release
         """
         self._setup_release("variants")
+        self.vcs = create_release_vcs(self.build_dir)
 
         # copy the spangle package onto the packages path
         os.mkdir(self.install_root)
-        shutil.copytree(os.path.join(self.src_root, 'spangle'),
+        shutil.copytree(os.path.join(self.build_dir, 'spangle'),
                         os.path.join(self.install_root, 'spangle'))
 
         # release the bar package, which has spangle-1.0 and 1.1 variants
@@ -229,6 +237,97 @@ class TestRelease(TestBase, TempdirMixin):
                                                         ['spangle-2.0']])
         # ...but that the description was updated
         self.assertEqual(rel_package.description, third_desc)
+        
+
+    def _assert_package_file_in_repo(self, repo_type, env=None):
+        self._setup_release("package_in_repo", build_subdir="foo")
+        os.mkdir(self.install_root)
+
+        # first, try without any repo - should fail
+        with self.assertRaises(ReleaseVCSError):
+            create_release_vcs(self.build_dir)
+
+        os.chdir(self.build_dir)
+        def repo_cmd(*args):
+            # make a repo at the src_root, not the build_dir, so we can
+            # add "confusing" package.yaml - ie, if the current dir is
+            # the build dir, the relative path "package.yaml" is the "real"
+            # package.yaml - but relative to the repo root, it is the "fake"
+            # one. This shouldn't trip up rez...
+            os.chdir(self.src_root)
+            subprocess.check_call([repo_type] + list(args), env=env)
+            os.chdir(self.build_dir)
+
+        def make_repo():
+            repo_cmd('init')
+            # add in the "deceptive" other package.yaml + rezbuild.py
+            repo_cmd('add', 'package.yaml', 'rezbuild.py')
+            repo_cmd('commit', '-m', 'initial commit with dummy files')
+
+        make_repo()
+
+        # make the vcs... but release should fail, because we don't have the
+        # required files in the repo...
+        self.vcs = create_release_vcs(self.build_dir)
+        self.assertEqual(self.vcs.name(), repo_type)
+        builder = self._create_builder()
+        with self.assertRaises(ReleaseError):
+            builder.release()
+
+        # now add in the real package.yaml - should still fail, because
+        # it doesn't have rezbuild.py
+        repo_cmd('add', 'foo/package.yaml')
+        repo_cmd('commit', '-m', 'added foo/package.yaml')
+        self.vcs = create_release_vcs(self.build_dir)
+        builder = self._create_builder()
+        with self.assertRaises(ReleaseError):
+            builder.release()
+
+        # back up , and this time add in only rezbuild.yaml... should fail,
+        # because it doesn't have package.yaml...
+        shutil.rmtree(os.path.join(self.src_root, '.' + repo_type))
+        make_repo()
+        repo_cmd('add', 'foo/rezbuild.py')
+        repo_cmd('commit', '-m', 'added foo/rezbuild.py')
+        self.vcs = create_release_vcs(self.build_dir)
+        builder = self._create_builder()
+        with self.assertRaises(ReleaseError):
+            builder.release()
+
+        # now, make sure both are added... and it should work!
+        repo_cmd('add', 'foo/package.yaml')
+        repo_cmd('commit', '-m', 'added foo/package.yaml')
+        self.vcs = create_release_vcs(self.build_dir)
+        builder.release()
+        
+        # finally, change the package.yaml, and then try to release again...
+        # it should fail due to uncommitted changes
+        with open(os.path.join(self.build_dir, 'package.yaml'), 'a') as f:
+            f.write('\n\n')
+
+        self.vcs = create_release_vcs(self.build_dir)
+        with self.assertRaises(ReleaseError):
+            builder.release()
+
+    @git_dependent
+    def test_3_git_package_file_in_repo(self):
+        """Test that if package.yaml not in git repo, release is not allowed
+        """
+        env = dict(os.environ)
+        # disable user/system gitconfig loading...
+        env['GIT_CONFIG_NOSYSTEM'] = "1"
+        env['HOME'] = self.src_root
+        self._assert_package_file_in_repo("git", env=env)
+        
+    @hg_dependent
+    def test_4_hg_package_file_in_repo(self):
+        """Test that if package.yaml not in hg repo, release is not allowed
+        """
+        env = dict(os.environ)
+        # disable user/system hgrc loading...
+        env['HGRCPATH'] = os.path.join(self.src_root, "hgrc")
+        self._assert_package_file_in_repo("hg", env=env)
+
 
 if __name__ == '__main__':
     unittest.main()
