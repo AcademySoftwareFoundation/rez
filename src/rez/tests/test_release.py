@@ -29,7 +29,7 @@ class TestRelease(TestBase, TempdirMixin):
         TempdirMixin.setUpClass()
 
         path = os.path.dirname(__file__)
-        cls.src_path = os.path.join(path, "data", "release")
+        cls.src_origin_root = os.path.join(path, "data", "release")
         cls.src_root = os.path.join(cls.root, "src")
         cls.install_root = os.path.join(cls.root, "packages")
 
@@ -49,14 +49,16 @@ class TestRelease(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    def _setup_release(self):
-       # start fresh
+    def _setup_release(self, subdir):
+        self.src_origin = os.path.join(self.src_origin_root, subdir)
+
+        # start fresh
         system.clear_caches()
         if os.path.exists(self.install_root):
             shutil.rmtree(self.install_root)
         if os.path.exists(self.src_root):
             shutil.rmtree(self.src_root)
-        shutil.copytree(self.src_path, self.src_root)
+        shutil.copytree(self.src_origin, self.src_root)
 
         self.packagefile = os.path.join(self.src_root, "package.yaml")
         with open(self.packagefile) as f:
@@ -109,7 +111,7 @@ class TestRelease(TestBase, TempdirMixin):
     def test_1(self):
         """Basic release."""
         # release should fail because release path does not exist
-        self._setup_release()
+        self._setup_release("basic")
         builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
@@ -168,8 +170,7 @@ class TestRelease(TestBase, TempdirMixin):
     def test_2_variant_add(self):
         """Test variant installation on release
         """
-        self.src_path = os.path.join(self.src_path, "variants")
-        self._setup_release()
+        self._setup_release("variants")
 
         # copy the spangle package onto the packages path
         os.mkdir(self.install_root)
