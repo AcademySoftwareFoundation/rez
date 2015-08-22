@@ -11,7 +11,7 @@ from rez.system import system
 from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
-    install_dependent, git_dependent, hg_dependent
+    install_dependent, git_dependent, hg_dependent, svn_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
 import rez.bind.platform
@@ -237,7 +237,6 @@ class TestRelease(TestBase, TempdirMixin):
                                                         ['spangle-2.0']])
         # ...but that the description was updated
         self.assertEqual(rel_package.description, third_desc)
-        
 
     def _assert_package_file_in_repo(self, repo_type, env=None):
         self._setup_release("package_in_repo", build_subdir="foo")
@@ -248,6 +247,7 @@ class TestRelease(TestBase, TempdirMixin):
             create_release_vcs(self.build_dir)
 
         os.chdir(self.build_dir)
+
         def repo_cmd(*args):
             # make a repo at the src_root, not the build_dir, so we can
             # add "confusing" package.yaml - ie, if the current dir is
@@ -258,13 +258,61 @@ class TestRelease(TestBase, TempdirMixin):
             subprocess.check_call([repo_type] + list(args), env=env)
             os.chdir(self.build_dir)
 
-        def make_repo():
-            repo_cmd('init')
+        if repo_type == 'svn':
+            # for svn, we need a separate "server"/origin repo... luckily,
+            # we can make it in a subdir of what will (eventually) be the
+            # checkout... which is a bit confusing, but allows us to keep
+            # everything under the src_root, which guarantees it will get
+            # cleaned up properly the next time _setup_release is run...
+
+            svn_repo_name = 'svn_server_repo'
+            repo_data_dir = os.path.join(self.src_root, svn_repo_name)
+            server_url = 'file://%s' % os.path.abspath(repo_data_dir)
+            trunk_url = server_url + '/trunk'
+
+            def _make_repo():
+                os.chdir(self.src_root)
+                subprocess.check_call(['svnadmin', 'create', svn_repo_name],
+                                      env=env)
+                # setup the trunk + tags, then remove them so they don't
+                # clutter what will be our working dir...
+                def make_root_repo_dir(dir_name):
+                    path = os.path.join(self.src_root, dir_name)
+                    dir_url = server_url + '/' + dir_name
+                    os.mkdir(path)
+                    repo_cmd('import', path, dir_url, '-m',
+                             'adding %s root dir' % dir_name)
+                    shutil.rmtree(path)
+
+                make_root_repo_dir('trunk')
+                make_root_repo_dir('tags')
+
+                repo_cmd('checkout', trunk_url, self.src_root)
+
+                # need to add foo dir, but don't use make_repo_root_dir, since
+                # that will delete it after...
+                repo_cmd('add', '--depth=empty', 'foo')
+                repo_cmd('commit', '-m', 'added foo dir')
+
+            def delete_repo():
+                shutil.rmtree(repo_data_dir)
+                shutil.rmtree(os.path.join(self.src_root, '.' + repo_type))
+
+        else:
+            # git and hg
+            def _make_repo():
+                repo_cmd('init')
+
+            def delete_repo():
+                shutil.rmtree(os.path.join(self.src_root, '.' + repo_type))
+
+        def setup_repo():
+            _make_repo()
             # add in the "deceptive" other package.yaml + rezbuild.py
             repo_cmd('add', 'package.yaml', 'rezbuild.py')
             repo_cmd('commit', '-m', 'initial commit with dummy files')
 
-        make_repo()
+        setup_repo()
 
         # make the vcs... but release should fail, because we don't have the
         # required files in the repo...
@@ -285,8 +333,8 @@ class TestRelease(TestBase, TempdirMixin):
 
         # back up , and this time add in only rezbuild.yaml... should fail,
         # because it doesn't have package.yaml...
-        shutil.rmtree(os.path.join(self.src_root, '.' + repo_type))
-        make_repo()
+        delete_repo()
+        setup_repo()
         repo_cmd('add', 'foo/rezbuild.py')
         repo_cmd('commit', '-m', 'added foo/rezbuild.py')
         self.vcs = create_release_vcs(self.build_dir)
@@ -299,7 +347,7 @@ class TestRelease(TestBase, TempdirMixin):
         repo_cmd('commit', '-m', 'added foo/package.yaml')
         self.vcs = create_release_vcs(self.build_dir)
         builder.release()
-        
+
         # finally, change the package.yaml, and then try to release again...
         # it should fail due to uncommitted changes
         with open(os.path.join(self.build_dir, 'package.yaml'), 'a') as f:
@@ -327,6 +375,12 @@ class TestRelease(TestBase, TempdirMixin):
         # disable user/system hgrc loading...
         env['HGRCPATH'] = os.path.join(self.src_root, "hgrc")
         self._assert_package_file_in_repo("hg", env=env)
+
+    @svn_dependent
+    def test_5_svn_package_file_in_repo(self):
+        """Test that if package.yaml not in svn repo, release is not allowed
+        """
+        self._assert_package_file_in_repo("svn")
 
 
 if __name__ == '__main__':

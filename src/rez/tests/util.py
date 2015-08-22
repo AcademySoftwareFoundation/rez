@@ -101,11 +101,17 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
 _CMAKE_EXISTS = None
 _GIT_EXISTS = None
 _HG_EXISTS = None
+_SVN_EXISTS = None
 
-def _make_checker_and_skipper(binary_name, global_var_name):
+def _make_checker_and_skipper(binary_name, global_var_name,
+                              extra_conditions=None):
     """Creates two functions - the first checks if the given binary exists,
     the second is a decorator which can be used to skip tests if it doesn't
     exist"""
+    if extra_conditions is None:
+        def extra_conditions():
+            return True
+
     def check_exists():
         exists = globals().get(global_var_name)
         if exists is None:
@@ -126,7 +132,7 @@ def _make_checker_and_skipper(binary_name, global_var_name):
     check_exists.__doct__ = "Tests whether %s is available" % binary_name
 
     def skip_decorator(fn):
-        if not check_exists():
+        if not (check_exists() and extra_conditions()):
             return unittest.skip('%s not available' % binary_name)(fn)
         return fn
     skip_decorator.__name__ = "%s_dependent" % binary_name
@@ -141,6 +147,16 @@ cmake_exists, cmake_dependent = _make_checker_and_skipper("cmake",
 git_exists, git_dependent = _make_checker_and_skipper("git", "_GIT_EXISTS")
 
 hg_exists, hg_dependent = _make_checker_and_skipper("hg", "_HG_EXISTS")
+
+def pysvn_exists():
+    try:
+        import pysvn
+    except ImportError:
+        return False
+    return True
+
+svn_exists, svn_dependent = _make_checker_and_skipper("svn", "_SVN_EXISTS",
+                                                      extra_conditions=pysvn_exists)
 
 
 def shell_dependent(exclude=None):
