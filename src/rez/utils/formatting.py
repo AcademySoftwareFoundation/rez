@@ -481,3 +481,18 @@ def expanduser(path):
         userpath = os.path.expanduser(path)
 
     return userpath
+
+
+def as_block_string(txt):
+    """Return a string formatted as a python block comment string, like the one
+    you're currently reading. Special characters are escaped if necessary.
+    """
+    import json
+
+    lines = []
+    for line in txt.split('\n'):
+        line_ = json.dumps(line)
+        line_ = line_[1:-1].rstrip()  # drop double quotes
+        lines.append(line_)
+
+    return '"""\n%s\n"""' % '\n'.join(lines)

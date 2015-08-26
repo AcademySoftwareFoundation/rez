@@ -4,7 +4,8 @@ from rez.package_resources_ import help_schema
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
 from rez.utils.data_utils import SourceCode
-from rez.utils.formatting import PackageRequest, indent, dict_to_attributes_code
+from rez.utils.formatting import PackageRequest, indent, \
+    dict_to_attributes_code, as_block_string
 from rez.utils.schema import Required
 from rez.utils.yaml import dump_yaml
 from pprint import pformat
@@ -134,11 +135,13 @@ def _dump_package_data_yaml(items, buf):
 
 
 def _dump_package_data_py(items, buf):
+    print >> buf, "# -*- coding: utf-8 -*-\n"
+
     for i, (key, value) in enumerate(items):
         if key in ("description", "changelog") and len(value) > 40:
-            # description is a triple-quoted string
-            quoted_str = '"""\n%s\n"""' % value
-            txt = "%s = \\\n%s" % (key, indent(quoted_str))
+            # a block-comment style, triple-quoted string
+            block_str = as_block_string(value)
+            txt = "%s = \\\n%s" % (key, indent(block_str))
         elif key == "config":
             # config is a scope
             attrs_txt = dict_to_attributes_code(dict(config=value))

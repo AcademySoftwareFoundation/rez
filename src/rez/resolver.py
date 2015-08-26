@@ -395,9 +395,3 @@ class Resolver(object):
             load_time=load_time,
             failure_description=failure_description,
             variant_handles=variant_handles)
-
-    """
-    memcache_client = Client(servers=(config.memcached_uri
-                                      if config.resolve_caching else None),
-                             debug=config.debug_memcache)
-    """

@@ -26,7 +26,7 @@ def setup_parser(parser, completions=False):
         "--skip-repo-errors", dest="skip_repo_errors", action="store_true",
         help="release even if repository-related errors occur. DO NOT use this "
         "option unless you absolutely must release a package, despite there being "
-        "a problem (such as inability to contact the repository server")
+        "a problem (such as inability to contact the repository server)")
     setup_parser_common(parser)
 
 
