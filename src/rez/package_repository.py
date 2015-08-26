@@ -306,7 +306,11 @@ class PackageRepositoryManager(object):
 
         repo_type, location = parts
         if repo_type == "filesystem":
-            location = os.path.realpath(location)
+            # choice of abspath here vs realpath is deliberate. Realpath gives
+            # canonical path, which can be a problem if two studios are sharing
+            # packages, and have mirrored package paths, but some are actually
+            # different paths, symlinked to look the same. It happened!
+            location = os.path.abspath(location)
 
         normalised_path = "%s@%s" % (repo_type, location)
         return self._get_repository(normalised_path)
