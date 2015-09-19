@@ -52,8 +52,18 @@ local_packages_path = "~/packages"
 release_packages_path = "~/.rez/packages/int"
 
 # Where temporary files go. Defaults to appropriate path depending on your
-# system - for example, *nix distributions will probably set this to "/tmp".
+# system - for example, *nix distributions will probably set this to "/tmp". It
+# is highly recommended that this be set to local storage, such as /tmp.
 tmpdir = None
+
+
+# Where temporary files for contexts go. Defaults to appropriate path depending
+# on your system - for example, *nix distributions will probably set this to "/tmp".
+# This is separate to 'tmpdir' because you sometimes might want to set this to an
+# NFS location - for example, perhaps rez is used during a render and you'd like
+# to store these tempfiles in the farm queuer's designated tempdir so they're
+# cleaned up when the render completes.
+context_tmpdir = None
 
 
 ###############################################################################

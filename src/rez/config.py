@@ -214,6 +214,7 @@ config_schema = Schema({
     "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
     "tmpdir":                                       OptionalStr,
+    "context_tmpdir":                               OptionalStr,
     "default_shell":                                OptionalStr,
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
@@ -508,6 +509,10 @@ class Config(object):
     # -- dynamic defaults
 
     def _get_tmpdir(self):
+        from rez.utils.platform_ import platform_
+        return platform_.tmpdir
+
+    def _get_context_tmpdir(self):
         from rez.utils.platform_ import platform_
         return platform_.tmpdir
 
