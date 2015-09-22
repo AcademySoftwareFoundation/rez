@@ -18,7 +18,8 @@ package_schema = Schema({
     Required("name"):                   basestring,
     Optional("base"):                   basestring,
     Optional("version"):                Or(basestring,
-                                           And(Version, Use(str))),
+                                           And(Or(Version, int, float),
+                                               Use(str))),
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],
 
