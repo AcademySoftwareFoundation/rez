@@ -2,6 +2,7 @@ import platform
 import sys
 import os
 import os.path
+import re
 from rez.util import which
 from rez.utils.data_utils import cached_property
 from rez.exceptions import RezSystemError
@@ -72,6 +73,20 @@ class Platform(object):
         """Return system default temporary directory path."""
         return self._tmpdir()
 
+    @cached_property
+    def physical_cores(self):
+        """Return the number of physical cpu cores on the system."""
+        return self._physical_cores_base()
+
+    @cached_property
+    def logical_cores(self):
+        """Return the number of cpu cores as reported to the os.
+
+        May be different from physical_cores if, ie, intel's hyperthreading is
+        enabled.
+        """
+        return self._logical_cores()
+
     # -- implementation
 
     def _arch(self):
@@ -102,6 +117,30 @@ class Platform(object):
         """Create a symbolic link pointing to source named link_name."""
         os.symlink(source, link_name)
 
+    def _physical_cores_base(self):
+        if self.logical_cores == 1:
+            # if we only have one core, we only have one core... no need to
+            # bother with platform-specific stuff...
+
+            # we do this check for all because on some platforms, the output
+            # of various commands (dmesg, lscpu, /proc/cpuinfo) can be
+            # very different if there's only one cpu, and don't want to have
+            # to deal with that case
+            return 1
+        cores = self._physical_cores()
+        if cores is None:
+            from rez.utils.logging_ import print_warning
+            print_warning("Could not determine number of physical cores - "
+                          "falling back on logical cores value")
+            cores = self.logical_cores
+        return cores
+
+    def _physical_cores(self):
+        raise NotImplementedError
+
+    def _logical_cores(self):
+        from multiprocessing import cpu_count
+        return cpu_count()
 
 # -----------------------------------------------------------------------------
 # Unix (Linux and OSX)
@@ -228,6 +267,100 @@ class LinuxPlatform(_UnixPlatform):
         from rez.util import which
         return which("kdiff3", "meld", "diff")
 
+    @classmethod
+    def _parse_colon_table_to_dict(cls, table_text):
+        '''Given a simple text output where each line gives a key-value pair
+      of the form "key: value", parse and return a dict'''
+        lines = [l.strip() for l in table_text.splitlines()]
+        lines = [l for l in lines if l]
+        pairs = [l.split(':', 1) for l in lines]
+        pairs = [(k.strip(), v.strip()) for k, v in pairs]
+        data = dict(pairs)
+        assert len(data) == len(pairs)
+        return data
+
+    def _physical_cores_from_cpuinfo(self):
+        cpuinfo = '/proc/cpuinfo'
+        if not os.path.isfile(cpuinfo):
+            return None
+
+        with open(cpuinfo) as f:
+            contents = f.read()
+
+        known_ids = set()
+
+        proc_re = re.compile('^processor\s*:\s+[0-9]+\s*$', re.MULTILINE)
+        procsplit = proc_re.split(contents)
+
+        if len(procsplit) <= 1:
+            # no procs found... give up
+            return None
+        elif len(procsplit) == 2:
+            # if there's only two entries - the first is the stuff before the
+            # processor, and can be ingored... which means there's only one
+            # proc
+
+            # besides, if there's only one proc, the output changes - ie, no
+            # "core id", etc
+            return 1
+
+        # the first result is the stuff before the first processor line -
+        # ignore it...
+        for proc in procsplit[1:]:
+            proc = self._parse_colon_table_to_dict(proc)
+            # physical id corresponds to the socket, and core id to the
+            # physical core number on that socket
+            p_id = proc.get('physical id')
+            c_id = proc.get('core id')
+            if p_id is None or c_id is None:
+                # something is screwy, we weren't able to parse correctly...
+                return None
+
+            # hyperthreaded procs will share the same physical_id + core id...
+            # so if we just throw them all in a set, duplicates will be
+            # ignored, and we'll know the total number of "real" cores
+            known_ids.add((int(p_id), int(c_id)))
+        return len(known_ids)
+
+    def _physical_cores_from_lscpu(self):
+        import subprocess
+        try:
+            p = subprocess.Popen(['lscpu'], stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        except (OSError, IOError):
+            return None
+
+        stdout, stderr = p.communicate()
+        if p.returncode:
+            return None
+
+        data = self._parse_colon_table_to_dict(stdout)
+
+        # lscpu gives output like this:
+        #
+        # CPU(s):                24
+        # On-line CPU(s) list:   0-23
+        # Thread(s) per core:    2
+        # Core(s) per socket:    6
+        # Socket(s):             2
+
+        # we want to take sockets * cores, and ignore threads...
+
+        # some versions of lscpu format the sockets line differently...
+        sockets = data.get('Socket(s)', data.get('CPU socket(s)'))
+        if not sockets:
+            return None
+        cores = data.get('Core(s) per socket')
+        if not cores:
+            return None
+        return int(sockets) * int(cores)
+
+    def _physical_cores(self):
+        cores = self._physical_cores_from_cpuinfo()
+        if cores is not None:
+            return cores
+        return self._physical_cores_from_lscpu()
+
 
 # -----------------------------------------------------------------------------
 # OSX
@@ -257,6 +390,23 @@ class OSXPlatform(_UnixPlatform):
     def _editor(self):
         return "open"
 
+    def _physical_cores_from_osx_sysctl(self):
+        import subprocess
+        try:
+            p = subprocess.Popen(['sysctl', '-n', 'hw.physicalcpu'],
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        except (OSError, IOError):
+            return None
+
+        stdout, stderr = p.communicate()
+        if p.returncode:
+            return None
+
+        return int(stdout.strip())
+
+    def _physical_cores(self):
+        return self._physical_cores_from_osx_sysctl()
 
 # -----------------------------------------------------------------------------
 # Windows
@@ -320,6 +470,30 @@ class WindowsPlatform(Platform):
 
     def _terminal_emulator_command(self):
         return "CMD.exe /Q /K"
+
+    def _physical_cores_from_wmic(self):
+        # windows
+        import subprocess
+        try:
+            p = subprocess.Popen('wmic cpu get NumberOfCores /value'.split(),
+                                 stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE)
+        except (OSError, IOError):
+            return None
+
+        stdout, stderr = p.communicate()
+        if p.returncode:
+            return None
+
+        result = stdout.strip().split('=')
+        if result[0] != 'NumberOfCores':
+            # don't know what's wrong... should get back a result like:
+            # NumberOfCores=2
+            return None
+        return int(result[1])
+
+    def _physical_cores(self):
+        return self._physical_cores_from_wmic()
 
 
 # singleton
