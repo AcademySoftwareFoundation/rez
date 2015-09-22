@@ -6,7 +6,7 @@ from rez.utils.data_utils import cached_property, SourceCode, \
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config
-from rez.vendor.version.version import Version
+from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.schema.schema import Schema, SchemaError, Optional, Or, And, Use
 from textwrap import dedent
 import os.path
@@ -131,10 +131,23 @@ package_pod_schema_dict = base_resource_schema_dict.copy()
 
 large_string_dict = And(basestring, Use(lambda x: dedent(x).strip()))
 
+# allow versions to be given with ints or floats, which is particularly nice
+# for yaml files, since you can now do, ie:
+#   versions: [1.5]
+# ...instead of:
+#   versions: ['1.5']
+# ...which feels more consistent, since you can also do:
+#   versions [1.5.3]
+
+version_pod_schema = And(Or(basestring, And(Or(int, float), Use(str))),
+                         Use(Version))
+
+version_range_pod_schema = And(Or(basestring, And(Or(int, float), Use(str))),
+                               Use(VersionRange))
 
 package_pod_schema_dict.update({
     Optional("base"):                   basestring,
-    Optional("version"):                And(basestring, Use(Version)),
+    Optional("version"):                version_pod_schema,
     Optional('description'):            large_string_dict,
     Optional('authors'):                [basestring],
 
@@ -160,7 +173,7 @@ package_pod_schema_dict.update({
     Optional('revision'):               object,
     Optional('changelog'):              large_string_dict,
     Optional('release_message'):        Or(None, basestring),
-    Optional('previous_version'):       And(basestring, Use(Version)),
+    Optional('previous_version'):       version_pod_schema,
     Optional('previous_revision'):      object,
     Optional('vcs'):                    basestring,
 

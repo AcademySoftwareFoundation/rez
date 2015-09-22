@@ -4,7 +4,7 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_keys
+    version_pod_schema, version_range_pod_schema, package_release_keys
 from rez.serialise import clear_file_caches
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
@@ -217,10 +217,8 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
     repository_type = "filesystem"
 
     schema = Schema({
-        Optional("versions"):               [And(basestring,
-                                                 Use(Version))],
-        Optional("version_overrides"):      {And(basestring,
-                                                 Use(VersionRange)): dict}
+        Optional("versions"):               [version_pod_schema],
+        Optional("version_overrides"):      {version_range_pod_schema: dict}
     })
 
     @property
