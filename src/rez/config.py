@@ -187,6 +187,30 @@ class RezToolsVisibility_(Str):
         return Or(*(x.name for x in RezToolsVisibility))
 
 
+class BuildThreadCount_(Setting):
+    # may be a positive int, or the values "physical" or "logical"
+
+    @cached_class_property
+    def schema(cls):
+        from rez.utils.platform_ import platform_
+
+        # Note that this bakes the physical / logical cores at the time the
+        # config is read... which should be fine
+        return Or(
+            And(int, lambda x: x > 0),
+            And("physical_cores", Use(lambda x: platform_.physical_cores)),
+            And("logical_cores", Use(lambda x: platform_.logical_cores)),
+        )
+
+    def _parse_env_var(self, value):
+        try:
+            return int(value)
+        except ValueError:
+            # wasn't a string - hopefully it's "physical" or "logical"...
+            # ...but this will be validated by the schema...
+            return value
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -238,7 +262,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "build_thread_count":                           Int,
+    "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,
