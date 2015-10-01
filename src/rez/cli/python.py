@@ -13,6 +13,7 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "ARG", type=str, nargs='*',
         help='arguments to python script')
+    parser.add_argument('-c', help="python code to execute", dest='command')
 
     if completions:
         from rez.cli._complete_util import FilesCompleter
@@ -28,6 +29,9 @@ def command(opts, parser, extra_arg_groups=None):
 
     if opts.interactive:
         cmd.append("-i")
+
+    if opts.command:
+        cmd.extend(['-c', opts.command])
 
     if opts.FILE:
         cmd.append(opts.FILE)
