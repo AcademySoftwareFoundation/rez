@@ -47,7 +47,9 @@ class BezBuildSystem(BuildSystem):
         doc = dict(
             source_path=self.working_dir,
             build_path=build_path,
-            install_path=install_path)
+            install_path=install_path,
+            build_args=self.build_args)
+
 
         ret = {}
         content = dump_yaml(doc)
@@ -63,7 +65,8 @@ class BezBuildSystem(BuildSystem):
                                      module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
-                                     build_dir=build_path)
+                                     build_dir=build_path,
+                                     build_args=self.build_args)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
