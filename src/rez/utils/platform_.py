@@ -77,7 +77,13 @@ class Platform(object):
     @cached_property
     def physical_cores(self):
         """Return the number of physical cpu cores on the system."""
-        return self._physical_cores_base()
+        try:
+            return self._physical_cores_base()
+        except Exception as e:
+            from rez.utils.logging_ import print_error
+            print_error("Error detecting physical core count, defaulting to 1: %s"
+                        % str(e))
+        return 1
 
     @cached_property
     def logical_cores(self):
@@ -86,7 +92,13 @@ class Platform(object):
         May be different from physical_cores if, ie, intel's hyperthreading is
         enabled.
         """
-        return self._logical_cores()
+        try:
+            return self._logical_cores()
+        except Exception as e:
+            from rez.utils.logging_ import print_error
+            print_error("Error detecting logical core count, defaulting to 1: %s"
+                        % str(e))
+        return 1
 
     # -- implementation
 
@@ -142,6 +154,7 @@ class Platform(object):
     def _logical_cores(self):
         from multiprocessing import cpu_count
         return cpu_count()
+
 
 # -----------------------------------------------------------------------------
 # Unix (Linux and OSX)
