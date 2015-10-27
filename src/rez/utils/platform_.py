@@ -5,6 +5,7 @@ import os.path
 from rez.util import which
 from rez.utils.data_utils import cached_property
 from rez.exceptions import RezSystemError
+from tempfile import gettempdir
 
 
 class Platform(object):
@@ -96,7 +97,7 @@ class Platform(object):
         raise NotImplementedError
 
     def _tmpdir(self):
-        raise NotImplementedError
+        return gettempdir()
 
     def symlink(self, source, link_name):
         """Create a symbolic link pointing to source named link_name."""
@@ -108,8 +109,7 @@ class Platform(object):
 # -----------------------------------------------------------------------------
 
 class _UnixPlatform(Platform):
-    def _tmpdir(self):
-        return "/tmp"
+    pass
 
 
 # -----------------------------------------------------------------------------
@@ -282,12 +282,6 @@ class WindowsPlatform(Platform):
                 toks.append(item)
         final_version = str('.').join(toks)
         return "windows-%s" % final_version
-
-    def _tmpdir(self):
-        path = os.getenv("TEMP")
-        if path and os.path.isdir(path):
-            return path
-        return "C:/temp"
 
     def _image_viewer(self):
         # os.system("file.jpg") will open default viewer on windows
