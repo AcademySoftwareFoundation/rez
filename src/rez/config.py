@@ -12,6 +12,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.vendor.version.version import VersionRange
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 from inspect import ismodule
@@ -180,11 +181,103 @@ class VariantSelectMode_(Str):
         return Or(*(x.name for x in VariantSelectMode))
 
 
+class VersionPriority_(Setting):
+    @cached_class_property
+    def schema(cls):
+        return Or(
+            {},
+            # None, in which case it's an empty dict..
+            And(None, Use(lambda x: {})),
+            # Or they give a dict, mapping from package name to setting...
+            Schema({
+                str: cls.version_priority_entry_validate_schema,
+            }),
+        )
+
+    @classmethod
+    def _make_version_priority_entry_schema(cls, output_python_objs):
+        from rez.solver import VersionPriorityMode
+
+        if output_python_objs:
+            to_ver_prio_mode = Use(VersionPriorityMode.__getitem__)
+            to_ver_range = Use(VersionRange)
+        else:
+            nop = lambda x: x
+            to_ver_prio_mode = nop
+            to_ver_range = nop
+
+        return Or(
+            # each package is either "lastest" / "earliest", or...
+            And(Or(*(x.name for x in VersionPriorityMode)),
+                to_ver_prio_mode
+            ),
+
+            # ...a list, giving an explicit version priority
+            And(
+                [Or(
+                    # Allow False, or "", which is converted to
+                    # False
+                    False,
+                    And("", Use(bool)),
+                    # ...or value which can be converted to a
+                    # VersionRange
+                    And(basestring, to_ver_range),
+                    And(Or(int, float), Use(str), to_ver_range),
+                )],
+                # Verify that there's at most one False
+                lambda x: x.count(False) <= 1
+            )
+        )
+
+
+    @cached_class_property
+    def version_priority_entry_validate_schema(cls):
+        '''Schema used to validate entries in the version_priority dictionary
+
+        But it will keep the data in "raw" form - ie, using only basic python
+        objects, so it is yaml-dumpable (ie, by rez-config command-line tool)
+        '''
+        return cls._make_version_priority_entry_schema(False)
+
+    @cached_class_property
+    def version_priority_entry_convert_schema(cls):
+        '''Schema used to convert entries in the version_priority dictionary
+
+        Will convert entries into python objects, to make it easier to
+        interact with them..
+        '''
+        return cls._make_version_priority_entry_schema(True)
+
+
 class RezToolsVisibility_(Str):
     @cached_class_property
     def schema(cls):
         from rez.resolved_context import RezToolsVisibility
         return Or(*(x.name for x in RezToolsVisibility))
+
+
+class BuildThreadCount_(Setting):
+    # may be a positive int, or the values "physical" or "logical"
+
+    @cached_class_property
+    def schema(cls):
+        from rez.utils.platform_ import platform_
+
+        # Note that this bakes the physical / logical cores at the time the
+        # config is read... which should be fine
+        return Or(
+            And(int, lambda x: x > 0),
+            And("physical_cores", Use(lambda x: platform_.physical_cores)),
+            And("logical_cores", Use(lambda x: platform_.logical_cores)),
+        )
+
+    def _parse_env_var(self, value):
+        try:
+            return int(value)
+        except ValueError:
+            # wasn't a string - hopefully it's "physical" or "logical"...
+            # ...but this will be validated by the schema...
+            return value
 
 
 config_schema = Schema({
@@ -214,6 +307,7 @@ config_schema = Schema({
     "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
     "tmpdir":                                       OptionalStr,
+    "context_tmpdir":                               OptionalStr,
     "default_shell":                                OptionalStr,
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
@@ -238,7 +332,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "build_thread_count":                           Int,
+    "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,
@@ -289,6 +383,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
+    "version_priority":                             VersionPriority_,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings
@@ -508,6 +603,10 @@ class Config(object):
     # -- dynamic defaults
 
     def _get_tmpdir(self):
+        from rez.utils.platform_ import platform_
+        return platform_.tmpdir
+
+    def _get_context_tmpdir(self):
         from rez.utils.platform_ import platform_
         return platform_.tmpdir
 
