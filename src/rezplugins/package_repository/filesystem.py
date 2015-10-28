@@ -5,7 +5,7 @@ from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
     package_release_keys
-from rez.serialise import clear_file_caches
+from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
@@ -168,7 +168,10 @@ class FileSystemPackageResource(PackageResourceHelper):
                         pass
         return data
 
-    def _update_changelog(self, file_format, data):
+    # should be static or classmethod, since it's passed as an arg to
+    # load_from_file, which is memcached
+    @staticmethod
+    def _update_changelog(file_format, data):
         # this is to deal with older package releases. They can contain long
         # changelogs (more recent rez versions truncate before release), and
         # release.yaml files can contain a list-of-str changelog.
@@ -760,7 +763,7 @@ class FileSystemPackageRepository(PackageRepository):
                 package_data[key] = value
 
         filepath = os.path.join(path, "package.py")
-        with open(filepath, 'w') as f:
+        with open_file_for_write(filepath) as f:
             dump_package_data(package_data, buf=f, format_=package_format)
 
         # touch the family dir, this keeps memcached resolves updated properly

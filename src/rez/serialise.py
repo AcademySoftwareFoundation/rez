@@ -4,15 +4,24 @@ Read and write data from file. File caching via a memcached server is supported.
 from rez.utils.scope import ScopeContext
 from rez.utils.data_utils import SourceCode
 from rez.utils.logging_ import print_debug
+from rez.utils.filesystem import TempDirs
 from rez.exceptions import ResourceError
 from rez.utils.memcached import memcached
 from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
+from contextlib import contextmanager
 from inspect import isfunction
+from StringIO import StringIO
 import sys
 import os
 import os.path
+
+
+tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_write_")
+
+
+file_cache = {}
 
 
 class FileFormat(Enum):
@@ -26,8 +35,32 @@ class FileFormat(Enum):
         self.extension = extension
 
 
-def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
-                   data_type=None):
+@contextmanager
+def open_file_for_write(filepath):
+    """Writes both to given filepath, and tmpdir location.
+
+    This is to get around the problem with some NFS's where immediately reading
+    a file that has jusr been written is problematic. Instead, any files that we
+    write, we also write to /tmp, and reads of these files are redirected there.
+    """
+    stream = StringIO()
+    yield stream
+    content = stream.getvalue()
+
+    filepath = os.path.realpath(filepath)
+    tmpdir = tmpdir_manager.mkdtemp()
+    cache_filepath = os.path.join(tmpdir, os.path.basename(filepath))
+
+    with open(filepath, 'w') as f:
+        f.write(content)
+
+    with open(cache_filepath, 'w') as f:
+        f.write(content)
+
+    file_cache[filepath] = cache_filepath
+
+
+def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
     """Load data from a file.
 
     Note:
@@ -38,23 +71,37 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None,
         format_ (`FileFormat`): Format of file contents.
         update_data_callback (callable): Used to change data before it is
             returned or cached.
-        data_type (`DataType`): Use if the data type being loaded is different
-            from the default (`DataType.package_file`).
 
     Returns:
         dict.
     """
-    kwargs = dict(filepath=os.path.realpath(filepath),
-                  format_=format_,
-                  update_data_callback=update_data_callback)
-    if data_type is not None:
-        kwargs["_data_type"] = data_type
-    return _load_from_file(**kwargs)
+    filepath = os.path.realpath(filepath)
+
+    cache_filepath = file_cache.get(filepath)
+    if cache_filepath:
+        # file has been written by this process, read it from /tmp to avoid
+        # potential write-then-read issues over NFS
+        return _load_file(filepath=cache_filepath,
+                          format_=format_,
+                          update_data_callback=update_data_callback)
+    else:
+        return _load_from_file(filepath=filepath,
+                               format_=format_,
+                               update_data_callback=update_data_callback)
 
 
-def _load_from_file__key(filepath, *nargs, **kwargs):
+def _load_from_file__key(filepath, format_, update_data_callback):
     st = os.stat(filepath)
-    return str(("package_file", filepath, st.st_ino, st.st_atime, st.st_mtime))
+    if update_data_callback is None:
+        callback_key = 'None'
+    else:
+        if hasattr(update_data_callback, 'im_self'):
+            callback_key = '%r - %r' % (update_data_callback.im_self,
+                                        update_data_callback)
+        else:
+            callback_key = repr(update_data_callback)
+    return str(("package_file", filepath, str(format_), callback_key,
+                st.st_ino, st.st_atime, st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,
@@ -62,6 +109,10 @@ def _load_from_file__key(filepath, *nargs, **kwargs):
            key=_load_from_file__key,
            debug=config.debug_memcache)
 def _load_from_file(filepath, format_, update_data_callback):
+    return _load_file(filepath, format_, update_data_callback)
+
+
+def _load_file(filepath, format_, update_data_callback):
     load_func = load_functions[format_]
 
     if config.debug("file_loads"):
@@ -149,6 +200,7 @@ def load_yaml(stream, **kwargs):
                 if getattr(mark, 'name') == '<string>':
                     mark.name = stream.name
         raise e
+
 
 def load_txt(stream, **kwargs):
     """Load text data from a stream.
