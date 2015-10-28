@@ -129,9 +129,43 @@ class ReleaseVCS(object):
                 return current_path, i
         return None
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         """Ensure that the VCS working copy is up-to-date."""
         raise NotImplementedError
+
+    def contains_files(self, paths):
+        """Returns True if all the given package-root-relative paths are
+        currently tracked by the repo
+        """
+        raise NotImplementedError
+
+    def required_files(self, build_process):
+        """Returns the list of files required to be tracked by this repo
+        before release is allowed
+        """
+        required_files = []
+        package_path = getattr(self.package, 'filepath', None)
+        if package_path:
+            required_files.append(package_path)
+        required_files.extend(build_process.build_system.required_files())
+        return required_files
+
+    def assert_required_files(self, build_process):
+        """Raises a ReleaseVCSError if the repo is not tracking any required
+        files, such as the package file. Intended to be called from within
+        validate_repostate
+        """
+        required_files = self.required_files(build_process)
+        if not self.contains_files(required_files):
+            # do the "fast" check of all files first - if this files, do
+            # slower one-at-a-time check, so we can report exactly which files
+            # were missing
+            missing = []
+            for path in required_files:
+                if not self.contains_files([path]):
+                    missing.append(path)
+            raise ReleaseVCSError("Repo was not tracking the following "
+                                  "required files: %s" % ", ".join(missing))
 
     def get_current_revision(self):
         """Get the current revision, this can be any type (str, dict etc)

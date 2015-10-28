@@ -12,7 +12,6 @@ from rez.config import config
 from rez.backport.shutilwhich import which
 from rez.vendor.schema.schema import Or
 from rez.shells import create_shell
-from multiprocessing import cpu_count
 import functools
 import os.path
 import sys
@@ -96,6 +95,9 @@ class CMakeBuildSystem(BuildSystem):
             raise RezCMakeError("Generation of Xcode project only available "
                                 "on the OSX platform")
 
+    def required_files(self):
+        return [os.path.join(self.working_dir, "CMakeLists.txt")]
+
     def build(self, context, variant, build_path, install_path, install=False,
               build_type=BuildType.local):
         def _pr(s):
@@ -176,7 +178,7 @@ class CMakeBuildSystem(BuildSystem):
         cmd += (self.child_build_args or [])
 
         if not any(x.startswith("-j") for x in (self.child_build_args or [])):
-            n = variant.config.build_thread_count or cpu_count()
+            n = variant.config.build_thread_count
             cmd.append("-j%d" % n)
 
         # execute make within the build env
@@ -208,7 +210,7 @@ class CMakeBuildSystem(BuildSystem):
         executor.env.CMAKE_MODULE_PATH.append(cmake_path)
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
-        executor.env.REZ_BUILD_THREAD_COUNT = package.config.build_thread_count or cpu_count()
+        executor.env.REZ_BUILD_THREAD_COUNT = package.config.build_thread_count
         # build always occurs on a filesystem package, thus 'filepath' attribute
         # exists. This is not the case for packages in general.
         executor.env.REZ_BUILD_PROJECT_FILE = package.filepath

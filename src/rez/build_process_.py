@@ -220,7 +220,7 @@ class BuildProcessHelper(BuildProcess):
         assert self.vcs
         self._print("Checking state of repository...")
         with self.repo_operation():
-            self.vcs.validate_repostate()
+            self.vcs.validate_repostate(self)
 
         # check if the repo is already tagged at the current version
         if release_settings.check_tag and not self.ignore_existing_tag:

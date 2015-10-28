@@ -31,7 +31,7 @@ class StubReleaseVCS(ReleaseVCS):
     def search_parents_for_root(cls):
         return False
 
-    def validate_repostate(self):
+    def validate_repostate(self, build_process):
         pass
 
     def get_current_revision(self):
