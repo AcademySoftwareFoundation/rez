@@ -2,7 +2,11 @@
 
 Rez is a cross-platform software package management API and set of tools. Rez can
 build and install packages, and resolve environments at runtime that use a dependency
-resolution algorithm to avoid version conflicts. The main tools are:
+resolution algorithm to avoid version conflicts. Both third party and internally
+developed packages can be made into Rez packages, and any kind of package (python,
+compiled, etc) is supported.
+
+The main tools are:
 
 * **rez-env**: Creates a configured shell containing a set of requested packages.
   Supports *bash*, *tcsh* and *cmd* (Windows), and can be extended to other shells.
