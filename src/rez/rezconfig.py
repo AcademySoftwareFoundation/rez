@@ -302,9 +302,9 @@ debug_package_exclusions = False
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
 
-# Debug memcache usage. This doesn"t spam stdout, instead it sends human-readable
-# strings as memcached keys (that you can read by running "memcached -vv" as the
-# server).
+# Debug memcache usage. As well as printing debugging info to stdout,it also
+# sends human-readable strings as memcached keys (that you can read by running
+# "memcached -vv" as the server)
 debug_memcache = False
 
 # Turn on all debugging messages

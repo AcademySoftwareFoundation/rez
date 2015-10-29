@@ -35,6 +35,7 @@ class Wrapper(object):
             doc = doc["kwargs"]
             context_name = doc["context_name"]
             tool_name = doc["tool_name"]
+            prefix_char = doc.get("prefix_char")
         except YAMLError as e:
             _err(str(e))
 
@@ -48,13 +49,14 @@ class Wrapper(object):
 
         path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
         context = ResolvedContext.load(path)
-        self._init(suite_path, context_name, context, tool_name)
+        self._init(suite_path, context_name, context, tool_name, prefix_char)
 
-    def _init(self, suite_path, context_name, context, tool_name):
+    def _init(self, suite_path, context_name, context, tool_name, prefix_char=None):
         self.suite_path = suite_path
         self.context_name = context_name
         self.context = context
         self.tool_name = tool_name
+        self.prefix_char = prefix_char
 
     @cached_property
     def suite(self):
@@ -67,9 +69,25 @@ class Wrapper(object):
         Returns:
             Return code of the command, or 0 if the command is not run.
         """
+        if self.prefix_char is None:
+            prefix_char = config.suite_alias_prefix_char
+        else:
+            prefix_char = self.prefix_char
+
+        if prefix_char == '':
+            # empty prefix char means we don't support the '+' args
+            return self._run_no_args(args)
+        else:
+            return self._run(prefix_char, args)
+
+    def _run_no_args(self, args):
+        cmd = [self.tool_name] + list(args)
+        retcode, _, _ = self.context.execute_shell(command=cmd, block=True)
+        return retcode
+
+    def _run(self, prefix_char, args):
         from rez.vendor import argparse
 
-        prefix_char = config.suite_alias_prefix_char
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)
 
