@@ -13,7 +13,6 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
-from UserDict import UserDict
 from inspect import ismodule
 import os
 import os.path
@@ -147,16 +146,22 @@ class Dict(Setting):
     def _parse_env_var(self, value):
         items = value.split(",")
         try:
-            return UserDict([item.split(":") for item in items])
+            return dict([item.split(":") for item in items])
         except ValueError:
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
                 % value)
 
 
-class OptionalDict(Setting):
+class OptionalDict(Dict):
     schema = Or(And(None, Use(lambda x: {})),
                 dict)
+
+
+class OptionalStrDict(Dict):
+    schema = Or(And(None, Use(lambda x: {}),),
+                {},
+                {str: basestring})
 
 
 class OptionalDictOrDictList(Setting):
@@ -187,6 +192,30 @@ class RezToolsVisibility_(Str):
         return Or(*(x.name for x in RezToolsVisibility))
 
 
+class BuildThreadCount_(Setting):
+    # may be a positive int, or the values "physical" or "logical"
+
+    @cached_class_property
+    def schema(cls):
+        from rez.utils.platform_ import platform_
+
+        # Note that this bakes the physical / logical cores at the time the
+        # config is read... which should be fine
+        return Or(
+            And(int, lambda x: x > 0),
+            And("physical_cores", Use(lambda x: platform_.physical_cores)),
+            And("logical_cores", Use(lambda x: platform_.logical_cores)),
+        )
+
+    def _parse_env_var(self, value):
+        try:
+            return int(value)
+        except ValueError:
+            # wasn't a string - hopefully it's "physical" or "logical"...
+            # ...but this will be validated by the schema...
+            return value
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -214,6 +243,9 @@ config_schema = Schema({
     "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
     "tmpdir":                                       OptionalStr,
+    "context_tmpdir":                               OptionalStr,
+    "logfile":                                      OptionalStr,
+    "logfile_by_command":                           OptionalStrDict,
     "default_shell":                                OptionalStr,
     "terminal_emulator_command":                    OptionalStr,
     "editor":                                       OptionalStr,
@@ -238,7 +270,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "build_thread_count":                           Int,
+    "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
     "memcached_package_file_min_compress_len":      Int,
@@ -508,6 +540,10 @@ class Config(object):
     # -- dynamic defaults
 
     def _get_tmpdir(self):
+        from rez.utils.platform_ import platform_
+        return platform_.tmpdir
+
+    def _get_context_tmpdir(self):
         from rez.utils.platform_ import platform_
         return platform_.tmpdir
 

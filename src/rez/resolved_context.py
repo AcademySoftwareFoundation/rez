@@ -24,6 +24,7 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils.yaml import dump_yaml
 from tempfile import mkdtemp
+from functools import wraps
 import getpass
 import traceback
 import inspect
@@ -107,7 +108,7 @@ class ResolvedContext(object):
     shell.
     """
     serialize_version = (4, 1)
-    tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_context_")
+    tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
@@ -793,6 +794,7 @@ class ResolvedContext(object):
         print '\n'.join(columnise(rows))
 
     def _on_success(fn):
+        @wraps(fn)
         def _check(self, *nargs, **kwargs):
             if self.status_ == ResolverStatus.solved:
                 return fn(self, *nargs, **kwargs)
