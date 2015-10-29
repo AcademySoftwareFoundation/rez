@@ -18,6 +18,8 @@ package_key_order = [
     'description',
     'authors',
     'tools',
+    'has_plugins',
+    'plugin_for',
     'requires',
     'build_requires',
     'private_build_requires',

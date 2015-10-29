@@ -107,7 +107,7 @@ class ResolvedContext(object):
     shell.
     """
     serialize_version = (4, 1)
-    tmpdir_manager = TempDirs(config.tmpdir, prefix="rez_context_")
+    tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     class Callback(object):
         def __init__(self, max_fails, time_limit, callback, buf=None):
