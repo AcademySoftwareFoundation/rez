@@ -704,7 +704,8 @@ class _PackageVariantSlice(_Common):
                 if not request.conflict and request.name not in names:
                     additional_key.append((request.range, request.name))
 
-            if config.variant_select_mode == VariantSelectMode.version_priority:
+            if (VariantSelectMode[config.variant_select_mode] ==
+                    VariantSelectMode.version_priority):
                 k = (requested_key,
                      -len(additional_key),
                      additional_key,
