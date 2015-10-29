@@ -1,0 +1,5 @@
+name: spangle
+version: '2.0'
+authors:
+- joe.bloggs
+description: 'a package that bar requires'

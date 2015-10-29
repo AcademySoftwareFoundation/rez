@@ -52,8 +52,18 @@ local_packages_path = "~/packages"
 release_packages_path = "~/.rez/packages/int"
 
 # Where temporary files go. Defaults to appropriate path depending on your
-# system - for example, *nix distributions will probably set this to "/tmp".
+# system - for example, *nix distributions will probably set this to "/tmp". It
+# is highly recommended that this be set to local storage, such as /tmp.
 tmpdir = None
+
+
+# Where temporary files for contexts go. Defaults to appropriate path depending
+# on your system - for example, *nix distributions will probably set this to "/tmp".
+# This is separate to 'tmpdir' because you sometimes might want to set this to an
+# NFS location - for example, perhaps rez is used during a render and you'd like
+# to store these tempfiles in the farm queuer's designated tempdir so they're
+# cleaned up when the render completes.
+context_tmpdir = None
 
 
 ###############################################################################
@@ -318,10 +328,16 @@ catch_rex_errors = True
 # source directory (this is typically where temporary build files are written).
 build_directory = "build"
 
-# The number of threads a build system should use, eg the make '-j' option. If
-# zero, this is set to the number of processes on the build host. This setting
-# is exposed as the environment variable $REZ_BUILD_THREAD_COUNT during builds.
-build_thread_count = 0
+
+# The number of threads a build system should use, eg the make '-j' option.
+# If the string values "logical_cores" or "physical_cores", it is set to the
+# detected number of logical / physical cores on the host system.
+# (Logical cores are the number of cores reported to the OS, physical are the
+# number of actual hardware processor cores.  They may differ if, ie, the CPUs
+# support hyperthreading, in which case logical_cores == 2 * physical_cores).
+# This setting is exposed as the environment variable $REZ_BUILD_THREAD_COUNT
+# during builds.
+build_thread_count = "physical_cores"
 
 
 ###############################################################################
