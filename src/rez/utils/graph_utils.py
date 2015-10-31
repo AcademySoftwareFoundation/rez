@@ -10,9 +10,52 @@ from rez.config import config
 from rez.vendor.pydot import pydot
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageRequestError
-from rez.vendor.pygraph.readwrite.dot import write as write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
+
+
+def write_dot(g):
+    """Replacement for pygraph.readwrite.dot.write, which is dog slow.
+
+    Note:
+        This isn't a general replacement. It will work for the graphs that
+        Rez generates, but there are no guarantees beyond that.
+
+    Args:
+        g (`pygraph.digraph`): Input graph.
+
+    Returns:
+        str: Graph in dot format.
+    """
+    lines = ["digraph g {"]
+
+    def attrs_txt(items):
+        if items:
+            txt = ", ".join(('%s="%s"' % (k, str(v).strip('"')))
+                            for k, v in items)
+            return '[' + txt + ']'
+        else:
+            return ''
+
+    for node in g.nodes():
+        atxt = attrs_txt(g.node_attributes(node))
+        txt = "%s %s;" % (node, atxt)
+        lines.append(txt)
+
+    for e in g.edges():
+        edge_from, edge_to = e
+        attrs = g.edge_attributes(e)
+
+        label = str(g.edge_label(e))
+        if label:
+            attrs["label"] = label
+
+        atxt = attrs_txt(attrs)
+        txt = "%s -> %s %s;" % (edge_from, edge_to, atxt)
+        lines.append(txt)
+
+    lines.append("}")
+    return '\n'.join(lines)
 
 
 def prune_graph(graph_str, package_name):

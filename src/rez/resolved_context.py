@@ -17,7 +17,7 @@ from rez.packages_ import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
-from rez.vendor.pygraph.readwrite.dot import write as write_dot
+from rez.utils.graph_utils import write_dot
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
