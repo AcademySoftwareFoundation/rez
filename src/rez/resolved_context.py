@@ -32,6 +32,9 @@ import sys
 import os
 import os.path
 
+# specifically so that str's are not converted to unicode on load
+from rez.vendor import simplejson
+
 
 class RezToolsVisibility(Enum):
     """Determines if/how rez cli tools are added back to PATH within a
@@ -480,7 +483,12 @@ class ResolvedContext(object):
     def write_to_buffer(self, buf):
         """Save the context to a buffer."""
         doc = self.to_dict()
-        content = dump_yaml(doc)
+
+        if config.rxt_as_yaml:
+            content = dump_yaml(doc)
+        else:
+            content = simplejson.dumps(doc)
+
         buf.write(content)
 
     @classmethod
@@ -1320,7 +1328,12 @@ class ResolvedContext(object):
     @classmethod
     def _read_from_buffer(cls, buf, identifier_str=None):
         content = buf.read()
-        doc = yaml.load(content)
+
+        if content.startswith('{'):  # assume json content
+            doc = simplejson.loads(content)
+        else:
+            doc = yaml.load(content)
+
         context = cls.from_dict(doc, identifier_str)
         return context
 
