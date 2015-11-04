@@ -6,12 +6,103 @@ import os.path
 import subprocess
 import sys
 import tempfile
+from ast import literal_eval
 from rez.config import config
 from rez.vendor.pydot import pydot
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageRequestError
 from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
+from rez.vendor.pygraph.classes.digraph import digraph
+
+
+def read_graph_from_string(txt):
+    """Read a graph from a string, either in dot format, or our own
+    compressed format.
+
+    Returns:
+        `pygraph.digraph`: Graph object.
+    """
+    if not txt.startswith('{'):
+        return read_dot(txt)  # standard dot format
+
+    def conv(value):
+        if isinstance(value, basestring):
+            return '"' + value + '"'
+        else:
+            return value
+
+    # our compacted format
+    doc = literal_eval(txt)
+    g = digraph()
+
+    for attrs, values in doc.get("nodes", []):
+        attrs = [(k, conv(v)) for k, v in attrs]
+
+        for value in values:
+            if isinstance(value, basestring):
+                node_name = value
+                attrs_ = attrs
+            else:
+                node_name, label = value
+                attrs_ = attrs + [("label", conv(label))]
+
+            g.add_node(node_name, attrs=attrs_)
+
+    for attrs, values in doc.get("edges", []):
+        attrs_ = [(k, conv(v)) for k, v in attrs]
+
+        for value in values:
+            if len(value) == 3:
+                edge = value[:2]
+                label = value[-1]
+            else:
+                edge = value
+                label = ''
+
+            g.add_edge(edge, label=label, attrs=attrs_)
+
+    return g
+
+
+def write_compacted(g):
+    """Write a graph in our own compacted format.
+
+    Returns:
+        str.
+    """
+    d_nodes = {}
+    d_edges = {}
+
+    def conv(value):
+        if isinstance(value, basestring):
+            return value.strip('"')
+        else:
+            return value
+
+    for node in g.nodes():
+        label = None
+        attrs = []
+
+        for k, v in sorted(g.node_attributes(node)):
+            v_ = conv(v)
+            if k == "label":
+                label = v_
+            else:
+                attrs.append((k, v_))
+
+        value = (node, label) if label else node
+        d_nodes.setdefault(tuple(attrs), []).append(value)
+
+    for edge in g.edges():
+        attrs = [(k, conv(v)) for k, v in sorted(g.edge_attributes(edge))]
+        label = str(g.edge_label(edge))
+        value = tuple(list(edge) + [label]) if label else edge
+        d_edges.setdefault(tuple(attrs), []).append(tuple(value))
+
+    doc = dict(nodes=d_nodes.items(), edges=d_edges.items())
+    contents = str(doc)
+    return contents
 
 
 def write_dot(g):

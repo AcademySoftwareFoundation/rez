@@ -17,8 +17,8 @@ from rez.packages_ import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
-from rez.utils.graph_utils import write_dot
-from rez.vendor.pygraph.readwrite.dot import read as read_dot
+from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
+#from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
@@ -466,14 +466,23 @@ class ResolvedContext(object):
         """
         if not self.has_graph:
             return None
-        elif as_dot:
-            if not self.graph_string:
-                self.graph_string = write_dot(self.graph_)
-            return self.graph_string
-        elif self.graph_ is None:
-            self.graph_ = read_dot(self.graph_string)
 
-        return self.graph_
+        if not as_dot:
+            if self.graph_ is None:
+                # reads either dot format or our compact format
+                self.graph_ = read_graph_from_string(self.graph_string)
+            return self.graph_
+
+        if self.graph_string:
+            if self.graph_string.startswith('{'):  # compact format
+                self.graph_ = read_graph_from_string(self.graph_string)
+            else:
+                # already in dot format. Note that this will only happen in
+                # old rez contexts where the graph is not stored in the newer
+                # compact format.
+                return self.graph_string
+
+        return write_dot(self.graph_)
 
     def save(self, path):
         """Save the resolved context to file."""
@@ -1195,6 +1204,12 @@ class ResolvedContext(object):
         serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
 
+        if self.graph_string and self.graph_string.startswith('{'):
+            graph_str = self.graph_string  # already in compact format
+        else:
+            g = self.graph()
+            graph_str = write_compacted(g)
+
         return dict(
             serialize_version=serialize_version,
 
@@ -1225,7 +1240,7 @@ class ResolvedContext(object):
             status=self.status_.name,
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
-            graph=self.graph(as_dot=True),
+            graph=graph_str,
             from_cache=self.from_cache,
             solve_time=self.solve_time,
             load_time=self.load_time)
