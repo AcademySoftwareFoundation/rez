@@ -1,4 +1,4 @@
-# ![rez](media/rez_logo_256.png)
+# ![rez](media/rez_banner.svg)
 
 Rez is a cross-platform software package management API and set of tools. Rez can
 build and install packages, and resolve environments at runtime that use a dependency
