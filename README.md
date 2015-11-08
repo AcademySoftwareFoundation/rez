@@ -53,12 +53,11 @@ resolution algorithm tracks package requirements and resolves to a list of neede
 packages. The commands from these packages are concatenated and evaluated, resulting
 in a configured environment. Rez is able to configure environments containing 
 hundreds of packages, often within a few seconds. Resolves can also be saved to file,
-and when reevaluated later will reconstruct the sme environment once more.
+and when re-evaluated later will reconstruct the same environment once more.
 
 ## Examples
 
-Here is an example which places the user into a resolved shell containing the
-requested packages:
+This example places the user into a resolved shell containing the requested packages:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
@@ -80,37 +79,21 @@ requested packages:
 
     > ]$ _
 
-Here's an example which creates an environment containing the package 'houdini'
-version 12.5 or greater, and runs the command 'hescape -h' inside that environment:
+This example creates an environment containing the package 'houdini' version 12.5 
+or greater, and runs the command 'hescape -h' inside that environment:
 
-    ]$ rez-env -c 'hescape -h' houdini-12.5+
+    ]$ rez-env houdini-12.5+ -- hescape -h
     Usage: hescape [-foreground] [-s editor] [filename ...]
     -h: output this usage message
-    -f: force the use of asset definitions in OTL files on the command line
     -s: specify starting desktop by name
     -foreground: starts process in foreground
 
 Resolved environments can also be created via the API:
 
+    >>> import subprocess
     >>> from rez.resolved_context import ResolvedContext
     >>>
     >>> r = ResolvedContext(["houdini-12.5+", "houdini-0+<13", "java", "!java-1.8+"])
-    >>>
-    >>> r.print_info()
-    resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 13:03:30 2014, using Rez v2.0.0
-
-    requested packages:
-    houdini-12.5+
-    houdini-0+<13
-    java
-
-    resolved packages:
-    java-1.7.21       /software/ext/java/1.7.21
-    platform-linux    /software/ext/platform/linux
-    arch-x86_64       /software/ext/arch/x86_64
-    houdini-12.5.562  /software/ext/houdini/12.5.562
-    >>>
-    >>> import subprocess
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
     >>> out, err = p.communicate()
     >>>
