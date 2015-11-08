@@ -1,7 +1,7 @@
 # ![rez](media/rez_banner_256.png)
 
 Rez is a cross-platform software package management API and set of tools. Rez can
-build and install packages, and resolve environments at runtime that use a dependency
+build and install packages, and resolve environments at runtime using use a dependency
 resolution algorithm to avoid version conflicts. Both third party and internally
 developed packages can be made into Rez packages, and any kind of package (python,
 compiled, etc) is supported.
@@ -21,11 +21,41 @@ The main tools are:
 * **rez-gui**: A fully fledged graphical interface for creating resolved environments,
   launching tools and comparing different environments.
 
-Rez is able to install more than one version of each package, and it keeps them in
-a package repository on disk. By using the API or *rez-env* tool, new environments
-can be constructed at runtime, and commands can be executed within these environments.
-They can also be saved to disk, and reused later to construct the same environment
-again.
+## The Basics
+
+Packages are stored in repositories on disk. Each package has a single concise 
+definition file (*package.py*) that defines its dependencies, its commands (how it
+configures the environment containing it), and other metadata. For example, the 
+following is the package definition file for the popular *requests* python module:
+
+    name = "requests"
+
+    version = "2.8.1"
+
+    authors = ["Kenneth Reitz"]
+
+    requires = [
+        "python-2.7+"
+    ]
+
+    def commands():
+        env.PYTHONPATH.append("{root}/python")
+
+This package requires python-2.7 or greater. When used, the 'python' subdirectory 
+within its install location is appended to the PYTHONPATH environment variable.
+Because python is the language used to define a package's commands, behaviour is 
+rich - a package can create aliases, source scripts and run commands, as well as 
+manage environment variables; and all this combined with the program logic that 
+python itself provides.
+
+When an environment is created with the rez API or *rez-env* tool, a dependency
+resolution algorithm tracks package requirements and resolves to a list of needed
+packages. The commands from these packages are concatenated and evaluated, resulting
+in a configured environment. Rez is able to configure environments containing 
+hundreds of packages, often within a few seconds. Resolves can also be saved to file,
+and when reevaluated later will reconstruct the sme environment once more.
+
+## Examples
 
 Here is an example which places the user into a resolved shell containing the
 requested packages:
