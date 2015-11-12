@@ -14,6 +14,7 @@ description = \
 variants = [
     ["platform-linux", "arch-x86_64", "os-Ubuntu-12.04"]
 ]
+requires = [ "binutils-2.25" ]
 
 tools = [
     "gcc",
