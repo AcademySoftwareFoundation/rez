@@ -105,17 +105,17 @@ class Wrapper(object):
             help="launch an interactive shell within the tool's configured "
             "environment")
         _add_argument(
+            "=p", "==patch", type=str, nargs='*', metavar="PKG",
+            help="run the tool in a patched environment")
+        _add_argument(
             "==versions", action="store_true",
             help="list versions of package providing this tool")
         _add_argument(
-            "=c", "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
+            "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
             help="read commands from string, rather than executing the tool")
         _add_argument(
-            "=s", "==stdin", action="store_true",
+            "==stdin", action="store_true",
             help="read commands from standard input, rather than executing the tool")
-        _add_argument(
-            "=p", "==patch", type=str, nargs='*', metavar="PKG",
-            help="run the tool in a patched environment")
         _add_argument(
             "==strict", action="store_true",
             help="strict patching. Ignored if ++patch is not present")
@@ -127,13 +127,22 @@ class Wrapper(object):
             help="diff against the tool's context and a re-resolved copy - "
             "this shows how 'stale' the context is")
         _add_argument(
-            "=v", "==verbose", action="count", default=0,
+            "==verbose", action="count", default=0,
             help="verbose mode, repeat for more verbosity")
         _add_argument(
-            "=q", "==quiet", action="store_true",
+            "==quiet", action="store_true",
             help="hide welcome message when entering interactive mode")
+        _add_argument(
+            "==no-rez-args", dest="no_rez_args", action="store_true",
+            help="pass all args to the tool, even if they start with '%s'" % prefix_char)
 
         opts, tool_args = parser.parse_known_args(args)
+
+        if opts.no_rez_args:
+            args = list(args)
+            args.remove("==no-rez-args".replace('=', prefix_char))
+            tool_args = args
+            opts = parser.parse_args([])
 
         # print info
         if opts.about:
