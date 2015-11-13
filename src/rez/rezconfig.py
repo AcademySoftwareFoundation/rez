@@ -416,6 +416,12 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 1024
 
+# If this is true, rxt files are written in yaml format. If false, they are
+# written in json, which is a LOT faster. You would only set to true for
+# backwards compatibility reasons. Note that rez will detect either format on
+# rxt file load.
+rxt_as_yaml = True
+
 
 ###############################################################################
 # Colorization
