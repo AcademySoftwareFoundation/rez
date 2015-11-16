@@ -18,7 +18,6 @@ from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
 from rez.exceptions import ResolvedContextError, PackageCommandError, RezError
 from rez.utils.graph_utils import write_dot, write_compacted, read_graph_from_string
-#from rez.vendor.pygraph.readwrite.dot import read as read_dot
 from rez.vendor.version.version import VersionRange
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
@@ -1443,6 +1442,15 @@ class ResolvedContext(object):
             executor.setenv(prefix + "_ROOT", pkg.root)
             bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
                                       variant=VariantBinding(pkg))
+
+            # just provide major/minor/patch during builds
+            if self.building:
+                if len(pkg.version) >= 1:
+                    executor.setenv(prefix + "_MAJOR_VERSION", str(pkg.version[0]))
+                if len(pkg.version) >= 2:
+                    executor.setenv(prefix + "_MINOR_VERSION", str(pkg.version[1]))
+                if len(pkg.version) >= 3:
+                    executor.setenv(prefix + "_PATCH_VERSION", str(pkg.version[2]))
 
         # commands
         for attr in ("pre_commands", "commands", "post_commands"):
