@@ -24,6 +24,7 @@ if(NOT REZ_BUILD_ENV)
 endif(NOT REZ_BUILD_ENV)
 
 include(Utils)
+include(ExternalProject)
 
 macro (rez_pip_install)
 
