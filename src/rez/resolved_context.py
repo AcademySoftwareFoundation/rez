@@ -1167,10 +1167,12 @@ class ResolvedContext(object):
         executor = self._create_executor(sh, parent_environ)
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
+
+        self._execute(executor)
+
         if actions_callback:
             actions_callback(executor)
 
-        self._execute(executor)
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
