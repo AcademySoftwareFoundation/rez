@@ -1089,9 +1089,9 @@ class ResolvedContext(object):
     @_on_success
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
-                      block=None, actions_callback=None, context_filepath=None,
-                      start_new_session=False, detached=False, pre_command=None,
-                      **Popen_args):
+                      block=None, actions_callback=None, post_actions_callback=None,
+                      context_filepath=None, start_new_session=False, detached=False,
+                      pre_command=None, **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -1112,7 +1112,12 @@ class ResolvedContext(object):
                 shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
                 the user append custom actions to the context, such as setting
-                extra environment variables.
+                extra environment variables. Callback is run prior to context Rex
+                execution.
+            post_actions_callback: Callback with signature (RexExecutor). This lets
+                the user append custom actions to the context, such as setting
+                extra environment variables. Callback is run after context Rex
+                execution.
             context_filepath: If provided, the context file will be written
                 here, rather than to the default location (which is in a
                 tempdir). If you use this arg, you are responsible for cleaning
@@ -1168,10 +1173,13 @@ class ResolvedContext(object):
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
 
-        self._execute(executor)
-
         if actions_callback:
             actions_callback(executor)
+
+        self._execute(executor)
+
+        if post_actions_callback:
+            post_actions_callback(executor)
 
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
