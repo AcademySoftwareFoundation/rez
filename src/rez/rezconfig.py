@@ -414,7 +414,7 @@ prefix_prompt = True
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
 # this adversely impacts package load times.
-max_package_changelog_chars = 1024
+max_package_changelog_chars = 65536
 
 # If this is true, rxt files are written in yaml format. If false, they are
 # written in json, which is a LOT faster. You would only set to true for
