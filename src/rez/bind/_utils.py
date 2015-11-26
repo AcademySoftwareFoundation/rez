@@ -83,7 +83,7 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
         raise RezBindError("failed to execute %s: %s\n(error code %d)"
                            % (exepath, stderr, p.returncode))
 
-    stdout = stdout.strip()
+    stdout = stdout.strip().split('\n')[0].strip()
     log("extracting version from output: '%s'" % stdout)
 
     try:
