@@ -87,4 +87,4 @@ def bind(name, path, version_range=None, pure_python=None, tools=None,
         for key, value in extra_attrs.iteritems():
             pkg[key] = value
 
-    return version
+    return pkg.installed_variants

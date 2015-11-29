@@ -48,4 +48,4 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.tools = ["hello_world"]
         pkg.commands = commands
 
-    return "hello_world", version
+    return pkg.installed_variants

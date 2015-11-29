@@ -2,12 +2,38 @@ from rez.exceptions import RezBindError
 from rez import module_root_path
 from rez.util import get_close_pkgs
 from rez.utils.formatting import columnise
-from rez.vendor.version.requirement import VersionedObject
+from rez.utils.logging_ import print_error
 from rez.config import config
 from rez.vendor import argparse
 import os.path
 import os
 import sys
+
+
+def get_bind_modules(verbose=False):
+    """Get available bind modules.
+
+    Returns:
+        dict: Map of (name, filepath) listing all bind modules.
+    """
+    builtin_path = os.path.join(module_root_path, "bind")
+    searchpaths = config.bind_module_path + [builtin_path]
+    bindnames = {}
+
+    for path in searchpaths:
+        if verbose:
+            print "searching %s..." % path
+        if not os.path.isdir(path):
+            continue
+
+        for filename in os.listdir(path):
+            fpath = os.path.join(path, filename)
+            fname, ext = os.path.splitext(filename)
+            if os.path.isfile(fpath) and ext == ".py" \
+                    and not fname.startswith('_'):
+                bindnames[fname] = fpath
+
+    return bindnames
 
 
 def find_bind_module(name, verbose=False):
@@ -20,27 +46,11 @@ def find_bind_module(name, verbose=False):
     Returns:
         str: Filepath to bind module .py file, or None if not found.
     """
-    builtin_path = os.path.join(module_root_path, "bind")
-    searchpaths = config.bind_module_path + [builtin_path]
-    bindfile = None
-    bindnames = {}
+    bindnames = get_bind_modules(verbose=verbose)
+    bindfile = bindnames.get(name)
 
-    for path in searchpaths:
-        if verbose:
-            print "searching %s..." % path
-        if not os.path.isdir(path):
-            continue
-
-        filename = os.path.join(path, name + ".py")
-        if os.path.isfile(filename):
-            return filename
-
-        for filename in os.listdir(path):
-            fpath = os.path.join(path, filename)
-            fname, ext = os.path.splitext(filename)
-            if os.path.isfile(fpath) and ext == ".py" \
-                    and not fname.startswith('_'):
-                bindnames[fname] = fpath
+    if bindfile:
+        return bindfile
 
     if not verbose:
         return None
@@ -58,7 +68,8 @@ def find_bind_module(name, verbose=False):
     return None
 
 
-def bind_package(name, path=None, version_range=None, bind_args=None, quiet=False):
+def bind_package(name, path=None, version_range=None, no_deps=False,
+                 bind_args=None, quiet=False):
     """Bind software available on the current system, as a rez package.
 
     Note:
@@ -71,9 +82,67 @@ def bind_package(name, path=None, version_range=None, bind_args=None, quiet=Fals
         path (str): Package path to install into; local packages path if None.
         version_range (`VersionRange`): If provided, only bind the software if
             it falls within this version range.
+        no_deps (bool): If True, don't bind dependencies.
         bind_args (list of str): Command line options.
         quiet (bool): If True, suppress superfluous output.
+
+    Returns:
+        List of `Variant`: The variant(s) that were installed as a result of
+        binding this package.
     """
+    pending = set([name])
+    installed_variants = []
+    installed_package_names = set()
+    primary = True
+
+    # bind package and possibly dependencies
+    while pending:
+        pending_ = pending
+        pending = set()
+        exc_type = None
+
+        for name_ in pending_:
+            # turn error on binding of dependencies into a warning - we don't
+            # want to skip binding some dependencies because others failed
+            try:
+                variants_ = _bind_package(name_,
+                                          path=path,
+                                          version_range=version_range,
+                                          bind_args=bind_args,
+                                          quiet=quiet)
+            except exc_type as e:
+                print_error("Could not bind '%s': %s: %s"
+                            % (name_, e.__class__.__name__, str(e)))
+                continue
+
+            installed_variants.extend(variants_)
+
+            for variant in variants_:
+                installed_package_names.add(variant.name)
+
+            # add dependencies
+            if not no_deps:
+                for variant in variants_:
+                    for requirement in variant.requires:
+                        if not requirement.conflict:
+                            pending.add(requirement.name)
+
+            # non-primary packages are treated a little differently
+            primary = False
+            version_range = None
+            bind_args = None
+            exc_type = RezBindError
+
+    if installed_variants and not quiet:
+        print "The following packages were installed:"
+        print
+        _print_package_list(installed_variants)
+
+    return installed_variants
+
+
+def _bind_package(name, path=None, version_range=None, bind_args=None,
+                  quiet=False):
     bindfile = find_bind_module(name, verbose=(not quiet))
     if not bindfile:
         raise RezBindError("Bind module not found for '%s'" % name)
@@ -101,10 +170,19 @@ def bind_package(name, path=None, version_range=None, bind_args=None, quiet=Fals
     if not bindfunc:
         raise RezBindError("'bind' function missing in %s" % bindfile)
 
-    name, version = bindfunc(path=install_path,
-                             version_range=version_range,
-                             opts=bind_opts,
-                             parser=bind_parser)
-    if not quiet:
-        o = VersionedObject.construct(name, version)
-        print "created package '%s' in %s" % (str(o), install_path)
+    variants = bindfunc(path=install_path,
+                        version_range=version_range,
+                        opts=bind_opts,
+                        parser=bind_parser)
+
+    return variants
+
+
+def _print_package_list(variants):
+    packages = set([x.parent for x in variants])
+    packages = sorted(packages, key=lambda x: x.name)
+
+    rows = [["PACKAGE", "URI"],
+            ["-------", "---"]]
+    rows += [(x.name, x.uri) for x in packages]
+    print '\n'.join(columnise(rows))

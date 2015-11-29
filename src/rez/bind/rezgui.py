@@ -63,4 +63,4 @@ def bind(path, version_range=None, opts=None, parser=None):
         if gui_lib:
             pkg.requires.append(gui_lib)
 
-    return "rezgui", rez_version
+    return pkg.installed_variants

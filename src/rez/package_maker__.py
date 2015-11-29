@@ -56,8 +56,9 @@ class PackageMaker(AttrDictWrapper):
         """
         super(PackageMaker, self).__init__(data)
         self.name = name
+        self.installed_variants = []  # set by `make_package`
 
-    def get_package(self):
+    def create_package(self):
         """Create the analogous package.
 
         Returns:
@@ -112,16 +113,23 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True)
         skip_existing (bool): If True, detect if a variant already exists, and
             skip with a warning message if so.
 
+    Yields:
+        `PackageMaker` object.
+
     Note:
         Both `make_base` and `make_root` are called once per variant install,
         and have the signature (variant, path).
+
+    Note:
+        The 'installed_variants' attribute on the `PackageMaker` instance will
+        be appended with variant(s) created by this function, if any.
     """
     maker = PackageMaker(name)
     yield maker
 
     # post-with-block:
     #
-    package = maker.get_package()
+    package = maker.create_package()
     cwd = os.getcwd()
     src_variants = []
 
@@ -154,5 +162,7 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True)
                 os.makedirs(root)
             os.chdir(root)
             make_root(variant_, root)
+
+        maker.installed_variants.append(variant_)
 
     os.chdir(cwd)

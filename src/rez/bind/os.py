@@ -17,4 +17,4 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.requires = ["platform-%s" % system.platform,
                          "arch-%s" % system.arch]
 
-    return "os", version
+    return pkg.installed_variants

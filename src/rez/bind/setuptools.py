@@ -16,11 +16,11 @@ def bind(path, version_range=None, opts=None, parser=None):
     #tools = ["easy_install"]
     tools = []
 
-    version = _pymodule.bind(name,
-                             path=path,
-                             version_range=version_range,
-                             pure_python=False,
-                             tools=tools,
-                             extra_module_names=("pkg_resources",))
+    variants = _pymodule.bind(name,
+                              path=path,
+                              version_range=version_range,
+                              pure_python=False,
+                              tools=tools,
+                              extra_module_names=("pkg_resources",))
 
-    return name, version
+    return variants
