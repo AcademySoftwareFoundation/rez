@@ -59,13 +59,18 @@ class Bash(SH):
             if rcfile and os.path.exists(os.path.expanduser(rcfile)):
                 files.append(rcfile)
         else:
-            for file in (
+            for file_ in (
                     "~/.bash_profile",
                     "~/.bash_login",
                     "~/.profile",
                     "~/.bashrc"):
-                if os.path.exists(os.path.expanduser(file)):
-                    files.append(file)
+                if os.path.exists(os.path.expanduser(file_)):
+                    files.append(file_)
+
+        bind_files = [
+            "~/.bash_profile",
+            "~/.bashrc"
+        ]
 
         return dict(
             stdin=stdin,
@@ -73,9 +78,7 @@ class Bash(SH):
             do_rcfile=do_rcfile,
             envvar=envvar,
             files=files,
-            bind_files=(
-                "~/.bash_profile",
-                "~/.bashrc"),
+            bind_files=bind_files,
             source_bind_files=True
         )
 
