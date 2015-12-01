@@ -92,7 +92,7 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
 
 def _load_from_file__key(filepath, *nargs, **kwargs):
     st = os.stat(filepath)
-    return str(("package_file", filepath, st.st_ino, st.st_atime, st.st_mtime))
+    return str(("package_file", filepath, st.st_ino, st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,
