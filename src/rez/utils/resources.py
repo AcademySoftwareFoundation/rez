@@ -162,7 +162,7 @@ class ResourceHandle(object):
         return cls(**d)
 
     def __str__(self):
-        return "<%s%r>" % (self.key, self.variables)
+        return str(self.to_dict())
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.key, self.variables)

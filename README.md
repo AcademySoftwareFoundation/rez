@@ -1,7 +1,7 @@
-## Introduction
+# ![rez](media/rez_banner_256.png)
 
 Rez is a cross-platform software package management API and set of tools. Rez can
-build and install packages, and resolve environments at runtime that use a dependency
+build and install packages, and resolve environments at runtime using use a dependency
 resolution algorithm to avoid version conflicts. Both third party and internally
 developed packages can be made into Rez packages, and any kind of package (python,
 compiled, etc) is supported.
@@ -21,14 +21,43 @@ The main tools are:
 * **rez-gui**: A fully fledged graphical interface for creating resolved environments,
   launching tools and comparing different environments.
 
-Rez is able to install more than one version of each package, and it keeps them in
-a package repository on disk. By using the API or *rez-env* tool, new environments
-can be constructed at runtime, and commands can be executed within these environments.
-They can also be saved to disk, and reused later to construct the same environment
-again.
+## The Basics
 
-Here is an example which places the user into a resolved shell containing the
-requested packages:
+Packages are stored in repositories on disk. Each package has a single concise 
+definition file (*package.py*) that defines its dependencies, its commands (how it
+configures the environment containing it), and other metadata. For example, the 
+following is the package definition file for the popular *requests* python module:
+
+    name = "requests"
+
+    version = "2.8.1"
+
+    authors = ["Kenneth Reitz"]
+
+    requires = [
+        "python-2.7+"
+    ]
+
+    def commands():
+        env.PYTHONPATH.append("{root}/python")
+
+This package requires python-2.7 or greater. When used, the 'python' subdirectory 
+within its install location is appended to the PYTHONPATH environment variable.
+Because python is the language used to define a package's commands, behaviour is 
+rich - a package can create aliases, source scripts and run commands, as well as 
+manage environment variables; and all this combined with the program logic that 
+python itself provides.
+
+When an environment is created with the rez API or *rez-env* tool, a dependency
+resolution algorithm tracks package requirements and resolves to a list of needed
+packages. The commands from these packages are concatenated and evaluated, resulting
+in a configured environment. Rez is able to configure environments containing 
+hundreds of packages, often within a few seconds. Resolves can also be saved to file,
+and when re-evaluated later will reconstruct the same environment once more.
+
+## Examples
+
+This example places the user into a resolved shell containing the requested packages:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
@@ -50,37 +79,21 @@ requested packages:
 
     > ]$ _
 
-Here's an example which creates an environment containing the package 'houdini'
-version 12.5 or greater, and runs the command 'hescape -h' inside that environment:
+This example creates an environment containing the package 'houdini' version 12.5 
+or greater, and runs the command 'hescape -h' inside that environment:
 
-    ]$ rez-env -c 'hescape -h' houdini-12.5+
+    ]$ rez-env houdini-12.5+ -- hescape -h
     Usage: hescape [-foreground] [-s editor] [filename ...]
     -h: output this usage message
-    -f: force the use of asset definitions in OTL files on the command line
     -s: specify starting desktop by name
     -foreground: starts process in foreground
 
 Resolved environments can also be created via the API:
 
+    >>> import subprocess
     >>> from rez.resolved_context import ResolvedContext
     >>>
     >>> r = ResolvedContext(["houdini-12.5+", "houdini-0+<13", "java", "!java-1.8+"])
-    >>>
-    >>> r.print_info()
-    resolved by ajohns@nn188.somewhere.com, on Wed Feb 26 13:03:30 2014, using Rez v2.0.0
-
-    requested packages:
-    houdini-12.5+
-    houdini-0+<13
-    java
-
-    resolved packages:
-    java-1.7.21       /software/ext/java/1.7.21
-    platform-linux    /software/ext/platform/linux
-    arch-x86_64       /software/ext/arch/x86_64
-    houdini-12.5.562  /software/ext/houdini/12.5.562
-    >>>
-    >>> import subprocess
     >>> p = r.execute_shell(command='which hescape', stdout=subprocess.PIPE)
     >>> out, err = p.communicate()
     >>>

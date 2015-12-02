@@ -302,9 +302,9 @@ debug_package_exclusions = False
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
 
-# Debug memcache usage. This doesn"t spam stdout, instead it sends human-readable
-# strings as memcached keys (that you can read by running "memcached -vv" as the
-# server).
+# Debug memcache usage. As well as printing debugging info to stdout,it also
+# sends human-readable strings as memcached keys (that you can read by running
+# "memcached -vv" as the server)
 debug_memcache = False
 
 # Turn on all debugging messages
@@ -414,7 +414,13 @@ prefix_prompt = True
 # If not zero, truncates all package changelog entries to this maximum length.
 # You should set this value - changelogs can theoretically be very large, and
 # this adversely impacts package load times.
-max_package_changelog_chars = 1024
+max_package_changelog_chars = 65536
+
+# If this is true, rxt files are written in yaml format. If false, they are
+# written in json, which is a LOT faster. You would only set to true for
+# backwards compatibility reasons. Note that rez will detect either format on
+# rxt file load.
+rxt_as_yaml = True
 
 
 ###############################################################################
