@@ -2,10 +2,6 @@
 # macro:
 # rez_set_archive
 #
-# ------------------------------
-# Overview
-# ------------------------------
-#
 # usage:
 # rez_set_archive(variable RELATIVE_PATH URL)
 #

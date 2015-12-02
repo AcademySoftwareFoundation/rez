@@ -101,7 +101,7 @@ def _load_from_file__key(filepath, format_, update_data_callback):
         else:
             callback_key = repr(update_data_callback)
     return str(("package_file", filepath, str(format_), callback_key,
-                st.st_ino, st.st_atime, st.st_mtime))
+                st.st_ino, st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,

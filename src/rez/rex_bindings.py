@@ -13,14 +13,15 @@ class Binding(object):
     def __init__(self, data=None):
         self.__data = data or {}
 
-    def __attr_error(self, attr):
-        raise NotImplementedError
+    def _attr_error(self, attr):
+        raise AttributeError("%s has no attribute '%s'"
+                             % (self.__class__.__name__, attr))
 
     def __getattr__(self, attr):
         try:
             return self.__data[attr]
         except KeyError:
-            self.__attr_error(attr)
+            self._attr_error(attr)
 
 
 class VersionBinding(Binding):
@@ -63,8 +64,9 @@ class VersionBinding(Binding):
     def as_tuple(self):
         return self[:len(self)]
 
-    def __attr_error(self, attr):
-        raise AttributeError("version object has no attribute '%s'" % attr)
+    def _attr_error(self, attr):
+        raise AttributeError("version %s has no attribute '%s'"
+                             % (str(self), attr))
 
     def __getitem__(self, i):
         try:
@@ -109,8 +111,9 @@ class VariantBinding(Binding):
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
 
-    def __attr_error(self, attr):
-        raise AttributeError("package object has no attribute '%s'" % attr)
+    def _attr_error(self, attr):
+        raise AttributeError("package %s has no attribute '%s'"
+                             % (str(self), attr))
 
     def __str__(self):
         return self.__variant.qualified_package_name
@@ -123,7 +126,7 @@ class VariantsBinding(Binding):
         self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
         super(VariantsBinding, self).__init__(self.__variants)
 
-    def __attr_error(self, attr):
+    def _attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
 
     def __contains__(self, name):
@@ -136,7 +139,7 @@ class RequirementsBinding(Binding):
         self.__requirements = dict((x.name, str(x)) for x in requirements)
         super(RequirementsBinding, self).__init__(self.__requirements)
 
-    def __attr_error(self, attr):
+    def _attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
 
     def __contains__(self, name):

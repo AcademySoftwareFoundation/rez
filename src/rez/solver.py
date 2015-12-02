@@ -1303,12 +1303,10 @@ class _ResolvePhase(_Common):
         node_fontsize = 10
         counter = [1]
 
-
         def _uid():
             id_ = counter[0]
             counter[0] += 1
             return "_%d" % id_
-
 
         def _add_edge(id1, id2, arrowsize=0.5):
             e = (id1, id2)
@@ -1318,11 +1316,9 @@ class _ResolvePhase(_Common):
             g.add_edge_attribute(e, ("arrowsize", str(arrowsize)))
             return e
 
-
         def _add_extraction_merge_edge(id1, id2):
             e = _add_edge(id1, id2, 1)
             g.add_edge_attribute(e, ("arrowhead", "odot"))
-
 
         def _add_conflict_edge(id1, id2):
             e = _add_edge(id1, id2, 1)
@@ -1331,7 +1327,6 @@ class _ResolvePhase(_Common):
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-
         def _add_cycle_edge(id1, id2):
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, "CYCLE")
@@ -1339,12 +1334,10 @@ class _ResolvePhase(_Common):
             g.add_edge_attribute(e, ("color", "red"))
             g.add_edge_attribute(e, ("fontcolor", "red"))
 
-
         def _add_reduct_edge(id1, id2, label):
             e = _add_edge(id1, id2, 1)
             g.set_edge_label(e, label)
             g.add_edge_attribute(e, ("fontsize", node_fontsize))
-
 
         def _add_node(label, color, style):
             attrs = [("label", label),
@@ -1354,7 +1347,6 @@ class _ResolvePhase(_Common):
             id_ = _uid()
             g.add_node(id_, attrs=attrs)
             return id_
-
 
         def _add_request_node(request, initial_request=False):
             id_ = request_nodes.get(request)
@@ -1370,7 +1362,6 @@ class _ResolvePhase(_Common):
             id_ = _add_node(label, color, "filled,dashed")
             request_nodes[request] = id_
             return id_
-
 
         def _add_scope_node(scope):
             id_ = scope_nodes.get(scope.package_name)
@@ -1395,10 +1386,8 @@ class _ResolvePhase(_Common):
             scope_nodes[scope.package_name] = id_
             return id_
 
-
         def _add_reduct_node(request):
             return _add_node(str(request), node_color, "filled,dashed")
-
 
         # -- generate the graph
 

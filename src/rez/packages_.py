@@ -8,7 +8,8 @@ from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError
+from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError, \
+    ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
@@ -41,7 +42,7 @@ class PackageFamily(PackageRepositoryResourceWrapper):
     keys = schema_keys(package_family_schema)
 
     def __init__(self, resource):
-        assert isinstance(resource, PackageFamilyResource)
+        _check_class(resource, PackageFamilyResource)
         super(PackageFamily, self).__init__(resource)
 
     def iter_packages(self):
@@ -121,7 +122,7 @@ class Package(PackageBaseResourceWrapper):
     keys = schema_keys(package_schema)
 
     def __init__(self, resource):
-        assert isinstance(resource, PackageResource)
+        _check_class(resource, PackageResource)
         super(Package, self).__init__(resource)
 
     @cached_property
@@ -181,7 +182,7 @@ class Variant(PackageBaseResourceWrapper):
     keys.update(["index", "root", "subpath"])
 
     def __init__(self, resource):
-        assert isinstance(resource, VariantResource)
+        _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource)
 
     @cached_property
@@ -391,6 +392,24 @@ def get_package(name, version, paths=None):
         return None
 
 
+def get_package_from_handle(package_handle):
+    """Create a package given its handle (or serialized dict equivalent)
+
+    Args:
+        package_handle (`ResourceHandle` or dict): Resource handle, or
+            equivalent serialized dict representation from
+            ResourceHandle.to_dict
+
+    Returns:
+        `Package`.
+    """
+    if isinstance(package_handle, dict):
+        package_handle = ResourceHandle.from_dict(package_handle)
+    package_resource = package_repository_manager.get_resource_from_handle(package_handle)
+    package = Package(package_resource)
+    return package
+
+
 def get_package_from_string(txt, paths=None):
     """Get a package given a string.
 
@@ -587,3 +606,9 @@ def _get_families(name, paths=None):
             entries.append((repo, family_resource))
 
     return entries
+
+
+def _check_class(resource, cls):
+    if not isinstance(resource, cls):
+        raise ResourceError("Expected %s, got %s"
+                            % (cls.__name__, resource.__class__.__name__))

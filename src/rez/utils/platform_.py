@@ -161,7 +161,8 @@ class Platform(object):
 # -----------------------------------------------------------------------------
 
 class _UnixPlatform(Platform):
-    pass
+    def _new_session_popen_args(self):
+        return dict(preexec_fn=os.setpgrp)
 
 
 # -----------------------------------------------------------------------------
@@ -261,9 +262,6 @@ class LinuxPlatform(_UnixPlatform):
             return "%s --noclose -e" % term
         else:
             return "%s -hold -e" % term
-
-    def _new_session_popen_args(self):
-        return dict(preexec_fn=os.setpgrp)
 
     def _image_viewer(self):
         from rez.util import which
@@ -420,6 +418,11 @@ class OSXPlatform(_UnixPlatform):
 
     def _physical_cores(self):
         return self._physical_cores_from_osx_sysctl()
+
+    def _difftool(self):
+        from rez.util import which
+        return which("meld", "diff")
+
 
 # -----------------------------------------------------------------------------
 # Windows
