@@ -376,7 +376,7 @@ class VariantResourceHelper(VariantResource):
         else:
             try:
                 reqs = self.parent.variants[self.index]
-            except IndexError:
+            except (IndexError, TypeError):
                 raise ResourceError(
                     "Unexpected error - variant %s cannot be found in its "
                     "parent package %s" % (self.uri, self.parent.uri))
