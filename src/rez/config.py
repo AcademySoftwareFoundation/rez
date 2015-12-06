@@ -319,7 +319,8 @@ config_schema = Schema({
 
     # GUI settings
     "use_pyside":                                   Bool,
-    "use_pyqt":                                     Bool
+    "use_pyqt":                                     Bool,
+    "gui_threads":                                  Bool
 })
 
 

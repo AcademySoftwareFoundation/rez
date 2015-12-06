@@ -61,9 +61,10 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
                 "Save the changes to %s before closing?\n"
                 "If you don't save the context, your changes will be lost."
                 % id_str,
-                QtGui.QMessageBox.Save,
-                QtGui.QMessageBox.Discard,
-                QtGui.QMessageBox.Cancel)
+                buttons=QtGui.QMessageBox.Save
+                    | QtGui.QMessageBox.Discard
+                    | QtGui.QMessageBox.Cancel)
+
             if ret == QtGui.QMessageBox.Save:
                 if self.is_saveable():
                     self._save_context()

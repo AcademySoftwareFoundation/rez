@@ -1,12 +1,17 @@
 """
 Binds a python module to rez.
+
+Note that we subproc out to python at various points here because we can't use
+the current python interpreter - this is rez's, inside its installation
+virtualenv.
 """
 from __future__ import absolute_import
 from rez.bind._utils import check_version, find_exe, make_dirs
 from rez.package_maker__ import make_package
-from rez.backport.importlib import import_module
 from rez.exceptions import RezBindError
 from rez.system import system
+from rez.utils.logging_ import print_warning
+import subprocess
 import shutil
 import sys
 import os.path
@@ -21,17 +26,39 @@ def commands_with_bin():
     env.PATH.append('{this.root}/bin')
 
 
-def copy_module(name, destpath):
-    try:
-        module = import_module(name)
-    except ImportError:
-        raise RezBindError("Could not find python module '%s' on the system" % name)
+def run_python_command(commands):
+    cmd_str = "; ".join(commands)
+    p = subprocess.Popen(["python", "-c", cmd_str], stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    return (p.returncode == 0), out.strip(), err.strip()
 
-    if hasattr(module, "__path__"):
-        srcpath = module.__path__[0]
+
+def get_version(name, commands):
+    success, out, err = run_python_command(commands)
+    if not success or not out:
+        raise RezBindError("Couldn't determine version of module %s: %s"
+                           % (name, err))
+    version = out
+    return version
+
+
+def copy_module(name, destpath):
+    success, out, err = run_python_command(
+        ["import %s" % name,
+         "print %s.__path__[0] if hasattr(%s, '__path__') else ''" % (name, name)])
+
+    if out:
+        srcpath = out
         shutil.copytree(srcpath, os.path.join(destpath, name))
     else:
-        srcfile = module.__file__
+        success, out, err = run_python_command(
+            ["import %s" % name,
+             "print %s.__file__" % name])
+        if not success:
+            raise RezBindError("Couldn't locate module %s: %s" % (name, err))
+
+        srcfile = out
         dirpart, ext = os.path.splitext(srcfile)
 
         if ext == ".pyc":
@@ -43,15 +70,22 @@ def copy_module(name, destpath):
         shutil.copy2(srcfile, destfile)
 
 
-def bind(name, path, version_range=None, pure_python=None, tools=None,
-         extra_module_names=[], extra_attrs={}):
-    module = import_module(name)
+def bind(name, path, import_name=None, version_range=None, version=None,
+         requires=None, pure_python=None, tools=None, extra_module_names=[],
+         extra_attrs={}):
+    import_name = import_name or name
 
-    version = module.__version__
+    if version is None:
+        version = get_version(
+            name,
+            ["import %s" % import_name,
+             "print %s.__version__" % import_name])
+
     check_version(version, version_range)
 
     py_major_minor = '.'.join(str(x) for x in sys.version_info[:2])
     py_req = "python-%s" % py_major_minor
+    found_tools = []
 
     if pure_python is None:
         raise NotImplementedError  # detect
@@ -62,7 +96,7 @@ def bind(name, path, version_range=None, pure_python=None, tools=None,
 
     def make_root(variant, root):
         pypath = make_dirs(root, "python")
-        copy_module(name, pypath)
+        copy_module(import_name, pypath)
 
         for name_ in extra_module_names:
             copy_module(name_, pypath)
@@ -70,16 +104,26 @@ def bind(name, path, version_range=None, pure_python=None, tools=None,
         if tools:
             binpath = make_dirs(root, "bin")
             for tool in tools:
-                src = find_exe(tool)
-                dest = os.path.join(binpath, tool)
-                shutil.copy2(src, dest)
+                try:
+                    src = find_exe(tool)
+                except RezBindError as e:
+                    print_warning(str(e))
+                    src = None
+
+                if src:
+                    found_tools.append(tool)
+                    dest = os.path.join(binpath, tool)
+                    shutil.copy2(src, dest)
 
     with make_package(name, path, make_root=make_root) as pkg:
         pkg.version = version
         pkg.variants = [variant]
 
-        if tools:
-            pkg.tools = list(tools)
+        if requires:
+            pkg.requires = requires
+
+        if found_tools:
+            pkg.tools = list(found_tools)
             pkg.commands = commands_with_bin
         else:
             pkg.commands = commands

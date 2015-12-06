@@ -7,6 +7,7 @@ from rezgui.dialogs.WriteGraphDialog import view_graph
 from rezgui.objects.ResolveThread import ResolveThread
 from rezgui.objects.App import app
 from rez.vendor.version.requirement import Requirement
+from rez.config import config
 import StringIO
 
 
@@ -63,6 +64,12 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.max_fails_combo = None
         self.verbosity_combo = None
         self.show_package_loads_checkbox = None
+
+        # this is solely to execute _start_resolve() as soon as the dialog opens
+        self.timer = QtCore.QTimer()
+        self.timer.setInterval(1)
+        self.timer.setSingleShot(True)
+        self.timer.timeout.connect(self._on_dialog_open)
 
         if self.advanced:
             self.resolve_group = QtGui.QGroupBox("resolve settings")
@@ -134,15 +141,17 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
                 return
 
         self._reset()
-        if not self.advanced:
-            self._start_resolve()
-
+        self.timer.start()
         self.exec_()
+
         if self.started:
             self.resolver.stop()
-            self.thread.quit()
-            self.thread.wait()
+
+            if self.thread:
+                self.thread.quit()
+                self.thread.wait()
             return self.resolver.success()
+
         return False
 
     def get_context(self):
@@ -163,6 +172,10 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         else:
             self._cancel_resolve()
             event.ignore()
+
+    def _on_dialog_open(self):
+        if not self.advanced:
+            self._start_resolve()
 
     def _reset(self):
         self.setWindowTitle("Resolve")
@@ -212,19 +225,24 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
             if timestamp is not None:
                 timestamp = timestamp.toTime_t()
 
-        self.resolver = ResolveThread(self.context_model,
-                                      verbosity=verbosity,
-                                      max_fails=max_fails,
-                                      timestamp=timestamp,
-                                      show_package_loads=show_package_loads,
-                                      buf=self.edit)
+        self.resolver = ResolveThread(
+            self.context_model,
+            verbosity=verbosity,
+            max_fails=max_fails,
+            timestamp=timestamp,
+            show_package_loads=show_package_loads,
+            buf=self.edit)
 
-        self.resolver.finished.connect(self._resolve_finished)
+        if config.gui_threads:
+            self.resolver.finished.connect(self._resolve_finished)
 
-        self.thread = QtCore.QThread()
-        self.resolver.moveToThread(self.thread)
-        self.thread.started.connect(self.resolver.run)
-        self.thread.start()
+            self.thread = QtCore.QThread()
+            self.resolver.moveToThread(self.thread)
+            self.thread.started.connect(self.resolver.run)
+            self.thread.start()
+        else:
+            self.resolver.run()
+            self._resolve_finished()
 
     def _cancel_resolve(self):
         if self.started:

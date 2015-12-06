@@ -640,3 +640,6 @@ plugins = {
 # will cause an error.
 use_pyside = False
 use_pyqt = False
+
+# Turn GUI threading on/off. You would only turn off for debugging purposes.
+gui_threads = True
