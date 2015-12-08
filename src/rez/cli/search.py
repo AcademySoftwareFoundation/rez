@@ -145,6 +145,7 @@ def command(opts, parser, extra_arg_groups=None):
             except error_class as e:
                 _handle(e)
                 return
+
         if opts.format:
             txt = expand_abbreviations(opts.format, fields)
             lines = txt.split("\\n")
@@ -156,6 +157,7 @@ def command(opts, parser, extra_arg_groups=None):
                     break
                 if opts.no_newlines:
                     line_ = line_.replace('\n', "\\n")
+
                 print line_
         else:
             print r.qualified_name
