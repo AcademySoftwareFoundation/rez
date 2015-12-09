@@ -866,6 +866,13 @@ class NamespaceFormatter(Formatter):
         format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
         return Formatter.format(self, format_string_, *args, **kwargs)
 
+    def format_field(self, value, format_spec):
+            if isinstance(value, EscapedString):
+                value = str(value.formatted(str))
+            if isinstance(value, str):
+                return self.format(value)
+            return format(value, format_spec)
+
     def get_value(self, key, args, kwds):
         if isinstance(key, str):
             if key:
