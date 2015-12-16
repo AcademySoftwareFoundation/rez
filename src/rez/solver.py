@@ -436,6 +436,92 @@ class PackageVariant(_Common):
         return "%s[%s]" % (str(stmt), idxstr)
 
 
+class _PackageEntry(object):
+    """The variants in a package.
+
+    Holds some extra state data, such as whether the variants are sorted.
+    """
+    def __init__(self, variants, solver):
+        self.variants = variants
+        self.solver = solver
+        self.sorted = False
+
+    @property
+    def version(self):
+        return self.variants[0].version
+
+    def __len__(self):
+        return len(self.variants)
+
+    def split(self, nvariants):
+        if nvariants >= len(self.variants):
+            return None
+
+        self.sort()
+        entry = _PackageEntry(self.variants[:nvariants], self.solver)
+        next_entry = _PackageEntry(self.variants[nvariants:], self.solver)
+        entry.sorted = next_entry.sorted = True
+        return entry, next_entry
+
+    def sort(self):
+        """Sort variants from most correct to consume, to least.
+
+        Sort rules:
+
+        version_priority:
+        - sort by highest versions of packages shared with request;
+        - THEN least number of additional packages added to solve;
+        - THEN highest versions of additional packages;
+        - THEN alphabetical on name of additional packages;
+        - THEN variant index.
+
+        intersection_priority:
+        - sort by highest number of packages shared with request;
+        - THEN sort according to version_priority
+
+        Note:
+            In theory 'variant.index' should never factor into the sort unless
+            two variants are identical (which shouldn't happen) - this is just
+            here as a safety measure so that sorting is guaranteed repeatable
+            regardless.
+        """
+        if self.sorted:
+            return
+
+        def key(variant):
+            requested_key = []
+            names = set()
+
+            for i, request in enumerate(self.solver.request_list):
+                if not request.conflict:
+                    req = variant.requires_list.get(request.name)
+                    if req is not None:
+                        requested_key.append((-i, req.range))
+                        names.add(req.name)
+
+            additional_key = []
+            for request in variant.requires_list:
+                if not request.conflict and request.name not in names:
+                    additional_key.append((request.range, request.name))
+
+            if config.variant_select_mode == VariantSelectMode.version_priority:
+                k = (requested_key,
+                     -len(additional_key),
+                     additional_key,
+                     variant.index)
+            else:  # VariantSelectMode.intersection_priority
+                k = (len(requested_key),
+                     requested_key,
+                     -len(additional_key),
+                     additional_key,
+                     variant.index)
+
+            return k
+
+        self.variants.sort(key=key, reverse=True)
+        self.sorted = True
+
+
 class _PackageVariantList(_Common):
     """A list of package variants, loaded lazily.
     """
@@ -447,7 +533,7 @@ class _PackageVariantList(_Common):
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
         it = iter_packages(self.package_name, paths=self.solver.package_paths)
-        self.entries = ([x.version, x] for x in it)
+        self.entries = [[x.version, x] for x in it]
 
         if not self.entries:
             raise PackageFamilyNotFoundError(
@@ -461,8 +547,7 @@ class _PackageVariantList(_Common):
             range_ (`VersionRange`): Package version range.
 
         Returns:
-            List of (`Version`, [`PackageVariant`]) tuples, in descending
-                version order.
+            List of `_PackageEntry` objects.
         """
         result = []
 
@@ -476,7 +561,9 @@ class _PackageVariantList(_Common):
                 continue
 
             if isinstance(value, list):
-                result.append(entry)
+                variants = value
+                entry_ = _PackageEntry(variants)
+                result.append(entry_)
                 continue
 
             package = value
@@ -501,7 +588,8 @@ class _PackageVariantList(_Common):
                 variants_.append(variant)
 
             entry[1] = variants_
-            result.append(entry)
+            entry_ = _PackageEntry(variants_, self.solver)
+            result.append(entry_)
 
         return result or None
 
@@ -536,25 +624,13 @@ class _PackageVariantList(_Common):
         return "%s[%s]" % (self.package_name, ' '.join(strs))
 
 
-def _short_req_str(package_request):
-    """print shortened version of '==X|==Y|==Z' ranged requests."""
-    if not package_request.conflict:
-        versions = package_request.range.to_versions()
-        if versions and len(versions) == len(package_request.range) \
-                and len(versions) > 1:
-            return "%s-%s(%d)" % (package_request.name,
-                                  str(package_request.range.span()),
-                                  len(versions))
-    return str(package_request)
-
-
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
     def __init__(self, package_name, entries, solver):
         """
         Args:
-            entries (list of (`Version`, [`PackageVariant`]) tuples): result
-                of _PackageVariantList.get_intersection().
+            entries (list of `_PackageEntry`): result of
+                _PackageVariantList.get_intersection().
         """
         self.solver = solver
         self.package_name = package_name
@@ -576,7 +652,7 @@ class _PackageVariantSlice(_Common):
     @property
     def range_(self):
         if self._range is None:
-            versions = (x[0] for x in self.entries)
+            versions = (x.version for x in self.entries)
             self._range = VersionRange.from_versions(versions)
         return self._range
 
@@ -597,11 +673,13 @@ class _PackageVariantSlice(_Common):
 
     @property
     def first_variant(self):
-        return self.entries[0][1][0]
+        entry = self.entries[0]
+        entry.sort()
+        return entry.variants[0]
 
     def iter_variants(self):
-        for _, variants in self.entries:
-            for variant in variants:
+        for entry in self.entries:
+            for variant in entry.variants:
                 yield variant
 
     def intersect(self, range_):
@@ -613,7 +691,7 @@ class _PackageVariantSlice(_Common):
             self.pr("intersecting %s wrt range '%s'...", self, range_)
 
         # this is faster than iter_intersecting :(
-        entries = [x for x in self.entries if x[0] in range_]
+        entries = [x for x in self.entries if x.version in range_]
 
         if not entries:
             return None
@@ -654,10 +732,10 @@ class _PackageVariantSlice(_Common):
                 conflict_tests[req_s] = result
             return result
 
-        for version, variants in self.entries:
+        for entry in self.entries:
             new_variants = []
 
-            for variant in variants:
+            for variant in entry.variants:
                 req = variant.get(package_request.name)
                 if req and _conflicts(req):
                     red = Reduction(name=variant.name,
@@ -676,12 +754,12 @@ class _PackageVariantSlice(_Common):
                     new_variants.append(variant)
 
             n = len(new_variants)
-            if n < len(variants):
+            if n < len(entry):
                 if n == 0:
                     continue
-                variants = new_variants
+                entry = _PackageEntry(new_variants, self.solver)
 
-            entries.append((version, variants))
+            entries.append(entry)
 
         if not entries:
             return (None, reductions)
@@ -723,26 +801,29 @@ class _PackageVariantSlice(_Common):
 
     def split(self):
         """Split the slice.
+
+        Returns:
+            (`_PackageVariantSlice`, `_PackageVariantSlice`) tuple, where the
+            first is the preferred slice, and the second is the next.
         """
-        if not self.sorted:
-            # We sort here in the split in order to sort as late as possible.
-            # Because splits usually happen after intersections/reductions, this
-            # means there can be less entries to sort.
-            #
-            # TODO: reorderers
-            self.entries = sorted(self.entries, key=lambda x: x[0], reverse=True)
-            self.sorted = True
+
+        # We sort here in the split in order to sort as late as possible.
+        # Because splits usually happen after intersections/reductions, this
+        # means there can be less entries to sort.
+        #
+        self.sort_versions()
 
         def _split(i_entry, n_variants, common_fams=None):
-            version, variants = self.entries[i_entry]
-            if n_variants == len(variants):
-                entries = self.entries[:i_entry + 1]
-                next_entries = self.entries[i_entry + 1:]
-            else:
-                entry = (version, variants[:n_variants])
-                next_entry = (version, variants[n_variants:])
+            # perform a split at a specific point
+            result = self.entries[i_entry].split(n_variants)
+
+            if result:
+                entry, next_entry = result
                 entries = self.entries[:i_entry] + [entry]
                 next_entries = [next_entry] + self.entries[i_entry:]
+            else:
+                entries = self.entries[:i_entry + 1]
+                next_entries = self.entries[i_entry + 1:]
 
             slice_ = self._copy(entries)
             next_slice = self._copy(next_entries)
@@ -773,10 +854,12 @@ class _PackageVariantSlice(_Common):
 
         # find split point - first variant with no dependency shared with previous
         prev = None
-        for i, (_, variants) in enumerate(self.entries):
-            # TODO: sort entry
+        for i, entry in enumerate(self.entries):
+            # sort the variants. This is done here in order to do the sort as
+            # late as possible, simply to avoid the cost.
+            entry.sort()
 
-            for j, variant in enumerate(variants):
+            for j, variant in enumerate(entry.variants):
                 fams = fams & variant.request_fams
                 if not fams:
                     return _split(*prev)
@@ -790,70 +873,18 @@ class _PackageVariantSlice(_Common):
             "Unexpected solver error: common family(s) still in slice being "
             "split: slice: %s, family(s): %s" % (self, str(fams)))
 
-    def sort_variants(self, package_requests):
-        """Sort variants from most correct to consume, to least.
+    def sort_versions(self):
+        """Sort entries by version.
 
-        Sort rules:
-
-        version_priority:
-        - sort by highest versions of packages shared with request;
-        - THEN least number of additional packages added to solve;
-        - THEN highest versions of additional packages;
-        - THEN alphabetical on name of additional packages;
-        - THEN variant index.
-
-        intersection_priority:
-        - sort by highest number of packages shared with request;
-        - THEN sort according to version_priority
-
-        Note:
-            In theory 'variant.index' should never factor into the sort unless
-            two variants are identical (which shouldn't happen) - this is just
-            here as a safety measure so that sorting is guaranteed repeatable
-            regardless.
-
-        Note:
-            Assumes self.variants is already in version-descending order.
+        The order is typically descending, but package order functions can
+        change this.
         """
-        return  # TODO temp
+        if self.sorted:
+            return
 
-        def key(variant):
-            requested_key = []
-            names = set()
-            for i, request in enumerate(package_requests):
-                if not request.conflict:
-                    req = variant.requires_list.get(request.name)
-                    if req is not None:
-                        requested_key.append((-i, req.range))
-                        names.add(req.name)
-
-            additional_key = []
-            for request in variant.requires_list:
-                if not request.conflict and request.name not in names:
-                    additional_key.append((request.range, request.name))
-
-            if config.variant_select_mode == VariantSelectMode.version_priority:
-                k = (requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
-            else:  # VariantSelectMode.intersection_priority
-                k = (len(requested_key),
-                     requested_key,
-                     -len(additional_key),
-                     additional_key,
-                     variant.index)
-
-            return k
-
-        resorted_variants = []
-        for _, it in groupby(self.variants, lambda x: x.version):
-            version_variants = list(it)
-            if len(version_variants) != 1:
-                version_variants.sort(key=key, reverse=True)
-            resorted_variants.extend(version_variants)
-
-        self.variants = resorted_variants
+        # TODO: reorderers
+        self.entries = sorted(self.entries, key=lambda x: x.version, reverse=True)
+        self.sorted = True
 
     def dump(self):
         print self.package_name
@@ -883,8 +914,8 @@ class _PackageVariantSlice(_Common):
     def __len__(self):
         if self._len is None:
             self._len = 0
-            for _, variants in self.entries:
-                self._len += len(variants)
+            for entry in self.entries:
+                self._len += len(entry)
 
         return self._len
 
@@ -906,10 +937,10 @@ class _PackageVariantSlice(_Common):
             s_idx = "" if variant.index is None else "[%d]" % variant.index
             s = "[%s==%s%s]" % (self.package_name, str(variant.version), s_idx)
         elif nversions == 1:
-            version, variants = self.entries[0]
-            indexes = sorted([x.index for x in variants])
+            entry = self.entries[0]
+            indexes = sorted([x.index for x in entry.variants])
             s_idx = ','.join(str(x) for x in indexes)
-            verstr = str(version)
+            verstr = str(entry.version)
             s = "[%s==%s[%s]]" % (self.package_name, verstr, s_idx)
         else:
             verstr = "%d" % nvariants if (nversions == nvariants) \
@@ -1153,15 +1184,14 @@ class _ResolvePhase(_Common):
     If the resolve phase gets to a point where every package scope is solved,
     then the entire resolve is considered to be solved.
     """
-    def __init__(self, package_requests, solver):
-        self.package_requests = package_requests
+    def __init__(self, solver):
+        self.solver = solver
         self.failure_reason = None
         self.extractions = {}
-        self.solver = solver
         self.status = SolverStatus.pending
 
         self.scopes = []
-        for package_request in package_requests:
+        for package_request in self.solver.request_list:
             scope = _PackageScope(package_request, solver=solver)
             self.scopes.append(scope)
 
@@ -1348,7 +1378,7 @@ class _ResolvePhase(_Common):
             return phase
 
         # reorder wrt dependencies, keeping original request order where possible
-        fams = [x.name for x in self.package_requests]
+        fams = [x.name for x in self.solver.request_list]
         ordered_fams = _get_dependency_order(g, fams)
 
         scopes_ = []
@@ -1525,7 +1555,7 @@ class _ResolvePhase(_Common):
         # -- generate the graph
 
         # create initial request nodes
-        for request in self.package_requests:
+        for request in self.solver.request_list:
             _add_request_node(request, True)
 
         # create scope nodes
@@ -1542,7 +1572,7 @@ class _ResolvePhase(_Common):
             _add_scope_node(scope)
 
         # create (initial request -> scope) edges
-        for request in self.package_requests:
+        for request in self.solver.request_list:
             id1 = request_nodes.get(request)
             if id1 is not None:
                 id2 = scope_nodes.get(request.name)
@@ -1735,7 +1765,7 @@ class Solver(_Common):
                 True, any packages unrelated to the conflict are removed from
                 the graph.
         """
-        self.package_requests = package_requests
+        #self.package_requests = package_requests
         self.package_paths = package_paths
         self.package_filter = package_filter
         self.package_orderers = package_orderers
@@ -1746,6 +1776,9 @@ class Solver(_Common):
         self.package_load_callback = package_load_callback
         self.building = building
         self.request_list = None
+
+        self.non_conflict_package_requests = [x for x in package_requests
+                                              if not x.conflict]
 
         self.phase_stack = None
         self.failed_phase_list = None
@@ -1771,7 +1804,7 @@ class Solver(_Common):
                 self.pr("conflict in request: %s <--!--> %s", req1, req2)
 
             conflict = DependencyConflict(req1, req2)
-            phase = _ResolvePhase(package_requests, solver=self)
+            phase = _ResolvePhase(solver=self)
             phase.failure_reason = DependencyConflicts([conflict])
             phase.status = SolverStatus.failed
             self._push_phase(phase)
@@ -1781,7 +1814,7 @@ class Solver(_Common):
             self.pr("merged request: %s", s)
 
         # create the initial phase
-        phase = _ResolvePhase(self.request_list.requirements, solver=self)
+        phase = _ResolvePhase(solver=self)
         self._push_phase(phase)
 
     @property
@@ -2117,3 +2150,15 @@ class Solver(_Common):
         return "%s %s %s" % (self.status,
                              self._depth_label(),
                              str(self.phase_stack[-1]))
+
+
+def _short_req_str(package_request):
+    """print shortened version of '==X|==Y|==Z' ranged requests."""
+    if not package_request.conflict:
+        versions = package_request.range.to_versions()
+        if versions and len(versions) == len(package_request.range) \
+                and len(versions) > 1:
+            return "%s-%s(%d)" % (package_request.name,
+                                  str(package_request.range.span()),
+                                  len(versions))
+    return str(package_request)
