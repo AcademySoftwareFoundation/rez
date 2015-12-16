@@ -927,7 +927,7 @@ class VersionRange(_Comparable):
 
         return False
 
-    def contains_versions(self, iterable, key=None, descending=False):
+    def iter_intersect_test(self, iterable, key=None, descending=False):
         """Performs containment tests on a sorted list of versions.
 
         This is more optimal than performing separate containment tests on a
@@ -947,6 +947,24 @@ class VersionRange(_Comparable):
             that version is contained in this range.
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
+
+    def iter_intersecting(self, iterable, key=None, descending=False):
+        """Like `iter_intersect_test`, but returns intersections only.
+
+        Returns:
+            An iterator that returns items from `iterable` that intersect.
+        """
+        return _ContainsVersionIterator(self, iterable, key, descending,
+            mode=_ContainsVersionIterator.MODE_INTERSECTING)
+
+    def iter_non_intersecting(self, iterable, key=None, descending=False):
+        """Like `iter_intersect_test`, but returns non-intersections only.
+
+        Returns:
+            An iterator that returns items from `iterable` that don't intersect.
+        """
+        return _ContainsVersionIterator(self, iterable, key, descending,
+            mode=_ContainsVersionIterator.MODE_NON_INTERSECTING)
 
     def span(self):
         """Return a contiguous range that is a superset of this range.
@@ -1109,7 +1127,12 @@ class VersionRange(_Comparable):
 
 
 class _ContainsVersionIterator(object):
-    def __init__(self, range_, iterable, key=None, descending=False):
+    MODE_INTERSECTING = 0
+    MODE_NON_INTERSECTING = 2
+    MODE_ALL = 3
+
+    def __init__(self, range_, iterable, key=None, descending=False, mode=MODE_ALL):
+        self.mode = mode
         self.range_ = range_
         self.index = None
         self.nbounds = len(self.range_.bounds)
@@ -1120,16 +1143,55 @@ class _ContainsVersionIterator(object):
             key = lambda x: x
         self.keyfunc = key
 
+        if mode == self.MODE_ALL:
+            self.next_fn = self._next
+        elif mode == self.MODE_INTERSECTING:
+            self.next_fn = self._next_intersecting
+        else:
+            self.next_fn = self._next_non_intersecting
+
     def __iter__(self):
         return self
 
     def next(self):
+        return self.next_fn()
+
+    def _next(self):
         value = next(self.it)
         if self._constant is not None:
             return self._constant, value
 
         version = self.keyfunc(value)
-        return self.fn(version), value
+        intersects = self.fn(version)
+        return intersects, value
+
+    def _next_intersecting(self):
+        while True:
+            value = next(self.it)
+
+            if self._constant:
+                return value
+            elif self._constant is not None:
+                raise StopIteration
+
+            version = self.keyfunc(value)
+            intersects = self.fn(version)
+            if intersects:
+                return value
+
+    def _next_non_intersecting(self):
+        while True:
+            value = next(self.it)
+
+            if self._constant:
+                raise StopIteration
+            elif self._constant is not None:
+                return value
+
+            version = self.keyfunc(value)
+            intersects = self.fn(version)
+            if not intersects:
+                return value
 
     @property
     def _bound(self):

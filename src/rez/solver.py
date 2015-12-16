@@ -118,17 +118,17 @@ There are 2 notable points missing from the pseudocode, related to optimisations
 """
 from rez.config import config
 from rez.utils.logging_ import print_debug
+from rez.utils.data_utils import cached_property
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
-    PackageFamilyNotFoundError
+    PackageFamilyNotFoundError, RezSystemError
 from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
 from rez.packages_ import iter_packages
-from itertools import groupby
 import copy
 import time
 import sys
@@ -250,8 +250,8 @@ class Reduction(_Common):
         return str(stmt) + idx_str
 
     def involved_requirements(self):
-        range = VersionRange.from_version(self.version)
-        req = Requirement.construct(self.name, range)
+        range_ = VersionRange.from_version(self.version)
+        req = Requirement.construct(self.name, range_)
         return [req, self.dependency, self.conflicting_request]
 
     def __eq__(self, other):
@@ -364,28 +364,43 @@ class Cycle(FailureReason):
 
 
 class PackageVariant(_Common):
-    """A variant of a package."""
-    def __init__(self, name, version, requires, index=None, userdata=None):
+    """A variant of a package.
+    """
+    def __init__(self, variant):
         """Create a package variant.
 
         Args:
-            name: Name of package.
-            version: The package version, as a Version object.
-            requires: List of strings representing the package dependencies.
-            index: Zero-based index of the variant within this package. If
-                None, this package does not have variants.
-            userdata: Arbitrary extra data to attach to the variant.
+            variant (`Variant`): Package variant.
         """
-        self.name = name
-        self.version = version
-        self.index = index
-        self.userdata = userdata
-        self.requires_list = RequirementList(requires)
+        self.variant = variant
 
-        if self.requires_list.conflict:
-            raise ResolveError(("The package %s has an internal "
-                               "requirements conflict: %s")
-                               % (str(self), str(self.requires_list)))
+    @property
+    def name(self):
+        return self.variant.name
+
+    @property
+    def version(self):
+        return self.variant.version
+
+    @property
+    def index(self):
+        return self.variant.index
+
+    @property
+    def handle(self):
+        return self.variant.handle.to_dict()
+
+    @cached_property
+    def requires_list(self):
+        requires = self.variant.get_requires(build_requires=False)  # TODO get from solver
+        reqlist = RequirementList(requires)
+
+        if reqlist.conflict:
+            raise ResolveError(
+                "The package %s has an internal requirements conflict: %s"
+                % (str(self), str(reqlist)))
+
+        return reqlist
 
     @property
     def request_fams(self):
@@ -421,85 +436,106 @@ class _PackageVariantList(_Common):
     is not done here - that only happens on a split().
     """
     def __init__(self, package_name, package_paths=None, package_filter=None,
-                 building=False, package_load_callback=None):
+                 package_orderers=None, building=False, package_load_callback=None):
         self.package_name = package_name
         self.package_paths = package_paths
         self.package_filter = package_filter
-        self.building = building
+        self.package_orderers = package_orderers
         self.package_load_callback = package_load_callback
+        self.building = building
 
         # note: we do not apply package filters here, because doing so might
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
         it = iter_packages(self.package_name, paths=self.package_paths)
+        self.entries = ([x.version, x] for x in it)
 
-        entries = ([x.version, x] for x in it)
-        self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
         if not self.entries:
             raise PackageFamilyNotFoundError(
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.package_paths)))
 
-    def get_intersection(self, range):
+        #self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
+
+    def get_intersection(self, range_):
         """Get a list of variants that intersect with the given range.
 
         Args:
-            range (`VersionRange`): Package version range.
+            range_ (`VersionRange`): Package version range.
 
         Returns:
-            List of `PackageVariant` objects, in descending version order.
+            List of (`Version`, [`PackageVariant`]) tuples, in descending
+                version order.
         """
-        variants = []
+        result = []
 
         for entry in self.entries:
             version, value = entry
-            if version not in range:
+
+            if value is None:
+                continue  # package was blocked by package filters
+
+            if version not in range_:
                 continue
 
             if isinstance(value, list):
-                variants.extend(value)
-            else:
-                package = value
+                result.append(entry)
+                continue
 
-                # apply package filter
-                if self.package_filter:
-                    rule = self.package_filter.excludes(package)
-                    if rule:
-                        if config.debug_package_exclusions:
-                            print_debug("Package '%s' was excluded by rule '%s'"
-                                        % (package.qualified_name, str(rule)))
-                        continue
+            package = value
 
-                # expand package entry into list of variants
-                if self.package_load_callback:
-                    self.package_load_callback(package)
+            # apply package filter
+            if self.package_filter:
+                rule = self.package_filter.excludes(package)
+                if rule:
+                    if config.debug_package_exclusions:
+                        print_debug("Package '%s' was excluded by rule '%s'"
+                                    % (package.qualified_name, str(rule)))
+                    entry[1] = None
+                    continue
 
-                variants_ = []
-                for var in package.iter_variants():
-                    requires = var.get_requires(build_requires=self.building)
-                    userdata = var.handle.to_dict()
-                    variant = PackageVariant(name=self.package_name,
-                                             version=var.version,
-                                             requires=requires,
-                                             index=var.index,
-                                             userdata=userdata)
-                    variants_.append(variant)
-                entry[1] = variants_
-                variants.extend(variants_)
+            # expand package entry into list of variants
+            if self.package_load_callback:
+                self.package_load_callback(package)
 
-        return variants or None
+            variants_ = []
+            for var in package.iter_variants():
+                variant = PackageVariant(var)
+                variants_.append(variant)
+
+            entry[1] = variants_
+            result.append(entry)
+
+        return result or None
 
     def dump(self):
         print self.package_name
         for version, variants in self.entries:
             print str(version)
-            for variant in variants:
-                print "    %s" % str(variant)
+            if value is None:
+                print "    [FILTERED]"
+            elif isinstance(value, list):
+                variants = value
+                for variant in variants:
+                    print "    %s" % str(variant)
+            else:
+                package = value
+                print "    %s" % str(package)
 
     def __str__(self):
         strs = []
-        for _, variants in self.entries:
-            strs.append(','.join(str(x) for x in variants))
+        for _, value in self.entries:
+            if value is None:
+                continue
+            elif isinstance(value, list):
+                variants = value
+                val_str = ','.join(str(x) for x in variants)
+            else:
+                package =value
+                val_str = str(package)
+
+            strs.append(val_str)
+
         return "%s[%s]" % (self.package_name, ' '.join(strs))
 
 
@@ -517,43 +553,71 @@ def _short_req_str(package_request):
 
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
-    def __init__(self, package_name, variants, printer=None):
+    def __init__(self, package_name, entries, printer=None):
+        """
+        Args:
+            entries (list of (`Version`, [`PackageVariant`]) tuples): result
+                of _PackageVariantList.get_intersection().
+        """
         self.package_name = package_name
-        self.variants = variants
-        self.pr = printer
-        self.range = None
-
-        # family tracking
+        self.entries = entries
         self.extracted_fams = set()
-        self.fam_requires = None
-        self.common_fams = None
+        self.been_reduced_by = set()
+        self.pr = printer
+        self.sorted = False
 
-        self._update()
+        # calculated on demand
+        self._len = None
+        self._range = None
+        self._fam_requires = None
+        self._common_fams = None
+
+    @property
+    def range_(self):
+        if self._range is None:
+            versions = (x[0] for x in self.entries)
+            self._range = VersionRange.from_versions(versions)
+        return self._range
+
+    @property
+    def fam_requires(self):
+        self._update_fam_info()
+        return self._fam_requires
+
+    @property
+    def common_fams(self):
+        self._update_fam_info()
+        return self._common_fams
 
     @property
     def extractable(self):
         """True if there are possible remaining extractions."""
         return not self.extracted_fams.issuperset(self.common_fams)
 
-    def intersect(self, range):
-        """Remove variants whos version fall outside of the given range."""
-        if self.pr:
-            self.pr("intersecting %s wrt range '%s'...", self, range)
+    @property
+    def first_variant(self):
+        return self.entries[0][1][0]
 
-        if range.is_any():
+    def iter_variants(self):
+        for _, variants in self.entries:
+            for variant in variants:
+                yield variant
+
+    def intersect(self, range_):
+        """Remove variants whos version fall outside of the given range."""
+        if range_.is_any():
             return self
 
-        variants = []
-        it = groupby(self.variants, lambda x: x.version)
-        it2 = range.contains_versions(it, key=lambda x: x[0], descending=True)
-        for contains, (_, variants_) in it2:
-            if contains:
-                variants.extend(variants_)
+        if self.pr:
+            self.pr("intersecting %s wrt range '%s'...", self, range_)
 
-        if not variants:
+        # this is faster than iter_intersecting :(
+        entries = [x for x in self.entries if x[0] in range_]
+
+        if not entries:
             return None
-        elif len(variants) < len(self.variants):
-            return self._copy(variants)
+        elif len(entries) < len(self.entries):
+            return self._copy(entries)
         else:
             return self
 
@@ -565,6 +629,9 @@ class _PackageVariantSlice(_Common):
             (VariantSlice, [Reduction]) tuple, where slice may be None if all
             variants were reduced.
         """
+        if package_request in self.been_reduced_by:
+            return (self, [])
+
         if (package_request.range is None) or \
                 (package_request.name not in self.fam_requires):
             return (self, [])
@@ -573,32 +640,56 @@ class _PackageVariantSlice(_Common):
             reqstr = _short_req_str(package_request)
             self.pr("reducing %s wrt %s...", self, reqstr)
 
-        variants = []
+        entries = []
         reductions = []
-        fn = lambda x: x.get(package_request.name)
+        conflict_tests = {}
 
-        for req, variants_ in groupby(self.variants, fn):
-            if req and req.conflicts_with(package_request):
-                for variant in variants_:
+        def _conflicts(req_):
+            # cache conflict tests, since variants often share similar requirements
+            req_s = str(req)
+            result = conflict_tests.get(req_s)
+            if result is None:
+                result = req_.conflicts_with(package_request)
+                conflict_tests[req_s] = result
+            return result
+
+        for version, variants in self.entries:
+            new_variants = []
+
+            for variant in variants:
+                req = variant.get(package_request.name)
+                if req and _conflicts(req):
                     red = Reduction(name=variant.name,
                                     version=variant.version,
                                     variant_index=variant.index,
                                     dependency=req,
                                     conflicting_request=package_request)
+
                     reductions.append(red)
                     if self.pr:
                         self.pr("removed %s (dep(%s) <--!--> %s)",
                                 red.reducee_str(),
                                 red.dependency,
                                 red.conflicting_request)
-            else:
-                variants.extend(variants_)
+                else:
+                    new_variants.append(variant)
 
-        if not variants:
+            n = len(new_variants)
+            if n < len(variants):
+                if n == 0:
+                    continue
+                variants = new_variants
+
+            entries.append((version, variants))
+
+        if not entries:
             return (None, reductions)
         elif reductions:
-            return (self._copy(variants), reductions)
+            copy_ = self._copy(new_entries=entries)
+            copy_.been_reduced_by.add(package_request)
+            return (copy_, reductions)
         else:
+            self.been_reduced_by.add(package_request)
             return (self, [])
 
     def extract(self):
@@ -607,62 +698,91 @@ class _PackageVariantSlice(_Common):
         Note that conflict dependencies are never extracted, they are always
         resolved via reduction.
         """
-        if self.extractable:
-            extractable = self.common_fams - self.extracted_fams
-            fam = iter(extractable).next()
-            ranges = []
+        if not self.extractable:
+            return self, None
 
-            for variant in self.variants:
-                req = variant.get(fam)
-                if not ranges or req.range != ranges[-1]:
-                    ranges.append(req.range)
+        extractable = self.common_fams - self.extracted_fams
+        fam = iter(extractable).next()
+        last_range = None
+        ranges = set()
 
-            slice_ = copy.copy(self)
-            slice_.extracted_fams = self.extracted_fams | set([fam])
+        for variant in self.iter_variants():
+            req = variant.get(fam)
+            if req.range != last_range:  # will match often, avoids set search
+                ranges.add(req.range)
+                last_range = req.range
 
-            range_ = ranges[0].union(ranges[1:])
-            common_req = Requirement.construct(fam, range_)
-            return (slice_, common_req)
-        else:
-            return (self, None)
+        slice_ = copy.copy(self)
+        slice_.extracted_fams = self.extracted_fams | set([fam])
+
+        ranges = list(ranges)
+        range_ = ranges[0].union(ranges[1:])
+        common_req = Requirement.construct(fam, range_)
+        return slice_, common_req
 
     def split(self, package_requests):
         """Split the slice."""
-        if len(self.variants) == 1:
-            return None
+        if not self.sorted:
+            # TODO use orderers
+            self.entries = sorted(self.entries, key=lambda x: x[0], reverse=True)
+            self.sorted = True
 
-        self.sort_variants(package_requests)
-        it = enumerate(self.variants)
-        latest_variant = it.next()[1]
-        split_fams = None
-        nleading = 1
-
-        if len(self.variants) > 2:
-            fams = latest_variant.request_fams - self.extracted_fams
-            if fams:
-                for j, variant in it:
-                    next_fams = variant.request_fams & fams
-                    if next_fams:
-                        fams = next_fams
-                    else:
-                        split_fams = fams
-                        nleading = j
-                        break
-
-        slice_ = self._copy(self.variants[:nleading])
-        next_slice = self._copy(self.variants[nleading:])
-
-        if self.pr:
-            s = "split %s into %s and %s"
-            a = [self, slice_, next_slice]
-            if split_fams is None:
-                s += " on leading variant"
+        def _split(i_entry, n_variants, common_fams=None):
+            version, variants = self.entries[i_entry]
+            if n_variants == len(variants):
+                entries = self.entries[:i_entry + 1]
+                next_entries = self.entries[i_entry + 1:]
             else:
-                s += " on %d leading variants with common dependencies: %s"
-                a.extend([nleading, ", ".join(split_fams)])
-            self.pr(s, *a)
+                entry = (version, variants[:n_variants])
+                next_entry = (version, variants[n_variants:])
+                entries = self.entries[:i_entry] + [entry]
+                next_entries = [next_entry] + self.entries[i_entry:]
 
-        return (slice_, next_slice)
+            slice_ = self._copy(entries)
+            next_slice = self._copy(next_entries)
+
+            if self.pr:
+                if common_fams:
+                    if len(common_fams) == 1:
+                        reason_str = iter(common_fams).next()
+                    else:
+                        reason_str = ", ".join(common_fams)
+                else:
+                    reason_str = "first variant"
+                self.pr("split (reason: %s) %s into %s and %s",
+                        reason_str, self, slice_, next_slice)
+
+            return slice_, next_slice
+
+        # determine if we need to find first variant without common dependency
+        if len(self) > 2:
+            fams = self.first_variant.request_fams - self.extracted_fams
+        else:
+            fams = None
+
+        if not fams:
+            # trivial case, split on first variant
+            # TODO: sort entry
+            return _split(0, 1)
+
+        # find split point - first variant with no dependency shared with previous
+        prev = None
+        for i, (_, variants) in enumerate(self.entries):
+            # TODO: sort entry
+
+            for j, variant in enumerate(variants):
+                fams = fams & variant.request_fams
+                if not fams:
+                    return _split(*prev)
+
+                prev = (i, j + 1, fams)
+
+        # should never get here - it's only possible if there's a common
+        # dependency, but if there's a common dependency, split() should never
+        # have been called.
+        raise RezSystemError(
+            "Unexpected solver error: common family(s) still in slice being "
+            "split: slice: %s, family(s): %s" % (self, str(fams)))
 
     def sort_variants(self, package_requests):
         """Sort variants from most correct to consume, to least.
@@ -682,13 +802,15 @@ class _PackageVariantSlice(_Common):
 
         Note:
             In theory 'variant.index' should never factor into the sort unless
-            two variants are identical (which shouldn't happen) - this is jusst
+            two variants are identical (which shouldn't happen) - this is just
             here as a safety measure so that sorting is guaranteed repeatable
             regardless.
 
         Note:
             Assumes self.variants is already in version-descending order.
         """
+        return  # TODO temp
+
         def key(variant):
             requested_key = []
             names = set()
@@ -729,31 +851,36 @@ class _PackageVariantSlice(_Common):
 
     def dump(self):
         print self.package_name
-        print '\n'.join(map(str, self.variants))
+        print '\n'.join(map(str, self.iter_variants()))
 
-    def _copy(self, new_variants):
-        slice_ = copy.copy(self)
-        slice_.variants = new_variants
-        slice_.extracted_fams = set()
-        slice_._update()
+    def _copy(self, new_entries):
+        slice_ = _PackageVariantSlice(package_name=self.package_name,
+                                      entries=new_entries,
+                                      printer=self.pr)
+
+        slice_.sorted = self.sorted
+        slice_.been_reduced_by = self.been_reduced_by.copy()
         return slice_
 
-    def _update(self):
-        # range
-        versions = set(x.version for x in self.variants)
-        self.range = VersionRange.from_versions(versions)
+    def _update_fam_info(self):
+        if self._common_fams is not None:
+            return
 
-        # family-related
-        self.common_fams = set(self.variants[0].request_fams)
-        self.fam_requires = set()
+        self._common_fams = set(self.first_variant.request_fams)
+        self._fam_requires = set()
 
-        for variant in self.variants:
-            self.common_fams &= variant.request_fams
-            self.fam_requires |= (variant.request_fams |
-                                  variant.conflict_request_fams)
+        for variant in self.iter_variants():
+            self._common_fams &= variant.request_fams
+            self._fam_requires |= (variant.request_fams |
+                                   variant.conflict_request_fams)
 
     def __len__(self):
-        return len(self.variants)
+        if self._len is None:
+            self._len = 0
+            for _, variants in self.entries:
+                self._len += len(variants)
+
+        return self._len
 
     def __str__(self):
         """
@@ -765,44 +892,46 @@ class _PackageVariantSlice(_Common):
         [foo==2] means a resolved package (no variants in the package).
         [foo=2[0]] means a resolved package (zeroeth variant).
         """
-        nvariants = len(self.variants)
+        nvariants = len(self)
+        nversions = len(self.entries)
+
         if nvariants == 1:
-            variant = self.variants[0]
+            variant = self.first_variant
             s_idx = "" if variant.index is None else "[%d]" % variant.index
             s = "[%s==%s%s]" % (self.package_name, str(variant.version), s_idx)
+        elif nversions == 1:
+            version, variants = self.entries[0]
+            indexes = sorted([x.index for x in variants])
+            s_idx = ','.join(str(x) for x in indexes)
+            verstr = str(version)
+            s = "[%s==%s[%s]]" % (self.package_name, verstr, s_idx)
         else:
-            nversions = len(set(x.version for x in self.variants))
-            if nversions == 1:
-                indexes = sorted([x.index for x in self.variants])
-                s_idx = ','.join(str(x) for x in indexes)
-                verstr = str(self.variants[0].version)
-                s = "[%s==%s[%s]]" % (self.package_name, verstr, s_idx)
-            else:
-                verstr = "%d" % nvariants if (nversions == nvariants) \
-                    else "%d:%d" % (nversions, nvariants)
+            verstr = "%d" % nvariants if (nversions == nvariants) \
+                else "%d:%d" % (nversions, nvariants)
 
-                span = self.range.span()
-                s = "%s[%s(%s)]" % (self.package_name, str(span), verstr)
+            span = self.range_.span()
+            s = "%s[%s(%s)]" % (self.package_name, str(span), verstr)
 
         strextr = '*' if self.extractable else ''
         return s + strextr
 
 
 class PackageVariantCache(object):
-    def __init__(self, package_paths, package_filter=None, building=False,
-                 package_load_callback=None):
+    def __init__(self, package_paths, package_filter=None, package_orderers=None,
+                 building=False, package_load_callback=None):
         self.package_paths = package_paths
         self.package_filter = package_filter
+        self.package_orderers = package_orderers
         self.building = building
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
-    def get_variant_slice(self, package_name, range):
+    def get_variant_slice(self, package_name, range_):
         """Get a list of variants from the cache.
 
         Args:
             package_name (str): Name of package.
-            range (`VersionRange`): Package version range.
+            range_ (`VersionRange`): Package version range.
 
         Returns:
             `_PackageVariantSlice` object.
@@ -813,15 +942,16 @@ class PackageVariantCache(object):
                 package_name,
                 package_paths=self.package_paths,
                 package_filter=self.package_filter,
+                package_orderers=self.package_orderers,
                 building=self.building,
                 package_load_callback=self.package_load_callback)
             self.variant_lists[package_name] = variant_list
 
-        variants = variant_list.get_intersection(range)
-        if not variants:
+        entries = variant_list.get_intersection(range_)
+        if not entries:
             return None
 
-        slice_ = _PackageVariantSlice(package_name, variants=variants)
+        slice_ = _PackageVariantSlice(package_name, entries=entries)
         return slice_
 
 
@@ -841,6 +971,7 @@ class _PackageScope(_Common):
         else:
             self.variant_slice = solver._get_variant_slice(
                 package_request.name, package_request.range)
+
             if self.variant_slice is None:
                 req = Requirement.construct(package_request.name,
                                             package_request.range)
@@ -852,7 +983,7 @@ class _PackageScope(_Common):
     def is_conflict(self):
         return self.package_request and self.package_request.conflict
 
-    def intersect(self, range):
+    def intersect(self, range_):
         """Intersect this scope with a package range.
 
         Returns:
@@ -865,25 +996,25 @@ class _PackageScope(_Common):
         if self.package_request.conflict:
             if self.package_request.range is None:
                 new_slice = self.solver._get_variant_slice(
-                    self.package_name, range)
+                    self.package_name, range_)
             else:
-                new_range = range - self.package_request.range
+                new_range = range_ - self.package_request.range
                 if new_range is not None:
                     new_slice = self.solver._get_variant_slice(
                         self.package_name, new_range)
         else:
-            new_slice = self.variant_slice.intersect(range)
+            new_slice = self.variant_slice.intersect(range_)
 
         if new_slice is None:
             if self.pr:
                 self.pr("%s intersected with range '%s' resulted in no packages",
-                        self, range)
+                        self, range_)
             return None
         elif new_slice is not self.variant_slice:
             scope = self._copy(new_slice)
             if self.pr:
                 self.pr("%s was intersected to %s by range '%s'",
-                        self, scope, range)
+                        self, scope, range_)
             return scope
         else:
             return self
@@ -971,14 +1102,14 @@ class _PackageScope(_Common):
         if (not self.package_request.conflict) \
                 and (len(self.variant_slice) == 1) \
                 and (not self.variant_slice.extractable):
-            return self.variant_slice.variants[0]
+            return self.variant_slice.first_variant
         else:
             return None
 
     def _update(self):
         if self.variant_slice is not None:
             self.package_request = Requirement.construct(
-                self.package_name, self.variant_slice.range)
+                self.package_name, self.variant_slice.range_)
 
     def __str__(self):
         return str(self.variant_slice) if self.variant_slice \
@@ -1171,6 +1302,7 @@ class _ResolvePhase(_Common):
                 for i, j in sorted(pending_reducts):
                     new_scope, reductions = scopes[j].reduce_by(
                         scopes[i].package_request)
+
                     if new_scope is None:
                         failure_reason = TotalReduction(reductions)
                         return _create_phase(SolverStatus.failed)
@@ -1572,8 +1704,9 @@ class Solver(_Common):
     max_verbosity = 3
 
     def __init__(self, package_requests, package_paths, package_filter=None,
-                 callback=None, building=False, optimised=True, verbosity=0,
-                 buf=None, package_load_callback=None, prune_unfailed=True):
+                 package_orderers=None, callback=None, building=False,
+                 optimised=True, verbosity=0, buf=None, package_load_callback=None,
+                 prune_unfailed=True):
         """Create a Solver.
 
         Args:
@@ -1581,6 +1714,8 @@ class Solver(_Common):
                 request.
             package_paths: List of paths to search for pkgs.
             package_filter (`PackageFilterBase`): Filter for excluding packages.
+            package_orderers (list of `PackageOrderFunction`): Custom package
+                ordering.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.
@@ -1602,6 +1737,7 @@ class Solver(_Common):
         self.package_requests = package_requests
         self.package_paths = package_paths
         self.package_filter = package_filter
+        self.package_orderers = package_orderers
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
         self.callback = callback
@@ -1622,6 +1758,7 @@ class Solver(_Common):
         self.package_cache = PackageVariantCache(
             self.package_paths,
             package_filter=self.package_filter,
+            package_orderers=self.package_orderers,
             package_load_callback=package_load_callback,
             building=building)
 
@@ -1918,10 +2055,10 @@ class Solver(_Common):
 
         return keep_going
 
-    def _get_variant_slice(self, package_name, range):
+    def _get_variant_slice(self, package_name, range_):
         start_time = time.time()
         slice_ = self.package_cache.get_variant_slice(package_name=package_name,
-                                                      range=range)
+                                                      range_=range_)
 
         if slice_ is not None:
             slice_.pr = self.pr

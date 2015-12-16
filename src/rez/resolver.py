@@ -385,7 +385,7 @@ class Resolver(object):
 
             variant_handles = []
             for solver_variant in solver.resolved_packages:
-                variant_handle_dict = solver_variant.userdata
+                variant_handle_dict = solver_variant.handle
                 variant_handles.append(variant_handle_dict)
 
         return dict(
