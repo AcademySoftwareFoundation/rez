@@ -366,13 +366,15 @@ class Cycle(FailureReason):
 class PackageVariant(_Common):
     """A variant of a package.
     """
-    def __init__(self, variant):
+    def __init__(self, variant, building):
         """Create a package variant.
 
         Args:
             variant (`Variant`): Package variant.
+            building (bool): True if a build is occurring.
         """
         self.variant = variant
+        self.building = building
 
     @property
     def name(self):
@@ -392,7 +394,12 @@ class PackageVariant(_Common):
 
     @cached_property
     def requires_list(self):
-        requires = self.variant.get_requires(build_requires=False)  # TODO get from solver
+        """
+        It is important that this property is calculated lazily. Getting the
+        'requires' attribute may trigger a package load, which may be avoided if
+        this variant is reduced away before that happens.
+        """
+        requires = self.variant.get_requires(build_requires=self.building)
         reqlist = RequirementList(requires)
 
         if reqlist.conflict:
@@ -431,31 +438,21 @@ class PackageVariant(_Common):
 
 class _PackageVariantList(_Common):
     """A list of package variants, loaded lazily.
-
-    Variants are sorted by descending version. However sorting within a version
-    is not done here - that only happens on a split().
     """
-    def __init__(self, package_name, package_paths=None, package_filter=None,
-                 package_orderers=None, building=False, package_load_callback=None):
+    def __init__(self, package_name, solver):
         self.package_name = package_name
-        self.package_paths = package_paths
-        self.package_filter = package_filter
-        self.package_orderers = package_orderers
-        self.package_load_callback = package_load_callback
-        self.building = building
+        self.solver = solver
 
         # note: we do not apply package filters here, because doing so might
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
-        it = iter_packages(self.package_name, paths=self.package_paths)
+        it = iter_packages(self.package_name, paths=self.solver.package_paths)
         self.entries = ([x.version, x] for x in it)
 
         if not self.entries:
             raise PackageFamilyNotFoundError(
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.package_paths)))
-
-        #self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
 
     def get_intersection(self, range_):
         """Get a list of variants that intersect with the given range.
@@ -485,8 +482,8 @@ class _PackageVariantList(_Common):
             package = value
 
             # apply package filter
-            if self.package_filter:
-                rule = self.package_filter.excludes(package)
+            if self.solver.package_filter:
+                rule = self.solver.package_filter.excludes(package)
                 if rule:
                     if config.debug_package_exclusions:
                         print_debug("Package '%s' was excluded by rule '%s'"
@@ -495,12 +492,12 @@ class _PackageVariantList(_Common):
                     continue
 
             # expand package entry into list of variants
-            if self.package_load_callback:
-                self.package_load_callback(package)
+            if self.solver.package_load_callback:
+                self.solver.package_load_callback(package)
 
             variants_ = []
             for var in package.iter_variants():
-                variant = PackageVariant(var)
+                variant = PackageVariant(var, self.solver.building)
                 variants_.append(variant)
 
             entry[1] = variants_
@@ -531,7 +528,7 @@ class _PackageVariantList(_Common):
                 variants = value
                 val_str = ','.join(str(x) for x in variants)
             else:
-                package =value
+                package = value
                 val_str = str(package)
 
             strs.append(val_str)
@@ -553,17 +550,17 @@ def _short_req_str(package_request):
 
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
-    def __init__(self, package_name, entries, printer=None):
+    def __init__(self, package_name, entries, solver):
         """
         Args:
             entries (list of (`Version`, [`PackageVariant`]) tuples): result
                 of _PackageVariantList.get_intersection().
         """
+        self.solver = solver
         self.package_name = package_name
         self.entries = entries
         self.extracted_fams = set()
         self.been_reduced_by = set()
-        self.pr = printer
         self.sorted = False
 
         # calculated on demand
@@ -571,6 +568,10 @@ class _PackageVariantSlice(_Common):
         self._range = None
         self._fam_requires = None
         self._common_fams = None
+
+    @property
+    def pr(self):
+        return self.solver.pr
 
     @property
     def range_(self):
@@ -720,10 +721,15 @@ class _PackageVariantSlice(_Common):
         common_req = Requirement.construct(fam, range_)
         return slice_, common_req
 
-    def split(self, package_requests):
-        """Split the slice."""
+    def split(self):
+        """Split the slice.
+        """
         if not self.sorted:
-            # TODO use orderers
+            # We sort here in the split in order to sort as late as possible.
+            # Because splits usually happen after intersections/reductions, this
+            # means there can be less entries to sort.
+            #
+            # TODO: reorderers
             self.entries = sorted(self.entries, key=lambda x: x[0], reverse=True)
             self.sorted = True
 
@@ -856,7 +862,7 @@ class _PackageVariantSlice(_Common):
     def _copy(self, new_entries):
         slice_ = _PackageVariantSlice(package_name=self.package_name,
                                       entries=new_entries,
-                                      printer=self.pr)
+                                      solver=self.solver)
 
         slice_.sorted = self.sorted
         slice_.been_reduced_by = self.been_reduced_by.copy()
@@ -917,13 +923,8 @@ class _PackageVariantSlice(_Common):
 
 
 class PackageVariantCache(object):
-    def __init__(self, package_paths, package_filter=None, package_orderers=None,
-                 building=False, package_load_callback=None):
-        self.package_paths = package_paths
-        self.package_filter = package_filter
-        self.package_orderers = package_orderers
-        self.building = building
-        self.package_load_callback = package_load_callback
+    def __init__(self, solver):
+        self.solver = solver
         self.variant_lists = {}  # {package-name: _PackageVariantList}
 
     def get_variant_slice(self, package_name, range_):
@@ -937,21 +938,18 @@ class PackageVariantCache(object):
             `_PackageVariantSlice` object.
         """
         variant_list = self.variant_lists.get(package_name)
+
         if variant_list is None:
-            variant_list = _PackageVariantList(
-                package_name,
-                package_paths=self.package_paths,
-                package_filter=self.package_filter,
-                package_orderers=self.package_orderers,
-                building=self.building,
-                package_load_callback=self.package_load_callback)
+            variant_list = _PackageVariantList(package_name, self.solver)
             self.variant_lists[package_name] = variant_list
 
         entries = variant_list.get_intersection(range_)
         if not entries:
             return None
 
-        slice_ = _PackageVariantSlice(package_name, entries=entries)
+        slice_ = _PackageVariantSlice(package_name,
+                                      entries=entries,
+                                      solver=self.solver)
         return slice_
 
 
@@ -1067,7 +1065,7 @@ class _PackageScope(_Common):
 
         return (self, None)
 
-    def split(self, package_requests):
+    def split(self):
         """Split the scope.
 
         Returns:
@@ -1078,7 +1076,7 @@ class _PackageScope(_Common):
         if self.package_request.conflict or (len(self.variant_slice) == 1):
             return None
         else:
-            r = self.variant_slice.split(package_requests)
+            r = self.variant_slice.split()
             if r is None:
                 return None
             else:
@@ -1160,7 +1158,6 @@ class _ResolvePhase(_Common):
         self.failure_reason = None
         self.extractions = {}
         self.solver = solver
-        self.pr = solver.pr
         self.status = SolverStatus.pending
 
         self.scopes = []
@@ -1173,6 +1170,10 @@ class _ResolvePhase(_Common):
             for j in range(len(self.scopes)):
                 if i != j:
                     self.pending_reducts.add((i, j))
+
+    @property
+    def pr(self):
+        return self.solver.pr
 
     def solve(self):
         """Attempt to solve the phase."""
@@ -1388,7 +1389,7 @@ class _ResolvePhase(_Common):
 
         for i, scope in enumerate(self.scopes):
             if split is None:
-                r = scope.split(self.solver.package_requests)
+                r = scope.split()
                 if r is not None:
                     scope_, next_scope = r
                     scopes.append(scope_)
@@ -1742,6 +1743,8 @@ class Solver(_Common):
         self.optimised = optimised
         self.callback = callback
         self.prune_unfailed = prune_unfailed
+        self.package_load_callback = package_load_callback
+        self.building = building
         self.request_list = None
 
         self.phase_stack = None
@@ -1755,12 +1758,7 @@ class Solver(_Common):
         self.solve_begun = None
         self._init()
 
-        self.package_cache = PackageVariantCache(
-            self.package_paths,
-            package_filter=self.package_filter,
-            package_orderers=self.package_orderers,
-            package_load_callback=package_load_callback,
-            building=building)
+        self.package_cache = PackageVariantCache(self)
 
         # merge the request
         if self.pr:
@@ -2059,9 +2057,6 @@ class Solver(_Common):
         start_time = time.time()
         slice_ = self.package_cache.get_variant_slice(package_name=package_name,
                                                       range_=range_)
-
-        if slice_ is not None:
-            slice_.pr = self.pr
 
         end_time = time.time()
         self.load_time += (end_time - start_time)
