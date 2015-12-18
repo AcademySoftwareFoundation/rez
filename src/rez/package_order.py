@@ -156,7 +156,7 @@ class TimestampPackageOrderFunction(PackageOrderFunction):
                    rank=data["rank"])
 
     def __str__(self):
-        return "%d.%d" % (self.timestamp, self.rank)
+        return str(self.to_pod())
 
 
 def to_pod(orderer):
