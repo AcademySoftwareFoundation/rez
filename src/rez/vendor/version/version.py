@@ -233,6 +233,7 @@ class Version(_Comparable):
         """
         self.tokens = []
         self.seps = []
+        self._str = None
 
         if ver_str:
             toks = re_token.findall(ver_str)
@@ -295,7 +296,7 @@ class Version(_Comparable):
         return bool(self.tokens)
 
     def __eq__(self, other):
-        return isinstance(other, Version) and self.tokens == other.tokens
+        return str(self) == str(other)
 
     def __lt__(self, other):
         if self.tokens is None:
@@ -306,12 +307,14 @@ class Version(_Comparable):
             return (self.tokens < other.tokens)
 
     def __hash__(self):
-        return hash(None) if self.tokens is None \
-            else hash(tuple(str(x) for x in self.tokens))
+        return hash(str(self))
 
     def __str__(self):
-        return "[INF]" if self.tokens is None \
-            else ''.join(str(x) + y for x, y in zip(self.tokens, self.seps + ['']))
+        if self._str is None:
+            self._str = "[INF]" if self.tokens is None \
+                else ''.join(str(x) + y for x, y in zip(self.tokens, self.seps + ['']))
+        return self._str
+
 
 # internal use only
 Version.inf = Version()
@@ -685,6 +688,7 @@ class VersionRange(_Comparable):
                 may not match range_str. For example, "3+<6|4+<8" == "3+<8".
             make_token: Version token class to use.
         """
+        self._str = None
         self.bounds = []
         if range_str is None:
             return
@@ -1004,7 +1008,9 @@ class VersionRange(_Comparable):
         return None if inv is None else self.intersection(inv)
 
     def __str__(self):
-        return '|'.join(map(str, self.bounds))
+        if self._str is None:
+            self._str = '|'.join(map(str, self.bounds))
+        return self._str
 
     def __eq__(self, other):
         return isinstance(other, VersionRange) and self.bounds == other.bounds
@@ -1013,7 +1019,7 @@ class VersionRange(_Comparable):
         return (self.bounds < other.bounds)
 
     def __hash__(self):
-        return hash(tuple(self.bounds))
+        return hash(str(self))
 
     def _contains_version(self, version):
         vbound = _Bound(_LowerBound(version, True))

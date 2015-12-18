@@ -117,6 +117,8 @@ There are 2 notable points missing from the pseudocode, related to optimisations
   solver.
 """
 from rez.config import config
+from rez.packages_ import iter_packages
+from rez.package_repository import package_repo_stats
 from rez.utils.logging_ import print_debug
 from rez.utils.data_utils import cached_property
 from rez.vendor.pygraph.classes.digraph import digraph
@@ -128,7 +130,6 @@ from rez.vendor.version.version import Version, VersionRange
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
-from rez.packages_ import iter_packages
 import copy
 import time
 import sys
@@ -441,14 +442,15 @@ class _PackageEntry(object):
 
     Holds some extra state data, such as whether the variants are sorted.
     """
-    def __init__(self, variants, solver):
+    def __init__(self, package, variants, solver):
+        self.package = package
         self.variants = variants
         self.solver = solver
         self.sorted = False
 
     @property
     def version(self):
-        return self.variants[0].version
+        return self.package.version
 
     def __len__(self):
         return len(self.variants)
@@ -458,8 +460,8 @@ class _PackageEntry(object):
             return None
 
         self.sort()
-        entry = _PackageEntry(self.variants[:nvariants], self.solver)
-        next_entry = _PackageEntry(self.variants[nvariants:], self.solver)
+        entry = _PackageEntry(self.package, self.variants[:nvariants], self.solver)
+        next_entry = _PackageEntry(self.package, self.variants[nvariants:], self.solver)
         entry.sorted = next_entry.sorted = True
         return entry, next_entry
 
@@ -533,7 +535,7 @@ class _PackageVariantList(_Common):
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
         it = iter_packages(self.package_name, paths=self.solver.package_paths)
-        self.entries = [[x.version, x] for x in it]
+        self.entries = [[x, False] for x in it]
 
         if not self.entries:
             raise PackageFamilyNotFoundError(
@@ -552,21 +554,19 @@ class _PackageVariantList(_Common):
         result = []
 
         for entry in self.entries:
-            version, value = entry
+            package, value = entry
 
             if value is None:
                 continue  # package was blocked by package filters
 
-            if version not in range_:
+            if package.version not in range_:
                 continue
 
             if isinstance(value, list):
                 variants = value
-                entry_ = _PackageEntry(variants)
+                entry_ = _PackageEntry(package, variants, self.solver)
                 result.append(entry_)
                 continue
-
-            package = value
 
             # apply package filter
             if self.solver.package_filter:
@@ -588,15 +588,16 @@ class _PackageVariantList(_Common):
                 variants_.append(variant)
 
             entry[1] = variants_
-            entry_ = _PackageEntry(variants_, self.solver)
+            entry_ = _PackageEntry(package, variants_, self.solver)
             result.append(entry_)
 
         return result or None
 
     def dump(self):
         print self.package_name
-        for version, variants in self.entries:
-            print str(version)
+
+        for package, value in self.entries:
+            print str(package.version)
             if value is None:
                 print "    [FILTERED]"
             elif isinstance(value, list):
@@ -604,19 +605,18 @@ class _PackageVariantList(_Common):
                 for variant in variants:
                     print "    %s" % str(variant)
             else:
-                package = value
                 print "    %s" % str(package)
 
     def __str__(self):
         strs = []
-        for _, value in self.entries:
+
+        for package, value in self.entries:
             if value is None:
                 continue
             elif isinstance(value, list):
                 variants = value
                 val_str = ','.join(str(x) for x in variants)
             else:
-                package = value
                 val_str = str(package)
 
             strs.append(val_str)
@@ -637,6 +637,7 @@ class _PackageVariantSlice(_Common):
         self.entries = entries
         self.extracted_fams = set()
         self.been_reduced_by = set()
+        self.been_intersected_with = set()
         self.sorted = False
 
         # calculated on demand
@@ -687,6 +688,9 @@ class _PackageVariantSlice(_Common):
         if range_.is_any():
             return self
 
+        if range_ in self.been_intersected_with:
+            return self
+
         if self.pr:
             self.pr("intersecting %s wrt range '%s'...", self, range_)
 
@@ -696,8 +700,11 @@ class _PackageVariantSlice(_Common):
         if not entries:
             return None
         elif len(entries) < len(self.entries):
-            return self._copy(entries)
+            copy_ = self._copy(entries)
+            copy_.been_intersected_with.add(range_)
+            return copy_
         else:
+            self.been_intersected_with.add(range_)
             return self
 
     def reduce_by(self, package_request):
@@ -757,7 +764,7 @@ class _PackageVariantSlice(_Common):
             if n < len(entry):
                 if n == 0:
                     continue
-                entry = _PackageEntry(new_variants, self.solver)
+                entry = _PackageEntry(entry.package, new_variants, self.solver)
 
             entries.append(entry)
 
@@ -804,7 +811,7 @@ class _PackageVariantSlice(_Common):
 
         Returns:
             (`_PackageVariantSlice`, `_PackageVariantSlice`) tuple, where the
-            first is the preferred slice, and the second is the next.
+            first is the preferred slice.
         """
 
         # We sort here in the split in order to sort as late as possible.
@@ -849,7 +856,6 @@ class _PackageVariantSlice(_Common):
 
         if not fams:
             # trivial case, split on first variant
-            # TODO: sort entry
             return _split(0, 1)
 
         # find split point - first variant with no dependency shared with previous
@@ -882,9 +888,22 @@ class _PackageVariantSlice(_Common):
         if self.sorted:
             return
 
-        # TODO: reorderers
+        for orderer in (self.solver.package_orderers or []):
+            entries = orderer.reorder(self.entries, key=lambda x: x.package)
+            if entries is not None:
+                self.entries = entries
+                self.sorted = True
+
+                if self.pr:
+                    self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
+                return
+
+        # default ordering is version descending
         self.entries = sorted(self.entries, key=lambda x: x.version, reverse=True)
         self.sorted = True
+
+        if self.pr:
+            self.pr("sorted: %s packages: version descending", self.package_name)
 
     def dump(self):
         print self.package_name
@@ -897,6 +916,7 @@ class _PackageVariantSlice(_Common):
 
         slice_.sorted = self.sorted
         slice_.been_reduced_by = self.been_reduced_by.copy()
+        slice_.been_intersected_with = self.been_intersected_with.copy()
         return slice_
 
     def _update_fam_info(self):
@@ -1248,22 +1268,15 @@ class _ResolvePhase(_Common):
 
                 if common_requests:
                     request_list = RequirementList(common_requests)
-                    if request_list.conflict:
-                        # two or more extractions are in conflict
+
+                    if request_list.conflict:  # extractions are in conflict
                         req1, req2 = request_list.conflict
                         conflict = DependencyConflict(req1, req2)
                         failure_reason = DependencyConflicts([conflict])
                         return _create_phase(SolverStatus.failed)
                     else:
                         if self.pr:
-                            self.pr("merged extractions: %s", request_list)
-                        """
-                        # flake8 founs this, I don't remember why it's here...
-                        if len(request_list.requirements) < len(common_requests):
-                            for req in request_list.requirements:
-                                src_reqs = [x for x in common_requests
-                                            if x.name == req.name]
-                        """
+                            self.pr("merged extractions are: %s", request_list)
 
                     # do intersections with existing scopes
                     self.pr.subheader("INTERSECTING:")
@@ -1287,12 +1300,13 @@ class _ResolvePhase(_Common):
                                         pending_reducts.add((i, j))
 
                     # add new scopes
-                    self.pr.subheader("ADDING:")
                     new_reqs = [x for x in request_list.requirements
                                 if x.name not in req_fams]
 
                     if new_reqs:
+                        self.pr.subheader("ADDING:")
                         n = len(scopes)
+
                         for req in new_reqs:
                             scope = _PackageScope(req, solver=self.solver)
                             scopes.append(scope)
@@ -1765,7 +1779,6 @@ class Solver(_Common):
                 True, any packages unrelated to the conflict are removed from
                 the graph.
         """
-        #self.package_requests = package_requests
         self.package_paths = package_paths
         self.package_filter = package_filter
         self.package_orderers = package_orderers
@@ -1889,14 +1902,18 @@ class Solver(_Common):
         if self.solve_begun:
             raise ResolveError("cannot run solve() on a solve that has "
                                "already been started")
-        self.solve_time = 0.0
-        self.load_time = 0.0
+
+        t1 = time.time()
+        pt1 = package_repo_stats.package_load_time
 
         # iteratively solve phases
         while self.status == SolverStatus.unsolved:
             self.solve_step()
             if self.status == SolverStatus.unsolved and not self._do_callback():
                 break
+
+        self.load_time = package_repo_stats.package_load_time - pt1
+        self.solve_time = time.time() - t1
 
     def solve_step(self):
         """Perform a single solve step.
@@ -1907,7 +1924,6 @@ class Solver(_Common):
 
         if self.pr:
             self.pr.header("SOLVE #%d...", self.solve_count + 1)
-        start_time = time.time()
         phase = self._pop_phase()
 
         if phase.status == SolverStatus.failed:  # a previously failed phase
@@ -1949,9 +1965,6 @@ class Solver(_Common):
             if self.pr:
                 s = SolverState(self.num_solves, self.num_fails, new_phase)
                 self.pr.important(str(s))
-
-        end_time = time.time()
-        self.solve_time += (end_time - start_time)
 
     def failure_reason(self, failure_index=None):
         """Get the reason for a failure.
@@ -2087,12 +2100,9 @@ class Solver(_Common):
         return keep_going
 
     def _get_variant_slice(self, package_name, range_):
-        start_time = time.time()
-        slice_ = self.package_cache.get_variant_slice(package_name=package_name,
-                                                      range_=range_)
+        slice_ = self.package_cache.get_variant_slice(
+            package_name=package_name, range_=range_)
 
-        end_time = time.time()
-        self.load_time += (end_time - start_time)
         return slice_
 
     def _push_phase(self, phase):

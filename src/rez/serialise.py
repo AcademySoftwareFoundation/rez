@@ -40,7 +40,7 @@ def open_file_for_write(filepath):
     """Writes both to given filepath, and tmpdir location.
 
     This is to get around the problem with some NFS's where immediately reading
-    a file that has jusr been written is problematic. Instead, any files that we
+    a file that has just been written is problematic. Instead, any files that we
     write, we also write to /tmp, and reads of these files are redirected there.
     """
     stream = StringIO()
@@ -126,9 +126,8 @@ def load_py(stream, filepath=None):
     Returns:
         dict.
     """
-    g = __builtins__.copy()
     scopes = ScopeContext()
-    g['scope'] = scopes
+    g = dict(scope=scopes)
 
     try:
         exec stream in g

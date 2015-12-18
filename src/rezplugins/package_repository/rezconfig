@@ -16,3 +16,9 @@ filesystem:
     # Note: The directory can have any name, but we suggest '.lock' as the
     # standard convention.
     file_lock_dir:
+
+    # If True, verify that a potential package directory contains a package.py /
+    # package.yaml file before treating it as a package. There *shouldn't* be
+    # non-packages in these directories, and the solver is faster if this value
+    # is False, because a lot of file stats are avoided.
+    check_package_definition_files: false

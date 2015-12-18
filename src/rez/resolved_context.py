@@ -134,9 +134,9 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 package_filter=None, add_implicit_packages=True, max_fails=-1,
-                 time_limit=-1, callback=None, package_load_callback=None,
-                 buf=None):
+                 package_filter=None, package_orderers=None, max_fails=-1,
+                 add_implicit_packages=True, time_limit=-1, callback=None,
+                 package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -154,6 +154,8 @@ class ResolvedContext(object):
             package_filter (`PackageFilterBase`): Filter used to exclude certain
                 packages. Defaults to settings from config.package_filter. Use
                 `package_filter.no_filter` to remove all filtering.
+            package_orderers (list of `PackageOrderFunction`): Custom package
+                ordering.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -233,6 +235,7 @@ class ResolvedContext(object):
         resolver = Resolver(package_requests=request,
                             package_paths=self.package_paths,
                             package_filter=self.package_filter,
+                            package_orderers=package_orderers,
                             timestamp=self.requested_timestamp,
                             building=self.building,
                             caching=self.caching,

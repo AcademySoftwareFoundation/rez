@@ -188,6 +188,10 @@ variant_select_mode = "version_priority"
 # foo-5+                Same as range(foo-5+)
 package_filter = None
 
+# If True, unversioned packages are allowed. Solve times are slightly better if
+# this value is False.
+allow_unversioned_packages = True
+
 
 ###############################################################################
 # Environment Resolution
@@ -302,7 +306,7 @@ debug_package_exclusions = False
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
 
-# Debug memcache usage. As well as printing debugging info to stdout,it also
+# Debug memcache usage. As well as printing debugging info to stdout, it also
 # sends human-readable strings as memcached keys (that you can read by running
 # "memcached -vv" as the server)
 debug_memcache = False
@@ -416,12 +420,6 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 65536
 
-# If this is true, rxt files are written in yaml format. If false, they are
-# written in json, which is a LOT faster. You would only set to true for
-# backwards compatibility reasons. Note that rez will detect either format on
-# rxt file load.
-rxt_as_yaml = True
-
 
 ###############################################################################
 # Colorization
@@ -494,6 +492,12 @@ alias_styles = None
 ###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
+
+# If this is true, rxt files are written in yaml format. If false, they are
+# written in json, which is a LOT faster. You would only set to true for
+# backwards compatibility reasons. Note that rez will detect either format on
+# rxt file load.
+rxt_as_yaml = False
 
 # Warn or disallow when a package contains a package name that does not match
 # the name specified in the directory structure. When this occurs, the

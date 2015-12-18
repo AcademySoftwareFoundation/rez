@@ -1,4 +1,6 @@
+from contextlib import contextmanager
 import logging
+import time
 
 
 logger = logging.getLogger(__name__)
@@ -52,3 +54,13 @@ class _Printer(object):
 
     def __nonzero__(self):
         return bool(self.printer_function)
+
+
+@contextmanager
+def log_duration(printer, msg):
+    t1 = time.time()
+    yield None
+
+    t2 = time.time()
+    secs = t2 - t1
+    printer(msg, str(secs))

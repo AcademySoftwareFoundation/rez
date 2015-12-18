@@ -3,9 +3,11 @@ from rez.package_repository import package_repository_manager
 from rez.packages_ import get_variant, get_last_release_time
 from rez.package_filter import PackageFilterList, TimestampRule
 from rez.utils.memcached import memcached_client, pool_memcached_connections
+from rez.utils.logging_ import log_duration
 from rez.config import config
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from hashlib import sha1
 import os
 
 
@@ -30,8 +32,8 @@ class Resolver(object):
     package request as quickly as possible.
     """
     def __init__(self, package_requests, package_paths, package_filter=None,
-                 timestamp=0, callback=None, building=False, verbosity=False,
-                 buf=None, package_load_callback=None, caching=True):
+                 package_orderers=None, timestamp=0, callback=None, building=False,
+                 verbosity=False, buf=None, package_load_callback=None, caching=True):
         """Create a Resolver.
 
         Args:
@@ -39,6 +41,8 @@ class Resolver(object):
                 request.
             package_paths: List of paths to search for pkgs.
             package_filter (`PackageFilterList`): Package filter.
+            package_orderers (list of `PackageOrderFunction`): Custom package
+                ordering.
             callback: See `Solver`.
             package_load_callback: If not None, this callable will be called
                 prior to each package being loaded. It is passed a single
@@ -51,16 +55,24 @@ class Resolver(object):
         self.package_paths = package_paths
         self.timestamp = timestamp
         self.callback = callback
+        self.package_orderers = package_orderers
         self.package_load_callback = package_load_callback
         self.building = building
         self.verbosity = verbosity
         self.caching = caching
         self.buf = buf
 
+        # store hash of package orderers. This is used in the memcached key
+        if package_orderers:
+            sha1s = ''.join(x.sha1 for x in package_orderers)
+            self.package_orderers_hash = sha1(sha1s).hexdigest()
+        else:
+            self.package_orderers_hash = ''
+
         # store hash of pre-timestamp-combined package filter. This is used in
         # the memcached key
         if package_filter:
-            self.package_filter_hash = package_filter.hash
+            self.package_filter_hash = package_filter.sha1
         else:
             self.package_filter_hash = ''
 
@@ -91,7 +103,9 @@ class Resolver(object):
     def solve(self):
         """Perform the solve.
         """
-        solver_dict = self._get_cached_solve()
+        with log_duration(self._print, "memcache get (resolve) took %s"):
+            solver_dict = self._get_cached_solve()
+
         if solver_dict:
             self.from_cache = True
             self._set_result(solver_dict)
@@ -100,7 +114,9 @@ class Resolver(object):
             solver = self._solve()
             solver_dict = self._solver_to_dict(solver)
             self._set_result(solver_dict)
-            self._set_cached_solve(solver_dict)
+
+            with log_duration(self._print, "memcache set (resolve) took %s"):
+                self._set_cached_solve(solver_dict)
 
     @property
     def status(self):
@@ -166,7 +182,7 @@ class Resolver(object):
             - else:
               - use the entry.
 
-        This behaviour exists specifically so that resolves that use use a
+        This behaviour exists specifically so that resolves that use a
         timestamp but set that to the current time, can be reused by other
         resolves if nothing has changed. Older resolves however, can only be
         reused if the timestamp matches exactly (but this might happen a lot -
@@ -175,6 +191,10 @@ class Resolver(object):
         """
         if not (self.caching and self.memcached_servers):
             return None
+
+        # these caches avoids some potentially repeated file stats
+        variant_states = {}
+        last_release_times = {}
 
         def _hit(data):
             solver_dict, _, _ = data
@@ -201,8 +221,12 @@ class Resolver(object):
             for variant_handle in solver_dict.get("variant_handles", []):
                 variant = get_variant(variant_handle)
                 old_state = variant_states_dict.get(variant.name)
-                repo = variant.resource._repository
-                new_state = repo.get_variant_state_handle(variant.resource)
+
+                new_state = variant_states.get(variant)
+                if new_state is None:
+                    repo = variant.resource._repository
+                    new_state = repo.get_variant_state_handle(variant.resource)
+                    variant_states[variant] = new_state
 
                 if old_state != new_state:
                     self._print("%r has been modified", variant.qualified_name)
@@ -212,7 +236,11 @@ class Resolver(object):
         def _releases_since_solve(key, data):
             _, release_times_dict, _ = data
             for package_name, release_time in release_times_dict.iteritems():
-                time_ = get_last_release_time(package_name, self.package_paths)
+                time_ = last_release_times.get(package_name)
+                if time_ is None:
+                    time_ = get_last_release_time(package_name, self.package_paths)
+                    last_release_times[package_name] = time_
+
                 if time_ != release_time:
                     self._print(
                         "A newer version of %r (%d) has been released since the "
@@ -235,9 +263,7 @@ class Resolver(object):
 
         if self.timestamp:
             if data:
-                if _packages_changed(key, data):
-                    _delete_cache_entry(key)
-                elif _releases_since_solve(key, data):
+                if _packages_changed(key, data) or _releases_since_solve(key, data):
                     _delete_cache_entry(key)
                 elif not _timestamp_is_earlier(key, data):
                     return _hit(data)
@@ -253,10 +279,7 @@ class Resolver(object):
         else:
             if not data:
                 return _miss()
-            if _packages_changed(key, data):
-                _delete_cache_entry(key)
-                return _miss()
-            if _releases_since_solve(key, data):
+            if _packages_changed(key, data) or _releases_since_solve(key, data):
                 _delete_cache_entry(key)
                 return _miss()
             else:
@@ -328,6 +351,7 @@ class Resolver(object):
              request,
              tuple(repo_ids),
              self.package_filter_hash,
+             self.package_orderers_hash,
              self.building,
              config.prune_failed_graph]
 
@@ -340,6 +364,7 @@ class Resolver(object):
         solver = Solver(package_requests=self.package_requests,
                         package_paths=self.package_paths,
                         package_filter=self.package_filter,
+                        package_orderers=self.package_orderers,
                         callback=self.callback,
                         package_load_callback=self.package_load_callback,
                         building=self.building,
