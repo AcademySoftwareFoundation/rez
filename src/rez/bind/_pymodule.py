@@ -6,7 +6,8 @@ the current python interpreter - this is rez's, inside its installation
 virtualenv.
 """
 from __future__ import absolute_import
-from rez.bind._utils import check_version, find_exe, make_dirs
+from rez.bind._utils import check_version, find_exe, make_dirs, \
+    get_version_in_python, run_python_command, log
 from rez.package_maker__ import make_package
 from rez.exceptions import RezBindError
 from rez.system import system
@@ -24,23 +25,6 @@ def commands():
 def commands_with_bin():
     env.PYTHONPATH.append('{this.root}/python')
     env.PATH.append('{this.root}/bin')
-
-
-def run_python_command(commands):
-    cmd_str = "; ".join(commands)
-    p = subprocess.Popen(["python", "-c", cmd_str], stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    out, err = p.communicate()
-    return (p.returncode == 0), out.strip(), err.strip()
-
-
-def get_version(name, commands):
-    success, out, err = run_python_command(commands)
-    if not success or not out:
-        raise RezBindError("Couldn't determine version of module %s: %s"
-                           % (name, err))
-    version = out
-    return version
 
 
 def copy_module(name, destpath):
@@ -76,7 +60,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
     import_name = import_name or name
 
     if version is None:
-        version = get_version(
+        version = get_version_in_python(
             name,
             ["import %s" % import_name,
              "print %s.__version__" % import_name])
@@ -85,7 +69,7 @@ def bind(name, path, import_name=None, version_range=None, version=None,
 
     py_major_minor = '.'.join(str(x) for x in sys.version_info[:2])
     py_req = "python-%s" % py_major_minor
-    found_tools = []
+    found_tools = {}
 
     if pure_python is None:
         raise NotImplementedError  # detect
@@ -94,26 +78,26 @@ def bind(name, path, import_name=None, version_range=None, version=None,
     else:
         variant = system.variant + [py_req]
 
+    for tool in (tools or []):
+        try:
+            src = find_exe(tool)
+            found_tools[tool] = src
+            log("found tool '%s': %s" % (tool, src))
+        except RezBindError as e:
+            print_warning(str(e))
+
     def make_root(variant, root):
         pypath = make_dirs(root, "python")
         copy_module(import_name, pypath)
 
+        if found_tools:
+            binpath = make_dirs(root, "bin")
+            for tool, src in sorted(found_tools.items()):
+                dest = os.path.join(binpath, tool)
+                shutil.copy2(src, dest)
+
         for name_ in extra_module_names:
             copy_module(name_, pypath)
-
-        if tools:
-            binpath = make_dirs(root, "bin")
-            for tool in tools:
-                try:
-                    src = find_exe(tool)
-                except RezBindError as e:
-                    print_warning(str(e))
-                    src = None
-
-                if src:
-                    found_tools.append(tool)
-                    dest = os.path.join(binpath, tool)
-                    shutil.copy2(src, dest)
 
     with make_package(name, path, make_root=make_root) as pkg:
         pkg.version = version

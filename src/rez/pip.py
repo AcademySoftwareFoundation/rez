@@ -1,13 +1,43 @@
 from rez.packages_ import get_latest_package
 from rez.vendor.version.version import Version
+from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
+from rez.utils.logging_ import print_debug
+from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
+    PackageNotFoundError, convert_errors
+from rez.config import config
 from tempfile import mkdtemp
+from StringIO import StringIO
+from pipes import quote
+import subprocess
 import os.path
+import shutil
+import sys
 import os
 
 
+class InstallMode(Enum):
+    # don't install dependencies. Build may fail, for example the package may
+    # need to compile against a dependency. Will work for pure python though.
+    no_deps = 0
+    # only install dependencies that we have to. If an existing rez package
+    # satisfies a dependency already, it will be used instead. The default.
+    min_deps = 1
+    # install dependencies even if an existing rez package satisfies the
+    # dependency, if the dependency is newer.
+    new_deps = 2
+    # install dependencies even if a rez package of the same version is already
+    # available, if possible. For example, if you are performing a local install,
+    # a released (central) package may match a dependency; but with this mode
+    # enabled, a new local package of the same version will be installed as well.
+    #
+    # Typically, if performing a central install with the rez-pip --release flag,
+    # max_deps is equivalent to new_deps.
+    max_deps = 3
+
+
 def pip_install_package(source_name, pip_version=None, python_versions=None,
-                        no_deps=False, install_newer_deps=False):
+                        mode=InstallMode.min_deps):
     """Install a pip-compatible python package as a rez package.
 
     Args:
@@ -21,11 +51,11 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
             depend on. If multiple values are provided, this will create
             multiple variants in the package, each based on the python version.
             Defaults to a single variant for the latest python version.
-        no_deps (bool): If True, don't install dependencies.
-        install_newer_deps (bool): If True, newer package dependencies will be
-            installed, even if existing rez package versions already exist that
-            already satisfy the package's dependencies.
+        mode (`InstallMode`): Installation mode, determines how dependencies are
+            managed.
     """
+
+    # determine pip pkg to use for install, and python variants to install on
     if pip_version:
         pip_req = "pip-%s" % str(pip_version)
     else:
@@ -45,52 +75,146 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
     else:
         # use latest major.minor
         package = get_latest_package("python")
-        major_minor_ver = package.version[:2]
+        if package:
+            major_minor_ver = package.version.trim(2)
+        else:
+            # no python package. We're gonna fail, let's just choose current
+            # python version (and fail at context creation time)
+            major_minor_ver = '.'.join(map(str, sys.version_info[:2]))
+
         py_req = "python-%s" % str(major_minor_ver)
         py_reqs.append(py_req)
+
+    _log("installing for pip: '%s', python(s): %s" % (pip_req, py_reqs))
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     packages = {}
 
-    # use pip + latest python to perform common operations
+    # use pip + latest python to perform pip download operations
     request = [pip_req, py_reqs[-1]]
-    context = ResolvedContext(request)
+
+    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
+                        to=BuildError, msg="Cannot install, pip or python rez "
+                        "packages are not present"):
+        context = ResolvedContext(request)
+
+    if config.debug("package_release"):
+        buf = StringIO()
+        print >> buf, "\n\npackage download environment:"
+        context.print_info(buf)
+        _log(buf.getvalue())
 
     # download package and dependency archives
     dl_path = os.path.join(tmpdir, "download")
     os.mkdir(dl_path)
-    primary_name = _download_packages(source_name,
-                                      context=context,
-                                      tmpdir=dl_path,
-                                      no_deps=no_deps)
+    archives = _download_packages(source_name,
+                                  context=context,
+                                  tmpdir=dl_path,
+                                  no_deps=(mode == InstallMode.no_deps))
 
-    # build each so we can extract dependencies and determine if they are
-    # platform-specific (ie if they contain .so or similar)
-    tmp_installs_path = os.path.join(tmpdir, "install")
-    os.mkdir(tmp_installs_path)
+    print ("\ninstalling packages in the following order:\n"
+           + '\n'.join(os.path.basename(x) for x in archives))
 
-    for name in os.listdir(dl_path):
-        filepath = os.path.join(dl_path, name)
-        tmp_install_path = os.path.join(tmp_installs_path, name)
-        os.mkdir(tmp_install_path)
+    # iterate over archives and build/install each, starting from those with no
+    # dependencies and moving up until we install the target package last
+    for archive in archives:
+        _install_from_archive(archive=archive, pip_req=pip_req, py_reqs=py_reqs,
+                              mode=mode)
 
-        metadata = _analyse_package(context, filepath, tmp_install_path)
-        metadata["primary"] = (name == primary_name)
-        packages[metadata["package_name"]] = metadata
+    # cleanup
+    shutil.rmtree(tmpdir)
 
-    # sort as reverse dependency tree, we need to install from bottom of tree
-    # up, since a rez-release must have rez package dependencies present
-    package_list = _get_install_list(packages, install_newer_deps)
 
-    # perform a rez-release on each package
-    tmp_rezbuilds_path = os.path.join(tmpdir, "rez-build")
-    os.mkdir(tmp_rezbuilds_path)
+def _install_from_archive(archive, pip_req, py_reqs, mode):
+    pass
 
-    for package in package_list:
-        package_name = package["package_name"]
-        tmp_rezbuild_path = os.path.join(tmp_rezbuilds_path, package_name)
 
-        _rez_release_package(package,
-                             pip_requirement=pip_req,
-                             python_requirements=py_reqs,
-                             tmpdir=tmp_rezbuild_path)
+def _download_packages(source_name, context, tmpdir, no_deps):
+    """
+    Returns:
+        list of str: List of downloaded archives, in dependency order.
+    """
+    archives_path = os.path.join(tmpdir, "archives")
+    cache_path = os.path.join(tmpdir, "cache")
+    os.mkdir(archives_path)
+    os.mkdir(cache_path)
+
+    cmd_base = ["pip", "install", "--cache-dir=%s" % cache_path]
+
+    # download archives
+    cmd = cmd_base + ["--download=%s" % archives_path]
+    if no_deps:
+        cmd.append("--no-deps")
+    cmd.append(source_name)
+    _cmd(context=context, command=cmd)
+
+    archive_names = os.listdir(archives_path)
+
+    if no_deps:  # nothing more to do
+        archive_name = archive_names[0]
+        archive = os.path.join(archives_path, archive_name)
+        return [archive]
+
+    # re-download each archive, with deps. From this we can infer the dependency
+    # order. Since we use the same cache, nothing is actually re-downloaded.
+    dependencies = {}
+    deps_path = os.path.join(tmpdir, "deps")
+    os.mkdir(deps_path)
+
+    for archive_name in archive_names:
+        depsdir = os.path.join(deps_path, archive_name)
+        os.mkdir(depsdir)
+
+        archive = os.path.join(archives_path, archive_name)
+        cmd = cmd_base + ["--download=%s" % depsdir, archive]
+        _cmd(context=context, command=cmd, quiet=(not _verbose))
+
+        deps = set(os.listdir(depsdir))
+        deps.remove(archive_name)
+        dependencies[archive_name] = deps
+
+    # infer dependency order from dependencies map. We need this in order to
+    # know the build order we have to follow.
+    archives = []
+
+    while dependencies:
+        leaf_archives = [k for k, v in dependencies.iteritems() if not v]
+
+        if not leaf_archives:
+            raise BuildError("Cyclic dependency detected in packages: %s"
+                             % leaf_archives)
+
+        for leaf_archive in leaf_archives:
+            archives.append(leaf_archive)
+            del dependencies[leaf_archive]
+
+        rm_deps = set(leaf_archives)
+        for deps in dependencies.itervalues():
+            deps -= rm_deps
+
+    archives = [os.path.join(archives_path, x) for x in archives]
+    return archives
+
+
+def _cmd(context, command, quiet=False):
+    cmd_str = ' '.join(quote(x) for x in command)
+    _log("running: %s" % cmd_str)
+
+    stdout_ = subprocess.PIPE if quiet else None
+    p = context.execute_shell(command=command, block=False,
+                              stdout=stdout_, stderr=subprocess.PIPE)
+    _, err = p.communicate()
+
+    if p.returncode:
+        raise BuildError("Failed to download source with pip:\n"
+                         "Command: %s\n"
+                         "Error: %s"
+                         % (cmd_str, err))
+
+
+_verbose = config.debug("package_release")
+
+
+def _log(msg):
+    if _verbose:
+        print_debug(msg)

@@ -286,7 +286,8 @@ debug_file_loads = False
 # Print debugging info when loading plugins
 debug_plugins = False
 
-# Print debugging info such as VCS commands during package release
+# Print debugging info such as VCS commands during package release. Note that
+# rez-pip installations are controlled with this setting also.
 debug_package_release = False
 
 # Print debugging info in binding modules. Binding modules should print using

@@ -1,6 +1,7 @@
 """
 Exceptions.
 """
+from contextlib import contextmanager
 
 
 class RezError(Exception):
@@ -162,3 +163,19 @@ class RezGuiQTImportError(ImportError):
     """A special case - see cli/gui.py
     """
     pass
+
+
+@contextmanager
+def convert_errors(from_, to, msg=None):
+    exc = None
+
+    try:
+        yield None
+    except from_ as e:
+        exc = e
+
+    if exc:
+        info = "%s: %s" % (exc.__class__.__name__, str(exc))
+        if msg:
+            info = "%s: %s" % (msg, info)
+        raise to(info)

@@ -3,7 +3,7 @@ Binds the python PyQt module as a rez package.
 """
 from __future__ import absolute_import
 from rez.bind import _pymodule
-from rez.bind._pymodule import get_version
+from rez.bind._utils import get_version_in_python
 
 
 def bind(path, version_range=None, opts=None, parser=None):
@@ -11,7 +11,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     import_name = "PyQt4"
     tools = ["pyuic4"]
 
-    version = get_version(
+    version = get_version_in_python(
         name,
         ["from PyQt4 import QtCore",
          "print QtCore.PYQT_VERSION_STR"])

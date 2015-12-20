@@ -90,7 +90,8 @@ class PackageMaker(AttrDictWrapper):
 
 
 @contextmanager
-def make_package(name, path, make_base=None, make_root=None, skip_existing=True):
+def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
+                 warn_on_skip=True):
     """Make and install a package.
 
     Example:
@@ -112,6 +113,7 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True)
             variant payloads, if applicable.
         skip_existing (bool): If True, detect if a variant already exists, and
             skip with a warning message if so.
+        warn_on_skip (bool): If True, print warning when a variant is skipped.
 
     Yields:
         `PackageMaker` object.
@@ -139,7 +141,7 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True)
             variant_ = variant.install(path, dry_run=True)
             if variant_ is None:
                 src_variants.append(variant)
-            else:
+            elif warn_on_skip:
                 print_warning("Skipping installation: Package variant already "
                               "exists: %s" % variant_.uri)
     else:
