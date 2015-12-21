@@ -540,7 +540,7 @@ class _PackageVariantList(_Common):
         if not self.entries:
             raise PackageFamilyNotFoundError(
                 "package family not found: %s (searched: %s)"
-                % (package_name, "; ".join(self.package_paths)))
+                % (package_name, "; ".join(self.solver.package_paths)))
 
     def get_intersection(self, range_):
         """Get a list of variants that intersect with the given range.
