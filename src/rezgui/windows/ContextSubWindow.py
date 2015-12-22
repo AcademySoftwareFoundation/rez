@@ -31,6 +31,11 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
         else:
             event.ignore()
 
+    def diff_with_file(self, filepath):
+        """Turn on diff mode and diff against given context.
+        """
+        self.widget()._diff_with_file(filepath)
+
     def can_close(self):
         if not self.context_model.is_modified():
             return True

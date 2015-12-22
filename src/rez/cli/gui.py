@@ -4,6 +4,9 @@ Run the Rez GUI application.
 
 
 def setup_parser(parser, completions=False):
+    parser.add_argument(
+        "--diff", nargs=2, metavar=("RXT1", "RXT2"),
+        help="open in diff mode with the given contexts")
     FILE_action = parser.add_argument(
         "FILE", type=str, nargs='*',
         help="context files")
