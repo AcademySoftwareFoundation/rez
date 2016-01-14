@@ -36,7 +36,7 @@ class MkdirLockFile(LockBase):
 
         while True:
             try:
-                os.mkdir(self.lock_file)
+                os.makedirs(self.lock_file)
             except OSError:
                 err = sys.exc_info()[1]
                 if err.errno == errno.EEXIST:
