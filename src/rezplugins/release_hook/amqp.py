@@ -33,7 +33,8 @@ class AmqpReleaseHook(ReleaseHook):
         "exchange_durable":         bool,
         "exchange_auto_delete":     bool,
         "exchange_routing_key":     basestring,
-        "message_delivery_mode":    int}
+        "message_delivery_mode":    int,
+        "message_attributes":       dict}
 
     @classmethod
     def name(cls):
@@ -56,6 +57,9 @@ class AmqpReleaseHook(ReleaseHook):
         for variant in variants:
             variants_data = dict(handle=variant.handle.to_dict())
             data["variants"].append(variants_data)
+
+        # add message attributes
+        data.update(self.settings.message_attributes)
 
         self.publish_message(data)
 

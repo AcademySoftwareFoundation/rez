@@ -126,3 +126,6 @@ amqp:
 
     # message delivery mode
     message_delivery_mode: 1
+
+    # extra message attributes to be published
+    message_attributes: {}
