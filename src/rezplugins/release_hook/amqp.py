@@ -4,7 +4,12 @@ Publishes a message to the broker.
 The message is a json encoded dictionary of the form -
     {
         package : {
-            handle : {}
+            handle : {},
+            name : ...
+            version : ...
+            user: ... (who released the package)
+            qualified_name : ...
+            uri : ...
         },
         variants : [
             { handle : {} },
@@ -14,8 +19,9 @@ The message is a json encoded dictionary of the form -
 
 """
 from rez.release_hook import ReleaseHook
-from rez.utils.logging_ import print_warning, print_debug
+from rez.utils.logging_ import print_error, print_debug
 from rez.vendor.amqp import Connection, basic_message
+from rez.config import config
 import json
 import socket
 
@@ -50,8 +56,17 @@ class AmqpReleaseHook(ReleaseHook):
             package = self.package
 
         # build the message dict
-        data = dict()
-        data["package"] = dict(handle=package.handle.to_dict())
+        data = {}
+        data["package"] = dict(
+            name=package.name,
+            version=str(package.version),
+            qualified_name=package.qualified_name,
+            uri=package.uri,
+            handle=package.handle.to_dict())
+
+        # FIXME Do this until user added as package attribute
+        from getpass import getuser
+        data["package"]["user"] = getuser()
 
         data["variants"] = []
         for variant in variants:
@@ -65,7 +80,7 @@ class AmqpReleaseHook(ReleaseHook):
 
     def publish_message(self, data):
         if not self.settings.host:
-            print_warning("Did not publish message, host is not specified")
+            print_error("Did not publish message, host is not specified")
             return
 
         try:
@@ -75,32 +90,41 @@ class AmqpReleaseHook(ReleaseHook):
                               password=self.settings.password,
                               connect_timeout=self.settings.connect_timeout)
         except socket.error as e:
-            print_warning("Cannot connect to the message broker: %s" % (e))
+            print_error("Cannot connect to the message broker: %s" % (e))
             return
 
         channel = conn.channel()
 
         # Declare the exchange
         try:
-            channel.exchange_declare(self.settings.exchange_name, self.settings.exchange_type,
-                                     durable=self.settings.exchange_durable,
-                                     auto_delete=self.settings.exchange_auto_delete)
+            channel.exchange_declare(
+                self.settings.exchange_name,
+                self.settings.exchange_type,
+                durable=self.settings.exchange_durable,
+                auto_delete=self.settings.exchange_auto_delete)
         except Exception as e:
-            print_warning("Failed to declare an exchange: %s" % (e))
+            print_error("Failed to declare an exchange: %s" % (e))
             return
 
         # build the message
-        msg = basic_message.Message(body=json.dumps(data),
-                                    delivery_mode=self.settings.message_delivery_mode)
+        msg = basic_message.Message(
+            body=json.dumps(data),
+            delivery_mode=self.settings.message_delivery_mode,
+            content_type="application/json",
+            content_encoding="utf-8")
+
+        routing_key = self.settings.exchange_routing_key
+        print "Publishing AMQP message on %s..." % routing_key
 
         # publish the message
         try:
-            channel.basic_publish(msg, self.settings.exchange_name,
-                                  self.settings.exchange_routing_key)
-            print_debug("Published message: %s" % (data))
+            channel.basic_publish(msg, self.settings.exchange_name, routing_key)
         except Exception as e:
-            print_warning("Failed to publish message: %s" % (e))
+            print_error("Failed to publish message: %s" % (e))
             return
+
+        if config.debug("package_release"):
+            print_debug("Published message: %s" % (data))
 
 
 def register_plugin():
