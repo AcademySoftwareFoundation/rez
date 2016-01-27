@@ -1,22 +1,5 @@
 """
 Publishes a message to the broker.
-
-The message is a json encoded dictionary of the form -
-    {
-        package : {
-            handle : {},
-            name : ...
-            version : ...
-            user: ... (who released the package)
-            qualified_name : ...
-            uri : ...
-        },
-        variants : [
-            { handle : {} },
-            { handle : {} }
-        ]
-    }
-
 """
 from rez.release_hook import ReleaseHook
 from rez.utils.logging_ import print_error, print_debug
@@ -27,7 +10,25 @@ import socket
 
 
 class AmqpReleaseHook(ReleaseHook):
+    """
+    Publishes a message to the broker.
 
+    The message is a json encoded dictionary of the form -
+        {
+            package : {
+                handle : {},
+                name : ...
+                version : ...
+                user: ... (who released the package)
+                qualified_name : ...
+                uri : ...
+            },
+            variants : [
+                { handle : {} },
+                { handle : {} }
+            ]
+        }
+    """
     schema_dict = {
         "host":                     basestring,
         "port":                     int,
