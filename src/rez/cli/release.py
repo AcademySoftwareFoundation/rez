@@ -2,6 +2,7 @@
 Build a package from source and deploy it.
 '''
 import os
+from subprocess import call
 
 
 def setup_parser(parser, completions=False):
@@ -27,6 +28,9 @@ def setup_parser(parser, completions=False):
         help="release even if repository-related errors occur. DO NOT use this "
         "option unless you absolutely must release a package, despite there being "
         "a problem (such as inability to contact the repository server)")
+    parser.add_argument(
+        "--no-message", dest="no_message", action="store_true",
+        help="do not prompt for release message.")
     setup_parser_common(parser)
 
 
@@ -35,6 +39,21 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
     from rez.cli.build import get_build_args
+    from rez.config import config
+
+    release_msg = opts.message
+    filename = None
+
+    if config.prompt_release_message and not release_msg and not opts.no_message:
+        filename = os.path.join(config.tmpdir, "rez_release_message.tmp")
+
+        with open(filename, "a+") as f:
+            ed = config.editor
+            call([ed, filename])
+
+            read_data = f.read()
+            if read_data:
+                release_msg = read_data
 
     working_dir = os.getcwd()
 
@@ -61,5 +80,9 @@ def command(opts, parser, extra_arg_groups=None):
                                    ignore_existing_tag=opts.ignore_existing_tag,
                                    verbose=True)
 
-    builder.release(release_message=opts.message,
+    builder.release(release_message=release_msg,
                     variants=opts.variants)
+
+    # remove the release message file
+    if filename:
+        os.remove(filename)

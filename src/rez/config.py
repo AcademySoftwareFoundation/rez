@@ -219,6 +219,7 @@ config_schema = Schema({
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
+    "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
     "warning_styles":                               OptionalStrList,
