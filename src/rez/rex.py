@@ -870,7 +870,7 @@ class NamespaceFormatter(Formatter):
         if isinstance(value, EscapedString):
             value = str(value.formatted(str))
         if isinstance(value, str):
-            return self.format(value)
+            value = self.format(value)
         return format(value, format_spec)
 
     def get_value(self, key, args, kwds):
