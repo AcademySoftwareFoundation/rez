@@ -14,6 +14,7 @@ from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent, git_dependent, hg_dependent, svn_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
+from build_utils.distlib.util import chdir
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -246,17 +247,14 @@ class TestRelease(TestBase, TempdirMixin):
         with self.assertRaises(ReleaseVCSError):
             create_release_vcs(self.build_dir)
 
-        os.chdir(self.build_dir)
-
         def repo_cmd(*args):
             # make a repo at the src_root, not the build_dir, so we can
             # add "confusing" package.yaml - ie, if the current dir is
             # the build dir, the relative path "package.yaml" is the "real"
             # package.yaml - but relative to the repo root, it is the "fake"
             # one. This shouldn't trip up rez...
-            os.chdir(self.src_root)
-            subprocess.check_call([repo_type] + list(args), env=env)
-            os.chdir(self.build_dir)
+            with chdir(self.src_root):
+                subprocess.check_call([repo_type] + list(args), env=env)
 
         if repo_type == 'svn':
             # for svn, we need a separate "server"/origin repo... luckily,
@@ -271,9 +269,8 @@ class TestRelease(TestBase, TempdirMixin):
             trunk_url = server_url + '/trunk'
 
             def _make_repo():
-                os.chdir(self.src_root)
                 subprocess.check_call(['svnadmin', 'create', svn_repo_name],
-                                      env=env)
+                                      env=env, cwd=self.src_root)
                 # setup the trunk + tags, then remove them so they don't
                 # clutter what will be our working dir...
                 def make_root_repo_dir(dir_name):
