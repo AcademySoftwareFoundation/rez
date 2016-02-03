@@ -14,7 +14,6 @@ from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
     install_dependent, git_dependent, hg_dependent, svn_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
-from build_utils.distlib.util import chdir
 import rez.bind.platform
 import rez.bind.arch
 import rez.bind.os
@@ -253,8 +252,8 @@ class TestRelease(TestBase, TempdirMixin):
             # the build dir, the relative path "package.yaml" is the "real"
             # package.yaml - but relative to the repo root, it is the "fake"
             # one. This shouldn't trip up rez...
-            with chdir(self.src_root):
-                subprocess.check_call([repo_type] + list(args), env=env)
+            subprocess.check_call([repo_type] + list(args), env=env,
+                                  cwd=self.src_root)
 
         if repo_type == 'svn':
             # for svn, we need a separate "server"/origin repo... luckily,
