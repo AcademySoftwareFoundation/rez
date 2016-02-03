@@ -59,6 +59,8 @@ class TestBase(unittest.TestCase):
             new_settings will be the only configuration settings applied
         """
         # restore the "normal" config...
+        from rez.util import deep_update
+
         self.teardown_config()
 
         # ...then copy the class settings dict to instance, so we can
@@ -67,7 +69,7 @@ class TestBase(unittest.TestCase):
             self.settings = dict(new_settings)
         else:
             self.settings = dict(type(self).settings)
-            self.settings.update(new_settings)
+            deep_update(self.settings, new_settings)
 
         # now swap the config back in...
         self.setup_config()
