@@ -92,3 +92,40 @@ command:
 
     # Same expected values as pre_build_commands
     post_release_commands: []
+
+amqp:
+    # host server.
+    host: ''
+
+    # port.
+    port: 5672
+
+    # userid
+    userid: ''
+
+    # password
+    password: ''
+
+    # connection timeout
+    connect_timeout: 10
+
+    # exchange name
+    exchange_name: ''
+
+    # exchange type
+    exchange_type: ''
+
+    # exchange remains active when server restarts.
+    exchange_durable: False
+
+    # auto delete when all queues have finished using the exchange.
+    exchange_auto_delete: False
+
+    # exchange routing key
+    exchange_routing_key: 'REZ.PACKAGE.RELEASED'
+
+    # message delivery mode
+    message_delivery_mode: 1
+
+    # extra message attributes to be published
+    message_attributes: {}
