@@ -9,6 +9,7 @@ from pprint import pformat
 import os
 import re
 import time
+import posixpath
 
 
 PACKAGE_NAME_REGSTR = "[a-zA-Z_0-9](\.?[a-zA-Z0-9_]+)*"
@@ -461,7 +462,11 @@ def expanduser(path):
         if i < 0:
             i = len(path)
         if i != 1:
-            return path
+            i = path.find(posixpath.sep, 1)
+            if i < 0:
+                i = len(path)
+            if i != 1:
+                return path
 
         if 'HOME' in os.environ:
             userhome = os.environ['HOME']
