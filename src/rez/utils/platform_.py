@@ -5,6 +5,7 @@ import os.path
 import re
 from rez.util import which
 from rez.utils.data_utils import cached_property
+from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -18,11 +19,13 @@ class Platform(object):
         pass
 
     @cached_property
+    @platform_mapped
     def arch(self):
         """Returns the name of the architecture."""
         return self._arch()
 
     @cached_property
+    @platform_mapped
     def os(self):
         """Returns the name of the operating system."""
         return self._os()

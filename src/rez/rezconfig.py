@@ -129,6 +129,24 @@ implicit_packages = [
     "~os=={system.os}",
 ]
 
+# Override platform values from Platform.os and arch.
+# This is useful as Platform.os might show different
+# values depending on the availability of lsb-release on the system.
+# The map supports regular expression e.g. to keep versions.
+# Please note that following examples are not necessarily recommendations.
+#
+# platform_map = {
+#     "os": {
+#         r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
+#         r"Ubuntu-14.\d": r"Ubuntu-14,                  # Any Ubuntu-14.x      -> Ubuntu-14
+#     },
+#     "arch": {
+#         "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit
+#         "amd64": "64bit",
+#     },
+# }
+platform_map = {}
+
 # If true, then when a resolve graph is generated during a failed solve, packages
 # unrelated to the failure are pruned from the graph. An "unrelated" package is
 # one that is not a dependency ancestor of any packages directly involved in the
