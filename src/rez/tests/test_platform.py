@@ -68,10 +68,9 @@ class TestPlatformMap(TestBase):
     def tearDown(self):
         pass
 
-    def test_os(self):
-        """Test platform_map for os"""
+    def test_platform_map(self):
+        """Test platform_map"""
 
-        # overrides set to bad types
         platform_map = {
             "os": {
                 r"An Linux": "Changed",
