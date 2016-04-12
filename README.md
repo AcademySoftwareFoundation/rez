@@ -101,9 +101,9 @@ Resolved environments can also be created via the API:
 ## Quickstart
 
 First, install Rez. Download the source, and from the source directory, run
-(with <DEST_DIR> replaced with your install location):
+(with DEST_DIR replaced with your install location):
 
-    ]$ python ./install.py -v <DEST_DIR>
+    ]$ python ./install.py -v DEST_DIR
 
 This installs the Rez command line tools. It will print a message at the end
 telling you how to use Rez when the installation has completed. Rez is not a
@@ -131,7 +131,7 @@ Now you should be able to create an environment containing Python. Try this:
 ## Building Your First Package
 
 The *rez-build* tool is used to build packages and install them locally (typically
-to $HOME/packages). Once you've done that, you can use them via *rez-env*, just
+to *$HOME/packages*). Once you've done that, you can use them via *rez-env*, just
 like any other package:
 
     ]$ cd example_packages/hello_world
