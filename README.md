@@ -21,11 +21,13 @@ The main tools are:
 * **rez-gui**: A fully fledged graphical interface for creating resolved environments,
   launching tools and comparing different environments.
 
+See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
+
 ## The Basics
 
-Packages are stored in repositories on disk. Each package has a single concise 
+Packages are stored in repositories on disk. Each package has a single concise
 definition file (*package.py*) that defines its dependencies, its commands (how it
-configures the environment containing it), and other metadata. For example, the 
+configures the environment containing it), and other metadata. For example, the
 following is the package definition file for the popular *requests* python module:
 
     name = "requests"
@@ -41,17 +43,13 @@ following is the package definition file for the popular *requests* python modul
     def commands():
         env.PYTHONPATH.append("{root}/python")
 
-This package requires python-2.7 or greater. When used, the 'python' subdirectory 
+This package requires python-2.7 or greater. When used, the 'python' subdirectory
 within its install location is appended to the PYTHONPATH environment variable.
-Because python is the language used to define a package's commands, behaviour is 
-rich - a package can create aliases, source scripts and run commands, as well as 
-manage environment variables; and all this combined with the program logic that 
-python itself provides.
 
 When an environment is created with the rez API or *rez-env* tool, a dependency
 resolution algorithm tracks package requirements and resolves to a list of needed
 packages. The commands from these packages are concatenated and evaluated, resulting
-in a configured environment. Rez is able to configure environments containing 
+in a configured environment. Rez is able to configure environments containing
 hundreds of packages, often within a few seconds. Resolves can also be saved to file,
 and when re-evaluated later will reconstruct the same environment once more.
 
@@ -79,7 +77,7 @@ This example places the user into a resolved shell containing the requested pack
 
     > ]$ _
 
-This example creates an environment containing the package 'houdini' version 12.5 
+This example creates an environment containing the package 'houdini' version 12.5
 or greater, and runs the command 'hescape -h' inside that environment:
 
     ]$ rez-env houdini-12.5+ -- hescape -h
@@ -100,40 +98,47 @@ Resolved environments can also be created via the API:
     >>> print out
     '/software/ext/houdini/12.5.562/bin/hescape'
 
+## Quickstart
 
-## Installation
+First, install Rez. Download the source, and from the source directory, run
+(with <DEST_DIR> replaced with your install location):
 
-To install Rez, download the source, and then from the source directory, run the
-following command (replacing DEST_DIR with your preferred installation path):
-
-    ]$ python ./install.py -v DEST_DIR
-
-Please note that if this fails, there may be a problem with the python executable
-you are using (it may be a custom python build). In this case try using
-/usr/bin/python instead.
+    ]$ python ./install.py -v <DEST_DIR>
 
 This installs the Rez command line tools. It will print a message at the end
 telling you how to use Rez when the installation has completed. Rez is not a
 normal Python package and so you do not typically install it with pip or setup.py.
+Do *not* move the installation - re-install to a new location if you want to
+change the install path. If you want to install rez for multiple operating
+systems, perform separate installs for each of those systems.
 
-To install the API, you have two options - you can either install it as a typical
-Python package, or (and more usefully) you can install it as a Rez package itself.
+Next, you need to create some essential Rez packages. The *rez-bind* tool creates
+Rez packages that are based on software already installed on your system. Try
+binding the following list of packages (note that for Python, you may need
+administrative privileges):
 
-To install Rez as a Rez package:
+    ]$ rez-bind platform
+    ]$ rez-bind arch
+    ]$ rez-bind os
+    ]$ rez-bind python
 
-    ]$ rez-bind rez
-    created package 'rez-2.0.0' in /home/ajohns/packages
-    # Now we can resolve a rez environment, and use the API
-    ]$ rez-env rez -- python -c 'import rez; print rez.__version__'
-    2.0.0
+Now you should be able to create an environment containing Python. Try this:
 
-To install Rez as a standard python module:
+    ]$ rez-env python -- which python
+    /home/ajohns/packages/python-2.7.8/platform-linux/arch-x86_64/os-Ubuntu-12.04/bin/python
 
-    ]$ pip install rez
 
-Or, to install from source:
+## Building Your First Package
 
-    ]$ python setup.py install
+The *rez-build* tool is used to build packages and install them locally (typically
+to $HOME/packages). Once you've done that, you can use them via *rez-env*, just
+like any other package:
+
+    ]$ cd example_packages/hello_world
+    ]$ rez-build --install
+    ...
+    ]$ rez-env hello_world -- hello
+    Hello world!
 
 
 ## Features
