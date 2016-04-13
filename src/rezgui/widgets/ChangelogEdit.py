@@ -46,5 +46,9 @@ class VariantChangelogEdit(ChangelogEdit):
         self.variant = None
 
     def set_variant(self, variant):
-        self.set_packages([variant])
+        if variant is None:
+            self.clear()
+        else:
+            self.set_packages([variant])
+
         self.variant = variant
