@@ -372,7 +372,7 @@ class RequirementList(_Common):
         return self.conflict_names_
 
     def __iter__(self):
-        for requirement in self.requirements_:
+        for requirement in (self.requirements_ or []):
             yield requirement
 
     def get(self, name):

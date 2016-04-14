@@ -1303,6 +1303,7 @@ class ResolvedContext(object):
         r.arch = d["arch"]
         r.os = d["os"]
         r.created = d["created"]
+        r.verbosity = d.get("verbosity", 0)
 
         r.status_ = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]

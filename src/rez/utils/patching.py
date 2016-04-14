@@ -9,7 +9,18 @@ def get_patched_request(requires, patchlist):
         >>> print get_patched_request(["foo-5", "bah-8.1"], ["foo-6"])
         ["foo-6", "bah-8.1"]
         >>> print get_patched_request(["foo-5", "bah-8.1"], ["^bah"])
-        ["foo-5", "bah-8.1"]
+        ["foo-5"]
+
+    The following rules apply wrt how normal/conflict/weak patches override
+    (note though that the new request is always added, even if it doesn't
+    override an existing request):
+
+    PATCH  OVERRIDES: foo  !foo  ~foo
+    -----  ---------- ---  ----  -----
+    foo               Y    Y     Y
+    !foo              N    N     N
+    ~foo              N    N     Y
+    ^foo              Y    Y     Y
 
     Args:
         requires (list of str or `version.Requirement`): Request.
@@ -18,35 +29,50 @@ def get_patched_request(requires, patchlist):
     Returns:
         List of `version.Requirement`: Patched request.
     """
-    reqmap = {}
-    i = 0
 
-    def _key(req):
-        return (req.name, req.conflict)
+    # rules from table in docstring above
+    rules = {
+        '':  (True,  True,  True ),
+        '!': (False, False, False),
+        '~': (False, False, True ),
+        '^': (True,  True,  True )
+    }
 
-    for req in requires:
-        if not isinstance(req, Requirement):
-            req = Requirement(req)
-        reqmap[_key(req)] = (req, i)
-        i += 1
+    requires = [Requirement(x) if not isinstance(x, Requirement) else x
+                for x in requires]
+    appended = []
 
-    for patch_str in patchlist:
-        if patch_str.startswith('^'):  # removal operator
-            patch_req = Requirement(patch_str[1:])
-            for b in (True, False):
-                k = (patch_req.name, b)
-                reqmap.pop(k, None)
-            continue
-
-        patch_req = Requirement(patch_str)
-        k = _key(patch_req)
-        if k in reqmap:
-            _, j = reqmap[k]
-            reqmap[k] = (patch_req, j)
+    for patch in patchlist:
+        if patch and patch[0] in ('!', '~', '^'):
+            ch = patch[0]
+            name = Requirement(patch[1:]).name
         else:
-            reqmap[k] = (patch_req, i)
-            i += 1
+            ch = ''
+            name = Requirement(patch).name
 
-    values = sorted(reqmap.values(), key=lambda x: x[1])
-    result = [x[0] for x in values]
+        rule = rules[ch]
+        replaced = (ch == '^')
+
+        for i, req in enumerate(requires):
+            if req is None or req.name != name:
+                continue
+
+            if not req.conflict:
+                replace = rule[0]  # foo
+            elif not req.weak:
+                replace = rule[1]  # !foo
+            else:
+                replace = rule[2]  # ~foo
+
+            if replace:
+                if replaced:
+                    requires[i] = None
+                else:
+                    requires[i] = Requirement(patch)
+                    replaced = True
+
+        if not replaced:
+            appended.append(Requirement(patch))
+
+    result = [x for x in requires if x is not None] + appended
     return result
