@@ -281,6 +281,21 @@ class Version(_Comparable):
         else:
             return Version.inf
 
+    @property
+    def major(self):
+        """Semantic versioning major version."""
+        return self[0]
+
+    @property
+    def minor(self):
+        """Semantic versioning minor version."""
+        return self[1]
+
+    @property
+    def patch(self):
+        """Semantic versioning patch version."""
+        return self[2]
+
     def __len__(self):
         return len(self.tokens or [])
 
