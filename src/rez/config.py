@@ -12,6 +12,7 @@ from rez.vendor.schema.schema import Schema, SchemaError, Optional, And, Or, Use
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
+from rez.vendor.version.version import VersionRange
 from rez.backport.lru_cache import lru_cache
 from UserDict import UserDict
 from inspect import ismodule
@@ -180,6 +181,74 @@ class VariantSelectMode_(Str):
         return Or(*(x.name for x in VariantSelectMode))
 
 
+class VersionPriority_(Setting):
+    @cached_class_property
+    def schema(cls):
+        return Or(
+            {},
+            # None, in which case it's an empty dict..
+            And(None, Use(lambda x: {})),
+            # Or they give a dict, mapping from package name to setting...
+            Schema({
+                str: cls.version_priority_entry_validate_schema,
+            }),
+        )
+
+    @classmethod
+    def _make_version_priority_entry_schema(cls, output_python_objs):
+        from rez.solver import VersionPriorityMode
+
+        if output_python_objs:
+            to_ver_prio_mode = Use(VersionPriorityMode.__getitem__)
+            to_ver_range = Use(VersionRange)
+        else:
+            nop = lambda x: x
+            to_ver_prio_mode = nop
+            to_ver_range = nop
+
+        return Or(
+            # each package is either "lastest" / "earliest", or...
+            And(Or(*(x.name for x in VersionPriorityMode)),
+                to_ver_prio_mode
+            ),
+
+            # ...a list, giving an explicit version priority
+            And(
+                [Or(
+                    # Allow False, or "", which is converted to
+                    # False
+                    False,
+                    And("", Use(bool)),
+                    # ...or value which can be converted to a
+                    # VersionRange
+                    And(basestring, to_ver_range),
+                    And(Or(int, float), Use(str), to_ver_range),
+                )],
+                # Verify that there's at most one False
+                lambda x: x.count(False) <= 1
+            )
+        )
+
+
+    @cached_class_property
+    def version_priority_entry_validate_schema(cls):
+        '''Schema used to validate entries in the version_priority dictionary
+
+        But it will keep the data in "raw" form - ie, using only basic python
+        objects, so it is yaml-dumpable (ie, by rez-config command-line tool)
+        '''
+        return cls._make_version_priority_entry_schema(False)
+
+    @cached_class_property
+    def version_priority_entry_convert_schema(cls):
+        '''Schema used to convert entries in the version_priority dictionary
+
+        Will convert entries into python objects, to make it easier to
+        interact with them..
+        '''
+        return cls._make_version_priority_entry_schema(True)
+
+
 class RezToolsVisibility_(Str):
     @cached_class_property
     def schema(cls):
@@ -315,6 +384,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
+    "version_priority":                             VersionPriority_,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings

@@ -27,6 +27,7 @@ ALL_PACKAGES = set([
     'pyson-1', 'pyson-2',
     'pysplit-5', 'pysplit-6', 'pysplit-7',
     'python-2.5.2', 'python-2.6.0', 'python-2.6.8', 'python-2.7.0',
+    'pyvariants-2',
     # packages from data/packages
     'unversioned',
     'unversioned_py',

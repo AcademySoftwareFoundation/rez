@@ -141,6 +141,26 @@ prune_failed_graph = True
 #   present in the request;
 # - intersection_priority: Prefer variants that contain the most number of
 #   packages that are present in the request.
+#
+# As an example, suppose you have a package foo which has two variants:
+#
+#    ["bar-3.0", "baz-2.1"], ["bar-2.8", "burgle-1.0"]
+# if you do:
+#
+#    rez-env foo bar
+#
+# ...then, in either variant_select_mode, it will prefer the first variant,
+# ["bar-3.0", "baz-2.1"], because it has a higher version of the first variant
+# requirement (bar). However, if we instead do:
+#
+#    rez-env foo bar burgle
+#
+# ...we get different behavior. version_priority mode will still return
+# ["bar-3.0", "baz-2.1"], because the first requirement's version is higher.
+#
+# However, intersection_priority mode will pick the second variant,
+# ["bar-2.8", "burgle-1.0"], because it contains more packages that were in the
+# original request (burgle).
 variant_select_mode = "version_priority"
 
 # Package filter. One or more filters can be listed, each with a list of
@@ -188,6 +208,78 @@ variant_select_mode = "version_priority"
 # foo-5+                Same as range(foo-5+)
 package_filter = None
 
+# Version priority. Used to customize which version of a package is
+# preferred when solving. Should be a dict which maps from a package family
+# name to a list of version ranges to prioritize, in decreasing priority order.
+#
+# As an example, consider a package splunge which has versions:
+#
+#   [1.0, 1.1, 1.2, 1.4, 2.0, 2.1, 3.0, 3.2]
+#
+# By default, version priority is given to the higest version, so version
+# priority, from most to least preferred, is:
+#
+#   [3.2, 3.0, 2.1, 2.0, 1.4, 1.2, 1.1, 1.0]
+#
+# However, if you set version_priority like this:
+#
+# version_priority:
+#   splunge:
+#   - 2
+#   - 1.1+<1.4
+#
+# Then the preferred versions, from most to least preferred, will be:
+#  [2.1, 2.0, 1.2, 1.1, 3.2, 3.0, 1.4, 1.0]
+#
+# Any version which does not match any of these expressions are sorted in
+# decreasing version order (like normal) and then appended to this list (so they
+# have lower priority). So if you do:
+#
+# version_priority:
+#   splunge:
+#   - 3.0
+#
+# resulting order is:
+#
+#   [3.0, 3.2, 2.1, 2.0, 1.4, 1.2, 1.1, 1.0]
+#
+#
+# You may also include a single False or empty string in the list, in which case
+# all "other" versions will be placed at that spot. ie
+#
+# version_priority:
+#   splunge:
+#   - ""
+#   - 3+
+#
+# yields:
+#
+#  [2.1, 2.0, 1.4, 1.2, 1.1, 1.0, 3.2, 3.0]
+#
+# Note that you could also have gotten the same result by doing:
+#
+# version_priority:
+#   splunge:
+#   - <3
+#
+# If a version matches more than one range expression, it will be placed at
+# the highest-priority matching spot, so:
+#
+# version_priority:
+#   splunge: [1.2+<=2.0, 1.1+<3]
+#
+# gives:
+#  [2.0, 1.4, 1.2, 2.1, 1.1, 3.2, 3.0, 1.0]
+#
+# Also note that this does not change the version sort order for any purpose but
+# determining solving priorities - for instance, even if version priorities is:
+#
+# version_priority:
+#   splunge: [2, 3, 1]
+#
+# The expression splunge-1+<3 would still match version 2.
+
+version_priority = None
 
 ###############################################################################
 # Environment Resolution

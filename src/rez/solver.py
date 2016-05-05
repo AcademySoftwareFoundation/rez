@@ -118,12 +118,14 @@ There are 2 notable points missing from the pseudocode, related to optimisations
 """
 from rez.config import config
 from rez.utils.logging_ import print_debug
+from rez.utils.data_utils import cached_property
 from rez.vendor.pygraph.classes.digraph import digraph
 from rez.vendor.pygraph.algorithms.cycles import find_cycle
 from rez.vendor.pygraph.algorithms.accessibility import accessibility
 from rez.exceptions import PackageNotFoundError, ResolveError, \
     PackageFamilyNotFoundError
-from rez.vendor.version.version import Version, VersionRange
+from rez.vendor.version.version import VersionRange, _Bound, _LowerBound, \
+    _UpperBound, Version, _Comparable
 from rez.vendor.version.requirement import VersionedObject, Requirement, \
     RequirementList
 from rez.vendor.enum import Enum
@@ -139,6 +141,29 @@ class VariantSelectMode(Enum):
     version_priority = 0
     intersection_priority = 1
 
+
+class VersionPriorityMode(Enum):
+    """Mode for determining which version to use when solving."""
+    latest = 0
+    earliest = 1
+
+class ReverseSorted(_Comparable):
+    """Used to add objects (ie, Version, VersionRange) to a sort key, but with
+    reverse sorting
+    """
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __eq__(self, other):
+        return self.obj == other.obj
+
+    def __lt__(self, other):
+        if self.obj == other.obj:
+            return False
+        return not self.obj < other.obj
+
+    def __repr__(self):
+        return '%s(%r)' % (type(self).__name__, self.obj)
 
 class SolverStatus(Enum):
     """Enum to represent the current state of a solver instance.  The enum
@@ -363,6 +388,89 @@ class Cycle(FailureReason):
         return " --> ".join(map(str, stmts))
 
 
+def _package_version_sort_key(family_name, version, sort_key_cache):
+    """Given a package and a version-like-object, returns a sort key that takes
+    customized version prioritization into account
+    """
+    from rez.config import VersionPriority_
+    format_ver_prio = VersionPriority_.version_priority_entry_convert_schema.validate
+
+    family_cache = sort_key_cache.setdefault(family_name, {})
+    key = family_cache.get(version)
+    if key is not None:
+        return key
+
+    version_priority = config.version_priority.get(family_name, "latest")
+    version_priority = format_ver_prio(version_priority)
+    ver_key = _package_version_sort_key2(version_priority, version)
+
+    # need to make sure that we always sort first by package, then by
+    # version; this ensures that versions for the same package are always
+    # grouped together. This is necessary because otherwise, if a package
+    # has custom sorting, cross-package version comparison could result in
+    # a cyclical ordering.
+    key = (family_name, ver_key)
+
+    family_cache[version] = key
+    return key
+
+def _package_version_sort_key2(version_priority, version):
+    if isinstance(version_priority, VersionPriorityMode):
+        # note that if the version_priority is a VersionPriorityMode,
+        # we return only one item, instead of a tuple of 2 items... but this
+        # should be ok, since all packages in a family will share the same
+        # setting, and _package_version_sort_key will sort by family first
+        if version_priority == VersionPriorityMode.latest:
+            return version
+        elif version_priority == VersionPriorityMode.earliest:
+            return ReverseSorted(version)
+        else:
+            # should never get here...
+            raise ValueError(version_priority)
+
+    if isinstance(version, VersionRange):
+        return tuple(_package_version_sort_key2(version_priority, bound)
+                     for bound in version.bounds)
+    elif isinstance(version, _Bound):
+        return (
+            _package_version_sort_key2(version_priority, version.lower),
+            _package_version_sort_key2(version_priority, version.upper),
+        )
+    elif isinstance(version, (_LowerBound, _UpperBound)):
+        ver, inclusive_key = version._sort_key()[1]
+        return (
+            _package_version_sort_key2(version_priority, ver),
+            inclusive_key,
+        )
+    elif isinstance(version, Version):
+        # finally, the bit that we actually use the version_sort_order for...
+
+        default_key = -1
+        for sort_order_index, range in enumerate(version_priority):
+            # in the config, version_priority is given in decreasing
+            # priority order... however, we want a sort key that sorts in the
+            #  same way that versions do - where higher values are higher
+            # priority - so we need to take the inverse of the index
+            sort_key = len(version_priority) - sort_order_index
+            if range in (False, ""):
+                if default_key is not -1:
+                    raise ValueError("version_priority may only have one "
+                                     "False / empty value")
+                default_key = sort_key
+                continue
+            if range.contains_version(version):
+                break
+        else:
+            # For now, we're permissive with the version_sort_order - it may
+            # contain ranges which match no actual versions, and if an actual
+            # version matches no entry in the version_sort_order, it is simply
+            # placed after other entries
+            sort_key = default_key
+        return sort_key, version
+    else:
+        raise NotImplementedError
+
+
 class PackageVariant(_Common):
     """A variant of a package."""
     def __init__(self, name, version, requires, index=None, userdata=None):
@@ -421,7 +529,8 @@ class _PackageVariantList(_Common):
     is not done here - that only happens on a split().
     """
     def __init__(self, package_name, package_paths=None, package_filter=None,
-                 building=False, package_load_callback=None):
+                 building=False, package_load_callback=None,
+                 sort_key_cache=None):
         self.package_name = package_name
         self.package_paths = package_paths
         self.package_filter = package_filter
@@ -433,12 +542,27 @@ class _PackageVariantList(_Common):
         # during an intersection, which minimises the amount of filtering.
         it = iter_packages(self.package_name, paths=self.package_paths)
 
-        entries = ([x.version, x] for x in it)
-        self.entries = sorted(entries, key=lambda x: x[0], reverse=True)
-        if not self.entries:
+        # similarly, we don't sort yet, so we don't need to look for a custom
+        # "version_sort_order", and can avoid loading the family data until
+        # needed
+        self._unsorted_entries = [[x.version, x] for x in it]
+        if not self._unsorted_entries:
             raise PackageFamilyNotFoundError(
                 "package family not found: %s (searched: %s)"
                 % (package_name, "; ".join(self.package_paths)))
+
+        if sort_key_cache is None:
+            sort_key_cache = {}
+        self.sort_key_cache = sort_key_cache
+
+    @cached_property
+    def entries(self):
+        def sort_key(entry):
+            version, package = entry
+            return _package_version_sort_key(package.name, version,
+                                             self.sort_key_cache)
+
+        return sorted(self._unsorted_entries, key=sort_key, reverse=True)
 
     def get_intersection(self, range):
         """Get a list of variants that intersect with the given range.
@@ -517,7 +641,8 @@ def _short_req_str(package_request):
 
 class _PackageVariantSlice(_Common):
     """A subset of a variant list, but with more dependency-related info."""
-    def __init__(self, package_name, variants, printer=None):
+    def __init__(self, package_name, variants, printer=None,
+                 sort_key_cache=None):
         self.package_name = package_name
         self.variants = variants
         self.pr = printer
@@ -528,12 +653,20 @@ class _PackageVariantSlice(_Common):
         self.fam_requires = None
         self.common_fams = None
 
+        if sort_key_cache is None:
+            sort_key_cache = {}
+        self.sort_key_cache = sort_key_cache
+
         self._update()
 
     @property
     def extractable(self):
         """True if there are possible remaining extractions."""
         return not self.extracted_fams.issuperset(self.common_fams)
+
+    @cached_property
+    def has_custom_version_priority(self):
+        return self.package_name in config.version_priority
 
     def intersect(self, range):
         """Remove variants whos version fall outside of the given range."""
@@ -545,7 +678,15 @@ class _PackageVariantSlice(_Common):
 
         variants = []
         it = groupby(self.variants, lambda x: x.version)
-        it2 = range.contains_versions(it, key=lambda x: x[0], descending=True)
+        if self.has_custom_version_priority:
+            # if we're using custom priorities, then the order of self.variants
+            # may not be in standard version order, so we can't use
+            # range.contains_versions (which requires items to be pre-sorted by
+            # version)
+            it2 = ((range.contains_version(x[0]), x) for x in it)
+        else:
+            it2 = range.contains_versions(it, key=lambda x: x[0], descending=True)
+
         for contains, (_, variants_) in it2:
             if contains:
                 variants.extend(variants_)
@@ -672,8 +813,8 @@ class _PackageVariantSlice(_Common):
         version_priority:
         - sort by highest versions of packages shared with request;
         - THEN least number of additional packages added to solve;
-        - THEN highest versions of additional packages;
         - THEN alphabetical on name of additional packages;
+        - THEN highest versions of additional packages;
         - THEN variant index.
 
         intersection_priority:
@@ -688,6 +829,11 @@ class _PackageVariantSlice(_Common):
 
         Note:
             Assumes self.variants is already in version-descending order.
+
+        Note:
+            For the purposes of this sorting, "higest versions" may be
+            customized by the "version_priority" config setting,
+            on a per-family basis
         """
         def key(variant):
             requested_key = []
@@ -696,15 +842,22 @@ class _PackageVariantSlice(_Common):
                 if not request.conflict:
                     req = variant.requires_list.get(request.name)
                     if req is not None:
-                        requested_key.append((-i, req.range))
+                        range_key = _package_version_sort_key(request.name,
+                                                              req.range,
+                                                              self.sort_key_cache)
+                        requested_key.append((-i, range_key))
                         names.add(req.name)
 
             additional_key = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    additional_key.append((request.range, request.name))
+                    range_key = _package_version_sort_key(request.name,
+                                                          request.range,
+                                                          self.sort_key_cache)
+                    additional_key.append(range_key)
 
-            if config.variant_select_mode == VariantSelectMode.version_priority:
+            if (VariantSelectMode[config.variant_select_mode] ==
+                    VariantSelectMode.version_priority):
                 k = (requested_key,
                      -len(additional_key),
                      additional_key,
@@ -796,6 +949,7 @@ class PackageVariantCache(object):
         self.building = building
         self.package_load_callback = package_load_callback
         self.variant_lists = {}  # {package-name: _PackageVariantList}
+        self.sort_key_cache = {}
 
     def get_variant_slice(self, package_name, range):
         """Get a list of variants from the cache.
@@ -814,14 +968,16 @@ class PackageVariantCache(object):
                 package_paths=self.package_paths,
                 package_filter=self.package_filter,
                 building=self.building,
-                package_load_callback=self.package_load_callback)
+                package_load_callback=self.package_load_callback,
+                sort_key_cache=self.sort_key_cache)
             self.variant_lists[package_name] = variant_list
 
         variants = variant_list.get_intersection(range)
         if not variants:
             return None
 
-        slice_ = _PackageVariantSlice(package_name, variants=variants)
+        slice_ = _PackageVariantSlice(package_name, variants=variants,
+                                      sort_key_cache=self.sort_key_cache)
         return slice_
 
 

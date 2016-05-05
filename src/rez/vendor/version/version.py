@@ -34,6 +34,44 @@ class _Comparable(_Common):
         raise NotImplementedError
 
 
+class _SortKeyComparable(_Comparable):
+    def _sort_key(self):
+        """Should return a tuple (sort_type, sort_key) used to determine
+        ordering
+
+        Both objects being compared must have the same sort_type, or else they
+        will return NotImplemented
+
+        If they have the same sort_type, then they are compared using the
+        sort_key
+        """
+        raise NotImplementedError
+
+    def __lt__(self, other):
+        this_type, this_key = self._sort_key()
+        other_type, other_key = other._sort_key()
+        if this_type != other_type:
+            return NotImplemented
+        return this_key < other_key
+
+    def __gt__(self, other):
+        this_type, this_key = self._sort_key()
+        other_type, other_key = other._sort_key()
+        if this_type != other_type:
+            return NotImplemented
+        return this_key > other_key
+
+    def __eq__(self, other):
+        this_type, this_key = self._sort_key()
+        other_type, other_key = other._sort_key()
+        if this_type != other_type:
+            return NotImplemented
+        return this_key == other_key
+
+    def __hash__(self):
+        return hash(self._sort_key())
+
+
 class VersionToken(_Comparable):
     """Token within a version number.
 
@@ -79,7 +117,7 @@ class VersionToken(_Comparable):
         return self.less_than(other)
 
     def __eq__(self, other):
-        return (not self < other) and (not other < self)
+        raise NotImplementedError
 
 
 class NumericToken(VersionToken):
@@ -102,6 +140,9 @@ class NumericToken(VersionToken):
 
     def __str__(self):
         return str(self.n)
+
+    def __eq__(self, other):
+        return self.n == other.n
 
     def less_than(self, other):
         return (self.n < other.n)
@@ -174,6 +215,9 @@ class AlphanumericVersionToken(VersionToken):
 
     def __str__(self):
         return ''.join(map(str, self.subtokens))
+
+    def __eq__(self, other):
+        return self.subtokens == other.subtokens
 
     def less_than(self, other):
         return (self.subtokens < other.subtokens)
@@ -254,7 +298,7 @@ class Version(_Comparable):
 
     def copy(self):
         """Returns a copy of the version."""
-        other = Version(None)
+        other = type(self)(None)
         other.tokens = self.tokens[:]
         other.seps = self.seps[:]
         return other
@@ -266,7 +310,7 @@ class Version(_Comparable):
             len_ (int): New version length. If >= current length, an
                 unchanged copy of the version is returned.
         """
-        other = Version(None)
+        other = type(self)(None)
         other.tokens = self.tokens[:len_]
         other.seps = self.seps[:len_ - 1]
         return other
@@ -279,7 +323,7 @@ class Version(_Comparable):
             other.tokens.append(tok.next())
             return other
         else:
-            return Version.inf
+            return type(self).inf
 
     @property
     def major(self):
@@ -333,7 +377,7 @@ Version.inf = Version()
 Version.inf.tokens = None
 
 
-class _LowerBound(_Comparable):
+class _LowerBound(_SortKeyComparable):
     min = None
 
     def __init__(self, version, inclusive):
@@ -347,17 +391,8 @@ class _LowerBound(_Comparable):
         else:
             return '' if self.inclusive else ">"
 
-    def __eq__(self, other):
-        return (self.version == other.version) \
-            and (self.inclusive == other.inclusive)
-
-    def __lt__(self, other):
-        return (self.version < other.version) \
-            or ((self.version == other.version)
-                and (self.inclusive and not other.inclusive))
-
-    def __hash__(self):
-        return hash((self.version, self.inclusive))
+    def _sort_key(self):
+        return 'lower_bound', (self.version, -2 if self.inclusive else -1)
 
     def contains_version(self, version):
         return (version > self.version) \
@@ -366,7 +401,7 @@ class _LowerBound(_Comparable):
 _LowerBound.min = _LowerBound(Version(), True)
 
 
-class _UpperBound(_Comparable):
+class _UpperBound(_SortKeyComparable):
     inf = None
 
     def __init__(self, version, inclusive):
@@ -379,17 +414,8 @@ class _UpperBound(_Comparable):
         s = "<=%s" if self.inclusive else "<%s"
         return s % self.version
 
-    def __eq__(self, other):
-        return (self.version == other.version) \
-            and (self.inclusive == other.inclusive)
-
-    def __lt__(self, other):
-        return (self.version < other.version) \
-            or ((self.version == other.version)
-                and (not self.inclusive and other.inclusive))
-
-    def __hash__(self):
-        return hash((self.version, self.inclusive))
+    def _sort_key(self):
+        return 'upper_bound', (self.version, 2 if self.inclusive else 1)
 
     def contains_version(self, version):
         return (version < self.version) \
@@ -398,7 +424,7 @@ class _UpperBound(_Comparable):
 _UpperBound.inf = _UpperBound(Version.inf, True)
 
 
-class _Bound(_Comparable):
+class _Bound(_SortKeyComparable):
     any = None
 
     def __init__(self, lower=None, upper=None):
@@ -425,14 +451,8 @@ class _Bound(_Comparable):
         else:
             return "%s%s" % (self.lower, self.upper)
 
-    def __eq__(self, other):
-        return (self.lower == other.lower) and (self.upper == other.upper)
-
-    def __lt__(self, other):
-        return (self.lower, self.upper) < (other.lower, other.upper)
-
-    def __hash__(self):
-        return hash((self.lower, self.upper))
+    def _sort_key(self):
+        return 'bound', (self.lower, self.upper)
 
     def lower_bounded(self):
         return (self.lower != _LowerBound.min)
