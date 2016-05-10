@@ -117,11 +117,8 @@ class CMD(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-#                ex.info('')
-#                ex.info('You are now in a rez-configured environment.')
-#                ex.info('')
                 if system.is_production_rez_install:
-                    ex.command("cmd /Q /K rezolve context")
+                    ex.command("cmd /Q /C rezolve context")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
@@ -143,7 +140,6 @@ class CMD(Shell):
 
         if shell_command:
             executor.command(shell_command)
-        executor.command('exit %errorlevel%')
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
