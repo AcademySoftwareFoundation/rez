@@ -36,6 +36,8 @@ import os
 # Paths
 ###############################################################################
 
+### Do not move or delete this comment (__DOC_START__)
+
 # The package search path. Rez uses this to find packages. A package with the
 # same name and version in an earlier path takes precedence.
 packages_path = [
@@ -148,11 +150,11 @@ variant_select_mode = "version_priority"
 # during a resolve, and if any filter excludes a package, that package is not
 # included in the resolve. Here is a simple example:
 #
-# package_filter:
-#     excludes:
-#     - glob(*.beta)
-#     includes:
-#     - glob(foo-*)
+#     package_filter:
+#         excludes:
+#         - glob(*.beta)
+#         includes:
+#         - glob(foo-*)
 #
 # This is an example of a single filter with one exclusion rule and one inclusion
 # rule. The filter will ignore all packages with versions ending in '.beta',
@@ -165,13 +167,13 @@ variant_select_mode = "version_priority"
 # use multiple filters, you need to supply a list of dicts, rather than just a
 # dict:
 #
-# package_filter:
-# - excludes:
-#   - glob(*.beta)
-# - excludes:
-#   - after(1429830188)
-#   includes:
-#   - foo  # same as range(foo), same as glob(foo-*)
+#     package_filter:
+#     - excludes:
+#       - glob(*.beta)
+#     - excludes:
+#       - after(1429830188)
+#       includes:
+#       - foo  # same as range(foo), same as glob(foo-*)
 #
 # This example shows why multiple filters are supported - with only one filter,
 # it would not be possible to exclude all beta packages (including foo), but also
@@ -179,13 +181,15 @@ variant_select_mode = "version_priority"
 #
 # Following are examples of all the possible rules:
 #
-# glob(*.beta)          Matches packages matching the glob pattern.
-# regex(.*-\\.beta)     Matches packages matching re-style regex.
-# requirement(foo-5+)   Matches packages within the given requirement.
-# before(1429830188)    Matches packages released before the given date.
-# after(1429830188)     Matches packages released after the given date.
-# *.beta                Same as glob(*.beta)
-# foo-5+                Same as range(foo-5+)
+# example             | description
+# --------------------|----------------------------------------------------
+# glob(*.beta)        | Matches packages matching the glob pattern.
+# regex(.*-\\.beta)   | Matches packages matching re-style regex.
+# requirement(foo-5+) | Matches packages within the given requirement.
+# before(1429830188)  | Matches packages released before the given date.
+# after(1429830188)   | Matches packages released after the given date.
+# *.beta              | Same as glob(*.beta)
+# foo-5+              | Same as range(foo-5+)
 package_filter = None
 
 
@@ -198,6 +202,7 @@ package_filter = None
 # For example, if PYTHONPATH were to be appended to and not overwritten, then
 # python modules from the parent environment would be (incorrectly) accessible
 # within the Rez environment.
+#
 # "Parent variables" override this behaviour - they are appended/prepended to,
 # rather than being overwritten. If you set "all_parent_variables" to true, then
 # all variables are considered parent variables, and the value of "parent_variables"
@@ -424,74 +429,6 @@ rxt_as_yaml = True
 
 
 ###############################################################################
-# Colorization
-###############################################################################
-
-# The following settings provide styling information for output to the console,
-# and is based on the capabilities of the Colorama module
-# (https://pypi.python.org/pypi/colorama).
-#
-# *_fore and *_back colors are based on the colors supported by this module and
-# the console. One or more styles can be applied using the *_styles
-# configuration. These settings will also affect the logger used by rez.
-#
-# At the time of writing, valid values are:
-# fore/back: black, red, green, yellow, blue, magenta, cyan, white
-# style: dim, normal, bright
-
-# Enables/disables colorization globally.
-# Note: Turned off for Windows currently as there seems to be a problem with
-# the Colorama module.
-color_enabled = (os.name == "posix")
-
-#------------------------------------------------------------------------------
-# Logging colors
-#------------------------------------------------------------------------------
-critical_fore = "red"
-critical_back = None
-critical_styles = ["bright"]
-
-error_fore = "red"
-error_back = None
-error_styles = None
-
-warning_fore = "yellow"
-warning_back = None
-warning_styles = None
-
-info_fore = None
-info_back = None
-info_styles = None
-
-debug_fore = "blue"
-debug_back = None
-debug_styles = None
-
-#------------------------------------------------------------------------------
-# Context-sensitive colors
-#------------------------------------------------------------------------------
-# Heading
-heading_fore = None
-heading_back = None
-heading_styles = ["bright"]
-
-# Local packages
-local_fore = "green"
-local_back = None
-local_styles = None
-
-# Implicit packages
-implicit_fore = "cyan"
-implicit_back = None
-implicit_styles = None
-
-# Tool aliases in suites
-alias_fore = "cyan"
-alias_back = None
-alias_styles = None
-
-
-###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
 
@@ -535,23 +472,25 @@ error_commands2 = False
 # If True, Rez will continue to generate the given environment variables in
 # resolved environments, even though their use has been deprecated in Rez-2.
 # The variables in question, and their Rez-2 equivalent (if any) are:
-#   REZ-1               REZ-2
-#   -----               -----
-#   REZ_REQUEST         REZ_USED_REQUEST
-#   REZ_RESOLVE         REZ_USED_RESOLVE
-#   REZ_VERSION         REZ_USED_VERSION
-#   REZ_PATH            REZ_USED
-#   REZ_RESOLVE_MODE    not set
-#   REZ_RAW_REQUEST     not set
-#   REZ_IN_REZ_RELEASE  not set
+#
+# REZ-1              | REZ-2
+# -------------------|-----------------
+# REZ_REQUEST        | REZ_USED_REQUEST
+# REZ_RESOLVE        | REZ_USED_RESOLVE
+# REZ_VERSION        | REZ_USED_VERSION
+# REZ_PATH           | REZ_USED
+# REZ_RESOLVE_MODE   | not set
+# REZ_RAW_REQUEST    | not set
+# REZ_IN_REZ_RELEASE | not set
 rez_1_environment_variables = True
 
 # If True, Rez will continue to generate the given CMake variables at build and
 # release time, even though their use has been deprecated in Rez-2.  The
 # variables in question, and their Rez-2 equivalent (if any) are:
-#   REZ-1               REZ-2
-#   -----               -----
-#   CENTRAL             REZ_BUILD_TYPE
+#
+# REZ-1   | REZ-2
+# --------|---------------
+# CENTRAL | REZ_BUILD_TYPE
 rez_1_cmake_variables = True
 
 # If True, override all compatibility-related settings so that Rez-1 support is
@@ -571,6 +510,74 @@ disable_rez_1_compatibility = False
 
 # Where Rez's own documentation is hosted
 documentation_url = " http://nerdvegas.github.io/rez/"
+
+
+###############################################################################
+# Colorization
+###############################################################################
+
+# The following settings provide styling information for output to the console,
+# and is based on the capabilities of the Colorama module
+# (https://pypi.python.org/pypi/colorama).
+#
+# *_fore and *_back colors are based on the colors supported by this module and
+# the console. One or more styles can be applied using the *_styles
+# configuration. These settings will also affect the logger used by rez.
+#
+# At the time of writing, valid values are:
+# fore/back: black, red, green, yellow, blue, magenta, cyan, white
+# style: dim, normal, bright
+
+# Enables/disables colorization globally.
+# Note: Turned off for Windows currently as there seems to be a problem with
+# the Colorama module.
+color_enabled = (os.name == "posix")
+
+### Do not move or delete this comment (__DOC_END__)
+
+# Logging colors
+#------------------------------------------------------------------------------
+critical_fore = "red"
+critical_back = None
+critical_styles = ["bright"]
+
+error_fore = "red"
+error_back = None
+error_styles = None
+
+warning_fore = "yellow"
+warning_back = None
+warning_styles = None
+
+info_fore = None
+info_back = None
+info_styles = None
+
+debug_fore = "blue"
+debug_back = None
+debug_styles = None
+
+# Context-sensitive colors
+#------------------------------------------------------------------------------
+# Heading
+heading_fore = None
+heading_back = None
+heading_styles = ["bright"]
+
+# Local packages
+local_fore = "green"
+local_back = None
+local_styles = None
+
+# Implicit packages
+implicit_fore = "cyan"
+implicit_back = None
+implicit_styles = None
+
+# Tool aliases in suites
+alias_fore = "cyan"
+alias_back = None
+alias_styles = None
 
 
 ###############################################################################
