@@ -119,16 +119,29 @@ class CommandReleaseHook(ReleaseHook):
         self._execute_commands(self.settings.post_release_commands,
                                install_path=install_path,
                                package=package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
         if errors:
             print_debug("The following post-release commands failed:\n"
                         + '\n\n'.join(errors))
 
-    def _execute_commands(self, commands, install_path, package, errors=None):
+    def _execute_commands(self, commands, install_path, package, errors=None,
+                          variants=None):
         release_dict = dict(path=install_path)
+        variant_dicts = []
+        if variants:
+            package = variants[0].parent
+            for variant in variants:
+                var_dict = dict(variant.resource.variables)
+                # using '%s' will preserve potential str/unicode nature
+                var_dict['variant_requires'] = ['%s' % x
+                                                for x in variant.resource.variant_requires]
+                variant_dicts.append(var_dict)
         formatter = scoped_formatter(system=system,
                                      release=release_dict,
-                                     package=package)
+                                     package=package,
+                                     variants=variant_dicts,
+                                     num_variants=len(variant_dicts))
 
         for conf in commands:
             program = conf["command"]
