@@ -453,13 +453,14 @@ def expanduser(path):
     `expanduser` method which can only expand '~'.  Others the path is returned
     without expansion applied."""
     if os.name == "nt":
-        userpath = path
         if not path.startswith('~'):
             return path
 
-        i = path.find(os.path.sep, 1)
+        # normalize the path to avoid having to check for os.altsep as well
+        userpath = os.path.normpath(path)
+        i = userpath.find(os.path.sep, 1)
         if i < 0:
-            i = len(path)
+            i = len(userpath)
         if i != 1:
             return path
 
@@ -475,7 +476,7 @@ def expanduser(path):
             except KeyError:
                 drive = ''
             userhome = os.path.join(drive, os.environ['HOMEPATH'])
-        userpath = userhome + path[i:]
+        userpath = userhome + userpath[i:]
 
     else:
         userpath = os.path.expanduser(path)

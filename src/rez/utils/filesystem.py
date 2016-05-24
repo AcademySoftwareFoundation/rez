@@ -10,6 +10,7 @@ import shutil
 import os
 import re
 import stat
+import atexit
 
 
 class TempDirs(object):
@@ -19,6 +20,12 @@ class TempDirs(object):
         self.prefix = prefix
         self.dirs = set()
         self.lock = Lock()
+        # previous version overloaded TempDirs.__del__ in an unsafe manner;
+        # the __del__ method is not guaranteed to be called before sys.modules begins
+        # breaking down, so the os.path call was failing with a muted AttributeError,
+        # leaving the directory on disk even when the program exited normally; by registering
+        # an atexit callback we should ensure the directories are cleared at shutdown
+        atexit.register(self.clear)
 
     def mkdtemp(self, cleanup=True):
         path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
@@ -37,9 +44,6 @@ class TempDirs(object):
         for path in dirs:
             if os.path.exists(path):
                 shutil.rmtree(path)
-
-    def __del__(self):
-        self.clear()
 
 
 def is_subdirectory(path_a, path_b):
