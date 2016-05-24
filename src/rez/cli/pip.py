@@ -22,9 +22,9 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package
 
     if opts.py_ver:
-        pyvers = opts.py_ver.strip(',').split(',')
+        py_vers = opts.py_ver.strip(',').split(',')
     else:
-        pyvers = None
+        py_vers = None
 
     pip_install_package(opts.PACKAGE,
                         pip_version=opts.pip_ver,
