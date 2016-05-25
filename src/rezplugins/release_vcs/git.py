@@ -43,6 +43,25 @@ class GitReleaseVCS(ReleaseVCS):
         return True
 
     def git(self, *nargs):
+        found_work_tree = False
+        found_git_dir = False
+        WORK_TREE = '--work-tree='
+        GIT_DIR = '--git-dir='
+        for arg in nargs:
+            if not found_work_tree and arg.startswith(WORK_TREE):
+                found_work_tree = True
+                if found_git_dir:
+                    break
+            if not found_git_dir and arg.startswith(GIT_DIR):
+                found_git_dir = True
+                if found_work_tree:
+                    break
+
+        if not found_work_tree:
+            nargs = (WORK_TREE + self.vcs_root,) + nargs
+        if not found_git_dir:
+            nargs = (GIT_DIR + os.path.join(self.vcs_root, '.git'),) + nargs
+
         return self._cmd(self.executable, *nargs)
 
     def get_relative_to_remote(self):
