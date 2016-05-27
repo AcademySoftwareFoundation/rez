@@ -752,3 +752,19 @@ def _FWD__invoke_suite_tool_alias(context_name, tool_name, prefix_char=None,
     w._init(suite_path, context_name, context, tool_name, prefix_char)
     retcode = w.run(*(_cli_args or []))
     sys.exit(retcode)
+
+
+# Copyright 2016 Allan Johns.
+# 
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+# 
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
