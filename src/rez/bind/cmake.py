@@ -18,10 +18,10 @@ def setup_parser(parser):
 def commands():
     env.PATH.append('{this.root}/bin')
 
-
 def bind(path, version_range=None, opts=None, parser=None):
     exepath = find_exe("cmake", getattr(opts, "exe", None))
-    version = extract_version(exepath, "--version")
+    version = extract_version(exepath, "--version",
+                              word_index=2 if os.name == "nt" else -1)
     check_version(version, version_range)
 
     def make_root(variant, root):
