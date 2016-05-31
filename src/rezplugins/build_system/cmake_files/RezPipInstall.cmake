@@ -70,6 +70,9 @@ macro (rez_pip_install)
         set(install_cmd "")
     endif()
 
+    # PIP on Windows doesn't like forward slashes for the --install-scripts argument
+    file(TO_NATIVE_PATH ${destbinpath} destbinpath)
+
     ExternalProject_add(
         ${label}
         URL ${url}
