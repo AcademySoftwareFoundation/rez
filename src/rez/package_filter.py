@@ -64,16 +64,7 @@ class PackageFilterBase(object):
                 yield package
 
     @property
-    def hash(self):
-        """Get a hash of the filter.
-
-        This is needed because package filters are incorporate into memcached
-        keys for cached resolves. The actual filter contents are not used because
-        they are unbounded - the total number of rules in a filter could be high.
-
-        Returns:
-            str: hash value.
-        """
+    def sha1(self):
         return sha1(str(self)).hexdigest()
 
     def __repr__(self):
@@ -204,7 +195,7 @@ class PackageFilter(PackageFilterBase):
 
     def __str__(self):
         return str((sorted(self._excludes.items()),
-                   sorted(self._includes.items())))
+                    sorted(self._includes.items())))
 
 
 class PackageFilterList(PackageFilterBase):

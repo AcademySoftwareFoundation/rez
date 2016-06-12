@@ -406,8 +406,8 @@ class TestVersionSchema(unittest.TestCase):
                 matches_ = set(version for contains, version in it if contains)
                 self.assertEqual(matches_, matches)
 
-            _test_it(range_.contains_versions(versions))
-            _test_it(range_.contains_versions(rev_versions, descending=True))
+            _test_it(range_.iter_intersect_test(versions))
+            _test_it(range_.iter_intersect_test(rev_versions, descending=True))
 
             # throw in an intersection test
             self.assertEqual(composite_range.intersects(range_), (count != 0))

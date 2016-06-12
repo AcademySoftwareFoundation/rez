@@ -139,7 +139,7 @@ def write_dot(g):
 
         label = str(g.edge_label(e))
         if label:
-            attrs["label"] = label
+            attrs.append(("label", label))
 
         atxt = attrs_txt(attrs)
         txt = "%s -> %s %s;" % (edge_from, edge_to, atxt)

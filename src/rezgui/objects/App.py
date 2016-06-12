@@ -62,23 +62,6 @@ class App(QtGui.QApplication):
                 QtGui.QApplication.restoreOverrideCursor()
 
         if context:
-            with self.status("Validating %s..." % filepath):
-                QtGui.QApplication.setOverrideCursor(busy_cursor)
-                error = None
-
-                try:
-                    context.validate()
-                except ResolvedContextError as e:
-                    error = str(e)
-                finally:
-                    QtGui.QApplication.restoreOverrideCursor()
-
-                if error:
-                    QtGui.QMessageBox.critical(
-                        self.main_window, "Context validation failure", error)
-                    context = None
-
-        if context:
             path = os.path.realpath(filepath)
             self.config.prepend_string_list("most_recent_contexts", path,
                                             "max_most_recent_contexts")
@@ -90,6 +73,7 @@ class App(QtGui.QApplication):
         # here will have a prompt like '>>'. It's not incorrect, but it is a
         # bit misleading, from this floating shell you can't exit back into the
         # calling rez environ. So here we force back to '>'.
+        #
         env = os.environ.copy()
         if "REZ_ENV_PROMPT" in env:
             del env["REZ_ENV_PROMPT"]

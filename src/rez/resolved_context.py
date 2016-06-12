@@ -13,6 +13,7 @@ from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
+from rez import package_order
 from rez.packages_ import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
@@ -108,7 +109,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 1)
+    serialize_version = (4, 2)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     class Callback(object):
@@ -134,9 +135,9 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 package_filter=None, add_implicit_packages=True, max_fails=-1,
-                 time_limit=-1, callback=None, package_load_callback=None,
-                 buf=None):
+                 package_filter=None, package_orderers=None, max_fails=-1,
+                 add_implicit_packages=True, time_limit=-1, callback=None,
+                 package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -154,6 +155,8 @@ class ResolvedContext(object):
             package_filter (`PackageFilterBase`): Filter used to exclude certain
                 packages. Defaults to settings from config.package_filter. Use
                 `package_filter.no_filter` to remove all filtering.
+            package_orderers (list of `PackageOrderFunction`): Custom package
+                ordering.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -194,6 +197,8 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
+        self.package_orderers = package_orderers
+
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
         self.patch_locks = {}
@@ -233,6 +238,7 @@ class ResolvedContext(object):
         resolver = Resolver(package_requests=request,
                             package_paths=self.package_paths,
                             package_filter=self.package_filter,
+                            package_orderers=self.package_orderers,
                             timestamp=self.requested_timestamp,
                             building=self.building,
                             caching=self.caching,
@@ -1203,6 +1209,9 @@ class ResolvedContext(object):
         serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
 
+        package_orderers_list = [package_order.to_pod(x)
+                                 for x in (self.package_orderers or [])]
+
         if self.graph_string and self.graph_string.startswith('{'):
             graph_str = self.graph_string  # already in compact format
         else:
@@ -1220,6 +1229,7 @@ class ResolvedContext(object):
             package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
             package_filter=self.package_filter.to_pod(),
+            package_orderers=package_orderers_list or None,
 
             default_patch_lock=self.default_patch_lock.name,
             patch_locks=patch_locks,
@@ -1293,6 +1303,7 @@ class ResolvedContext(object):
         r.arch = d["arch"]
         r.os = d["os"]
         r.created = d["created"]
+        r.verbosity = d.get("verbosity", 0)
 
         r.status_ = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]
@@ -1336,6 +1347,14 @@ class ResolvedContext(object):
 
         data = d.get("package_filter", [])
         r.package_filter = PackageFilterList.from_pod(data)
+
+        # -- SINCE SERIALIZE VERSION 4.2
+
+        data = d.get("package_orderers")
+        if data:
+            r.package_orderers = [package_order.from_pod(x) for x in data]
+        else:
+            r.package_orderers = None
 
         return r
 

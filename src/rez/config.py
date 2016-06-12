@@ -270,6 +270,7 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
+    "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "color_enabled":                                Bool,
     "resolve_caching":                              Bool,
