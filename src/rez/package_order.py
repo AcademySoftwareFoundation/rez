@@ -2,7 +2,7 @@ from inspect import isclass
 from hashlib import sha1
 
 
-class PackageOrderFunction(object):
+class PackageOrder(object):
     """Package reorderer base class."""
     name = None
 
@@ -36,7 +36,7 @@ class PackageOrderFunction(object):
         return "%s(%s)" % (self.__class__.__name__, str(self))
 
 
-class TimestampPackageOrderFunction(PackageOrderFunction):
+class TimestampPackageOrder(PackageOrder):
     """A timestamp order function.
 
     Given a time T, this orderer returns packages released before T, in descending
@@ -172,7 +172,7 @@ def from_pod(data):
 
 
 def register_orderer(cls):
-    if isclass(cls) and issubclass(cls, PackageOrderFunction) and \
+    if isclass(cls) and issubclass(cls, PackageOrder) and \
             hasattr(cls, "name") and cls.name:
         _orderers[cls.name] = cls
         return True

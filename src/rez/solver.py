@@ -1759,8 +1759,7 @@ class Solver(_Common):
                 request.
             package_paths: List of paths to search for pkgs.
             package_filter (`PackageFilterBase`): Filter for excluding packages.
-            package_orderers (list of `PackageOrderFunction`): Custom package
-                ordering.
+            package_orderers (list of `PackageOrder`): Custom package ordering.
             building: True if we're resolving for a build.
             optimised: Run the solver in optimised mode. This is only ever set
                 to False for testing purposes.

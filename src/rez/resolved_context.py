@@ -155,8 +155,7 @@ class ResolvedContext(object):
             package_filter (`PackageFilterBase`): Filter used to exclude certain
                 packages. Defaults to settings from config.package_filter. Use
                 `package_filter.no_filter` to remove all filtering.
-            package_orderers (list of `PackageOrderFunction`): Custom package
-                ordering.
+            package_orderers (list of `PackageOrder`): Custom package ordering.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -1570,16 +1569,16 @@ class ResolvedContext(object):
 
 
 # Copyright 2016 Allan Johns.
-# 
+#
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation, either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
