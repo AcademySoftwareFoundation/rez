@@ -72,10 +72,11 @@ context_tmpdir = None
 # Extensions
 ###############################################################################
 
-# Search path for plugins
+# Search path for rez plugins.
 plugin_path = []
 
-# Search path for bind modules
+# Search path for bind modules. The *rez-bind* tool uses these modules to create
+# rez packages that reference existing software already installed on the system.
 bind_module_path = []
 
 
@@ -83,13 +84,19 @@ bind_module_path = []
 # Caching
 ###############################################################################
 
-# Use available caching mechanisms to speed up resolves when applicable.
+# Cache resolves to memcached, if enabled. Note that these cache entries will be
+# correctly invalidated if, for example, a newer package version is released that
+# would change the result of an existing resolve.
 resolve_caching = True
 
-# Cache package file reads
+# Cache package file reads to memcached, if enabled. Updated package files will
+# still be read correctly (ie, the cache invalidates when the filesystem
+# changes).
 cache_package_files = True
 
-# Cache directory traversals
+# Cache directory traversals to memcached, if enabled. Updated directory entries
+# will still be read correctly (ie, the cache invalidates when the filesystem
+# changes).
 cache_listdir = True
 
 # The size of the local (in-process) resource cache. Resources include package
