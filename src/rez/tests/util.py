@@ -84,7 +84,12 @@ def shell_dependent(exclude=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            for shell in get_shell_types():
+            shells = get_shell_types()
+            only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+            if only_shell:
+                shells = [only_shell]
+
+            for shell in shells:
                 if exclude and shell in exclude:
                     self.skipTest("This test does not run on %s shell." % shell)
                 print "\ntesting in shell: %s..." % shell
@@ -108,16 +113,16 @@ def install_dependent(fn):
 
 
 # Copyright 2016 Allan Johns.
-# 
+#
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation, either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.
