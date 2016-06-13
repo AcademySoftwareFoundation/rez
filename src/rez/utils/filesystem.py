@@ -3,6 +3,8 @@ Filesystem-related utilities.
 """
 from threading import Lock
 from tempfile import mkdtemp
+import weakref
+import atexit
 import posixpath
 import ntpath
 import os.path
@@ -13,36 +15,59 @@ import stat
 
 
 class TempDirs(object):
-    """Tempdir manager."""
+    """Tempdir manager.
+
+    Makes tmpdirs and ensures they're cleaned up on program exit.
+    """
+    instances_lock = Lock()
+    instances = []
+
     def __init__(self, tmpdir, prefix="rez_"):
         self.tmpdir = tmpdir
         self.prefix = prefix
         self.dirs = set()
         self.lock = Lock()
 
+        with TempDirs.instances_lock:
+            TempDirs.instances.append(weakref.ref(self))
+
     def mkdtemp(self, cleanup=True):
         path = mkdtemp(dir=self.tmpdir, prefix=self.prefix)
         if not cleanup:
             return path
 
-        try:
-            self.lock.acquire()
+        with self.lock:
             self.dirs.add(path)
-        finally:
-            self.lock.release()
+
         return path
 
+    def __del__(self):
+        self.clear()
+
     def clear(self):
-        dirs = self.dirs
+        with self.lock:
+            if not self.dirs:
+                return
+
+            dirs = self.dirs
+            self.dirs = set()
+
         for path in dirs:
             if os.path.exists(path):
                 shutil.rmtree(path)
 
-    def __del__(self):
-        try:
-            self.clear()
-        except:
-            pass  # no big deal if tmpdirs left over
+    @classmethod
+    def clear_all(cls):
+        with TempDirs.instances_lock:
+            instances = cls.instances[:]
+
+        for ref in instances:
+            instance = ref()
+            if instance is not None:
+                instance.clear()
+
+
+atexit.register(TempDirs.clear_all)
 
 
 def is_subdirectory(path_a, path_b):

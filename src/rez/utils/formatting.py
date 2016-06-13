@@ -7,6 +7,7 @@ from rez.vendor.version.requirement import Requirement
 from rez.exceptions import PackageRequestError
 from pprint import pformat
 import os
+import os.path
 import re
 import time
 
@@ -427,58 +428,50 @@ def positional_number_string(n):
 
 
 def expanduser(path):
-    """Expand paths beginning with '~'.
+    """Expand '~' to home directory in the given string.
 
-    True story... the implementation of os.path.expanduser differs between
-    Windows (nt) and Linux (posix).  On posix platforms the `pwd` module is
-    used so '~foo' will only expand if 'foo' is a valid user.  This is nice. On
-    nt platforms the same check is not made - the '~' is always expanded based
-    using string manipulation and environment variables.  This is bad.
+    Note that this function deliberately differs from the builtin
+    os.path.expanduser() on Linux systems, which expands strings such as
+    '~sclaus' to that user's homedir. This is problematic in rez because the
+    string '~packagename' may inadvertently convert to a homedir, if a package
+    happens to match a username.
+    """
+    if '~' not in path:
+        return path
 
-    As a result, due to the way expansion is hard wired into the `config`
-    module this means weak implicit packages (for example) in the config are
-    expanded from '~os=={system.os}' to 'C:/Users/os=={system.os}' on nt
-    platforms.
-
-    Ideally, `PathStrList` based `Settings` would be the only setting type to
-    use the `os.path.expanduser` method, thereby making it explicit that this
-    level of expansion should take place.  This works for the main `Config`
-    class however `_PluginConfig` follows a different code path that makes this
-    all but impossible without a larger refactor (see comment in `_to_schema`
-    method).  Therefore, to keep the behaviour consistent across all types of
-    configuration and platform we change the os.path.expanduser implementation.
-
-    As it is highly unlikely we should need to refer to someone else's home
-    directory (thereby triggering the above 'feature') we use a custom
-    `expanduser` method which can only expand '~'.  Others the path is returned
-    without expansion applied."""
     if os.name == "nt":
-        userpath = path
-        if not path.startswith('~'):
-            return path
-
-        i = path.find(os.path.sep, 1)
-        if i < 0:
-            i = len(path)
-        if i != 1:
-            return path
-
         if 'HOME' in os.environ:
             userhome = os.environ['HOME']
         elif 'USERPROFILE' in os.environ:
             userhome = os.environ['USERPROFILE']
-        elif not 'HOMEPATH' in os.environ:
-            return path
-        else:
-            try:
-                drive = os.environ['HOMEDRIVE']
-            except KeyError:
-                drive = ''
+        elif 'HOMEPATH' in os.environ:
+            drive = os.environ.get('HOMEDRIVE', '')
             userhome = os.path.join(drive, os.environ['HOMEPATH'])
-        userpath = userhome + path[i:]
-
+        else:
+            return path
     else:
-        userpath = os.path.expanduser(path)
+        userhome = os.path.expanduser('~')
+
+    # only replace '~' if it's at start of string or is preceeded by pathsep or
+    # ';' or whitespace; AND, is followed either by sep, pathsep, ';', ' ' or
+    # end-of-string.
+    #
+    userpath = path
+    i = len(path)
+
+    while True:
+        i = userpath.rfind('~', 0, i)
+        if i == -1:
+            break
+
+        if i and userpath[i - 1] not in (' ', '\t', ';', os.pathsep):
+            continue
+
+        if i < (len(userpath) - 1) \
+                and userpath[i + 1] not in (' ', '\t', ';', os.pathsep, os.sep):
+            continue
+
+        userpath = userpath[:i] + userhome + userpath[i + 1:]
 
     return userpath
 
@@ -499,16 +492,16 @@ def as_block_string(txt):
 
 
 # Copyright 2016 Allan Johns.
-# 
+#
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
 # License as published by the Free Software Foundation, either
 # version 3 of the License, or (at your option) any later version.
-# 
+#
 # This library is distributed in the hope that it will be useful,
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 # Lesser General Public License for more details.
-# 
+#
 # You should have received a copy of the GNU Lesser General Public
 # License along with this library.  If not, see <http://www.gnu.org/licenses/>.

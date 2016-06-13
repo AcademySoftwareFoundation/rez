@@ -36,7 +36,9 @@ def which(cmd, mode=os.F_OK | os.X_OK, env=None):
             path.insert(0, os.curdir)
 
         # PATHEXT is necessary to check on Windows.
-        pathext = env.get("PATHEXT", "").split(os.pathsep)
+        default_pathext = \
+            '.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC'
+        pathext = env.get("PATHEXT", default_pathext).split(os.pathsep)
         # See if the given file matches any of the expected path extensions.
         # This will allow us to short circuit when given "python.exe".
         matches = [cmd for ext in pathext if cmd.lower().endswith(ext.lower())]
