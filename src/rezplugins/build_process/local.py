@@ -53,6 +53,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # run pre-release hooks
         self.run_hooks(ReleaseHookEvent.pre_release,
                        install_path=release_path,
+                       variants=variants,
                        release_message=release_message,
                        changelog=changelog,
                        previous_version=previous_version,

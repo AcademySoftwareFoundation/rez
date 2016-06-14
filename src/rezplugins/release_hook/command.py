@@ -22,6 +22,7 @@ class CommandReleaseHook(ReleaseHook):
          Optional("args"):  Or(And(basestring,
                                    Use(lambda x: x.strip().split())),
                                [basestring]),
+         Optional("pretty_args"): bool,
          Optional("user"):  basestring,
          Optional("env"):   dict})
 
@@ -82,24 +83,26 @@ class CommandReleaseHook(ReleaseHook):
         else:
             return _execute(run_cmd, cmd_arguments)
 
-    def pre_build(self, user, install_path, **kwargs):
+    def pre_build(self, user, install_path, variants=None, **kwargs):
         errors = []
         self._execute_commands(self.settings.pre_build_commands,
                                install_path=install_path,
                                package=self.package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
 
         if errors and self.settings.cancel_on_error:
             raise ReleaseHookCancellingError(
                 "The following pre-build commands failed:\n%s"
                 % '\n\n'.join(errors))
 
-    def pre_release(self, user, install_path, **kwargs):
+    def pre_release(self, user, install_path, variants=None, **kwargs):
         errors = []
         self._execute_commands(self.settings.pre_release_commands,
                                install_path=install_path,
                                package=self.package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
 
         if errors and self.settings.cancel_on_error:
             raise ReleaseHookCancellingError(
@@ -128,20 +131,23 @@ class CommandReleaseHook(ReleaseHook):
     def _execute_commands(self, commands, install_path, package, errors=None,
                           variants=None):
         release_dict = dict(path=install_path)
-        variant_dicts = []
+        variant_infos = []
         if variants:
-            package = variants[0].parent
             for variant in variants:
-                var_dict = dict(variant.resource.variables)
-                # using '%s' will preserve potential str/unicode nature
-                var_dict['variant_requires'] = ['%s' % x
-                                                for x in variant.resource.variant_requires]
-                variant_dicts.append(var_dict)
+                if isinstance(variant, (int, long)):
+                    variant_infos.append(variant)
+                else:
+                    package = variant.parent
+                    var_dict = dict(variant.resource.variables)
+                    # using '%s' will preserve potential str/unicode nature
+                    var_dict['variant_requires'] = ['%s' % x
+                                                    for x in variant.resource.variant_requires]
+                    variant_infos.append(var_dict)
         formatter = scoped_formatter(system=system,
                                      release=release_dict,
                                      package=package,
-                                     variants=variant_dicts,
-                                     num_variants=len(variant_dicts))
+                                     variants=variant_infos,
+                                     num_variants=len(variant_infos))
 
         for conf in commands:
             program = conf["command"]
@@ -151,6 +157,11 @@ class CommandReleaseHook(ReleaseHook):
             if env:
                 env_ = os.environ.copy()
                 env_.update(env)
+
+            # If we have, ie, a list, and format_pretty is True, it will be printed
+            # as "1 2 3" instead of "[1, 2, 3]"
+            formatter.__dict__['format_pretty'] = conf.get(
+                "pretty_args", True)
 
             args = conf.get("args", [])
             args = [formatter.format(x) for x in args]
