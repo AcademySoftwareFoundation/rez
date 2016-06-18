@@ -1,13 +1,3 @@
-# Copyright (c) 2013 Shotgun Software Inc.
-#
-# CONFIDENTIAL AND PROPRIETARY
-#
-# This work is provided "AS IS" and subject to the Shotgun Pipeline Toolkit
-# Source Code License included in this distribution package. See LICENSE.
-# By accessing, using, copying or modifying this work you indicate your
-# agreement to the Shotgun Pipeline Toolkit Source Code License. All rights
-# not expressly granted therein are reserved by Shotgun Software Inc.
-
 """
 App Launch Hook - Rez
 
@@ -38,6 +28,7 @@ import sys
 import subprocess
 import tank
 
+
 class AppLaunch(tank.Hook):
     """
     Hook to run an application.
@@ -60,9 +51,10 @@ class AppLaunch(tank.Hook):
 
         use_rez = False
         if self.check_rez():
-            rez_packages = extra["rez_packages"]
             from rez.resolved_context import ResolvedContext
             from rez.config import config
+
+            rez_packages = extra["rez_packages"]
             config.parent_variables = ["PYTHONPATH"]
             context = ResolvedContext(rez_packages)
 
@@ -141,14 +133,33 @@ class AppLaunch(tank.Hook):
 
         if err or not rez_path:
             if strict:
-                raise ImportError("Failed to find Rez as a package in the current environment! Try 'rez-bind rez'!")
+                raise ImportError("Failed to find Rez as a package in the current "
+                                  "environment! Try 'rez-bind rez'!")
             else:
-                print "WARNING: Failed to find a Rez package in the current environment. Unable to request Rez packages."
+                print >> sys.stderr, ("WARNING: Failed to find a Rez package in the current "
+                                      "environment. Unable to request Rez packages.")
+
             rez_path = ""
         else:
-            rez_path=rez_path.strip()
+            rez_path = rez_path.strip()
             print "Found Rez:", rez_path
             print "Adding Rez to system path..."
             sys.path.append(rez_path)
 
         return rez_path
+
+
+# Copyright 2013-2016 Allan Johns, Shotgun Software Inc.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
