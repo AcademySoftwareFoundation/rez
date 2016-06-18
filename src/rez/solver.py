@@ -2173,7 +2173,7 @@ def _short_req_str(package_request):
     return str(package_request)
 
 
-# Copyright 2016 Allan Johns.
+# Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public

@@ -112,7 +112,7 @@ def install_dependent(fn):
     return _fn
 
 
-# Copyright 2016 Allan Johns.
+# Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
