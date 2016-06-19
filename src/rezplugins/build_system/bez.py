@@ -64,9 +64,7 @@ class BezBuildSystem(BuildSystem):
             create_forwarding_script(build_env_script,
                                      module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
-                                     working_dir=self.working_dir,
-                                     build_dir=build_path,
-                                     build_args=self.build_args)
+                                     build_dir=build_path)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
@@ -83,7 +81,7 @@ class BezBuildSystem(BuildSystem):
         return ret
 
 
-def _FWD__spawn_build_shell(working_dir, build_dir):
+def _FWD__spawn_build_shell(build_dir):
     # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     config.override("prompt", "BUILD>")

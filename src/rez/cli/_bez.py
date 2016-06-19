@@ -39,13 +39,31 @@ def run():
     stream=open("%(buildfile)s")
     env={}
     exec stream in env
-    env["build"]("%(srcpath)s","%(bldpath)s","%(instpath)s",%(targets)s,%(build_args)s)
+
+    buildfunc = env.get("build")
+    if not buildfunc:
+        import sys
+        print >> sys.stderr, "Did not find function 'build' in rezbuild.py"
+        sys.exit(1)
+
+    kwargs = dict(source_path="%(srcpath)s",
+                  build_path="%(bldpath)s",
+                  install_path="%(instpath)s",
+                  targets=%(targets)s,
+                  build_args=%(build_args)s)
+
+    import inspect
+    args = inspect.getargspec(buildfunc).args
+    kwargs = dict((k, v) for k, v in kwargs.iteritems() if k in args)
+
+    buildfunc(**kwargs)
+
     """ % dict(buildfile=buildfile,
                srcpath=source_path,
                bldpath=doc["build_path"],
                instpath=doc["install_path"],
                targets=str(opts.TARGET or None),
-               build_args=doc["build_args"])
+               build_args=str(doc.get("build_args") or []))
 
     cli_code = textwrap.dedent(code).replace("\\", "\\\\")
 
