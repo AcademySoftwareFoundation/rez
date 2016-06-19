@@ -39,12 +39,13 @@ def run():
     stream=open("%(buildfile)s")
     env={}
     exec stream in env
-    env["build"]("%(srcpath)s","%(bldpath)s","%(instpath)s",%(targets)s)
+    env["build"]("%(srcpath)s","%(bldpath)s","%(instpath)s",%(targets)s,%(build_args)s)
     """ % dict(buildfile=buildfile,
                srcpath=source_path,
                bldpath=doc["build_path"],
                instpath=doc["install_path"],
-               targets=str(opts.TARGET or None))
+               targets=str(opts.TARGET or None),
+               build_args=doc["build_args"])
 
     cli_code = textwrap.dedent(code).replace("\\", "\\\\")
 
