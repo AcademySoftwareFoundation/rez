@@ -1,12 +1,15 @@
 # Contributing To Rez
 
-If you would like to contribute code you can do so through GitHub by forking the repository and 
+If you would like to contribute code you can do so through GitHub by forking the repository and
 sending a pull request.
 
-When submitting code, please make every effort to follow existing conventions and style in order to 
-keep the code as readable as possible. Rez follows [PEP8](https://www.python.org/dev/peps/pep-0008/) 
-and the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html). Please take
-particular note of the docstring format used.
+Please:
+
+* Make every effort to follow existing conventions and style;
+* Follow PEP8 [PEP8](https://www.python.org/dev/peps/pep-0008/);
+* Follow the [Google Python Style Guide](https://google.github.io/styleguide/pyguide.html)
+  for docstrings;
+* Use *spaces*, not *tabs*.
 
 ## Reporting Bugs
 
