@@ -200,6 +200,7 @@ class ActionManager(object):
         """
         return self.get_action_methods() + [
             ('getenv', self.getenv),
+            ('expandvars', self.expandvars),
             ('defined', self.defined),
             ('undefined', self.undefined)]
 
@@ -248,6 +249,11 @@ class ActionManager(object):
 
     def defined(self, key):
         return not self.undefined(key)
+
+    def expandvars(self, value, format=True):
+        if format:
+            value = str(self._format(value))
+        return str(self._expand(value))
 
     def getenv(self, key):
         _, expanded_key = self._key(key)
