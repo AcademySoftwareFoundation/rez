@@ -36,6 +36,8 @@ class MkdirLockFile(LockBase):
 
         while True:
             try:
+                # REZ CHANGE HERE:
+                # os.mkdir(self.lock_file)
                 os.makedirs(self.lock_file)
             except OSError:
                 err = sys.exc_info()[1]
