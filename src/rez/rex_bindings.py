@@ -77,7 +77,7 @@ class VersionBinding(Binding):
     def __getitem(self, i):
         def _convert(t):
             s = str(t)
-            if s.isdigit() and s[0] != '0':
+            if s.isdigit() and (s[0] != '0' or s == '0'):
                 return int(s)
             else:
                 return s
