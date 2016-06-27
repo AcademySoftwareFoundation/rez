@@ -862,7 +862,8 @@ class NamespaceFormatter(Formatter):
 
     def __init__(self, namespace):
         Formatter.__init__(self)
-        self.namespace = namespace
+        self.initial_namespace = namespace
+        self.namespace = self.initial_namespace
 
     def format(self, format_string, *args, **kwargs):
         def escape_envvar(matchobj):
@@ -870,7 +871,27 @@ class NamespaceFormatter(Formatter):
             return "${{%s}}" % value
 
         format_string_ = re.sub(self.ENV_VAR_REGEX, escape_envvar, format_string)
-        return Formatter.format(self, format_string_, *args, **kwargs)
+
+        # for recursive formatting, where a field has a value we want to expand,
+        # add kwargs to namespace, so format_field can use them...
+        if kwargs:
+            prev_namespace = self.namespace
+            self.namespace = dict(prev_namespace)
+            self.namespace.update(kwargs)
+        else:
+            prev_namespace = None
+        try:
+            return Formatter.format(self, format_string_, *args, **kwargs)
+        finally:
+            if prev_namespace is not None:
+                self.namespace = prev_namespace
+
+    def format_field(self, value, format_spec):
+        if isinstance(value, EscapedString):
+            value = str(value.formatted(str))
+        if isinstance(value, str):
+            value = self.format(value)
+        return format(value, format_spec)
 
     def get_value(self, key, args, kwds):
         if isinstance(key, str):

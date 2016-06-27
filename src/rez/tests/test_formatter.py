@@ -258,6 +258,21 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0:-s}", ValueError, '')
         self.assert_formatter_raises("{0:=s}", ValueError, '')
 
+    def test_formatter_recurse(self):
+        self.assert_formatter_equal('Hello {0}!', 'Hello Earth!', '{world}',
+                                    world='Earth')
+
+        self.assert_formatter_equal('Hello {greeted}!', 'Hello Timmy the Trex!',
+                                    greeted='{dinosaur}', person='{Bob}',
+                                    Bob='Fabulous Bobby', dinosaur='{Trex}',
+                                    Trex='Timmy the Trex')
+        self.formatter.namespace.update(greeted='{dinosaur}', person='{Bob}',
+                                        Bob='Fabulous Bobby', dinosaur='{Trex}',
+                                        Trex='Timmy the Trex')
+        self.assert_formatter_equal('Hello {greeted}!',
+                                    'Hello Timmy the Trex!')
+
+
 
 if __name__ == '__main__':
     unittest.main()
