@@ -429,7 +429,7 @@ def positional_number_string(n):
 
 # regex used to expand user; set here to avoid recompile on every call
 EXPANDUSER_RE = re.compile(
-    '(\A|\s|[{pathseps}])~([{seps}]|[{pathseps}]|\s|\Z)'.format(
+    r'(\A|\s|[{pathseps}])~([{seps}]|[{pathseps}]|\s|\Z)'.format(
     seps = re.escape(''.join(set([os.sep + getattr(os, 'altsep', os.sep)]))),
     pathseps = re.escape(''.join(set([os.pathsep + ';'])))))
 
