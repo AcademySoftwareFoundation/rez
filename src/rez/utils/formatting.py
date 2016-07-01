@@ -427,6 +427,13 @@ def positional_number_string(n):
     return "zeroeth"
 
 
+# regex used to expand user; set here to avoid recompile on every call
+EXPANDUSER_RE = re.compile(
+    '(\A|\s|[{pathseps}])~([{seps}]|[{pathseps}]|\s|\Z)'.format(
+    seps = re.escape(''.join(set([os.sep + getattr(os, 'altsep', os.sep)]))),
+    pathseps = re.escape(''.join(set([os.pathsep + ';'])))))
+
+
 def expanduser(path):
     """Expand '~' to home directory in the given string.
 
@@ -451,29 +458,17 @@ def expanduser(path):
             return path
     else:
         userhome = os.path.expanduser('~')
+        
+    def _expanduser(path):
+        return EXPANDUSER_RE.sub(
+            lambda m: m.groups()[0] + userhome + m.groups()[1], 
+            path)
 
     # only replace '~' if it's at start of string or is preceeded by pathsep or
     # ';' or whitespace; AND, is followed either by sep, pathsep, ';', ' ' or
     # end-of-string.
     #
-    userpath = path
-    i = len(path)
-
-    while True:
-        i = userpath.rfind('~', 0, i)
-        if i == -1:
-            break
-
-        if i and userpath[i - 1] not in (' ', '\t', ';', os.pathsep):
-            continue
-
-        if i < (len(userpath) - 1) \
-                and userpath[i + 1] not in (' ', '\t', ';', os.pathsep, os.sep):
-            continue
-
-        userpath = userpath[:i] + userhome + userpath[i + 1:]
-
-    return userpath
+    return os.path.normpath(_expanduser(path))
 
 
 def as_block_string(txt):
