@@ -62,23 +62,6 @@ class App(QtGui.QApplication):
                 QtGui.QApplication.restoreOverrideCursor()
 
         if context:
-            with self.status("Validating %s..." % filepath):
-                QtGui.QApplication.setOverrideCursor(busy_cursor)
-                error = None
-
-                try:
-                    context.validate()
-                except ResolvedContextError as e:
-                    error = str(e)
-                finally:
-                    QtGui.QApplication.restoreOverrideCursor()
-
-                if error:
-                    QtGui.QMessageBox.critical(
-                        self.main_window, "Context validation failure", error)
-                    context = None
-
-        if context:
             path = os.path.realpath(filepath)
             self.config.prepend_string_list("most_recent_contexts", path,
                                             "max_most_recent_contexts")
@@ -90,6 +73,7 @@ class App(QtGui.QApplication):
         # here will have a prompt like '>>'. It's not incorrect, but it is a
         # bit misleading, from this floating shell you can't exit back into the
         # calling rez environ. So here we force back to '>'.
+        #
         env = os.environ.copy()
         if "REZ_ENV_PROMPT" in env:
             del env["REZ_ENV_PROMPT"]
@@ -103,3 +87,19 @@ class App(QtGui.QApplication):
 
 # app singleton
 app = App()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

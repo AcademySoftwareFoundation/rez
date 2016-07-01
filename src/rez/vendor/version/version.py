@@ -233,6 +233,8 @@ class Version(_Comparable):
         """
         self.tokens = []
         self.seps = []
+        self._str = None
+        self._hash = None
 
         if ver_str:
             toks = re_token.findall(ver_str)
@@ -321,12 +323,17 @@ class Version(_Comparable):
             return (self.tokens < other.tokens)
 
     def __hash__(self):
-        return hash(None) if self.tokens is None \
-            else hash(tuple(str(x) for x in self.tokens))
+        if self._hash is None:
+            self._hash = hash(None) if self.tokens is None \
+                else hash(tuple(map(str, self.tokens)))
+        return self._hash
 
     def __str__(self):
-        return "[INF]" if self.tokens is None \
-            else ''.join(str(x) + y for x, y in zip(self.tokens, self.seps + ['']))
+        if self._str is None:
+            self._str = "[INF]" if self.tokens is None \
+                else ''.join(str(x) + y for x, y in zip(self.tokens, self.seps + ['']))
+        return self._str
+
 
 # internal use only
 Version.inf = Version()
@@ -700,6 +707,7 @@ class VersionRange(_Comparable):
                 may not match range_str. For example, "3+<6|4+<8" == "3+<8".
             make_token: Version token class to use.
         """
+        self._str = None
         self.bounds = []
         if range_str is None:
             return
@@ -942,7 +950,7 @@ class VersionRange(_Comparable):
 
         return False
 
-    def contains_versions(self, iterable, key=None, descending=False):
+    def iter_intersect_test(self, iterable, key=None, descending=False):
         """Performs containment tests on a sorted list of versions.
 
         This is more optimal than performing separate containment tests on a
@@ -962,6 +970,24 @@ class VersionRange(_Comparable):
             that version is contained in this range.
         """
         return _ContainsVersionIterator(self, iterable, key, descending)
+
+    def iter_intersecting(self, iterable, key=None, descending=False):
+        """Like `iter_intersect_test`, but returns intersections only.
+
+        Returns:
+            An iterator that returns items from `iterable` that intersect.
+        """
+        return _ContainsVersionIterator(self, iterable, key, descending,
+            mode=_ContainsVersionIterator.MODE_INTERSECTING)
+
+    def iter_non_intersecting(self, iterable, key=None, descending=False):
+        """Like `iter_intersect_test`, but returns non-intersections only.
+
+        Returns:
+            An iterator that returns items from `iterable` that don't intersect.
+        """
+        return _ContainsVersionIterator(self, iterable, key, descending,
+            mode=_ContainsVersionIterator.MODE_NON_INTERSECTING)
 
     def span(self):
         """Return a contiguous range that is a superset of this range.
@@ -1001,7 +1027,9 @@ class VersionRange(_Comparable):
         return None if inv is None else self.intersection(inv)
 
     def __str__(self):
-        return '|'.join(map(str, self.bounds))
+        if self._str is None:
+            self._str = '|'.join(map(str, self.bounds))
+        return self._str
 
     def __eq__(self, other):
         return isinstance(other, VersionRange) and self.bounds == other.bounds
@@ -1124,7 +1152,12 @@ class VersionRange(_Comparable):
 
 
 class _ContainsVersionIterator(object):
-    def __init__(self, range_, iterable, key=None, descending=False):
+    MODE_INTERSECTING = 0
+    MODE_NON_INTERSECTING = 2
+    MODE_ALL = 3
+
+    def __init__(self, range_, iterable, key=None, descending=False, mode=MODE_ALL):
+        self.mode = mode
         self.range_ = range_
         self.index = None
         self.nbounds = len(self.range_.bounds)
@@ -1135,16 +1168,55 @@ class _ContainsVersionIterator(object):
             key = lambda x: x
         self.keyfunc = key
 
+        if mode == self.MODE_ALL:
+            self.next_fn = self._next
+        elif mode == self.MODE_INTERSECTING:
+            self.next_fn = self._next_intersecting
+        else:
+            self.next_fn = self._next_non_intersecting
+
     def __iter__(self):
         return self
 
     def next(self):
+        return self.next_fn()
+
+    def _next(self):
         value = next(self.it)
         if self._constant is not None:
             return self._constant, value
 
         version = self.keyfunc(value)
-        return self.fn(version), value
+        intersects = self.fn(version)
+        return intersects, value
+
+    def _next_intersecting(self):
+        while True:
+            value = next(self.it)
+
+            if self._constant:
+                return value
+            elif self._constant is not None:
+                raise StopIteration
+
+            version = self.keyfunc(value)
+            intersects = self.fn(version)
+            if intersects:
+                return value
+
+    def _next_non_intersecting(self):
+        while True:
+            value = next(self.it)
+
+            if self._constant:
+                raise StopIteration
+            elif self._constant is not None:
+                return value
+
+            version = self.keyfunc(value)
+            intersects = self.fn(version)
+            if not intersects:
+                return value
 
     @property
     def _bound(self):

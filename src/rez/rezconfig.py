@@ -72,10 +72,11 @@ context_tmpdir = None
 # Extensions
 ###############################################################################
 
-# Search path for plugins
+# Search path for rez plugins.
 plugin_path = []
 
-# Search path for bind modules
+# Search path for bind modules. The *rez-bind* tool uses these modules to create
+# rez packages that reference existing software already installed on the system.
 bind_module_path = []
 
 
@@ -83,13 +84,19 @@ bind_module_path = []
 # Caching
 ###############################################################################
 
-# Use available caching mechanisms to speed up resolves when applicable.
+# Cache resolves to memcached, if enabled. Note that these cache entries will be
+# correctly invalidated if, for example, a newer package version is released that
+# would change the result of an existing resolve.
 resolve_caching = True
 
-# Cache package file reads
+# Cache package file reads to memcached, if enabled. Updated package files will
+# still be read correctly (ie, the cache invalidates when the filesystem
+# changes).
 cache_package_files = True
 
-# Cache directory traversals
+# Cache directory traversals to memcached, if enabled. Updated directory entries
+# will still be read correctly (ie, the cache invalidates when the filesystem
+# changes).
 cache_listdir = True
 
 # The size of the local (in-process) resource cache. Resources include package
@@ -143,6 +150,30 @@ prune_failed_graph = True
 #   present in the request;
 # - intersection_priority: Prefer variants that contain the most number of
 #   packages that are present in the request.
+#
+# As an example, suppose you have a package foo which has two variants:
+#
+#    variants = [
+#        ["bar-3.0", "baz-2.1"],
+#        ["bar-2.8", "burgle-1.0"]
+#    ]
+#
+# if you do:
+#
+#    rez-env foo bar
+#
+# ...then, in either variant_select_mode, it will prefer the first variant,
+# ["bar-3.0", "baz-2.1"], because it has a higher version of the first variant
+# requirement (bar). However, if we instead do:
+#
+#    rez-env foo bar burgle
+#
+# ...we get different behavior. version_priority mode will still return
+# ["bar-3.0", "baz-2.1"], because the first requirement's version is higher.
+#
+# However, intersection_priority mode will pick the second variant,
+# ["bar-2.8", "burgle-1.0"], because it contains more packages that were in the
+# original request (burgle).
 variant_select_mode = "version_priority"
 
 # Package filter. One or more filters can be listed, each with a list of
@@ -191,6 +222,10 @@ variant_select_mode = "version_priority"
 # *.beta              | Same as glob(*.beta)
 # foo-5+              | Same as range(foo-5+)
 package_filter = None
+
+# If True, unversioned packages are allowed. Solve times are slightly better if
+# this value is False.
+allow_unversioned_packages = True
 
 
 ###############################################################################
@@ -307,7 +342,7 @@ debug_package_exclusions = False
 # Print debugging info related to use of memcached during a resolve
 debug_resolve_memcache = False
 
-# Debug memcache usage. As well as printing debugging info to stdout,it also
+# Debug memcache usage. As well as printing debugging info to stdout, it also
 # sends human-readable strings as memcached keys (that you can read by running
 # "memcached -vv" as the server)
 debug_memcache = False
@@ -421,16 +456,16 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 65536
 
-# If this is true, rxt files are written in yaml format. If false, they are
-# written in json, which is a LOT faster. You would only set to true for
-# backwards compatibility reasons. Note that rez will detect either format on
-# rxt file load.
-rxt_as_yaml = True
-
 
 ###############################################################################
 # Rez-1 Compatibility
 ###############################################################################
+
+# If this is true, rxt files are written in yaml format. If false, they are
+# written in json, which is a LOT faster. You would only set to true for
+# backwards compatibility reasons. Note that rez will detect either format on
+# rxt file load.
+rxt_as_yaml = False
 
 # Warn or disallow when a package contains a package name that does not match
 # the name specified in the directory structure. When this occurs, the
@@ -647,3 +682,19 @@ plugins = {
 # will cause an error.
 use_pyside = False
 use_pyqt = False
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

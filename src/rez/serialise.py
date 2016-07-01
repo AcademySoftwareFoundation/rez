@@ -40,7 +40,7 @@ def open_file_for_write(filepath):
     """Writes both to given filepath, and tmpdir location.
 
     This is to get around the problem with some NFS's where immediately reading
-    a file that has jusr been written is problematic. Instead, any files that we
+    a file that has just been written is problematic. Instead, any files that we
     write, we also write to /tmp, and reads of these files are redirected there.
     """
     stream = StringIO()
@@ -126,9 +126,8 @@ def load_py(stream, filepath=None):
     Returns:
         dict.
     """
-    g = __builtins__.copy()
     scopes = ScopeContext()
-    g['scope'] = scopes
+    g = dict(scope=scopes)
 
     try:
         exec stream in g
@@ -214,3 +213,19 @@ def clear_file_caches():
 load_functions = {FileFormat.py:      load_py,
                   FileFormat.yaml:    load_yaml,
                   FileFormat.txt:     load_txt}
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
