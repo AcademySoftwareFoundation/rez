@@ -1,4 +1,4 @@
-[[media/rez_banner_128.png]]
+[[media/rez_banner_256.png]]
 
 - [What Is Rez?](#what-is-rez)
 - [The Basics](#the-basics)
