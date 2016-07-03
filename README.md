@@ -1,27 +1,40 @@
-# ![rez](media/rez_banner_256.png)
+[[media/rez_banner_128.png]]
 
-Rez is a cross-platform software package management API and set of tools. Rez can
-build and install packages, and resolve environments at runtime using use a dependency
-resolution algorithm to avoid version conflicts. Both third party and internally
-developed packages can be made into Rez packages, and any kind of package (python,
-compiled, etc) is supported.
+- [What Is Rez?](#what-is-rez)
+- [The Basics](#the-basics)
+- [Examples](#examples)
 
-The main tools are:
 
-* **rez-env**: Creates a configured shell containing a set of requested packages.
-  Supports *bash*, *tcsh* and *cmd* (Windows), and can be extended to other shells.
+## What Is Rez?
 
-* **rez-build**: Builds a package of any type (python, C++ etc), and installs it
-  locally for testing. Supports *cmake*, and can be extended to other build systems.
-
-* **rez-release**: Builds and centrally deploys a package, and updates the associated
-  source control repository (creating tags etc). Supports *git*, *mercurial*
-  and *svn*, and can be extended to other repository types.
-
-* **rez-gui**: A fully fledged graphical interface for creating resolved environments,
-  launching tools and comparing different environments.
+Rez is a cross-platform package manager with a difference. Using Rez you can create
+standalone environments configured for a given set of packages. However, unlike many
+other package managers, packages are not installed into these standalone environments.
+Instead, all package versions are installed into a central repository, and standalone
+environments reference these existing packages. This means that configured environments
+are lightweight, and very fast to create, often taking just a few seconds to configure
+dispite containing hundreds of packages.
 
 See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
+
+<p align="center">
+<a href="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png">
+<img src="https://github.com/nerdvegas/rez/wiki/media/other_pkg_mgr.png"></a>
+<br><i>Typical package managers install packages into an environment</i>
+</p>
+
+<br>
+<p align="center">
+<a href="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png">
+<img src="https://github.com/nerdvegas/rez/wiki/media/rez_pkg_mgr.png"></a>
+<br><i>Rez installs packages once, and configures environments dynamically</i>
+</p>
+
+<br>
+Rez takes a list of package requests, and constructs the target environment, resolving
+all the necessary package dependencies. Any type of software package is supported -
+compiled, python, applications and libraries.
+
 
 ## The Basics
 
@@ -53,9 +66,11 @@ in a configured environment. Rez is able to configure environments containing
 hundreds of packages, often within a few seconds. Resolves can also be saved to file,
 and when re-evaluated later will reconstruct the same environment once more.
 
+
 ## Examples
 
-This example places the user into a resolved shell containing the requested packages:
+This example places the user into a resolved shell containing the requested packages,
+using the [rez-env](https://github.com/nerdvegas/rez/wiki/Command-Line-Tools#rez-env) tool:
 
     ]$ rez-env requests-2.2+ python-2.6 'pymongo-0+<2.7'
 
@@ -97,6 +112,7 @@ Resolved environments can also be created via the API:
     >>>
     >>> print out
     '/software/ext/houdini/12.5.562/bin/hescape'
+
 
 ## Quickstart
 
