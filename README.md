@@ -3,6 +3,9 @@
 - [What Is Rez?](#what-is-rez)
 - [The Basics](#the-basics)
 - [Examples](#examples)
+- [Quickstart](#quickstart)
+- [Building Your First Package](#building-your-first-package)
+- [Features](#features)
 
 
 ## What Is Rez?
