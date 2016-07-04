@@ -3,6 +3,7 @@ Filesystem-related utilities.
 """
 from threading import Lock
 from tempfile import mkdtemp
+from contextlib import contextmanager
 import weakref
 import atexit
 import posixpath
@@ -68,6 +69,17 @@ class TempDirs(object):
 
 
 atexit.register(TempDirs.clear_all)
+
+
+@contextmanager
+def retain_cwd():
+    """Context manager that keeps cwd unchanged afterwards.
+    """
+    cwd = os.getcwd()
+    try:
+        yield
+    finally:
+        os.chdir(cwd)
 
 
 def is_subdirectory(path_a, path_b):

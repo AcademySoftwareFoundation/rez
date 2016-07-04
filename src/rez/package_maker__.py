@@ -1,4 +1,5 @@
 from rez.utils.schema import Required, schema_keys
+from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.package_resources_ import help_schema, _commands_schema
@@ -118,24 +119,24 @@ def make_package(name, path, make_base=None, make_root=None):
 
     # post-with-block:
     package = maker.get_package()
-    cwd = os.getcwd()
-    for variant in package.iter_variants():
-        variant_ = variant.install(path)
 
-        base = variant_.base
-        if make_base and base:
-            if not os.path.exists(base):
-                os.makedirs(base)
-            os.chdir(base)
-            make_base(variant_, base)
+    with retain_cwd():
+        for variant in package.iter_variants():
+            variant_ = variant.install(path)
 
-        root = variant_.root
-        if make_root and root:
-            if not os.path.exists(root):
-                os.makedirs(root)
-            os.chdir(root)
-            make_root(variant_, root)
-    os.chdir(cwd)
+            base = variant_.base
+            if make_base and base:
+                if not os.path.exists(base):
+                    os.makedirs(base)
+                os.chdir(base)
+                make_base(variant_, base)
+
+            root = variant_.root
+            if make_root and root:
+                if not os.path.exists(root):
+                    os.makedirs(root)
+                os.chdir(root)
+                make_root(variant_, root)
 
 
 # Copyright 2013-2016 Allan Johns.

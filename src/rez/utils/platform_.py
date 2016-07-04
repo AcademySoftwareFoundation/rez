@@ -498,9 +498,9 @@ class WindowsPlatform(Platform):
         if p.returncode:
             return None
 
-        # a Windows machine with 1 installed CPU will return "NumberOfCores=N" where N is 
-        # the number of physical cores on that CPU chip. If more than one CPU is installed 
-        # there will be one "NumberOfCores=N" line listed per actual CPU, so the sum of all 
+        # a Windows machine with 1 installed CPU will return "NumberOfCores=N" where N is
+        # the number of physical cores on that CPU chip. If more than one CPU is installed
+        # there will be one "NumberOfCores=N" line listed per actual CPU, so the sum of all
         # N is the number of physical cores in the machine: this will be exactly one half the
         # number of logical cores (ie from multiprocessing.cpu_count) if HyperThreading is
         # enabled on the CPU(s)
@@ -515,7 +515,7 @@ class WindowsPlatform(Platform):
 
     def _physical_cores(self):
         return self._physical_cores_from_wmic()
-        
+
     def _difftool(self):
         # although meld would be preferred, fc ships with all Windows versions back to DOS
         from rez.util import which

@@ -220,11 +220,12 @@ class GitReleaseVCS(ReleaseVCS):
         path_, dirname = os.path.split(path)
         gitdir = os.path.join(path, ".git")
 
-        os.chdir(path_)
-        git.clone(url, dirname)
-        os.chdir(path)
-        git.checkout(commit)
-        rmtree(gitdir)
+        with retain_cwd():
+            os.chdir(path_)
+            git.clone(url, dirname)
+            os.chdir(path)
+            git.checkout(commit)
+            rmtree(gitdir)
 
 
 def register_plugin():

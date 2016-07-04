@@ -24,8 +24,8 @@ def extend_path(path, name):
         __path__ = extend_path(__path__, __name__)
 
     This will add to the package's __path__ all subdirectories of
-    directories on sys.path named after the package.  This is useful
-    if one wants to distribute different parts of a single logical
+    directories on 'config.plugin_path' named after the package.  This is
+    useful if one wants to distribute different parts of a single logical
     package as multiple directories.
 
     If the input path is not a list (as is the case for frozen

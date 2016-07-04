@@ -181,6 +181,41 @@ class TestConfig(TestBase):
             _ = c.debug_all
 
 
+    def test_6(self):
+        """Test setting of dict values from environ"""
+        from rez.config import Dict
+        from rez.vendor.schema.schema import Schema
+
+        class TestConfig(Config):
+            schema = Schema({
+                'dumb_dict': Dict,
+            })
+
+            DEFAULT_DUMB_DICT = {'default': 'value'}
+
+            # don't want to bother writing a file just to set a default value,
+            # and can't use overrides, as that will make it ignore env vars...
+            @property
+            def _data(self):
+                return {'dumb_dict': self.DEFAULT_DUMB_DICT}
+
+
+        # need to NOT use locked, because we want to test setting from env
+        # vars, but don't want values from "real" os.environ to pollute our
+        # test...
+        old_environ = os.environ
+        try:
+            os.environ = {}
+            c = TestConfig([])
+            self.assertEqual(c.dumb_dict, TestConfig.DEFAULT_DUMB_DICT)
+
+            os.environ = {'REZ_DUMB_DICT': 'foo:bar,more:stuff'}
+            c = TestConfig([])
+            self.assertEqual(c.dumb_dict, {'foo': 'bar', 'more': 'stuff'})
+        finally:
+            os.environ = old_environ
+
+
 if __name__ == '__main__':
     unittest.main()
 

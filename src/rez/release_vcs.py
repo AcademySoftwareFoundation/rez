@@ -208,6 +208,10 @@ class ReleaseVCS(object):
                              stderr=subprocess.PIPE, cwd=self.pkg_root)
         out, err = p.communicate()
         if p.returncode:
+            print_debug("command stdout:")
+            print_debug(out)
+            print_debug("command stderr:")
+            print_debug(err)
             raise ReleaseVCSError("command failed: %s\n%s" % (cmd_str, err))
         out = out.strip()
         if out:

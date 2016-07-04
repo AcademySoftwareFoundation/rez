@@ -560,32 +560,32 @@ def make_archive(base_name, format, root_dir=None, base_dir=None, verbose=0,
     uses the current owner and group.
     """
     save_cwd = os.getcwd()
-    if root_dir is not None:
-        if logger is not None:
-            logger.debug("changing into '%s'", root_dir)
-        base_name = os.path.abspath(base_name)
-        if not dry_run:
-            os.chdir(root_dir)
-
-    if base_dir is None:
-        base_dir = os.curdir
-
-    kwargs = {'dry_run': dry_run, 'logger': logger}
-
     try:
-        format_info = _ARCHIVE_FORMATS[format]
-    except KeyError:
-        raise ValueError("unknown archive format '%s'" % format)
+        if root_dir is not None:
+            if logger is not None:
+                logger.debug("changing into '%s'", root_dir)
+            base_name = os.path.abspath(base_name)
+            if not dry_run:
+                os.chdir(root_dir)
 
-    func = format_info[0]
-    for arg, val in format_info[1]:
-        kwargs[arg] = val
+        if base_dir is None:
+            base_dir = os.curdir
 
-    if format != 'zip':
-        kwargs['owner'] = owner
-        kwargs['group'] = group
+        kwargs = {'dry_run': dry_run, 'logger': logger}
 
-    try:
+        try:
+            format_info = _ARCHIVE_FORMATS[format]
+        except KeyError:
+            raise ValueError("unknown archive format '%s'" % format)
+
+        func = format_info[0]
+        for arg, val in format_info[1]:
+            kwargs[arg] = val
+
+        if format != 'zip':
+            kwargs['owner'] = owner
+            kwargs['group'] = group
+
         filename = func(base_name, base_dir, **kwargs)
     finally:
         if root_dir is not None:
