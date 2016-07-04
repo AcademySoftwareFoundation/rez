@@ -23,20 +23,20 @@ def platform_mapped(func):
     """
     def inner(*args, **kwargs):
 
-        # Since platform is being used within config lazy import config to prevent circular dependencies
+        # Since platform is being used within config lazy import config to prevent
+        # circular dependencies
         from rez.config import config
 
         # Original result
         result = func(*args, **kwargs)
 
         # The function name is used as primary key
-        if func.__name__ in config.platform_map:
-            for key, value in config.platform_map[func.__name__].iteritems():
+        entry = config.platform_map.get(func.__name__)
+        if entry:
+            for key, value in entry.iteritems():
                 result, changes = re.subn(key, value, result)
                 if changes > 0:
                     break
-            return result
 
         return result
     return inner
-

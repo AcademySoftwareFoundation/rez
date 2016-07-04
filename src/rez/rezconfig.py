@@ -146,12 +146,12 @@ implicit_packages = [
 #
 # platform_map = {
 #     "os": {
-#         r"Scientific Linux-(.*)": r"Scientific-\1",    # Scientific Linux-x.x -> Scientific-x.x
-#         r"Ubuntu-14.\d": r"Ubuntu-14",                  # Any Ubuntu-14.x      -> Ubuntu-14
-#         r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '# Centos Linux-X.Y.Z -> CentOS-X.Y
+#         r"Scientific Linux-(.*)": r"Scientific-\1",                 # Scientific Linux-x.x -> Scientific-x.x
+#         r"Ubuntu-14.\d": r"Ubuntu-14",                              # Any Ubuntu-14.x      -> Ubuntu-14
+#         r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '  # Centos Linux-X.Y.Z -> CentOS-X.Y
 #     },
 #     "arch": {
-#         "x86_64": "64bit",                             # Maps both x86_64 and amd64 -> 64bit
+#         "x86_64": "64bit",                                          # Maps both x86_64 and amd64 -> 64bit
 #         "amd64": "64bit",
 #     },
 # }
