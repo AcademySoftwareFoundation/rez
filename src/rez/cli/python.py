@@ -38,7 +38,7 @@ def command(opts, parser, extra_arg_groups=None):
         cmd.extend(opts.ARG or [])
 
     p = subprocess.Popen(cmd)
-    p.wait()
+    sys.exit(p.wait())
 
 
 # Copyright 2013-2016 Allan Johns.

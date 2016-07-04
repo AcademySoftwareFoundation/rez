@@ -16,7 +16,7 @@ other package managers, packages are not installed into these standalone environ
 Instead, all package versions are installed into a central repository, and standalone
 environments reference these existing packages. This means that configured environments
 are lightweight, and very fast to create, often taking just a few seconds to configure
-dispite containing hundreds of packages.
+despite containing hundreds of packages.
 
 See [the wiki](https://github.com/nerdvegas/rez/wiki) for full documentation.
 
