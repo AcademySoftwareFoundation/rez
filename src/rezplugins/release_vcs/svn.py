@@ -74,7 +74,7 @@ class SvnReleaseVCS(ReleaseVCS):
 
     @classmethod
     def search_parents_for_root(cls):
-        return False
+        return True
 
     def validate_repostate(self):
         status_list = self.svnc.status(self.pkg_root, get_all=False, update=True)
@@ -119,6 +119,16 @@ class SvnReleaseVCS(ReleaseVCS):
         except pysvn.ClientError:
             return False
 
+    def get_current_revision(self):
+        return self.svnc.info(self.pkg_root)['revision'].number
+
+    def create_release_tag(self, tag_name, message=None):
+        # svn requires a message - if not provided, make it the same as the
+        # tag name..
+        if not message:
+            message = tag_name
+        self.svnc.callback_get_log_message = lambda: (True, message)
+        self.svnc.copy(self.pkg_root, self.get_tag_url(tag_name))
 
 def register_plugin():
     return SvnReleaseVCS
