@@ -10,12 +10,16 @@
 # URL is the same url you would pass to pip - this can be an http url, or the
 # filepath of a local archive (typically a tar.gz file).
 #
+# Pip args will be passed directly to pip when it runs the install. useful for verbosity
+# or when defining custom include paths from other package in rez
+#
 # Usage:
 # rez_pip_install(
 #   <label>
 #   URL <url>
 #   [PYTHONDIR <pydir>]  # (default: 'python')
 #   [BINDIR <bindir>]  # (default: 'bin')
+#   [PIPARGS <pipargs>] # (default: '')
 # )
 #
 
@@ -32,7 +36,7 @@ macro (rez_pip_install)
     # parse args
     # --------------------------------------------------------------------------
 
-    parse_arguments(PIPINST "URL;PYTHONDIR;BINDIR" "" ${ARGN})
+    parse_arguments(PIPINST "URL;PYTHONDIR;BINDIR;PIPARGS" "" ${ARGN})
 
     list(GET PIPINST_DEFAULT_ARGS 0 label)
     if(NOT label)
@@ -53,6 +57,11 @@ macro (rez_pip_install)
     if(NOT bindir)
         set(bindir "bin")
     endif(NOT bindir)
+
+    list(GET PIPINST_PIPARGS 0 pipargs)
+    if(NOT pipargs)
+        set(pipargs "bin")
+    endif(NOT pipargs)
 
     # --------------------------------------------------------------------------
     # build/install
@@ -88,7 +97,7 @@ macro (rez_pip_install)
             # Note the lack of double quotes where you would expect around --install-scripts=.
             # CMake escapes the quotes if I try; fortunately it works without.
             #
-            COMMAND pip install --no-deps --target ${destpath} --install-option=--install-scripts=${destbinpath} .
+            COMMAND pip install --no-deps --target ${destpath} ${pipargs} --install-option=--install-scripts=${destbinpath} .
     )
 
 endmacro (rez_pip_install)
