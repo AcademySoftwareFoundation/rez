@@ -430,7 +430,7 @@ def positional_number_string(n):
 # regex used to expand user; set here to avoid recompile on every call
 EXPANDUSER_RE = re.compile(
     r'(\A|\s|[{pathseps}])~([{seps}]|[{pathseps}]|\s|\Z)'.format(
-    seps = re.escape(''.join(set([os.sep + getattr(os, 'altsep', os.sep)]))),
+    seps = re.escape(''.join(set([os.sep + (getattr(os, 'altsep') or os.sep)]))),
     pathseps = re.escape(''.join(set([os.pathsep + ';'])))))
 
 
@@ -458,10 +458,10 @@ def expanduser(path):
             return path
     else:
         userhome = os.path.expanduser('~')
-        
+
     def _expanduser(path):
         return EXPANDUSER_RE.sub(
-            lambda m: m.groups()[0] + userhome + m.groups()[1], 
+            lambda m: m.groups()[0] + userhome + m.groups()[1],
             path)
 
     # only replace '~' if it's at start of string or is preceeded by pathsep or
