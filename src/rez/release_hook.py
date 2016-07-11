@@ -1,4 +1,4 @@
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_debug
 from rez.packages_ import get_developer_package
 from rez.vendor.enum import Enum
 
@@ -23,8 +23,10 @@ def create_release_hooks(names, source_path):
         try:
             hook = create_release_hook(name, source_path)
             hooks.append(hook)
-        except:
+        except Exception:
+            import traceback
             print_warning("Release hook '%s' is not available." % name)
+            print_debug(traceback.format_exc())
     return hooks
 
 
@@ -51,7 +53,7 @@ class ReleaseHook(object):
         self.type_settings = self.package.config.plugins.release_hook
         self.settings = self.type_settings.get(self.name())
 
-    def pre_build(self, user, install_path, release_message=None,
+    def pre_build(self, user, install_path, variants=None, release_message=None,
                   changelog=None, previous_version=None,
                   previous_revision=None, **kwargs):
         """Pre-build hook.
@@ -59,6 +61,8 @@ class ReleaseHook(object):
         Args:
             user: Name of person who did the release.
             install_path: Directory the package was installed into.
+            variants: List of variant indices we are attempting to build, or
+                None
             release_message: User-supplied release message.
             changelog: List of strings describing changes since last release.
             previous_version: Version object - previously-release package, or
@@ -73,8 +77,8 @@ class ReleaseHook(object):
         """
         pass
 
-    def pre_release(self, user, install_path, release_message=None,
-                    changelog=None, previous_version=None,
+    def pre_release(self, user, install_path, variants=None,
+                    release_message=None, changelog=None, previous_version=None,
                     previous_revision=None, **kwargs):
         """Pre-release hook.
 
@@ -83,6 +87,8 @@ class ReleaseHook(object):
         Args:
             user: Name of person who did the release.
             install_path: Directory the package was installed into.
+            variants: List of variant indices we are attempting to release, or
+                None
             release_message: User-supplied release message.
             changelog: List of strings describing changes since last release.
             previous_version: Version object - previously-release package, or

@@ -65,6 +65,9 @@ command:
     # - 'command' (str): Command to execute, OR;
     # - 'args' (str or list of str) (optional): Arguments to the command. If a
     #   string, args are split by whitespace;
+    # - 'pretty_args' (bool) (optional): Pretty format args; if True, then, ie,
+    #   top-level lists are printed as "1 2 3", instead of "[1, 2, 3]"; defaults
+    #   to True
     # - 'user' (str) (optional): User to execute the commands as, defaults to
     #   current user.
     # - 'env' (dict): Environment variables to set for the command. They are
