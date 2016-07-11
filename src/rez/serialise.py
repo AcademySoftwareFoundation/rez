@@ -90,9 +90,18 @@ def load_from_file(filepath, format_=FileFormat.py, update_data_callback=None):
                                update_data_callback=update_data_callback)
 
 
-def _load_from_file__key(filepath, *nargs, **kwargs):
+def _load_from_file__key(filepath, format_, update_data_callback):
     st = os.stat(filepath)
-    return str(("package_file", filepath, st.st_ino, st.st_mtime))
+    if update_data_callback is None:
+        callback_key = 'None'
+    else:
+        if hasattr(update_data_callback, 'im_self'):
+            callback_key = '%r - %r' % (update_data_callback.im_self,
+                                        update_data_callback)
+        else:
+            callback_key = repr(update_data_callback)
+    return str(("package_file", filepath, str(format_), callback_key,
+                st.st_ino, st.st_mtime))
 
 
 @memcached(servers=config.memcached_uri if config.cache_package_files else None,
