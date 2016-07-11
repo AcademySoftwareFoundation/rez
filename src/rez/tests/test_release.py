@@ -165,6 +165,8 @@ class TestRelease(TestBase, TempdirMixin):
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
+    @shell_dependent()
+    @install_dependent
     def test_2_variant_add(self):
         """Test variant installation on release
         """
