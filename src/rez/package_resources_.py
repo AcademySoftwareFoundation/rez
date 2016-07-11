@@ -374,13 +374,7 @@ class VariantResourceHelper(VariantResource):
         if self.index is None:
             return None
         else:
-            try:
-                reqs = self.parent.variants[self.index]
-            except (IndexError, TypeError):
-                raise ResourceError(
-                    "Unexpected error - variant %s cannot be found in its "
-                    "parent package %s" % (self.uri, self.parent.uri))
-
+            reqs = self.variant_requires
             dirs = [x.safe_str() for x in reqs]
             subpath = os.path.join(*dirs)
             return subpath
@@ -397,10 +391,21 @@ class VariantResourceHelper(VariantResource):
     @cached_property
     def requires(self):
         reqs = self.parent.requires or []
+        return reqs + self.variant_requires
+
+    @cached_property
+    def variant_requires(self):
         index = self.index
-        if index is not None:
-            reqs = reqs + (self.parent.variants[index] or [])
-        return reqs
+        if index is None:
+            return []
+        else:
+            try:
+                return self.parent.variants[index] or []
+            except (IndexError, TypeError):
+                raise ResourceError(
+                    "Unexpected error - variant %s cannot be found in its "
+                    "parent package %s" % (self.uri, self.parent.uri))
+
 
     @property
     def wrapped(self):  # forward Package attributes onto ourself

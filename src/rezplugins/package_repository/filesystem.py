@@ -712,7 +712,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         if existing_package:
             # see if variant already exists in package
-            variant_requires = variant.parent.variants[variant.index]
+            variant_requires = variant.variant_requires
 
             for variant_ in self.iter_variants(existing_package):
                 variant_requires_ = existing_package.variants[variant_.index]
@@ -747,7 +747,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # merge the new variant into the package
         if installed_variant_index is None and variant.index is not None:
-            variant_requires = variant.parent.variants[variant.index]
+            variant_requires = variant.variant_requires
             if not package_data.get("variants"):
                 package_data["variants"] = []
             package_data["variants"].append(variant_requires)
