@@ -95,11 +95,8 @@ def _load_from_file__key(filepath, format_, update_data_callback):
     if update_data_callback is None:
         callback_key = 'None'
     else:
-        if hasattr(update_data_callback, 'im_self'):
-            callback_key = '%r - %r' % (update_data_callback.im_self,
-                                        update_data_callback)
-        else:
-            callback_key = repr(update_data_callback)
+        callback_key = getattr(update_data_callback, "__name__", "None")
+
     return str(("package_file", filepath, str(format_), callback_key,
                 st.st_ino, st.st_mtime))
 
