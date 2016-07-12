@@ -54,8 +54,14 @@ class AppLaunch(tank.Hook):
             from rez.resolved_context import ResolvedContext
             from rez.config import config
 
+            # Define variables used to bootstrap tank from overwrite on first reference
+            # PYTHONPATH is used by tk-maya
+            # NUKE_PATH is used by tk-nuke
+            # HIERO_PLUGIN_PATH is used by tk-nuke (nukestudio)
+            # KATANA_RESOURCES is used by tk-katana
+            config.parent_variables = ["PYTHONPATH", "HOUDINI_PATH", "NUKE_PATH", "HIERO_PLUGIN_PATH", "KATANA_RESOURCES"]
+
             rez_packages = extra["rez_packages"]
-            config.parent_variables = ["PYTHONPATH"]
             context = ResolvedContext(rez_packages)
 
             use_rez = True
