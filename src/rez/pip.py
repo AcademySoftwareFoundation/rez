@@ -6,7 +6,7 @@ from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
-from rez.utils.logging_ import print_debug
+from rez.utils.logging_ import print_debug, print_info
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
 from rez.package_maker__ import make_package
@@ -139,13 +139,9 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
         py_req = "python-%s" % str(major_minor_ver)
         py_reqs.append(py_req)
 
-    _log("installing for pip: '%s', python(s): %s" % (pip_req, py_reqs))
-
-
     # TODO: should check if packages_path is writable before continuing with pip
     #
     packages_path = config.release_packages_path if release else config.local_packages_path
-
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     stagingdir = os.path.join(tmpdir, "rez_staging")
@@ -166,6 +162,11 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
         print >> buf, "\n\npackage download environment:"
         context.print_info(buf)
         _log(buf.getvalue())
+
+    # print pip package used to perform the install
+    pip_variant = context.get_resolved_package("pip")
+    pip_package = pip_variant.parent
+    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
 
     # Build pip commandline
     cmd = ["pip", "install", "--target", destpath,
@@ -279,6 +280,7 @@ def _cmd(context, command):
 
     if p.returncode:
         raise BuildError("Failed to download source with pip: %s" % cmd_str)
+
 
 _verbose = config.debug("package_release")
 

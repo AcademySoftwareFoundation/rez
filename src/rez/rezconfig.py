@@ -604,7 +604,7 @@ warning_fore = "yellow"
 warning_back = None
 warning_styles = None
 
-info_fore = None
+info_fore = "green"
 info_back = None
 info_styles = None
 
