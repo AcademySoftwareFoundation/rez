@@ -20,11 +20,53 @@ def setup_parser(parser, completions=False):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.pip import pip_install_package
+    import sys
 
-    py_vers = None
     if opts.py_ver:
         py_vers = opts.py_ver.strip(',').split(',')
+    else:
+        py_vers = None
 
-    pip_install_package(opts.PACKAGE,
-                        pip_version=opts.pip_ver,
-                        python_versions=py_vers)
+    installed_variants, skipped_variants = pip_install_package(
+        opts.PACKAGE,
+        pip_version=opts.pip_ver,
+        python_versions=py_vers)
+
+    def print_variant(v):
+        pkg = v.parent
+        txt = "%s: %s" % (pkg.qualified_name, pkg.uri)
+        if v.subpath:
+            txt += " (%s)" % v.subpath
+        print "  " + txt
+
+    print
+    if installed_variants:
+        print "%d packages were installed:" % len(installed_variants)
+        for variant in installed_variants:
+            print_variant(variant)
+    else:
+        print "NO packages were installed."
+
+    if skipped_variants:
+        print
+        print "%d packages were already installed:" % len(skipped_variants)
+        for variant in skipped_variants:
+            print_variant(variant)
+
+    print
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -26,6 +26,12 @@ import os
 # utilities
 #------------------------------------------------------------------------------
 
+
+# this is set when the package repository is instantiated, otherwise an infinite
+# loop is caused to to config loading this plugin, loading config ad infinitum
+_settings = None
+
+
 class PackageDefinitionFileMissing(PackageMetadataError):
     pass
 
@@ -56,20 +62,23 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
     def iter_packages(self):
         # check for unversioned package
-        filepath, _ = self._repository._get_file(self.path, "package")
-        if filepath:
-            package = self._repository.get_resource(
-                FileSystemPackageResource.key,
-                location=self.location,
-                name=self.name)
-            yield package
-            return
+        if config.allow_unversioned_packages:
+            filepath, _ = self._repository._get_file(self.path, "package")
+            if filepath:
+                package = self._repository.get_resource(
+                    FileSystemPackageResource.key,
+                    location=self.location,
+                    name=self.name)
+                yield package
+                return
 
         # versioned packages
         for version_str in self._repository._get_version_dirs(self.path):
-            path = os.path.join(self.path, version_str)
-            if not self._repository._get_file(path, "package")[0]:
-                continue
+
+            if _settings.check_package_definition_files:
+                path = os.path.join(self.path, version_str)
+                if not self._repository._get_file(path, "package")[0]:
+                    continue
 
             package = self._repository.get_resource(
                 FileSystemPackageResource.key,
@@ -168,7 +177,10 @@ class FileSystemPackageResource(PackageResourceHelper):
                         pass
         return data
 
-    def _update_changelog(self, file_format, data):
+    # should be static or classmethod, since it's passed as an arg to
+    # load_from_file, which is memcached
+    @staticmethod
+    def _update_changelog(file_format, data):
         # this is to deal with older package releases. They can contain long
         # changelogs (more recent rez versions truncate before release), and
         # release.yaml files can contain a list-of-str changelog.
@@ -243,7 +255,7 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
 
     def iter_packages(self):
         # unversioned package
-        if not self.versions:
+        if config.allow_unversioned_packages and not self.versions:
             package = self._repository.get_resource(
                 FileSystemCombinedPackageResource.key,
                 location=self.location,
@@ -402,6 +414,10 @@ class FileSystemPackageRepository(PackageRepository):
             location (str): Path containing the package repository.
         """
         super(FileSystemPackageRepository, self).__init__(location, resource_pool)
+
+        global _settings
+        _settings = config.plugins.package_repository.filesystem
+
         self.register_resource(FileSystemPackageFamilyResource)
         self.register_resource(FileSystemPackageResource)
         self.register_resource(FileSystemVariantResource)
@@ -409,8 +425,6 @@ class FileSystemPackageRepository(PackageRepository):
         self.register_resource(FileSystemCombinedPackageFamilyResource)
         self.register_resource(FileSystemCombinedPackageResource)
         self.register_resource(FileSystemCombinedVariantResource)
-
-        self.settings = config.plugins.package_repository.filesystem
 
         self.get_families = lru_cache(maxsize=None)(self._get_families)
         self.get_family = lru_cache(maxsize=None)(self._get_family)
@@ -457,18 +471,22 @@ class FileSystemPackageRepository(PackageRepository):
 
     @cached_property
     def file_lock_dir(self):
-        dirname = self.settings.file_lock_dir
+        dirname = _settings.file_lock_dir
         if not dirname:
             return None
 
-        path = os.path.join(self.location, dirname)
-        path_ = os.path.dirname(path)
-        if os.path.realpath(path_) != os.path.realpath(self.location):
+        # sanity check
+        if os.path.isabs(dirname) or os.path.basename(dirname) != dirname:
             raise ConfigurationError(
                 "filesystem package repository setting 'file_lock_dir' must be "
                 "a single relative directory such as '.lock'")
 
-        return os.path.basename(path)
+        # fall back to location path if lock dir doesn't exist.
+        path = os.path.join(self.location, dirname)
+        if not os.path.exists(path):
+            return None
+
+        return dirname
 
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
         if variant_resource._repository is self:
@@ -482,6 +500,7 @@ class FileSystemPackageRepository(PackageRepository):
         path = self.location
         if self.file_lock_dir:
             path = os.path.join(path, self.file_lock_dir)
+
         if not os.path.exists(path):
             raise PackageRepositoryError(
                 "Lockfile directory %s does not exist - please create and try "
@@ -491,7 +510,7 @@ class FileSystemPackageRepository(PackageRepository):
         lock = LockFile(lock_file)
 
         try:
-            lock.acquire(timeout=self.settings.file_lock_timeout)
+            lock.acquire(timeout=_settings.file_lock_timeout)
             variant = self._create_variant(variant_resource, dry_run=dry_run,
                                            overrides=overrides)
         finally:
@@ -696,7 +715,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         if existing_package:
             # see if variant already exists in package
-            variant_requires = variant.parent.variants[variant.index]
+            variant_requires = variant.variant_requires
 
             for variant_ in self.iter_variants(existing_package):
                 variant_requires_ = existing_package.variants[variant_.index]
@@ -731,7 +750,7 @@ class FileSystemPackageRepository(PackageRepository):
 
         # merge the new variant into the package
         if installed_variant_index is None and variant.index is not None:
-            variant_requires = variant.parent.variants[variant.index]
+            variant_requires = variant.variant_requires
             if not package_data.get("variants"):
                 package_data["variants"] = []
             package_data["variants"].append(variant_requires)
@@ -787,3 +806,19 @@ class FileSystemPackageRepository(PackageRepository):
 
 def register_plugin():
     return FileSystemPackageRepository
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

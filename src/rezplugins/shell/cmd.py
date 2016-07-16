@@ -93,7 +93,7 @@ class CMD(Shell):
     def _bind_interactive_rez(self):
         if config.set_prompt and self.settings.prompt:
             stored_prompt = os.getenv("REZ_STORED_PROMPT")
-            curr_prompt = stored_prompt or os.getenv("PROMPT", "foobar")
+            curr_prompt = stored_prompt or os.getenv("PROMPT", "")
             if not stored_prompt:
                 self.setenv("REZ_STORED_PROMPT", curr_prompt)
 
@@ -121,7 +121,11 @@ class CMD(Shell):
 #                ex.info('You are now in a rez-configured environment.')
 #                ex.info('')
                 if system.is_production_rez_install:
-                    ex.command("cmd /Q /K rezolve context")
+                    # previously this was called with the /K flag, however
+                    # that would leave spawn_shell hung on a blocked call
+                    # waiting for the user to type "exit" into the shell that
+                    # was spawned to run the rez context printout
+                    ex.command("cmd /Q /C rez context")
 
         def _create_ex():
             return RexExecutor(interpreter=self.new_shell(),
@@ -215,3 +219,19 @@ class CMD(Shell):
 def register_plugin():
     if platform_.name == "windows":
         return CMD
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

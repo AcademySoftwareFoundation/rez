@@ -4,7 +4,10 @@ from rez.plugin_managers import plugin_manager
 from rez.config import config
 from rez.backport.lru_cache import lru_cache
 from rez.exceptions import ResourceError
+from contextlib import contextmanager
+import threading
 import os.path
+import time
 
 
 def get_package_repository_types():
@@ -25,6 +28,29 @@ def create_memory_package_repository(repository_data):
     """
     cls_ = plugin_manager.get_plugin_class("package_repository", "memory")
     return cls_.create_repository(repository_data)
+
+
+class PackageRepositoryGlobalStats(threading.local):
+    """Gathers stats across package repositories.
+    """
+    def __init__(self):
+        # the amount of time that has been spent loading package from ,
+        # repositories, since process start
+        self.package_load_time = 0.0
+
+    @contextmanager
+    def package_loading(self):
+        """Use this around code in your package repository that is loading a
+        package, for example from file or cache.
+        """
+        t1 = time.time()
+        yield None
+
+        t2 = time.time()
+        self.package_load_time += t2 - t1
+
+
+package_repo_stats = PackageRepositoryGlobalStats()
 
 
 class PackageRepository(object):
@@ -253,6 +279,7 @@ class PackageRepository(object):
                                     "repository location is %r "
                                     % (resource_handle.variables["location"],
                                        self.location))
+
         resource = self.pool.get_resource_from_handle(resource_handle)
         resource._repository = self
         return resource
@@ -390,3 +417,19 @@ class PackageRepositoryManager(object):
 
 # singleton
 package_repository_manager = PackageRepositoryManager()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -24,8 +24,8 @@ def extend_path(path, name):
         __path__ = extend_path(__path__, __name__)
 
     This will add to the package's __path__ all subdirectories of
-    directories on sys.path named after the package.  This is useful
-    if one wants to distribute different parts of a single logical
+    directories on 'config.plugin_path' named after the package.  This is
+    useful if one wants to distribute different parts of a single logical
     package as multiple directories.
 
     If the input path is not a list (as is the case for frozen
@@ -376,3 +376,19 @@ plugin_manager.register_plugin_type(ReleaseHookPluginType)
 plugin_manager.register_plugin_type(BuildSystemPluginType)
 plugin_manager.register_plugin_type(PackageRepositoryPluginType)
 plugin_manager.register_plugin_type(BuildProcessPluginType)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

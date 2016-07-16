@@ -13,7 +13,6 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.vendor.yaml.error import YAMLError
 from rez.backport.lru_cache import lru_cache
-from UserDict import UserDict
 from inspect import ismodule
 import os
 import os.path
@@ -147,14 +146,14 @@ class Dict(Setting):
     def _parse_env_var(self, value):
         items = value.split(",")
         try:
-            return UserDict([item.split(":") for item in items])
+            return dict([item.split(":") for item in items])
         except ValueError:
             raise ConfigurationError(
                 "expected dict string in form 'k1:v1,k2:v2,...kN:vN': %s"
                 % value)
 
 
-class OptionalDict(Setting):
+class OptionalDict(Dict):
     schema = Or(And(None, Use(lambda x: {})),
                 dict)
 
@@ -216,6 +215,7 @@ config_schema = Schema({
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
     "implicit_packages":                            StrList,
+    "platform_map":                                 OptionalDict,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
@@ -270,6 +270,7 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
+    "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
     "color_enabled":                                Bool,
     "resolve_caching":                              Bool,
@@ -756,3 +757,19 @@ def get_module_root_config():
 
 # singleton
 config = Config._create_main_config()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

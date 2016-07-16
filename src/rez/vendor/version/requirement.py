@@ -114,6 +114,7 @@ class Requirement(_Common):
         self.range_ = None
         self.negate_ = False
         self.conflict_ = False
+        self._str = None
         self.sep_ = '-'
         if s is None:
             return
@@ -248,28 +249,28 @@ class Requirement(_Common):
                              and not r.range_.is_any())
                 return r
             else:
-                range = other.range - self.range
-                if range is None:
+                range_ = other.range - self.range
+                if range_ is None:
                     return None
                 else:
                     r = _r(other)
-                    r.range_ = range
+                    r.range_ = range_
                     return r
         elif other.conflict:
-            range = self.range_ - other.range_
-            if range is None:
+            range_ = self.range_ - other.range_
+            if range_ is None:
                 return None
             else:
                 r = _r(self)
-                r.range_ = range
+                r.range_ = range_
                 return r
         else:
-            range = self.range_ & other.range_
-            if range is None:
+            range_ = self.range_ & other.range_
+            if range_ is None:
                 return None
             else:
                 r = _r(self)
-                r.range_ = range
+                r.range_ = range_
                 return r
 
     def __eq__(self, other):
@@ -279,23 +280,25 @@ class Requirement(_Common):
                 and (self.conflict_ == other.conflict_))
 
     def __hash__(self):
-        return hash((self.name_, self.range_, self.conflict_))
+        return hash(str(self))
 
     def __str__(self):
-        pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
-        range_str = ''
-        sep_str = ''
+        if self._str is None:
+            pre_str = '~' if self.negate_ else ('!' if self.conflict_ else '')
+            range_str = ''
+            sep_str = ''
 
-        range = self.range_
-        if self.negate_:
-            range = ~range if range else VersionRange()
+            range_ = self.range_
+            if self.negate_:
+                range_ = ~range_ if range_ else VersionRange()
 
-        if not range.is_any():
-            range_str = str(range)
-            if range_str[0] not in ('=', '<', '>'):
-                sep_str = self.sep_
+            if not range_.is_any():
+                range_str = str(range_)
+                if range_str[0] not in ('=', '<', '>'):
+                    sep_str = self.sep_
 
-        return pre_str + self.name_ + sep_str + range_str
+            self._str = pre_str + self.name_ + sep_str + range_str
+        return self._str
 
 
 class RequirementList(_Common):
@@ -369,7 +372,7 @@ class RequirementList(_Common):
         return self.conflict_names_
 
     def __iter__(self):
-        for requirement in self.requirements_:
+        for requirement in (self.requirements_ or []):
             yield requirement
 
     def get(self, name):

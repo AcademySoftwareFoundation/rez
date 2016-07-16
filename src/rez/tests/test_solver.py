@@ -3,6 +3,7 @@ test dependency resolving algorithm
 """
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
+from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import itertools
@@ -92,7 +93,7 @@ class TestSolver(TestBase):
 
         return s1
 
-    def test_1(self):
+    def test_01(self):
         """Extremely basic solves involving a single package."""
         self._solve([],
                     [])
@@ -113,7 +114,7 @@ class TestSolver(TestBase):
         self._solve(["!python"],
                     [])
 
-    def test_2(self):
+    def test_02(self):
         """Basic solves involving a single package."""
         self._solve(["nada", "~nada"],
                     ["nada[]"])
@@ -134,24 +135,24 @@ class TestSolver(TestBase):
         self._solve(["!python-2.6+", "python"],
                     ["python-2.5.2[]"])
 
-    def test_3(self):
+    def test_03(self):
         """Failures in the initial request."""
         self._fail("nada", "!nada")
         self._fail("python-2.6", "~python-2.7")
         self._fail("pyfoo", "nada", "!nada")
 
-    def test_4(self):
+    def test_04(self):
         """Basic failures."""
         self._fail("pybah", "!python")
         self._fail("pyfoo-3.1", "python-2.7+")
         self._fail("pyodd<2", "python-2.7")
         self._fail("nopy", "python-2.5.2")
 
-    def test_5(self):
+    def test_05(self):
         """More complex failures."""
         self._fail("bahish", "pybah<5")
 
-    def test_6(self):
+    def test_06(self):
         """Basic solves involving multiple packages."""
         self._solve(["nada", "nopy"],
                     ["nada[]", "nopy-2.1[]"])
@@ -168,7 +169,7 @@ class TestSolver(TestBase):
         self._solve(["python", "pybah"],
                     ["python-2.6.8[]", "pybah-4[]"])
 
-    def test_7(self):
+    def test_07(self):
         """More complex solves."""
         self._solve(["python", "pyodd"],
                     ["python-2.6.8[]", "pybah-4[]", "pyodd-2[]"])
@@ -181,7 +182,7 @@ class TestSolver(TestBase):
         self._solve(["python", "bahish", "pybah"],
                     ["python-2.5.2[]", "pybah-5[]", "bahish-2[]"])
 
-    def test_8(self):
+    def test_08(self):
         """Cyclic failures."""
         def _test(*pkgs):
             s = self._fail(*pkgs)
@@ -195,6 +196,37 @@ class TestSolver(TestBase):
         s = self._fail("pymum-2")
         self.assertFalse(isinstance(s.failure_reason(), Cycle))
 
+    # variant tests
+
+    def test_09_version_priority_mode(self):
+        config.override("variant_select_mode", "version_priority")
+        self._solve(["pyvariants", "python"],
+                    ["python-2.7.0[]", "pyvariants-2[0]"])
+        self._solve(["pyvariants", "python", "nada"],
+                    ["python-2.7.0[]", "pyvariants-2[0]", "nada[]"])
+
+    def test_10_intersection_priority_mode(self):
+        config.override("variant_select_mode", "intersection_priority")
+        self._solve(["pyvariants", "python"],
+                    ["python-2.7.0[]", "pyvariants-2[0]"])
+        self._solve(["pyvariants", "python", "nada"],
+                    ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

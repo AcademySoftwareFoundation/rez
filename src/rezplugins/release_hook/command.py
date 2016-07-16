@@ -22,6 +22,7 @@ class CommandReleaseHook(ReleaseHook):
          Optional("args"):  Or(And(basestring,
                                    Use(lambda x: x.strip().split())),
                                [basestring]),
+         Optional("pretty_args"): bool,
          Optional("user"):  basestring,
          Optional("env"):   dict})
 
@@ -82,24 +83,26 @@ class CommandReleaseHook(ReleaseHook):
         else:
             return _execute(run_cmd, cmd_arguments)
 
-    def pre_build(self, user, install_path, **kwargs):
+    def pre_build(self, user, install_path, variants=None, **kwargs):
         errors = []
         self._execute_commands(self.settings.pre_build_commands,
                                install_path=install_path,
                                package=self.package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
 
         if errors and self.settings.cancel_on_error:
             raise ReleaseHookCancellingError(
                 "The following pre-build commands failed:\n%s"
                 % '\n\n'.join(errors))
 
-    def pre_release(self, user, install_path, **kwargs):
+    def pre_release(self, user, install_path, variants=None, **kwargs):
         errors = []
         self._execute_commands(self.settings.pre_release_commands,
                                install_path=install_path,
                                package=self.package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
 
         if errors and self.settings.cancel_on_error:
             raise ReleaseHookCancellingError(
@@ -119,16 +122,32 @@ class CommandReleaseHook(ReleaseHook):
         self._execute_commands(self.settings.post_release_commands,
                                install_path=install_path,
                                package=package,
-                               errors=errors)
+                               errors=errors,
+                               variants=variants)
         if errors:
             print_debug("The following post-release commands failed:\n"
                         + '\n\n'.join(errors))
 
-    def _execute_commands(self, commands, install_path, package, errors=None):
+    def _execute_commands(self, commands, install_path, package, errors=None,
+                          variants=None):
         release_dict = dict(path=install_path)
+        variant_infos = []
+        if variants:
+            for variant in variants:
+                if isinstance(variant, (int, long)):
+                    variant_infos.append(variant)
+                else:
+                    package = variant.parent
+                    var_dict = dict(variant.resource.variables)
+                    # using '%s' will preserve potential str/unicode nature
+                    var_dict['variant_requires'] = ['%s' % x
+                                                    for x in variant.resource.variant_requires]
+                    variant_infos.append(var_dict)
         formatter = scoped_formatter(system=system,
                                      release=release_dict,
-                                     package=package)
+                                     package=package,
+                                     variants=variant_infos,
+                                     num_variants=len(variant_infos))
 
         for conf in commands:
             program = conf["command"]
@@ -138,6 +157,11 @@ class CommandReleaseHook(ReleaseHook):
             if env:
                 env_ = os.environ.copy()
                 env_.update(env)
+
+            # If we have, ie, a list, and format_pretty is True, it will be printed
+            # as "1 2 3" instead of "[1, 2, 3]"
+            formatter.__dict__['format_pretty'] = conf.get(
+                "pretty_args", True)
 
             args = conf.get("args", [])
             args = [formatter.format(x) for x in args]
@@ -170,3 +194,19 @@ class CommandReleaseHook(ReleaseHook):
 
 def register_plugin():
     return CommandReleaseHook
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

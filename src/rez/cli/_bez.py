@@ -39,12 +39,31 @@ def run():
     stream=open("%(buildfile)s")
     env={}
     exec stream in env
-    env["build"]("%(srcpath)s","%(bldpath)s","%(instpath)s",%(targets)s)
+
+    buildfunc = env.get("build")
+    if not buildfunc:
+        import sys
+        print >> sys.stderr, "Did not find function 'build' in rezbuild.py"
+        sys.exit(1)
+
+    kwargs = dict(source_path="%(srcpath)s",
+                  build_path="%(bldpath)s",
+                  install_path="%(instpath)s",
+                  targets=%(targets)s,
+                  build_args=%(build_args)s)
+
+    import inspect
+    args = inspect.getargspec(buildfunc).args
+    kwargs = dict((k, v) for k, v in kwargs.iteritems() if k in args)
+
+    buildfunc(**kwargs)
+
     """ % dict(buildfile=buildfile,
                srcpath=source_path,
                bldpath=doc["build_path"],
                instpath=doc["install_path"],
-               targets=str(opts.TARGET or None))
+               targets=str(opts.TARGET or None),
+               build_args=str(doc.get("build_args") or []))
 
     cli_code = textwrap.dedent(code).replace("\\", "\\\\")
 
@@ -59,3 +78,19 @@ def run():
     p.wait()
     tmpdir_manager.clear()
     sys.exit(p.returncode)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

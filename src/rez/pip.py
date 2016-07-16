@@ -1,11 +1,17 @@
 from rez.packages_ import get_latest_package
 from rez.vendor.version.version import Version
+from rez.vendor.distlib import DistlibException
+from rez.vendor.distlib.database import DistributionPath
+from rez.vendor.distlib.markers import interpret
+from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
 from rez.utils.logging_ import print_debug
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
+from rez.package_maker__ import make_package
 from rez.config import config
+from rez.system import System
 from tempfile import mkdtemp
 from StringIO import StringIO
 from pipes import quote
@@ -36,10 +42,51 @@ class InstallMode(Enum):
     max_deps = 3
 
 
-def pip_install_package(source_name, pip_version=None, python_versions=None,
-                        mode=InstallMode.min_deps):
-    """Install a pip-compatible python package as a rez package.
+def _get_dependencies(requirement, distributions):
+    def get_distrubution_name(pip_name):
+        pip_to_rez_name = pip_name.lower().replace("-", "_")
+        for dist in distributions:
+            _name, _ = parse_name_and_version(dist.name_and_version)
+            if _name.replace("-", "_") == pip_to_rez_name:
+                return dist.name.replace("-", "_")
 
+    result = []
+    requirements = ([requirement] if isinstance(requirement, basestring)
+                    else requirement["requires"])
+
+    for package in requirements:
+        if "(" in package:
+            try:
+                name, version = parse_name_and_version(package)
+                version = version.replace("==", "")
+                name = get_distrubution_name(name)
+            except DistlibException:
+                n, vs = package.split(' (')
+                vs = vs[:-1]
+                versions = []
+                for v in vs.split(','):
+                    package = "%s (%s)" % (n, v)
+                    name, version = parse_name_and_version(package)
+                    version = version.replace("==", "")
+                    versions.append(version)
+                version = "".join(versions)
+
+            name = get_distrubution_name(name)
+            result.append("-".join([name, version]))
+        else:
+            name = get_distrubution_name(package)
+            result.append(name)
+
+    return result
+
+
+def is_exe(fpath):
+        return os.path.exists(fpath) and os.access(fpath, os.X_OK)
+
+
+def pip_install_package(source_name, pip_version=None, python_versions=None,
+                        mode=InstallMode.min_deps, release=False):
+    """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
             package source. This is the same as the arg you would pass to
@@ -53,7 +100,14 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
             Defaults to a single variant for the latest python version.
         mode (`InstallMode`): Installation mode, determines how dependencies are
             managed.
+
+    Returns:
+        2-tuple:
+            List of `Variant`: Installed variants;
+            List of `Variant`: Skipped variants (already installed).
     """
+    installed_variants = []
+    skipped_variants = []
 
     # determine pip pkg to use for install, and python variants to install on
     if pip_version:
@@ -87,8 +141,17 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
 
     _log("installing for pip: '%s', python(s): %s" % (pip_req, py_reqs))
 
+
+    # TODO: should check if packages_path is writable before continuing with pip
+    #
+    packages_path = config.release_packages_path if release else config.local_packages_path
+
+
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
-    packages = {}
+    stagingdir = os.path.join(tmpdir, "rez_staging")
+    destpath = os.path.join(stagingdir, "python")
+    binpath = os.path.join(stagingdir, "bin")
+    stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
     # use pip + latest python to perform pip download operations
     request = [pip_req, py_reqs[-1]]
@@ -104,113 +167,118 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
         context.print_info(buf)
         _log(buf.getvalue())
 
-    # download package and dependency archives
-    dl_path = os.path.join(tmpdir, "download")
-    os.mkdir(dl_path)
-    archives = _download_packages(source_name,
-                                  context=context,
-                                  tmpdir=dl_path,
-                                  no_deps=(mode == InstallMode.no_deps))
+    # Build pip commandline
+    cmd = ["pip", "install", "--target", destpath,
+           "--install-option=--install-scripts=%s" % binpath]
 
-    print ("\ninstalling packages in the following order:\n"
-           + '\n'.join(os.path.basename(x) for x in archives))
+    if mode == InstallMode.no_deps:
+        cmd.append("--no-deps")
+    cmd.append(source_name)
+    _cmd(context=context, command=cmd)
+    _system = System()
 
-    # iterate over archives and build/install each, starting from those with no
-    # dependencies and moving up until we install the target package last
-    for archive in archives:
-        _install_from_archive(archive=archive, pip_req=pip_req, py_reqs=py_reqs,
-                              mode=mode)
+    # Collect resulting python packages using distlib
+    distribution_path = DistributionPath([destpath], include_egg=True)
+    distributions = [d for d in distribution_path.get_distributions()]
+
+    for distribution in distribution_path.get_distributions():
+        requirements = []
+        if distribution.metadata.run_requires:
+            # Handle requirements. Currently handles conditional environment based
+            # requirements and normal requirements
+            # TODO: Handle optional requirements?
+            for requirement in distribution.metadata.run_requires:
+                if "environment" in requirement:
+                    if interpret(requirement["environment"]):
+                        requirements.extend(_get_dependencies(requirement, distributions))
+                elif "extra" in requirement:
+                    # Currently ignoring optional requirements
+                    pass
+                else:
+                    requirements.extend(_get_dependencies(requirement, distributions))
+
+        tools = []
+        src_dst_lut = {}
+
+        for installed_file in distribution.list_installed_files(allow_fail=True):
+            source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+            if os.path.exists(source_file):
+                destination_file = installed_file[0].split(stagingsep)[1]
+                exe = False
+
+                if is_exe(source_file) and \
+                        destination_file.startswith("%s%s" % ("bin", os.path.sep)):
+                    _, _file = os.path.split(destination_file)
+                    tools.append(_file)
+                    exe = True
+
+                data = [destination_file, exe]
+                src_dst_lut[source_file] = data
+            else:
+                _log("Source file does not exist: " + source_file + "!")
+
+        def make_root(variant, path):
+            """Using distlib to iterate over all installed files of the current
+            distribution to copy files to the target directory of the rez package
+            variant
+            """
+            for source_file, data in src_dst_lut.items():
+                destination_file, exe = data
+                destination_file = os.path.normpath(os.path.join(path, destination_file))
+                if not os.path.exists(os.path.dirname(destination_file)):
+                    os.makedirs(os.path.dirname(destination_file))
+                shutil.copyfile(source_file, destination_file)
+                if exe:
+                    shutil.copystat(source_file, destination_file)
+
+        # Inject platform and arch
+        if "os-" + _system.os not in py_reqs:
+            py_reqs.insert(0, "os-" + _system.os)
+        if "arch-" + _system.arch not in py_reqs:
+            py_reqs.insert(0, "arch-" + _system.arch)
+        if "platform-" + _system.platform not in py_reqs:
+            py_reqs.insert(0, "platform-" + _system.platform)
+
+
+        name, _ = parse_name_and_version(distribution.name_and_version)
+        name = distribution.name[0:len(name)].replace("-", "_")
+
+        with make_package(name, packages_path, make_root=make_root) as pkg:
+            pkg.version = distribution.version
+            if distribution.metadata.summary:
+                pkg.description = distribution.metadata.summary
+
+            pkg.variants = [py_reqs]
+            if requirements:
+                pkg.requires = requirements
+
+            commands = []
+            commands.append("env.PYTHONPATH.append('{root}/python')")
+
+            if tools:
+                pkg.tools = tools
+                commands.append("env.PATH.append('{root}/bin')")
+
+            pkg.commands = '\n'.join(commands)
+
+        installed_variants.extend(pkg.installed_variants or [])
+        skipped_variants.extend(pkg.skipped_variants or [])
 
     # cleanup
     shutil.rmtree(tmpdir)
 
-
-def _install_from_archive(archive, pip_req, py_reqs, mode):
-    pass
+    return installed_variants, skipped_variants
 
 
-def _download_packages(source_name, context, tmpdir, no_deps):
-    """
-    Returns:
-        list of str: List of downloaded archives, in dependency order.
-    """
-    archives_path = os.path.join(tmpdir, "archives")
-    cache_path = os.path.join(tmpdir, "cache")
-    os.mkdir(archives_path)
-    os.mkdir(cache_path)
-
-    cmd_base = ["pip", "install", "--cache-dir=%s" % cache_path]
-
-    # download archives
-    cmd = cmd_base + ["--download=%s" % archives_path]
-    if no_deps:
-        cmd.append("--no-deps")
-    cmd.append(source_name)
-    _cmd(context=context, command=cmd)
-
-    archive_names = os.listdir(archives_path)
-
-    if no_deps:  # nothing more to do
-        archive_name = archive_names[0]
-        archive = os.path.join(archives_path, archive_name)
-        return [archive]
-
-    # re-download each archive, with deps. From this we can infer the dependency
-    # order. Since we use the same cache, nothing is actually re-downloaded.
-    dependencies = {}
-    deps_path = os.path.join(tmpdir, "deps")
-    os.mkdir(deps_path)
-
-    for archive_name in archive_names:
-        depsdir = os.path.join(deps_path, archive_name)
-        os.mkdir(depsdir)
-
-        archive = os.path.join(archives_path, archive_name)
-        cmd = cmd_base + ["--download=%s" % depsdir, archive]
-        _cmd(context=context, command=cmd, quiet=(not _verbose))
-
-        deps = set(os.listdir(depsdir))
-        deps.remove(archive_name)
-        dependencies[archive_name] = deps
-
-    # infer dependency order from dependencies map. We need this in order to
-    # know the build order we have to follow.
-    archives = []
-
-    while dependencies:
-        leaf_archives = [k for k, v in dependencies.iteritems() if not v]
-
-        if not leaf_archives:
-            raise BuildError("Cyclic dependency detected in packages: %s"
-                             % leaf_archives)
-
-        for leaf_archive in leaf_archives:
-            archives.append(leaf_archive)
-            del dependencies[leaf_archive]
-
-        rm_deps = set(leaf_archives)
-        for deps in dependencies.itervalues():
-            deps -= rm_deps
-
-    archives = [os.path.join(archives_path, x) for x in archives]
-    return archives
-
-
-def _cmd(context, command, quiet=False):
+def _cmd(context, command):
     cmd_str = ' '.join(quote(x) for x in command)
     _log("running: %s" % cmd_str)
 
-    stdout_ = subprocess.PIPE if quiet else None
-    p = context.execute_shell(command=command, block=False,
-                              stdout=stdout_, stderr=subprocess.PIPE)
-    _, err = p.communicate()
+    p = context.execute_shell(command=command, block=False)
+    p.wait()
 
     if p.returncode:
-        raise BuildError("Failed to download source with pip:\n"
-                         "Command: %s\n"
-                         "Error: %s"
-                         % (cmd_str, err))
-
+        raise BuildError("Failed to download source with pip: %s" % cmd_str)
 
 _verbose = config.debug("package_release")
 
@@ -218,3 +286,19 @@ _verbose = config.debug("package_release")
 def _log(msg):
     if _verbose:
         print_debug(msg)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

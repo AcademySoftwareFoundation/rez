@@ -120,7 +120,8 @@ class CMakeBuildSystem(BuildSystem):
         cmd += (self.build_args or [])
 
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
-        cmd.append("-DCMAKE_MODULE_PATH=%s" % sh.get_key_token("CMAKE_MODULE_PATH"))
+        cmd.append("-DCMAKE_MODULE_PATH=%s" % 
+                   sh.get_key_token("CMAKE_MODULE_PATH").replace('\\', '/'))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
         cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)
         cmd.append("-DREZ_BUILD_INSTALL=%d" % (1 if install else 0))
@@ -174,9 +175,11 @@ class CMakeBuildSystem(BuildSystem):
             cmd = ["make"]
         cmd += (self.child_build_args or [])
 
-        if not any(x.startswith("-j") for x in (self.child_build_args or [])):
-            n = variant.config.build_thread_count
-            cmd.append("-j%d" % n)
+        # nmake has no -j
+        if self.settings.make_binary != 'nmake':
+            if not any(x.startswith("-j") for x in (self.child_build_args or [])):
+                n = variant.config.build_thread_count
+                cmd.append("-j%d" % n)
 
         # execute make within the build env
         _pr("\nExecuting: %s" % ' '.join(cmd))
@@ -204,7 +207,7 @@ class CMakeBuildSystem(BuildSystem):
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
 
-        executor.env.CMAKE_MODULE_PATH.append(cmake_path)
+        executor.env.CMAKE_MODULE_PATH.append(cmake_path.replace('\\', '/'))
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
         executor.env.REZ_BUILD_THREAD_COUNT = package.config.build_thread_count
@@ -246,3 +249,19 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
 
 def register_plugin():
     return CMakeBuildSystem
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

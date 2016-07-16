@@ -1,4 +1,5 @@
 from rez.utils.schema import Required, schema_keys
+from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
@@ -56,7 +57,10 @@ class PackageMaker(AttrDictWrapper):
         """
         super(PackageMaker, self).__init__(data)
         self.name = name
-        self.installed_variants = []  # set by `make_package`
+
+        # set by `make_package`
+        self.installed_variants = []
+        self.skipped_variants = []
 
     def create_package(self):
         """Create the analogous package.
@@ -131,6 +135,7 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
 
     # post-with-block:
     #
+
     package = maker.create_package()
     cwd = os.getcwd()
     src_variants = []
@@ -141,30 +146,47 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
             variant_ = variant.install(path, dry_run=True)
             if variant_ is None:
                 src_variants.append(variant)
-            elif warn_on_skip:
-                print_warning("Skipping installation: Package variant already "
-                              "exists: %s" % variant_.uri)
+            else:
+                maker.skipped_variants.append(variant_)
+                if warn_on_skip:
+                    print_warning("Skipping installation: Package variant already "
+                                  "exists: %s" % variant_.uri)
     else:
         src_variants = package.iter_variants()
 
-    # install the package variant(s) into the filesystem package repo at `path`
-    for variant in src_variants:
-        variant_ = variant.install(path)
+    with retain_cwd():
+        # install the package variant(s) into the filesystem package repo at `path`
+        for variant in src_variants:
+            variant_ = variant.install(path)
 
-        base = variant_.base
-        if make_base and base:
-            if not os.path.exists(base):
-                os.makedirs(base)
-            os.chdir(base)
-            make_base(variant_, base)
+            base = variant_.base
+            if make_base and base:
+                if not os.path.exists(base):
+                    os.makedirs(base)
+                os.chdir(base)
+                make_base(variant_, base)
 
-        root = variant_.root
-        if make_root and root:
-            if not os.path.exists(root):
-                os.makedirs(root)
-            os.chdir(root)
-            make_root(variant_, root)
+            root = variant_.root
+            if make_root and root:
+                if not os.path.exists(root):
+                    os.makedirs(root)
+                os.chdir(root)
+                make_root(variant_, root)
 
-        maker.installed_variants.append(variant_)
+            maker.installed_variants.append(variant_)
 
-    os.chdir(cwd)
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

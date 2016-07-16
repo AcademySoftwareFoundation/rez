@@ -108,6 +108,10 @@ if __name__ == "__main__":
     parser.add_option(
         '-v', '--verbose', action='count', dest='verbose', default=0,
         help="Increase verbosity.")
+    parser.add_option(
+        '-s', '--keep-symlinks', action="store_true", default=False,
+        help="Don't run realpath on the passed DEST_DIR to resolve symlinks; "
+             "ie, the baked script locations may still contain symlinks")
     opts, args = parser.parse_args()
 
     # determine install path
@@ -116,7 +120,8 @@ if __name__ == "__main__":
 
     dest_dir = args[0].format(version=_rez_version)
     dest_dir = os.path.expanduser(dest_dir)
-    dest_dir = os.path.realpath(dest_dir)
+    if not opts.keep_symlinks:
+        dest_dir = os.path.realpath(dest_dir)
 
     print "installing rez to %s..." % dest_dir
 

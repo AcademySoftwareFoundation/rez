@@ -1,0 +1,8 @@
+name: bar
+version: '1.0'
+authors:
+- joe.bloggs
+description: 'a package with two variants'
+variants:
+- ['spangle-1.0']
+- ['spangle-1.1']
