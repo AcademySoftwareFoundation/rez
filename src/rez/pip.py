@@ -84,48 +84,38 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
-def pip_install_package(source_name, pip_version=None, python_versions=None,
-                        mode=InstallMode.min_deps, release=False):
-    """Install a pip-compatible python package as a rez package.
-    Args:
-        source_name (str): Name of package or archive/url containing the pip
-            package source. This is the same as the arg you would pass to
-            the 'pip install' command.
-        pip_version (str or `Version`): Version of pip to use to perform the
-            install, uses latest if None.
-        python_versions (list of str or `Version`): Python version(s) to use to
-            perform the install, and subsequently have the resulting rez package
-            depend on. If multiple values are provided, this will create
-            multiple variants in the package, each based on the python version.
-            Defaults to a single variant for the latest python version.
-        mode (`InstallMode`): Installation mode, determines how dependencies are
-            managed.
+def run_pip_command(command, pip_version=None, python_version=None):
+    """Run a pip command.
 
     Returns:
-        2-tuple:
-            List of `Variant`: Installed variants;
-            List of `Variant`: Skipped variants (already installed).
+        `subprocess.Popen`: Pip process.
     """
-    installed_variants = []
-    skipped_variants = []
+    context = create_context(pip_version, python_version)
+    p = context.execute_shell(command=command, block=False)
+    return p
 
+
+def create_context(pip_version=None, python_version=None):
+    """Create a context containing the specific pip and python.
+
+    Args:
+        pip_version (str or `Version`): Version of pip to use, or latest if None.
+        python_version (str or `Version`): Python version to use, or latest if
+            None.
+
+    Returns:
+        `ResolvedContext`: Context containing pip and python.
+    """
     # determine pip pkg to use for install, and python variants to install on
     if pip_version:
         pip_req = "pip-%s" % str(pip_version)
     else:
         pip_req = "pip"
 
-    py_reqs = []
-    if python_versions:
-        py_vers = set()
-        for ver in python_versions:
-            ver_ = Version(str(ver))
-            major_minor_ver = ver_[:2]
-            py_vers.add(major_minor_ver)
-
-        for py_ver in sorted(py_vers):
-            py_req = "python-%s" % str(py_ver)
-            py_reqs.append(py_req)
+    if python_version:
+        ver = Version(str(python_version))
+        major_minor_ver = ver.trim(2)
+        py_req = "python-%s" % str(major_minor_ver)
     else:
         # use latest major.minor
         package = get_latest_package("python")
@@ -137,11 +127,51 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
             major_minor_ver = '.'.join(map(str, sys.version_info[:2]))
 
         py_req = "python-%s" % str(major_minor_ver)
-        py_reqs.append(py_req)
+
+    # use pip + latest python to perform pip download operations
+    request = [pip_req, py_req]
+
+    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
+                        to=BuildError, msg="Cannot run - pip or python rez "
+                        "package is not present"):
+        context = ResolvedContext(request)
+
+    # print pip package used to perform the install
+    pip_variant = context.get_resolved_package("pip")
+    pip_package = pip_variant.parent
+    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
+
+    return context
+
+
+def pip_install_package(source_name, pip_version=None, python_version=None,
+                        mode=InstallMode.min_deps, release=False):
+    """Install a pip-compatible python package as a rez package.
+    Args:
+        source_name (str): Name of package or archive/url containing the pip
+            package source. This is the same as the arg you would pass to
+            the 'pip install' command.
+        pip_version (str or `Version`): Version of pip to use to perform the
+            install, uses latest if None.
+        python_version (str or `Version`): Python version to use to perform the
+            install, and subsequently have the resulting rez package depend on.
+        mode (`InstallMode`): Installation mode, determines how dependencies are
+            managed.
+
+    Returns:
+        2-tuple:
+            List of `Variant`: Installed variants;
+            List of `Variant`: Skipped variants (already installed).
+    """
+    installed_variants = []
+    skipped_variants = []
+
+    context = create_context(pip_version, python_version)
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
-    packages_path = config.release_packages_path if release else config.local_packages_path
+    packages_path = (config.release_packages_path if release
+                     else config.local_packages_path)
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     stagingdir = os.path.join(tmpdir, "rez_staging")
@@ -149,24 +179,11 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
     binpath = os.path.join(stagingdir, "bin")
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
-    # use pip + latest python to perform pip download operations
-    request = [pip_req, py_reqs[-1]]
-
-    with convert_errors(from_=(PackageFamilyNotFoundError, PackageNotFoundError),
-                        to=BuildError, msg="Cannot install, pip or python rez "
-                        "packages are not present"):
-        context = ResolvedContext(request)
-
     if config.debug("package_release"):
         buf = StringIO()
         print >> buf, "\n\npackage download environment:"
         context.print_info(buf)
         _log(buf.getvalue())
-
-    # print pip package used to perform the install
-    pip_variant = context.get_resolved_package("pip")
-    pip_package = pip_variant.parent
-    print_info("Using %s (%s)" % (pip_package.qualified_name, pip_variant.uri))
 
     # Build pip commandline
     cmd = ["pip", "install", "--target", destpath,
@@ -203,6 +220,7 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
 
         for installed_file in distribution.list_installed_files(allow_fail=True):
             source_file = os.path.normpath(os.path.join(destpath, installed_file[0]))
+
             if os.path.exists(source_file):
                 destination_file = installed_file[0].split(stagingsep)[1]
                 exe = False
@@ -226,20 +244,24 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
             for source_file, data in src_dst_lut.items():
                 destination_file, exe = data
                 destination_file = os.path.normpath(os.path.join(path, destination_file))
+
                 if not os.path.exists(os.path.dirname(destination_file)):
                     os.makedirs(os.path.dirname(destination_file))
+
                 shutil.copyfile(source_file, destination_file)
                 if exe:
                     shutil.copystat(source_file, destination_file)
 
-        # Inject platform and arch
-        if "os-" + _system.os not in py_reqs:
-            py_reqs.insert(0, "os-" + _system.os)
-        if "arch-" + _system.arch not in py_reqs:
-            py_reqs.insert(0, "arch-" + _system.arch)
-        if "platform-" + _system.platform not in py_reqs:
-            py_reqs.insert(0, "platform-" + _system.platform)
+        # determine variant requirements
+        # TODO detect if platform/arch/os necessary, no if pure python
+        variant_reqs = []
+        variant_reqs.append("platform-%s" % _system.platform)
+        variant_reqs.append("arch-%s" % _system.arch)
+        variant_reqs.append("os-%s" % _system.os)
 
+        python_variant = context.get_resolved_package("python")
+        py_ver = python_variant.version.trim(2)
+        variant_reqs.append("python-%s" % py_ver)
 
         name, _ = parse_name_and_version(distribution.name_and_version)
         name = distribution.name[0:len(name)].replace("-", "_")
@@ -249,7 +271,7 @@ def pip_install_package(source_name, pip_version=None, python_versions=None,
             if distribution.metadata.summary:
                 pkg.description = distribution.metadata.summary
 
-            pkg.variants = [py_reqs]
+            pkg.variants = [variant_reqs]
             if requirements:
                 pkg.requires = requirements
 

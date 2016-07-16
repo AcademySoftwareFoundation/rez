@@ -11,26 +11,28 @@ def setup_parser(parser, completions=False):
         "--python-version", dest="py_ver", metavar="VERSION",
         help="python version (rez package) to use, default is latest. Note "
         "that the pip package(s) will be installed with a dependency on "
-        "python-MAJOR.MINOR. You can also provide a comma-separated list to "
-        "install for multiple pythons at once, eg '2.6,2.7'")
+        "python-MAJOR.MINOR.")
+    parser.add_argument(
+        "--search", action="store_true",
+        help="search for the package on PyPi, rather than installing it")
     parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.pip import pip_install_package
+    from rez.pip import pip_install_package, run_pip_command
     import sys
 
-    if opts.py_ver:
-        py_vers = opts.py_ver.strip(',').split(',')
-    else:
-        py_vers = None
+    if opts.search:
+        p = run_pip_command(["pip", "search", opts.PACKAGE])
+        p.wait()
+        return
 
     installed_variants, skipped_variants = pip_install_package(
         opts.PACKAGE,
         pip_version=opts.pip_ver,
-        python_versions=py_vers)
+        python_version=opts.py_ver)
 
     def print_variant(v):
         pkg = v.parent
