@@ -477,7 +477,7 @@ def create_package(name, data):
     """
     from rez.package_maker__ import PackageMaker
     maker = PackageMaker(name, data)
-    return maker.get_package()
+    return maker.create_package()
 
 
 def get_variant(variant_handle):
