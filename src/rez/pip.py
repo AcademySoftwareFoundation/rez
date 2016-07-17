@@ -6,7 +6,7 @@ from rez.vendor.distlib.markers import interpret
 from rez.vendor.distlib.util import parse_name_and_version
 from rez.vendor.enum.enum import Enum
 from rez.resolved_context import ResolvedContext
-from rez.utils.logging_ import print_debug, print_info
+from rez.utils.logging_ import print_debug, print_info, print_warning
 from rez.exceptions import BuildError, PackageFamilyNotFoundError, \
     PackageNotFoundError, convert_errors
 from rez.package_maker__ import make_package
@@ -84,15 +84,52 @@ def is_exe(fpath):
         return os.path.exists(fpath) and os.access(fpath, os.X_OK)
 
 
-def run_pip_command(command, pip_version=None, python_version=None):
+def run_pip_command(command_args, pip_version=None, python_version=None):
     """Run a pip command.
+
+    Args:
+        command_args (list of str): Args to pip.
 
     Returns:
         `subprocess.Popen`: Pip process.
     """
-    context = create_context(pip_version, python_version)
-    p = context.execute_shell(command=command, block=False)
-    return p
+    pip_exe, context = find_pip(pip_version, python_version)
+    command = [pip_exe] + list(command_args)
+
+    if context is None:
+        return subprocess.Popen(command)
+    else:
+        return context.execute_shell(command=command, block=False)
+
+
+def find_pip(pip_version=None, python_version=None):
+    """Find a pip exe using the given python version.
+
+    Returns:
+        2-tuple:
+            str: pip executable;
+            `ResolvedContext`: Context containing pip, or None if we fell back
+                to system pip.
+    """
+    pip_exe = "pip"
+
+    try:
+        context = create_context(pip_version, python_version)
+    except BuildError as e:
+        # fall back on system pip. Not ideal but at least it's something
+        from rez.backport.shutilwhich import which
+
+        pip_exe = which("pip")
+
+        if pip_exe:
+            print_warning(
+                "pip rez package could not be found; system 'pip' command (%s) "
+                "will be used instead." % pip_exe)
+            context = None
+        else:
+            raise e
+
+    return pip_exe, context
 
 
 def create_context(pip_version=None, python_version=None):
@@ -157,6 +194,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             install, and subsequently have the resulting rez package depend on.
         mode (`InstallMode`): Installation mode, determines how dependencies are
             managed.
+        release (bool): If True, install as a released package; otherwise, it
+            will be installed as a local package.
 
     Returns:
         2-tuple:
@@ -166,7 +205,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
-    context = create_context(pip_version, python_version)
+    pip_exe, context = find_pip(pip_version, python_version)
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
@@ -175,23 +214,30 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     stagingdir = os.path.join(tmpdir, "rez_staging")
-    destpath = os.path.join(stagingdir, "python")
-    binpath = os.path.join(stagingdir, "bin")
     stagingsep = "".join([os.path.sep, "rez_staging", os.path.sep])
 
-    if config.debug("package_release"):
+    destpath = os.path.join(stagingdir, "python")
+    binpath = os.path.join(stagingdir, "bin")
+    incpath = os.path.join(stagingdir, "include")
+    datapath = stagingdir
+
+    if context and config.debug("package_release"):
         buf = StringIO()
         print >> buf, "\n\npackage download environment:"
         context.print_info(buf)
         _log(buf.getvalue())
 
     # Build pip commandline
-    cmd = ["pip", "install", "--target", destpath,
-           "--install-option=--install-scripts=%s" % binpath]
+    cmd = [pip_exe, "install",
+           "--install-option=--install-lib=%s" % destpath,
+           "--install-option=--install-scripts=%s" % binpath,
+           "--install-option=--install-headers=%s" % incpath,
+           "--install-option=--install-data=%s" % datapath]
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")
     cmd.append(source_name)
+
     _cmd(context=context, command=cmd)
     _system = System()
 
@@ -259,8 +305,13 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         variant_reqs.append("arch-%s" % _system.arch)
         variant_reqs.append("os-%s" % _system.os)
 
-        python_variant = context.get_resolved_package("python")
-        py_ver = python_variant.version.trim(2)
+        if context is None:
+            # since we had to use system pip, we have to assume system python version
+            py_ver = '.'.join(map(str, sys.version_info[:2]))
+        else:
+            python_variant = context.get_resolved_package("python")
+            py_ver = python_variant.version.trim(2)
+
         variant_reqs.append("python-%s" % py_ver)
 
         name, _ = parse_name_and_version(distribution.name_and_version)
@@ -297,7 +348,11 @@ def _cmd(context, command):
     cmd_str = ' '.join(quote(x) for x in command)
     _log("running: %s" % cmd_str)
 
-    p = context.execute_shell(command=command, block=False)
+    if context is None:
+        p = subprocess.Popen(command)
+    else:
+        p = context.execute_shell(command=command, block=False)
+
     p.wait()
 
     if p.returncode:

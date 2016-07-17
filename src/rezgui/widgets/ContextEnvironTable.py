@@ -12,6 +12,7 @@ class ContextEnvironTable(QtGui.QTableWidget):
         self.setSelectionMode(QtGui.QAbstractItemView.NoSelection)
         self.setSelectionBehavior(QtGui.QAbstractItemView.SelectRows)
         self.setAlternatingRowColors(True)
+        self.setStyleSheet("font: 12pt 'Courier'")
 
         hh = self.horizontalHeader()
         hh.setStretchLastSection(True)

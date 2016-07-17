@@ -18,14 +18,14 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.code_pending = True
 
         self.overview_edit = StreamableTextEdit()
-        self.overview_edit.setStyleSheet("font: 9pt 'Courier'")
+        self.overview_edit.setStyleSheet("font: 12pt 'Courier'")
 
         self.graph_btn = ViewGraphButton(context_model)
         btn_pane = create_pane([None, self.graph_btn], True)
         overview_pane = create_pane([self.overview_edit, btn_pane], False)
 
         self.code_edit = SearchableTextEdit()
-        self.code_edit.setStyleSheet("font: 9pt 'Courier'")
+        self.code_edit.setStyleSheet("font: 12pt 'Courier'")
 
         self.code_combo = QtGui.QComboBox()
         # strip out 'sh' and 'csh', they only differ from bash and tcsh in shell
