@@ -4,12 +4,26 @@ Print information about the current rez context, or a given context file.
 import sys
 from rez.rex import OutputStyle
 
+try:
+    # part of Python since 2.6
+    import json
+except ImportError:
+    try:
+        # for Python < 2.6
+        import simplejson as json
+    except ImportError:
+        json = None
 
 def setup_parser(parser, completions=False):
     from rez.system import system
     from rez.shells import get_shell_types
 
-    formats = get_shell_types() + ['dict', 'table']
+    formats = get_shell_types()
+    if json is None:
+        format.extend(['dict', 'table'])
+    else:
+        format.extend(['dict', 'json', 'table'])
+
     output_styles = [e.name for e in OutputStyle]
 
     parser.add_argument(
@@ -151,6 +165,9 @@ def command(opts, parser, extra_arg_groups=None):
     elif opts.format == 'dict':
         env = rc.get_environ(parent_environ=parent_env)
         print pformat(env)
+    elif json is not None and opts.format == 'json':
+        env = rc.get_environ(parent_environ=parent_env)
+        print json.dumps(env, sort_keys=True, indent=4)
     else:
         code = rc.get_shell_code(shell=opts.format,
                                  parent_environ=parent_env,
