@@ -20,9 +20,9 @@ def setup_parser(parser, completions=False):
 
     formats = get_shell_types()
     if json is None:
-        format.extend(['dict', 'table'])
+        formats.extend(['dict', 'table'])
     else:
-        format.extend(['dict', 'json', 'table'])
+        formats.extend(['dict', 'json', 'table'])
 
     output_styles = [e.name for e in OutputStyle]
 
