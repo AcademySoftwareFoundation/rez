@@ -1,6 +1,7 @@
 """
 Builds packages on local host
 """
+from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, ReleaseError
@@ -96,10 +97,16 @@ class LocalBuildProcess(BuildProcessHelper):
         install_path = install_path or self.package.config.local_packages_path
         variant_install_path = self.get_package_install_path(install_path)
         variant_build_path = self.build_path
+
         if variant.subpath:
             variant_build_path = os.path.join(variant_build_path, variant.subpath)
             variant_install_path = os.path.join(variant_install_path, variant.subpath)
 
+        # inform package repo that a variant is about to be built/installed
+        pkg_repo = package_repository_manager.get_repository(install_path)
+        pkg_repo.pre_variant_install(variant.resource)
+
+        # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
             shutil.rmtree(variant_build_path)
         if not os.path.exists(variant_build_path):
