@@ -888,13 +888,24 @@ class FileSystemPackageRepository(PackageRepository):
             if not name.startswith(self.building_prefix):
                 continue
 
-            filepath = os.path.join(family_path, name)
-            st = os.stat(filepath)
+            tagfilepath = os.path.join(family_path, name)
+            ver_str = name[len(self.building_prefix):]
+            pkg_path = os.path.join(family_path, ver_str)
 
-            # just delete if > 24hrs old
-            age = now - st.st_ctime
-            if age > (3600 * 24):
-                os.remove(filepath)
+            if os.path.exists(pkg_path):
+                # build tagfile not needed if package is valid
+                if self._is_valid_package_directory(pkg_path):
+                    os.remove(tagfilepath)
+                    continue
+            else:
+                # remove tagfile if pkg is gone. Delete only tagfiles over a certain
+                # age, otherwise might delete a tagfile another process has created
+                # just before it created the package directory.
+                st = os.stat(tagfilepath)
+                age = now - st.st_mtime
+
+                if age > 3600:
+                    os.remove(tagfilepath)
 
 
 def register_plugin():
