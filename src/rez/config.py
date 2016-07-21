@@ -387,6 +387,9 @@ class Config(object):
             self.overrides[key] = value
             self._uncache(key)
 
+    def is_overridden(self, key):
+        return (key in self.overrides)
+
     def remove_override(self, key):
         """Remove a setting override, if one exists."""
         keys = key.split('.')
