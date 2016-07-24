@@ -62,7 +62,7 @@ class PackageMaker(AttrDictWrapper):
         self.installed_variants = []
         self.skipped_variants = []
 
-    def create_package(self):
+    def get_package(self):
         """Create the analogous package.
 
         Returns:
@@ -136,7 +136,7 @@ def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
     # post-with-block:
     #
 
-    package = maker.create_package()
+    package = maker.get_package()
     cwd = os.getcwd()
     src_variants = []
 
