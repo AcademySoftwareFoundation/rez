@@ -445,17 +445,21 @@ def get_developer_package(path):
     Returns:
         `Package` object.
     """
-    data = None
-    for format_ in (FileFormat.py, FileFormat.yaml):
-        filepath = os.path.join(path, "package.%s" % format_.extension)
-        if os.path.isfile(filepath):
-            data = load_from_file(filepath, format_)
-            break
+    name = data = None
+    for name_ in config.plugins.package_repository.filesystem.package_filenames:
+        for format_ in (FileFormat.py, FileFormat.yaml):
+            filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
+            if os.path.isfile(filepath):
+                data = load_from_file(filepath, format_)
+                break
+        if data:
+            name = data.get("name")
+            if name is not None or isinstance(name, basestring):
+                break
 
     if data is None:
         raise PackageMetadataError("No package definition file found at %s" % path)
 
-    name = data.get("name")
     if name is None or not isinstance(name, basestring):
         raise PackageMetadataError(
             "Error in %r - missing or non-string field 'name'" % filepath)

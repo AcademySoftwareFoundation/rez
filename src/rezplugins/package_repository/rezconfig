@@ -22,3 +22,10 @@ filesystem:
     # non-packages in these directories, and the solver is faster if this value
     # is False, because a lot of file stats are avoided.
     check_package_definition_files: false
+
+    # A list of filenames that are expected to contain Rez definitions.
+    # The list will be checked in top to bottom order, and the first filename
+    # that contains a valid package definition will be used. You might need to use
+    # this option if the name 'package.[py/yaml]' is being used.
+    package_filenames:
+    - 'package'

@@ -63,7 +63,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
     def iter_packages(self):
         # check for unversioned package
         if config.allow_unversioned_packages:
-            filepath, _ = self._repository._get_file(self.path, "package")
+            filepath, _ = self._repository._get_file(self.path)
             if filepath:
                 package = self._repository.get_resource(
                     FileSystemPackageResource.key,
@@ -77,7 +77,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
             if _settings.check_package_definition_files:
                 path = os.path.join(self.path, version_str)
-                if not self._repository._get_file(path, "package")[0]:
+                if not self._repository._get_file(path)[0]:
                     continue
 
             package = self._repository.get_resource(
@@ -133,7 +133,7 @@ class FileSystemPackageResource(PackageResourceHelper):
 
     @cached_property
     def _filepath_and_format(self):
-        return self._repository._get_file(self.path, "package")
+        return self._repository._get_file(self.path)
 
     def _load(self):
         if self.filepath is None:
@@ -401,7 +401,8 @@ class FileSystemPackageRepository(PackageRepository):
                 - python-2.6
     """
     schema_dict = {"file_lock_timeout": int,
-                   "file_lock_dir": Or(None, str)}
+                   "file_lock_dir": Or(None, str),
+                   "package_filenames": [basestring]}
 
     @classmethod
     def name(cls):
@@ -603,7 +604,7 @@ class FileSystemPackageRepository(PackageRepository):
                 name=name)
             return family
         else:
-            filepath, format_ = self.get_file(self.location, name)
+            filepath, format_ = self.get_file(self.location, package_filename=name)
             if filepath:
                 family = self.get_resource(
                     FileSystemCombinedPackageFamilyResource.key,
@@ -619,12 +620,18 @@ class FileSystemPackageRepository(PackageRepository):
     def _get_variants(self, package_resource):
         return [x for x in package_resource.iter_variants()]
 
-    def _get_file(self, path, name):
-        for format_ in (FileFormat.py, FileFormat.yaml):
-            filename = "%s.%s" % (name, format_.extension)
-            filepath = os.path.join(path, filename)
-            if os.path.isfile(filepath):
-                return filepath, format_
+    def _get_file(self, path, package_filename=None):
+        if package_filename:
+            package_filenames = [package_filename]
+        else:
+            package_filenames = _settings.package_filenames
+
+        for name in package_filenames:
+            for format_ in (FileFormat.py, FileFormat.yaml):
+                filename = "%s.%s" % (name, format_.extension)
+                filepath = os.path.join(path, filename)
+                if os.path.isfile(filepath):
+                    return filepath, format_
         return None, None
 
     def _create_family(self, name):
@@ -726,8 +733,11 @@ class FileSystemPackageRepository(PackageRepository):
                     break
 
             parent_package = existing_package
-            ext = os.path.splitext(existing_package.filepath)[-1][1:]
-            package_format = FileFormat[ext]
+            
+            _, file_  = os.path.split(existing_package.filepath)
+            package_filename, package_extension = os.path.splitext(file_)
+            package_extension = package_extension[1:]
+            package_format = FileFormat[package_extension]
 
             if package_changed:
                 # graft together new package data, with existing package variants,
@@ -739,6 +749,8 @@ class FileSystemPackageRepository(PackageRepository):
         else:
             parent_package = variant.parent
             package_data = new_package_data
+            package_filename = _settings.package_filenames[0]
+            package_extension = "py"
             package_format = FileFormat.py
 
         if dry_run:
@@ -778,7 +790,8 @@ class FileSystemPackageRepository(PackageRepository):
             if package_data.get(key) is None:
                 package_data[key] = value
 
-        filepath = os.path.join(path, "package.py")
+        package_file = ".".join([package_filename, package_extension])
+        filepath = os.path.join(path, package_file)
         with open_file_for_write(filepath) as f:
             dump_package_data(package_data, buf=f, format_=package_format)
 
