@@ -14,15 +14,14 @@ except ImportError:
     except ImportError:
         json = None
 
+
 def setup_parser(parser, completions=False):
     from rez.system import system
     from rez.shells import get_shell_types
 
-    formats = get_shell_types()
-    if json is None:
-        formats.extend(['dict', 'table'])
-    else:
-        formats.extend(['dict', 'json', 'table'])
+    formats = get_shell_types() + ['dict', 'table']
+    if json is not None:
+        formats.append('json')
 
     output_styles = [e.name for e in OutputStyle]
 
@@ -66,8 +65,8 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-f", "--format", type=str, choices=formats, default=system.shell,
         help="print interpreted output in the given format. Ignored if "
-        "--interpret is not present (default: "
-        "%(default)s)")
+        "--interpret is not present (default: %(default)s). If one of "
+        "table, dict or json, the environ dict is printed.")
     parser.add_argument(
         "-s", "--style", type=str, default="file", choices=output_styles,
         help="Set code output style. Ignored if --interpret is not present "
@@ -158,16 +157,16 @@ def command(opts, parser, extra_arg_groups=None):
                           show_resolved_uris=opts.show_uris)
         return
 
-    if opts.format == 'table':
+    if opts.format in ("dict", "table", "json"):
         env = rc.get_environ(parent_environ=parent_env)
-        rows = [x for x in sorted(env.iteritems())]
-        print '\n'.join(columnise(rows))
-    elif opts.format == 'dict':
-        env = rc.get_environ(parent_environ=parent_env)
-        print pformat(env)
-    elif json is not None and opts.format == 'json':
-        env = rc.get_environ(parent_environ=parent_env)
-        print json.dumps(env, sort_keys=True, indent=4)
+
+        if opts.format == 'table':
+            rows = [x for x in sorted(env.iteritems())]
+            print '\n'.join(columnise(rows))
+        elif opts.format == 'dict':
+            print pformat(env)
+        else:  # json
+            print json.dumps(env, sort_keys=True, indent=4)
     else:
         code = rc.get_shell_code(shell=opts.format,
                                  parent_environ=parent_env,
