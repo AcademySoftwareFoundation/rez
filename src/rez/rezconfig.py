@@ -345,7 +345,8 @@ debug_file_loads = False
 # Print debugging info when loading plugins
 debug_plugins = False
 
-# Print debugging info such as VCS commands during package release
+# Print debugging info such as VCS commands during package release. Note that
+# rez-pip installations are controlled with this setting also.
 debug_package_release = False
 
 # Print debugging info in binding modules. Binding modules should print using
@@ -603,7 +604,7 @@ warning_fore = "yellow"
 warning_back = None
 warning_styles = None
 
-info_fore = None
+info_fore = "green"
 info_back = None
 info_styles = None
 
@@ -701,6 +702,9 @@ plugins = {
 # will cause an error.
 use_pyside = False
 use_pyqt = False
+
+# Turn GUI threading on/off. You would only turn off for debugging purposes.
+gui_threads = True
 
 
 # Copyright 2013-2016 Allan Johns.

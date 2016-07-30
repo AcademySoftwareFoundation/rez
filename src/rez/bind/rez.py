@@ -34,7 +34,7 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.requires = ["python-2.6+<3"]
         pkg.variants = [system.variant]
 
-    return "rez", version
+    return pkg.installed_variants
 
 
 # Copyright 2013-2016 Allan Johns.

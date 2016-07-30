@@ -36,7 +36,7 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.commands = commands
         pkg.variants = [system.variant]
 
-    return "cmake", version
+    return pkg.installed_variants
 
 
 # Copyright 2013-2016 Allan Johns.

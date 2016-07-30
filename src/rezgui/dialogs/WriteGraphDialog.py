@@ -1,22 +1,10 @@
 from rezgui.qt import QtCore, QtGui
 from rezgui.util import create_pane
 from rez.utils.graph_utils import save_graph, prune_graph
-from multiprocessing import Process
 import tempfile
 import threading
 import os
 import os.path
-
-
-def _save_graph(graph_str, filepath, prune_to):
-    # rez cli tools do a killpg() on sig handling, this inadvertantly causes
-    # the main GUI to terminate when Writer.process is terminated! Setting this
-    # variable suppresses the killpg() and stops that from happening.
-    os.environ["_REZ_NO_KILLPG"] = "1"
-    os.environ["_REZ_QUIET_ON_SIG"] = "1"
-    if prune_to:
-        graph_str = prune_graph(graph_str, prune_to)
-    save_graph(graph_str, filepath)
 
 
 class Writer(QtCore.QObject):
@@ -34,21 +22,18 @@ class Writer(QtCore.QObject):
             self.process.terminate()
 
     def write_graph(self):
-        filepath = ""
-        error_msg = ""
-        try:
-            self.process = Process(
-                target=_save_graph,
-                args=(self.graph_str, self.filepath, self.prune_to))
+        if self.prune_to:
+            graph_str = prune_graph(self.graph_str, self.prune_to)
+        else:
+            graph_str = self.graph_str
 
-            self.process.start()
-            self.process.join()
-            if self.process.exitcode == 0:
-                filepath = self.filepath
+        error_msg = ''
+        try:
+            save_graph(graph_str, self.filepath)
         except Exception as e:
             error_msg = str(e)
 
-        self.graph_written.emit(filepath, error_msg)
+        self.graph_written.emit(self.filepath, error_msg)
 
 
 class WriteGraphDialog(QtGui.QDialog):

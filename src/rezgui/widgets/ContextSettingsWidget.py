@@ -44,7 +44,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         self.schema = Schema(schema_dict)
 
         self.edit = QtGui.QTextEdit()
-        self.edit.setStyleSheet("font: 9pt 'Courier'")
+        self.edit.setStyleSheet("font: 12pt 'Courier'")
         self.default_btn = QtGui.QPushButton("Set To Defaults")
         self.discard_btn = QtGui.QPushButton("Discard Changes...")
         self.apply_btn = QtGui.QPushButton("Apply")

@@ -2,16 +2,15 @@
 Binds a python executable as a rez package.
 """
 from __future__ import absolute_import
-
-import os
-import sys
-
-from rez.bind._utils import check_version, find_exe, extract_version, make_dirs
+from rez.bind._utils import check_version, find_exe, extract_version, \
+    make_dirs, log, run_python_command
 from rez.package_maker__ import make_package
 from rez.system import system
 from rez.utils.lint_helper import env
 from rez.utils.platform_ import platform_
 from rez.vendor.version.version import Version
+import shutil
+import os.path
 
 
 def setup_parser(parser):
@@ -24,23 +23,58 @@ def commands():
     env.PATH.append('{this.root}/bin')
 
 
+def post_commands():
+    # these are the builtin modules for this python executable. If we don't
+    # include these, some python behavior can be incorrect.
+    import os, os.path
+
+    path = os.path.join(this.root, "python")
+    for dirname in os.listdir(path):
+        path_ = os.path.join(path, dirname)
+        env.PYTHONPATH.append(path_)
+
+
 def bind(path, version_range=None, opts=None, parser=None):
     # find executable, determine version
-    if opts and opts.exe:
-        exepath = find_exe("python", opts.exe)
-        code = "import sys; print '.'.join(str(x) for x in sys.version_info)"
-        version = extract_version(exepath, ["-c", code])
-    else:
-        exepath = sys.executable
-        strver = '.'.join(str(x) for x in sys.version_info[:3])
-        version = Version(strver)
+    exepath = find_exe("python", opts.exe)
+    code = "import sys; print '.'.join(str(x) for x in sys.version_info)"
+    version = extract_version(exepath, ["-c", code])
 
     check_version(version, version_range)
+    log("binding python: %s" % exepath)
+
+    # find builtin modules
+    builtin_paths = {}
+    entries = [("lib", "os"),
+               ("extra", "setuptools")]
+
+    for dirname, module_name in entries:
+        success, out, err = run_python_command([
+            "import %s" % module_name,
+            "print %s.__file__" % module_name])
+
+        if success:
+            pypath = os.path.dirname(out)
+            if os.path.basename(pypath) == module_name:
+                pypath = os.path.dirname(pypath)
+
+            if pypath not in builtin_paths.values():
+                builtin_paths[dirname] = pypath
+
+    # make the package
+    #
 
     def make_root(variant, root):
         binpath = make_dirs(root, "bin")
         link = os.path.join(binpath, "python")
         platform_.symlink(exepath, link)
+
+        if builtin_paths:
+            pypath = make_dirs(root, "python")
+            for dirname, srcpath in builtin_paths.iteritems():
+                destpath = os.path.join(pypath, dirname)
+                log("Copying builtins from %s to %s..." % (srcpath, destpath))
+                shutil.copytree(srcpath, destpath)
 
     with make_package("python", path, make_root=make_root) as pkg:
         pkg.version = version
@@ -48,7 +82,10 @@ def bind(path, version_range=None, opts=None, parser=None):
         pkg.commands = commands
         pkg.variants = [system.variant]
 
-    return "python", version
+        if builtin_paths:
+            pkg.post_commands = post_commands
+
+    return pkg.installed_variants
 
 
 # Copyright 2013-2016 Allan Johns.

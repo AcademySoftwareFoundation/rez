@@ -11,24 +11,65 @@ def setup_parser(parser, completions=False):
         "--python-version", dest="py_ver", metavar="VERSION",
         help="python version (rez package) to use, default is latest. Note "
         "that the pip package(s) will be installed with a dependency on "
-        "python-MAJOR.MINOR. You can also provide a comma-separated list to "
-        "install for multiple pythons at once, eg '2.6,2.7'")
+        "python-MAJOR.MINOR.")
+    parser.add_argument(
+        "-i", "--install", action="store_true",
+        help="install the package")
+    parser.add_argument(
+        "-s", "--search", action="store_true",
+        help="search for the package on PyPi")
+    parser.add_argument(
+        "-r", "--release", action="store_true",
+        help="install as released package; if not set, package is installed "
+        "locally only")
     parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
 
 
 def command(opts, parser, extra_arg_groups=None):
-    from rez.pip import pip_install_package
+    from rez.pip import pip_install_package, run_pip_command
+    import sys
 
-    if opts.py_ver:
-        py_vers = opts.py_ver.strip(',').split(',')
+    if not (opts.search or opts.install):
+        parser.error("Expected one of: --install, --search")
+
+    if opts.search:
+        p = run_pip_command(["search", opts.PACKAGE])
+        p.wait()
+        return
+
+    installed_variants, skipped_variants = pip_install_package(
+        opts.PACKAGE,
+        pip_version=opts.pip_ver,
+        python_version=opts.py_ver,
+        release=opts.release)
+
+    # print summary
+    #
+
+    def print_variant(v):
+        pkg = v.parent
+        txt = "%s: %s" % (pkg.qualified_name, pkg.uri)
+        if v.subpath:
+            txt += " (%s)" % v.subpath
+        print "  " + txt
+
+    print
+    if installed_variants:
+        print "%d packages were installed:" % len(installed_variants)
+        for variant in installed_variants:
+            print_variant(variant)
     else:
-        py_vers = None
+        print "NO packages were installed."
 
-    pip_install_package(opts.PACKAGE,
-                        pip_version=opts.pip_ver,
-                        python_versions=py_vers)
+    if skipped_variants:
+        print
+        print "%d packages were already installed:" % len(skipped_variants)
+        for variant in skipped_variants:
+            print_variant(variant)
+
+    print
 
 
 # Copyright 2013-2016 Allan Johns.

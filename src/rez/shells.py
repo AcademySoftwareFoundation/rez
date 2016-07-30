@@ -293,20 +293,21 @@ class UnixShell(Shell):
             else:
                 # hijack $HOME to insert our own script
                 files = [x for x in files if x not in bind_files] + list(bind_files)
+
                 if files:
-                    for file in files:
-                        if file in bind_files:
+                    for file_ in files:
+                        if file_ in bind_files:
                             bind_rez = True
-                            files_ = [file] if d["source_bind_files"] else []
+                            files_ = [file_] if d["source_bind_files"] else []
                         else:
                             bind_rez = False
-                            files_ = [file]
+                            files_ = [file_]
 
                         ex = _create_ex()
                         ex.setenv('HOME', os.environ.get('HOME', ''))
                         _record_shell(ex, files=files_, bind_rez=bind_rez,
                                       print_msg=bind_rez)
-                        _write_shell(ex, os.path.basename(file))
+                        _write_shell(ex, os.path.basename(file_))
 
                     executor.setenv("HOME", tmpdir)
 

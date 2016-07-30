@@ -23,7 +23,7 @@ class VariantToolsList(QtGui.QTableWidget, ContextViewMixin):
         vh = self.verticalHeader()
         vh.setVisible(False)
 
-        app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
+        #app.process_tracker.instanceCountChanged.connect(self._instanceCountChanged)
 
     def clear(self):
         self.tool_widgets = {}

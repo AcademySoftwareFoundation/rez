@@ -2,6 +2,7 @@ from rez.utils.schema import Required, schema_keys
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
+from rez.utils.logging_ import print_warning
 from rez.package_resources_ import help_schema, _commands_schema
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
@@ -57,6 +58,10 @@ class PackageMaker(AttrDictWrapper):
         super(PackageMaker, self).__init__(data)
         self.name = name
 
+        # set by `make_package`
+        self.installed_variants = []
+        self.skipped_variants = []
+
     def get_package(self):
         """Create the analogous package.
 
@@ -89,7 +94,8 @@ class PackageMaker(AttrDictWrapper):
 
 
 @contextmanager
-def make_package(name, path, make_base=None, make_root=None):
+def make_package(name, path, make_base=None, make_root=None, skip_existing=True,
+                 warn_on_skip=True):
     """Make and install a package.
 
     Example:
@@ -109,19 +115,48 @@ def make_package(name, path, make_base=None, make_root=None):
             payload, if applicable.
         make_root (callable): Function that is used to create the package
             variant payloads, if applicable.
+        skip_existing (bool): If True, detect if a variant already exists, and
+            skip with a warning message if so.
+        warn_on_skip (bool): If True, print warning when a variant is skipped.
+
+    Yields:
+        `PackageMaker` object.
 
     Note:
         Both `make_base` and `make_root` are called once per variant install,
         and have the signature (variant, path).
+
+    Note:
+        The 'installed_variants' attribute on the `PackageMaker` instance will
+        be appended with variant(s) created by this function, if any.
     """
     maker = PackageMaker(name)
     yield maker
 
     # post-with-block:
+    #
+
     package = maker.get_package()
+    cwd = os.getcwd()
+    src_variants = []
+
+    # skip those variants that already exist
+    if skip_existing:
+        for variant in package.iter_variants():
+            variant_ = variant.install(path, dry_run=True)
+            if variant_ is None:
+                src_variants.append(variant)
+            else:
+                maker.skipped_variants.append(variant_)
+                if warn_on_skip:
+                    print_warning("Skipping installation: Package variant already "
+                                  "exists: %s" % variant_.uri)
+    else:
+        src_variants = package.iter_variants()
 
     with retain_cwd():
-        for variant in package.iter_variants():
+        # install the package variant(s) into the filesystem package repo at `path`
+        for variant in src_variants:
             variant_ = variant.install(path)
 
             base = variant_.base
@@ -137,6 +172,8 @@ def make_package(name, path, make_base=None, make_root=None):
                     os.makedirs(root)
                 os.chdir(root)
                 make_root(variant_, root)
+
+            maker.installed_variants.append(variant_)
 
 
 # Copyright 2013-2016 Allan Johns.

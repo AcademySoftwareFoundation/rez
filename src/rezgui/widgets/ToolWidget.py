@@ -39,6 +39,9 @@ class ToolWidget(QtGui.QWidget):
         self.setLayout(layout)
 
     def get_processes(self):
+        if not self.process_tracker:
+            return []
+
         return self.process_tracker.running_instances(self.context, self.tool_name)
 
     def mouseReleaseEvent(self, event):

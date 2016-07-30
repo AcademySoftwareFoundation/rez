@@ -15,7 +15,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     with make_package("platform", path) as pkg:
         pkg.version = version
 
-    return "platform", version
+    return pkg.installed_variants
 
 
 # Copyright 2013-2016 Allan Johns.
