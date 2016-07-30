@@ -25,7 +25,13 @@ filesystem:
 
     # A list of filenames that are expected to contain Rez definitions.
     # The list will be checked in top to bottom order, and the first filename
-    # that contains a valid package definition will be used. You might need to use
-    # this option if the name 'package.[py/yaml]' is being used.
+    # that contains a valid package definition will be used. You might need to
+    # use this option if the name 'package.[py/yaml]' is being used by a different
+    # packaging system.
+    #
+    # Please note: The first filename in this list is used as the installed /
+    # released package filename, regardless of the definition filename present
+    # in the source.
+    #
     package_filenames:
     - 'package'
