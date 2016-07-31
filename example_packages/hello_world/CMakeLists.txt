@@ -10,7 +10,6 @@ rez_install_python(
 )
 
 file(GLOB bin_files "bin/*")
-
 rez_install_files(
     ${bin_files}
     DESTINATION .
