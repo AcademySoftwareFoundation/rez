@@ -1,0 +1,5 @@
+include src/rez/rezconfig
+include src/rezplugins/build_system/template_files/Doxyfile
+recursive-include src/rez README*
+recursive-include src/rezplugins *.cmake Doxyfile
+
