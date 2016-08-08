@@ -84,8 +84,8 @@ package_base_schema_dict.update({
     Optional('previous_revision'):      object,
     Optional('vcs'):                    basestring,
 
-    # custom keys
-    Optional('custom'):                 dict
+    # arbitrary fields
+    Optional(basestring):               object
 })
 
 
@@ -164,7 +164,8 @@ package_pod_schema_dict.update({
     Optional('previous_revision'):      object,
     Optional('vcs'):                    basestring,
 
-    Optional('custom'):                 dict
+    # arbitrary keys
+    Optional(basestring):               object
 })
 
 

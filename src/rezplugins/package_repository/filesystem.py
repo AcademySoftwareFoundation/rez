@@ -733,7 +733,7 @@ class FileSystemPackageRepository(PackageRepository):
                     break
 
             parent_package = existing_package
-            
+
             _, file_  = os.path.split(existing_package.filepath)
             package_filename, package_extension = os.path.splitext(file_)
             package_extension = package_extension[1:]

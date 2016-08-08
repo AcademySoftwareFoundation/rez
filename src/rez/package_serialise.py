@@ -99,9 +99,14 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
     items = []
     for key in package_key_order:
         if key not in skip:
-            value = data_.get(key)
+            value = data_.pop(key, None)
             if value is not None:
                 items.append((key, value))
+
+    # remaining are arbitrary keys
+    for key, value in data_.iteritems():
+        if key not in skip:
+            items.append((key, value))
 
     dump_func = dump_functions[format_]
     dump_func(items, buf)

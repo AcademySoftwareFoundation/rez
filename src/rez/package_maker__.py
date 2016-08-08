@@ -38,13 +38,9 @@ package_schema = Schema({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
 
-    Optional('custom'):                 dict,
-
-    Optional(basestring):               object  # allows deprecated fields
+    # arbitrary fields
+    Optional(basestring):               object
 })
-
-
-package_schema_keys = schema_keys(package_schema)
 
 
 class PackageMaker(AttrDictWrapper):
@@ -89,6 +85,8 @@ class PackageMaker(AttrDictWrapper):
 
     def _get_data(self):
         data = self._data.copy()
+        data.pop("installed_variants", None)
+        data.pop("skipped_variants", None)
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
 

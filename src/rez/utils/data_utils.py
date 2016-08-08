@@ -447,9 +447,17 @@ class LazyAttributeMeta(type):
                 d = {}
                 for key in self._schema_keys:
                     d[key] = getattr(self, key)
+
+                # arbitrary keys
+                if self._data:
+                    akeys = set(self._data.keys()) - set(d.keys())
+                    for akey in akeys:
+                        d[akey] = self._data[akey]
+
                 return d
             else:
                 return None
+
         return func
 
     @classmethod

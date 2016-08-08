@@ -87,7 +87,7 @@ class Resource(object):
     @cached_property
     def handle(self):
         """Get the resource handle."""
-        return ResourceHandle(self.key,self.variables)
+        return ResourceHandle(self.key, self.variables)
 
     @cached_property
     def _data(self):

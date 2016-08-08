@@ -59,6 +59,9 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
+    def arbitrary_keys(self):
+        raise NotImplementedError
+
     @property
     def uri(self):
         return self.resource.uri
@@ -125,6 +128,23 @@ class Package(PackageBaseResourceWrapper):
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource)
 
+    # arbitrary keys
+    def __getattr__(self, name):
+        if name in self.data:
+            return self.data[name]
+        else:
+            raise AttributeError("Package instance has no attribute '%s'" % name)
+
+    def arbitrary_keys(self):
+        """Get the arbitrary keys present in this package.
+
+        These are any keys not in the standard list ('name', 'version' etc).
+
+        Returns:
+            set of str: Arbitrary keys.
+        """
+        return set(self.data.keys()) - set(self.keys)
+
     @cached_property
     def qualified_name(self):
         """Get the qualified name of the package.
@@ -184,6 +204,16 @@ class Variant(PackageBaseResourceWrapper):
     def __init__(self, resource):
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource)
+
+    # arbitrary keys
+    def __getattr__(self, name):
+        try:
+            return self.parent.__getattr__(name)
+        except AttributeError:
+            raise AttributeError("Variant instance has no attribute '%s'" % name)
+
+    def arbitrary_keys(self):
+        return self.parent.arbitrary_keys()
 
     @cached_property
     def qualified_package_name(self):
