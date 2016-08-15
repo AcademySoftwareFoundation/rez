@@ -1,0 +1,17 @@
+environment:
+  matrix:
+    # For Python versions available on Appveyor, see
+    # http://www.appveyor.com/docs/installed-software#python
+    # The list here is complete (excluding Python 2.6, which
+    # isn't covered by this document) at the time of writing.
+    - PYTHON: "C:\\Python27-x64"
+
+install:
+  # Install rez
+  - "%PYTHON%\\python.exe install.py temp"
+
+build: off
+
+test_script:
+  # Run rez selftest
+  - "C:\\projects\\rez\\temp\\Scripts\\rez\\rez.exe selftest"
