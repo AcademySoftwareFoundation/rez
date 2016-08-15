@@ -1,0 +1,14 @@
+language: python
+
+python:
+  - "2.7"
+
+install:
+  # Adding tcsh
+  - "sudo apt-get install tcsh"
+  # Installing rez
+  - "python ./install.py ../rez_install"
+
+script:
+  # Running rez tests
+  - "../rez_install/bin/rez/rez-selftest"
