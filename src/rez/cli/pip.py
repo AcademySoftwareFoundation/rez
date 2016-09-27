@@ -23,6 +23,10 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
+        "--variant", dest="variant",
+        help="Specify the variant requirements for package "
+        " default=platform,arch,os")
+    parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
 
@@ -43,7 +47,8 @@ def command(opts, parser, extra_arg_groups=None):
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
-        release=opts.release)
+        release=opts.release,
+        default_variant=opts.variant)
 
     # print summary
     #

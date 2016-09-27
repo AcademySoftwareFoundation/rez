@@ -41,9 +41,10 @@ import os
 # The package search path. Rez uses this to find packages. A package with the
 # same name and version in an earlier path takes precedence.
 packages_path = [
-    "~/packages",           # locally installed pkgs, not yet deployed
-    "~/.rez/packages/int",  # internally developed pkgs, deployed
-    "~/.rez/packages/ext",  # external (3rd party) pkgs, such as houdini, boost
+    "~/packages",             # locally installed pkgs, not yet deployed
+    "~/.rez/packages/int",    # internally developed pkgs, deployed
+    "~/.rez/packages/ext",    # external (3rd party) pkgs, such as houdini, boost
+    "~/.rez/packages/python", # external python pkgs, released with rez-pip
 ]
 
 # The path that Rez will locally install packages to when rez-build is used
@@ -52,6 +53,10 @@ local_packages_path = "~/packages"
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
 release_packages_path = "~/.rez/packages/int"
+
+# The path that Rez will deploy python packages to when rez-pip --release is used.
+# If this is not set release_packages_path will be used.
+release_python_packages_path = "~/.rez/packages/python"
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It
@@ -466,6 +471,10 @@ set_prompt = True
 # false.
 prefix_prompt = True
 
+###############################################################################
+# Pip
+###############################################################################
+pip_default_variant=["platform","arch","os"]
 
 ###############################################################################
 # Misc

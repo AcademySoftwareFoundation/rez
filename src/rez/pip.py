@@ -182,7 +182,7 @@ def create_context(pip_version=None, python_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False):
+                        mode=InstallMode.min_deps, release=False, default_variant=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -205,12 +205,28 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     installed_variants = []
     skipped_variants = []
 
+    if default_variant is None:
+        default_variant = config.pip_default_variant
+    else:
+        default_variant = default_variant.split(",")
+
     pip_exe, context = find_pip(pip_version, python_version)
 
     # TODO: should check if packages_path is writable before continuing with pip
     #
-    packages_path = (config.release_packages_path if release
-                     else config.local_packages_path)
+    packages_path = config.local_packages_path
+    if release:
+        packages_path = config.get("release_python_packages_path", config.release_packages_path)
+
+    if not os.path.exists(packages_path):
+        print_warning("Package path does not exist: %s" % packages_path)
+        return None, None
+
+    if not os.access(packages_path, os.W_OK):
+        print_warning("Package path is not writable: %s" % packages_path)
+        return None, None
+
+    # TODO: Check if release path is writable
 
     tmpdir = mkdtemp(suffix="-rez", prefix="pip-")
     stagingdir = os.path.join(tmpdir, "rez_staging")
@@ -301,9 +317,15 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
         # determine variant requirements
         # TODO detect if platform/arch/os necessary, no if pure python
         variant_reqs = []
-        variant_reqs.append("platform-%s" % _system.platform)
-        variant_reqs.append("arch-%s" % _system.arch)
-        variant_reqs.append("os-%s" % _system.os)
+        if default_variant: 
+            for variant in default_variant:
+                variant_tokens = variant.split("-", 1)
+                if variant_tokens[0] not in ["platform", "arch", "os"]:
+                    continue
+                if len(variant_tokens) == 1:
+                    variant_reqs.append("%s-%s" % (variant_tokens[0], getattr(_system, variant_tokens[0])))
+                else:
+                    variant_reqs.append(var)
 
         if context is None:
             # since we had to use system pip, we have to assume system python version
