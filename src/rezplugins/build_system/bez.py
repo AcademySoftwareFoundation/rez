@@ -50,7 +50,9 @@ class BezBuildSystem(BuildSystem):
         doc = dict(
             source_path=self.working_dir,
             build_path=build_path,
-            install_path=install_path)
+            install_path=install_path,
+            build_args=self.build_args)
+
 
         ret = {}
         content = dump_yaml(doc)
@@ -65,7 +67,6 @@ class BezBuildSystem(BuildSystem):
             create_forwarding_script(build_env_script,
                                      module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
-                                     working_dir=self.working_dir,
                                      build_dir=build_path)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
@@ -83,7 +84,7 @@ class BezBuildSystem(BuildSystem):
         return ret
 
 
-def _FWD__spawn_build_shell(working_dir, build_dir):
+def _FWD__spawn_build_shell(build_dir):
     # This spawns a shell that the user can run 'bez' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     config.override("prompt", "BUILD>")
@@ -94,3 +95,19 @@ def _FWD__spawn_build_shell(working_dir, build_dir):
 
 def register_plugin():
     return BezBuildSystem
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

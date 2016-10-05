@@ -36,9 +36,10 @@ uuid = "repository.python"
 
 def commands():
     env.PATH.append("{root}/bin")
+    env.PYTHONPATH.append("{root}/lib/python2.7")
 
     if building:
-        env.PYTHON_INCLUDE_DIR = "{root}/include"
+        env.PYTHON_INCLUDE_DIR = "{root}/include/python2.7"
 
         # only used to see libpythonX.X.a file
         env.LD_LIBRARY_PATH.append("{root}/lib")

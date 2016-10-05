@@ -230,12 +230,29 @@ class GitReleaseVCS(ReleaseVCS):
         path_, dirname = os.path.split(path)
         gitdir = os.path.join(path, ".git")
 
-        os.chdir(path_)
-        git.clone(url, dirname)
-        os.chdir(path)
-        git.checkout(commit)
-        rmtree(gitdir)
+        with retain_cwd():
+            os.chdir(path_)
+            git.clone(url, dirname)
+            os.chdir(path)
+            git.checkout(commit)
+            rmtree(gitdir)
 
 
 def register_plugin():
     return GitReleaseVCS
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

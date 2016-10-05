@@ -13,6 +13,7 @@ from rez.backport.shutilwhich import which
 from rez.rex import RexExecutor, Python, OutputStyle
 from rez.rex_bindings import VersionBinding, VariantBinding, \
     VariantsBinding, RequirementsBinding
+from rez import package_order
 from rez.packages_ import get_variant, iter_packages
 from rez.package_filter import PackageFilterList
 from rez.shells import create_shell
@@ -23,6 +24,7 @@ from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from rez.utils.yaml import dump_yaml
 from tempfile import mkdtemp
+from functools import wraps
 import getpass
 import traceback
 import inspect
@@ -108,7 +110,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 1)
+    serialize_version = (4, 2)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     class Callback(object):
@@ -134,9 +136,9 @@ class ResolvedContext(object):
 
     def __init__(self, package_requests, verbosity=0, timestamp=None,
                  building=False, caching=None, package_paths=None,
-                 package_filter=None, add_implicit_packages=True, max_fails=-1,
-                 time_limit=-1, callback=None, package_load_callback=None,
-                 buf=None):
+                 package_filter=None, package_orderers=None, max_fails=-1,
+                 add_implicit_packages=True, time_limit=-1, callback=None,
+                 package_load_callback=None, buf=None):
         """Perform a package resolve, and store the result.
 
         Args:
@@ -154,6 +156,7 @@ class ResolvedContext(object):
             package_filter (`PackageFilterBase`): Filter used to exclude certain
                 packages. Defaults to settings from config.package_filter. Use
                 `package_filter.no_filter` to remove all filtering.
+            package_orderers (list of `PackageOrder`): Custom package ordering.
             add_implicit_packages: If True, the implicit package list defined
                 by config.implicit_packages is appended to the request.
             max_fails (int): Abort the resolve if the number of failed steps is
@@ -194,6 +197,8 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
+        self.package_orderers = package_orderers
+
         # patch settings
         self.default_patch_lock = PatchLock.no_lock
         self.patch_locks = {}
@@ -233,6 +238,7 @@ class ResolvedContext(object):
         resolver = Resolver(package_requests=request,
                             package_paths=self.package_paths,
                             package_filter=self.package_filter,
+                            package_orderers=self.package_orderers,
                             timestamp=self.requested_timestamp,
                             building=self.building,
                             caching=self.caching,
@@ -809,6 +815,7 @@ class ResolvedContext(object):
         print '\n'.join(columnise(rows))
 
     def _on_success(fn):
+        @wraps(fn)
         def _check(self, *nargs, **kwargs):
             if self.status_ == ResolverStatus.solved:
                 return fn(self, *nargs, **kwargs)
@@ -1089,9 +1096,9 @@ class ResolvedContext(object):
     @_on_success
     def execute_shell(self, shell=None, parent_environ=None, rcfile=None,
                       norc=False, stdin=False, command=None, quiet=False,
-                      block=None, actions_callback=None, context_filepath=None,
-                      start_new_session=False, detached=False, pre_command=None,
-                      **Popen_args):
+                      block=None, actions_callback=None, post_actions_callback=None,
+                      context_filepath=None, start_new_session=False, detached=False,
+                      pre_command=None, **Popen_args):
         """Spawn a possibly-interactive shell.
 
         Args:
@@ -1112,7 +1119,12 @@ class ResolvedContext(object):
                 shell is interactive.
             actions_callback: Callback with signature (RexExecutor). This lets
                 the user append custom actions to the context, such as setting
-                extra environment variables.
+                extra environment variables. Callback is run prior to context Rex
+                execution.
+            post_actions_callback: Callback with signature (RexExecutor). This lets
+                the user append custom actions to the context, such as setting
+                extra environment variables. Callback is run after context Rex
+                execution.
             context_filepath: If provided, the context file will be written
                 here, rather than to the default location (which is in a
                 tempdir). If you use this arg, you are responsible for cleaning
@@ -1167,10 +1179,15 @@ class ResolvedContext(object):
         executor = self._create_executor(sh, parent_environ)
         executor.env.REZ_RXT_FILE = rxt_file
         executor.env.REZ_CONTEXT_FILE = context_file
+
         if actions_callback:
             actions_callback(executor)
 
         self._execute(executor)
+
+        if post_actions_callback:
+            post_actions_callback(executor)
+
         context_code = executor.get_output()
         with open(context_file, 'w') as f:
             f.write(context_code)
@@ -1203,6 +1220,9 @@ class ResolvedContext(object):
         serialize_version = '.'.join(str(x) for x in ResolvedContext.serialize_version)
         patch_locks = dict((k, v.name) for k, v in self.patch_locks)
 
+        package_orderers_list = [package_order.to_pod(x)
+                                 for x in (self.package_orderers or [])]
+
         if self.graph_string and self.graph_string.startswith('{'):
             graph_str = self.graph_string  # already in compact format
         else:
@@ -1220,6 +1240,7 @@ class ResolvedContext(object):
             package_requests=[str(x) for x in self._package_requests],
             package_paths=self.package_paths,
             package_filter=self.package_filter.to_pod(),
+            package_orderers=package_orderers_list or None,
 
             default_patch_lock=self.default_patch_lock.name,
             patch_locks=patch_locks,
@@ -1293,6 +1314,7 @@ class ResolvedContext(object):
         r.arch = d["arch"]
         r.os = d["os"]
         r.created = d["created"]
+        r.verbosity = d.get("verbosity", 0)
 
         r.status_ = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]
@@ -1336,6 +1358,14 @@ class ResolvedContext(object):
 
         data = d.get("package_filter", [])
         r.package_filter = PackageFilterList.from_pod(data)
+
+        # -- SINCE SERIALIZE VERSION 4.2
+
+        data = d.get("package_orderers")
+        if data:
+            r.package_orderers = [package_order.from_pod(x) for x in data]
+        else:
+            r.package_orderers = None
 
         return r
 
@@ -1548,3 +1578,19 @@ class ResolvedContext(object):
         for path in suite_paths:
             tools_path = os.path.join(path, "bin")
             executor.env.PATH.append(tools_path)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

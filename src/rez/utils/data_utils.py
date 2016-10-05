@@ -447,9 +447,17 @@ class LazyAttributeMeta(type):
                 d = {}
                 for key in self._schema_keys:
                     d[key] = getattr(self, key)
+
+                # arbitrary keys
+                if self._data:
+                    akeys = set(self._data.keys()) - set(d.keys())
+                    for akey in akeys:
+                        d[akey] = self._data[akey]
+
                 return d
             else:
                 return None
+
         return func
 
     @classmethod
@@ -478,3 +486,19 @@ class LazyAttributeMeta(type):
                 return self._validate_key_impl(key, attr, key_schema)
 
         return cached_property(getter, name=attribute)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

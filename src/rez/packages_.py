@@ -59,6 +59,9 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
+    def arbitrary_keys(self):
+        raise NotImplementedError
+
     @property
     def uri(self):
         return self.resource.uri
@@ -125,6 +128,23 @@ class Package(PackageBaseResourceWrapper):
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource)
 
+    # arbitrary keys
+    def __getattr__(self, name):
+        if name in self.data:
+            return self.data[name]
+        else:
+            raise AttributeError("Package instance has no attribute '%s'" % name)
+
+    def arbitrary_keys(self):
+        """Get the arbitrary keys present in this package.
+
+        These are any keys not in the standard list ('name', 'version' etc).
+
+        Returns:
+            set of str: Arbitrary keys.
+        """
+        return set(self.data.keys()) - set(self.keys)
+
     @cached_property
     def qualified_name(self):
         """Get the qualified name of the package.
@@ -184,6 +204,16 @@ class Variant(PackageBaseResourceWrapper):
     def __init__(self, resource):
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource)
+
+    # arbitrary keys
+    def __getattr__(self, name):
+        try:
+            return self.parent.__getattr__(name)
+        except AttributeError:
+            raise AttributeError("Variant instance has no attribute '%s'" % name)
+
+    def arbitrary_keys(self):
+        return self.parent.arbitrary_keys()
 
     @cached_property
     def qualified_package_name(self):
@@ -445,17 +475,21 @@ def get_developer_package(path):
     Returns:
         `Package` object.
     """
-    data = None
-    for format_ in (FileFormat.py, FileFormat.yaml):
-        filepath = os.path.join(path, "package.%s" % format_.extension)
-        if os.path.isfile(filepath):
-            data = load_from_file(filepath, format_)
-            break
+    name = data = None
+    for name_ in config.plugins.package_repository.filesystem.package_filenames:
+        for format_ in (FileFormat.py, FileFormat.yaml):
+            filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
+            if os.path.isfile(filepath):
+                data = load_from_file(filepath, format_)
+                break
+        if data:
+            name = data.get("name")
+            if name is not None or isinstance(name, basestring):
+                break
 
     if data is None:
         raise PackageMetadataError("No package definition file found at %s" % path)
 
-    name = data.get("name")
     if name is None or not isinstance(name, basestring):
         raise PackageMetadataError(
             "Error in %r - missing or non-string field 'name'" % filepath)
@@ -612,3 +646,19 @@ def _check_class(resource, cls):
     if not isinstance(resource, cls):
         raise ResourceError("Expected %s, got %s"
                             % (cls.__name__, resource.__class__.__name__))
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

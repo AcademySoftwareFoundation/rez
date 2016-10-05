@@ -7,6 +7,7 @@ from rez.exceptions import RezBindError
 from rez.config import config
 from rez.util import which
 from rez.utils.logging_ import print_debug
+from pipes import quote
 import subprocess
 import os.path
 import os
@@ -22,6 +23,22 @@ def make_dirs(*dirs):
     if not os.path.exists(path):
         os.makedirs(path)
     return path
+
+
+def run_python_command(commands, exe=None):
+    py_cmd = "; ".join(commands)
+    args = [exe or "python", "-c", py_cmd]
+    stdout, stderr, returncode = _run_command(args)
+    return (returncode == 0), stdout.strip(), stderr.strip()
+
+
+def get_version_in_python(name, commands):
+    success, out, err = run_python_command(commands)
+    if not success or not out:
+        raise RezBindError("Couldn't determine version of module %s: %s"
+                           % (name, err))
+    version = out
+    return version
 
 
 def check_version(version, range_=None):
@@ -75,13 +92,10 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
         version_arg = [version_arg]
     args = [exepath] + version_arg
 
-    log("running: %s" % ' '.join(args))
-    p = subprocess.Popen(args, stdout=subprocess.PIPE,
-                         stderr=subprocess.PIPE)
-    stdout, stderr = p.communicate()
-    if p.returncode:
+    stdout, stderr, returncode = _run_command(args)
+    if returncode:
         raise RezBindError("failed to execute %s: %s\n(error code %d)"
-                           % (exepath, stderr, p.returncode))
+                           % (exepath, stderr, returncode))
 
     stdout = stdout.strip().split('\n')[0].strip()
     log("extracting version from output: '%s'" % stdout)
@@ -97,3 +111,29 @@ def extract_version(exepath, version_arg, word_index=-1, version_rank=3):
 
     log("extracted version: '%s'" % str(version))
     return version
+
+
+def _run_command(args):
+    cmd_str = ' '.join(quote(x) for x in args)
+    log("running: %s" % cmd_str)
+
+    p = subprocess.Popen(args, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
+    stdout, stderr = p.communicate()
+    return stdout, stderr, p.returncode
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

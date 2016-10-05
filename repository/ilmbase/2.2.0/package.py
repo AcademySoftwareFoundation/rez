@@ -23,6 +23,7 @@ uuid = "repository.ilmbase"
 
 def commands():
     if building:
+        env.PKG_CONFIG_PATH.append("{root}/lib/pkgconfig")
         env.ILMBASE_INCLUDE_DIR = "{root}/include"
 
         # static libs only, hence build-time only

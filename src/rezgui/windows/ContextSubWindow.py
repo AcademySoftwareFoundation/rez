@@ -31,6 +31,11 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
         else:
             event.ignore()
 
+    def diff_with_file(self, filepath):
+        """Turn on diff mode and diff against given context.
+        """
+        self.widget()._diff_with_file(filepath)
+
     def can_close(self):
         if not self.context_model.is_modified():
             return True
@@ -61,9 +66,10 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
                 "Save the changes to %s before closing?\n"
                 "If you don't save the context, your changes will be lost."
                 % id_str,
-                QtGui.QMessageBox.Save,
-                QtGui.QMessageBox.Discard,
-                QtGui.QMessageBox.Cancel)
+                buttons=QtGui.QMessageBox.Save
+                    | QtGui.QMessageBox.Discard
+                    | QtGui.QMessageBox.Cancel)
+
             if ret == QtGui.QMessageBox.Save:
                 if self.is_saveable():
                     self._save_context()
@@ -138,3 +144,19 @@ class ContextSubWindow(QtGui.QMdiSubWindow, ContextViewMixin, StoreSizeMixin):
     def _update_window_title(self):
         title = self.widget().get_title()
         self.setWindowTitle(title)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
