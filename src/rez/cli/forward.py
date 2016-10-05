@@ -24,7 +24,11 @@ def command(opts, parser, extra_arg_groups=None):
         config.override("quiet", True)
 
     yaml_file = os.path.abspath(opts.YAML)
+
     cli_args = opts.ARG
+    for arg_group in (extra_arg_groups or []):
+        cli_args.append("--")
+        cli_args.extend(arg_group)
 
     with open(yaml_file) as f:
         content = f.read()
@@ -57,3 +61,19 @@ def command(opts, parser, extra_arg_groups=None):
         kwargs["_cli_args"] = cli_args
 
     target_func(*nargs, **kwargs)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

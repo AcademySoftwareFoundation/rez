@@ -59,6 +59,8 @@ class TestBase(unittest.TestCase):
             new_settings will be the only configuration settings applied
         """
         # restore the "normal" config...
+        from rez.util import deep_update
+
         self.teardown_config()
 
         # ...then copy the class settings dict to instance, so we can
@@ -67,7 +69,7 @@ class TestBase(unittest.TestCase):
             self.settings = dict(new_settings)
         else:
             self.settings = dict(type(self).settings)
-            self.settings.update(new_settings)
+            deep_update(self.settings, new_settings)
 
         # now swap the config back in...
         self.setup_config()
@@ -128,7 +130,12 @@ def shell_dependent(exclude=None):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(self, *args, **kwargs):
-            for shell in get_shell_types():
+            shells = get_shell_types()
+            only_shell = os.getenv("__REZ_SELFTEST_SHELL")
+            if only_shell:
+                shells = [only_shell]
+
+            for shell in shells:
                 if exclude and shell in exclude:
                     self.skipTest("This test does not run on %s shell." % shell)
                 print "\ntesting in shell: %s..." % shell
@@ -149,6 +156,7 @@ def install_dependent(fn):
             print ("\nskipping test, must be run via 'rez-selftest' tool, from "
                    "a PRODUCTION rez installation.")
     return _fn
+
 
 def get_cli_output(args):
     """Invoke the named command-line rez command, with the given string
@@ -219,3 +227,19 @@ def get_cli_output(args):
         sys.argv = old_argv
 
     return output, exitcode
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

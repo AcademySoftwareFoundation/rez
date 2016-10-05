@@ -59,13 +59,18 @@ class Bash(SH):
             if rcfile and os.path.exists(os.path.expanduser(rcfile)):
                 files.append(rcfile)
         else:
-            for file in (
+            for file_ in (
                     "~/.bash_profile",
                     "~/.bash_login",
                     "~/.profile",
                     "~/.bashrc"):
-                if os.path.exists(os.path.expanduser(file)):
-                    files.append(file)
+                if os.path.exists(os.path.expanduser(file_)):
+                    files.append(file_)
+
+        bind_files = [
+            "~/.bash_profile",
+            "~/.bashrc"
+        ]
 
         return dict(
             stdin=stdin,
@@ -73,9 +78,7 @@ class Bash(SH):
             do_rcfile=do_rcfile,
             envvar=envvar,
             files=files,
-            bind_files=(
-                "~/.bash_profile",
-                "~/.bashrc"),
+            bind_files=bind_files,
             source_bind_files=True
         )
 
@@ -88,3 +91,19 @@ class Bash(SH):
 def register_plugin():
     if platform_.name != "windows":
         return Bash
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

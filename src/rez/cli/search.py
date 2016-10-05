@@ -145,6 +145,7 @@ def command(opts, parser, extra_arg_groups=None):
             except error_class as e:
                 _handle(e)
                 return
+
         if opts.format:
             txt = expand_abbreviations(opts.format, fields)
             lines = txt.split("\\n")
@@ -156,6 +157,7 @@ def command(opts, parser, extra_arg_groups=None):
                     break
                 if opts.no_newlines:
                     line_ = line_.replace('\n', "\\n")
+
                 print line_
         else:
             print r.qualified_name
@@ -206,3 +208,19 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             print "no matches found"
             sys.exit(1)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

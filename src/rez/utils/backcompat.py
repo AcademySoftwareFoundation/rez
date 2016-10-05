@@ -91,58 +91,62 @@ def convert_old_commands(commands, annotate=True):
         cmd = convert_old_command_expansions(cmd)
         toks = cmd.strip().split()
 
-        if toks[0] == "export":
-            var, value = cmd.split(' ', 1)[1].split('=', 1)
-            for bookend in ('"', "'"):
-                if value.startswith(bookend) and value.endswith(bookend):
+        try:
+            if toks[0] == "export":
+                var, value = cmd.split(' ', 1)[1].split('=', 1)
+                for bookend in ('"', "'"):
+                    if value.startswith(bookend) and value.endswith(bookend):
+                        value = value[1:-1]
+                        break
+
+                # As the only old-style commands were Linux/Bash based,
+                # we assume using the default separator ":" is ok - we don't
+                # need to use os.pathsep as we don't expected to see a
+                # Windows path here.
+                separator = config.env_var_separators.get(var, ":")
+
+                # This is a special case.  We don't want to include "';'" in
+                # our env var separators map as it's not really the correct
+                # behaviour/something we want to promote.  It's included here for
+                # backwards compatibility only, and to not propogate elsewhere.
+                if var == "CMAKE_MODULE_PATH":
+                    value = value.replace("'%s'" % separator, separator)
+                    value = value.replace('"%s"' % separator, separator)
+                    value = value.replace(":", separator)
+
+                parts = value.split(separator)
+                parts = [x for x in parts if x]
+                if len(parts) > 1:
+                    idx = None
+                    var1 = "$%s" % var
+                    var2 = "${%s}" % var
+                    if var1 in parts:
+                        idx = parts.index(var1)
+                    elif var2 in parts:
+                        idx = parts.index(var2)
+                    if idx in (0, len(parts) - 1):
+                        func = "appendenv" if idx == 0 else "prependenv"
+                        parts = parts[1:] if idx == 0 else parts[:-1]
+                        val = separator.join(parts)
+                        loc.append("%s('%s', %s)" % (func, var, _encode(val)))
+                        continue
+
+                loc.append("setenv('%s', %s)" % (var, _encode(value)))
+            elif toks[0].startswith('#'):
+                loc.append("comment(%s)" % _encode(' '.join(toks[1:])))
+            elif toks[0] == "alias":
+                match = re.search("alias (?P<key>.*?)=(?P<value>.*)", cmd)
+                key = match.groupdict()['key'].strip()
+                value = match.groupdict()['value'].strip()
+                if (value.startswith('"') and value.endswith('"')) or \
+                        (value.startswith("'") and value.endswith("'")):
                     value = value[1:-1]
-                    break
-
-            # As the only old-style commands were Linux/Bash based,
-            # we assume using the default separator ":" is ok - we don't
-            # need to use os.pathsep as we don't expected to see a
-            # Windows path here.
-            separator = config.env_var_separators.get(var, ":")
-
-            # This is a special case.  We don't want to include "';'" in
-            # our env var separators map as it's not really the correct
-            # behaviour/something we want to promote.  It's included here for
-            # backwards compatibility only, and to not propogate elsewhere.
-            if var == "CMAKE_MODULE_PATH":
-                value = value.replace("'%s'" % separator, separator)
-                value = value.replace('"%s"' % separator, separator)
-                value = value.replace(":", separator)
-
-            parts = value.split(separator)
-            parts = [x for x in parts if x]
-            if len(parts) > 1:
-                idx = None
-                var1 = "$%s" % var
-                var2 = "${%s}" % var
-                if var1 in parts:
-                    idx = parts.index(var1)
-                elif var2 in parts:
-                    idx = parts.index(var2)
-                if idx in (0, len(parts) - 1):
-                    func = "appendenv" if idx == 0 else "prependenv"
-                    parts = parts[1:] if idx == 0 else parts[:-1]
-                    val = separator.join(parts)
-                    loc.append("%s('%s', %s)" % (func, var, _encode(val)))
-                    continue
-
-            loc.append("setenv('%s', %s)" % (var, _encode(value)))
-        elif toks[0].startswith('#'):
-            loc.append("comment(%s)" % _encode(' '.join(toks[1:])))
-        elif toks[0] == "alias":
-            match = re.search("alias (?P<key>.*?)=(?P<value>.*)", cmd)
-            key = match.groupdict()['key'].strip()
-            value = match.groupdict()['value'].strip()
-            if (value.startswith('"') and value.endswith('"')) or \
-                    (value.startswith("'") and value.endswith("'")):
-                value = value[1:-1]
-            loc.append("alias('%s', %s)" % (key, _encode(value)))
-        else:
-            # assume we can execute this as a straight command
+                loc.append("alias('%s', %s)" % (key, _encode(value)))
+            else:
+                # assume we can execute this as a straight command
+                loc.append("command(%s)" % _encode(cmd))
+        except:
+            # if anything goes wrong, just fall back to bash command
             loc.append("command(%s)" % _encode(cmd))
 
     rex_code = '\n'.join(loc)
@@ -160,3 +164,19 @@ def convert_old_commands(commands, annotate=True):
             """) % (br, '\n'.join(commands), rex_code, br)
         print_debug(msg)
     return rex_code
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

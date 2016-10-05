@@ -84,8 +84,8 @@ package_base_schema_dict.update({
     Optional('previous_revision'):      object,
     Optional('vcs'):                    basestring,
 
-    # custom keys
-    Optional('custom'):                 dict
+    # arbitrary fields
+    Optional(basestring):               object
 })
 
 
@@ -164,7 +164,8 @@ package_pod_schema_dict.update({
     Optional('previous_revision'):      object,
     Optional('vcs'):                    basestring,
 
-    Optional('custom'):                 dict
+    # arbitrary keys
+    Optional(basestring):               object
 })
 
 
@@ -374,13 +375,7 @@ class VariantResourceHelper(VariantResource):
         if self.index is None:
             return None
         else:
-            try:
-                reqs = self.parent.variants[self.index]
-            except IndexError:
-                raise ResourceError(
-                    "Unexpected error - variant %s cannot be found in its "
-                    "parent package %s" % (self.uri, self.parent.uri))
-
+            reqs = self.variant_requires
             dirs = [x.safe_str() for x in reqs]
             subpath = os.path.join(*dirs)
             return subpath
@@ -397,10 +392,21 @@ class VariantResourceHelper(VariantResource):
     @cached_property
     def requires(self):
         reqs = self.parent.requires or []
+        return reqs + self.variant_requires
+
+    @cached_property
+    def variant_requires(self):
         index = self.index
-        if index is not None:
-            reqs = reqs + (self.parent.variants[index] or [])
-        return reqs
+        if index is None:
+            return []
+        else:
+            try:
+                return self.parent.variants[index] or []
+            except (IndexError, TypeError):
+                raise ResourceError(
+                    "Unexpected error - variant %s cannot be found in its "
+                    "parent package %s" % (self.uri, self.parent.uri))
+
 
     @property
     def wrapped(self):  # forward Package attributes onto ourself
@@ -409,3 +415,19 @@ class VariantResourceHelper(VariantResource):
     def _load(self):
         # doesn't have its own data, forwards on from parent instead
         return None
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

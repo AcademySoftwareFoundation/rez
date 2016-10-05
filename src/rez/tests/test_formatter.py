@@ -258,6 +258,37 @@ class TestFormatter(TestBase):
         self.assert_formatter_raises("{0:-s}", ValueError, '')
         self.assert_formatter_raises("{0:=s}", ValueError, '')
 
+    def test_formatter_recurse(self):
+        self.assert_formatter_equal('Hello {0}!', 'Hello Earth!', '{world}',
+                                    world='Earth')
+
+        self.assert_formatter_equal('Hello {greeted}!', 'Hello Timmy the Trex!',
+                                    greeted='{dinosaur}', person='{Bob}',
+                                    Bob='Fabulous Bobby', dinosaur='{Trex}',
+                                    Trex='Timmy the Trex')
+        self.formatter.namespace.update(greeted='{dinosaur}', person='{Bob}',
+                                        Bob='Fabulous Bobby', dinosaur='{Trex}',
+                                        Trex='Timmy the Trex')
+        self.assert_formatter_equal('Hello {greeted}!',
+                                    'Hello Timmy the Trex!')
+
+
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

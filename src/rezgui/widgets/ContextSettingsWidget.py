@@ -44,7 +44,7 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
         self.schema = Schema(schema_dict)
 
         self.edit = QtGui.QTextEdit()
-        self.edit.setStyleSheet("font: 9pt 'Courier'")
+        self.edit.setStyleSheet("font: 12pt 'Courier'")
         self.default_btn = QtGui.QPushButton("Set To Defaults")
         self.discard_btn = QtGui.QPushButton("Discard Changes...")
         self.apply_btn = QtGui.QPushButton("Apply")
@@ -157,3 +157,19 @@ class ContextSettingsWidget(QtGui.QWidget, ContextViewMixin):
     def _settingsChanged(self):
         self.discard_btn.setEnabled(True)
         self.apply_btn.setEnabled(True)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

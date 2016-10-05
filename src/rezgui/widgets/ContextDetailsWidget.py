@@ -18,14 +18,14 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.code_pending = True
 
         self.overview_edit = StreamableTextEdit()
-        self.overview_edit.setStyleSheet("font: 9pt 'Courier'")
+        self.overview_edit.setStyleSheet("font: 12pt 'Courier'")
 
         self.graph_btn = ViewGraphButton(context_model)
         btn_pane = create_pane([None, self.graph_btn], True)
         overview_pane = create_pane([self.overview_edit, btn_pane], False)
 
         self.code_edit = SearchableTextEdit()
-        self.code_edit.setStyleSheet("font: 9pt 'Courier'")
+        self.code_edit.setStyleSheet("font: 12pt 'Courier'")
 
         self.code_combo = QtGui.QComboBox()
         # strip out 'sh' and 'csh', they only differ from bash and tcsh in shell
@@ -96,3 +96,19 @@ class ContextDetailsWidget(QtGui.QTabWidget, ContextViewMixin):
         self.code_edit.insertPlainText(code)
         self.code_edit.moveCursor(QtGui.QTextCursor.Start)
         self.code_pending = False
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

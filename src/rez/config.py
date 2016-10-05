@@ -221,6 +221,7 @@ config_schema = Schema({
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
     "implicit_packages":                            StrList,
+    "platform_map":                                 OptionalDict,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
@@ -277,6 +278,8 @@ config_schema = Schema({
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
+    "allow_unversioned_packages":                   Bool,
+    "rxt_as_yaml":                                  Bool,
     "color_enabled":                                Bool,
     "resolve_caching":                              Bool,
     "cache_package_files":                          Bool,
@@ -295,8 +298,8 @@ config_schema = Schema({
     "debug_bind_modules":                           Bool,
     "debug_resources":                              Bool,
     "debug_package_exclusions":                     Bool,
-    "debug_resolve_memcache":                       Bool,
     "debug_memcache":                               Bool,
+    "debug_resolve_memcache":                       Bool,
     "debug_all":                                    Bool,
     "debug_none":                                   Bool,
     "quiet":                                        Bool,
@@ -325,7 +328,8 @@ config_schema = Schema({
 
     # GUI settings
     "use_pyside":                                   Bool,
-    "use_pyqt":                                     Bool
+    "use_pyqt":                                     Bool,
+    "gui_threads":                                  Bool
 })
 
 
@@ -761,3 +765,19 @@ def get_module_root_config():
 
 # singleton
 config = Config._create_main_config()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -100,7 +100,7 @@ class Suite(object):
         data["loaded"] = True
         return context
 
-    def add_context(self, name, context):
+    def add_context(self, name, context, prefix_char=None):
         """Add a context to the suite.
 
         Args:
@@ -116,7 +116,8 @@ class Suite(object):
                                    context=context.copy(),
                                    tool_aliases={},
                                    hidden_tools=set(),
-                                   priority=self._next_priority)
+                                   priority=self._next_priority,
+                                   prefix_char=prefix_char)
         self._flush_tools()
 
     def find_contexts(self, in_request=None, in_resolve=None):
@@ -458,15 +459,21 @@ class Suite(object):
         for tool_alias, d in tools.iteritems():
             tool_name = d["tool_name"]
             context_name = d["context_name"]
+
+            data = self._context(context_name)
+            prefix_char = data.get("prefix_char")
+
             if verbose:
                 print ("creating %r -> %r (%s context)..."
                        % (tool_alias, tool_name, context_name))
             filepath = os.path.join(tools_path, tool_alias)
+
             create_forwarding_script(filepath,
                                      module="suite",
                                      func_name="_FWD__invoke_suite_tool_alias",
                                      context_name=context_name,
-                                     tool_name=tool_name)
+                                     tool_name=tool_name,
+                                     prefix_char=prefix_char)
 
     @classmethod
     def load(cls, path):
@@ -734,13 +741,30 @@ class Suite(object):
                         self.tools[alias] = entry
 
 
-def _FWD__invoke_suite_tool_alias(context_name, tool_name, _script, _cli_args):
+def _FWD__invoke_suite_tool_alias(context_name, tool_name, prefix_char=None,
+                                  _script=None, _cli_args=None):
     suite_path = os.path.dirname(os.path.dirname(_script))
     path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
     context = ResolvedContext.load(path)
 
     from rez.wrapper import Wrapper
     w = Wrapper.__new__(Wrapper)
-    w._init(suite_path, context_name, context, tool_name)
-    retcode = w.run(*_cli_args)
+    w._init(suite_path, context_name, context, tool_name, prefix_char)
+    retcode = w.run(*(_cli_args or []))
     sys.exit(retcode)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

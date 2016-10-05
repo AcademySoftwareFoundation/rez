@@ -99,9 +99,14 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
     items = []
     for key in package_key_order:
         if key not in skip:
-            value = data_.get(key)
+            value = data_.pop(key, None)
             if value is not None:
                 items.append((key, value))
+
+    # remaining are arbitrary keys
+    for key, value in data_.iteritems():
+        if key not in skip:
+            items.append((key, value))
 
     dump_func = dump_functions[format_]
     dump_func(items, buf)
@@ -182,3 +187,19 @@ def _dump_package_data_py(items, buf):
 
 dump_functions = {FileFormat.py:    _dump_package_data_py,
                   FileFormat.yaml:  _dump_package_data_yaml}
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

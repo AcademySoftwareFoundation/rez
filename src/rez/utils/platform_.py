@@ -5,6 +5,7 @@ import os.path
 import re
 from rez.util import which
 from rez.utils.data_utils import cached_property
+from rez.utils.platform_mapped import platform_mapped
 from rez.exceptions import RezSystemError
 from tempfile import gettempdir
 
@@ -18,11 +19,13 @@ class Platform(object):
         pass
 
     @cached_property
+    @platform_mapped
     def arch(self):
         """Returns the name of the architecture."""
         return self._arch()
 
     @cached_property
+    @platform_mapped
     def os(self):
         """Returns the name of the operating system."""
         return self._os()
@@ -161,7 +164,8 @@ class Platform(object):
 # -----------------------------------------------------------------------------
 
 class _UnixPlatform(Platform):
-    pass
+    def _new_session_popen_args(self):
+        return dict(preexec_fn=os.setpgrp)
 
 
 # -----------------------------------------------------------------------------
@@ -261,9 +265,6 @@ class LinuxPlatform(_UnixPlatform):
             return "%s --noclose -e" % term
         else:
             return "%s -hold -e" % term
-
-    def _new_session_popen_args(self):
-        return dict(preexec_fn=os.setpgrp)
 
     def _image_viewer(self):
         from rez.util import which
@@ -421,6 +422,11 @@ class OSXPlatform(_UnixPlatform):
     def _physical_cores(self):
         return self._physical_cores_from_osx_sysctl()
 
+    def _difftool(self):
+        from rez.util import which
+        return which("meld", "diff")
+
+
 # -----------------------------------------------------------------------------
 # Windows
 # -----------------------------------------------------------------------------
@@ -492,15 +498,28 @@ class WindowsPlatform(Platform):
         if p.returncode:
             return None
 
-        result = stdout.strip().split('=')
-        if result[0] != 'NumberOfCores':
+        # a Windows machine with 1 installed CPU will return "NumberOfCores=N" where N is
+        # the number of physical cores on that CPU chip. If more than one CPU is installed
+        # there will be one "NumberOfCores=N" line listed per actual CPU, so the sum of all
+        # N is the number of physical cores in the machine: this will be exactly one half the
+        # number of logical cores (ie from multiprocessing.cpu_count) if HyperThreading is
+        # enabled on the CPU(s)
+        result = re.findall(r'NumberOfCores=(\d+)', stdout.strip())
+
+        if not result:
             # don't know what's wrong... should get back a result like:
             # NumberOfCores=2
             return None
-        return int(result[1])
+
+        return sum(map(int, result))
 
     def _physical_cores(self):
         return self._physical_cores_from_wmic()
+
+    def _difftool(self):
+        # although meld would be preferred, fc ships with all Windows versions back to DOS
+        from rez.util import which
+        return which("meld", "fc")
 
 
 # singleton
@@ -512,3 +531,19 @@ elif name == "darwin":
     platform_ = OSXPlatform()
 elif name == "windows":
     platform_ = WindowsPlatform()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

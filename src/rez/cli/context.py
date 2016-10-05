@@ -4,12 +4,25 @@ Print information about the current rez context, or a given context file.
 import sys
 from rez.rex import OutputStyle
 
+try:
+    # part of Python since 2.6
+    import json
+except ImportError:
+    try:
+        # for Python < 2.6
+        import simplejson as json
+    except ImportError:
+        json = None
+
 
 def setup_parser(parser, completions=False):
     from rez.system import system
     from rez.shells import get_shell_types
 
     formats = get_shell_types() + ['dict', 'table']
+    if json is not None:
+        formats.append('json')
+
     output_styles = [e.name for e in OutputStyle]
 
     parser.add_argument(
@@ -52,8 +65,8 @@ def setup_parser(parser, completions=False):
     parser.add_argument(
         "-f", "--format", type=str, choices=formats, default=system.shell,
         help="print interpreted output in the given format. Ignored if "
-        "--interpret is not present (default: "
-        "%(default)s)")
+        "--interpret is not present (default: %(default)s). If one of "
+        "table, dict or json, the environ dict is printed.")
     parser.add_argument(
         "-s", "--style", type=str, default="file", choices=output_styles,
         help="Set code output style. Ignored if --interpret is not present "
@@ -144,15 +157,34 @@ def command(opts, parser, extra_arg_groups=None):
                           show_resolved_uris=opts.show_uris)
         return
 
-    if opts.format == 'table':
+    if opts.format in ("dict", "table", "json"):
         env = rc.get_environ(parent_environ=parent_env)
-        rows = [x for x in sorted(env.iteritems())]
-        print '\n'.join(columnise(rows))
-    elif opts.format == 'dict':
-        env = rc.get_environ(parent_environ=parent_env)
-        print pformat(env)
+
+        if opts.format == 'table':
+            rows = [x for x in sorted(env.iteritems())]
+            print '\n'.join(columnise(rows))
+        elif opts.format == 'dict':
+            print pformat(env)
+        else:  # json
+            print json.dumps(env, sort_keys=True, indent=4)
     else:
         code = rc.get_shell_code(shell=opts.format,
                                  parent_environ=parent_env,
                                  style=OutputStyle[opts.style])
         print code
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

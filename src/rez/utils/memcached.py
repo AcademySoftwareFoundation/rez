@@ -1,5 +1,4 @@
 from rez.config import config
-from rez.utils.logging_ import print_debug
 from rez.vendor.memcache.memcache import Client as Client_, SERVER_MAX_KEY_LENGTH
 from threading import local
 from contextlib import contextmanager
@@ -24,6 +23,8 @@ class Client(object):
     class _Miss(object):
         def __nonzero__(self): return False
     miss = _Miss()
+
+    logger = config.debug_printer("memcache")
 
     def __init__(self, servers, debug=False):
         """Create a memcached client.
@@ -51,7 +52,6 @@ class Client(object):
             `memcache.Client` instance.
         """
         if self._client is None:
-            #print "Connected memcached client %s" % str(self)
             self._client = Client_(self.servers)
         return self._client
 
@@ -83,6 +83,7 @@ class Client(object):
                         val=val,
                         time=time,
                         min_compress_len=min_compress_len)
+        self.logger("SET: %s", key)
 
     def get(self, key):
         """See memcache.Client.
@@ -102,7 +103,10 @@ class Client(object):
         if isinstance(entry, tuple) and len(entry) == 2:
             key_, result = entry
             if key_ == key:
+                self.logger("HIT: %s", key)
                 return result
+
+        self.logger("MISS: %s", key)
         return self.miss
 
     def delete(self, key):
@@ -208,7 +212,7 @@ def memcached_client(servers=config.memcached_uri, debug=config.debug_memcache):
     the same time unnecessary extra reconnections are avoided. Typically an
     initial scope (using 'with' construct) is made around parts of code that hit
     the cache server many times - such as a resolve, or executing a context. On
-    exist of the topmost scope, the memcached client is disconnected.
+    exit of the topmost scope, the memcached client is disconnected.
 
     Returns:
         `Client`: Memcached instance.
@@ -371,3 +375,19 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
 class DoNotCache(object):
     def __init__(self, result):
         self.result = result
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

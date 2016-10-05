@@ -35,6 +35,7 @@ class Wrapper(object):
             doc = doc["kwargs"]
             context_name = doc["context_name"]
             tool_name = doc["tool_name"]
+            prefix_char = doc.get("prefix_char")
         except YAMLError as e:
             _err(str(e))
 
@@ -48,13 +49,14 @@ class Wrapper(object):
 
         path = os.path.join(suite_path, "contexts", "%s.rxt" % context_name)
         context = ResolvedContext.load(path)
-        self._init(suite_path, context_name, context, tool_name)
+        self._init(suite_path, context_name, context, tool_name, prefix_char)
 
-    def _init(self, suite_path, context_name, context, tool_name):
+    def _init(self, suite_path, context_name, context, tool_name, prefix_char=None):
         self.suite_path = suite_path
         self.context_name = context_name
         self.context = context
         self.tool_name = tool_name
+        self.prefix_char = prefix_char
 
     @cached_property
     def suite(self):
@@ -67,9 +69,25 @@ class Wrapper(object):
         Returns:
             Return code of the command, or 0 if the command is not run.
         """
+        if self.prefix_char is None:
+            prefix_char = config.suite_alias_prefix_char
+        else:
+            prefix_char = self.prefix_char
+
+        if prefix_char == '':
+            # empty prefix char means we don't support the '+' args
+            return self._run_no_args(args)
+        else:
+            return self._run(prefix_char, args)
+
+    def _run_no_args(self, args):
+        cmd = [self.tool_name] + list(args)
+        retcode, _, _ = self.context.execute_shell(command=cmd, block=True)
+        return retcode
+
+    def _run(self, prefix_char, args):
         from rez.vendor import argparse
 
-        prefix_char = config.suite_alias_prefix_char
         parser = argparse.ArgumentParser(prog=self.tool_name,
                                          prefix_chars=prefix_char)
 
@@ -87,17 +105,17 @@ class Wrapper(object):
             help="launch an interactive shell within the tool's configured "
             "environment")
         _add_argument(
+            "=p", "==patch", type=str, nargs='*', metavar="PKG",
+            help="run the tool in a patched environment")
+        _add_argument(
             "==versions", action="store_true",
             help="list versions of package providing this tool")
         _add_argument(
-            "=c", "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
+            "==command", type=str, nargs='+', metavar=("COMMAND", "ARG"),
             help="read commands from string, rather than executing the tool")
         _add_argument(
-            "=s", "==stdin", action="store_true",
+            "==stdin", action="store_true",
             help="read commands from standard input, rather than executing the tool")
-        _add_argument(
-            "=p", "==patch", type=str, nargs='*', metavar="PKG",
-            help="run the tool in a patched environment")
         _add_argument(
             "==strict", action="store_true",
             help="strict patching. Ignored if ++patch is not present")
@@ -109,13 +127,22 @@ class Wrapper(object):
             help="diff against the tool's context and a re-resolved copy - "
             "this shows how 'stale' the context is")
         _add_argument(
-            "=v", "==verbose", action="count", default=0,
+            "==verbose", action="count", default=0,
             help="verbose mode, repeat for more verbosity")
         _add_argument(
-            "=q", "==quiet", action="store_true",
+            "==quiet", action="store_true",
             help="hide welcome message when entering interactive mode")
+        _add_argument(
+            "==no-rez-args", dest="no_rez_args", action="store_true",
+            help="pass all args to the tool, even if they start with '%s'" % prefix_char)
 
         opts, tool_args = parser.parse_known_args(args)
+
+        if opts.no_rez_args:
+            args = list(args)
+            args.remove("==no-rez-args".replace('=', prefix_char))
+            tool_args = args
+            opts = parser.parse_args([])
 
         # print info
         if opts.about:
@@ -236,3 +263,19 @@ class Wrapper(object):
         vars_str = " ".join(x.qualified_package_name for x in variants)
         msg = "Packages (in conflict): %s" % vars_str
         Printer()(msg, critical)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

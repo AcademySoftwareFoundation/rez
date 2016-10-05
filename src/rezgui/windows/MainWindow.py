@@ -79,7 +79,18 @@ class MainWindow(QtGui.QMainWindow):
     def open_context(self, filepath):
         context = app.load_context(filepath)
         if context:
-            self._add_context_subwindow(context)
+            return self._add_context_subwindow(context)
+        else:
+            return None
+
+    def open_context_and_diff_with_file(self, filepath1, filepath2):
+        context = app.load_context(filepath1)
+        if not context:
+            return None
+
+        subwindow = self._add_context_subwindow(context)
+        subwindow.diff_with_file(filepath2)
+        return subwindow
 
     @contextmanager
     def status(self, txt):
@@ -109,6 +120,7 @@ class MainWindow(QtGui.QMainWindow):
         self.copy_request_action.triggered.connect(subwindow.copy_request_to_clipboard)
         self.copy_resolve_action.triggered.connect(subwindow.copy_resolve_to_clipboard)
         subwindow.show()
+        return subwindow
 
     def _update_file_menu(self):
         context_save = False
@@ -145,3 +157,19 @@ class MainWindow(QtGui.QMainWindow):
 
         self.copy_request_action.setEnabled(copy_request)
         self.copy_resolve_action.setEnabled(copy_resolve)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

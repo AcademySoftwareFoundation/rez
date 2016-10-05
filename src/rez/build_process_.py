@@ -66,7 +66,7 @@ class BuildProcess(object):
             working_dir (str): Directory containing the package to build.
             build_system (`BuildSystem`): Build system used to build the package.
             vcs (`ReleaseVCS`): Version control system to use for the release
-                process. If None, the package will only be built, not released.
+                process.
             ensure_latest: If True, do not allow the release process to occur
                 if an newer versioned package is already released.
             skip_repo_errors: If True, proceed with the release even when errors
@@ -217,23 +217,23 @@ class BuildProcessHelper(BuildProcess):
             raise ReleaseError("Release path does not exist: %r" % release_path)
 
         # test that the repo is in a state to release
-        assert self.vcs
-        self._print("Checking state of repository...")
-        with self.repo_operation():
-            self.vcs.validate_repostate()
-
-        # check if the repo is already tagged at the current version
-        if release_settings.check_tag and not self.ignore_existing_tag:
-            tag_name = self.get_current_tag_name()
-            tag_exists = False
+        if self.vcs:
+            self._print("Checking state of repository...")
             with self.repo_operation():
-                tag_exists = self.vcs.tag_exists(tag_name)
+                self.vcs.validate_repostate()
 
-            if tag_exists:
-                raise ReleaseError(
-                    "Cannot release - the current package version '%s' is already "
-                    "tagged in the repository. Use --ignore-existing-tag to "
-                    "force the release" % self.package.version)
+            # check if the repo is already tagged at the current version
+            if release_settings.check_tag and not self.ignore_existing_tag:
+                tag_name = self.get_current_tag_name()
+                tag_exists = False
+                with self.repo_operation():
+                    tag_exists = self.vcs.tag_exists(tag_name)
+
+                if tag_exists:
+                    raise ReleaseError(
+                        "Cannot release - the current package version '%s' is "
+                        "already tagged in the repository. Use --ignore-existing-tag "
+                        "to force the release" % self.package.version)
 
         it = iter_packages(self.package.name, paths=[release_path])
         packages = sorted(it, key=lambda x: x.version, reverse=True)
@@ -259,8 +259,10 @@ class BuildProcessHelper(BuildProcess):
     def post_release(self, release_message=None):
         tag_name = self.get_current_tag_name()
 
+        if self.vcs is None:
+            return  # nothing more to do
+
         # write a tag for the new release into the vcs
-        assert self.vcs
         with self.repo_operation():
             self.vcs.create_release_tag(tag_name=tag_name, message=release_message)
 
@@ -316,7 +318,10 @@ class BuildProcessHelper(BuildProcess):
             previous_version = None
             previous_revision = None
 
-        assert self.vcs
+        if self.vcs is None:
+            return dict(vcs="None",
+                        previous_version=previous_version)
+
         revision = None
         changelog = None
 
@@ -357,3 +362,19 @@ class BuildProcessHelper(BuildProcess):
         num_variants = max(self.package.num_variants, 1)
         index = (variant.index or 0) + 1
         return "%d/%d" % (index, num_variants)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

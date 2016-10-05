@@ -14,11 +14,14 @@ tests_dir = os.path.join(src_rez_dir, 'tests')
 all_module_tests = []
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("tests", metavar="NAMED_TEST", default=[], nargs="*",
-                        help="a specific test module/class/method to run; may "
-                             "be repeated multiple times; if no tests are "
-                             "given, through this or other flags, all tests "
-                             "are run")
+    parser.add_argument(
+        "tests", metavar="NAMED_TEST", default=[], nargs="*",
+        help="a specific test module/class/method to run; may be repeated "
+        "multiple times; if no tests are given, through this or other flags, "
+        "all tests are run")
+    parser.add_argument(
+        "-s", "--only-shell", metavar="SHELL",
+        help="limit shell-dependent tests to the specified shell")
 
     # make an Action that will append the appropriate test to the "--test" arg
     class AddTestModuleAction(argparse.Action):
@@ -49,7 +52,11 @@ def setup_parser(parser, completions=False):
 def command(opts, parser, extra_arg_groups=None):
     import sys
     from rez.vendor.unittest2.main import main
+
     os.environ["__REZ_SELFTEST_RUNNING"] = "1"
+
+    if opts.only_shell:
+        os.environ["__REZ_SELFTEST_SHELL"] = opts.only_shell
 
     if not opts.module_tests and not opts.tests:
         module_tests = all_module_tests
@@ -60,3 +67,19 @@ def command(opts, parser, extra_arg_groups=None):
 
     argv = [sys.argv[0]] + tests
     main(module=None, argv=argv, verbosity=opts.verbose)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

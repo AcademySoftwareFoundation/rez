@@ -13,14 +13,15 @@ class Binding(object):
     def __init__(self, data=None):
         self.__data = data or {}
 
-    def __attr_error(self, attr):
-        raise NotImplementedError
+    def _attr_error(self, attr):
+        raise AttributeError("%s has no attribute '%s'"
+                             % (self.__class__.__name__, attr))
 
     def __getattr__(self, attr):
         try:
             return self.__data[attr]
         except KeyError:
-            self.__attr_error(attr)
+            self._attr_error(attr)
 
 
 class VersionBinding(Binding):
@@ -63,8 +64,9 @@ class VersionBinding(Binding):
     def as_tuple(self):
         return self[:len(self)]
 
-    def __attr_error(self, attr):
-        raise AttributeError("version object has no attribute '%s'" % attr)
+    def _attr_error(self, attr):
+        raise AttributeError("version %s has no attribute '%s'"
+                             % (str(self), attr))
 
     def __getitem__(self, i):
         try:
@@ -75,7 +77,7 @@ class VersionBinding(Binding):
     def __getitem(self, i):
         def _convert(t):
             s = str(t)
-            if s.isdigit() and s[0] != '0':
+            if s.isdigit() and (s[0] != '0' or s == '0'):
                 return int(s)
             else:
                 return s
@@ -109,8 +111,9 @@ class VariantBinding(Binding):
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
 
-    def __attr_error(self, attr):
-        raise AttributeError("package object has no attribute '%s'" % attr)
+    def _attr_error(self, attr):
+        raise AttributeError("package %s has no attribute '%s'"
+                             % (str(self), attr))
 
     def __str__(self):
         return self.__variant.qualified_package_name
@@ -123,7 +126,7 @@ class VariantsBinding(Binding):
         self.__variants = dict((x.name, VariantBinding(x)) for x in variants)
         super(VariantsBinding, self).__init__(self.__variants)
 
-    def __attr_error(self, attr):
+    def _attr_error(self, attr):
         raise AttributeError("package does not exist: '%s'" % attr)
 
     def __contains__(self, name):
@@ -136,8 +139,24 @@ class RequirementsBinding(Binding):
         self.__requirements = dict((x.name, str(x)) for x in requirements)
         super(RequirementsBinding, self).__init__(self.__requirements)
 
-    def __attr_error(self, attr):
+    def _attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
 
     def __contains__(self, name):
         return (name in self.__requirements)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

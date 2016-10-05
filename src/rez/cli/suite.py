@@ -29,6 +29,12 @@ def setup_parser(parser, completions=False):
     add_action = parser.add_argument(
         "-a", "--add", type=str, metavar="RXT",
         help="add a context to the suite")
+    add_action = parser.add_argument(
+        "-P", "--prefix-char", dest="prefix_char", type=str, metavar="CHAR",
+        help="set the char used to access rez options via a suite tool "
+        "for the context being added (default: '+'). If set to the empty string, "
+        "rez options are disabled. This option is only used in combination with "
+        "--add")
     parser.add_argument(
         "-r", "--remove", type=str, metavar="NAME",
         help="remove a context from the suite")
@@ -140,7 +146,8 @@ def command(opts, parser, extra_arg_groups=None):
         _pr("loading context at %r..." % opts.add)
         context = ResolvedContext.load(opts.add)
         _pr("adding context %r..." % opts.context)
-        suite.add_context(name=opts.context, context=context)
+        suite.add_context(name=opts.context, context=context,
+                          prefix_char=opts.prefix_char)
     elif _option("remove"):
         _pr("removing context %r..." % opts.remove)
         suite.remove_context(name=opts.remove)
@@ -186,3 +193,19 @@ def command(opts, parser, extra_arg_groups=None):
     if do_save:
         _pr("saving suite to %r..." % opts.DIR)
         suite.save(opts.DIR)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

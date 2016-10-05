@@ -87,7 +87,7 @@ class Resource(object):
     @cached_property
     def handle(self):
         """Get the resource handle."""
-        return ResourceHandle(self.key,self.variables)
+        return ResourceHandle(self.key, self.variables)
 
     @cached_property
     def _data(self):
@@ -162,7 +162,7 @@ class ResourceHandle(object):
         return cls(**d)
 
     def __str__(self):
-        return "<%s%r>" % (self.key, self.variables)
+        return str(self.to_dict())
 
     def __repr__(self):
         return "%s(%r, %r)" % (self.__class__.__name__, self.key, self.variables)
@@ -277,3 +277,19 @@ class ResourceWrapper(object):
 
     def __hash__(self):
         return hash((self.__class__, self.resource))
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

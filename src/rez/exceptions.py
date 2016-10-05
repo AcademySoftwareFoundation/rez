@@ -1,6 +1,7 @@
 """
 Exceptions.
 """
+from contextlib import contextmanager
 
 
 class RezError(Exception):
@@ -162,3 +163,35 @@ class RezGuiQTImportError(ImportError):
     """A special case - see cli/gui.py
     """
     pass
+
+
+@contextmanager
+def convert_errors(from_, to, msg=None):
+    exc = None
+
+    try:
+        yield None
+    except from_ as e:
+        exc = e
+
+    if exc:
+        info = "%s: %s" % (exc.__class__.__name__, str(exc))
+        if msg:
+            info = "%s: %s" % (msg, info)
+        raise to(info)
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

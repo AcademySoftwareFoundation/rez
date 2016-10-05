@@ -1,10 +1,16 @@
+from contextlib import contextmanager
 import logging
+import time
 
 logger = logging.getLogger(__name__)
 
 
 def print_debug(msg):
     logger.debug(msg)
+
+
+def print_info(msg):
+    logger.info(msg)
 
 
 def print_warning(msg):
@@ -51,6 +57,16 @@ class _Printer(object):
 
     def __nonzero__(self):
         return bool(self.printer_function)
+
+
+@contextmanager
+def log_duration(printer, msg):
+    t1 = time.time()
+    yield None
+
+    t2 = time.time()
+    secs = t2 - t1
+    printer(msg, str(secs))
 
 # Thanks to J.F. Sebastian (http://stackoverflow.com/users/4279/j-f-sebastian)
 # on stack overflow for the original source of tee and teed_call.
@@ -141,3 +157,18 @@ def teed_call(cmd_args, **kwargs):
     for t in threads:
         t.join() # wait for IO completion
     return p.wait()
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

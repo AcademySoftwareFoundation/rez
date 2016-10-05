@@ -49,12 +49,8 @@ class TestRelease(TestBase, TempdirMixin):
     def _create_context(cls, *pkgs):
         return ResolvedContext(pkgs)
 
-    @shell_dependent()
-    @install_dependent
-    def test_1(self):
-        """Basic release."""
-
-        # start fresh
+    def _setup_release(self):
+       # start fresh
         system.clear_caches()
         if os.path.exists(self.install_root):
             shutil.rmtree(self.install_root)
@@ -62,40 +58,59 @@ class TestRelease(TestBase, TempdirMixin):
             shutil.rmtree(self.src_root)
         shutil.copytree(self.src_path, self.src_root)
 
-        working_dir = self.src_root
-        packagefile = os.path.join(working_dir, "package.yaml")
-        with open(packagefile) as f:
-            package_data = yaml.load(f.read())
-
-        def _write_package():
-            with open(packagefile, 'w') as f:
-                dump_package_data(package_data, f, format_=FileFormat.yaml)
+        self.packagefile = os.path.join(self.src_root, "package.yaml")
+        with open(self.packagefile) as f:
+            self.package_data = yaml.load(f.read())
 
         # create the build system
-        buildsys = create_build_system(working_dir, verbose=True)
-        self.assertEqual(buildsys.name(), "bez")
+        self.buildsys = create_build_system(self.src_root, verbose=True)
+        self.assertEqual(self.buildsys.name(), "bez")
 
-        # create the vcs
+        # create the vcs - should error because stub file doesn't exist yet
         with self.assertRaises(ReleaseVCSError):
-            vcs = create_release_vcs(working_dir)
+            create_release_vcs(self.src_root)
 
-        stubfile = os.path.join(working_dir, ".stub")
-        with open(stubfile, 'w'):
+        # make the stub file
+        self.stubfile = os.path.join(self.src_root, ".stub")
+        with open(self.stubfile, 'w'):
             pass
-        vcs = create_release_vcs(working_dir)
-        self.assertEqual(vcs.name(), "stub")
 
-        def _create_builder(ensure_latest=True):
-            return create_build_process(process_type="local",
-                                        working_dir=working_dir,
-                                        build_system=buildsys,
-                                        vcs=vcs,
-                                        ensure_latest=ensure_latest,
-                                        ignore_existing_tag=True,
-                                        verbose=True)
+        # create the vcs - should work now
+        self.vcs = create_release_vcs(self.src_root)
+        self.assertEqual(self.vcs.name(), "stub")
 
+    def _write_package(self):
+        with open(self.packagefile, 'w') as f:
+            dump_package_data(self.package_data, f, format_=FileFormat.yaml)
+
+    def _create_builder(self, ensure_latest=True):
+        return create_build_process(process_type="local",
+                                    working_dir=self.src_root,
+                                    build_system=self.buildsys,
+                                    vcs=self.vcs,
+                                    ensure_latest=ensure_latest,
+                                    ignore_existing_tag=True,
+                                    verbose=True)
+
+    def assertVariantsEqual(self, vars1, vars2):
+        """Utility function to compare string-variants with formal lists of
+        "PackageRequest" objects
+        """
+        from rez.utils.formatting import PackageRequest
+
+        def _standardize_variants(variants):
+            return [list(str(req) for req in variant) for variant in variants]
+
+        self.assertEqual(_standardize_variants(vars1),
+                         _standardize_variants(vars2))
+
+    @shell_dependent()
+    @install_dependent
+    def test_1(self):
+        """Basic release."""
         # release should fail because release path does not exist
-        builder = _create_builder()
+        self._setup_release()
+        builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
 
@@ -109,38 +124,38 @@ class TestRelease(TestBase, TempdirMixin):
         self.assertTrue(os.path.exists(filepath))
 
         # failed release (same version released again)
-        builder = _create_builder()
+        builder = self._create_builder()
         num_variants = builder.release()
         self.assertEqual(num_variants, 0)
 
         # update package version and release again
-        package_data["version"] = "1.1"
-        _write_package()
-        builder = _create_builder()
+        self.package_data["version"] = "1.1"
+        self._write_package()
+        builder = self._create_builder()
         builder.release()
 
         # change version to earlier and do failed release attempt
-        package_data["version"] = "1.0.1"
-        _write_package()
-        builder = _create_builder()
+        self.package_data["version"] = "1.0.1"
+        self._write_package()
+        builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
 
         # release again, this time allow not latest
-        builder = _create_builder(ensure_latest=False)
+        builder = self._create_builder(ensure_latest=False)
         builder.release()
 
         # change uuid and do failed release attempt
-        package_data["version"] = "1.2"
-        package_data["uuid"] += "_CHANGED"
-        _write_package()
-        builder = _create_builder()
+        self.package_data["version"] = "1.2"
+        self.package_data["uuid"] += "_CHANGED"
+        self._write_package()
+        builder = self._create_builder()
         with self.assertRaises(ReleaseError):
             builder.release()
 
         # check the vcs contains the tags we expect
         expected_value = set(["foo-1.0", "foo-1.0.1", "foo-1.1"])
-        with open(stubfile) as f:
+        with open(self.stubfile) as f:
             stub_data = yaml.load(f.read())
         tags = set(stub_data.get("tags", {}).keys())
         self.assertEqual(tags, expected_value)
@@ -150,6 +165,87 @@ class TestRelease(TestBase, TempdirMixin):
         qnames = set(x.qualified_name for x in it)
         self.assertEqual(qnames, expected_value)
 
+    @shell_dependent()
+    @install_dependent
+    def test_2_variant_add(self):
+        """Test variant installation on release
+        """
+        self.src_path = os.path.join(self.src_path, "variants")
+        self._setup_release()
+
+        # copy the spangle package onto the packages path
+        os.mkdir(self.install_root)
+        shutil.copytree(os.path.join(self.src_root, 'spangle'),
+                        os.path.join(self.install_root, 'spangle'))
+
+        # release the bar package, which has spangle-1.0 and 1.1 variants
+        builder = self._create_builder()
+        builder.release()
+
+        # check that the released package has two variants, and the "old"
+        # description...
+        rel_packages = list(iter_packages("bar", paths=[self.install_root]))
+        self.assertEqual(len(rel_packages), 1)
+        rel_package = rel_packages[0]
+        self.assertVariantsEqual(rel_package.variants, [['spangle-1.0'],
+                                                        ['spangle-1.1']])
+        self.assertEqual(rel_package.description,
+                         'a package with two variants')
+
+        # now, change the package so it has a single spangle-2.0 variant...
+        self.package_data['variants'] = [['spangle-2.0']]
+        new_desc = 'added spangle-2.0 variant'
+        self.package_data['description'] = new_desc
+        self._write_package()
+
+        # ...then try to re-release
+        builder = self._create_builder()
+        builder.release()
+
+        # check that the released package now three variants, and the "new"
+        # description...
+        rel_packages = list(iter_packages("bar", paths=[self.install_root]))
+        self.assertEqual(len(rel_packages), 1)
+        rel_package = rel_packages[0]
+        self.assertVariantsEqual(rel_package.variants, [['spangle-1.0'],
+                                                        ['spangle-1.1'],
+                                                        ['spangle-2.0']])
+        self.assertEqual(rel_package.description, new_desc)
+
+        # finally, release a package that contains a variant already released,
+        # but with a different index...
+        self.package_data['variants'] = [['spangle-1.1']]
+        third_desc = 'releasing with already existing variant'
+        self.package_data['description'] = third_desc
+        self._write_package()
+        builder = self._create_builder()
+        builder.release()
+
+        # make sure that the variant indices stayed the same...
+        rel_packages = list(iter_packages("bar", paths=[self.install_root]))
+        self.assertEqual(len(rel_packages), 1)
+        rel_package = rel_packages[0]
+        self.assertVariantsEqual(rel_package.variants, [['spangle-1.0'],
+                                                        ['spangle-1.1'],
+                                                        ['spangle-2.0']])
+        # ...but that the description was updated
+        self.assertEqual(rel_package.description, third_desc)
 
 if __name__ == '__main__':
     unittest.main()
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

@@ -64,16 +64,7 @@ class PackageFilterBase(object):
                 yield package
 
     @property
-    def hash(self):
-        """Get a hash of the filter.
-
-        This is needed because package filters are incorporate into memcached
-        keys for cached resolves. The actual filter contents are not used because
-        they are unbounded - the total number of rules in a filter could be high.
-
-        Returns:
-            str: hash value.
-        """
+    def sha1(self):
         return sha1(str(self)).hexdigest()
 
     def __repr__(self):
@@ -204,7 +195,7 @@ class PackageFilter(PackageFilterBase):
 
     def __str__(self):
         return str((sorted(self._excludes.items()),
-                   sorted(self._includes.items())))
+                    sorted(self._includes.items())))
 
 
 class PackageFilterList(PackageFilterBase):
@@ -540,3 +531,19 @@ class TimestampRule(Rule):
             parts.append(self._family)
         parts.append(str(self.timestamp))
         return "%s(%s)" % (label, ':'.join(parts))
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

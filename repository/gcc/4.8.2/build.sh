@@ -59,7 +59,8 @@ if [ -d objdir ]; then
 else
     mkdir objdir
     cd objdir
-    ../gcc-${gcc_ver}/configure --prefix=${install_dir} --enable-languages=c,c++,fortran,objc --with-pic --disable-shared --enable-static --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu --with-libelf=/usr/include --disable-multilib --disable-bootstrap --disable-install-libiberty --with-system-zlib
+    ../gcc-${gcc_ver}/configure --prefix=${install_dir} --build=x86_64-linux-gnu --host=x86_64-linux-gnu --target=x86_64-linux-gnu --enable-languages=c,c++ --with-pic --enable-shared --enable-static --enable-threads=posix --enable-__cxa_atexit --enable-clocale=gnu --with-libelf=/usr/include --disable-multilib --disable-bootstrap --disable-install-libiberty --with-system-zlib --enable-linker-build-id --without-included-gettext --enable-nls --enable-clocale=gnu --enable-libstdcxx-debug --enable-libstdcxx-time=yes --enable-gnu-unique-object --enable-plugin --disable-werror --with-arch-32=i686 --with-tune=generic --enable-checking=release
+
 fi
 
 # build

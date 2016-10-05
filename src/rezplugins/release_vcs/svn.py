@@ -74,7 +74,7 @@ class SvnReleaseVCS(ReleaseVCS):
 
     @classmethod
     def search_parents_for_root(cls):
-        return False
+        return True
 
     def validate_repostate(self):
         status_list = self.svnc.status(self.pkg_root, get_all=False, update=True)
@@ -119,6 +119,32 @@ class SvnReleaseVCS(ReleaseVCS):
         except pysvn.ClientError:
             return False
 
+    def get_current_revision(self):
+        return self.svnc.info(self.pkg_root)['revision'].number
+
+    def create_release_tag(self, tag_name, message=None):
+        # svn requires a message - if not provided, make it the same as the
+        # tag name..
+        if not message:
+            message = tag_name
+        self.svnc.callback_get_log_message = lambda: (True, message)
+        self.svnc.copy(self.pkg_root, self.get_tag_url(tag_name))
 
 def register_plugin():
     return SvnReleaseVCS
+
+
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.

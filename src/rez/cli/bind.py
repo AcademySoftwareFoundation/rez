@@ -5,110 +5,115 @@ from rez.vendor import argparse
 
 
 def setup_parser(parser, completions=False):
-    parser.add_argument("-i", "--install-path", dest="install_path", type=str,
-                        default=None, metavar="PATH",
-                        help="install path, defaults to local package path")
-    parser.add_argument("-s", "--search", action="store_true",
-                        help="search for the binding but do not do the bind")
-    parser.add_argument("PKG", type=str,
-                        help='package to bind')
-    parser.add_argument("BIND_ARG", metavar="ARG", nargs=argparse.REMAINDER,
-                        help="extra arguments to the target bind module. "
-                        "Use '-h' to show help for the module")
+    parser.add_argument(
+        "--quickstart", action="store_true",
+        help="bind a set of standard packages to get started")
+    parser.add_argument(
+        "-r", "--release", action="store_true",
+        help="install to release path; overrides -i")
+    parser.add_argument(
+        "-i", "--install-path", dest="install_path", type=str,
+        default=None, metavar="PATH",
+        help="install path, defaults to local package path")
+    parser.add_argument(
+        "--no-deps", dest="no_deps", action="store_true",
+        help="Do not bind dependencies")
+    parser.add_argument(
+        "-l", "--list", action="store_true",
+        help="list all available bind modules")
+    parser.add_argument(
+        "-s", "--search", action="store_true",
+        help="search for the bind module but do not perform the bind")
+    parser.add_argument(
+        "PKG", type=str, nargs='?',
+        help='package to bind')
+    parser.add_argument(
+        "BIND_ARGS", metavar="ARG", nargs=argparse.REMAINDER,
+        help="extra arguments to the target bind module. Use '-h' to show help "
+        "for the module")
 
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.config import config
-    from rez.exceptions import RezBindError
-    from rez import module_root_path
-    from rez.util import get_close_pkgs
-    from rez.utils.formatting import columnise, PackageRequest
-    from rez.vendor.version.requirement import VersionedObject
-    import os.path
-    import os
-    import sys
+    from rez.package_bind import bind_package, find_bind_module, \
+        get_bind_modules, _print_package_list
+    from rez.utils.formatting import PackageRequest, columnise
 
-    # gather the params
-    install_path = (config.local_packages_path if opts.install_path is None
-                    else opts.install_path)
+    if opts.release:
+        install_path = config.release_packages_path
+    elif opts.install_path:
+        install_path = opts.install_path
+    else:
+        install_path = config.local_packages_path
+
+    if opts.list:
+        d = get_bind_modules()
+        rows = [["PACKAGE", "BIND MODULE"],
+                ["-------", "-----------"]]
+        rows += sorted(d.items())
+        print '\n'.join(columnise(rows))
+        return
+
+    if opts.quickstart:
+        # note: in dependency order, do not change
+        names = ["platform",
+                 "arch",
+                 "os",
+                 "python",
+                 "rez",
+                 "rezgui",
+                 "setuptools",
+                 "pip"]
+
+        variants = []
+
+        for name in names:
+            print "Binding %s into %s..." % (name, install_path)
+            variants_ = bind_package(name,
+                                     path=install_path,
+                                     no_deps=True,
+                                     quiet=True)
+            variants.extend(variants_)
+
+        if variants:
+            print ("\nSuccessfully converted the following software found on "
+                   "the current system into Rez packages:")
+            print
+            _print_package_list(variants)
+
+        print ("\nTo bind other software, see what's available using the "
+               "command 'rez-bind --list', then run 'rez-bind <name>'.\n")
+
+        return
+
+    if not opts.PKG:
+        parser.error("PKG required.")
+
     req = PackageRequest(opts.PKG)
     name = req.name
     version_range = None if req.range.is_any() else req.range
-    if req.conflict:
-        parser.error("PKG cannot be a conflict requirement")
 
-    # find the bind module
-    builtin_path = os.path.join(module_root_path, "bind")
-    searchpaths = config.bind_module_path + [builtin_path]
-    bindfile = None
-    bindnames = {}
+    if opts.search:
+        find_bind_module(name, verbose=True)
+    else:
+        bind_package(name,
+                     path=install_path,
+                     version_range=version_range,
+                     no_deps=opts.no_deps,
+                     bind_args=opts.BIND_ARGS)
 
-    for path in searchpaths:
-        if opts.verbose:
-            print "searching %s..." % path
-        if not os.path.isdir(path):
-            continue
 
-        filename = os.path.join(path, name + ".py")
-        if os.path.isfile(filename):
-            if opts.search:
-                print filename
-                sys.exit(0)
-            else:
-                bindfile = filename
-                break
-        else:
-            for filename in os.listdir(path):
-                fpath = os.path.join(path, filename)
-                fname, ext = os.path.splitext(filename)
-                if os.path.isfile(fpath) and ext == ".py" \
-                        and not fname.startswith('_'):
-                    bindnames[fname] = fpath
-
-    if not bindfile:
-        fuzzy_matches = get_close_pkgs(name, bindnames.keys())
-
-        if opts.search:
-            if fuzzy_matches:
-                rows = [(x[0], bindnames[x[0]]) for x in fuzzy_matches]
-                print "'%s' not found. Close matches:" % name
-                print '\n'.join(columnise(rows))
-            else:
-                print "No matches."
-            sys.exit(0)
-        else:
-            msg = "bind module not found for '%s'" % name
-            if fuzzy_matches:
-                matches_s = ', '.join(x[0] for x in fuzzy_matches)
-                msg += "\ndid you mean one of: %s" % matches_s
-
-            raise RezBindError(msg)
-
-    # load the bind module
-    stream = open(bindfile)
-    namespace = {}
-    exec stream in namespace
-
-    # parse bind module params
-    bind_parser = argparse.ArgumentParser(prog = "rez bind %s" % name,
-                                          description="%s bind module" % name)
-    parserfunc = namespace.get("setup_parser")
-    if parserfunc:
-        parserfunc(bind_parser)
-    bind_opts = bind_parser.parse_args(opts.BIND_ARG)
-
-    # make the package
-    if opts.verbose:
-        print "creating package '%s' in %s..." % (name, install_path)
-
-    bindfunc = namespace.get("bind")
-    if not bindfunc:
-        raise RezBindError("'bind' function missing in %s" % bindfile)
-
-    name, version = bindfunc(path=install_path,
-                             version_range=version_range,
-                             opts=bind_opts,
-                             parser=bind_parser)
-
-    o = VersionedObject.construct(name, version)
-    print "created package '%s' in %s" % (str(o), install_path)
+# Copyright 2013-2016 Allan Johns.
+#
+# This library is free software: you can redistribute it and/or
+# modify it under the terms of the GNU Lesser General Public
+# License as published by the Free Software Foundation, either
+# version 3 of the License, or (at your option) any later version.
+#
+# This library is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# Lesser General Public License for more details.
+#
+# You should have received a copy of the GNU Lesser General Public
+# License along with this library.  If not, see <http://www.gnu.org/licenses/>.
