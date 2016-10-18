@@ -58,8 +58,7 @@ def command(opts, parser, extra_arg_groups=None):
                 installed_variants.update(installed)
             if skipped is not None:
                 skipped_variants.update(skipped)
-        except Exception exc:
-            print exc, exc.__name__, type(exc).__name__
+        except:
             failed_variants.add(package)
     # print summary
     #
