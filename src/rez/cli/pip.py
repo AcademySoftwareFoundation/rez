@@ -27,7 +27,7 @@ def setup_parser(parser, completions=False):
         help="Specify the variant requirements for package "
         " default=platform,arch,os")
     parser.add_argument(
-        "PACKAGE",
+        "PACKAGES", nargs='+',
         help="package to install or archive/url to install from")
 
 
@@ -43,13 +43,24 @@ def command(opts, parser, extra_arg_groups=None):
         p.wait()
         return
 
-    installed_variants, skipped_variants = pip_install_package(
-        opts.PACKAGE,
-        pip_version=opts.pip_ver,
-        python_version=opts.py_ver,
-        release=opts.release,
-        default_variant=opts.variant)
-
+    installed_variants = set()
+    skipped_variants = set()
+    failed_variants = set()
+    for package in opts.PACKAGES:
+        try:
+            installed, skipped = pip_install_package(
+                package,
+                pip_version=opts.pip_ver,
+                python_version=opts.py_ver,
+                release=opts.release,
+                default_variant=opts.variant)
+            if installed is not None:
+                installed_variants.update(installed)
+            if skipped is not None:
+                skipped_variants.update(skipped)
+        except Exception exc:
+            print exc, exc.__name__, type(exc).__name__
+            failed_variants.add(package)
     # print summary
     #
 
@@ -73,6 +84,12 @@ def command(opts, parser, extra_arg_groups=None):
         print "%d packages were already installed:" % len(skipped_variants)
         for variant in skipped_variants:
             print_variant(variant)
+
+    if skipped_variants:
+        print
+        print "%d packages failed to install:" % len(failed_variants)
+        for variant in failed_variants:
+            print "  " + variant
 
     print
 
