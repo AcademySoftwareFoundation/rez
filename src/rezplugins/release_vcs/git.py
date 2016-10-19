@@ -134,7 +134,7 @@ class GitReleaseVCS(ReleaseVCS):
                     "Could not release: %d commits %s %s."
                     % (abs(n), s, remote_uri))
 
-    def get_changelog(self, previous_revision=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None):
         prev_commit = None
         if previous_revision is not None:
             try:
@@ -144,13 +144,15 @@ class GitReleaseVCS(ReleaseVCS):
                     print_debug("couldn't determine previous commit from: %r"
                                 % previous_revision)
 
+        args = ["log"]
+        if max_revisions:
+            args.extend(["-n", str(max_revisions)])
         if prev_commit:
             # git returns logs to last common ancestor, so even if previous
             # release was from a different branch, this is ok
             commit_range = "%s..HEAD" % prev_commit
-            stdout = self.git("log", commit_range)
-        else:
-            stdout = self.git("log")
+            args.append(commit_range)
+        stdout = self.git(*args)
 
         return '\n'.join(stdout)
 

@@ -476,6 +476,8 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 65536
 
+# If not zero, truncates all package changelogs to only show the last N commits
+max_package_changelog_revisions = 0
 
 ###############################################################################
 # Rez-1 Compatibility

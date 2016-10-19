@@ -266,6 +266,7 @@ config_schema = Schema({
     "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
+    "max_package_changelog_revisions":              Int,
     "memcached_package_file_min_compress_len":      Int,
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,

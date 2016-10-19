@@ -328,7 +328,9 @@ class BuildProcessHelper(BuildProcess):
         with self.repo_operation():
             revision = self.vcs.get_current_revision()
         with self.repo_operation():
-            changelog = self.vcs.get_changelog(previous_revision)
+            changelog = self.vcs.get_changelog(
+                previous_revision,
+                max_revisions=config.max_package_changelog_revisions)
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that
