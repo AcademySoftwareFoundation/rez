@@ -231,7 +231,7 @@ config_schema = Schema({
     "memcached_uri":                                OptionalStrList,
     "local_packages_path":                          Str,
     "release_packages_path":                        Str,
-    "release_python_packages_path":                 OptionalStr,
+    "release_pip_packages_path":                    OptionalStr,
     "pip_default_variant":                          StrList,
     "dot_image_format":                             Str,
     "build_directory":                              Str,

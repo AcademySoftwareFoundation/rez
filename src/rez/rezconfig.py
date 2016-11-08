@@ -56,7 +56,7 @@ release_packages_path = "~/.rez/packages/int"
 
 # The path that Rez will deploy python packages to when rez-pip --release is used.
 # If this is not set release_packages_path will be used.
-release_python_packages_path = "~/.rez/packages/python"
+release_pip_packages_path = "~/.rez/packages/python"
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It

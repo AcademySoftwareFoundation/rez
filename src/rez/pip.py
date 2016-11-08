@@ -216,7 +216,7 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
     #
     packages_path = config.local_packages_path
     if release:
-        packages_path = config.get("release_python_packages_path", config.release_packages_path)
+        packages_path = config.get("release_pip_packages_path", config.release_packages_path)
 
     if not os.path.exists(packages_path):
         print_warning("Package path does not exist: %s" % packages_path)
