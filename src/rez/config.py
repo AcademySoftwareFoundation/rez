@@ -297,6 +297,7 @@ config_schema = Schema({
     "quiet":                                        Bool,
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
+    "shell_error_truncate_cap":                     Int,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
     "warn_old_commands":                            Bool,
