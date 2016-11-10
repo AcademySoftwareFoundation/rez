@@ -155,6 +155,9 @@ class ReleaseVCS(object):
         files, such as the package file. Intended to be called from within
         validate_repostate
         """
+        if not self.type_settings.assert_required_files:
+            return
+
         required_files = self.required_files(build_process)
         if not self.contains_files(required_files):
             # do the "fast" check of all files first - if this files, do
