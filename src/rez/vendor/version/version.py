@@ -179,7 +179,7 @@ class AlphanumericVersionToken(VersionToken):
         return (self.subtokens < other.subtokens)
 
     def next(self):
-        other = AlphanumericVersionToken(None)
+        other = type(self)(None)
         other.subtokens = self.subtokens[:]
         subtok = other.subtokens[-1]
         if subtok.n is None:
@@ -209,6 +209,7 @@ class AlphanumericVersionToken(VersionToken):
 
         return subtokens
 
+default_make_token = AlphanumericVersionToken
 
 class Version(_Comparable):
     """Version object.
@@ -223,7 +224,7 @@ class Version(_Comparable):
     """
     inf = None
 
-    def __init__(self, ver_str='', make_token=AlphanumericVersionToken):
+    def __init__(self, ver_str='', make_token=None):
         """Create a Version object.
 
         Args:
@@ -231,6 +232,8 @@ class Version(_Comparable):
             make_token: Callable that creates a VersionToken subclass from a
                 string.
         """
+        if make_token is None:
+            make_token = default_make_token
         self.tokens = []
         self.seps = []
         self._str = None
@@ -698,7 +701,7 @@ class VersionRange(_Comparable):
     with a comma, eg ">=2,<=6". The comma is purely cosmetic and is dropped in
     the string representation.
     """
-    def __init__(self, range_str='', make_token=AlphanumericVersionToken):
+    def __init__(self, range_str='', make_token=None):
         """Create a VersionRange object.
 
         Args:
@@ -707,6 +710,8 @@ class VersionRange(_Comparable):
                 may not match range_str. For example, "3+<6|4+<8" == "3+<8".
             make_token: Version token class to use.
         """
+        if make_token is None:
+            make_token = default_make_token
         self._str = None
         self.bounds = []
         if range_str is None:
