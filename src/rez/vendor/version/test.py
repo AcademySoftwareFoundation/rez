@@ -1,5 +1,5 @@
 from rez.vendor.version.version import Version, AlphanumericVersionToken, \
-    VersionRange
+    TaggableAlphanumericVersionToken, VersionRange
 from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.vendor.version.util import VersionError
 import random
@@ -19,6 +19,17 @@ class TestVersionSchema(unittest.TestCase):
 
     def __init__(self, fn):
         unittest.TestCase.__init__(self, fn)
+
+    @classmethod
+    def setUpClass(cls):
+        import rez.vendor.version.version
+        cls._old_default_make_token = rez.vendor.version.version.default_make_token
+        rez.vendor.version.version.default_make_token = cls.make_token
+
+    @classmethod
+    def tearDownClass(cls):
+        import rez.vendor.version.version
+        rez.vendor.version.version.default_make_token = cls._old_default_make_token
 
     def _test_strict_weak_ordering(self, a, b):
         self.assertTrue(a == a)
@@ -473,6 +484,88 @@ class TestVersionSchema(unittest.TestCase):
                "~bah-5+", "bah-2")
         _confl(["foo", "~bah-5+", "bah-7..12", "bah-2"],
                "bah-7..12", "bah-2")
+
+
+class TestTaggedVersionSchema(TestVersionSchema):
+    make_token = TaggableAlphanumericVersionToken
+
+    def test_token_comparisons_tagged(self):
+        def _lt(a, b):
+            _print("'%s' < '%s'" % (a, b))
+            self.assertTrue(self.make_token(a) < self.make_token(b))
+            self.assertTrue(Version(a) < Version(b))
+
+        _print()
+        _lt("3__foo", "3")
+        _lt("3__foo__bar", "3__foo")
+        _lt("3__foo__bar", "3")
+        _lt("3__baz", "3__foo__bar")
+        _lt("3__baz__bar", "3__foo__bar")
+        _lt("3__baz__bar", "3__3__bar")
+        _lt("3__baz3__bar", "3__baz4__bar")
+        _lt("3__baz__bar", "3__baz3__bar")
+        _lt("3__baz33__bar", "3__33baz__bar")
+        _lt("3__baz33__bar", "3__33baz__bar")
+
+        # check that we get "tags" IFF there are exactly two underscores
+        # followed by number or letter...
+        _lt("3", "3____foo")
+        _lt("3", "3___foo")
+        _lt("3", "3__")
+        _lt("3__foo", "3__foo____bar")
+        _lt("3__foo", "3__foo___bar")
+        _lt("3__foo", "3__foo___")
+
+    def test_version_comparisons_tagged(self):
+        def _eq(a, b):
+            _print("'%s' == '%s'" % (a, b))
+            self.assertTrue(Version(a) == Version(b))
+
+        _print()
+        _eq("1__", "1__")
+        _eq("1__foo", "1__foo")
+        _eq("1.2__bah", "1-2__bah")
+        _eq("1.2__0-3", "1-2__0.3")
+
+        ascending = ["",
+                     "0.0__bar__more.0",
+                     "0.0__bar.0",
+                     "0.0__stuff__more.0",
+                     "0.0__stuff.0",
+                     "0.0.0__stuff__more",
+                     "0.0.0__stuff",
+                     "0.0.0",
+                     "1__0",
+                     "1",
+                     "1.0",
+                     "2__alpha1__tag",
+                     "2__alpha1",
+                     "2",
+                     "2.alpha1__tag",
+                     "2.alpha1",
+                     "2.alpha2",
+                     "2.beta",
+                     "2.0",
+                     "2.0.8.8",
+                     "2.1",
+                     "2.1.0"]
+        self._test_ordered([Version(x) for x in ascending])
+
+        ascending = [
+            '1__a.2__a',
+            '1__a.3__a',
+            '1__a.3',
+            '1.3__a',
+            '1.3__b__x',
+            '1.3__b',
+            '1.3__c',
+            '1.3',
+            '1.3a',
+            '1.4__a',
+            '1.4',
+            '1.4a',
+        ]
+        self._test_ordered([Version(x) for x in ascending])
 
 
 if __name__ == '__main__':

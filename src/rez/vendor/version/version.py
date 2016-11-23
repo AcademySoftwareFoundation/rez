@@ -209,6 +209,98 @@ class AlphanumericVersionToken(VersionToken):
 
         return subtokens
 
+class TaggableAlphanumericVersionToken(AlphanumericVersionToken):
+    """Like an AlphanumericVersionToken, except allows adding 'tags' that will
+    sort BEFORE an 'untagged' version
+
+    Tags are separated by "double underscores", ie, version__tag__tag2.  This
+    would sort BEFORE version__tag, which would sort BEFORE version, so:
+            version__tag__tag2 < version__tag < version
+    This provides a mean to easily tag "special versions" of something that will
+    not override the "normal" version, by default. For instance, if you
+    already have a version "3.5", you can add a version "3.5__debug", and it
+    will come before 3.5 in priority. To do this with the standard
+    AlphanumericVersionToken, you would have to either change 3.5 to 3.5.0, and
+    make 3.5.debug, or else do something like 3.debug.5 or 3.debug5... but both
+    of these will "mess up" prior versioning checks - ie, they are both less
+    than 3.4.
+
+    In practice, you will likley only add tags onto the very end of your
+    versions (ie, to the last token), but it is theoretically possible to have
+    tags on any version token. Here are some examples of how ordering works in
+    these situations - these would sort into the following order, from lowest
+    version to highest:
+
+    LOWEST
+        1__a.2__a
+        1__a.3__a
+        1__a.3
+        1.3__a
+        1.3__b__x
+        1.3__b
+        1.3__c
+        1.3
+        1.3a
+        1.4__a
+        1.4
+        1.4a
+    HIGHEST
+    """
+    RE_TAG_SPLITTER = re.compile(r'(?<!_)__(?=[a-zA-Z0-9])')
+
+    def __init__(self, token):
+        if token is None:
+            main_token = None
+            self.tags = []
+        else:
+            tag_split = self.RE_TAG_SPLITTER.split(token)
+            main_token = tag_split[0]
+            self.tags = [AlphanumericVersionToken(x) for x in tag_split[1:]]
+        super(TaggableAlphanumericVersionToken, self).__init__(main_token)
+
+    @classmethod
+    def create_random_token_string(cls):
+        import random
+        # have main part, and between 0 and 3 tags, inclusive
+        num_parts = random.randint(1, 5)
+        return '__'.join(super(TaggableAlphanumericVersionToken, cls).create_random_token_string()
+                         for _ in xrange(num_parts))
+
+    def __str__(self):
+        without_tags = super(TaggableAlphanumericVersionToken, self).__str__()
+        tags = [str(x) for x in self.tags]
+        return '__'.join([without_tags] + tags)
+
+    def less_than(self, other):
+        if self.subtokens == other.subtokens:
+            # reverse so we can pop from end faster
+            self_tags = list(reversed(self.tags))
+            other_tags = list(reversed(other.tags))
+            while True:
+                if not self_tags:
+                    # if we don't have tags, then either:
+                    #   other DOES have tags, so we're greater, so we're not
+                    #       less than
+                    #   other also DOESN'T have tags, in which case, we're
+                    #       equal,so we're still not less than
+                    return False
+                if not other_tags:
+                    return True
+                self_tag = self_tags.pop()
+                other_tag = other_tags.pop()
+                if self_tag == other_tag:
+                    continue
+                else:
+                    return self_tag < other_tag
+        else:
+            return super(TaggableAlphanumericVersionToken, self).less_than(other)
+
+    def next(self):
+        result = super(TaggableAlphanumericVersionToken, self).next()
+        result.tags = self.tags
+        return result
+
+
 default_make_token = AlphanumericVersionToken
 
 class Version(_Comparable):
