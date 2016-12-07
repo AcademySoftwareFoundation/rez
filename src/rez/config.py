@@ -290,6 +290,8 @@ config_schema = Schema({
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
     "new_session_popen_args":                       OptionalDict,
+    "pre_callbacks":                                Or({}, {str: basestring}),
+    "post_callbacks":                               Or({}, {str: basestring}),
 
     # GUI settings
     "use_pyside":                                   Bool,

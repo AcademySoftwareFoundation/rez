@@ -402,6 +402,40 @@ max_package_changelog_chars = 1024
 
 
 ###############################################################################
+# Callbacks
+###############################################################################
+
+# Callbacks to execute before a command is executed - stored as a dict,
+# indexed by rez-command, with values that should be python code strings to
+# exec. You may raise a CallbackAbort to signal that the command should not
+# be run (other exceptions will also cancel the command, but will also print
+# a traceback). The callback is executed in a context where the following
+# names are available:
+#   opts - the parsed command-line options
+#   arg_groups - the args, separated into different groups by '--'
+#       characters
+#   CallbackAbort - the error to raise to signal early termination, provided
+#       in the namespace for convenience
+
+pre_callbacks = {}
+
+# Callbacks to execute after a command is executed - stored as a dict,
+# indexed by rez-command, with values that should be python code strings to
+# exec. the command obviously can't be cancelled, but you may still raise a
+# CallbackAbort to cause the command to return a non-zero exitcode if desired.
+# The callback is executed in a context with all the names available in the
+# pre-callback, in addition to the following:
+#   returncode - the returncode of the command, if it completed successfully,
+#       and None if it did not
+#   error - None if the command completed succesfully, and the exception
+#       instance if it did not
+# Note that for commands which can start interactive shells, such as rez-env,
+# this command will not be run until after the shell exits
+
+post_callbacks = {}
+
+
+###############################################################################
 # Colorization
 ###############################################################################
 
