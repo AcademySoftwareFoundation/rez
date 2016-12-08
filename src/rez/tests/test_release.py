@@ -170,8 +170,14 @@ class TestRelease(TestBase, TempdirMixin):
     def test_2_variant_add(self):
         """Test variant installation on release
         """
+        orig_src_path = self.src_path
         self.src_path = os.path.join(self.src_path, "variants")
-        self._setup_release()
+        try:
+            self._setup_release()
+        finally:
+            # due to shell_dependent, this will run multiple times, don't
+            # want to add src_path/variants/variants
+            self.src_path = orig_src_path
 
         # copy the spangle package onto the packages path
         os.mkdir(self.install_root)
