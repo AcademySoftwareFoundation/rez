@@ -254,6 +254,8 @@ class TestRelease(TestBase, TempdirMixin):
             # the build dir, the relative path "package.yaml" is the "real"
             # package.yaml - but relative to the repo root, it is the "fake"
             # one. This shouldn't trip up rez...
+            if args and args[0] == 'commit' and repo_type == 'hg':
+                args = args + ('--user', 'dummyuser')
             subprocess.check_call([repo_type] + list(args), env=env,
                                   cwd=self.src_root)
 
