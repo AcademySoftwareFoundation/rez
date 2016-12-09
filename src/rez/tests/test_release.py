@@ -180,6 +180,11 @@ class TestRelease(TestBase, TempdirMixin):
         """Test variant installation on release
         """
         self._setup_release("variants")
+
+        # make the stub file, set up the vcs
+        stubfile = os.path.join(self.build_dir, ".stub")
+        with open(stubfile, 'w'):
+            pass
         self.vcs = create_release_vcs(self.build_dir)
 
         # copy the spangle package onto the packages path
