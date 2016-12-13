@@ -336,6 +336,50 @@ _plugin_config_dict = {
 
 
 # -----------------------------------------------------------------------------
+# ListModify Prepend / Append
+# -----------------------------------------------------------------------------
+
+class ListModify(object):
+    '''Allows modification of an existing list setting.
+
+    By default, dictionaries are updated - so a setting for a top-level
+    dictionary in your ~/.rezconfig won't wipe out the dictionary, but only add
+    an additional key
+
+    However, lists, by default, are OVERWRITTEN - so if you have a list setting,
+    that you don't want to insert additional items into, you have two options,
+    depending on whether you're using a yaml config file or python. If you're
+    using yaml, add entries like this:
+
+        mysetting.before = ["new first entry", "new second entry"]
+        othersetting.after = ["new last entry"]
+
+    If you're using a python config file, you need to use this object, like so:
+
+        ListModify("mysetting").before = ["new first entry", "new second entry"]
+        ListModify("othersetting").after = ["new first entry", "new second entry"]
+    '''
+
+    def __init__(self, key):
+        import inspect
+        self._key = key
+        self._parent_globals = inspect.currentframe().f_back.f_globals
+
+    def __setattr__(self, key, value):
+        if key in ('before', 'after'):
+            self._parent_globals['%s.%s' % (self._key, key)] = value
+        elif key in ('_key', "_parent_globals"):
+            super(ListModify, self).__setattr__(key, value)
+        else:
+            # To make it error if they accidentally try to do, ie
+            #     ListModify('foo').beffore = ['new item']
+            raise AttributeError("Cannot assign to %r on a %s object - did you"
+                                 " mean to assign to 'before' or 'after'?"
+                                 % (key, type(self).__name__))
+
+
+
+# -----------------------------------------------------------------------------
 # Config
 # -----------------------------------------------------------------------------
 
@@ -693,7 +737,7 @@ def _create_locked_config(overrides=None):
 def _load_config_py(filepath):
     from rez.vendor.six.six import exec_
 
-    globs = dict(rez_version=__version__)
+    globs = dict(rez_version=__version__, ListModify=ListModify)
     result = {}
 
     with open(filepath) as f:

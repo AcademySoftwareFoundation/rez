@@ -178,7 +178,16 @@ def deep_update(dict1, dict2):
     Note that `dict2` and any nested dicts are unchanged.
     """
     for k, v in dict2.iteritems():
-        if k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
+        if k.endswith(('.before', '.after')):
+            k, suffix = k.rsplit('.', 1)
+            if k not in dict1 or dict1[k] is None:
+                dict1[k] = copy.deepcopy(v)
+            else:
+                if suffix == 'before':
+                    dict1[k] = copy.deepcopy(v) + dict1[k]
+                else:
+                    dict1[k] = dict1[k] + copy.deepcopy(v)
+        elif k in dict1 and isinstance(v, dict) and isinstance(dict1[k], dict):
             deep_update(dict1[k], v)
         else:
             dict1[k] = copy.deepcopy(v)
