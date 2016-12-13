@@ -1468,6 +1468,12 @@ class ResolvedContext(object):
             _minor_heading("variables for package %s" % pkg.qualified_name)
             prefix = "REZ_" + pkg.name.upper().replace('.', '_')
             executor.setenv(prefix + "_VERSION", str(pkg.version))
+            major_version = pkg.version[0] if len(pkg.version) >= 1 else ''
+            minor_version = pkg.version[1] if len(pkg.version) >= 2 else ''
+            patch_version = pkg.version[2] if len(pkg.version) >= 3 else ''
+            executor.setenv(prefix + "_MAJOR_VERSION", str(major_version))
+            executor.setenv(prefix + "_MINOR_VERSION", str(minor_version))
+            executor.setenv(prefix + "_PATCH_VERSION", str(patch_version))
             executor.setenv(prefix + "_BASE", pkg.base)
             executor.setenv(prefix + "_ROOT", pkg.root)
             bindings[pkg.name] = dict(version=VersionBinding(pkg.version),
