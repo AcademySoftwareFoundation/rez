@@ -296,9 +296,14 @@ class TaggableAlphanumericVersionToken(AlphanumericVersionToken):
             return super(TaggableAlphanumericVersionToken, self).less_than(other)
 
     def next(self):
-        result = super(TaggableAlphanumericVersionToken, self).next()
-        result.tags = self.tags
-        return result
+        if not self.tags:
+            return super(TaggableAlphanumericVersionToken, self).next()
+
+        other = type(self)(None)
+        other.subtokens = self.subtokens[:]
+        other.tags = self.tags[:]
+        other.tags[-1] = other.tags[-1].next()
+        return other
 
 
 default_make_token = AlphanumericVersionToken
