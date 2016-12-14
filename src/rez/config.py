@@ -749,7 +749,7 @@ def _load_config_py(filepath):
                                      % (filepath, str(e)))
 
     for k, v in globs.iteritems():
-        if k != '__builtins__' and not ismodule(v):
+        if k != '__builtins__' and not ismodule(v) and v is not ListModify:
             result[k] = v
     return result
 
