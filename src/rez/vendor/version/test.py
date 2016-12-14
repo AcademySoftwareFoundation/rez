@@ -567,6 +567,24 @@ class TestTaggedVersionSchema(TestVersionSchema):
         ]
         self._test_ordered([Version(x) for x in ascending])
 
+    def test_version_range_tagged(self):
+        vr = VersionRange('1.0')
+        self.assertTrue(vr.contains_version(Version('1.0')))
+        self.assertFalse(vr.contains_version(Version('1.0_')))
+        self.assertFalse(vr.contains_version(Version('1.0__tag')))
+        self.assertFalse(vr.contains_version(Version('1.0__tag_')))
+        self.assertFalse(vr.contains_version(Version('1.0__tag__more')))
+        self.assertTrue(vr.contains_version(Version('1.0.blah')))
+        self.assertTrue(vr.contains_version(Version('1.0.blah__tag')))
+
+        vr = VersionRange('1.0__tag')
+        self.assertFalse(vr.contains_version(Version('1.0')))
+        self.assertFalse(vr.contains_version(Version('1.0_')))
+        self.assertTrue(vr.contains_version(Version('1.0__tag')))
+        self.assertFalse(vr.contains_version(Version('1.0__tag_')))
+        self.assertFalse(vr.contains_version(Version('1.0__tag__more')))
+        self.assertTrue(vr.contains_version(Version('1.0__tag.blah')))
+        self.assertTrue(vr.contains_version(Version('1.0__tag.blah__tag')))
 
 if __name__ == '__main__':
     unittest.main()
