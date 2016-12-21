@@ -357,7 +357,7 @@ class ListModify(object):
     If you're using a python config file, you need to use this object, like so:
 
         ListModify("mysetting").before = ["new first entry", "new second entry"]
-        ListModify("othersetting").after = ["new first entry", "new second entry"]
+        ListModify("othersetting").after = ["new second-to-last entry", "new last entry"]
     '''
 
     def __init__(self, key):
