@@ -189,13 +189,23 @@ class BuildProcessHelper(BuildProcess):
 
         requests_str = ' '.join(map(str, request))
         self._print("Resolving build environment: %s", requests_str)
+
         if build_type == BuildType.local:
             packages_path = self.package.config.packages_path
         else:
             packages_path = self.package.config.nonlocal_packages_path
 
+        if self.package.config.is_overridden("package_filter"):
+            from rez.package_filter import PackageFilterList
+
+            data = self.package.config.package_filter
+            package_filter = PackageFilterList.from_pod(data)
+        else:
+            package_filter = None
+
         context = ResolvedContext(request,
                                   package_paths=packages_path,
+                                  package_filter=package_filter,
                                   building=True)
         if self.verbose:
             context.print_info()
