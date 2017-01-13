@@ -2,7 +2,7 @@
 Windows Command Prompt (DOS) shell.
 """
 from rez.config import config
-from rez.rex import RexExecutor, literal
+from rez.rex import RexExecutor, literal, OutputStyle
 from rez.shells import Shell
 from rez.system import system
 from rez.utils.platform_ import platform_
@@ -117,9 +117,6 @@ class CMD(Shell):
             if bind_rez:
                 ex.interpreter._bind_interactive_rez()
             if print_msg and not quiet:
-#                ex.info('')
-#                ex.info('You are now in a rez-configured environment.')
-#                ex.info('')
                 if system.is_production_rez_install:
                     # previously this was called with the /K flag, however
                     # that would leave spawn_shell hung on a blocked call
@@ -147,7 +144,7 @@ class CMD(Shell):
 
         if shell_command:
             executor.command(shell_command)
-        executor.command('exit %errorlevel%')
+            executor.command('exit %errorlevel%')
 
         code = executor.get_output()
         target_file = os.path.join(tmpdir, "rez-shell.%s"
@@ -165,9 +162,22 @@ class CMD(Shell):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command
-        cmd = cmd + [self.executable, "/Q", "/K", target_file]
-        p = subprocess.Popen(cmd, env=env, **Popen_args)
+        cmd = cmd + [self.executable, "/Q", "/K", 'call {}'.format(target_file)]
+        is_detached = cmd[0] == 'START'
+        p = subprocess.Popen(cmd, env=env, shell=is_detached, **Popen_args)
         return p
+
+    def get_output(self, style=OutputStyle.file):
+        if style == OutputStyle.file:
+            script = '\n'.join(self._lines) + '\n'
+        else:  # eval style
+            lines = []
+            for line in self._lines:
+                if not line.startswith('REM'):  # strip comments
+                    line = line.rstrip()
+                    lines.append(line)
+            script = '&& '.join(lines)
+        return script
 
     def escape_string(self, value):
         return value
@@ -193,7 +203,7 @@ class CMD(Shell):
 
     def comment(self, value):
         for line in value.split('\n'):
-            self._addline(': %s' % line)
+            self._addline('REM %s' % line)
 
     def info(self, value):
         for line in value.split('\n'):

@@ -482,7 +482,7 @@ class WindowsPlatform(Platform):
                 raise ctypes.WinError()
 
     def _terminal_emulator_command(self):
-        return "CMD.exe /Q /K"
+        return "START"
 
     def _physical_cores_from_wmic(self):
         # windows
