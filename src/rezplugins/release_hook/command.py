@@ -9,7 +9,12 @@ from rez.utils.logging_ import print_debug
 from rez.utils.scope import scoped_formatter
 from rez.utils.formatting import expandvars
 from rez.vendor.schema.schema import Schema, Or, Optional, Use, And
-from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
+import platform
+if "windows" in platform.system().lower():
+    from rez.vendor.pbs import Command, ErrorReturnCode, which
+    sudo = None
+else:
+    from rez.vendor.sh.sh import Command, ErrorReturnCode, sudo, which
 import getpass
 import sys
 import os
@@ -75,7 +80,7 @@ class CommandReleaseHook(ReleaseHook):
             return False
 
         run_cmd = Command(cmd_full_path)
-        if user == 'root':
+        if user == 'root' and sudo is not None:
             with sudo:
                 return _execute(run_cmd, cmd_arguments)
         elif user and user != getpass.getuser():
