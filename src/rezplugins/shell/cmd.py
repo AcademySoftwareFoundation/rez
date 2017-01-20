@@ -107,13 +107,8 @@ class CMD(Shell):
                     stdin=False, command=None, env=None, quiet=False,
                     pre_command=None, **Popen_args):
 
-        print 'COMMAND', command
-        print 'pre_command', pre_command
-
         startup_sequence = self.get_startup_sequence(rcfile, norc, bool(stdin), command)
         shell_command = None
-
-        print 'SSEQ', startup_sequence
 
         def _record_shell(ex, files, bind_rez=True, print_msg=False):
             ex.source(context_file)
