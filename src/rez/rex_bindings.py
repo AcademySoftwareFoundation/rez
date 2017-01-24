@@ -49,6 +49,16 @@ class VersionBinding(Binding):
         self.__version = version
 
     @property
+    def raw(self):
+        """Raw string version."""
+        return str(self.__version)
+
+    @property
+    def full(self):
+        """Full version as a tuple (major, minor, patch)."""
+        return (self.major, self.minor, self.patch)
+
+    @property
     def major(self):
         return self[0]
 
