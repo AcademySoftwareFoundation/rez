@@ -102,18 +102,19 @@ class LocalBuildProcess(BuildProcessHelper):
             variant_build_path = os.path.join(variant_build_path, variant.subpath)
             variant_install_path = os.path.join(variant_install_path, variant.subpath)
 
-        # inform package repo that a variant is about to be built/installed
-        pkg_repo = package_repository_manager.get_repository(install_path)
-        pkg_repo.pre_variant_install(variant.resource)
-
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
             shutil.rmtree(variant_build_path)
         if not os.path.exists(variant_build_path):
             os.makedirs(variant_build_path)
 
-        if install and not os.path.exists(variant_install_path):
-            os.makedirs(variant_install_path)
+        if install:
+            # inform package repo that a variant is about to be built/installed
+            pkg_repo = package_repository_manager.get_repository(install_path)
+            pkg_repo.pre_variant_install(variant.resource)
+
+            if os.path.exists(variant_install_path):
+                os.makedirs(variant_install_path)
 
         # create build environment
         context, rxt_filepath = self.create_build_context(
