@@ -79,14 +79,44 @@ def command(opts, parser, extra_arg_groups=None):
         filename = "rez-release-message-%s.txt" % h
         filepath = os.path.join(config.tmpdir, filename)
 
+        header = "<Enter your release notes here>"
+        changelog_token = "###<CHANGELOG>"
+
         if not os.path.exists(filepath):
+            txt = header
+
+            # get changelog and add to release notes file, for reference. They
+            # get stripped out again before being added as package release notes.
+            try:
+                changelog = builder.get_changelog()
+            except:
+                pass
+
+            if changelog:
+                txt += ("\n\n%s This is for reference only - this line and all "
+                        "following lines will be stripped from the release "
+                        "notes.\n\n" % changelog_token)
+                txt += changelog
+
             with open(filepath, 'w') as f:
-                print >> f, "Enter your release notes here."
+                print >> f, txt
 
         call([config.editor, filepath])
 
         with open(filepath) as f:
-            release_msg = f.read().strip()
+            release_msg = f.read()
+
+        # strip changelog out
+        try:
+            i = release_msg.index(changelog_token)
+            release_msg = release_msg[:i]
+        except ValueError:
+            pass
+
+        # strip header out
+        release_msg = release_msg.replace(header, "")
+
+        release_msg = release_msg.strip()
 
         if not release_msg:
             ch = None

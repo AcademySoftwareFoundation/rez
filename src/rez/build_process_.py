@@ -137,6 +137,14 @@ class BuildProcess(object):
         """
         raise NotImplementedError
 
+    def get_changelog(self):
+        """Get the changelog since last package release.
+
+        Returns:
+            str: Changelog.
+        """
+        raise NotImplementedError
+
 
 class BuildProcessHelper(BuildProcess):
     """A BuildProcess base class with some useful functionality.
@@ -314,6 +322,19 @@ class BuildProcessHelper(BuildProcess):
                 return package
         return None
 
+    def get_changelog(self):
+        previous_package = self.get_previous_release()
+        if previous_package:
+            previous_revision = previous_package.revision
+        else:
+            previous_revision = None
+
+        changelog = None
+        with self.repo_operation():
+            changelog = self.vcs.get_changelog(previous_revision)
+
+        return changelog
+
     def get_release_data(self):
         """Get release data for this release.
 
@@ -333,12 +354,10 @@ class BuildProcessHelper(BuildProcess):
                         previous_version=previous_version)
 
         revision = None
-        changelog = None
-
         with self.repo_operation():
             revision = self.vcs.get_current_revision()
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(previous_revision)
+
+        changelog=self.get_changelog()
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that
