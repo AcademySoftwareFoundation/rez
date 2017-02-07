@@ -82,16 +82,21 @@ def get_build_args(opts, parser, extra_arg_groups):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
+    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     import sys
 
+    # load package
     working_dir = os.getcwd()
+    package = get_developer_package(working_dir)
 
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
+
     buildsys = create_build_system(working_dir,
+                                   package=package,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    write_build_scripts=opts.scripts,
@@ -102,6 +107,7 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute build process
     builder = create_build_process(opts.process,
                                    working_dir,
+                                   package=package,
                                    build_system=buildsys,
                                    verbose=True)
 

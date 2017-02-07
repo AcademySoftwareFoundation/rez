@@ -76,11 +76,12 @@ class CMakeBuildSystem(BuildSystem):
                             default=settings.build_system,
                             help="set the cmake build system (default: %(default)s).")
 
-    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
         super(CMakeBuildSystem, self).__init__(
             working_dir,
             opts=opts,
+            package=package,
             write_build_scripts=write_build_scripts,
             verbose=verbose,
             build_args=build_args,
@@ -120,7 +121,7 @@ class CMakeBuildSystem(BuildSystem):
         cmd += (self.build_args or [])
 
         cmd.append("-DCMAKE_INSTALL_PREFIX=%s" % install_path)
-        cmd.append("-DCMAKE_MODULE_PATH=%s" % 
+        cmd.append("-DCMAKE_MODULE_PATH=%s" %
                    sh.get_key_token("CMAKE_MODULE_PATH").replace('\\', '/'))
         cmd.append("-DCMAKE_BUILD_TYPE=%s" % self.build_target)
         cmd.append("-DREZ_BUILD_TYPE=%s" % build_type.name)

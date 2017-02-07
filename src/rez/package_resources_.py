@@ -23,6 +23,11 @@ package_release_keys = (
     'previous_revision',
     'vcs')
 
+# package attributes that we don't install
+package_build_only_keys = (
+    "postprocess",
+)
+
 
 #------------------------------------------------------------------------------
 # utility schemas
@@ -92,7 +97,8 @@ package_base_schema_dict.update({
 # package
 package_schema_dict = package_base_schema_dict.copy()
 package_schema_dict.update({
-    Optional("variants"):               [[PackageRequest]]
+    Optional("variants"):               [[PackageRequest]],
+    Optional("postprocess"):            SourceCode
 })
 
 
@@ -122,6 +128,7 @@ _commands_schema = Or(SourceCode,       # commands as converted function
                       basestring,       # commands in text block
                       [basestring])     # old-style (rez-1) commands
 
+_function_schema = Or(SourceCode, callable)
 
 _package_request_schema = And(basestring, Use(PackageRequest))
 
@@ -155,6 +162,8 @@ package_pod_schema_dict.update({
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
+
+    Optional("postprocess"):            _function_schema,
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

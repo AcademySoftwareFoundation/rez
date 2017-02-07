@@ -19,8 +19,8 @@ def get_build_process_types():
     return plugin_manager.get_plugins('build_process')
 
 
-def create_build_process(process_type, working_dir, build_system, vcs=None,
-                         ensure_latest=True, skip_repo_errors=False,
+def create_build_process(process_type, working_dir, build_system, package=None,
+                         vcs=None, ensure_latest=True, skip_repo_errors=False,
                          ignore_existing_tag=False, verbose=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
@@ -30,6 +30,7 @@ def create_build_process(process_type, working_dir, build_system, vcs=None,
     cls = plugin_manager.get_plugin_class('build_process', process_type)
 
     return cls(working_dir,
+               package=package,
                build_system=build_system,
                vcs=vcs,
                ensure_latest=ensure_latest,
@@ -58,8 +59,9 @@ class BuildProcess(object):
     def name(cls):
         raise NotImplementedError
 
-    def __init__(self, working_dir, build_system, vcs=None, ensure_latest=True,
-                 skip_repo_errors=False, ignore_existing_tag=False, verbose=False):
+    def __init__(self, working_dir, build_system, package=None, vcs=None,
+                 ensure_latest=True, skip_repo_errors=False,
+                 ignore_existing_tag=False, verbose=False):
         """Create a BuildProcess.
 
         Args:
@@ -90,7 +92,9 @@ class BuildProcess(object):
                 "Build process was instantiated with a mismatched VCS instance")
 
         self.debug_print = config.debug_printer("package_release")
-        self.package = get_developer_package(working_dir)
+
+        self.package = package or get_developer_package(working_dir)
+
         hook_names = self.package.config.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
         self.build_path = os.path.join(self.working_dir,

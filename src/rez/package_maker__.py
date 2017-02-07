@@ -3,7 +3,7 @@ from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
-from rez.package_resources_ import help_schema, _commands_schema
+from rez.package_resources_ import help_schema, _commands_schema, _function_schema
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
@@ -37,6 +37,8 @@ package_schema = Schema({
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
+
+    Optional("postprocess"):            _function_schema,
 
     # arbitrary fields
     Optional(basestring):               object

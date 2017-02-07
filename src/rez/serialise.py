@@ -156,17 +156,19 @@ def load_py(stream, filepath=None):
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
 
-    def _process_objects(data):
-        for k, v in data.iteritems():
-            if isfunction(v):
-                data[k] = SourceCode.from_function(v)
-            elif isinstance(v, dict):
-                _process_objects(v)
-        return data
-
     result.update(scopes.to_dict())
-    result = _process_objects(result)
+    result = process_python_objects(result)
     return result
+
+
+def process_python_objects(data):
+    for k, v in data.iteritems():
+        if isfunction(v):
+            data[k] = SourceCode.from_function(v)
+        elif isinstance(v, dict):
+            process_python_objects(v)
+
+    return data
 
 
 def load_yaml(stream, **kwargs):

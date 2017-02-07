@@ -21,7 +21,7 @@ def get_valid_build_systems(working_dir):
     return clss
 
 
-def create_build_system(working_dir, buildsys_type=None, opts=None,
+def create_build_system(working_dir, buildsys_type=None, package=None, opts=None,
                         write_build_scripts=False, verbose=False,
                         build_args=[], child_build_args=[]):
     """Return a new build system that can build the source in working_dir."""
@@ -46,6 +46,7 @@ def create_build_system(working_dir, buildsys_type=None, opts=None,
             cls = iter(clss).next()
             return cls(working_dir,
                        opts=opts,
+                       package=package,
                        write_build_scripts=write_build_scripts,
                        verbose=verbose,
                        build_args=build_args,
@@ -63,8 +64,9 @@ class BuildSystem(object):
         """Return the name of the build system, eg 'make'."""
         raise NotImplementedError
 
-    def __init__(self, working_dir, opts=None, write_build_scripts=False,
-                 verbose=False, build_args=[], child_build_args=[]):
+    def __init__(self, working_dir, opts=None, package=None,
+                 write_build_scripts=False, verbose=False, build_args=[],
+                 child_build_args=[]):
         """Create a build system instance.
 
         Args:
@@ -84,7 +86,8 @@ class BuildSystem(object):
             raise BuildSystemError("Not a valid %s working directory: %s"
                                    % (self.name(), working_dir))
 
-        self.package = get_developer_package(working_dir)
+        self.package = package or get_developer_package(working_dir)
+
         self.write_build_scripts = write_build_scripts
         self.build_args = build_args
         self.child_build_args = child_build_args

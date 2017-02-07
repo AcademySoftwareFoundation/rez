@@ -3,6 +3,7 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
     package_release_keys
 from rez.package_serialise import dump_package_data
+from rez.utils.logging_ import print_info
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
@@ -495,7 +496,11 @@ def get_developer_package(path):
             "Error in %r - missing or non-string field 'name'" % filepath)
 
     package = create_package(name, data)
+    package = _postprocess_package(package, data)
+
+    # graft on developer-package-specific attributes
     setattr(package, "filepath", filepath)
+
     return package
 
 
@@ -629,6 +634,48 @@ def get_latest_package(name, range_=None, paths=None, error=False):
         if error:
             raise PackageFamilyNotFoundError("No such package family %r" % name)
         return None
+
+
+def _postprocess_package(package, data):
+    postprocess = getattr(package, "postprocess", None)
+    if not postprocess:
+        return package
+
+    from rez.serialise import process_python_objects
+    from rez.utils.data_utils import get_dict_diff
+    from copy import deepcopy
+
+    postprocessed_data = deepcopy(data)
+
+    # apply postprocessing
+    postprocess.func(this=package, data=postprocessed_data)
+
+    # if postprocess added functions, these need to be converted to
+    # SourceCode instances
+    postprocessed_data = process_python_objects(postprocessed_data)
+
+    if postprocessed_data != data:
+        # recreate package from modified package data
+        package = create_package(package.name, postprocessed_data)
+
+        # print summary of changed package attributes
+        added, removed, changed = get_dict_diff(data, postprocessed_data)
+        lines = ["Package attributes were changed in post processing:"]
+
+        if added:
+            lines.append("Added attributes: %s"
+                         % ['.'.join(x) for x in added])
+        if removed:
+            lines.append("Removed attributes: %s"
+                         % ['.'.join(x) for x in removed])
+        if changed:
+            lines.append("Changed attributes: %s"
+                         % ['.'.join(x) for x in changed])
+
+        txt = '\n'.join(lines)
+        print_info(txt)
+
+    return package
 
 
 def _get_families(name, paths=None):

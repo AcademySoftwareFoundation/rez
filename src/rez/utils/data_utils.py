@@ -13,20 +13,56 @@ class _Missing: pass
 _missing = _Missing()
 
 
+def get_dict_diff(d1, d2):
+    """Get added/removed/changed keys between two dicts.
+
+    Each key in the return value is a list, which is the namespaced key that
+    was affected.
+
+    Returns:
+        3-tuple:
+        - list of added keys;
+        - list of removed key;
+        - list of changed keys.
+    """
+    def _diff(d1_, d2_, namespace):
+        added = []
+        removed = []
+        changed = []
+
+        for k1, v1 in d1_.iteritems():
+            if k1 not in d2_:
+                removed.append(namespace + [k1])
+            else:
+                v2 = d2_[k1]
+                if v2 != v1:
+                    if isinstance(v1, dict) and isinstance(v2, dict):
+                        namespace_ = namespace + [k1]
+                        added_, removed_, changed_ = _diff(v1, v2, namespace_)
+                        added.extend(added_)
+                        removed.extend(removed_)
+                        changed.extend(changed_)
+                    else:
+                        changed.append(namespace + [k1])
+
+        for k2 in d2_.iterkeys():
+            if k2 not in d1_:
+                added.append(namespace + [k2])
+
+        return added, removed, changed
+
+    return _diff(d1, d2, [])
+
+
 class SourceCode(object):
     """Very simple wrapper for python source code."""
-    def __init__(self, source):
+    def __init__(self, source, func=None):
         self.source = source.rstrip()
+        self.func = func
 
     @classmethod
     def from_function(cls, func):
-        argspec = getargspec(func)
-        if argspec.args or argspec.varargs or argspec.keywords:
-            raise RexError('top level functions in python rez package files '
-                           'cannot take any arguments: %s' % func.__name__)
-
-        # now that we've verified that the func takes no args, can strip out
-        # the first line of the sourcecode, with the argspec of the func...
+        # get txt of function body
         loc = getsourcelines(func)[0][1:]
         code = dedent(''.join(loc))
 
@@ -48,6 +84,7 @@ class SourceCode(object):
 
         value = SourceCode.__new__(SourceCode)
         value.source = code
+        value.func = func
         return value
 
     def corrected_for_indent(self):
