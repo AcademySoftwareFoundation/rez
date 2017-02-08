@@ -60,6 +60,14 @@ def setup_parser(parser, completions=False):
         help="only show packages released after the given time. Supported "
         "formats are: epoch time (eg 1393014494), or relative time (eg -10s, "
         "-5m, -0.5h, -10d)")
+    parser.add_argument(
+        "--exclude", type=str, nargs='+', metavar="RULE",
+        help="add package exclusion filters, eg '*.beta'. Note that these are "
+        "added to the globally configured exclusions")
+    parser.add_argument(
+        "--include", type=str, nargs='+', metavar="RULE",
+        help="add package inclusion filters, eg 'mypkg', 'boost-*'. Note that "
+        "these are added to the globally configured inclusions")
     PKG_action = parser.add_argument(
         "PKG", type=str, nargs='?',
         help="packages to search, glob-style patterns are supported")
@@ -75,6 +83,7 @@ def command(opts, parser, extra_arg_groups=None):
     from rez.utils.formatting import get_epoch_time_from_str, expand_abbreviations
     from rez.utils.logging_ import print_error
     from rez.packages_ import iter_package_families, iter_packages
+    from rez.package_filter import PackageFilterList, Rule
     from rez.vendor.version.requirement import Requirement
     import os.path
     import fnmatch
@@ -162,10 +171,21 @@ def command(opts, parser, extra_arg_groups=None):
         else:
             print r.qualified_name
 
+    package_filter = PackageFilterList()
+
+    for rule_str in (opts.exclude or ()):
+        rule = Rule.parse_rule(rule_str)
+        package_filter.add_exclusion(rule)
+
+    for rule_str in (opts.include or ()):
+        rule = Rule.parse_rule(rule_str)
+        package_filter.add_inclusion(rule)
+
     # packages/variants
     if type_ in ("package", "variant"):
         for name in family_names:
-            packages = iter_packages(name, version_range, paths=pkg_paths)
+            packages = package_filter.iter_packages(
+                name, version_range, paths=pkg_paths)
             if opts.sort or opts.latest:
                 packages = sorted(packages, key=lambda x: x.version)
                 if opts.latest and packages:
