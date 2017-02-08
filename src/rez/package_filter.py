@@ -470,17 +470,18 @@ class RequiresRule(Rule):
         Allowed: python-2.7+<3, python-2, python-2.6
     """
     name = "requires"
-    actions = (None, 'warning', 'error')
+    actions = ('', None, 'warning', 'error')
 
-    def __init__(self, requirement, actionable=None):
+    def __init__(self, requirement, actionable=None, *families):
         """Create a new filter with the given requirement and actionable.
 
         Args:
             requirement (Requirement): to match
             actionable (None|str): if specified, self.match_{action} to call
+            families (*): if specified, families to match when filtering
         """
         self._requirement = requirement
-        self._family = requirement.name
+        self._families = families
         self._action = actionable
         if self._action not in self.actions:
             raise TypeError("Invalid action. Choices: %s" % (self.actions,))
@@ -507,8 +508,10 @@ class RequiresRule(Rule):
         pkg = get_package(package.name, package.version)
         if not pkg.requires:
             return False
+        if self._families and pkg.name not in self._families:
+            return False
         for request in pkg.requires:
-            if request.name != self._family:
+            if request.name != self._requirement.name:
                 continue
             overlap = request.range.intersection(self._requirement.range)
             if overlap and self._action:
@@ -519,17 +522,17 @@ class RequiresRule(Rule):
 
     def match_warning(self, package, request):
         """Called when the filter matches and self._action is 'warning'."""
-        fmt = self, package.name, package.version, request, self._requirement
-        print_warning("filter(%s) %s-%s: %r overlaps %s" % fmt)
+        fmt = package.name, package.version, self, request
+        print_warning("(%s-%s|%s) intersected by %s" % fmt)
 
     def match_error(self, package, request):
         """Called when the filter matches and self._action is 'error'."""
-        fmt = self, package.name, package.version, request, self._requirement
-        msg = "filter(%s) %s-%s package.py requests %r which overlaps %s" % fmt
+        fmt = package.name, package.version, self, request
+        msg = "(%s-%s|%s) intersected by %s" % fmt
         raise PackageRequestError(msg)
 
     def family(self):
-        """Operates on requires, and so it has no family."""
+        """Operate on requires, and so it has no family."""
         return None
 
     @classmethod
