@@ -506,29 +506,36 @@ class RequiresRule(Rule):
             `bool`: True if range intersects self._requirement.range.
         """
         pkg = get_package(package.name, package.version)
+
         if not pkg.requires:
             return False
+
         if self._families and pkg.name not in self._families:
             return False
+
         for request in pkg.requires:
+
             if request.name != self._requirement.name:
                 continue
+
             overlap = request.range.intersection(self._requirement.range)
+
             if overlap and self._action:
                 meth = getattr(self, 'match_%s' % self._action)
                 meth(package, str(request))
+
             return overlap
         return False
 
     def match_warning(self, package, request):
         """Called when the filter matches and self._action is 'warning'."""
         fmt = package.name, package.version, self, request
-        print_warning("(%s-%s|%s) intersected by %s" % fmt)
+        print_warning("%s-%s matched %s with request %s" % fmt)
 
     def match_error(self, package, request):
         """Called when the filter matches and self._action is 'error'."""
         fmt = package.name, package.version, self, request
-        msg = "(%s-%s|%s) intersected by %s" % fmt
+        msg = "%s-%s matched %s with request %s" % fmt
         raise PackageRequestError(msg)
 
     def family(self):
