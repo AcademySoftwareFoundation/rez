@@ -1,7 +1,8 @@
-from rez.packages_ import iter_packages
-from rez.exceptions import ConfigurationError
+from rez.packages_ import get_package, iter_packages
+from rez.exceptions import ConfigurationError, PackageRequestError
 from rez.config import config
 from rez.utils.data_utils import cached_property, cached_class_property
+from rez.utils.logging_ import print_warning
 from rez.vendor.version.requirement import VersionedObject, Requirement
 from hashlib import sha1
 import fnmatch
@@ -320,6 +321,7 @@ class Rule(object):
         types = {"glob": GlobRule,
                  "regex": RegexRule,
                  "range": RangeRule,
+                 "requires": RequiresRule,
                  "before": TimestampRule,
                  "after": TimestampRule}
 
@@ -452,6 +454,89 @@ class RangeRule(Rule):
     def _parse(cls, txt):
         _, txt = Rule._parse_label(txt)
         return cls(Requirement(txt))
+
+    def __str__(self):
+        return "%s(%s)" % (self.name, str(self._requirement))
+
+
+class RequiresRule(Rule):
+    """Filters package versions who require a subset of the filter requirement.
+
+    This rule applies to all package families requesting the filtered family,
+    and matches when the request is not a subset of the filter requirement.
+
+    Examples (given exclude: requires(python>2)):
+        Excluded: python-3.2, python-2.7+<4, python-2+, python
+        Allowed: python-2.7+<3, python-2, python-2.6
+    """
+    name = "requires"
+    actions = (None, 'warning', 'error')
+
+    def __init__(self, requirement, actionable=None):
+        """Create a new filter with the given requirement and actionable.
+
+        Args:
+            requirement (Requirement): to match
+            actionable (None|str): if specified, self.match_{action} to call
+        """
+        self._requirement = requirement
+        self._family = requirement.name
+        self._action = actionable
+        if self._action not in self.actions:
+            raise TypeError("Invalid action. Choices: %s" % (self.actions,))
+
+    def cost(self):
+        """Return a high cost for loading each filtered package.
+
+        Cost indicates that the rule should not be used for fast resolves,
+        but for debugging or assurances.
+        """
+        return 2000
+
+    def match(self, package):
+        """Match when a package requires an intersection with the boundary.
+
+        (The boundary being the requirement passed to init or parse_rule)
+
+        Args:
+            package (PackageRequest): to match
+
+        Returns:
+            `bool`: True if range intersects self._requirement.range.
+        """
+        pkg = get_package(package.name, package.version)
+        if not pkg.requires:
+            return False
+        for request in pkg.requires:
+            if request.name != self._family:
+                continue
+            overlap = request.range.intersection(self._requirement.range)
+            if overlap and self._action:
+                meth = getattr(self, 'match_%s' % self._action)
+                meth(package, str(request))
+            return overlap
+        return False
+
+    def match_warning(self, package, request):
+        """Called when the filter matches and self._action is 'warning'."""
+        fmt = self, package.name, package.version, request, self._requirement
+        print_warning("filter(%s) %s-%s: %r overlaps %s" % fmt)
+
+    def match_error(self, package, request):
+        """Called when the filter matches and self._action is 'error'."""
+        fmt = self, package.name, package.version, request, self._requirement
+        msg = "filter(%s) %s-%s package.py requests %r which overlaps %s" % fmt
+        raise PackageRequestError(msg)
+
+    def family(self):
+        """Operates on requires, and so it has no family."""
+        return None
+
+    @classmethod
+    def _parse(cls, txt):
+        _, txt = Rule._parse_label(txt)
+        args = txt.split(",")
+        return cls(Requirement(args[0]), *args[1:])
 
     def __str__(self):
         return "%s(%s)" % (self.name, str(self._requirement))
