@@ -3,7 +3,7 @@ from rez.serialise import FileFormat
 from rez.package_resources_ import help_schema
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
-from rez.utils.data_utils import SourceCode
+from rez.utils.sourcecode import SourceCode
 from rez.utils.formatting import PackageRequest, indent, \
     dict_to_attributes_code, as_block_string
 from rez.utils.schema import Required
@@ -119,13 +119,17 @@ def dump_package_data(data, buf, format_=FileFormat.py, skip_attributes=None):
 # instead we just comment out these comment actions - that way we can refer to
 # the package file to see what the original commands were, but they don't get
 # processed by rex.
+#
 def _commented_old_command_annotations(sourcecode):
     lines = sourcecode.source.split('\n')
     for i, line in enumerate(lines):
         if line.startswith("comment('OLD COMMAND:"):
             lines[i] = "# " + line
     source = '\n'.join(lines)
-    return SourceCode(source)
+
+    other = sourcecode.copy()
+    other.source = source
+    return other
 
 
 def _dump_package_data_yaml(items, buf):
@@ -157,9 +161,8 @@ def _dump_package_data_py(items, buf):
             # source code becomes a python function
             if key in ("commands", "pre_commands", "post_commands"):
                 value = _commented_old_command_annotations(value)
-            # don't indent code if already indented
-            source = value.source if value.source[0] in (' ', '\t') else indent(value.source)
-            txt = "def %s():\n%s" % (key, source)
+
+            txt = value.to_text(funcname=key)
         elif isinstance(value, list) and len(value) > 1:
             # nice formatting for lists
             lines = ["%s = [" % key]
@@ -185,8 +188,8 @@ def _dump_package_data_py(items, buf):
             print >> buf, ''
 
 
-dump_functions = {FileFormat.py:    _dump_package_data_py,
-                  FileFormat.yaml:  _dump_package_data_yaml}
+dump_functions = {FileFormat.py: _dump_package_data_py,
+                  FileFormat.yaml: _dump_package_data_yaml}
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -54,7 +54,7 @@ class TempDirs(object):
             self.dirs = set()
 
         for path in dirs:
-            if os.path.exists(path):
+            if os.path.exists(path) and not os.getenv("REZ_KEEP_TMPDIRS"):
                 shutil.rmtree(path)
 
     @classmethod
@@ -80,6 +80,17 @@ def retain_cwd():
         yield
     finally:
         os.chdir(cwd)
+
+
+def safe_makedirs(path):
+    # makedirs that takes into account that multiple threads may try to make
+    # the same dir at the same time
+    if not os.path.exists(path):
+        try:
+            os.makedirs(path)
+        except OSError:
+            if not os.path.exists(path):
+                raise
 
 
 def is_subdirectory(path_a, path_b):

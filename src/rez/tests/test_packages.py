@@ -7,7 +7,7 @@ from rez.package_resources_ import package_release_keys
 from rez.package_repository import create_memory_package_repository
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
-from rez.utils.data_utils import SourceCode
+from rez.utils.sourcecode import SourceCode
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
 import os.path

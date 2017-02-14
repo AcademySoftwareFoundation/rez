@@ -1,13 +1,18 @@
 """
 Builds packages on local host
 """
+from rez.config import config
 from rez.package_repository import package_repository_manager
 from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, ReleaseError
 from rez.utils.colorize import Printer, warning
+from rez.utils.filesystem import safe_makedirs
+from rez.utils.sourcecode import IncludeModuleManager
+from hashlib import sha1
 import shutil
 import os
+import os.path
 
 
 class LocalBuildProcess(BuildProcessHelper):
@@ -29,6 +34,10 @@ class LocalBuildProcess(BuildProcessHelper):
             install_path=install_path,
             clean=clean,
             install=install)
+
+        # install include modules, if any
+        if install:
+            self._install_include_modules(install_path)
 
         if None not in build_env_scripts:
             self._print("\nThe following executable script(s) have been created:")
@@ -109,11 +118,11 @@ class LocalBuildProcess(BuildProcessHelper):
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
             shutil.rmtree(variant_build_path)
-        if not os.path.exists(variant_build_path):
-            os.makedirs(variant_build_path)
 
-        if install and not os.path.exists(variant_install_path):
-            os.makedirs(variant_install_path)
+        safe_makedirs(variant_build_path)
+
+        if install:
+            safe_makedirs(variant_build_path)
 
         # create build environment
         context, rxt_filepath = self.create_build_context(
@@ -124,6 +133,7 @@ class LocalBuildProcess(BuildProcessHelper):
         # run build system
         build_system_name = self.build_system.name()
         self._print("\nInvoking %s build system...", build_system_name)
+
         build_result = self.build_system.build(
             context=context,
             variant=variant,
@@ -142,6 +152,30 @@ class LocalBuildProcess(BuildProcessHelper):
                 shutil.copy(file_, variant_install_path)
 
         return build_result
+
+    def _install_include_modules(self, install_path):
+        # install 'include' sourcefiles, used by funcs decorated with @include
+        if not self.package.includes:
+            return
+
+        install_path = install_path or self.package.config.local_packages_path
+        base_path = self.get_package_install_path(install_path)
+
+        path = os.path.join(base_path, IncludeModuleManager.include_modules_subpath)
+        safe_makedirs(path)
+
+        definition_python_path = self.package.config.package_definition_python_path
+
+        for name in self.package.includes:
+            filepath = os.path.join(definition_python_path, name) + ".py"
+
+            with open(filepath) as f:
+                txt = f.read().strip()
+
+            uuid = sha1(txt).hexdigest()
+            dest_filepath = os.path.join(path, "%s-%s.py" % (name, uuid))
+
+            shutil.copy(filepath, dest_filepath)
 
     def _build_variant(self, variant, install_path=None, clean=False,
                        install=False, **kwargs):

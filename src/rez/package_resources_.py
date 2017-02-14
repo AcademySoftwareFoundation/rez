@@ -1,8 +1,9 @@
 from rez.utils.resources import Resource
 from rez.utils.schema import Required, schema_keys
 from rez.utils.logging_ import print_warning
-from rez.utils.data_utils import cached_property, SourceCode, \
-    AttributeForwardMeta, LazyAttributeMeta
+from rez.utils.sourcecode import SourceCode
+from rez.utils.data_utils import cached_property, AttributeForwardMeta, \
+    LazyAttributeMeta
 from rez.utils.formatting import PackageRequest
 from rez.exceptions import PackageMetadataError, ResourceError
 from rez.config import config, Config, create_config

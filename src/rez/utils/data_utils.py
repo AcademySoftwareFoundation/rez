@@ -4,9 +4,7 @@ Utilities related to managing data types.
 from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
 from collections import MutableMapping
-from inspect import getsourcelines, getargspec
 from threading import Lock
-from textwrap import dedent
 
 
 class _Missing: pass
@@ -52,60 +50,6 @@ def get_dict_diff(d1, d2):
         return added, removed, changed
 
     return _diff(d1, d2, [])
-
-
-class SourceCode(object):
-    """Very simple wrapper for python source code."""
-    def __init__(self, source, func=None):
-        self.source = source.rstrip()
-        self.func = func
-
-    @classmethod
-    def from_function(cls, func):
-        # get txt of function body
-        loc = getsourcelines(func)[0][1:]
-        code = dedent(''.join(loc))
-
-        # align lines that start with a comment (#)
-        codelines = code.split('\n')
-        linescount = len(codelines)
-        for i, line in enumerate(codelines):
-            if line.startswith('#'):
-                nextindex = i+1 if i < linescount else i-1
-                nextline = codelines[nextindex]
-                while nextline.startswith('#'):
-                    nextline = codelines[nextindex]
-                    nextindex = nextindex+1 if nextindex < linescount else nextindex-1
-                firstchar = len(nextline)-len(nextline.lstrip())
-                codelines[i] = '%s%s' % (nextline[:firstchar], line)
-
-        code = '\n'.join(codelines).rstrip()
-        code = dedent(code)
-
-        value = SourceCode.__new__(SourceCode)
-        value.source = code
-        value.func = func
-        return value
-
-    def corrected_for_indent(self):
-        if self.source and self.source[0] in (' ', '\t'):
-            new_source = "if True:\n" + self.source
-            return SourceCode(new_source)
-        else:
-            return self
-
-    def __eq__(self, other):
-        return (isinstance(other, SourceCode)
-                and other.source == self.source)
-
-    def __ne__(self, other):
-        return not (other == self)
-
-    def __str__(self):
-        return self.source
-
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.source)
 
 
 class cached_property(object):
