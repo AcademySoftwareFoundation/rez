@@ -1,8 +1,10 @@
 from rez.utils.formatting import indent
+from rez.utils.data_utils import cached_property
 from rez.utils.logging_ import print_debug
 from inspect import getsourcelines
 from textwrap import dedent
 from glob import glob
+import traceback
 import os.path
 import imp
 
@@ -10,11 +12,29 @@ import imp
 def early():
     """Used by functions in package.py to harden to the return value at build time.
 
-    The term 'early' refers to the fact these package attribute are boud 'early',
-    as opposed to 'late' bindings, which evaluate lazily.
+    The term 'early' refers to the fact these package attribute are evaluated
+    early, ie at build time and before a package is installed.
     """
     def decorated(fn):
         setattr(fn, "_early", True)
+        return fn
+
+    return decorated
+
+
+def late():
+    """Used by functions in package.py that are evaluated lazily.
+
+    The term 'late' refers to the fact these package attributes are evaluated
+    late, ie when the attribute is queried for the first time.
+
+    If you want to implement a package.py attribute as a function, you MUST use
+    this decorator - otherwise it is understood that you want your attribute to
+    be a function, not the return value of that function.
+    """
+    def decorated(fn):
+        setattr(fn, "_late", True)
+        _add_decorator(fn, "late")
         return fn
 
     return decorated
@@ -40,6 +60,18 @@ def _add_decorator(fn, name, **kwargs):
     fn._decorators.append(kwargs)
 
 
+class SourceCodeError(Exception):
+    pass
+
+
+class SourceCodeCompileError(Exception):
+    pass
+
+
+class SourceCodeExecError(Exception):
+    pass
+
+
 class SourceCode(object):
     """Wrapper for python source code.
 
@@ -51,12 +83,13 @@ class SourceCode(object):
         self.func = func
         self.filepath = filepath
         self.package = None
-        self.pyc = None
 
     def copy(self):
         other = SourceCode(source=self.source, func=self.func)
         return other
 
+    # TODO this breaks in cases like: comment after decorator and before sig;
+    # sig broken over multiple lines, etc
     @classmethod
     def from_function(cls, func, filepath=None):
         # get txt of function body. Skips sig and any decorators. Assumes that
@@ -90,48 +123,92 @@ class SourceCode(object):
         value.func = func
         value.filepath = filepath
         value.package = None
-        value.pyc = None
 
         return value
 
+    @cached_property
+    def includes(self):
+        info = self._get_decorator_info("include")
+        if not info:
+            return None
+
+        return set(info.get("nargs", []))
+
+    @cached_property
+    def late_binding(self):
+        info = self._get_decorator_info("late")
+        return bool(info)
+
+    @cached_property
+    def evaluated_code(self):
+        # turn into a function, because code may use return clause
+        if self.func:
+            funcname = self.func.__name__
+        else:
+            funcname = "_unnamed"
+
+        code = indent(self.source)
+        code = ("def %s():\n" % funcname
+                + code
+                + "\n_result = %s()" % funcname)
+
+        return code
+
     @property
-    def compiled(self):
-        if self.pyc is not None:
-            return self.pyc
-
-        code = self.source
-        if code and code[0] in (' ', '\t'):
-            code = "if True:\n" + code
-
+    def sourcename(self):
         if self.filepath:
             filename = self.filepath
         else:
-            filename = "<string>"
+            filename = "string"
 
         if self.func:
             filename += ":%s" % self.func.__name__
 
-        self.pyc = compile(code, filename, 'exec')
-        return self.pyc
+        return "<%s>" % filename
+
+    @property
+    def function_name(self):
+        if self.func:
+            return self.func.__name__
+        else:
+            return None
+
+    @cached_property
+    def compiled(self):
+        try:
+            pyc = compile(self.evaluated_code, self.sourcename, 'exec')
+        except Exception as e:
+            stack = traceback.format_exc()
+            raise SourceCodeCompileError(
+                "Failed to compile %s:\n\n%s" % (self.sourcename, stack))
+
+        return pyc
 
     def set_package(self, package):
         # this is needed to load @included modules
         self.package = package
 
-    def exec_(self, globals_):
+    def exec_(self, globals_={}):
         # bind import modules
         if self.package is not None:
-            module_names = self.get_includes()
-            if module_names:
+            if self.includes:
                 globals_ = globals_.copy()
 
-                for name in module_names:
+                for name in self.includes:
                     module = include_module_manager.load_module(name, self.package)
                     globals_[name] = module
 
         # exec
-        pyc = self.pyc
-        exec pyc in globals_
+        pyc = self.compiled
+
+        try:
+            exec pyc in globals_
+        except Exception as e:
+            stack = traceback.format_exc()
+            raise SourceCodeExecError(
+                "Failed to execute %s:\n\n%s" % (self.sourcename, stack))
+
+        return globals_.get("_result")
 
     def to_text(self, funcname):
         # don't indent code if already indented
@@ -152,13 +229,6 @@ class SourceCode(object):
 
         return txt
 
-    def get_includes(self):
-        info = self._get_decorator_info("include")
-        if not info:
-            return None
-
-        return set(info.get("nargs", []))
-
     def _get_decorator_info(self, name):
         if not self.func:
             return None
@@ -171,15 +241,6 @@ class SourceCode(object):
             return None
 
         return matches[0]
-
-    """
-    def corrected_for_indent(self):
-        if self.source and self.source[0] in (' ', '\t'):
-            new_source = "if True:\n" + self.source
-            return SourceCode(new_source)
-        else:
-            return self
-    """
 
     def __eq__(self, other):
         return (isinstance(other, SourceCode)

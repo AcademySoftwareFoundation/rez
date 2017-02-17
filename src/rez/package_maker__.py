@@ -3,7 +3,8 @@ from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
-from rez.package_resources_ import help_schema, _commands_schema, _function_schema
+from rez.package_resources_ import help_schema, _commands_schema, \
+    _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
@@ -31,7 +32,7 @@ package_schema = Schema({
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 dict,
-    Optional('tools'):                  [basestring],
+    Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   help_schema,
 
     Optional('pre_commands'):           _commands_schema,

@@ -1129,6 +1129,16 @@ class RexExecutor(object):
         Returns:
             Compiled code object.
         """
+        if isinstance(code, SourceCode):
+            evaluated_code = code.evaluated_code
+            funcname = code.function_name
+
+            if filename is None:
+                filename = code.sourcename
+        else:
+            evaluated_code = code
+            funcname = "<rex function>"
+
         filename = filename or "<string>"
         error_class = Exception if config.catch_rex_errors else None
 
@@ -1146,7 +1156,7 @@ class RexExecutor(object):
             if match:
                 try:
                     lineno = int(match.groups()[0])
-                    loc = code.split('\n')
+                    loc = evaluated_code.split('\n')
                     line = loc[lineno - 1]
                     msg += "\n    %s" % line
                 except:
@@ -1165,8 +1175,8 @@ class RexExecutor(object):
                 import traceback
                 frames = traceback.extract_tb(sys.exc_traceback)
                 frames = [x for x in frames if x[0] == filename]
-                cls._patch_frames(frames, code, filename)
-                cls._raise_rex_error(frames, e)
+                cls._patch_frames(frames, evaluated_code, filename, funcname)
+                cls._raise_rex_error(frames, e, sourcename=filename)
 
         return pyc
 
@@ -1206,7 +1216,7 @@ class RexExecutor(object):
             filepath = inspect.getfile(func)
             if os.path.exists(filepath):
                 frames = [x for x in frames if x[0] == filepath]
-            self._raise_rex_error(frames, e)
+            self._raise_rex_error(frames, e, sourcename=func.__name__)
 
     def get_output(self, style=OutputStyle.file):
         """Returns the result of all previous calls to execute_code."""
@@ -1216,7 +1226,7 @@ class RexExecutor(object):
         return self.formatter.format(str(value))
 
     @classmethod
-    def _patch_frames(cls, frames, code, codefile=None):
+    def _patch_frames(cls, frames, code, codefile=None, funcname=None):
         """Patch traceback's frame objects to add lines of code from `code`
         where appropriate.
         """
@@ -1227,19 +1237,23 @@ class RexExecutor(object):
             if filename == codefile and line is None:
                 try:
                     line = loc[lineno - 1].strip()
-                    frames[i] = (filename, lineno, "<rex commands>", line)
+                    funcname = funcname or "<rex function>"
+                    frames[i] = (filename, lineno, funcname, line)
                 except:
                     pass
 
     @classmethod
-    def _raise_rex_error(cls, frames, e):
+    def _raise_rex_error(cls, frames, e, sourcename=None):
         import traceback
+
         stack = ''.join(traceback.format_list(frames)).strip()
+        sourcename = sourcename or "rex code"
+
         if isinstance(e, RexError):
             raise type(e)("%s\n%s" % (str(e), stack))
         else:
-            raise RexError("Error in rex code: %s - %s\n%s"
-                           % (e.__class__.__name__, str(e), stack))
+            raise RexError("Error in %s: %s - %s\n%s"
+                           % (sourcename, e.__class__.__name__, str(e), stack))
 
 
 # Copyright 2013-2016 Allan Johns.

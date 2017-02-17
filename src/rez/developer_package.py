@@ -44,8 +44,7 @@ class DeveloperPackage(Package):
                 filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
 
                 if os.path.isfile(filepath):
-                    with add_sys_paths(config.package_definition_build_python_paths):
-                        data = load_from_file(filepath, format_)
+                    data = load_from_file(filepath, format_)
                     break
             if data:
                 name = data.get("name")
@@ -76,7 +75,7 @@ class DeveloperPackage(Package):
         def visit(d):
             for k, v in d.iteritems():
                 if isinstance(v, SourceCode):
-                    package.includes |= (v.get_includes() or set())
+                    package.includes |= (v.includes or set())
                 elif isinstance(v, dict):
                     visit(v)
 

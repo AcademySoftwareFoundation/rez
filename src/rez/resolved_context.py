@@ -257,7 +257,11 @@ class ResolvedContext(object):
         self.from_cache = resolver.from_cache
 
         if self.status_ == ResolverStatus.solved:
-            self._resolved_packages = resolver.resolved_packages
+            self._resolved_packages = []
+
+            for variant in resolver.resolved_packages:
+                variant.set_context(self)
+                self._resolved_packages.append(variant)
 
     def __str__(self):
         request = self.requested_packages(include_implicit=True)
@@ -1333,6 +1337,7 @@ class ResolvedContext(object):
                 variant_handle = convert_old_variant_handle(variant_handle)
 
             variant = get_variant(variant_handle)
+            variant.set_context(r)
             r._resolved_packages.append(variant)
 
         # -- SINCE SERIALIZE VERSION 1

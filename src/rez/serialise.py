@@ -2,7 +2,7 @@
 Read and write data from file. File caching via a memcached server is supported.
 """
 from rez.utils.scope import ScopeContext
-from rez.utils.sourcecode import SourceCode, early, include
+from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
 from rez.exceptions import ResourceError, InvalidPackageError
@@ -137,6 +137,7 @@ def load_py(stream, filepath=None):
 
     g = dict(scope=scopes,
              early=early,
+             late=late,
              include=include,
              InvalidPackageError=InvalidPackageError)
 
@@ -156,7 +157,7 @@ def load_py(stream, filepath=None):
 
     result = {}
     excludes = set(('scope', 'InvalidPackageError', '__builtins__',
-                    'early', 'include'))
+                    'early', 'late', 'include'))
 
     for k, v in g.iteritems():
         if k not in excludes and \
@@ -176,6 +177,15 @@ def process_python_objects(data, filepath=None):
                 with add_sys_paths(config.package_definition_build_python_paths):
                     value = v()
             else:
+                """
+                print
+                print 'XXXXXXXXXXXXXXXXXXXXXX', v
+                from inspect import getsourcelines
+                loc = getsourcelines(v)[0]
+                code = (''.join(loc))
+                print code
+                print
+                """
                 value = SourceCode.from_function(v, filepath=filepath)
 
             data[k] = value

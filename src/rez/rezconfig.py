@@ -70,7 +70,7 @@ context_tmpdir = None
 # This means that any of the functions in the following list can import modules
 # from these paths:
 # * The *postprocess* function;
-# * Any function decorated with @harden (TODO) - these get evaluated at build time.
+# * Any function decorated with @early - these get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for

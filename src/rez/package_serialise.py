@@ -1,6 +1,6 @@
 from rez.vendor import yaml
 from rez.serialise import FileFormat
-from rez.package_resources_ import help_schema
+from rez.package_resources_ import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
 from rez.utils.sourcecode import SourceCode
@@ -54,7 +54,7 @@ package_serialise_schema = Schema({
     Optional("version"):                version_schema,
     Optional("description"):            basestring,
     Optional("authors"):                [basestring],
-    Optional("tools"):                  [basestring],
+    Optional("tools"):                  late_bound([basestring]),
 
     Optional('requires'):               [package_request_schema],
     Optional('build_requires'):         [package_request_schema],

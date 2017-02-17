@@ -37,6 +37,11 @@ package_build_only_keys = (
 help_schema = Or(basestring,  # single help entry
                  [[basestring]])  # multiple help entries
 
+_is_late = And(SourceCode, lambda x: hasattr(x, "_late"))
+
+def late_bound(schema):
+    return Or(SourceCode, schema)
+
 
 #------------------------------------------------------------------------------
 # schema dicts
@@ -73,7 +78,7 @@ package_base_schema_dict.update({
     # general
     Optional('uuid'):                   basestring,
     Optional('config'):                 Config,
-    Optional('tools'):                  [basestring],
+    Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   help_schema,
 
     # commands
@@ -133,9 +138,7 @@ _function_schema = Or(SourceCode, callable)
 
 _package_request_schema = And(basestring, Use(PackageRequest))
 
-
 package_pod_schema_dict = base_resource_schema_dict.copy()
-
 
 large_string_dict = And(basestring, Use(lambda x: dedent(x).strip()))
 
@@ -157,7 +160,7 @@ package_pod_schema_dict.update({
     Optional('uuid'):                   basestring,
     Optional('config'):                 And(dict,
                                             Use(lambda x: create_config(overrides=x))),
-    Optional('tools'):                  [basestring],
+    Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   help_schema,
 
     Optional('pre_commands'):           _commands_schema,

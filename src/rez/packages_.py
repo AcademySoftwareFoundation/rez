@@ -4,7 +4,8 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     package_release_keys
 from rez.package_serialise import dump_package_data
 from rez.utils.logging_ import print_info, print_error
-from rez.utils.data_utils import cached_property
+from rez.utils.sourcecode import SourceCode
+from rez.utils.data_utils import cached_property, _missing
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
@@ -59,6 +60,10 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
+    def __init__(self, *nargs, **kwargs):
+        super(PackageBaseResourceWrapper, self).__init__(*nargs, **kwargs)
+        self._late_bindings = {}
+
     def arbitrary_keys(self):
         raise NotImplementedError
 
@@ -113,6 +118,29 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         buf = buf or sys.stdout
         dump_package_data(data, buf=buf, format_=format_,
                           skip_attributes=skip_attributes)
+
+    def _wrap_forwarded(self, key, value):
+        if isinstance(value, SourceCode) and value.late_binding:
+            value_ = self._late_bindings.get(key, _missing)
+
+            if value_ is _missing:
+                value_ = self._eval_late_binding(value)
+                self._late_bindings[key] = value_
+
+            return value_
+        else:
+            return value
+
+    def _eval_late_binding(self, sourcecode, globals_={}):
+        g = {
+            "this": self,
+            "in_context": lambda: False
+        }
+
+        g.update(globals_)
+
+        sourcecode.set_package(self)
+        return sourcecode.exec_(globals_=g)
 
 
 class Package(PackageBaseResourceWrapper):
@@ -204,6 +232,10 @@ class Variant(PackageBaseResourceWrapper):
     def __init__(self, resource):
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource)
+        self.context = None
+
+    def set_context(self, context):
+        self.context = context
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -289,6 +321,17 @@ class Variant(PackageBaseResourceWrapper):
             return self
         else:
             return Variant(resource)
+
+    def _eval_late_binding(self, sourcecode):
+        g = {}
+
+        if self.context is None:
+            g["in_context"] = lambda: False
+        else:
+            g["in_context"] = lambda: True
+            g["context"] = self.context
+
+        return super(Variant, self)._eval_late_binding(sourcecode, globals_=g)
 
 
 class PackageSearchPath(object):
@@ -482,12 +525,15 @@ def get_variant(variant_handle):
         variant_handle (`ResourceHandle` or dict): Resource handle, or
             equivalent serialized dict representation from
             ResourceHandle.to_dict
+        context (`ResolvedContext`): The context this variant is associated
+            with, if any.
 
     Returns:
         `Variant`.
     """
     if isinstance(variant_handle, dict):
         variant_handle = ResourceHandle.from_dict(variant_handle)
+
     variant_resource = package_repository_manager.get_resource_from_handle(variant_handle)
     variant = Variant(variant_resource)
     return variant
