@@ -535,8 +535,13 @@ class _PackageVariantList(_Common):
         # note: we do not apply package filters here, because doing so might
         # cause package loads (eg, timestamp rules). We only apply filters
         # during an intersection, which minimises the amount of filtering.
-        it = iter_packages(self.package_name, paths=self.solver.package_paths)
-        self.entries = [[x, False] for x in it]
+        #
+        self.entries = []
+
+        for package in iter_packages(self.package_name,
+                                     paths=self.solver.package_paths):
+            package.set_context(solver.context)
+            self.entries.append([package, False])
 
         if not self.entries:
             raise PackageFamilyNotFoundError(
@@ -1749,7 +1754,7 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, package_requests, package_paths, package_filter=None,
+    def __init__(self, context, package_requests, package_paths, package_filter=None,
                  package_orderers=None, callback=None, building=False,
                  optimised=True, verbosity=0, buf=None, package_load_callback=None,
                  prune_unfailed=True):
@@ -1779,6 +1784,7 @@ class Solver(_Common):
                 True, any packages unrelated to the conflict are removed from
                 the graph.
         """
+        self.context = context
         self.package_paths = package_paths
         self.package_filter = package_filter
         self.package_orderers = package_orderers

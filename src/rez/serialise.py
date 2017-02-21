@@ -1,6 +1,7 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
 from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.logging_ import print_debug
@@ -177,16 +178,20 @@ def process_python_objects(data, filepath=None):
                 with add_sys_paths(config.package_definition_build_python_paths):
                     value = v()
             else:
-                """
-                print
-                print 'XXXXXXXXXXXXXXXXXXXXXX', v
-                from inspect import getsourcelines
-                loc = getsourcelines(v)[0]
-                code = (''.join(loc))
-                print code
-                print
-                """
-                value = SourceCode.from_function(v, filepath=filepath)
+                # if a rex function, the code has to be eval'd NOT as a function,
+                # otherwise the globals dict doesn't get updated with any vars
+                # defined in the code, and that means rex code like this:
+                #
+                # rr = 'test'
+                # env.RR = '{rr}'
+                #
+                # ..won't work. It was never intentional that the above work, but
+                # it does, so now we have to keep it so.
+                #
+                as_function = (v.__name__ not in package_rex_keys)
+
+                value = SourceCode(func=v, filepath=filepath,
+                                   eval_as_function=as_function)
 
             data[k] = value
         elif isinstance(v, dict):

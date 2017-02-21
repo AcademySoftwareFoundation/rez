@@ -414,6 +414,7 @@ class LazyAttributeMeta(type):
                                             "%r, already defined" % attr)
                     else:
                         attr = key
+
                     members[attr] = cls._make_getter(key, attr, optional, key_schema)
 
         if schema or not _defined("schema"):

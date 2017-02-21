@@ -56,16 +56,17 @@ package_serialise_schema = Schema({
     Optional("authors"):                [basestring],
     Optional("tools"):                  late_bound([basestring]),
 
-    Optional('requires'):               [package_request_schema],
-    Optional('build_requires'):         [package_request_schema],
-    Optional('private_build_requires'): [package_request_schema],
+    Optional('requires'):               late_bound([package_request_schema]),
+    Optional('build_requires'):         late_bound([package_request_schema]),
+    Optional('private_build_requires'): late_bound([package_request_schema]),
+
     Optional('variants'):               [[package_request_schema]],
 
     Optional('pre_commands'):           source_code_schema,
     Optional('commands'):               source_code_schema,
     Optional('post_commands'):          source_code_schema,
 
-    Optional("help"):                   help_schema,
+    Optional("help"):                   late_bound(help_schema),
     Optional("uuid"):                   basestring,
     Optional("config"):                 dict,
 

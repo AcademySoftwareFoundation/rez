@@ -1,7 +1,7 @@
 from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
-    package_release_keys
+    package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
 from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
@@ -60,9 +60,17 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
-    def __init__(self, *nargs, **kwargs):
-        super(PackageBaseResourceWrapper, self).__init__(*nargs, **kwargs)
+    late_bind_schemas = {
+        "requires": late_requires_schema
+    }
+
+    def __init__(self, resource, context=None):
+        super(PackageBaseResourceWrapper, self).__init__(resource)
+        self.context = context
         self._late_bindings = {}
+
+    def set_context(self, context):
+        self.context = context
 
     def arbitrary_keys(self):
         raise NotImplementedError
@@ -125,19 +133,29 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
 
             if value_ is _missing:
                 value_ = self._eval_late_binding(value)
+
+                schema = self.late_bind_schemas.get(key)
+                if schema is not None:
+                    value_ = schema.validate(value_)
+
                 self._late_bindings[key] = value_
 
             return value_
         else:
             return value
 
-    def _eval_late_binding(self, sourcecode, globals_={}):
-        g = {
-            "this": self,
-            "in_context": lambda: False
-        }
+    def _eval_late_binding(self, sourcecode):
+        g = {}
 
-        g.update(globals_)
+        if self.context is None:
+            g["in_context"] = lambda: False
+        else:
+            g["in_context"] = lambda: True
+            g["context"] = self.context
+
+            # 'request', 'system' etc
+            bindings = self.context._get_pre_resolve_bindings()
+            g.update(bindings)
 
         sourcecode.set_package(self)
         return sourcecode.exec_(globals_=g)
@@ -152,14 +170,16 @@ class Package(PackageBaseResourceWrapper):
     """
     keys = schema_keys(package_schema)
 
-    def __init__(self, resource):
+    def __init__(self, resource, context=None):
         _check_class(resource, PackageResource)
-        super(Package, self).__init__(resource)
+        super(Package, self).__init__(resource, context)
 
     # arbitrary keys
     def __getattr__(self, name):
         if name in self.data:
-            return self.data[name]
+            value = self.data[name]
+            return self._wrap_forwarded(name, value)
+            #return self.data[name]
         else:
             raise AttributeError("Package instance has no attribute '%s'" % name)
 
@@ -206,7 +226,7 @@ class Package(PackageBaseResourceWrapper):
         """
         repo = self.resource._repository
         for variant in repo.iter_variants(self.resource):
-            yield Variant(variant)
+            yield Variant(variant, context=self.context)
 
     def get_variant(self, index=None):
         """Get the variant with the associated index.
@@ -229,13 +249,9 @@ class Variant(PackageBaseResourceWrapper):
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
 
-    def __init__(self, resource):
+    def __init__(self, resource, context=None):
         _check_class(resource, VariantResource)
-        super(Variant, self).__init__(resource)
-        self.context = None
-
-    def set_context(self, context):
-        self.context = context
+        super(Variant, self).__init__(resource, context)
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -271,7 +287,22 @@ class Variant(PackageBaseResourceWrapper):
         """
         repo = self.resource._repository
         package = repo.get_parent_package(self.resource)
-        return Package(package)
+        return Package(package, context=self.context)
+
+    @property
+    def requires(self):
+        """Get variant requirements.
+
+        This is a concatenation of the package requirements and those if this
+        specific variant.
+        """
+        package_requires = self.parent.requires or []
+
+        if self.index is None:
+            return package_requires
+        else:
+            variant_requires = self.parent.variants[self.index] or []
+            return package_requires + variant_requires
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
@@ -285,10 +316,12 @@ class Variant(PackageBaseResourceWrapper):
             List of `Requirement` objects.
         """
         requires = self.requires or []
+
         if build_requires:
             requires = requires + (self.build_requires or [])
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
+
         return requires
 
     def install(self, path, dry_run=False, overrides=None):
@@ -321,17 +354,6 @@ class Variant(PackageBaseResourceWrapper):
             return self
         else:
             return Variant(resource)
-
-    def _eval_late_binding(self, sourcecode):
-        g = {}
-
-        if self.context is None:
-            g["in_context"] = lambda: False
-        else:
-            g["in_context"] = lambda: True
-            g["context"] = self.context
-
-        return super(Variant, self)._eval_late_binding(sourcecode, globals_=g)
 
 
 class PackageSearchPath(object):
@@ -518,7 +540,7 @@ def create_package(name, data, package_cls=None):
     return maker.get_package()
 
 
-def get_variant(variant_handle):
+def get_variant(variant_handle, context=None):
     """Create a variant given its handle (or serialized dict equivalent)
 
     Args:
@@ -535,7 +557,7 @@ def get_variant(variant_handle):
         variant_handle = ResourceHandle.from_dict(variant_handle)
 
     variant_resource = package_repository_manager.get_resource_from_handle(variant_handle)
-    variant = Variant(variant_resource)
+    variant = Variant(variant_resource, context=context)
     return variant
 
 

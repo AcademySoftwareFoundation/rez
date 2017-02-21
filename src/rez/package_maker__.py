@@ -25,15 +25,17 @@ package_schema = Schema({
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],
 
-    Optional('requires'):               [package_request_schema],
-    Optional('build_requires'):         [package_request_schema],
-    Optional('private_build_requires'): [package_request_schema],
+    Optional('requires'):               late_bound([package_request_schema]),
+    Optional('build_requires'):         late_bound([package_request_schema]),
+    Optional('private_build_requires'): late_bound([package_request_schema]),
+
+    # deliberately not possible to late bind
     Optional('variants'):               [[package_request_schema]],
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 dict,
     Optional('tools'):                  late_bound([basestring]),
-    Optional('help'):                   help_schema,
+    Optional('help'):                   late_bound(help_schema),
 
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,

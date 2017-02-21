@@ -32,7 +32,16 @@ def late():
     this decorator - otherwise it is understood that you want your attribute to
     be a function, not the return value of that function.
     """
+    from rez.package_resources_ import package_rex_keys
+
     def decorated(fn):
+
+        # this is done here rather than in standard schema validation because
+        # the latter causes a very obfuscated error message
+        if fn.__name__ in package_rex_keys:
+            raise ValueError("Cannot use @late decorator on function '%s'"
+                             % fn.__name__)
+
         setattr(fn, "_late", True)
         _add_decorator(fn, "late")
         return fn
@@ -61,14 +70,16 @@ def _add_decorator(fn, name, **kwargs):
 
 
 class SourceCodeError(Exception):
+    def __init__(self, msg, short_msg):
+        super(SourceCodeError, self).__init__(msg)
+        self.short_msg = short_msg
+
+
+class SourceCodeCompileError(SourceCodeError):
     pass
 
 
-class SourceCodeCompileError(Exception):
-    pass
-
-
-class SourceCodeExecError(Exception):
+class SourceCodeExecError(SourceCodeError):
     pass
 
 
@@ -78,24 +89,39 @@ class SourceCode(object):
     This object is aware of the decorators defined in this sourcefile (such as
     'include') and deals with them appropriately.
     """
-    def __init__(self, source, func=None, filepath=None):
-        self.source = source.rstrip()
+    def __init__(self, source=None, func=None, filepath=None,
+                 eval_as_function=True):
+        self.source = (source or '').rstrip()
         self.func = func
         self.filepath = filepath
+        self.eval_as_function = eval_as_function
         self.package = None
 
+        self.funcname = None
+        self.decorators = []
+
+        if self.func is not None:
+            self._init_from_func()
+
     def copy(self):
-        other = SourceCode(source=self.source, func=self.func)
+        other = SourceCode.__new__(SourceCode)
+        other.source = self.source
+        other.func = self.func
+        other.filepath = self.filepath
+        other.eval_as_function = self.eval_as_function
+        other.package =self.package
+        other.funcname = self.funcname
+        other.decorators = self.decorators
+
         return other
 
-    # TODO this breaks in cases like: comment after decorator and before sig;
-    # sig broken over multiple lines, etc
-    @classmethod
-    def from_function(cls, func, filepath=None):
+    def _init_from_func(self):
+        self.funcname = self.func.__name__
+        self.decorators = getattr(self.func, "_decorators", [])
+
         # get txt of function body. Skips sig and any decorators. Assumes that
         # only the decorators in this file (such as 'include') are used.
-        num_decorators = len(getattr(func, "_decorators", []))
-        loc = getsourcelines(func)[0][num_decorators + 1:]
+        loc = getsourcelines(self.func)[0][len(self.decorators) + 1:]
         code = dedent(''.join(loc))
 
         # align lines that start with a comment (#)
@@ -118,13 +144,7 @@ class SourceCode(object):
         code = '\n'.join(codelines).rstrip()
         code = dedent(code)
 
-        value = SourceCode.__new__(SourceCode)
-        value.source = code
-        value.func = func
-        value.filepath = filepath
-        value.package = None
-
-        return value
+        self.source = code
 
     @cached_property
     def includes(self):
@@ -141,16 +161,15 @@ class SourceCode(object):
 
     @cached_property
     def evaluated_code(self):
-        # turn into a function, because code may use return clause
-        if self.func:
-            funcname = self.func.__name__
-        else:
-            funcname = "_unnamed"
+        if self.eval_as_function:
+            funcname = self.funcname or "_unnamed"
 
-        code = indent(self.source)
-        code = ("def %s():\n" % funcname
-                + code
-                + "\n_result = %s()" % funcname)
+            code = indent(self.source)
+            code = ("def %s():\n" % funcname
+                    + code
+                    + "\n_result = %s()" % funcname)
+        else:
+            code = "if True:\n" + indent(self.source)
 
         return code
 
@@ -161,17 +180,10 @@ class SourceCode(object):
         else:
             filename = "string"
 
-        if self.func:
-            filename += ":%s" % self.func.__name__
+        if self.funcname:
+            filename += ":%s" % self.funcname
 
         return "<%s>" % filename
-
-    @property
-    def function_name(self):
-        if self.func:
-            return self.func.__name__
-        else:
-            return None
 
     @cached_property
     def compiled(self):
@@ -180,7 +192,8 @@ class SourceCode(object):
         except Exception as e:
             stack = traceback.format_exc()
             raise SourceCodeCompileError(
-                "Failed to compile %s:\n\n%s" % (self.sourcename, stack))
+                "Failed to compile %s:\n%s" % (self.sourcename, stack),
+                short_msg=str(e))
 
         return pyc
 
@@ -190,13 +203,10 @@ class SourceCode(object):
 
     def exec_(self, globals_={}):
         # bind import modules
-        if self.package is not None:
-            if self.includes:
-                globals_ = globals_.copy()
-
-                for name in self.includes:
-                    module = include_module_manager.load_module(name, self.package)
-                    globals_[name] = module
+        if self.package is not None and self.includes:
+            for name in self.includes:
+                module = include_module_manager.load_module(name, self.package)
+                globals_[name] = module
 
         # exec
         pyc = self.compiled
@@ -206,7 +216,8 @@ class SourceCode(object):
         except Exception as e:
             stack = traceback.format_exc()
             raise SourceCodeExecError(
-                "Failed to execute %s:\n\n%s" % (self.sourcename, stack))
+                "Failed to execute %s:\n%s" % (self.sourcename, stack),
+                short_msg=str(e))
 
         return globals_.get("_result")
 
@@ -219,28 +230,40 @@ class SourceCode(object):
 
         txt = "def %s():\n%s" % (funcname, source)
 
-        if self.func and hasattr(self.func, "_decorators"):
-            for entry in self.func._decorators:
-                nargs_str = ", ".join(map(repr, entry.get("nargs", [])))
-                name_str = entry.get("name")
-                sig = "@%s(%s)" % (name_str, nargs_str)
+        for entry in self.decorators:
+            nargs_str = ", ".join(map(repr, entry.get("nargs", [])))
+            name_str = entry.get("name")
+            sig = "@%s(%s)" % (name_str, nargs_str)
 
-                txt = sig + '\n' + txt
+            txt = sig + '\n' + txt
 
         return txt
 
     def _get_decorator_info(self, name):
-        if not self.func:
-            return None
-
-        if not hasattr(self.func, "_decorators"):
-            return None
-
-        matches = [x for x in self.func._decorators if x.get("name") == name]
+        matches = [x for x in self.decorators if x.get("name") == name]
         if not matches:
             return None
 
         return matches[0]
+
+    def __getstate__(self):
+        return {
+            "source": self.source,
+            "filepath": self.filepath,
+            "funcname": self.funcname,
+            "eval_as_function": self.eval_as_function,
+            "decorators": self.decorators
+        }
+
+    def __setstate__(self, state):
+        self.source = state["source"]
+        self.filepath = state["filepath"]
+        self.funcname = state["funcname"]
+        self.eval_as_function = state["eval_as_function"]
+        self.decorators = state["decorators"]
+
+        self.func = None
+        self.package = None
 
     def __eq__(self, other):
         return (isinstance(other, SourceCode)
