@@ -111,7 +111,7 @@ class ResolvedContext(object):
     command within a configured python namespace, without spawning a child
     shell.
     """
-    serialize_version = (4, 2)
+    serialize_version = (4, 3)
     tmpdir_manager = TempDirs(config.context_tmpdir, prefix="rez_context_")
 
     class Callback(object):
@@ -221,8 +221,11 @@ class ResolvedContext(object):
         self.graph_string = None
         self.graph_ = None
         self.from_cache = None
-        self.solve_time = 0.0  # inclusive of load time
-        self.load_time = 0.0
+
+        # stats
+        self.solve_time = 0.0  # total solve time, inclusive of load time
+        self.load_time = 0.0  # total time loading packages (disk or memcache)
+        self.num_loaded_packages = 0  # num packages loaded (disk or memcache)
 
         # the pre-resolve bindings. We store these because @late package.py
         # functions need them, and we cache them to avoid cost
@@ -238,6 +241,11 @@ class ResolvedContext(object):
                                   time_limit=time_limit,
                                   callback=callback)
 
+        def _package_load_callback(package):
+            if package_load_callback:
+                _package_load_callback(package)
+            self.num_loaded_packages += 1
+
         request = self.requested_packages(include_implicit=True)
 
         resolver = Resolver(context=self,
@@ -249,7 +257,7 @@ class ResolvedContext(object):
                             building=self.building,
                             caching=self.caching,
                             callback=callback_,
-                            package_load_callback=package_load_callback,
+                            package_load_callback=_package_load_callback,
                             verbosity=verbosity,
                             buf=buf)
         resolver.solve()
@@ -743,11 +751,12 @@ class ResolvedContext(object):
             _pr()
             actual_solve_time = self.solve_time - self.load_time
             _pr("resolve details:", heading)
-            _pr("load time:   %.02f secs" % self.load_time)
-            _pr("solve time:  %.02f secs" % actual_solve_time)
-            _pr("from cache:  %s" % self.from_cache)
+            _pr("load time:         %.02f secs" % self.load_time)
+            _pr("solve time:        %.02f secs" % actual_solve_time)
+            _pr("packages queried:  %d" % self.num_loaded_packages)
+            _pr("from cache:        %s" % self.from_cache)
             if self.load_path:
-                _pr("rxt file:    %s" % self.load_path)
+                _pr("rxt file:          %s" % self.load_path)
 
         if verbosity >= 2:
             _pr()
@@ -1284,9 +1293,11 @@ class ResolvedContext(object):
             resolved_packages=resolved_packages,
             failure_description=self.failure_description,
             graph=graph_str,
+
             from_cache=self.from_cache,
             solve_time=self.solve_time,
-            load_time=self.load_time)
+            load_time=self.load_time,
+            num_loaded_packages=self.num_loaded_packages)
 
     @classmethod
     def from_dict(cls, d, identifier_str=None):
@@ -1342,6 +1353,7 @@ class ResolvedContext(object):
 
         r.status_ = ResolverStatus[d["status"]]
         r.failure_description = d["failure_description"]
+
         r.solve_time = d["solve_time"]
         r.load_time = d["load_time"]
 
@@ -1391,6 +1403,10 @@ class ResolvedContext(object):
             r.package_orderers = [package_order.from_pod(x) for x in data]
         else:
             r.package_orderers = None
+
+        # -- SINCE SERIALIZE VERSION 4.3
+
+        r.num_loaded_packages = d.get("num_loaded_packages", -1)
 
         return r
 
