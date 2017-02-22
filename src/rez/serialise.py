@@ -170,13 +170,22 @@ def load_py(stream, filepath=None):
     return result
 
 
-def process_python_objects(data, filepath=None):
-    for k, v in data.iteritems():
-        if isfunction(v):
-            if hasattr(v, "_early"):
+def process_python_objects(value, filepath=None):
+
+    def _process(value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                value[k] = _process(v)
+
+            return value
+        elif isfunction(value):
+            if hasattr(value, "_early"):
                 # run the function now, and replace with return value
                 with add_sys_paths(config.package_definition_build_python_paths):
-                    value = v()
+                    value_ = value()
+
+                # process again in case this is a function returning a function
+                return _process(value_)
             else:
                 # if a rex function, the code has to be eval'd NOT as a function,
                 # otherwise the globals dict doesn't get updated with any vars
@@ -188,16 +197,14 @@ def process_python_objects(data, filepath=None):
                 # ..won't work. It was never intentional that the above work, but
                 # it does, so now we have to keep it so.
                 #
-                as_function = (v.__name__ not in package_rex_keys)
+                as_function = (value.__name__ not in package_rex_keys)
 
-                value = SourceCode(func=v, filepath=filepath,
-                                   eval_as_function=as_function)
+                return SourceCode(func=value, filepath=filepath,
+                                  eval_as_function=as_function)
+        else:
+            return value
 
-            data[k] = value
-        elif isinstance(v, dict):
-            process_python_objects(v, filepath=filepath)
-
-    return data
+    return _process(value)
 
 
 def load_yaml(stream, **kwargs):

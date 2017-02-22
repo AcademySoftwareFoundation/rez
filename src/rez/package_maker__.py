@@ -41,7 +41,7 @@ package_schema = Schema({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
 
-    Optional("postprocess"):            _function_schema,
+    Optional("preprocess"):             _function_schema,
 
     # arbitrary fields
     Optional(basestring):               object

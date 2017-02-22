@@ -160,7 +160,7 @@ class PackageRepositoryError(RezError):
 
 
 class InvalidPackageError(RezError):
-    """A special case exception used in package 'postprocess function'."""
+    """A special case exception used in package 'preprocess function'."""
     pass
 
 

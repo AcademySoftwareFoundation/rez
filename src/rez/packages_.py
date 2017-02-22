@@ -157,6 +157,14 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
             bindings = self.context._get_pre_resolve_bindings()
             g.update(bindings)
 
+        # note that what 'this' actually points to depends on whether the context
+        # is available or not. If not, then 'this' is a Package instance; if the
+        # context is available, it is a Variant instance. So for example, if
+        # in_context() is True, 'this' will have a 'root' attribute, but will
+        # not if in_context() is False.
+        #
+        g["this"] = self
+
         sourcecode.set_package(self)
         return sourcecode.exec_(globals_=g)
 

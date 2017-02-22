@@ -26,7 +26,7 @@ package_release_keys = (
 
 # package attributes that we don't install
 package_build_only_keys = (
-    "postprocess",
+    "preprocess",
 )
 
 # package attributes that are rex-based functions
@@ -118,7 +118,7 @@ package_schema_dict.update({
     # deliberately not possible to late bind
     Optional("variants"):               [[PackageRequest]],
 
-    Optional("postprocess"):            SourceCode
+    Optional("preprocess"):             SourceCode
 })
 
 
@@ -183,7 +183,7 @@ package_pod_schema_dict.update({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
 
-    Optional("postprocess"):            _function_schema,
+    Optional("preprocess"):             _function_schema,
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,
