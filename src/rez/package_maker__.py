@@ -7,13 +7,17 @@ from rez.package_resources_ import help_schema, _commands_schema, \
     _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
+from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.version.version import Version
 from contextlib import contextmanager
 import os
 
 
-package_request_schema = Or(basestring,
+# this schema will automatically harden request strings like 'python-*'; see
+# the 'expand_requires' function for more info.
+#
+package_request_schema = Or(And(basestring, Use(expand_requirement)),
                             And(PackageRequest, Use(str)))
 
 

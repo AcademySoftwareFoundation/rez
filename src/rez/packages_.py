@@ -3,6 +3,7 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
     package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
+from rez.utils import reraise
 from rez.utils.logging_ import print_info, print_error
 from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, _missing
@@ -234,7 +235,7 @@ class Package(PackageBaseResourceWrapper):
         """
         repo = self.resource._repository
         for variant in repo.iter_variants(self.resource):
-            yield Variant(variant, context=self.context)
+            yield Variant(variant, context=self.context, parent=self)
 
     def get_variant(self, index=None):
         """Get the variant with the associated index.
@@ -257,9 +258,10 @@ class Variant(PackageBaseResourceWrapper):
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
 
-    def __init__(self, resource, context=None):
+    def __init__(self, resource, context=None, parent=None):
         _check_class(resource, VariantResource)
         super(Variant, self).__init__(resource, context)
+        self._parent = parent
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -293,24 +295,35 @@ class Variant(PackageBaseResourceWrapper):
         Returns:
             `Package`.
         """
-        repo = self.resource._repository
-        package = repo.get_parent_package(self.resource)
-        return Package(package, context=self.context)
+        if self._parent is not None:
+            return self._parent
+
+        try:
+            repo = self.resource._repository
+            package = repo.get_parent_package(self.resource)
+            self._parent = Package(package, context=self.context)
+        except AttributeError as e:
+            reraise(e, ValueError)
+
+        return self._parent
 
     @property
     def requires(self):
         """Get variant requirements.
 
-        This is a concatenation of the package requirements and those if this
+        This is a concatenation of the package requirements and those of this
         specific variant.
         """
-        package_requires = self.parent.requires or []
+        try:
+            package_requires = self.parent.requires or []
 
-        if self.index is None:
-            return package_requires
-        else:
-            variant_requires = self.parent.variants[self.index] or []
-            return package_requires + variant_requires
+            if self.index is None:
+                return package_requires
+            else:
+                variant_requires = self.parent.variants[self.index] or []
+                return package_requires + variant_requires
+        except AttributeError as e:
+            reraise(e, ValueError)
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.

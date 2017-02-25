@@ -293,16 +293,40 @@ class IncludeModuleManager(object):
 
     def load_module(self, name, package):
         from rez.config import config  # avoiding circular import
+        from rez.developer_package import DeveloperPackage
 
-        path = os.path.join(package.base, self.include_modules_subpath)
-        pathname = os.path.join(path, "%s-*.py" % name)
+        # in rare cases, a @late bound function may get called before the
+        # package is built. An example is 'requires' and the other requires-like
+        # functions. These need to be evaluated before a build, but it does also
+        # make sense to sometimes implement these as late-bound functions. We
+        # detect this case here, and load the modules from the original (pre-
+        # copied into package payload) location.
+        #
+        if isinstance(package, DeveloperPackage):
+            from hashlib import sha1
 
-        pathnames = glob(pathname)
-        if not pathnames:
-            return None
+            # load sourcefile from original location
+            path = config.package_definition_python_path
+            filepath = os.path.join(path, "%s.py" % name)
 
-        filepath = pathnames[0]
-        hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
+            if not os.path.exists(filepath):
+                return None
+
+            with open(filepath) as f:
+                txt = f.read().strip()
+
+            hash_str = sha1(txt).hexdigest()
+        else:
+            # load sourcefile that's been copied into package install payload
+            path = os.path.join(package.base, self.include_modules_subpath)
+            pathname = os.path.join(path, "%s-*.py" % name)
+
+            pathnames = glob(pathname)
+            if not pathnames:
+                return None
+
+            filepath = pathnames[0]
+            hash_str = filepath.rsplit('-', 1)[-1].split('.', 1)[0]
 
         module = self.modules.get(hash_str)
         if module is not None:
