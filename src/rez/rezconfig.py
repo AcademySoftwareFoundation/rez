@@ -101,7 +101,8 @@ package_definition_build_python_paths = []
 # This package will import the code from */src/rezutils/utils.py* (or more
 # specifically, its copy of this sourcefile) and will bind it to the name *utils*.
 #
-# For further information, see [here](Package-Definition-Guide#using-shared-code).
+# For further information, see
+# [here](Package-Definition-Guide#sharing-code-across-package-definition-files).
 #
 package_definition_python_path = None
 
@@ -360,7 +361,8 @@ package_commands_sourced_first = True
 # If you define this function, it will be called as the *preprocess function*
 # on every package that does not provide its own, as part of the build process.
 # The given function must be made available by setting the value of
-# *package_definition_build_python_paths* appropriately.
+# [package_definition_build_python_paths](#package_definition_build_python_paths)
+# appropriately.
 #
 # For example, consider the settings:
 #

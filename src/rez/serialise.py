@@ -13,7 +13,7 @@ from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from contextlib import contextmanager
-from inspect import isfunction
+from inspect import isfunction, getargspec
 from StringIO import StringIO
 import sys
 import os
@@ -170,7 +170,7 @@ def load_py(stream, filepath=None):
     return result
 
 
-def process_python_objects(value, filepath=None):
+def process_python_objects(data, filepath=None):
 
     def _process(value):
         if isinstance(value, dict):
@@ -182,7 +182,17 @@ def process_python_objects(value, filepath=None):
             if hasattr(value, "_early"):
                 # run the function now, and replace with return value
                 with add_sys_paths(config.package_definition_build_python_paths):
-                    value_ = value()
+                    func = value
+
+                    spec = getargspec(func)
+                    args = spec.args or []
+                    if len(args) not in (0, 1):
+                        raise ResourceError("@early decorated function must "
+                                            "take zero or one args only")
+                    if args:
+                        value_ = func(data)
+                    else:
+                        value_ = func()
 
                 # process again in case this is a function returning a function
                 return _process(value_)
@@ -204,7 +214,7 @@ def process_python_objects(value, filepath=None):
         else:
             return value
 
-    return _process(value)
+    return _process(data)
 
 
 def load_yaml(stream, **kwargs):
