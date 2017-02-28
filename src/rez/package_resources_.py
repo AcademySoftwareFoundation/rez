@@ -393,7 +393,7 @@ class VariantResourceHelper(VariantResource):
     schema = variant_schema
 
     # forward Package attributes onto ourself
-    keys = schema_keys(package_schema) - set(["requires", "variants"])
+    keys = schema_keys(package_schema) - set(["variants"])
 
     def _uri(self):
         index = self.index
@@ -417,11 +417,6 @@ class VariantResourceHelper(VariantResource):
         else:
             root = os.path.join(self.base, self.subpath)
             return root
-
-    #@cached_property
-    #def requires(self):
-    #    reqs = self.parent.requires or []
-    #    return reqs + self.variant_requires
 
     @cached_property
     def variant_requires(self):

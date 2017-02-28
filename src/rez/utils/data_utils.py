@@ -465,7 +465,7 @@ class LazyAttributeMeta(type):
     @classmethod
     def _make_getter(cls, key, attribute, optional, key_schema):
         def getter(self):
-            if key not in self._data:
+            if key not in (self._data or {}):
                 if optional:
                     return None
                 raise self.schema_error("Required key is missing: %r" % key)

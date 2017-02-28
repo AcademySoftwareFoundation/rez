@@ -184,20 +184,21 @@ class TestPackages(TestBase, TempdirMixin):
 
     def test_6(self):
         """test variant iteration."""
-        expected_data_ = dict(
+        expected_data = dict(
             name="variants_py",
             version=Version("2.0"),
             description="package with variants",
             base=os.path.join(self.py_packages_path, "variants_py", "2.0"),
+            requires=[PackageRequest("python-2.7")],
             commands=SourceCode('env.PATH.append("{root}/bin")'))
 
         requires_ = ["platform-linux", "platform-osx"]
 
         package = get_package("variants_py", "2.0")
         for i, variant in enumerate(package.iter_variants()):
-            expected_data = expected_data_.copy()
-            expected_data["requires"] = [PackageRequest('python-2.7'),
-                                         PackageRequest(requires_[i])]
+            #expected_data = expected_data_.copy()
+            #expected_data["requires"] = [PackageRequest('python-2.7'),
+            #                             PackageRequest(requires_[i])]
             data = variant.validated_data()
             self.assertDictEqual(data, expected_data)
             self.assertEqual(variant.index, i)

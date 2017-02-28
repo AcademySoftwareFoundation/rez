@@ -29,6 +29,9 @@ def expand_requirement(request):
     Returns:
         str: Expanded request string.
     """
+    if '*' not in request:
+        return request
+
     from rez.vendor.version.requirement import VersionedObject, Requirement
     from rez.packages_ import get_latest_package
 

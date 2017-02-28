@@ -1158,6 +1158,8 @@ class RexExecutor(object):
                     code.exec_(globals_=exec_namespace)
                 else:
                     exec pyc in exec_namespace
+            except RexError:
+                raise
             except SourceCodeError as e:
                 reraise(e, RexError)
             except error_class as e:
@@ -1195,8 +1197,14 @@ class RexExecutor(object):
 
         try:
             return fn(*nargs, **kwargs)
+        except RexError:
+            raise
         except error_class as e:
+            from inspect import getfile
+
             stack = traceback.format_exc()
+            filename = getfile(func)
+
             raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
 
     def get_output(self, style=OutputStyle.file):
