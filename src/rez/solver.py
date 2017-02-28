@@ -1754,16 +1754,19 @@ class Solver(_Common):
     """
     max_verbosity = 3
 
-    def __init__(self, context, package_requests, package_paths, package_filter=None,
-                 package_orderers=None, callback=None, building=False,
-                 optimised=True, verbosity=0, buf=None, package_load_callback=None,
-                 prune_unfailed=True):
+    def __init__(self, package_requests, package_paths, context=None,
+                 package_filter=None, package_orderers=None, callback=None,
+                 building=False, optimised=True, verbosity=0, buf=None,
+                 package_load_callback=None, prune_unfailed=True):
         """Create a Solver.
 
         Args:
             package_requests: List of Requirement objects representing the
                 request.
             package_paths: List of paths to search for pkgs.
+            context (`ResolvedContext`): Context this solver is used within, if
+                any. This is needed in a solve if any packages contain late
+                binding package attributes that need access to context info.
             package_filter (`PackageFilterBase`): Filter for excluding packages.
             package_orderers (list of `PackageOrder`): Custom package ordering.
             building: True if we're resolving for a build.
@@ -1784,7 +1787,6 @@ class Solver(_Common):
                 True, any packages unrelated to the conflict are removed from
                 the graph.
         """
-        self.context = context
         self.package_paths = package_paths
         self.package_filter = package_filter
         self.package_orderers = package_orderers
@@ -1795,6 +1797,7 @@ class Solver(_Common):
         self.package_load_callback = package_load_callback
         self.building = building
         self.request_list = None
+        self.context = context
 
         self.non_conflict_package_requests = [x for x in package_requests
                                               if not x.conflict]

@@ -364,9 +364,9 @@ class Resolver(object):
         return str(tuple(t))
 
     def _solve(self):
-        solver = Solver(context=self.context,
-                        package_requests=self.package_requests,
+        solver = Solver(package_requests=self.package_requests,
                         package_paths=self.package_paths,
+                        context=self.context,
                         package_filter=self.package_filter,
                         package_orderers=self.package_orderers,
                         callback=self.callback,
