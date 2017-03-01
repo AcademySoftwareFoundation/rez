@@ -122,7 +122,7 @@ class LocalBuildProcess(BuildProcessHelper):
             pkg_repo = package_repository_manager.get_repository(install_path)
             pkg_repo.pre_variant_install(variant.resource)
 
-            if os.path.exists(variant_install_path):
+            if not os.path.exists(variant_install_path):
                 safe_makedirs(variant_install_path)
 
         # create build environment
