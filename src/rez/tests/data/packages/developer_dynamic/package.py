@@ -7,3 +7,7 @@ def description():
 requires = [
     "versioned-*"
 ]
+
+def preprocess(this, data):
+    from early_utils import get_authors
+    data["authors"] = get_authors()

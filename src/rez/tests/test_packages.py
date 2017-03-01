@@ -61,10 +61,15 @@ class TestPackages(TestBase, TempdirMixin):
         cls.yaml_packages_path = os.path.join(cls.packages_base_path, "yaml_packages")
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
+        cls.package_definition_build_python_paths = [
+            os.path.join(path, "data", "python", "early_bind")
+        ]
+
         cls.settings = dict(
             packages_path=[cls.solver_packages_path,
                            cls.yaml_packages_path,
                            cls.py_packages_path],
+            package_definition_build_python_paths=cls.package_definition_build_python_paths,
             package_filter=None)
 
     @classmethod
@@ -187,13 +192,14 @@ class TestPackages(TestBase, TempdirMixin):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
-        # a developer package with features such as expanding requirements
-        # and early-binding attribute functions
+        # a developer package with features such as expanding requirements,
+        # early-binding attribute functions, and preprocessing
         path = os.path.join(self.packages_base_path, "developer_dynamic")
         package = get_developer_package(path)
 
         self.assertEqual(package.description, "This.")
         self.assertEqual(package.requires, [PackageRequest('versioned-3')])
+        self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
 
     def test_6(self):
         """test variant iteration."""
