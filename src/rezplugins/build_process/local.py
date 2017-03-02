@@ -144,7 +144,7 @@ class LocalBuildProcess(BuildProcessHelper):
             build_type=build_type)
 
         if not build_result.get("success"):
-            raise BuildError("The %s build system failed" % build_system_name)
+            raise BuildError("The %s build system failed." % build_system_name)
 
         if install:
             # install some files for debugging purposes
