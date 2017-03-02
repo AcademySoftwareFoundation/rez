@@ -166,7 +166,7 @@ class BuildSystem(object):
             'REZ_BUILD_PROJECT_NAME': package.name,
             'REZ_BUILD_PROJECT_DESCRIPTION': \
                 (package.description or '').strip(),
-            'REZ_BUILD_PROJECT_FILE': getattr(variant.parent, 'filepath', ''),
+            'REZ_BUILD_PROJECT_FILE': getattr(package, 'filepath', ''),
             'REZ_BUILD_REQUIRES': \
                 ' '.join(str(x) for x in context.requested_packages(True)),
             'REZ_BUILD_REQUIRES_UNVERSIONED': \
