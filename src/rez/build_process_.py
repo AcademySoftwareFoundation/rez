@@ -9,6 +9,7 @@ from rez.resolver import ResolverStatus
 from rez.config import config
 from rez.vendor.enum import Enum
 from contextlib import contextmanager
+from pipes import quote
 import getpass
 import os.path
 
@@ -199,8 +200,9 @@ class BuildProcessHelper(BuildProcess):
         request = variant.get_requires(build_requires=True,
                                        private_build_requires=True)
 
-        requests_str = ' '.join(map(str, request))
-        self._print("Resolving build environment: %s", requests_str)
+        req_strs = map(str, request)
+        quoted_req_strs = map(quote, req_strs)
+        self._print("Resolving build environment: %s", ' '.join(quoted_req_strs))
 
         if build_type == BuildType.local:
             packages_path = self.package.config.packages_path
