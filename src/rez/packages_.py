@@ -677,8 +677,31 @@ def get_latest_package(name, range_=None, paths=None, error=False):
         return max(it, key=lambda x: x.version)
     except ValueError:  # empty sequence
         if error:
+            # FIXME this isn't correct, since the pkg fam may exist but a pkg
+            # in the range does not.
             raise PackageFamilyNotFoundError("No such package family %r" % name)
         return None
+
+
+def get_latest_package_from_string(txt, paths=None, error=False):
+    """Get the latest package found within the given request string.
+
+    Args:
+        txt (str): Request, eg 'foo-1.2+'
+        paths (list of str, optional): paths to search for package families,
+            defaults to `config.packages_path`.
+        error (bool): If True, raise an error if no package is found.
+
+    Returns:
+        `Package` object, or None if no package is found.
+    """
+    from rez.utils.formatting import PackageRequest
+
+    req = PackageRequest(txt)
+    return get_latest_package(name=req.name,
+                              range_=req.range_,
+                              paths=paths,
+                              error=error)
 
 
 def _get_families(name, paths=None):

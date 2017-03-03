@@ -43,7 +43,7 @@ class PackageRequest(Requirement):
 
     Example:
 
-        >>> pr = PackageRequirement("foo-1.3+")
+        >>> pr = PackageRequest("foo-1.3+")
         >>> print pr.name, pr.range
         foo 1.3+
     """

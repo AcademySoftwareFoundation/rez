@@ -647,7 +647,7 @@ class ResolvedContext(object):
             buf (file-like object): Where to print this info to.
             verbosity (bool): Verbose mode.
             source_order (bool): If True, print resolved packages in the order
-                they are sources, rather than alphabetical order.
+                they are sourced, rather than alphabetical order.
             show_resolved_uris (bool): By default, resolved packages have their
                 'root' property listed, or their 'uri' if 'root' is None. Use
                 this option to list 'uri' regardless.
