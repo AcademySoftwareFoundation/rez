@@ -13,7 +13,7 @@ from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from contextlib import contextmanager
-from inspect import isfunction, getargspec
+from inspect import isfunction, ismodule, getargspec
 from StringIO import StringIO
 import sys
 import os
@@ -172,10 +172,17 @@ def load_py(stream, filepath=None):
 
 def process_python_objects(data, filepath=None):
 
+    _remove = object()
+
     def _process(value):
         if isinstance(value, dict):
             for k, v in value.items():
-                value[k] = _process(v)
+                new_value = _process(v)
+
+                if new_value is _remove:
+                    del value[k]
+                else:
+                    value[k] = new_value
 
             return value
         elif isfunction(value):
@@ -211,6 +218,12 @@ def process_python_objects(data, filepath=None):
 
                 return SourceCode(func=value, filepath=filepath,
                                   eval_as_function=as_function)
+        elif ismodule(value):
+            # modules cannot be installed as package attributes. They are present
+            # in developer packages sometimes though - it's fine for a package
+            # attribute to use an imported module at build time.
+            #
+            return _remove
         else:
             return value
 
