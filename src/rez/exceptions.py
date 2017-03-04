@@ -88,6 +88,11 @@ class PackageRequestError(RezError):
     pass
 
 
+class PackageTestError(RezError):
+    """There was a problem running a package test."""
+    pass
+
+
 class ResolvedContextError(RezError):
     """An error occurred in a resolved context."""
     pass

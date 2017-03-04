@@ -60,16 +60,34 @@ late_requires_schema = Schema([
 #------------------------------------------------------------------------------
 
 # requirements of all package-related resources
+#
+
 base_resource_schema_dict = {
     Required("name"):                   basestring
 }
 
 
 # package family
+#
+
 package_family_schema_dict = base_resource_schema_dict.copy()
 
 
 # schema common to both package and variant
+#
+
+tests_schema = Schema({
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
+        {
+            "command": Or(basestring, [basestring]),
+            Optional("requires"): [
+                Or(PackageRequest, And(basestring, Use(PackageRequest)))
+            ]
+        }
+    )
+})
+
 package_base_schema_dict = base_resource_schema_dict.copy()
 package_base_schema_dict.update({
     # basics
@@ -92,6 +110,9 @@ package_base_schema_dict.update({
     Optional('config'):                 Config,
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
+    # testing
+    Optional('tests'):                  late_bound(tests_schema),
 
     # commands
     Optional('pre_commands'):           SourceCode,
@@ -116,9 +137,7 @@ package_base_schema_dict.update({
 package_schema_dict = package_base_schema_dict.copy()
 package_schema_dict.update({
     # deliberately not possible to late bind
-    Optional("variants"):               [[PackageRequest]],
-
-    Optional("preprocess"):             SourceCode
+    Optional("variants"):               [[PackageRequest]]
 })
 
 
@@ -179,11 +198,11 @@ package_pod_schema_dict.update({
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
 
+    Optional('tests'):                  late_bound(tests_schema),
+
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
-
-    Optional("preprocess"):             _function_schema,
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

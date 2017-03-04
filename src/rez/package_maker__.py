@@ -20,6 +20,16 @@ import os
 package_request_schema = Or(And(basestring, Use(expand_requirement)),
                             And(PackageRequest, Use(str)))
 
+tests_schema = Schema({
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
+        {
+            "command": Or(basestring, [basestring]),
+            Optional("requires"): [package_request_schema]
+        }
+    )
+})
+
 
 package_schema = Schema({
     Required("name"):                   basestring,
@@ -40,6 +50,8 @@ package_schema = Schema({
     Optional('config'):                 dict,
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
+
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
