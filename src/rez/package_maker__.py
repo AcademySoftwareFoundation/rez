@@ -51,7 +51,7 @@ package_schema = Schema({
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
 
-    Optional('tests'):                  tests_schema,
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,

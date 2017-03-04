@@ -41,11 +41,19 @@ package_key_order = [
 
 version_schema = Or(basestring, And(Version, Use(str)))
 
-
 package_request_schema = Or(basestring, And(PackageRequest, Use(str)))
 
-
 source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
+
+tests_schema = Schema({
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
+        {
+            "command": Or(basestring, [basestring]),
+            Optional("requires"): [package_request_schema]
+        }
+    )
+})
 
 
 # package serialisation schema
@@ -69,6 +77,8 @@ package_serialise_schema = Schema({
     Optional("help"):                   late_bound(help_schema),
     Optional("uuid"):                   basestring,
     Optional("config"):                 dict,
+
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

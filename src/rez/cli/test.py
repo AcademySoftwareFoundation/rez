@@ -42,8 +42,7 @@ def command(opts, parser, extra_arg_groups=None):
         run_test_names = test_names
 
     for test_name in run_test_names:
-        proc = runner.run_test(test_name)
-        proc.wait()
+        returncode = runner.run_test(test_name)
 
-        if proc.returncode:
-            sys.exit(proc.returncode)
+        if returncode:
+            sys.exit(returncode)

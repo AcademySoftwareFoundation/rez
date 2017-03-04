@@ -112,7 +112,7 @@ package_base_schema_dict.update({
     Optional('help'):                   late_bound(help_schema),
 
     # testing
-    Optional('tests'):                  tests_schema,
+    Optional('tests'):                  late_bound(tests_schema),
 
     # commands
     Optional('pre_commands'):           SourceCode,
@@ -198,7 +198,7 @@ package_pod_schema_dict.update({
     Optional('tools'):                  late_bound([basestring]),
     Optional('help'):                   late_bound(help_schema),
 
-    Optional('tests'):                  tests_schema,
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,

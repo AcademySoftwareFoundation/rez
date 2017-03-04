@@ -35,6 +35,16 @@ class PackageTestRunner(object):
 
     Commands can also be a list - in this case, the test process is launched
     directly, rather than interpreted via a shell.
+
+    TODO FIXME: Currently a test will not be run over the variants of a
+    package. This is because there is no reliable way to resolve to a specific
+    variant's env - we can influence the variant chosen, knowing how the
+    variant selection mode works, but this is not a guarantee and it would
+    be error-prone and complicated to do it this way. For reasons beyond
+    package testing, we want to be able to explicitly specify a variant to
+    resolve to anyway, so this will be fixed in a separate feature. Once that
+    is available, this code will be updated to iterate over a package's
+    variants and run tests in each.
     """
     def __init__(self, package_request, use_current_env=False,
                  extra_package_requests=None, package_paths=None, stdout=None,
@@ -71,6 +81,9 @@ class PackageTestRunner(object):
         self.package = None
         self.contexts = {}
 
+        if use_current_env:
+            raise NotImplementedError
+
     def get_package(self):
         """Get the target package.
 
@@ -101,115 +114,112 @@ class PackageTestRunner(object):
         package = self.get_package()
         return sorted((package.tests or {}).keys())
 
-    def can_run_test(self, test_name):
-        """See if test can be run.
-
-        The only time a test cannot be run is when `self.use_current_env` is
-        True, and the current env does not have the necessary requirements.
-
-        Returns:
-            2-tuple:
-            - bool: True if test can be run;
-            - str: Description of why test cannot be run (or empty string).
-        """
-        if not self.use_current_env:
-            return True, ''
-
-        return False, "TODO"
-
     def run_test(self, test_name):
         """Run a test.
 
         Runs the test in its correct environment. Note that if tests share the
         same requirements, the contexts will be reused.
 
-        Returns:
-            subprocess.Popen: Test process.
-        """
-        package = self.get_package()
-        test_info = self._get_test_info(test_name)
-        command = test_info["command"]
-        requires = test_info["requires"]
+        TODO: If the package had variants, the test will be run for each
+        variant.
 
+        Returns:
+            int: Returncode - zero if all test(s) passed, otherwise the return
+                code of the failed test.
+        """
         def print_header(txt, *nargs):
             pr = Printer(sys.stdout)
             pr(txt % nargs, heading)
 
-        def print_command_header():
+        package = self.get_package()
+
+        if test_name not in self.get_test_names():
+            raise PackageTestError("Test '%s' not found in package %s"
+                                   % (test_name, package.uri))
+
+        if self.use_current_env:
+            return self._run_test_in_current_env(test_name)
+
+        for variant in package.iter_variants():
+
+            # get test info for this variant. If None, that just means that this
+            # variant doesn't provide this test. That's ok - 'tests' might be
+            # implemented as a late function attribute that provides some tests
+            # for some variants and not others
+            #
+            test_info = self._get_test_info(test_name, variant)
+            if not test_info:
+                continue
+
+            command = test_info["command"]
+            requires = test_info["requires"]
+
+            # expand refs like {root} in commands
+            if isinstance(command, basestring):
+                command = variant.format(command)
+            else:
+                command = map(variant.format, command)
+
+            # show progress
             if self.verbose:
+                print_header(
+                    "\nTest: %s\nPackage: %s\n%s\n",
+                    test_name, variant.uri, '-' * 80)
+
+            # create test env
+            key = tuple(requires)
+            context = self.contexts.get(key)
+
+            if context is None:
+                if self.verbose:
+                    print_header("Resolving test environment: %s\n",
+                                 ' '.join(map(quote, requires)))
+
+                context = ResolvedContext(package_requests=requires,
+                                          package_paths=self.package_paths,
+                                          buf=self.stdout,
+                                          **self.context_kwargs)
+
+                if not context.success:
+                    context.print_info(buf=self.stderr)
+                    raise PackageTestError(
+                        "Cannot run test '%s' of package %s: the environment "
+                        "failed to resolve" % (test_name, variant.uri))
+
+                self.contexts[key] = context
+
+            # run the test in the context
+            if self.verbose:
+                context.print_info(self.stdout)
+
                 if isinstance(command, basestring):
                     cmd_str = command
                 else:
                     cmd_str = ' '.join(map(quote, command))
 
-                print_header("\n\nRunning test '%s'\nCommand: %s\n",
-                             test_name, cmd_str)
+                print_header("\nRunning test command: %s\n" % cmd_str)
 
-        def expand_command(context, command):
-            variant = context.get_resolved_package(package.name)
-            if isinstance(command, basestring):
-                return variant.format(command)
-            else:
-                return map(variant.format, command)
+            retcode, _, _ = context.execute_shell(
+                command=command,
+                stdout=self.stdout,
+                stderr=self.stderr,
+                block=True)
 
-        if self.use_current_env:
-            can_run, descr = self.can_run_test(test_name)
-            if not can_run:
-                raise PackageTestError(
-                    "Cannot run test '%s' of package %s in the current "
-                    "environment: %s" % (test_name, package.uri, descr))
+            if retcode:
+                return retcode
 
-            context = ResolvedContext.get_current()
-            command = expand_command(context, command)
+            # TODO FIXME we don't iterate over all variants yet, because we
+            # can't reliably do that (see class docstring)
+            break
 
-            print_command_header()
+        return 0  # success
 
-            # run directly as subprocess
-            p = subprocess.Popen(command, shell=isinstance(command, basestring),
-                                 stdout=self.stdout, stderr=self.stderr)
-            return p
-
-        # create/reuse context to run test within
-        key = tuple(requires)
-        context = self.contexts.get(key)
-
-        if context is None:
-            if self.verbose:
-                print_header("\nResolving environment for test '%s': %s\n%s\n",
-                             test_name, ' '.join(map(quote, requires)), '-' * 80)
-
-            context = ResolvedContext(package_requests=requires,
-                                      package_paths=self.package_paths,
-                                      buf=self.stdout,
-                                      **self.context_kwargs)
-
-            if not context.success:
-                context.print_info(buf=self.stderr)
-                raise PackageTestError(
-                    "Cannot run test '%s' of package %s: the environment "
-                    "failed to resolve" % (test_name, package.uri))
-
-            self.contexts[key] = context
-
-        command = expand_command(context, command)
-
-        if self.verbose:
-            context.print_info(self.stdout)
-            print_command_header()
-
-        return context.execute_shell(command=command,
-                                     stdout=self.stdout,
-                                     stderr=self.stderr)
-
-    def _get_test_info(self, test_name):
-        package = self.get_package()
-
-        tests_dict = package.tests or {}
+    def _get_test_info(self, test_name, variant):
+        tests_dict = variant.tests or {}
         test_entry = tests_dict.get(test_name)
 
         if not test_entry:
-            raise PackageTestError("Test '%s' not found in package %s"
-                                   % (test_name, package.uri))
+            return None
 
         if not isinstance(test_entry, dict):
             test_entry = {
@@ -219,14 +229,14 @@ class PackageTestRunner(object):
         # construct env request
         requires = []
 
-        if len(package.version):
-            req = "%s==%s" % (package.name, str(package.version))
+        if len(variant.version):
+            req = "%s==%s" % (variant.name, str(variant.version))
             requires.append(req)
         else:
-            requires.append(str(package))
+            requires.append(variant.name)
 
         reqs = test_entry.get("requires") or []
-        requires.extend(reqs)
+        requires.extend(map(str, reqs))
 
         if self.extra_package_requests:
             reqs = map(str, self.extra_package_requests)
