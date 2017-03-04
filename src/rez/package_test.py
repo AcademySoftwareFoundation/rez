@@ -5,6 +5,7 @@ from rez.exceptions import PackageNotFoundError, PackageTestError
 from rez.utils.colorize import heading, Printer
 from pipes import quote
 import subprocess
+import time
 import sys
 
 
@@ -81,6 +82,10 @@ class PackageTestRunner(object):
         self.package = None
         self.contexts = {}
 
+        # use a common timestamp across all tests - this ensures that tests
+        # don't pick up new packages halfway through (ie from one test to another)
+        self.timestamp = int(time.time())
+
         if use_current_env:
             raise NotImplementedError
 
@@ -99,7 +104,7 @@ class PackageTestRunner(object):
             package = get_latest_package_from_string(str(self.package_request),
                                                      self.package_paths)
             if package is None:
-                raise PackageNotFoundError("Could not find package to test - %s"
+                raise PackageNotFoundError("Could not find package to test: %s"
                                            % str(self.package_request))
 
         self.package = package
@@ -178,6 +183,7 @@ class PackageTestRunner(object):
                 context = ResolvedContext(package_requests=requires,
                                           package_paths=self.package_paths,
                                           buf=self.stdout,
+                                          timestamp=self.timestamp,
                                           **self.context_kwargs)
 
                 if not context.success:
