@@ -3,7 +3,7 @@ from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
-from rez.package_resources_ import help_schema, _commands_schema
+from rez.package_resources_ import help_schema, _commands_schema, _function_schema
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
@@ -38,6 +38,8 @@ package_schema = Schema({
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
 
+    Optional("postprocess"):            _function_schema,
+
     # arbitrary fields
     Optional(basestring):               object
 })
@@ -45,7 +47,7 @@ package_schema = Schema({
 
 class PackageMaker(AttrDictWrapper):
     """Utility class for creating packages."""
-    def __init__(self, name, data=None):
+    def __init__(self, name, data=None, package_cls=None):
         """Create a package maker.
 
         Args:
@@ -53,6 +55,7 @@ class PackageMaker(AttrDictWrapper):
         """
         super(PackageMaker, self).__init__(data)
         self.name = name
+        self.package_cls = package_cls or Package
 
         # set by `make_package`
         self.installed_variants = []
@@ -77,7 +80,8 @@ class PackageMaker(AttrDictWrapper):
         family_resource = repo.get_package_family(self.name)
         it = repo.iter_packages(family_resource)
         package_resource = it.next()
-        package = Package(package_resource)
+
+        package = self.package_cls(package_resource)
 
         # revalidate the package for extra measure
         package.validate_data()
@@ -85,8 +89,11 @@ class PackageMaker(AttrDictWrapper):
 
     def _get_data(self):
         data = self._data.copy()
+
         data.pop("installed_variants", None)
         data.pop("skipped_variants", None)
+        data.pop("package_cls", None)
+
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
 

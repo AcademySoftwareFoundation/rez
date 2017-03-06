@@ -159,6 +159,11 @@ class PackageRepositoryError(RezError):
     pass
 
 
+class InvalidPackageError(RezError):
+    """A special case exception used in package 'postprocess function'."""
+    pass
+
+
 class RezGuiQTImportError(ImportError):
     """A special case - see cli/gui.py
     """

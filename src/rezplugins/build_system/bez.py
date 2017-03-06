@@ -32,10 +32,11 @@ class BezBuildSystem(BuildSystem):
     def is_valid_root(cls, path):
         return os.path.isfile(os.path.join(path, "rezbuild.py"))
 
-    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
         super(BezBuildSystem, self).__init__(working_dir,
                                              opts=opts,
+                                             package=package,
                                              write_build_scripts=write_build_scripts,
                                              verbose=verbose,
                                              build_args=build_args,

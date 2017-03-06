@@ -2,11 +2,12 @@
 Read and write data from file. File caching via a memcached server is supported.
 """
 from rez.utils.scope import ScopeContext
-from rez.utils.data_utils import SourceCode
+from rez.utils.sourcecode import SourceCode, early, include
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
-from rez.exceptions import ResourceError
+from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
+from rez.utils.syspath import add_sys_paths
 from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
@@ -133,7 +134,11 @@ def load_py(stream, filepath=None):
         dict.
     """
     scopes = ScopeContext()
-    g = dict(scope=scopes)
+
+    g = dict(scope=scopes,
+             early=early,
+             include=include,
+             InvalidPackageError=InvalidPackageError)
 
     try:
         exec stream in g
@@ -143,30 +148,41 @@ def load_py(stream, filepath=None):
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
 
-        msg = str(e)
+        msg = "Problem loading %s: %s" % (filepath, str(e))
         stack = ''.join(traceback.format_list(frames)).strip()
         if stack:
             msg += ":\n" + stack
         raise ResourceError(msg)
 
     result = {}
-    excludes = set(('scope', '__builtins__'))
+    excludes = set(('scope', 'InvalidPackageError', '__builtins__',
+                    'early', 'include'))
+
     for k, v in g.iteritems():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
 
-    def _process_objects(data):
-        for k, v in data.iteritems():
-            if isfunction(v):
-                data[k] = SourceCode.from_function(v)
-            elif isinstance(v, dict):
-                _process_objects(v)
-        return data
-
     result.update(scopes.to_dict())
-    result = _process_objects(result)
+    result = process_python_objects(result, filepath=filepath)
     return result
+
+
+def process_python_objects(data, filepath=None):
+    for k, v in data.iteritems():
+        if isfunction(v):
+            if hasattr(v, "_early"):
+                # run the function now, and replace with return value
+                with add_sys_paths(config.package_definition_build_python_paths):
+                    value = v()
+            else:
+                value = SourceCode.from_function(v, filepath=filepath)
+
+            data[k] = value
+        elif isinstance(v, dict):
+            process_python_objects(v, filepath=filepath)
+
+    return data
 
 
 def load_yaml(stream, **kwargs):

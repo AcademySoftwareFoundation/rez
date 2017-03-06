@@ -10,6 +10,7 @@ from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
 from rez.util import shlex_join
+from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.vendor.enum import Enum
@@ -1119,7 +1120,7 @@ class RexExecutor(object):
         """Compile and possibly execute rex code.
 
         Args:
-            code (str): The python code to compile.
+            code (str or SourceCode): The python code to compile.
             filename (str): File to associate with the code, will default to
                 '<string>'.
             namespace (dict): Namespace to execute the code in. If None, the
@@ -1133,7 +1134,10 @@ class RexExecutor(object):
 
         # compile
         try:
-            pyc = compile(code, filename, 'exec')
+            if isinstance(code, SourceCode):
+                pyc = code.compiled
+            else:
+                pyc = compile(code, filename, 'exec')
         except error_class as e:
             # trim trace down to only what's interesting
             msg = str(e)
@@ -1152,7 +1156,10 @@ class RexExecutor(object):
         # execute
         if exec_namespace is not None:
             try:
-                exec pyc in exec_namespace
+                if isinstance(code, SourceCode):
+                    code.exec_(globals_=exec_namespace)
+                else:
+                    exec pyc in exec_namespace
             except error_class as e:
                 # trim trace down to only what's interesting
                 import traceback
@@ -1160,13 +1167,14 @@ class RexExecutor(object):
                 frames = [x for x in frames if x[0] == filename]
                 cls._patch_frames(frames, code, filename)
                 cls._raise_rex_error(frames, e)
+
         return pyc
 
     def execute_code(self, code, filename=None):
         """Execute code within the execution context.
 
         Args:
-            code (str): Rex code to execute.
+            code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
         """
         self.compile_code(code=code,

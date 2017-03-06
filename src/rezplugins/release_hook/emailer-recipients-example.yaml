@@ -1,0 +1,43 @@
+#
+# This is an example of a 'recipients' config file. To use one, set the
+# 'recipients' config setting to this filepath, rather than a list of email
+# addresses.
+#
+# This config gives more fine-grained control of who is emailed when a package
+# is released, and all in one place (after all, you can override the setting
+# 'config.plugins.release_hook.emailer.recipients' in any package.py as well).
+#
+# In this example:
+# * An explicit list of packages email one address;
+# * All packages with the attribute package_type='external', email another address;
+# * All packages (regardless of whether they meet the above criteria) are sent
+#   to another address.
+#
+# A mail will be sent to every address that matches the package being released.
+#
+# The 'filters' section performs simple value matching on the package's
+# attributes. If the value given is a list, then the filter will match on any of
+# the given values. If more than one attribute is listed under 'filters', then
+# they are ANDed - ie all attributes must match. Only simple types (string, int)
+# can be tested - testing any other attribute type will fail. If no attribute
+# value is given (ie, its value is None), it will match if the attribute exists
+# on the package, regardless of value.
+#
+# Note the lack of 'filters' in the last rule - this means the rule will match
+# all packages.
+#
+
+rules:
+- filters:
+    name:
+    - maya_utils
+    - maya_anim_tools
+    - maya_scn_mgr
+  recipients:
+  - maya_devs@myvfxstudio.com
+- filters:
+    package_type: external
+  recipients:
+  - external_pkg_release@myvfxstudio.com
+- recipients:
+  - rez-release@myvfxstudio.com

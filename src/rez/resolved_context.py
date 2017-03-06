@@ -1500,6 +1500,7 @@ class ResolvedContext(object):
                 executor.bind('root',       pkg.root)
                 executor.bind('base',       pkg.base)
 
+                """
                 # show a meaningful filename in traceback if an error occurs.
                 # Can't use an actual filepath because (a) the package may not
                 # have one and (b) it might be a yaml file (line numbers would
@@ -1521,6 +1522,14 @@ class ResolvedContext(object):
                         except error_class as e:
                             exc = e
                             trace = traceback.format_exc()
+                """
+
+                exc = None
+                trace = None
+                commands.set_package(pkg)
+
+                try:
+                    executor.execute_code(commands)
                 except error_class as e:
                     exc = e
                     trace = traceback.format_exc()

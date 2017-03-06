@@ -74,6 +74,45 @@ logfile_by_command = {}
 # cleaned up when the render completes.
 context_tmpdir = None
 
+# These are extra python paths that are added to sys.path **only during a build**.
+# This means that any of the functions in the following list can import modules
+# from these paths:
+# * The *postprocess* function;
+# * Any function decorated with @harden (TODO) - these get evaluated at build time.
+#
+# You can use this to provide common code to your package definition files during
+# a build. To provide common code for packages to use at resolve time instead (for
+# example, in a *commands* function) see the following
+# *package_definition_python_path* setting.
+#
+package_definition_build_python_paths = []
+
+# This is the directory from which installed packages can import modules. This
+# is a way for packages to use shared code.
+#
+# This is NOT a standard path added to sys.path. Packages that use modules from
+# within this directory need to explicitly name them. Furthermore, modules that
+# a package uses are copied into that package's install - this ensures that the
+# package remains standalone and that changes to the shared code will not break
+# or alter existing package installs.
+#
+# Consider the setting:
+#
+#     package_definition_python_path = "/src/rezutils"
+#
+# Consider also the following package *commands* function:
+#
+#     @include("utils")
+#     def commands():
+#         utils.do_some_common_thing(this)
+#
+# This package will import the code from */src/rezutils/utils.py* (or more
+# specifically, its copy of this sourcefile) and will bind it to the name *utils*.
+#
+# For further information, see [here](Package-Definition-Guide#using-shared-code).
+#
+package_definition_python_path = None
+
 
 ###############################################################################
 # Extensions
@@ -326,6 +365,39 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
+# If you define this function, it will be called as the *postprocess function*
+# on every package that does not provide its own, as part of the build process.
+# The given function must be made available by setting the value of
+# *package_definition_build_python_paths* appropriately.
+#
+# For example, consider the settings:
+#
+#     package_definition_build_python_paths = ["/src/rezutils"]
+#     package_postprocess_function = "build.validate"
+#
+# This would use the 'validate' function in the sourcefile /src/rezutils/build.py
+# to postprocess every package definition file that does not define its own
+# postprocess function.
+#
+# If the postprocess function raises an exception, an error message is printed,
+# and the postprocessing is not applied to the package. However, if the
+# *InvalidPackageError* exception is raised, the build is aborted.
+#
+# You would typically use this to perform common validation or modification of
+# packages. For example, your common postprocess function might check that the
+# package name matches a regex. Here's what that might look like:
+#
+#     # in /src/rezutils/build.py
+#     import re
+#     from rez.exceptions import InvalidPackageError
+#
+#     def validate(package, data):
+#         regex = re.compile("(a-zA-Z_)+$")
+#         if not regex.match(package.name):
+#             raise InvalidPackageError("Invalid package name.")
+#
+package_postprocess_function = None
+
 
 ###############################################################################
 # Debugging
@@ -417,6 +489,10 @@ build_thread_count = "physical_cores"
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
 release_hooks = []
+
+# Prompt for release message using an editor. If set to False, there will be
+# no editor prompt.
+prompt_release_message = False
 
 
 ###############################################################################

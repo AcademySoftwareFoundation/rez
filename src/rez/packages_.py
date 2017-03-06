@@ -3,13 +3,13 @@ from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
     package_release_keys
 from rez.package_serialise import dump_package_data
+from rez.utils.logging_ import print_info, print_error
 from rez.utils.data_utils import cached_property
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError, \
-    ResourceError
+from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
@@ -456,50 +456,11 @@ def get_package_from_string(txt, paths=None):
 
 
 def get_developer_package(path):
-    """Load a developer package.
-
-    A developer package may for example be a package.yaml or package.py in a
-    user's source directory.
-
-    Note:
-        The resulting package has a 'filepath' attribute added to it, that does
-        not normally appear on a `Package` object. A developer package is the
-        only case where we know we can directly associate a 'package.*' file
-        with a package - other packages can come from any kind of package repo,
-        which may or may not associate a single file with a single package (or
-        any file for that matter - it may come from a database).
-
-    Args:
-        path: Directory containing the package definition file.
-
-    Returns:
-        `Package` object.
-    """
-    name = data = None
-    for name_ in config.plugins.package_repository.filesystem.package_filenames:
-        for format_ in (FileFormat.py, FileFormat.yaml):
-            filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
-            if os.path.isfile(filepath):
-                data = load_from_file(filepath, format_)
-                break
-        if data:
-            name = data.get("name")
-            if name is not None or isinstance(name, basestring):
-                break
-
-    if data is None:
-        raise PackageMetadataError("No package definition file found at %s" % path)
-
-    if name is None or not isinstance(name, basestring):
-        raise PackageMetadataError(
-            "Error in %r - missing or non-string field 'name'" % filepath)
-
-    package = create_package(name, data)
-    setattr(package, "filepath", filepath)
-    return package
+    from rez.developer_package import DeveloperPackage
+    return DeveloperPackage.from_path(path)
 
 
-def create_package(name, data):
+def create_package(name, data, package_cls=None):
     """Create a package given package data.
 
     Args:
@@ -510,7 +471,7 @@ def create_package(name, data):
         `Package` object.
     """
     from rez.package_maker__ import PackageMaker
-    maker = PackageMaker(name, data)
+    maker = PackageMaker(name, data, package_cls=package_cls)
     return maker.get_package()
 
 

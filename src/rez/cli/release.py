@@ -2,6 +2,8 @@
 Build a package from source and deploy it.
 '''
 import os
+import sys
+from subprocess import call
 
 
 def setup_parser(parser, completions=False):
@@ -27,16 +29,23 @@ def setup_parser(parser, completions=False):
         help="release even if repository-related errors occur. DO NOT use this "
         "option unless you absolutely must release a package, despite there being "
         "a problem (such as inability to contact the repository server)")
+    parser.add_argument(
+        "--no-message", dest="no_message", action="store_true",
+        help="do not prompt for release message.")
     setup_parser_common(parser)
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
     from rez.cli.build import get_build_args
+    from rez.config import config
 
+    # load package
     working_dir = os.getcwd()
+    package = get_developer_package(working_dir)
 
     # create vcs
     vcs = create_release_vcs(working_dir, opts.vcs)
@@ -44,7 +53,9 @@ def command(opts, parser, extra_arg_groups=None):
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
+
     buildsys = create_build_system(working_dir,
+                                   package=package,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    verbose=True,
@@ -54,6 +65,7 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute release process
     builder = create_build_process(opts.process,
                                    working_dir,
+                                   package=package,
                                    build_system=buildsys,
                                    vcs=vcs,
                                    ensure_latest=(not opts.no_latest),
@@ -61,8 +73,76 @@ def command(opts, parser, extra_arg_groups=None):
                                    ignore_existing_tag=opts.ignore_existing_tag,
                                    verbose=True)
 
-    builder.release(release_message=opts.message,
+    # get release message
+    release_msg = opts.message
+    filepath = None
+
+    if config.prompt_release_message and not release_msg and not opts.no_message:
+        from hashlib import sha1
+
+        h = sha1(working_dir).hexdigest()
+        filename = "rez-release-message-%s.txt" % h
+        filepath = os.path.join(config.tmpdir, filename)
+
+        header = "<Enter your release notes here>"
+        changelog_token = "###<CHANGELOG>"
+
+        if not os.path.exists(filepath):
+            txt = header
+
+            # get changelog and add to release notes file, for reference. They
+            # get stripped out again before being added as package release notes.
+            try:
+                changelog = builder.get_changelog()
+            except:
+                pass
+
+            if changelog:
+                txt += ("\n\n%s This is for reference only - this line and all "
+                        "following lines will be stripped from the release "
+                        "notes.\n\n" % changelog_token)
+                txt += changelog
+
+            with open(filepath, 'w') as f:
+                print >> f, txt
+
+        call([config.editor, filepath])
+
+        with open(filepath) as f:
+            release_msg = f.read()
+
+        # strip changelog out
+        try:
+            i = release_msg.index(changelog_token)
+            release_msg = release_msg[:i]
+        except ValueError:
+            pass
+
+        # strip header out
+        release_msg = release_msg.replace(header, "")
+
+        release_msg = release_msg.strip()
+
+        if not release_msg:
+            ch = None
+            while ch not in ('A', 'a', 'C', 'c'):
+                print "Empty release message. [A]bort or [C]ontinue release?"
+                ch = raw_input()
+
+            if ch in ('A', 'a'):
+                print "Release aborted."
+                sys.exit(1)
+
+    # perform the release
+    builder.release(release_message=release_msg or None,
                     variants=opts.variants)
+
+    # remove the release message file
+    if filepath:
+        try:
+            os.remove(filepath)
+        except:
+            pass
 
 
 # Copyright 2013-2016 Allan Johns.

@@ -19,8 +19,8 @@ def get_build_process_types():
     return plugin_manager.get_plugins('build_process')
 
 
-def create_build_process(process_type, working_dir, build_system, vcs=None,
-                         ensure_latest=True, skip_repo_errors=False,
+def create_build_process(process_type, working_dir, build_system, package=None,
+                         vcs=None, ensure_latest=True, skip_repo_errors=False,
                          ignore_existing_tag=False, verbose=False):
     """Create a `BuildProcess` instance."""
     from rez.plugin_managers import plugin_manager
@@ -30,6 +30,7 @@ def create_build_process(process_type, working_dir, build_system, vcs=None,
     cls = plugin_manager.get_plugin_class('build_process', process_type)
 
     return cls(working_dir,
+               package=package,
                build_system=build_system,
                vcs=vcs,
                ensure_latest=ensure_latest,
@@ -58,8 +59,9 @@ class BuildProcess(object):
     def name(cls):
         raise NotImplementedError
 
-    def __init__(self, working_dir, build_system, vcs=None, ensure_latest=True,
-                 skip_repo_errors=False, ignore_existing_tag=False, verbose=False):
+    def __init__(self, working_dir, build_system, package=None, vcs=None,
+                 ensure_latest=True, skip_repo_errors=False,
+                 ignore_existing_tag=False, verbose=False):
         """Create a BuildProcess.
 
         Args:
@@ -90,7 +92,9 @@ class BuildProcess(object):
                 "Build process was instantiated with a mismatched VCS instance")
 
         self.debug_print = config.debug_printer("package_release")
-        self.package = get_developer_package(working_dir)
+
+        self.package = package or get_developer_package(working_dir)
+
         hook_names = self.package.config.release_hooks or []
         self.hooks = create_release_hooks(hook_names, working_dir)
         self.build_path = os.path.join(self.working_dir,
@@ -134,6 +138,14 @@ class BuildProcess(object):
 
         Returns:
             int: Number of variants successfully released.
+        """
+        raise NotImplementedError
+
+    def get_changelog(self):
+        """Get the changelog since last package release.
+
+        Returns:
+            str: Changelog.
         """
         raise NotImplementedError
 
@@ -189,13 +201,23 @@ class BuildProcessHelper(BuildProcess):
 
         requests_str = ' '.join(map(str, request))
         self._print("Resolving build environment: %s", requests_str)
+
         if build_type == BuildType.local:
             packages_path = self.package.config.packages_path
         else:
             packages_path = self.package.config.nonlocal_packages_path
 
+        if self.package.config.is_overridden("package_filter"):
+            from rez.package_filter import PackageFilterList
+
+            data = self.package.config.package_filter
+            package_filter = PackageFilterList.from_pod(data)
+        else:
+            package_filter = None
+
         context = ResolvedContext(request,
                                   package_paths=packages_path,
+                                  package_filter=package_filter,
                                   building=True)
         if self.verbose:
             context.print_info()
@@ -304,6 +326,19 @@ class BuildProcessHelper(BuildProcess):
                 return package
         return None
 
+    def get_changelog(self):
+        previous_package = self.get_previous_release()
+        if previous_package:
+            previous_revision = previous_package.revision
+        else:
+            previous_revision = None
+
+        changelog = None
+        with self.repo_operation():
+            changelog = self.vcs.get_changelog(previous_revision)
+
+        return changelog
+
     def get_release_data(self):
         """Get release data for this release.
 
@@ -323,12 +358,10 @@ class BuildProcessHelper(BuildProcess):
                         previous_version=previous_version)
 
         revision = None
-        changelog = None
-
         with self.repo_operation():
             revision = self.vcs.get_current_revision()
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(previous_revision)
+
+        changelog=self.get_changelog()
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that
