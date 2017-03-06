@@ -5,11 +5,14 @@ import pipes
 import re
 import UserDict
 import inspect
+import traceback
 from string import Formatter
 from rez.system import system
 from rez.config import config
 from rez.exceptions import RexError, RexUndefinedVariableError, RezSystemError
 from rez.util import shlex_join
+from rez.utils import reraise
+from rez.utils.sourcecode import SourceCode, SourceCodeError
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.formatting import expandvars
 from rez.vendor.enum import Enum
@@ -1119,7 +1122,7 @@ class RexExecutor(object):
         """Compile and possibly execute rex code.
 
         Args:
-            code (str): The python code to compile.
+            code (str or SourceCode): The python code to compile.
             filename (str): File to associate with the code, will default to
                 '<string>'.
             namespace (dict): Namespace to execute the code in. If None, the
@@ -1128,45 +1131,48 @@ class RexExecutor(object):
         Returns:
             Compiled code object.
         """
-        filename = filename or "<string>"
-        error_class = Exception if config.catch_rex_errors else None
+        if filename is None:
+            if isinstance(code, SourceCode):
+                filename = code.sourcename
+            else:
+                filename = "<string>"
 
         # compile
         try:
-            pyc = compile(code, filename, 'exec')
-        except error_class as e:
-            # trim trace down to only what's interesting
-            msg = str(e)
-            r = re.compile(" line ([1-9][0-9]*)")
-            match = r.search(str(e))
-            if match:
-                try:
-                    lineno = int(match.groups()[0])
-                    loc = code.split('\n')
-                    line = loc[lineno - 1]
-                    msg += "\n    %s" % line
-                except:
-                    pass
-            raise RexError(msg)
+            if isinstance(code, SourceCode):
+                pyc = code.compiled
+            else:
+                pyc = compile(code, filename, 'exec')
+        except SourceCodeError as e:
+            reraise(e, RexError)
+        except Exception as e:
+            stack = traceback.format_exc()
+            raise RexError("Failed to compile %s:\n\n%s" % (filename, stack))
+
+        error_class = Exception if config.catch_rex_errors else None
 
         # execute
         if exec_namespace is not None:
             try:
-                exec pyc in exec_namespace
+                if isinstance(code, SourceCode):
+                    code.exec_(globals_=exec_namespace)
+                else:
+                    exec pyc in exec_namespace
+            except RexError:
+                raise
+            except SourceCodeError as e:
+                reraise(e, RexError)
             except error_class as e:
-                # trim trace down to only what's interesting
-                import traceback
-                frames = traceback.extract_tb(sys.exc_traceback)
-                frames = [x for x in frames if x[0] == filename]
-                cls._patch_frames(frames, code, filename)
-                cls._raise_rex_error(frames, e)
+                stack = traceback.format_exc()
+                raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
+
         return pyc
 
     def execute_code(self, code, filename=None):
         """Execute code within the execution context.
 
         Args:
-            code (str): Rex code to execute.
+            code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
         """
         self.compile_code(code=code,
@@ -1186,19 +1192,20 @@ class RexExecutor(object):
                                 argdefs=func.func_defaults,
                                 closure=func.func_closure)
         fn.func_globals.update(self.globals)
+
         error_class = Exception if config.catch_rex_errors else None
 
         try:
             return fn(*nargs, **kwargs)
+        except RexError:
+            raise
         except error_class as e:
-            # trim trace down to only what's interesting
-            import traceback
-            frames = traceback.extract_tb(sys.exc_traceback)
+            from inspect import getfile
 
-            filepath = inspect.getfile(func)
-            if os.path.exists(filepath):
-                frames = [x for x in frames if x[0] == filepath]
-            self._raise_rex_error(frames, e)
+            stack = traceback.format_exc()
+            filename = getfile(func)
+
+            raise RexError("Failed to exec %s:\n\n%s" % (filename, stack))
 
     def get_output(self, style=OutputStyle.file):
         """Returns the result of all previous calls to execute_code."""
@@ -1206,32 +1213,6 @@ class RexExecutor(object):
 
     def expand(self, value):
         return self.formatter.format(str(value))
-
-    @classmethod
-    def _patch_frames(cls, frames, code, codefile=None):
-        """Patch traceback's frame objects to add lines of code from `code`
-        where appropriate.
-        """
-        codefile = codefile or "<string>"
-        loc = code.split('\n')
-        for i, frame in enumerate(frames):
-            filename, lineno, name, line = frame
-            if filename == codefile and line is None:
-                try:
-                    line = loc[lineno - 1].strip()
-                    frames[i] = (filename, lineno, "<rex commands>", line)
-                except:
-                    pass
-
-    @classmethod
-    def _raise_rex_error(cls, frames, e):
-        import traceback
-        stack = ''.join(traceback.format_list(frames)).strip()
-        if isinstance(e, RexError):
-            raise type(e)("%s\n%s" % (str(e), stack))
-        else:
-            raise RexError("Error in rex code: %s - %s\n%s"
-                           % (e.__class__.__name__, str(e), stack))
 
 
 # Copyright 2013-2016 Allan Johns.

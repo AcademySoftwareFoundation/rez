@@ -142,6 +142,12 @@ class RequirementsBinding(Binding):
     def _attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
 
+    def __getitem__(self, name):
+        if name in self.__requirements:
+            return self.__requirements[name]
+        else:
+            self._attr_error(name)
+
     def __contains__(self, name):
         return (name in self.__requirements)
 

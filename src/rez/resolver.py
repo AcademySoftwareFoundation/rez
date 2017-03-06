@@ -31,7 +31,7 @@ class Resolver(object):
     The Resolver uses a combination of Solver(s) and cache(s) to resolve a
     package request as quickly as possible.
     """
-    def __init__(self, package_requests, package_paths, package_filter=None,
+    def __init__(self, context, package_requests, package_paths, package_filter=None,
                  package_orderers=None, timestamp=0, callback=None, building=False,
                  verbosity=False, buf=None, package_load_callback=None, caching=True):
         """Create a Resolver.
@@ -50,6 +50,7 @@ class Resolver(object):
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used.
         """
+        self.context = context
         self.package_requests = package_requests
         self.package_paths = package_paths
         self.timestamp = timestamp
@@ -147,6 +148,9 @@ class Resolver(object):
         """
         return self.graph_
 
+    def _get_variant(self, variant_handle):
+        return get_variant(variant_handle, context=self.context)
+
     def _get_cached_solve(self):
         """Find a memcached resolve.
 
@@ -218,7 +222,7 @@ class Resolver(object):
         def _packages_changed(key, data):
             solver_dict, _, variant_states_dict = data
             for variant_handle in solver_dict.get("variant_handles", []):
-                variant = get_variant(variant_handle)
+                variant = self._get_variant(variant_handle)
                 old_state = variant_states_dict.get(variant.name)
 
                 new_state = variant_states.get(variant)
@@ -362,6 +366,7 @@ class Resolver(object):
     def _solve(self):
         solver = Solver(package_requests=self.package_requests,
                         package_paths=self.package_paths,
+                        context=self.context,
                         package_filter=self.package_filter,
                         package_orderers=self.package_orderers,
                         callback=self.callback,
@@ -386,7 +391,7 @@ class Resolver(object):
             # convert solver.Variants to packages.Variants
             self.resolved_packages_ = []
             for variant_handle in solver_dict.get("variant_handles", []):
-                variant = get_variant(variant_handle)
+                variant = self._get_variant(variant_handle)
                 self.resolved_packages_.append(variant)
 
     @classmethod

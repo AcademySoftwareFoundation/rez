@@ -4,7 +4,7 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_keys
+    package_release_keys, package_build_only_keys
 from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
@@ -755,12 +755,20 @@ class FileSystemPackageRepository(PackageRepository):
         existing_package_data = None
         existing_variants_data = None
         release_data = {}
+
         new_package_data = variant.parent.validated_data()
         new_package_data.pop("variants", None)
         package_changed = False
 
+        def remove_build_keys(obj):
+            for key in package_build_only_keys:
+                obj.pop(key, None)
+
+        remove_build_keys(new_package_data)
+
         if existing_package:
             existing_package_data = existing_package.validated_data()
+            remove_build_keys(existing_package_data)
 
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()

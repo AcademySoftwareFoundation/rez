@@ -1,0 +1,4 @@
+
+This directory contains code that you might want to use for package.py
+preprocessing, or import/include in build/runtime functions in you package
+definitions.

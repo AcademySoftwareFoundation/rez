@@ -36,13 +36,16 @@ def setup_parser(parser, completions=False):
 
 
 def command(opts, parser, extra_arg_groups=None):
+    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
     from rez.release_vcs import create_release_vcs
     from rez.cli.build import get_build_args
     from rez.config import config
 
+    # load package
     working_dir = os.getcwd()
+    package = get_developer_package(working_dir)
 
     # create vcs
     vcs = create_release_vcs(working_dir, opts.vcs)
@@ -52,6 +55,7 @@ def command(opts, parser, extra_arg_groups=None):
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
 
     buildsys = create_build_system(working_dir,
+                                   package=package,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    verbose=True,
@@ -61,6 +65,7 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute release process
     builder = create_build_process(opts.process,
                                    working_dir,
+                                   package=package,
                                    build_system=buildsys,
                                    vcs=vcs,
                                    ensure_latest=(not opts.no_latest),
