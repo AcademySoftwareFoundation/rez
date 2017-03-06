@@ -7,7 +7,7 @@ from rez.build_process_ import BuildProcessHelper, BuildType
 from rez.release_hook import ReleaseHookEvent
 from rez.exceptions import BuildError, ReleaseError
 from rez.utils.colorize import Printer, warning
-from rez.utils.filesystem import safe_makedirs
+from rez.utils.filesystem import safe_makedirs, copy_or_replace
 from rez.utils.sourcecode import IncludeModuleManager
 from hashlib import sha1
 import shutil
@@ -111,10 +111,6 @@ class LocalBuildProcess(BuildProcessHelper):
             variant_build_path = os.path.join(variant_build_path, variant.subpath)
             variant_install_path = os.path.join(variant_install_path, variant.subpath)
 
-        # inform package repo that a variant is about to be built/installed
-        pkg_repo = package_repository_manager.get_repository(install_path)
-        pkg_repo.pre_variant_install(variant.resource)
-
         # create directories (build, install)
         if clean and os.path.exists(variant_build_path):
             shutil.rmtree(variant_build_path)
@@ -122,7 +118,12 @@ class LocalBuildProcess(BuildProcessHelper):
         safe_makedirs(variant_build_path)
 
         if install:
-            safe_makedirs(variant_build_path)
+            # inform package repo that a variant is about to be built/installed
+            pkg_repo = package_repository_manager.get_repository(install_path)
+            pkg_repo.pre_variant_install(variant.resource)
+
+            if not os.path.exists(variant_install_path):
+                safe_makedirs(variant_install_path)
 
         # create build environment
         context, rxt_filepath = self.create_build_context(
@@ -143,13 +144,13 @@ class LocalBuildProcess(BuildProcessHelper):
             build_type=build_type)
 
         if not build_result.get("success"):
-            raise BuildError("The %s build system failed" % build_system_name)
+            raise BuildError("The %s build system failed." % build_system_name)
 
         if install:
             # install some files for debugging purposes
             extra_files = build_result.get("extra_files", []) + [rxt_filepath]
             for file_ in extra_files:
-                shutil.copy(file_, variant_install_path)
+                copy_or_replace(file_, variant_install_path)
 
         return build_result
 

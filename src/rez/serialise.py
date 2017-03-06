@@ -1,8 +1,9 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
-from rez.utils.sourcecode import SourceCode, early, include
+from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
 from rez.exceptions import ResourceError, InvalidPackageError
@@ -12,7 +13,7 @@ from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from contextlib import contextmanager
-from inspect import isfunction
+from inspect import isfunction, ismodule, getargspec
 from StringIO import StringIO
 import sys
 import os
@@ -137,6 +138,7 @@ def load_py(stream, filepath=None):
 
     g = dict(scope=scopes,
              early=early,
+             late=late,
              include=include,
              InvalidPackageError=InvalidPackageError)
 
@@ -156,7 +158,7 @@ def load_py(stream, filepath=None):
 
     result = {}
     excludes = set(('scope', 'InvalidPackageError', '__builtins__',
-                    'early', 'include'))
+                    'early', 'late', 'include'))
 
     for k, v in g.iteritems():
         if k not in excludes and \
@@ -169,20 +171,63 @@ def load_py(stream, filepath=None):
 
 
 def process_python_objects(data, filepath=None):
-    for k, v in data.iteritems():
-        if isfunction(v):
-            if hasattr(v, "_early"):
+
+    _remove = object()
+
+    def _process(value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                new_value = _process(v)
+
+                if new_value is _remove:
+                    del value[k]
+                else:
+                    value[k] = new_value
+
+            return value
+        elif isfunction(value):
+            if hasattr(value, "_early"):
                 # run the function now, and replace with return value
                 with add_sys_paths(config.package_definition_build_python_paths):
-                    value = v()
+                    func = value
+
+                    spec = getargspec(func)
+                    args = spec.args or []
+                    if len(args) not in (0, 1):
+                        raise ResourceError("@early decorated function must "
+                                            "take zero or one args only")
+                    if args:
+                        value_ = func(data)
+                    else:
+                        value_ = func()
+
+                # process again in case this is a function returning a function
+                return _process(value_)
             else:
-                value = SourceCode.from_function(v, filepath=filepath)
+                # if a rex function, the code has to be eval'd NOT as a function,
+                # otherwise the globals dict doesn't get updated with any vars
+                # defined in the code, and that means rex code like this:
+                #
+                # rr = 'test'
+                # env.RR = '{rr}'
+                #
+                # ..won't work. It was never intentional that the above work, but
+                # it does, so now we have to keep it so.
+                #
+                as_function = (value.__name__ not in package_rex_keys)
 
-            data[k] = value
-        elif isinstance(v, dict):
-            process_python_objects(v, filepath=filepath)
+                return SourceCode(func=value, filepath=filepath,
+                                  eval_as_function=as_function)
+        elif ismodule(value):
+            # modules cannot be installed as package attributes. They are present
+            # in developer packages sometimes though - it's fine for a package
+            # attribute to use an imported module at build time.
+            #
+            return _remove
+        else:
+            return value
 
-    return data
+    return _process(data)
 
 
 def load_yaml(stream, **kwargs):

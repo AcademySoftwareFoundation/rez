@@ -101,6 +101,39 @@ def is_subdirectory(path_a, path_b):
     return (not relative.startswith(os.pardir + os.sep))
 
 
+def copy_or_replace(src, dst):
+    '''try to copy with mode, and if it fails, try replacing
+    '''
+    try:
+        shutil.copy(src, dst)
+    except (OSError, IOError), e:
+        # It's possible that the file existed, but was owned by someone
+        # else - in that situation, shutil.copy might then fail when it
+        # tries to copy perms.
+        # However, it's possible that we have write perms to the dir -
+        # in which case, we can just delete and replace
+        import errno
+
+        if e.errno == errno.EPERM:
+            import tempfile
+            # try copying into a temporary location beside the old
+            # file - if we have perms to do that, we should have perms
+            # to then delete the old file, and move the new one into
+            # place
+            if os.path.isdir(dst):
+                dst = os.path.join(dst, os.path.basename(src))
+
+            dst_dir, dst_name = os.path.split(dst)
+            dst_temp = tempfile.mktemp(prefix=dst_name + '.', dir=dst_dir)
+            shutil.copy(src, dst_temp)
+            if not os.path.isfile(dst_temp):
+                raise RuntimeError(
+                    "shutil.copy completed successfully, but path"
+                    " '%s' still did not exist" % dst_temp)
+            os.remove(dst)
+            shutil.move(dst_temp, dst)
+
+
 def copytree(src, dst, symlinks=False, ignore=None, hardlinks=False):
     '''copytree that supports hard-linking
     '''

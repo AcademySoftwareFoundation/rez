@@ -1,7 +1,13 @@
+name = 'late_binding'
 
+version = "1.0"
 
-# Update this value to version up Rez. Do not place anything else in this file.
-_rez_version = "2.7.0"
+@late()
+def tools():
+    return ["util"]
+
+def commands():
+    env.PATH.append("{root}/bin")
 
 
 # Copyright 2013-2016 Allan Johns.

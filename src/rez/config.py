@@ -274,7 +274,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
-    "package_postprocess_function":                 OptionalStr,
+    "package_preprocess_function":                  OptionalStr,
     "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,

@@ -760,11 +760,15 @@ class FileSystemPackageRepository(PackageRepository):
         new_package_data.pop("variants", None)
         package_changed = False
 
-        for key in package_build_only_keys:
-            new_package_data.pop(key, None)
+        def remove_build_keys(obj):
+            for key in package_build_only_keys:
+                obj.pop(key, None)
+
+        remove_build_keys(new_package_data)
 
         if existing_package:
             existing_package_data = existing_package.validated_data()
+            remove_build_keys(existing_package_data)
 
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()

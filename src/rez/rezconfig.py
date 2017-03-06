@@ -77,8 +77,8 @@ context_tmpdir = None
 # These are extra python paths that are added to sys.path **only during a build**.
 # This means that any of the functions in the following list can import modules
 # from these paths:
-# * The *postprocess* function;
-# * Any function decorated with @harden (TODO) - these get evaluated at build time.
+# * The *preprocess* function;
+# * Any function decorated with @early - these get evaluated at build time.
 #
 # You can use this to provide common code to your package definition files during
 # a build. To provide common code for packages to use at resolve time instead (for
@@ -109,7 +109,8 @@ package_definition_build_python_paths = []
 # This package will import the code from */src/rezutils/utils.py* (or more
 # specifically, its copy of this sourcefile) and will bind it to the name *utils*.
 #
-# For further information, see [here](Package-Definition-Guide#using-shared-code).
+# For further information, see
+# [here](Package-Definition-Guide#sharing-code-across-package-definition-files).
 #
 package_definition_python_path = None
 
@@ -365,26 +366,27 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
-# If you define this function, it will be called as the *postprocess function*
+# If you define this function, it will be called as the *preprocess function*
 # on every package that does not provide its own, as part of the build process.
 # The given function must be made available by setting the value of
-# *package_definition_build_python_paths* appropriately.
+# [package_definition_build_python_paths](#package_definition_build_python_paths)
+# appropriately.
 #
 # For example, consider the settings:
 #
 #     package_definition_build_python_paths = ["/src/rezutils"]
-#     package_postprocess_function = "build.validate"
+#     package_preprocess_function = "build.validate"
 #
 # This would use the 'validate' function in the sourcefile /src/rezutils/build.py
-# to postprocess every package definition file that does not define its own
-# postprocess function.
+# to preprocess every package definition file that does not define its own
+# preprocess function.
 #
-# If the postprocess function raises an exception, an error message is printed,
-# and the postprocessing is not applied to the package. However, if the
+# If the preprocess function raises an exception, an error message is printed,
+# and the preprocessing is not applied to the package. However, if the
 # *InvalidPackageError* exception is raised, the build is aborted.
 #
 # You would typically use this to perform common validation or modification of
-# packages. For example, your common postprocess function might check that the
+# packages. For example, your common preprocess function might check that the
 # package name matches a regex. Here's what that might look like:
 #
 #     # in /src/rezutils/build.py
@@ -396,7 +398,7 @@ package_commands_sourced_first = True
 #         if not regex.match(package.name):
 #             raise InvalidPackageError("Invalid package name.")
 #
-package_postprocess_function = None
+package_preprocess_function = None
 
 
 ###############################################################################

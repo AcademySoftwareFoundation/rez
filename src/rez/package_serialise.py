@@ -1,6 +1,6 @@
 from rez.vendor import yaml
 from rez.serialise import FileFormat
-from rez.package_resources_ import help_schema
+from rez.package_resources_ import help_schema, late_bound
 from rez.vendor.schema.schema import Schema, Optional, And, Or, Use
 from rez.vendor.version.version import Version
 from rez.utils.sourcecode import SourceCode
@@ -41,11 +41,19 @@ package_key_order = [
 
 version_schema = Or(basestring, And(Version, Use(str)))
 
-
 package_request_schema = Or(basestring, And(PackageRequest, Use(str)))
 
-
 source_code_schema = Or(SourceCode, And(basestring, Use(SourceCode)))
+
+tests_schema = Schema({
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
+        {
+            "command": Or(basestring, [basestring]),
+            Optional("requires"): [package_request_schema]
+        }
+    )
+})
 
 
 # package serialisation schema
@@ -54,20 +62,23 @@ package_serialise_schema = Schema({
     Optional("version"):                version_schema,
     Optional("description"):            basestring,
     Optional("authors"):                [basestring],
-    Optional("tools"):                  [basestring],
+    Optional("tools"):                  late_bound([basestring]),
 
-    Optional('requires'):               [package_request_schema],
-    Optional('build_requires'):         [package_request_schema],
-    Optional('private_build_requires'): [package_request_schema],
+    Optional('requires'):               late_bound([package_request_schema]),
+    Optional('build_requires'):         late_bound([package_request_schema]),
+    Optional('private_build_requires'): late_bound([package_request_schema]),
+
     Optional('variants'):               [[package_request_schema]],
 
     Optional('pre_commands'):           source_code_schema,
     Optional('commands'):               source_code_schema,
     Optional('post_commands'):          source_code_schema,
 
-    Optional("help"):                   help_schema,
+    Optional("help"):                   late_bound(help_schema),
     Optional("uuid"):                   basestring,
     Optional("config"):                 dict,
+
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional("timestamp"):              int,
     Optional('revision'):               object,

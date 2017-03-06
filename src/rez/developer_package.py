@@ -44,8 +44,7 @@ class DeveloperPackage(Package):
                 filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
 
                 if os.path.isfile(filepath):
-                    with add_sys_paths(config.package_definition_build_python_paths):
-                        data = load_from_file(filepath, format_)
+                    data = load_from_file(filepath, format_)
                     break
             if data:
                 name = data.get("name")
@@ -61,8 +60,8 @@ class DeveloperPackage(Package):
 
         package = create_package(name, data, package_cls=cls)
 
-        # postprocessing
-        result = package._get_postprocessed(data)
+        # preprocessing
+        result = package._get_preprocessed(data)
 
         if result:
             package, data = result
@@ -76,7 +75,7 @@ class DeveloperPackage(Package):
         def visit(d):
             for k, v in d.iteritems():
                 if isinstance(v, SourceCode):
-                    package.includes |= (v.get_includes() or set())
+                    package.includes |= (v.includes or set())
                 elif isinstance(v, dict):
                     visit(v)
 
@@ -107,10 +106,10 @@ class DeveloperPackage(Package):
                     "@include decorator requests module '%s', but the file "
                     "%s does not exist." % (name, filepath))
 
-    def _get_postprocessed(self, data):
+    def _get_preprocessed(self, data):
         """
         Returns:
-            (DeveloperPackage, new_data) 2-tuple IFF the postprocess function
+            (DeveloperPackage, new_data) 2-tuple IFF the preprocess function
             changed the package; otherwise None.
         """
         from rez.serialise import process_python_objects
@@ -118,23 +117,23 @@ class DeveloperPackage(Package):
         from copy import deepcopy
 
         with add_sys_paths(config.package_definition_build_python_paths):
-            postprocess = getattr(self, "postprocess", None)
+            preprocess = getattr(self, "preprocess", None)
 
-            if postprocess:
-                postprocess_func = postprocess.func
-                print_info("Applying postprocess from package.py")
+            if preprocess:
+                preprocess_func = preprocess.func
+                print_info("Applying preprocess from package.py")
             else:
-                # load globally configured postprocess function
-                dotted = self.config.package_postprocess_function
+                # load globally configured preprocess function
+                dotted = self.config.package_preprocess_function
 
                 if not dotted:
                     return None
 
                 if '.' not in dotted:
                     print_error(
-                        "Setting 'package_postprocess_function' must be of "
+                        "Setting 'package_preprocess_function' must be of "
                         "form 'module[.module.module...].funcname'. Package  "
-                        "postprocessing has not been applied.")
+                        "preprocessing has not been applied.")
                     return None
 
                 name, funcname = dotted.rsplit('.', 1)
@@ -142,45 +141,45 @@ class DeveloperPackage(Package):
                 try:
                     module = __import__(name=name, fromlist=[funcname])
                 except Exception as e:
-                    print_error("Failed to load postprocessing function '%s': %s"
+                    print_error("Failed to load preprocessing function '%s': %s"
                                 % (dotted, str(e)))
                     return None
 
                 setattr(module, "InvalidPackageError", InvalidPackageError)
-                postprocess_func = getattr(module, funcname)
+                preprocess_func = getattr(module, funcname)
 
-                if not postprocess_func or not isfunction(isfunction):
+                if not preprocess_func or not isfunction(isfunction):
                     print_error("Function '%s' not found" % dotted)
                     return None
 
-                print_info("Applying postprocess function %s" % dotted)
+                print_info("Applying preprocess function %s" % dotted)
 
-            postprocessed_data = deepcopy(data)
+            preprocessed_data = deepcopy(data)
 
-            # apply postprocessing
+            # apply preprocessing
             try:
-                postprocess_func(this=self, data=postprocessed_data)
+                preprocess_func(this=self, data=preprocessed_data)
             except InvalidPackageError:
                 raise
             except Exception as e:
-                print_error("Failed to apply postprocess: %s: %s"
+                print_error("Failed to apply preprocess: %s: %s"
                             % (e.__class__.__name__, str(e)))
                 return None
 
-        # if postprocess added functions, these need to be converted to
+        # if preprocess added functions, these need to be converted to
         # SourceCode instances
-        postprocessed_data = process_python_objects(postprocessed_data)
+        preprocessed_data = process_python_objects(preprocessed_data)
 
-        if postprocessed_data == data:
+        if preprocessed_data == data:
             return None
 
         # recreate package from modified package data
-        package = create_package(self.name, postprocessed_data,
+        package = create_package(self.name, preprocessed_data,
                                  package_cls=self.__class__)
 
         # print summary of changed package attributes
-        added, removed, changed = get_dict_diff(data, postprocessed_data)
-        lines = ["Package attributes were changed in post processing:"]
+        added, removed, changed = get_dict_diff(data, preprocessed_data)
+        lines = ["Package attributes were changed in preprocessing:"]
 
         if added:
             lines.append("Added attributes: %s"
@@ -195,4 +194,4 @@ class DeveloperPackage(Package):
         txt = '\n'.join(lines)
         print_info(txt)
 
-        return package, postprocessed_data
+        return package, preprocessed_data

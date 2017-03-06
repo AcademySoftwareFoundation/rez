@@ -46,7 +46,7 @@ def create_executable_script(filepath, body, program=None):
     program = program or "python"
     if callable(body):
         from rez.utils.sourcecode import SourceCode
-        code = SourceCode.from_function(body)
+        code = SourceCode(func=body)
         body = code.source
 
     if not body.endswith('\n'):

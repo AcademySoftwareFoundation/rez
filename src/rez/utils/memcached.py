@@ -9,7 +9,7 @@ from uuid import uuid4
 
 
 # this version should be changed if and when the caching interface changes
-cache_interface_version = 1
+cache_interface_version = 2
 
 
 class Client(object):

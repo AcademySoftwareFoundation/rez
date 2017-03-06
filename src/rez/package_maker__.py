@@ -3,17 +3,32 @@ from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
-from rez.package_resources_ import help_schema, _commands_schema, _function_schema
+from rez.package_resources_ import help_schema, _commands_schema, \
+    _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
 from rez.packages_ import Package
+from rez.package_py_utils import expand_requirement
 from rez.vendor.schema.schema import Schema, Optional, Or, Use, And
 from rez.vendor.version.version import Version
 from contextlib import contextmanager
 import os
 
 
-package_request_schema = Or(basestring,
+# this schema will automatically harden request strings like 'python-*'; see
+# the 'expand_requires' function for more info.
+#
+package_request_schema = Or(And(basestring, Use(expand_requirement)),
                             And(PackageRequest, Use(str)))
+
+tests_schema = Schema({
+    Optional(basestring): Or(
+        Or(basestring, [basestring]),
+        {
+            "command": Or(basestring, [basestring]),
+            Optional("requires"): [package_request_schema]
+        }
+    )
+})
 
 
 package_schema = Schema({
@@ -24,21 +39,25 @@ package_schema = Schema({
     Optional('description'):            basestring,
     Optional('authors'):                [basestring],
 
-    Optional('requires'):               [package_request_schema],
-    Optional('build_requires'):         [package_request_schema],
-    Optional('private_build_requires'): [package_request_schema],
+    Optional('requires'):               late_bound([package_request_schema]),
+    Optional('build_requires'):         late_bound([package_request_schema]),
+    Optional('private_build_requires'): late_bound([package_request_schema]),
+
+    # deliberately not possible to late bind
     Optional('variants'):               [[package_request_schema]],
 
     Optional('uuid'):                   basestring,
     Optional('config'):                 dict,
-    Optional('tools'):                  [basestring],
-    Optional('help'):                   help_schema,
+    Optional('tools'):                  late_bound([basestring]),
+    Optional('help'):                   late_bound(help_schema),
+
+    Optional('tests'):                  late_bound(tests_schema),
 
     Optional('pre_commands'):           _commands_schema,
     Optional('commands'):               _commands_schema,
     Optional('post_commands'):          _commands_schema,
 
-    Optional("postprocess"):            _function_schema,
+    Optional("preprocess"):             _function_schema,
 
     # arbitrary fields
     Optional(basestring):               object

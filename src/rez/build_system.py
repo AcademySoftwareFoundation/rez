@@ -1,3 +1,5 @@
+from multiprocessing import cpu_count
+
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
@@ -147,6 +149,47 @@ class BuildSystem(object):
                 by the user, places them in the build environment.
         """
         raise NotImplementedError
+
+    @classmethod
+    def get_standard_vars(cls, context, variant, build_type, install):
+        """Returns a standard set of environment variables that can be set
+        for the build system to use
+        """
+        from rez.config import config
+
+        package = variant.parent
+        vars = {
+            'REZ_BUILD_ENV': 1,
+            'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
+            'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
+            'REZ_BUILD_PROJECT_VERSION': str(package.version),
+            'REZ_BUILD_PROJECT_NAME': package.name,
+            'REZ_BUILD_PROJECT_DESCRIPTION': \
+                (package.description or '').strip(),
+            'REZ_BUILD_PROJECT_FILE': getattr(package, 'filepath', ''),
+            'REZ_BUILD_REQUIRES': \
+                ' '.join(str(x) for x in context.requested_packages(True)),
+            'REZ_BUILD_REQUIRES_UNVERSIONED': \
+                ' '.join(x.name for x in context.requested_packages(True)),
+            'REZ_BUILD_TYPE': build_type.name,
+            'REZ_BUILD_INSTALL': 1 if install else 0,
+        }
+
+        if config.rez_1_environment_variables and \
+                not config.disable_rez_1_compatibility and \
+                build_type == BuildType.central:
+            vars['REZ_IN_REZ_RELEASE'] = 1
+        return vars
+
+    @classmethod
+    def set_standard_vars(cls, executor, context, variant, build_type,
+                          install):
+        """Sets a standard set of environment variables for the build system to
+        use
+        """
+        vars = cls.get_standard_vars(context, variant, build_type, install)
+        for var, value in vars.iteritems():
+            executor.env[var] = value
 
 
 # Copyright 2013-2016 Allan Johns.

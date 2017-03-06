@@ -143,7 +143,8 @@ class CMakeBuildSystem(BuildSystem):
                                      context=context,
                                      package=self.package,
                                      variant=variant,
-                                     build_type=build_type)
+                                     build_type=build_type,
+                                     install=install)
 
         # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
@@ -164,7 +165,8 @@ class CMakeBuildSystem(BuildSystem):
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
                                      build_dir=build_path,
-                                     variant_index=variant.index)
+                                     variant_index=variant.index,
+                                     install=install)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
@@ -202,34 +204,21 @@ class CMakeBuildSystem(BuildSystem):
         ret["success"] = (not retcode)
         return ret
 
-    @staticmethod
-    def _add_build_actions(executor, context, package, variant, build_type):
+    @classmethod
+    def _add_build_actions(cls, executor, context, package, variant,
+                           build_type, install):
         settings = package.config.plugins.build_system.cmake
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
 
+        cls.set_standard_vars(executor, context, variant, build_type, install)
+
         executor.env.CMAKE_MODULE_PATH.append(cmake_path.replace('\\', '/'))
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
-        executor.env.REZ_BUILD_VARIANT_INDEX = variant.index or 0
-        executor.env.REZ_BUILD_THREAD_COUNT = package.config.build_thread_count
-        # build always occurs on a filesystem package, thus 'filepath' attribute
-        # exists. This is not the case for packages in general.
-        executor.env.REZ_BUILD_PROJECT_FILE = package.filepath
-        executor.env.REZ_BUILD_PROJECT_VERSION = str(package.version)
-        executor.env.REZ_BUILD_PROJECT_NAME = package.name
-        executor.env.REZ_BUILD_PROJECT_DESCRIPTION = \
-            (package.description or '').strip()
-        executor.env.REZ_BUILD_REQUIRES_UNVERSIONED = \
-            ' '.join(x.name for x in context.requested_packages(True))
         executor.env.REZ_BUILD_INSTALL_PYC = '1' if settings.install_pyc else '0'
 
-        if config.rez_1_environment_variables and \
-                not config.disable_rez_1_compatibility and \
-                build_type == BuildType.central:
-            executor.env.REZ_IN_REZ_RELEASE = 1
 
-
-def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
+def _FWD__spawn_build_shell(working_dir, build_dir, variant_index, install):
     # This spawns a shell that the user can run 'make' in directly
     context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
     package = get_developer_package(working_dir)
@@ -240,7 +229,8 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index):
                                  context=context,
                                  package=package,
                                  variant=variant,
-                                 build_type=BuildType.local)
+                                 build_type=BuildType.local,
+                                 install=install)
 
     retcode, _, _ = context.execute_shell(block=True,
                                           cwd=build_dir,

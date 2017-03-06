@@ -88,6 +88,11 @@ class PackageRequestError(RezError):
     pass
 
 
+class PackageTestError(RezError):
+    """There was a problem running a package test."""
+    pass
+
+
 class ResolvedContextError(RezError):
     """An error occurred in a resolved context."""
     pass
@@ -160,7 +165,7 @@ class PackageRepositoryError(RezError):
 
 
 class InvalidPackageError(RezError):
-    """A special case exception used in package 'postprocess function'."""
+    """A special case exception used in package 'preprocess function'."""
     pass
 
 

@@ -307,6 +307,10 @@ class AttributeForwardMeta(type):
     forwarding is skipped for that attribute. If the wrapped object does not
     contain an attribute, the forwarded value will be None.
 
+    If the parent class contains method '_wrap_forwarded', then forwarded values
+    are passed to this function, and the return value becomes the attribute
+    value.
+
     The class must contain:
     - keys (list of str): The attributes to be forwarded.
 
@@ -352,7 +356,12 @@ class AttributeForwardMeta(type):
     @classmethod
     def _make_forwarder(cls, key):
         def func(self):
-            return getattr(self.wrapped, key, None)
+            value = getattr(self.wrapped, key, None)
+
+            if hasattr(self, "_wrap_forwarded"):
+                value = self._wrap_forwarded(key, value)
+
+            return value
 
         return property(func)
 
@@ -405,6 +414,7 @@ class LazyAttributeMeta(type):
                                             "%r, already defined" % attr)
                     else:
                         attr = key
+
                     members[attr] = cls._make_getter(key, attr, optional, key_schema)
 
         if schema or not _defined("schema"):
@@ -455,7 +465,7 @@ class LazyAttributeMeta(type):
     @classmethod
     def _make_getter(cls, key, attribute, optional, key_schema):
         def getter(self):
-            if key not in self._data:
+            if key not in (self._data or {}):
                 if optional:
                     return None
                 raise self.schema_error("Required key is missing: %r" % key)

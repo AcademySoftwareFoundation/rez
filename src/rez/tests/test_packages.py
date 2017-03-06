@@ -28,13 +28,14 @@ ALL_PACKAGES = set([
     'pysplit-5', 'pysplit-6', 'pysplit-7',
     'python-2.5.2', 'python-2.6.0', 'python-2.6.8', 'python-2.7.0',
     'pyvariants-2',
-    # packages from data/packages
+    # packages from data/packages/py_packages and .../yaml_packages
     'unversioned',
     'unversioned_py',
     'versioned-1.0', 'versioned-2.0', 'versioned-3.0',
     'variants_py-2.0',
     'single_unversioned',
     'single_versioned-3.5',
+    'late_binding-1.0',
     'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'])
 
 
@@ -60,10 +61,15 @@ class TestPackages(TestBase, TempdirMixin):
         cls.yaml_packages_path = os.path.join(cls.packages_base_path, "yaml_packages")
         cls.py_packages_path = os.path.join(cls.packages_base_path, "py_packages")
 
+        cls.package_definition_build_python_paths = [
+            os.path.join(path, "data", "python", "early_bind")
+        ]
+
         cls.settings = dict(
             packages_path=[cls.solver_packages_path,
                            cls.yaml_packages_path,
                            cls.py_packages_path],
+            package_definition_build_python_paths=cls.package_definition_build_python_paths,
             package_filter=None)
 
     @classmethod
@@ -119,6 +125,10 @@ class TestPackages(TestBase, TempdirMixin):
         expected_uri = os.path.join(self.yaml_packages_path,
                                     "versioned", "2.0", "package.yaml")
         self.assertEqual(package.uri, expected_uri)
+
+        # a py-based package with late binding attribute functions
+        package = get_package("late_binding", "1.0")
+        self.assertEqual(package.tools, ["util"])
 
         # a 'combined' type package
         package = get_package("multi", "1.0")
@@ -182,22 +192,29 @@ class TestPackages(TestBase, TempdirMixin):
         data = package.validated_data()
         self.assertDictEqual(data, expected_data)
 
+        # a developer package with features such as expanding requirements,
+        # early-binding attribute functions, and preprocessing
+        path = os.path.join(self.packages_base_path, "developer_dynamic")
+        package = get_developer_package(path)
+
+        self.assertEqual(package.description, "This.")
+        self.assertEqual(package.requires, [PackageRequest('versioned-3')])
+        self.assertEqual(package.authors, ["tweedle-dee", "tweedle-dum"])
+
     def test_6(self):
         """test variant iteration."""
-        expected_data_ = dict(
+        expected_data = dict(
             name="variants_py",
             version=Version("2.0"),
             description="package with variants",
             base=os.path.join(self.py_packages_path, "variants_py", "2.0"),
+            requires=[PackageRequest("python-2.7")],
             commands=SourceCode('env.PATH.append("{root}/bin")'))
 
         requires_ = ["platform-linux", "platform-osx"]
 
         package = get_package("variants_py", "2.0")
         for i, variant in enumerate(package.iter_variants()):
-            expected_data = expected_data_.copy()
-            expected_data["requires"] = [PackageRequest('python-2.7'),
-                                         PackageRequest(requires_[i])]
             data = variant.validated_data()
             self.assertDictEqual(data, expected_data)
             self.assertEqual(variant.index, i)
