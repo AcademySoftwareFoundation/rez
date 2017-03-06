@@ -219,6 +219,7 @@ config_schema = Schema({
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
+    "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
     "warning_styles":                               OptionalStrList,
@@ -388,6 +389,9 @@ class Config(object):
         else:
             self.overrides[key] = value
             self._uncache(key)
+
+    def is_overridden(self, key):
+        return (key in self.overrides)
 
     def remove_override(self, key):
         """Remove a setting override, if one exists."""

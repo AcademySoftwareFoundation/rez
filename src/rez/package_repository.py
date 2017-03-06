@@ -141,6 +141,14 @@ class PackageRepository(object):
         """
         raise NotImplementedError
 
+    def pre_variant_install(self, variant_resource):
+        """Called before a variant is installed.
+
+        If any directories are created on disk for the variant to install into,
+        this is called before that happens.
+        """
+        pass
+
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
         """Install a variant into this repository.
 

@@ -4,8 +4,11 @@ Sends a post-release email
 from rez.release_hook import ReleaseHook
 from rez.system import system
 from email.mime.text import MIMEText
-from rez.utils.logging_ import print_warning
+from rez.utils.logging_ import print_warning, print_error
+from rez.utils.yaml import load_yaml
 from rez.utils.scope import scoped_formatter
+from rez.vendor.schema.schema import Or
+import os.path
 import smtplib
 import sys
 
@@ -18,7 +21,7 @@ class EmailReleaseHook(ReleaseHook):
         "smtp_host":        basestring,
         "smtp_port":        int,
         "sender":           basestring,
-        "recipients":       [basestring]}
+        "recipients":       Or(basestring, [basestring])}
 
     @classmethod
     def name(cls):
@@ -58,27 +61,91 @@ class EmailReleaseHook(ReleaseHook):
     def send_email(self, subject, body):
         if not self.settings.recipients:
             return  # nothing to do, sending email to nobody
+
         if not self.settings.smtp_host:
             print_warning("did not send release email: "
                           "SMTP host is not specified")
             return
 
+        recipients = self.get_recipients()
+        if not recipients:
+            return
+
         print "Sending release email to:"
-        print '\n'.join("- %s" % x for x in self.settings.recipients)
+        print '\n'.join("- %s" % x for x in recipients)
 
         msg = MIMEText(body)
         msg["Subject"] = subject
         msg["From"] = self.settings.sender
-        msg["To"] = str(',').join(self.settings.recipients)
+        msg["To"] = str(',').join(recipients)
 
         try:
             s = smtplib.SMTP(self.settings.smtp_host, self.settings.smtp_port)
             s.sendmail(from_addr=self.settings.sender,
-                       to_addrs=self.settings.recipients,
+                       to_addrs=recipients,
                        msg=msg.as_string())
             print 'Email(s) sent.'
         except Exception, e:
-            print >> sys.stderr, "release email delivery failed: %s" % str(e)
+            print_error("release email delivery failed: %s" % str(e))
+
+    def get_recipients(self):
+        value = self.settings.recipients
+
+        if isinstance(value, list):
+            return value
+
+        if os.path.exists(value):
+            filepath = value
+
+            try:
+                return self.load_recipients(filepath)
+            except Exception as e:
+                print_error("failed to load recipients config: %s. Emails "
+                            "not sent" % str(e))
+        elif '@' in value:
+            return [value]  # assume it's an email address
+        else:
+            print_error("email recipient file does not exist: %s. Emails not "
+                        "sent" % value)
+
+        return []
+
+    def load_recipients(self, filepath):
+        def test(value, type_):
+            if not isinstance(value, type_):
+                raise TypeError("Expected %s, not %s" % type_, value)
+            return value
+
+        conf = load_yaml(filepath)
+        recipients = set()
+
+        for rule in test(conf.get("rules", []), list):
+            filters = rule.get("filters")
+            match = True
+
+            if filters:
+                for attr, test_value in test(filters, dict).iteritems():
+
+                    missing = object()
+                    value = getattr(self.package, attr, missing)
+
+                    if value is missing:
+                        match = False
+                    elif test_value is None:
+                        match = True
+                    elif isinstance(test_value, list):
+                        match = (value in test_value)
+                    else:
+                        match = (value == test_value)
+
+                    if not match:
+                        break
+
+            if match:
+                rule_recipients = rule.get("recipients")
+                recipients.update(test(rule_recipients, list))
+
+        return sorted(recipients)
 
 
 def register_plugin():

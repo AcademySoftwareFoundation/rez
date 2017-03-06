@@ -137,6 +137,14 @@ class BuildProcess(object):
         """
         raise NotImplementedError
 
+    def get_changelog(self):
+        """Get the changelog since last package release.
+
+        Returns:
+            str: Changelog.
+        """
+        raise NotImplementedError
+
 
 class BuildProcessHelper(BuildProcess):
     """A BuildProcess base class with some useful functionality.
@@ -189,13 +197,23 @@ class BuildProcessHelper(BuildProcess):
 
         requests_str = ' '.join(map(str, request))
         self._print("Resolving build environment: %s", requests_str)
+
         if build_type == BuildType.local:
             packages_path = self.package.config.packages_path
         else:
             packages_path = self.package.config.nonlocal_packages_path
 
+        if self.package.config.is_overridden("package_filter"):
+            from rez.package_filter import PackageFilterList
+
+            data = self.package.config.package_filter
+            package_filter = PackageFilterList.from_pod(data)
+        else:
+            package_filter = None
+
         context = ResolvedContext(request,
                                   package_paths=packages_path,
+                                  package_filter=package_filter,
                                   building=True)
         if self.verbose:
             context.print_info()
@@ -304,6 +322,20 @@ class BuildProcessHelper(BuildProcess):
                 return package
         return None
 
+    def get_changelog(self):
+        previous_package = self.get_previous_release()
+        if previous_package:
+            previous_revision = previous_package.revision
+        else:
+            previous_revision = None
+
+        changelog = None
+        with self.repo_operation():
+            changelog = self.vcs.get_changelog(previous_revision,
+                max_revisions=self.package.config.max_package_changelog_revisions)
+
+        return changelog
+
     def get_release_data(self):
         """Get release data for this release.
 
@@ -323,14 +355,10 @@ class BuildProcessHelper(BuildProcess):
                         previous_version=previous_version)
 
         revision = None
-        changelog = None
-
         with self.repo_operation():
             revision = self.vcs.get_current_revision()
-        with self.repo_operation():
-            changelog = self.vcs.get_changelog(
-                previous_revision,
-                max_revisions=config.max_package_changelog_revisions)
+
+        changelog=self.get_changelog()
 
         # truncate changelog - very large changelogs can cause package load
         # times to be very high, we don't want that

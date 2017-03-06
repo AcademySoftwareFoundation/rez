@@ -411,6 +411,10 @@ build_thread_count = "physical_cores"
 # rezplugins/release_hook.
 release_hooks = []
 
+# Prompt for release message using an editor. If set to False, there will be
+# no editor prompt.
+prompt_release_message = False
+
 
 ###############################################################################
 # Suites
