@@ -197,13 +197,18 @@ class GitReleaseVCS(ReleaseVCS):
         return (tag_name in tags)
 
     def create_release_tag(self, tag_name, message=None):
-        if self.tag_exists(tag_name):
-            return
-
         # create tag
-        print "Creating tag '%s'..." % tag_name
+        msg = "Creating tag '%s'..." % tag_name
         args = ["tag", "-a", tag_name]
         args += ["-m", message or '']
+
+        if self.tag_exists(tag_name):
+            if not self.type_settings.update_release_tags:
+                return
+            msg = "Updating tag '%s'..." % tag_name
+            args.append('-f')
+
+        print msg
         self.git(*args)
 
         # push tag

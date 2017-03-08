@@ -1,3 +1,8 @@
+# If true, and a tag already exists when releasing a package (ie, when releasing
+# a new variant of an already-existing version), then update the tag; otherwise,
+# leave the pre-existing tag in place. This setting is currently only supported
+# in git and hg.
+update_release_tags: false
 git:
     # If false, cancel a package release if there is no upstream branch.
     allow_no_upstream: false
