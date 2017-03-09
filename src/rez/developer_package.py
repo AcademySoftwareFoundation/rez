@@ -23,6 +23,13 @@ class DeveloperPackage(Package):
         # include modules, derived from any present @include decorators
         self.includes = None
 
+    @property
+    def root(self):
+        if self.filepath:
+            return os.path.dirname(self.filepath)
+        else:
+            return None
+
     @classmethod
     def from_path(cls, path):
         """Load a developer package.

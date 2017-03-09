@@ -68,9 +68,10 @@ class BezBuildSystem(BuildSystem):
                                      module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
-                                     build_dir=build_path,
+                                     build_path=build_path,
                                      variant_index=variant.index,
-                                     install=install)
+                                     install=install,
+                                     install_path=install_path)
 
             ret["success"] = True
             ret["build_env_script"] = build_env_script
@@ -86,7 +87,9 @@ class BezBuildSystem(BuildSystem):
                                      package=self.package,
                                      variant=variant,
                                      build_type=build_type,
-                                     install=install)
+                                     install=install,
+                                     build_path=build_path,
+                                     install_path=install_path)
 
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
@@ -97,13 +100,20 @@ class BezBuildSystem(BuildSystem):
 
     @classmethod
     def _add_build_actions(cls, executor, context, package, variant,
-                           build_type, install):
-        cls.set_standard_vars(executor, context, variant, build_type, install)
+                           build_type, install, build_path, install_path=None):
+        cls.set_standard_vars(executor=executor,
+                              context=context,
+                              variant=variant,
+                              build_type=build_type,
+                              install=install,
+                              build_path=build_path,
+                              install_path=install_path)
 
 
-def _FWD__spawn_build_shell(working_dir, build_dir, variant_index, install):
+def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
+                            install_path=None):
     # This spawns a shell that the user can run 'bez' in directly
-    context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
+    context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
     package = get_developer_package(working_dir)
     variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
@@ -113,9 +123,11 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index, install):
                                  package=package,
                                  variant=variant,
                                  build_type=BuildType.local,
-                                 install=install)
+                                 install=install,
+                                 build_path=build_path,
+                                 install_path=install_path)
 
-    retcode, _, _ = context.execute_shell(block=True, cwd=build_dir,
+    retcode, _, _ = context.execute_shell(block=True, cwd=build_path,
                                           actions_callback=callback)
     sys.exit(retcode)
 

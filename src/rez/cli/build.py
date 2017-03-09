@@ -16,14 +16,20 @@ def setup_parser_common(parser):
 
     # add build system option only if one build system is associated with cwd
     clss = get_valid_build_systems(os.getcwd())
-    if len(clss) == 1:
-        cls = clss[0]
-        cls.bind_cli(parser)
-    elif clss:
-        types = [x.name() for x in clss]
-        parser.add_argument(
-            "-b", "--build-system", dest="buildsys", type=str, choices=types,
-            help="the build system to use.")
+
+    if clss:
+        # 'custom' takes precedence
+        if "custom" in [x.name() for x in clss]:
+            clss = [x for x in clss if x.name() == "custom"]
+
+        if len(clss) == 1:
+            cls = clss[0]
+            cls.bind_cli(parser)
+        else:
+            types = [x.name() for x in clss]
+            parser.add_argument(
+                "-b", "--build-system", dest="buildsys", type=str, choices=types,
+                help="the build system to use.")
 
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",

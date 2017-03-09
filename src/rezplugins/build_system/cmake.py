@@ -144,7 +144,9 @@ class CMakeBuildSystem(BuildSystem):
                                      package=self.package,
                                      variant=variant,
                                      build_type=build_type,
-                                     install=install)
+                                     install=install,
+                                     build_path=build_path,
+                                     install_path=install_path)
 
         # run the build command and capture/print stderr at the same time
         retcode, _, _ = context.execute_shell(command=cmd,
@@ -164,9 +166,10 @@ class CMakeBuildSystem(BuildSystem):
                                      module=("build_system", "cmake"),
                                      func_name="_FWD__spawn_build_shell",
                                      working_dir=self.working_dir,
-                                     build_dir=build_path,
+                                     build_path=build_path,
                                      variant_index=variant.index,
-                                     install=install)
+                                     install=install,
+                                     install_path=install_path)
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
@@ -206,21 +209,28 @@ class CMakeBuildSystem(BuildSystem):
 
     @classmethod
     def _add_build_actions(cls, executor, context, package, variant,
-                           build_type, install):
+                           build_type, install, build_path, install_path=None):
         settings = package.config.plugins.build_system.cmake
         cmake_path = os.path.join(os.path.dirname(__file__), "cmake_files")
         template_path = os.path.join(os.path.dirname(__file__), "template_files")
 
-        cls.set_standard_vars(executor, context, variant, build_type, install)
+        cls.set_standard_vars(executor=executor,
+                              context=context,
+                              variant=variant,
+                              build_type=build_type,
+                              install=install,
+                              build_path=build_path,
+                              install_path=install_path)
 
         executor.env.CMAKE_MODULE_PATH.append(cmake_path.replace('\\', '/'))
         executor.env.REZ_BUILD_DOXYFILE = os.path.join(template_path, 'Doxyfile')
         executor.env.REZ_BUILD_INSTALL_PYC = '1' if settings.install_pyc else '0'
 
 
-def _FWD__spawn_build_shell(working_dir, build_dir, variant_index, install):
+def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
+                            install_path=None):
     # This spawns a shell that the user can run 'make' in directly
-    context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
+    context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
     package = get_developer_package(working_dir)
     variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
@@ -230,10 +240,12 @@ def _FWD__spawn_build_shell(working_dir, build_dir, variant_index, install):
                                  package=package,
                                  variant=variant,
                                  build_type=BuildType.local,
-                                 install=install)
+                                 install=install,
+                                 build_path=build_path,
+                                 install_path=install_path)
 
     retcode, _, _ = context.execute_shell(block=True,
-                                          cwd=build_dir,
+                                          cwd=build_path,
                                           actions_callback=callback)
     sys.exit(retcode)
 

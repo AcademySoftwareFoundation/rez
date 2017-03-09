@@ -3,6 +3,7 @@ from multiprocessing import cpu_count
 from rez.build_process_ import BuildType
 from rez.exceptions import BuildSystemError
 from rez.packages_ import get_developer_package
+import os.path
 
 
 def get_buildsys_types():
@@ -95,6 +96,8 @@ class BuildSystem(object):
         self.child_build_args = child_build_args
         self.verbose = verbose
 
+        self.opts = opts
+
     @classmethod
     def is_valid_root(cls, path):
         """Return True if this build system can build the source in path."""
@@ -151,22 +154,26 @@ class BuildSystem(object):
         raise NotImplementedError
 
     @classmethod
-    def get_standard_vars(cls, context, variant, build_type, install):
+    def get_standard_vars(cls, context, variant, build_type, install,
+                          build_path, install_path=None):
         """Returns a standard set of environment variables that can be set
         for the build system to use
         """
         from rez.config import config
 
         package = variant.parent
-        vars = {
+
+        vars_ = {
             'REZ_BUILD_ENV': 1,
+            'REZ_BUILD_PATH': build_path,
             'REZ_BUILD_THREAD_COUNT': package.config.build_thread_count,
             'REZ_BUILD_VARIANT_INDEX': variant.index or 0,
             'REZ_BUILD_PROJECT_VERSION': str(package.version),
             'REZ_BUILD_PROJECT_NAME': package.name,
             'REZ_BUILD_PROJECT_DESCRIPTION': \
                 (package.description or '').strip(),
-            'REZ_BUILD_PROJECT_FILE': getattr(package, 'filepath', ''),
+            'REZ_BUILD_PROJECT_FILE': package.filepath,
+            'REZ_BUILD_SOURCE_PATH': os.path.dirname(package.filepath),
             'REZ_BUILD_REQUIRES': \
                 ' '.join(str(x) for x in context.requested_packages(True)),
             'REZ_BUILD_REQUIRES_UNVERSIONED': \
@@ -175,19 +182,29 @@ class BuildSystem(object):
             'REZ_BUILD_INSTALL': 1 if install else 0,
         }
 
+        if install_path:
+            vars_['REZ_BUILD_INSTALL_PATH'] = install_path
+
         if config.rez_1_environment_variables and \
                 not config.disable_rez_1_compatibility and \
                 build_type == BuildType.central:
-            vars['REZ_IN_REZ_RELEASE'] = 1
-        return vars
+            vars_['REZ_IN_REZ_RELEASE'] = 1
+
+        return vars_
 
     @classmethod
     def set_standard_vars(cls, executor, context, variant, build_type,
-                          install):
+                          install, build_path, install_path=None):
         """Sets a standard set of environment variables for the build system to
         use
         """
-        vars = cls.get_standard_vars(context, variant, build_type, install)
+        vars = cls.get_standard_vars(context=context,
+                                     variant=variant,
+                                     build_type=build_type,
+                                     install=install,
+                                     build_path=build_path,
+                                     install_path=install_path)
+
         for var, value in vars.iteritems():
             executor.env[var] = value
 
