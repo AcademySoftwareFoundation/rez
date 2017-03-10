@@ -18,10 +18,6 @@ def setup_parser_common(parser):
     clss = get_valid_build_systems(os.getcwd())
 
     if clss:
-        # 'custom' takes precedence
-        if "custom" in [x.name() for x in clss]:
-            clss = [x for x in clss if x.name() == "custom"]
-
         if len(clss) == 1:
             cls = clss[0]
             cls.bind_cli(parser)

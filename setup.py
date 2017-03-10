@@ -90,15 +90,15 @@ setup(
         'rez':
             ['rezconfig', 'utils/logging.conf'] +
             ['README*'] +
-            find_files('*.*', 'completion') +
-            find_files('*.*', 'tests/data'),
+            find_files('*', 'completion') +
+            find_files('*', 'tests/data'),
         'rezplugins':
             find_files('rezconfig', root='rezplugins') +
             find_files('*.cmake', 'build_system', root='rezplugins') +
-            find_files('*.*', 'build_system/template_files', root='rezplugins'),
+            find_files('*', 'build_system/template_files', root='rezplugins'),
         'rezgui':
             find_files('rezguiconfig', root='rezgui') +
-            find_files('*.*', 'icons', root='rezgui')
+            find_files('*', 'icons', root='rezgui')
     },
     classifiers = [
         "Development Status :: 4 - Beta",

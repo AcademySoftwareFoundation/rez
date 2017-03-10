@@ -21,6 +21,11 @@ def get_valid_build_systems(working_dir):
         cls = plugin_manager.get_plugin_class('build_system', buildsys_name)
         if cls.is_valid_root(working_dir):
             clss.append(cls)
+
+    # explicit build command in package.py takes precedence
+    if "custom" in [x.name() for x in clss]:
+        clss = [x for x in clss if x.name() == "custom"]
+
     return clss
 
 

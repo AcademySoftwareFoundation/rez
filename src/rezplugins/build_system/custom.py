@@ -59,7 +59,6 @@ class CustomBuildSystem(BuildSystem):
             with open("./parse_build_args.py") as f:
                 source = f.read()
         except Exception as e:
-            print str(e)
             return
 
         # detect what extra args have been added
@@ -106,15 +105,20 @@ class CustomBuildSystem(BuildSystem):
         # get build command
         command = self.package.build_command
 
+        def expand(txt):
+            root = self.package.root
+            install_ = "install" if install else ''
+            return txt.format(root=root, install=install_).strip()
+
         if isinstance(command, basestring):
             if self.build_args:
                 command = command + ' ' + ' '.join(map(quote, self.build_args))
 
-            command = self.package.format(command)
+            command = expand(command)
             cmd_str = command
         else:  # list
             command = command + self.build_args
-            command = map(self.package.format, command)
+            command = map(expand, command)
             cmd_str = ' '.join(map(quote, command))
 
         if self.verbose:
@@ -132,22 +136,23 @@ class CustomBuildSystem(BuildSystem):
                                     build_path=build_path,
                                     install_path=install_path)
 
-            # write args defined in ./parse_build_args.py out as env vars
-            extra_args = getattr(self.opts.parser, "_rezbuild_extra_args", [])
+            if self.opts:
+                # write args defined in ./parse_build_args.py out as env vars
+                extra_args = getattr(self.opts.parser, "_rezbuild_extra_args", [])
 
-            for key, value in vars(self.opts).iteritems():
-                if key in extra_args:
-                    varname = "__PARSE_ARG_%s" % key.upper()
+                for key, value in vars(self.opts).iteritems():
+                    if key in extra_args:
+                        varname = "__PARSE_ARG_%s" % key.upper()
 
-                    # do some value conversions
-                    if isinstance(value, bool):
-                        value = 1 if value else 0
-                    elif isinstance(value, (list, tuple)):
-                        value = map(str, value)
-                        value = map(quote, value)
-                        value = ' '.join(value)
+                        # do some value conversions
+                        if isinstance(value, bool):
+                            value = 1 if value else 0
+                        elif isinstance(value, (list, tuple)):
+                            value = map(str, value)
+                            value = map(quote, value)
+                            value = ' '.join(value)
 
-                    executor.env[varname] = value
+                        executor.env[varname] = value
 
         retcode, _, _ = context.execute_shell(command=command,
                                               block=True,
