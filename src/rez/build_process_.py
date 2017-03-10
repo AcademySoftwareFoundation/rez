@@ -337,7 +337,8 @@ class BuildProcessHelper(BuildProcess):
 
         changelog = None
         with self.repo_operation():
-            changelog = self.vcs.get_changelog(previous_revision)
+            changelog = self.vcs.get_changelog(previous_revision,
+                max_revisions=self.package.config.max_package_changelog_revisions)
 
         return changelog
 
