@@ -1175,9 +1175,20 @@ class RexExecutor(object):
             code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
         """
-        self.compile_code(code=code,
-                          filename=filename,
-                          exec_namespace=self.globals)
+        # we want to execute the code using self.globals - if for no other
+        # reason that self.formatter is pointing at self.globals, so if we
+        # passed in a copy, we would also need to make self.formatter "look" at
+        # the same copy - but we don't want to "pollute" our namespace, because
+        # the same executor may be used to run multiple packages. Therefore,
+        # we save a copy of self.globals before execution, and restore it after
+        saved_globals = dict(self.globals)
+        try:
+            self.compile_code(code=code,
+                              filename=filename,
+                              exec_namespace=self.globals)
+        finally:
+            self.globals.clear()
+            self.globals.update(saved_globals)
 
     def execute_function(self, func, *nargs, **kwargs):
         """
