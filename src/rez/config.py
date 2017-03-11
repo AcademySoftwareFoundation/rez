@@ -126,6 +126,7 @@ class Bool(Setting):
     schema = Schema(bool)
     true_words = frozenset(["1", "true", "yes", "y", "on"])
     false_words = frozenset(["0", "false", "no", "n", "off"])
+    all_words = true_words | false_words
 
     def _parse_env_var(self, value):
         value = value.lower()
@@ -134,10 +135,22 @@ class Bool(Setting):
         elif value in self.false_words:
             return False
         else:
-            words = self.true_words | self.false_words
             raise ConfigurationError(
                 "expected $%s to be one of: %s"
-                % (self._env_var_name, ", ".join(words)))
+                % (self._env_var_name, ", ".join(self.all_words)))
+
+
+class ForceOrBool(Bool):
+    FORCE_STR = "force"
+
+    # need force first, or Bool.schema will coerce "force" to True
+    schema = Or(FORCE_STR, Bool.schema)
+    all_words = Bool.all_words | frozenset([FORCE_STR])
+
+    def _parse_env_var(self, value):
+        if value == self.FORCE_STR:
+            return value
+        super(ForceOrBool, self)._parse_env_var(value)
 
 
 class Dict(Setting):
@@ -277,7 +290,7 @@ config_schema = Schema({
     "memcached_resolve_min_compress_len":           Int,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
-    "color_enabled":                                Bool,
+    "color_enabled":                                ForceOrBool,
     "resolve_caching":                              Bool,
     "cache_package_files":                          Bool,
     "cache_listdir":                                Bool,

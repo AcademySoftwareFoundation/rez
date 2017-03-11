@@ -669,6 +669,11 @@ documentation_url = " http://nerdvegas.github.io/rez/"
 # Enables/disables colorization globally.
 # Note: Turned off for Windows currently as there seems to be a problem with
 # the Colorama module.
+# May also set to the string "force", which will make rez output color styling
+# information, even if the the output streams are not ttys. Useful if you are
+# piping the output of rez, but will eventually be printing to a tty later.
+# When force is used, will generally be set through an environemnt variable, ie,
+#    echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
 color_enabled = (os.name == "posix")
 
 ### Do not move or delete this comment (__DOC_END__)
