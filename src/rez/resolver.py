@@ -227,8 +227,17 @@ class Resolver(object):
 
                 new_state = variant_states.get(variant)
                 if new_state is None:
-                    repo = variant.resource._repository
-                    new_state = repo.get_variant_state_handle(variant.resource)
+                    try:
+                        repo = variant.resource._repository
+                        new_state = repo.get_variant_state_handle(variant.resource)
+                    except (IOError, OSError) as e:
+                        # if, ie a package file was deleted on disk, then
+                        # an IOError or OSError will be raised when we try to
+                        # read from it - assume that the packages have changed!
+                        self._print("Error loading %r (assuming cached state "
+                                    "changed): %s", variant.qualified_name,
+                                    e)
+                        return True
                     variant_states[variant] = new_state
 
                 if old_state != new_state:
