@@ -1558,7 +1558,7 @@ class ResolvedContext(object):
                 commands.set_package(pkg)
 
                 try:
-                    executor.execute_code(commands)
+                    executor.execute_code(commands, isolate=True)
                 except error_class as e:
                     exc = e
 
