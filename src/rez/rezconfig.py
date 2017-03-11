@@ -452,6 +452,10 @@ debug_none = False
 # are left uncaught, which can be useful for debugging purposes.
 catch_rex_errors = True
 
+# Sets the maximum number of characters printed from the stdout / stderr of some
+# shell commands when they fail. If 0, then the output is not truncated
+shell_error_truncate_cap = 750
+
 
 ###############################################################################
 # Build
