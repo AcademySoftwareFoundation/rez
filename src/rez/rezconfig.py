@@ -2,6 +2,7 @@
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way:
+
 1) The setting is first read from this file;
 2) The setting is then overridden if it is present in another settings file
    pointed at by the $REZ_CONFIG_FILE environment variable;
@@ -28,6 +29,9 @@ The following variables are provided if you are using rezconfig.py files:
 Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
 Windows \ (unescaped) should be used.
+
+Note: The comments in this file are extracted and turned into Wiki content. Pay
+attention to the comment formatting and follow the existing syle closely.
 """
 import os
 
@@ -667,13 +671,16 @@ documentation_url = " http://nerdvegas.github.io/rez/"
 # style: dim, normal, bright
 
 # Enables/disables colorization globally.
-# Note: Turned off for Windows currently as there seems to be a problem with
-# the Colorama module.
+#
+# > [[media/icons/warning.png]] Note: Turned off for Windows currently as there seems
+# > to be a problem with the Colorama module.
+#
 # May also set to the string "force", which will make rez output color styling
 # information, even if the the output streams are not ttys. Useful if you are
 # piping the output of rez, but will eventually be printing to a tty later.
-# When force is used, will generally be set through an environemnt variable, ie,
-#    echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
+# When force is used, will generally be set through an environment variable, eg:
+#
+#     echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
 color_enabled = (os.name == "posix")
 
 ### Do not move or delete this comment (__DOC_END__)
