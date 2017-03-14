@@ -43,24 +43,6 @@ def bind(path, version_range=None, opts=None, parser=None):
     check_version(version, version_range)
     log("binding python: %s" % exepath)
 
-    # find builtin modules
-    builtin_paths = {}
-    entries = [("lib", "os"),
-               ("extra", "setuptools")]
-
-    for dirname, module_name in entries:
-        success, out, err = run_python_command([
-            "import %s" % module_name,
-            "print %s.__file__" % module_name])
-
-        if success:
-            pypath = os.path.dirname(out)
-            if os.path.basename(pypath) == module_name:
-                pypath = os.path.dirname(pypath)
-
-            if pypath not in builtin_paths.values():
-                builtin_paths[dirname] = pypath
-
     # make the package
     #
 
@@ -69,21 +51,11 @@ def bind(path, version_range=None, opts=None, parser=None):
         link = os.path.join(binpath, "python")
         platform_.symlink(exepath, link)
 
-        if builtin_paths:
-            pypath = make_dirs(root, "python")
-            for dirname, srcpath in builtin_paths.iteritems():
-                destpath = os.path.join(pypath, dirname)
-                log("Copying builtins from %s to %s..." % (srcpath, destpath))
-                shutil.copytree(srcpath, destpath)
-
     with make_package("python", path, make_root=make_root) as pkg:
         pkg.version = version
         pkg.tools = ["python"]
         pkg.commands = commands
         pkg.variants = [system.variant]
-
-        if builtin_paths:
-            pkg.post_commands = post_commands
 
     return pkg.installed_variants
 
