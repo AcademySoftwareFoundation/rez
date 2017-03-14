@@ -13,7 +13,7 @@ def setup_parser(parser, completions=False):
 
     parser.add_argument(
         "--shell", dest="shell", type=str, choices=shells,
-        default=system.shell,
+        default=config.default_shell or system.shell,
         help="target shell type (default: %(default)s)")
     parser.add_argument(
         "--rcfile", type=str,
