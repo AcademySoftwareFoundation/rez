@@ -202,9 +202,11 @@ class GitReleaseVCS(ReleaseVCS):
         args = ["tag", "-a", tag_name]
         args += ["-m", message or '']
 
+        tag_existed = False
         if self.tag_exists(tag_name):
             if not self.type_settings.update_release_tags:
                 return
+            tag_existed = True
             msg = "Updating tag '%s'..." % tag_name
             args.append('-f')
 
@@ -218,7 +220,10 @@ class GitReleaseVCS(ReleaseVCS):
 
         remote_uri = '/'.join((remote, remote_branch))
         print "Pushing tag '%s' to %s..." % (tag_name, remote_uri)
-        self.git("push", remote, tag_name)
+        push_args = ["push", remote, tag_name]
+        if tag_existed:
+            push_args.append('-f')
+        self.git(*push_args)
 
     @classmethod
     def export(cls, revision, path):
