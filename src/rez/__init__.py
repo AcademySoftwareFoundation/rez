@@ -18,6 +18,23 @@ logging_conf_file = os.environ.get(
 logging.config.fileConfig(logging_conf_file, disable_existing_loggers=False)
 
 
+# actions registered on SIGUSR1
+action = os.getenv("REZ_SIGUSR1_ACTION")
+if action:
+    import signal, traceback
+
+    if action == "print_stack":
+        def callback(sig, frame):
+            txt = ''.join(traceback.format_stack(frame))
+            print
+            print txt
+    else:
+        callback = None
+
+    if callback:
+        signal.signal(signal.SIGUSR1, callback)  # Register handler
+
+
 # Copyright 2013-2016 Allan Johns.
 #
 # This library is free software: you can redistribute it and/or

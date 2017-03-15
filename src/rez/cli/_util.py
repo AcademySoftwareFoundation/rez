@@ -21,6 +21,7 @@ subcommands = [
     "pip",
     "release",
     "search",
+    "test",
     "view",
     "status",
     "suite",

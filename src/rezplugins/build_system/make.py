@@ -14,7 +14,7 @@ class MakeBuildSystem(BuildSystem):
     def is_valid_root(cls, path):
         return os.path.isfile(os.path.join(path, "Makefile"))
 
-    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
         super(MakeBuildSystem, self).__init__(working_dir)
         raise NotImplementedError

@@ -4,7 +4,7 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_keys
+    package_release_keys, package_build_only_keys
 from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
@@ -74,7 +74,6 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
 
         # versioned packages
         for version_str in self._repository._get_version_dirs(self.path):
-
             if _settings.check_package_definition_files:
                 path = os.path.join(self.path, version_str)
                 if not self._repository._get_file(path)[0]:
@@ -85,6 +84,7 @@ class FileSystemPackageFamilyResource(PackageFamilyResource):
                 location=self.location,
                 name=self.name,
                 version=version_str)
+
             yield package
 
 
@@ -177,8 +177,6 @@ class FileSystemPackageResource(PackageResourceHelper):
                         pass
         return data
 
-    # should be static or classmethod, since it's passed as an arg to
-    # load_from_file, which is memcached
     @staticmethod
     def _update_changelog(file_format, data):
         # this is to deal with older package releases. They can contain long
@@ -404,6 +402,8 @@ class FileSystemPackageRepository(PackageRepository):
                    "file_lock_dir": Or(None, str),
                    "package_filenames": [basestring]}
 
+    building_prefix = ".building"
+
     @classmethod
     def name(cls):
         return "filesystem"
@@ -489,6 +489,24 @@ class FileSystemPackageRepository(PackageRepository):
 
         return dirname
 
+    def pre_variant_install(self, variant_resource):
+        if not variant_resource.version:
+            return
+
+        # create 'building' tagfile, this makes sure that a resolve doesn't
+        # pick up this package if it doesn't yet have a package.py created.
+        path = self.location
+
+        family_path = os.path.join(path, variant_resource.name)
+        if not os.path.isdir(family_path):
+            os.makedirs(family_path)
+
+        filename = self.building_prefix + str(variant_resource.version)
+        filepath = os.path.join(family_path, filename)
+
+        with open(filepath, 'w'):  # create empty file
+            pass
+
     def install_variant(self, variant_resource, dry_run=False, overrides=None):
         if variant_resource._repository is self:
             return variant_resource
@@ -549,6 +567,7 @@ class FileSystemPackageRepository(PackageRepository):
         dirs = []
         if not os.path.isdir(self.location):
             return dirs
+
         for name in os.listdir(self.location):
             path = os.path.join(self.location, name)
             if os.path.isdir(path):
@@ -558,6 +577,7 @@ class FileSystemPackageRepository(PackageRepository):
                 name_, ext_ = os.path.splitext(name)
                 if ext_ in (".py", ".yaml") and is_valid_package_name(name_):
                     dirs.append((name_, ext_[1:]))
+
         return dirs
 
     def _get_version_dirs__key(self, root):
@@ -569,14 +589,59 @@ class FileSystemPackageRepository(PackageRepository):
                key=_get_version_dirs__key,
                debug=config.debug_memcache)
     def _get_version_dirs(self, root):
-        dirs = []
+
+        # simpler case if this test is on
+        #
+        if _settings.check_package_definition_files:
+            dirs = []
+
+            for name in os.listdir(root):
+                if name.startswith('.'):
+                    continue
+
+                path = os.path.join(root, name)
+                if os.path.isdir(path):
+                    if not self._is_valid_package_directory(path):
+                        continue
+
+                dirs.append(name)
+            return dirs
+
+        # with test off, we have to check for 'building' dirs, these have to be
+        # tested regardless. Failed releases may cause 'building files' to be
+        # left behind, so we need to clear these out also
+        #
+        dirs = set()
+        building_dirs = set()
+
+        # find dirs and dirs marked as 'building'
         for name in os.listdir(root):
             if name.startswith('.'):
-                continue
+                if not name.startswith(self.building_prefix):
+                    continue
+
+                ver_str = name[len(self.building_prefix):]
+                building_dirs.add(ver_str)
+
             path = os.path.join(root, name)
             if os.path.isdir(path):
-                dirs.append(name)
-        return dirs
+                dirs.add(name)
+
+        # check 'building' dirs for validity
+        for name in building_dirs:
+            if name not in dirs:
+                continue
+
+            path = os.path.join(root, name)
+            if not self._is_valid_package_directory(path):
+                # package probably still being built
+                dirs.remove(name)
+
+        return list(dirs)
+
+    # True if `path` contains package.py or similar
+    def _is_valid_package_directory(self, path):
+        return bool(self._get_file(path, "package")[0])
 
     def _get_families(self):
         families = []
@@ -593,6 +658,7 @@ class FileSystemPackageRepository(PackageRepository):
                     name=name,
                     ext=ext)
             families.append(family)
+
         return families
 
     def _get_family(self, name):
@@ -689,12 +755,20 @@ class FileSystemPackageRepository(PackageRepository):
         existing_package_data = None
         existing_variants_data = None
         release_data = {}
+
         new_package_data = variant.parent.validated_data()
         new_package_data.pop("variants", None)
         package_changed = False
 
+        def remove_build_keys(obj):
+            for key in package_build_only_keys:
+                obj.pop(key, None)
+
+        remove_build_keys(new_package_data)
+
         if existing_package:
             existing_package_data = existing_package.validated_data()
+            remove_build_keys(existing_package_data)
 
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()
@@ -772,7 +846,7 @@ class FileSystemPackageRepository(PackageRepository):
         package_data["config"] = parent_package._data.get("config")
         package_data.pop("base", None)
 
-        # create version dir and write out the new package definition file
+        # create version dir if it doesn't already exist
         family_path = os.path.join(self.location, variant.name)
         if variant.version:
             path = os.path.join(family_path, str(variant.version))
@@ -792,8 +866,26 @@ class FileSystemPackageRepository(PackageRepository):
 
         package_file = ".".join([package_filename, package_extension])
         filepath = os.path.join(path, package_file)
+
         with open_file_for_write(filepath) as f:
             dump_package_data(package_data, buf=f, format_=package_format)
+
+        # delete the tmp 'building' file.
+        if variant.version:
+            filename = self.building_prefix + str(variant.version)
+            filepath = os.path.join(family_path, filename)
+            if os.path.exists(filepath):
+                try:
+                    os.remove(filepath)
+                except:
+                    pass
+
+        # delete other stale building files; previous failed releases may have
+        # left some around
+        try:
+            self._delete_stale_build_tagfiles(family_path)
+        except:
+            pass
 
         # touch the family dir, this keeps memcached resolves updated properly
         os.utime(family_path, None)
@@ -815,6 +907,32 @@ class FileSystemPackageRepository(PackageRepository):
         if not new_variant:
             raise RezSystemError("Internal failure - expected installed variant")
         return new_variant
+
+    def _delete_stale_build_tagfiles(self, family_path):
+        now = time.time()
+
+        for name in os.listdir(family_path):
+            if not name.startswith(self.building_prefix):
+                continue
+
+            tagfilepath = os.path.join(family_path, name)
+            ver_str = name[len(self.building_prefix):]
+            pkg_path = os.path.join(family_path, ver_str)
+
+            if os.path.exists(pkg_path):
+                # build tagfile not needed if package is valid
+                if self._is_valid_package_directory(pkg_path):
+                    os.remove(tagfilepath)
+                    continue
+            else:
+                # remove tagfile if pkg is gone. Delete only tagfiles over a certain
+                # age, otherwise might delete a tagfile another process has created
+                # just before it created the package directory.
+                st = os.stat(tagfilepath)
+                age = now - st.st_mtime
+
+                if age > 3600:
+                    os.remove(tagfilepath)
 
 
 def register_plugin():

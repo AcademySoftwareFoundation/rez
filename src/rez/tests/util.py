@@ -83,8 +83,10 @@ class TempdirMixin(object):
 
     @classmethod
     def tearDownClass(cls):
-        if os.path.exists(cls.root):
-            shutil.rmtree(cls.root)
+        if not os.getenv("REZ_KEEP_TMPDIRS"):
+            if os.path.exists(cls.root):
+                shutil.rmtree(cls.root)
+
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
     """Attempts to find the given relative path to_find in the given path
@@ -100,65 +102,46 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
             return test_path
     return None
 
-_CMAKE_EXISTS = None
-_GIT_EXISTS = None
-_HG_EXISTS = None
-_SVN_EXISTS = None
 
-def _make_checker_and_skipper(binary_name, global_var_name,
-                              extra_conditions=None):
-    """Creates two functions - the first checks if the given binary exists,
-    the second is a decorator which can be used to skip tests if it doesn't
-    exist"""
-    if extra_conditions is None:
-        def extra_conditions():
-            return True
+program_tests = {
+    "cmake": ['cmake', '-h'],
+    "make": ['make', '-h'],
+    "g++": ["g++", "--help"],
+    "git": ["git", "--help"],
+    "hg": ["hg", "--help"],
+    "svn": ["svn", "--help"],
+}
 
-    def check_exists():
-        exists = globals().get(global_var_name)
-        if exists is None:
-            import subprocess
-            import errno
 
-            with open(os.devnull, 'wb') as DEVNULL:
-                try:
-                    subprocess.check_call([binary_name, '--help'],
-                                          stdout=DEVNULL, stderr=DEVNULL)
-                except (OSError, IOError, subprocess.CalledProcessError):
-                    exists = False
-                else:
-                    exists = True
-            globals()[global_var_name] = exists
-        return exists
-    check_exists.__name__ = "%s_exists" % binary_name
-    check_exists.__doct__ = "Tests whether %s is available" % binary_name
+def program_dependent(program_name, *program_names):
 
-    def skip_decorator(fn):
-        if not (check_exists() and extra_conditions()):
-            return unittest.skip('%s not available' % binary_name)(fn)
-        return fn
-    skip_decorator.__name__ = "%s_dependent" % binary_name
-    skip_decorator.__doc__ = "Function decorator that skips the test if " \
-                             "%s is not available" % binary_name
+    # test if program exists
+    import subprocess
+    import errno
 
-    return check_exists, skip_decorator
+    def _test(name):
+        command = program_tests[name]
 
-cmake_exists, cmake_dependent = _make_checker_and_skipper("cmake",
-                                                          "_CMAKE_EXISTS")
+        with open(os.devnull, 'wb') as DEVNULL:
+            try:
+                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
+            except (OSError, IOError, subprocess.CalledProcessError):
+                return False
+            else:
+                return True
 
-git_exists, git_dependent = _make_checker_and_skipper("git", "_GIT_EXISTS")
+    names = [program_name] + list(program_names)
+    exists = all(_test(x) for x in names)
 
-hg_exists, hg_dependent = _make_checker_and_skipper("hg", "_HG_EXISTS")
+    if exists:
+        def wrapper(fn):
+            return fn
 
-def pysvn_exists():
-    try:
-        import pysvn
-    except ImportError:
-        return False
-    return True
+    else:
+        def wrapper(fn):
+            return unittest.skip("Program(s) not available: %s" % names)(fn)
 
-svn_exists, svn_dependent = _make_checker_and_skipper("svn", "_SVN_EXISTS",
-                                                      extra_conditions=pysvn_exists)
+    return wrapper
 
 
 def shell_dependent(exclude=None):

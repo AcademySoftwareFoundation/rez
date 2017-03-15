@@ -214,11 +214,13 @@ config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
+    "package_definition_build_python_paths":        PathList,
     "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
+    "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
     "warning_styles":                               OptionalStrList,
@@ -237,6 +239,7 @@ config_schema = Schema({
     "suite_visibility":                             SuiteVisibility_,
     "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
+    "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
     "default_shell":                                OptionalStr,
@@ -263,6 +266,7 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
+    "package_preprocess_function":                  OptionalStr,
     "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
@@ -388,6 +392,9 @@ class Config(object):
         else:
             self.overrides[key] = value
             self._uncache(key)
+
+    def is_overridden(self, key):
+        return (key in self.overrides)
 
     def remove_override(self, key):
         """Remove a setting override, if one exists."""

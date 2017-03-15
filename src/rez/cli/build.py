@@ -16,14 +16,16 @@ def setup_parser_common(parser):
 
     # add build system option only if one build system is associated with cwd
     clss = get_valid_build_systems(os.getcwd())
-    if len(clss) == 1:
-        cls = clss[0]
-        cls.bind_cli(parser)
-    elif clss:
-        types = [x.name() for x in clss]
-        parser.add_argument(
-            "-b", "--build-system", dest="buildsys", type=str, choices=types,
-            help="the build system to use.")
+
+    if clss:
+        if len(clss) == 1:
+            cls = clss[0]
+            cls.bind_cli(parser)
+        else:
+            types = [x.name() for x in clss]
+            parser.add_argument(
+                "-b", "--build-system", dest="buildsys", type=str, choices=types,
+                help="the build system to use.")
 
     parser.add_argument(
         "--variants", nargs='+', type=int, metavar="INDEX",
@@ -59,6 +61,9 @@ def setup_parser(parser, completions=False):
         help="create build scripts rather than performing the full build. "
         "Running these scripts will place you into a build environment, where "
         "you can invoke the build system directly.")
+    parser.add_argument(
+        "--view-pre", action="store_true",
+        help="just view the preprocessed package definition, and exit.")
     setup_parser_common(parser)
 
 
@@ -82,16 +87,26 @@ def get_build_args(opts, parser, extra_arg_groups):
 
 def command(opts, parser, extra_arg_groups=None):
     from rez.exceptions import BuildContextResolveError
+    from rez.packages_ import get_developer_package
     from rez.build_process_ import create_build_process
     from rez.build_system import create_build_system
+    from rez.serialise import FileFormat
     import sys
 
+    # load package
     working_dir = os.getcwd()
+    package = get_developer_package(working_dir)
+
+    if opts.view_pre:
+        package.print_info(format_=FileFormat.py, skip_attributes=["preprocess"])
+        sys.exit(0)
 
     # create build system
     build_args, child_build_args = get_build_args(opts, parser, extra_arg_groups)
     buildsys_type = opts.buildsys if ("buildsys" in opts) else None
+
     buildsys = create_build_system(working_dir,
+                                   package=package,
                                    buildsys_type=buildsys_type,
                                    opts=opts,
                                    write_build_scripts=opts.scripts,
@@ -102,6 +117,7 @@ def command(opts, parser, extra_arg_groups=None):
     # create and execute build process
     builder = create_build_process(opts.process,
                                    working_dir,
+                                   package=package,
                                    build_system=buildsys,
                                    verbose=True)
 

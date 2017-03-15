@@ -1,4 +1,4 @@
-from rez.utils.data_utils import SourceCode
+from rez.utils.sourcecode import SourceCode
 from rez.vendor import yaml
 from rez.vendor.yaml.dumper import SafeDumper
 from rez.vendor.yaml.nodes import ScalarNode, MappingNode

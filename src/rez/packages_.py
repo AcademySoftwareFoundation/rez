@@ -1,15 +1,17 @@
 from rez.package_repository import package_repository_manager
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResource, package_family_schema, package_schema, variant_schema, \
-    package_release_keys
+    package_release_keys, late_requires_schema
 from rez.package_serialise import dump_package_data
-from rez.utils.data_utils import cached_property
+from rez.utils import reraise
+from rez.utils.logging_ import print_info, print_error
+from rez.utils.sourcecode import SourceCode
+from rez.utils.data_utils import cached_property, _missing
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
 from rez.utils.schema import schema_keys
 from rez.utils.resources import ResourceHandle, ResourceWrapper
-from rez.exceptions import PackageMetadataError, PackageFamilyNotFoundError, \
-    ResourceError
+from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
 from rez.vendor.version.requirement import VersionedObject
 from rez.serialise import load_from_file, FileFormat
@@ -59,6 +61,18 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
+    late_bind_schemas = {
+        "requires": late_requires_schema
+    }
+
+    def __init__(self, resource, context=None):
+        super(PackageBaseResourceWrapper, self).__init__(resource)
+        self.context = context
+        self._late_bindings = {}
+
+    def set_context(self, context):
+        self.context = context
+
     def arbitrary_keys(self):
         raise NotImplementedError
 
@@ -114,6 +128,47 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         dump_package_data(data, buf=buf, format_=format_,
                           skip_attributes=skip_attributes)
 
+    def _wrap_forwarded(self, key, value):
+        if isinstance(value, SourceCode) and value.late_binding:
+            value_ = self._late_bindings.get(key, _missing)
+
+            if value_ is _missing:
+                value_ = self._eval_late_binding(value)
+
+                schema = self.late_bind_schemas.get(key)
+                if schema is not None:
+                    value_ = schema.validate(value_)
+
+                self._late_bindings[key] = value_
+
+            return value_
+        else:
+            return value
+
+    def _eval_late_binding(self, sourcecode):
+        g = {}
+
+        if self.context is None:
+            g["in_context"] = lambda: False
+        else:
+            g["in_context"] = lambda: True
+            g["context"] = self.context
+
+            # 'request', 'system' etc
+            bindings = self.context._get_pre_resolve_bindings()
+            g.update(bindings)
+
+        # note that what 'this' actually points to depends on whether the context
+        # is available or not. If not, then 'this' is a Package instance; if the
+        # context is available, it is a Variant instance. So for example, if
+        # in_context() is True, 'this' will have a 'root' attribute, but will
+        # not if in_context() is False.
+        #
+        g["this"] = self
+
+        sourcecode.set_package(self)
+        return sourcecode.exec_(globals_=g)
+
 
 class Package(PackageBaseResourceWrapper):
     """A package.
@@ -124,14 +179,16 @@ class Package(PackageBaseResourceWrapper):
     """
     keys = schema_keys(package_schema)
 
-    def __init__(self, resource):
+    def __init__(self, resource, context=None):
         _check_class(resource, PackageResource)
-        super(Package, self).__init__(resource)
+        super(Package, self).__init__(resource, context)
 
     # arbitrary keys
     def __getattr__(self, name):
         if name in self.data:
-            return self.data[name]
+            value = self.data[name]
+            return self._wrap_forwarded(name, value)
+            #return self.data[name]
         else:
             raise AttributeError("Package instance has no attribute '%s'" % name)
 
@@ -178,7 +235,7 @@ class Package(PackageBaseResourceWrapper):
         """
         repo = self.resource._repository
         for variant in repo.iter_variants(self.resource):
-            yield Variant(variant)
+            yield Variant(variant, context=self.context, parent=self)
 
     def get_variant(self, index=None):
         """Get the variant with the associated index.
@@ -201,9 +258,10 @@ class Variant(PackageBaseResourceWrapper):
     keys = schema_keys(variant_schema)
     keys.update(["index", "root", "subpath"])
 
-    def __init__(self, resource):
+    def __init__(self, resource, context=None, parent=None):
         _check_class(resource, VariantResource)
-        super(Variant, self).__init__(resource)
+        super(Variant, self).__init__(resource, context)
+        self._parent = parent
 
     # arbitrary keys
     def __getattr__(self, name):
@@ -237,9 +295,35 @@ class Variant(PackageBaseResourceWrapper):
         Returns:
             `Package`.
         """
-        repo = self.resource._repository
-        package = repo.get_parent_package(self.resource)
-        return Package(package)
+        if self._parent is not None:
+            return self._parent
+
+        try:
+            repo = self.resource._repository
+            package = repo.get_parent_package(self.resource)
+            self._parent = Package(package, context=self.context)
+        except AttributeError as e:
+            reraise(e, ValueError)
+
+        return self._parent
+
+    @property
+    def requires(self):
+        """Get variant requirements.
+
+        This is a concatenation of the package requirements and those of this
+        specific variant.
+        """
+        try:
+            package_requires = self.parent.requires or []
+
+            if self.index is None:
+                return package_requires
+            else:
+                variant_requires = self.parent.variants[self.index] or []
+                return package_requires + variant_requires
+        except AttributeError as e:
+            reraise(e, ValueError)
 
     def get_requires(self, build_requires=False, private_build_requires=False):
         """Get the requirements of the variant.
@@ -253,10 +337,12 @@ class Variant(PackageBaseResourceWrapper):
             List of `Requirement` objects.
         """
         requires = self.requires or []
+
         if build_requires:
             requires = requires + (self.build_requires or [])
         if private_build_requires:
             requires = requires + (self.private_build_requires or [])
+
         return requires
 
     def install(self, path, dry_run=False, overrides=None):
@@ -456,50 +542,11 @@ def get_package_from_string(txt, paths=None):
 
 
 def get_developer_package(path):
-    """Load a developer package.
-
-    A developer package may for example be a package.yaml or package.py in a
-    user's source directory.
-
-    Note:
-        The resulting package has a 'filepath' attribute added to it, that does
-        not normally appear on a `Package` object. A developer package is the
-        only case where we know we can directly associate a 'package.*' file
-        with a package - other packages can come from any kind of package repo,
-        which may or may not associate a single file with a single package (or
-        any file for that matter - it may come from a database).
-
-    Args:
-        path: Directory containing the package definition file.
-
-    Returns:
-        `Package` object.
-    """
-    name = data = None
-    for name_ in config.plugins.package_repository.filesystem.package_filenames:
-        for format_ in (FileFormat.py, FileFormat.yaml):
-            filepath = os.path.join(path, "%s.%s" % (name_, format_.extension))
-            if os.path.isfile(filepath):
-                data = load_from_file(filepath, format_)
-                break
-        if data:
-            name = data.get("name")
-            if name is not None or isinstance(name, basestring):
-                break
-
-    if data is None:
-        raise PackageMetadataError("No package definition file found at %s" % path)
-
-    if name is None or not isinstance(name, basestring):
-        raise PackageMetadataError(
-            "Error in %r - missing or non-string field 'name'" % filepath)
-
-    package = create_package(name, data)
-    setattr(package, "filepath", filepath)
-    return package
+    from rez.developer_package import DeveloperPackage
+    return DeveloperPackage.from_path(path)
 
 
-def create_package(name, data):
+def create_package(name, data, package_cls=None):
     """Create a package given package data.
 
     Args:
@@ -510,25 +557,28 @@ def create_package(name, data):
         `Package` object.
     """
     from rez.package_maker__ import PackageMaker
-    maker = PackageMaker(name, data)
+    maker = PackageMaker(name, data, package_cls=package_cls)
     return maker.get_package()
 
 
-def get_variant(variant_handle):
+def get_variant(variant_handle, context=None):
     """Create a variant given its handle (or serialized dict equivalent)
 
     Args:
         variant_handle (`ResourceHandle` or dict): Resource handle, or
             equivalent serialized dict representation from
             ResourceHandle.to_dict
+        context (`ResolvedContext`): The context this variant is associated
+            with, if any.
 
     Returns:
         `Variant`.
     """
     if isinstance(variant_handle, dict):
         variant_handle = ResourceHandle.from_dict(variant_handle)
+
     variant_resource = package_repository_manager.get_resource_from_handle(variant_handle)
-    variant = Variant(variant_resource)
+    variant = Variant(variant_resource, context=context)
     return variant
 
 
@@ -627,8 +677,31 @@ def get_latest_package(name, range_=None, paths=None, error=False):
         return max(it, key=lambda x: x.version)
     except ValueError:  # empty sequence
         if error:
+            # FIXME this isn't correct, since the pkg fam may exist but a pkg
+            # in the range does not.
             raise PackageFamilyNotFoundError("No such package family %r" % name)
         return None
+
+
+def get_latest_package_from_string(txt, paths=None, error=False):
+    """Get the latest package found within the given request string.
+
+    Args:
+        txt (str): Request, eg 'foo-1.2+'
+        paths (list of str, optional): paths to search for package families,
+            defaults to `config.packages_path`.
+        error (bool): If True, raise an error if no package is found.
+
+    Returns:
+        `Package` object, or None if no package is found.
+    """
+    from rez.utils.formatting import PackageRequest
+
+    req = PackageRequest(txt)
+    return get_latest_package(name=req.name,
+                              range_=req.range_,
+                              paths=paths,
+                              error=error)
 
 
 def _get_families(name, paths=None):

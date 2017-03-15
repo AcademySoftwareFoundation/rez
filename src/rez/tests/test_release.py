@@ -11,7 +11,7 @@ from rez.system import system
 from rez.exceptions import BuildError, ReleaseError, ReleaseVCSError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, shell_dependent, \
-    install_dependent, git_dependent, hg_dependent, svn_dependent
+    install_dependent, program_dependent
 from rez.package_serialise import dump_package_data
 from rez.serialise import FileFormat
 import rez.bind.platform
@@ -179,7 +179,14 @@ class TestRelease(TestBase, TempdirMixin):
     def test_2_variant_add(self):
         """Test variant installation on release
         """
-        self._setup_release("variants")
+        orig_src_path = self.src_path
+        self.src_path = os.path.join(self.src_path, "variants")
+        try:
+            self._setup_release("variants")
+        finally:
+            # due to shell_dependent, this will run multiple times, don't
+            # want to add src_path/variants/variants
+            self.src_path = orig_src_path
 
         # make the stub file, set up the vcs
         stubfile = os.path.join(self.build_dir, ".stub")
@@ -362,7 +369,7 @@ class TestRelease(TestBase, TempdirMixin):
         with self.assertRaises(ReleaseError):
             builder.release()
 
-    @git_dependent
+    @program_dependent("git")
     def test_3_git_package_file_in_repo(self):
         """Test that if package.yaml not in git repo, release is not allowed
         """
@@ -372,7 +379,7 @@ class TestRelease(TestBase, TempdirMixin):
         env['HOME'] = self.src_root
         self._assert_package_file_in_repo("git", env=env)
         
-    @hg_dependent
+    @program_dependent("hg")
     def test_4_hg_package_file_in_repo(self):
         """Test that if package.yaml not in hg repo, release is not allowed
         """
@@ -381,7 +388,7 @@ class TestRelease(TestBase, TempdirMixin):
         env['HGRCPATH'] = os.path.join(self.src_root, "hgrc")
         self._assert_package_file_in_repo("hg", env=env)
 
-    @svn_dependent
+    @program_dependent("svn")
     def test_5_svn_package_file_in_repo(self):
         """Test that if package.yaml not in svn repo, release is not allowed
         """
