@@ -9,7 +9,7 @@ from rez.utils.sourcecode import SourceCode
 from rez.utils.data_utils import cached_property, _missing
 from rez.utils.formatting import StringFormatMixin, StringFormatType
 from rez.utils.filesystem import is_subdirectory
-from rez.utils.schema import schema_keys
+from rez.utils.schema import schema_keys, get_cls_sub_schema
 from rez.utils.resources import ResourceHandle, ResourceWrapper
 from rez.exceptions import PackageFamilyNotFoundError, ResourceError
 from rez.vendor.version.version import VersionRange
@@ -28,10 +28,53 @@ import sys
 class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
     format_expand = StringFormatType.unchanged
 
+    late_bind_schemas = {
+        "requires": late_requires_schema
+    }
+
+    def __init__(self, resource, context=None):
+        super(PackageRepositoryResourceWrapper, self).__init__(resource)
+        self.context = context
+        self._late_bindings = {}
+
+    # arbitrary keys
+    def __getattr__(self, name):
+        if name in self.data:
+            value = self.data[name]
+            return self._wrap_forwarded(name, value)
+        else:
+            raise AttributeError("%s instance has no attribute '%s'"
+                                 % (type(self).__name__, name))
+
+    def set_context(self, context):
+        self.context = context
+
     def validated_data(self):
         data = ResourceWrapper.validated_data(self)
         data = dict((k, v) for k, v in data.iteritems() if v is not None)
         return data
+
+    def _wrap_forwarded(self, key, value):
+        if isinstance(value, SourceCode) and value.late_binding:
+            value_ = self._late_bindings.get(key, _missing)
+
+            if value_ is _missing:
+                value_ = self._eval_late_binding(value)
+
+                schema = self.late_bind_schemas.get(key)
+                if schema is None:
+                    schema = get_cls_sub_schema(self, key)
+                if schema is not None:
+                    value_ = schema.validate(value_)
+
+                self._late_bindings[key] = value_
+
+            return value_
+        else:
+            return value
+
+    def _eval_late_binding(self, sourcecode):
+        sourcecode.exec_late(self)
 
 
 class PackageFamily(PackageRepositoryResourceWrapper):
@@ -43,9 +86,9 @@ class PackageFamily(PackageRepositoryResourceWrapper):
     """
     keys = schema_keys(package_family_schema)
 
-    def __init__(self, resource):
+    def __init__(self, resource, context=None):
         _check_class(resource, PackageFamilyResource)
-        super(PackageFamily, self).__init__(resource)
+        super(PackageFamily, self).__init__(resource, context=context)
 
     def iter_packages(self):
         """Iterate over the packages within this family, in no particular order.
@@ -61,17 +104,6 @@ class PackageFamily(PackageRepositoryResourceWrapper):
 class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     """Abstract base class for `Package` and `Variant`.
     """
-    late_bind_schemas = {
-        "requires": late_requires_schema
-    }
-
-    def __init__(self, resource, context=None):
-        super(PackageBaseResourceWrapper, self).__init__(resource)
-        self.context = context
-        self._late_bindings = {}
-
-    def set_context(self, context):
-        self.context = context
 
     def arbitrary_keys(self):
         raise NotImplementedError
@@ -128,47 +160,6 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
         dump_package_data(data, buf=buf, format_=format_,
                           skip_attributes=skip_attributes)
 
-    def _wrap_forwarded(self, key, value):
-        if isinstance(value, SourceCode) and value.late_binding:
-            value_ = self._late_bindings.get(key, _missing)
-
-            if value_ is _missing:
-                value_ = self._eval_late_binding(value)
-
-                schema = self.late_bind_schemas.get(key)
-                if schema is not None:
-                    value_ = schema.validate(value_)
-
-                self._late_bindings[key] = value_
-
-            return value_
-        else:
-            return value
-
-    def _eval_late_binding(self, sourcecode):
-        g = {}
-
-        if self.context is None:
-            g["in_context"] = lambda: False
-        else:
-            g["in_context"] = lambda: True
-            g["context"] = self.context
-
-            # 'request', 'system' etc
-            bindings = self.context._get_pre_resolve_bindings()
-            g.update(bindings)
-
-        # note that what 'this' actually points to depends on whether the context
-        # is available or not. If not, then 'this' is a Package instance; if the
-        # context is available, it is a Variant instance. So for example, if
-        # in_context() is True, 'this' will have a 'root' attribute, but will
-        # not if in_context() is False.
-        #
-        g["this"] = self
-
-        sourcecode.set_package(self)
-        return sourcecode.exec_(globals_=g)
-
 
 class Package(PackageBaseResourceWrapper):
     """A package.
@@ -182,15 +173,6 @@ class Package(PackageBaseResourceWrapper):
     def __init__(self, resource, context=None):
         _check_class(resource, PackageResource)
         super(Package, self).__init__(resource, context)
-
-    # arbitrary keys
-    def __getattr__(self, name):
-        if name in self.data:
-            value = self.data[name]
-            return self._wrap_forwarded(name, value)
-            #return self.data[name]
-        else:
-            raise AttributeError("Package instance has no attribute '%s'" % name)
 
     def arbitrary_keys(self):
         """Get the arbitrary keys present in this package.

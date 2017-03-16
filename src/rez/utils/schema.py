@@ -1,12 +1,29 @@
 """
 Utilities for working with dict-based schemas.
 """
+import inspect
+
 from rez.vendor.schema.schema import Schema, Optional, Use, And
 
 
 # an alias which just so happens to be the same number of characters as
 # 'Optional' so that our schema are easier to read
 Required = Schema
+
+def _iter_schema_string_keys(schema):
+    dict_ = schema._schema
+    assert isinstance(dict_, dict)
+
+    def _get_leaf(value):
+        if isinstance(value, Schema):
+            return _get_leaf(value._schema)
+        return value
+
+    for raw_key, val in dict_.iteritems():
+        str_key = _get_leaf(raw_key)
+        if not isinstance(str_key, basestring):
+            str_key = None
+        yield str_key, raw_key, val
 
 
 def schema_keys(schema):
@@ -20,21 +37,36 @@ def schema_keys(schema):
             schema = Schema({Required("foo"): int,
                              Optional("bah"): basestring})
     """
-    def _get_leaf(value):
-        if isinstance(value, Schema):
-            return _get_leaf(value._schema)
-        return value
+    return set(str_key
+               for str_key, raw_key, val in _iter_schema_string_keys(schema)
+               if str_key is not None)
 
-    keys = set()
-    dict_ = schema._schema
-    assert isinstance(dict_, dict)
 
-    for key in dict_.iterkeys():
-        key_ = _get_leaf(key)
-        if isinstance(key_, basestring):
-            keys.add(key_)
+def get_sub_schema(schema, key):
+    for str_key, raw_key, val in _iter_schema_string_keys(schema):
+        if str_key == key:
+            return Schema(val)
+    raise KeyError(key)
 
-    return keys
+
+def get_cls_schema(obj):
+    if inspect.isclass(obj):
+        cls = obj
+    else:
+        cls = type(obj)
+    return getattr(obj, 'schema', None)
+
+
+def get_cls_sub_schema(obj, key):
+    cls_schema = get_cls_schema(obj)
+    if cls_schema is None:
+        return None
+    if not isinstance(getattr(cls_schema, '_schema', None), dict):
+        return None
+    try:
+        return get_sub_schema(cls_schema, key)
+    except KeyError:
+        return None
 
 
 def dict_to_schema(schema_dict, required, allow_custom_keys=True, modifier=None):

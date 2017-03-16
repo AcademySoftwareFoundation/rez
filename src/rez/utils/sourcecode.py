@@ -221,6 +221,31 @@ class SourceCode(object):
 
         return globals_.get("_result")
 
+    def exec_late(self, package):
+        context = getattr(package, 'context', None)
+        g = {}
+
+        if context is None:
+            g["in_context"] = lambda: False
+        else:
+            g["in_context"] = lambda: True
+            g["context"] = context
+
+            # 'request', 'system' etc
+            bindings = context._get_pre_resolve_bindings()
+            g.update(bindings)
+
+        # note that what 'this' actually points to depends on whether the context
+        # is available or not. If not, then 'this' is a Package instance; if the
+        # context is available, it is a Variant instance. So for example, if
+        # in_context() is True, 'this' will have a 'root' attribute, but will
+        # not if in_context() is False.
+        #
+        g["this"] = package
+
+        self.set_package(package)
+        return self.exec_(globals_=g)
+
     def to_text(self, funcname):
         # don't indent code if already indented
         if self.source[0] in (' ', '\t'):
@@ -318,7 +343,15 @@ class IncludeModuleManager(object):
             hash_str = sha1(txt).hexdigest()
         else:
             # load sourcefile that's been copied into package install payload
-            path = os.path.join(package.base, self.include_modules_subpath)
+            base = getattr(package, 'base', None)
+            if base is None:
+                # may have no base if it's a multi-version package... see if
+                # it has a location
+                base = getattr(package, 'location', None)
+                if base is None:
+                    if hasattr(package, 'wrapped'):
+                        base = getattr(package.wrapped, 'location', None)
+            path = os.path.join(base, self.include_modules_subpath)
             pathname = os.path.join(path, "%s-*.py" % name)
 
             pathnames = glob(pathname)
