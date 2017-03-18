@@ -124,10 +124,9 @@ class DeveloperPackage(Package):
         from copy import deepcopy
 
         with add_sys_paths(config.package_definition_build_python_paths):
-            preprocess = getattr(self, "preprocess", None)
+            preprocess_func = getattr(self, "preprocess", None)
 
-            if preprocess:
-                preprocess_func = preprocess.func
+            if preprocess_func:
                 print_info("Applying preprocess from package.py")
             else:
                 # load globally configured preprocess function
@@ -173,7 +172,7 @@ class DeveloperPackage(Package):
                             % (e.__class__.__name__, str(e)))
                 return None
 
-        # if preprocess added functions, these need to be converted to
+        # if preprocess added functions, these may need to be converted to
         # SourceCode instances
         preprocessed_data = process_python_objects(preprocessed_data)
 

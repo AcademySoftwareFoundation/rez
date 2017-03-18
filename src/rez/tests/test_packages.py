@@ -5,11 +5,13 @@ from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
 from rez.package_resources_ import package_release_keys
 from rez.package_repository import create_memory_package_repository
+from rez.package_py_utils import expand_requirement
 from rez.tests.util import TestBase, TempdirMixin
 from rez.utils.formatting import PackageRequest
 from rez.utils.sourcecode import SourceCode
 import rez.vendor.unittest2 as unittest
 from rez.vendor.version.version import Version
+from rez.vendor.version.util import VersionError
 import os.path
 import os
 
@@ -276,6 +278,44 @@ class TestPackages(TestBase, TempdirMixin):
             data = _data(package)
             data_ = _data(installed_package)
             self.assertDictEqual(data, data_)
+
+    def test_8(self):
+        """test expand_requirement function."""
+        tests = (
+            ("pyfoo", "pyfoo"),
+            ("pyfoo-3", "pyfoo-3"),
+            ("pyfoo-3.0", "pyfoo-3.0"),
+            ("pyfoo-*", "pyfoo-3"),
+            ("pyfoo-**", "pyfoo-3.1.0"),
+            ("pysplit==**", "pysplit==7"),
+            ("python-*+<**", "python-2+<2.7.0"),
+            ("python-2.6.*+<**", "python-2.6.8+<2.7.0"),
+            ("python-2.5|**", "python-2.5|2.7.0"),
+            ("notexist-1.2.3", "notexist-1.2.3"),
+            ("pysplit-6.*", "pysplit-6"),
+            ("pyfoo-3.0.0.**", "pyfoo-3.0.0"),
+            ("python-55", "python-55"),
+
+            # some trickier cases, VersionRange construction rules still apply
+            ("python-**|2.5", "python-2.5|2.7.0"),
+            ("python-2.*|**", "python-2.7")
+        )
+
+        bad_tests = (
+            "python-*.**",
+            "python-1.*.**",
+            "python-1.*.1",
+            "python-1.v*",
+            "python-1.**.*",
+            "python-1.**.1"
+        )
+
+        for req, expanded_req in tests:
+            result = expand_requirement(req)
+            self.assertEqual(result, expanded_req)
+
+        for req in bad_tests:
+            self.assertRaises(VersionError, expand_requirement, req)
 
 
 class TestMemoryPackages(TestBase):

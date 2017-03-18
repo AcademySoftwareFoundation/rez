@@ -77,6 +77,9 @@ class TestVersionSchema(unittest.TestCase):
                            for i in range(random.randint(0, 6)))
         return Version(ver_str, make_token=self.make_token)
 
+    def test_misc(self):
+        self.assertEqual(Version("1.2.12").as_tuple(), ("1", "2", "12"))
+
     def test_token_strict_weak_ordering(self):
         # test equal tokens
         tok = self._create_random_token()

@@ -298,6 +298,16 @@ class Version(_Comparable):
         """Semantic versioning patch version."""
         return self[2]
 
+    def as_tuple(self):
+        """Convert to a tuple of strings.
+
+        Example:
+
+            >>> print Version("1.2.12").as_tuple()
+            ('1', '2', '12')
+        """
+        return tuple(map(str, self.tokens))
+
     def __len__(self):
         return len(self.tokens or [])
 
@@ -408,12 +418,14 @@ _UpperBound.inf = _UpperBound(Version.inf, True)
 class _Bound(_Comparable):
     any = None
 
-    def __init__(self, lower=None, upper=None):
+    def __init__(self, lower=None, upper=None, invalid_bound_error=True):
         self.lower = lower or _LowerBound.min
         self.upper = upper or _UpperBound.inf
-        if (self.lower.version > self.upper.version) \
-            or ((self.lower.version == self.upper.version)
-                and not (self.lower.inclusive and self.upper.inclusive)):
+
+        if (invalid_bound_error and
+            (self.lower.version > self.upper.version
+             or ((self.lower.version == self.upper.version)
+                 and not (self.lower.inclusive and self.upper.inclusive)))):
             raise VersionError("Invalid bound")
 
     def __str__(self):
@@ -531,11 +543,12 @@ class _VersionRangeParser(object):
 
     regex = re.compile(version_range_regex, re_flags)
 
-    def __init__(self, input_string, make_token):
+    def __init__(self, input_string, make_token, invalid_bound_error=True):
         self.make_token = make_token
         self._groups = {}
         self._input_string = input_string
         self.bounds = []
+        self.invalid_bound_error = invalid_bound_error
 
         for part in input_string.split("|"):
             if part == '':
@@ -546,8 +559,7 @@ class _VersionRangeParser(object):
             match = re.search(self.regex, part)
 
             if not match:
-                raise ParseException("Syntax error in version range '%s'"
-                                     % part)
+                raise ParseException("Syntax error in version range '%s'" % part)
 
             self._groups = match.groupdict()
             if self._groups['version']:
@@ -613,7 +625,7 @@ class _VersionRangeParser(object):
         upper_version = self._create_version_from_token(self._groups['inclusive_upper_version'])
         upper_bound = _UpperBound(upper_version, True)
 
-        self.bounds.append(_Bound(lower_bound, upper_bound))
+        self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
     @action
     def _act_lower_bound(self):
@@ -646,7 +658,7 @@ class _VersionRangeParser(object):
             exclusive = self._is_upper_bound_exclusive(self._groups['range_upper_prefix'])
             upper_bound = _UpperBound(version, not exclusive)
 
-        self.bounds.append(_Bound(lower_bound, upper_bound))
+        self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
 
 class VersionRange(_Comparable):
@@ -698,7 +710,8 @@ class VersionRange(_Comparable):
     with a comma, eg ">=2,<=6". The comma is purely cosmetic and is dropped in
     the string representation.
     """
-    def __init__(self, range_str='', make_token=AlphanumericVersionToken):
+    def __init__(self, range_str='', make_token=AlphanumericVersionToken,
+                 invalid_bound_error=True):
         """Create a VersionRange object.
 
         Args:
@@ -706,6 +719,8 @@ class VersionRange(_Comparable):
                 will be optimised, so the string representation of this instance
                 may not match range_str. For example, "3+<6|4+<8" == "3+<8".
             make_token: Version token class to use.
+            invalid_bound_error (bool): If True, raise an exception if an
+                impossible range is given, such as '3+<2'.
         """
         self._str = None
         self.bounds = []
@@ -713,7 +728,8 @@ class VersionRange(_Comparable):
             return
 
         try:
-            parser = _VersionRangeParser(range_str, make_token)
+            parser = _VersionRangeParser(range_str, make_token,
+                                         invalid_bound_error=invalid_bound_error)
             bounds = parser.bounds
         except ParseException as e:
             raise VersionError("Syntax error in version range '%s': %s"
@@ -1000,6 +1016,35 @@ class VersionRange(_Comparable):
         bound = _Bound(self.bounds[0].lower, self.bounds[-1].upper)
         other.bounds = [bound]
         return other
+
+    def visit_versions(self, func):
+        """Visit each version in the range, and apply a function to each.
+
+        This is for advanced usage only.
+
+        If `func` returns a `Version`, this call will change the versions in
+        place.
+
+        It is possible to change versions in a way that is nonsensical - for
+        example setting an upper bound to a smaller version than the lower bound.
+        Use at your own risk.
+
+        Args:
+            func (callable): Takes a `Version` instance arg, and is applied to
+                every version in the range. If `func` returns a `Version`, it
+                will replace the existing version, updating this `VersionRange`
+                instance in place.
+        """
+        for bound in self.bounds:
+            if bound.lower is not _LowerBound.min:
+                result = func(bound.lower.version)
+                if isinstance(result, Version):
+                    bound.lower.version = result
+
+            if bound.upper is not _UpperBound.inf:
+                result = func(bound.upper.version)
+                if isinstance(result, Version):
+                    bound.upper.version = result
 
     def __contains__(self, version_or_range):
         if isinstance(version_or_range, Version):
