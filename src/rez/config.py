@@ -126,6 +126,7 @@ class Bool(Setting):
     schema = Schema(bool)
     true_words = frozenset(["1", "true", "yes", "y", "on"])
     false_words = frozenset(["0", "false", "no", "n", "off"])
+    all_words = true_words | false_words
 
     def _parse_env_var(self, value):
         value = value.lower()
@@ -134,10 +135,22 @@ class Bool(Setting):
         elif value in self.false_words:
             return False
         else:
-            words = self.true_words | self.false_words
             raise ConfigurationError(
                 "expected $%s to be one of: %s"
-                % (self._env_var_name, ", ".join(words)))
+                % (self._env_var_name, ", ".join(self.all_words)))
+
+
+class ForceOrBool(Bool):
+    FORCE_STR = "force"
+
+    # need force first, or Bool.schema will coerce "force" to True
+    schema = Or(FORCE_STR, Bool.schema)
+    all_words = Bool.all_words | frozenset([FORCE_STR])
+
+    def _parse_env_var(self, value):
+        if value == self.FORCE_STR:
+            return value
+        super(ForceOrBool, self)._parse_env_var(value)
 
 
 class Dict(Setting):
@@ -214,11 +227,13 @@ config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
     "bind_module_path":                             PathList,
+    "package_definition_build_python_paths":        PathList,
     "implicit_packages":                            StrList,
     "platform_map":                                 OptionalDict,
     "parent_variables":                             StrList,
     "resetting_variables":                          StrList,
     "release_hooks":                                StrList,
+    "prompt_release_message":                       Bool,
     "critical_styles":                              OptionalStrList,
     "error_styles":                                 OptionalStrList,
     "warning_styles":                               OptionalStrList,
@@ -237,6 +252,7 @@ config_schema = Schema({
     "suite_visibility":                             SuiteVisibility_,
     "rez_tools_visibility":                         RezToolsVisibility_,
     "suite_alias_prefix_char":                      Char,
+    "package_definition_python_path":               OptionalStr,
     "tmpdir":                                       OptionalStr,
     "context_tmpdir":                               OptionalStr,
     "default_shell":                                OptionalStr,
@@ -263,16 +279,18 @@ config_schema = Schema({
     "implicit_back":                                OptionalStr,
     "alias_fore":                                   OptionalStr,
     "alias_back":                                   OptionalStr,
+    "package_preprocess_function":                  OptionalStr,
     "build_thread_count":                           BuildThreadCount_,
     "resource_caching_maxsize":                     Int,
     "max_package_changelog_chars":                  Int,
+    "max_package_changelog_revisions":              Int,
     "memcached_package_file_min_compress_len":      Int,
     "memcached_context_file_min_compress_len":      Int,
     "memcached_listdir_min_compress_len":           Int,
     "memcached_resolve_min_compress_len":           Int,
     "allow_unversioned_packages":                   Bool,
     "rxt_as_yaml":                                  Bool,
-    "color_enabled":                                Bool,
+    "color_enabled":                                ForceOrBool,
     "resolve_caching":                              Bool,
     "cache_package_files":                          Bool,
     "cache_listdir":                                Bool,
@@ -297,6 +315,7 @@ config_schema = Schema({
     "quiet":                                        Bool,
     "show_progress":                                Bool,
     "catch_rex_errors":                             Bool,
+    "shell_error_truncate_cap":                     Int,
     "set_prompt":                                   Bool,
     "prefix_prompt":                                Bool,
     "warn_old_commands":                            Bool,
@@ -388,6 +407,9 @@ class Config(object):
         else:
             self.overrides[key] = value
             self._uncache(key)
+
+    def is_overridden(self, key):
+        return (key in self.overrides)
 
     def remove_override(self, key):
         """Remove a setting override, if one exists."""

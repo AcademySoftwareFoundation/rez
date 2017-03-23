@@ -109,7 +109,7 @@ class Requirement(_Common):
     """
     sep_regex = re.compile(r'[-@#=<>]')
 
-    def __init__(self, s):
+    def __init__(self, s, invalid_bound_error=True):
         self.name_ = None
         self.range_ = None
         self.negate_ = False
@@ -136,7 +136,8 @@ class Requirement(_Common):
                 self.sep_ = req_str[0]
                 req_str = req_str[1:]
 
-            self.range_ = VersionRange(req_str)
+            self.range_ = VersionRange(
+                req_str, invalid_bound_error=invalid_bound_error)
             if self.negate_:
                 self.range_ = ~self.range_
         elif self.negate_:

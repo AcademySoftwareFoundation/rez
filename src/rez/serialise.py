@@ -1,17 +1,19 @@
 """
 Read and write data from file. File caching via a memcached server is supported.
 """
+from rez.package_resources_ import package_rex_keys
 from rez.utils.scope import ScopeContext
-from rez.utils.data_utils import SourceCode
+from rez.utils.sourcecode import SourceCode, early, late, include
 from rez.utils.logging_ import print_debug
 from rez.utils.filesystem import TempDirs
-from rez.exceptions import ResourceError
+from rez.exceptions import ResourceError, InvalidPackageError
 from rez.utils.memcached import memcached
+from rez.utils.syspath import add_sys_paths
 from rez.config import config
 from rez.vendor.enum import Enum
 from rez.vendor import yaml
 from contextlib import contextmanager
-from inspect import isfunction
+from inspect import isfunction, ismodule, getargspec
 from StringIO import StringIO
 import sys
 import os
@@ -133,7 +135,12 @@ def load_py(stream, filepath=None):
         dict.
     """
     scopes = ScopeContext()
-    g = dict(scope=scopes)
+
+    g = dict(scope=scopes,
+             early=early,
+             late=late,
+             include=include,
+             InvalidPackageError=InvalidPackageError)
 
     try:
         exec stream in g
@@ -143,30 +150,145 @@ def load_py(stream, filepath=None):
         while filepath and frames and frames[0][0] != filepath:
             frames = frames[1:]
 
-        msg = str(e)
+        msg = "Problem loading %s: %s" % (filepath, str(e))
         stack = ''.join(traceback.format_list(frames)).strip()
         if stack:
             msg += ":\n" + stack
         raise ResourceError(msg)
 
     result = {}
-    excludes = set(('scope', '__builtins__'))
+    excludes = set(('scope', 'InvalidPackageError', '__builtins__',
+                    'early', 'late', 'include'))
+
     for k, v in g.iteritems():
         if k not in excludes and \
                 (k not in __builtins__ or __builtins__[k] != v):
             result[k] = v
 
-    def _process_objects(data):
-        for k, v in data.iteritems():
-            if isfunction(v):
-                data[k] = SourceCode.from_function(v)
-            elif isinstance(v, dict):
-                _process_objects(v)
-        return data
-
     result.update(scopes.to_dict())
-    result = _process_objects(result)
+    result = process_python_objects(result, filepath=filepath)
     return result
+
+
+class EarlyThis(object):
+    """The 'this' object for @early bound functions."""
+    def __init__(self, data):
+        self._data = data
+
+    def __getattr__(self, attr):
+        missing = object()
+        value = self._data.get(attr, missing)
+        if value is missing:
+            raise AttributeError("No such package attribute '%s'" % attr)
+
+        if isfunction(value) and (hasattr(value, "_early") or hasattr(value, "_late")):
+            raise ValueError(
+                "An early binding function cannot refer to another early or "
+                "late binding function: '%s'" % attr)
+
+        return value
+
+
+def process_python_objects(data, filepath=None):
+    """Replace certain values in the given package data dict.
+
+    Does things like:
+    * evaluates @early decorated functions, and replaces with return value;
+    * converts functions into `SourceCode` instances so they can be serialized
+      out to installed packages, and evaluated later;
+    * strips some values (modules, __-leading variables) that are never to be
+      part of installed packages.
+
+    Returns:
+        dict: Updated dict.
+    """
+    def _process(value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                value[k] = _process(v)
+
+            return value
+        elif isfunction(value):
+            func = value
+
+            if hasattr(func, "_early"):
+                # run the function now, and replace with return value
+                #
+
+                # make a copy of the func with its own globals, and add 'this'
+                import types
+                fn = types.FunctionType(func.func_code,
+                                        func.func_globals.copy(),
+                                        name=func.func_name,
+                                        argdefs=func.func_defaults,
+                                        closure=func.func_closure)
+
+                this = EarlyThis(data)
+                fn.func_globals.update({"this": this})
+
+                with add_sys_paths(config.package_definition_build_python_paths):
+                    # this 'data' arg support isn't needed anymore, but I'm
+                    # supporting it til I know nobody is using it...
+                    #
+                    spec = getargspec(func)
+                    args = spec.args or []
+                    if len(args) not in (0, 1):
+                        raise ResourceError("@early decorated function must "
+                                            "take zero or one args only")
+                    if args:
+                        value_ = fn(data)
+                    else:
+                        value_ = fn()
+
+                # process again in case this is a function returning a function
+                return _process(value_)
+
+            elif hasattr(func, "_late"):
+                return SourceCode(func=func, filepath=filepath,
+                                  eval_as_function=True)
+
+            elif func.__name__ in package_rex_keys:
+                # if a rex function, the code has to be eval'd NOT as a function,
+                # otherwise the globals dict doesn't get updated with any vars
+                # defined in the code, and that means rex code like this:
+                #
+                # rr = 'test'
+                # env.RR = '{rr}'
+                #
+                # ..won't work. It was never intentional that the above work, but
+                # it does, so now we have to keep it so.
+                #
+                return SourceCode(func=func, filepath=filepath,
+                                  eval_as_function=False)
+
+            else:
+                # a normal function. Leave unchanged, it will be stripped after
+                return func
+        else:
+            return value
+
+    def _trim(value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                if isfunction(v):
+                    if v.__name__ == "preprocess":
+                        # preprocess is a special case. It has to stay intact
+                        # until the `DeveloperPackage` has a chance to apply it;
+                        # after which it gets removed from the package attributes.
+                        #
+                        pass
+                    else:
+                        del value[k]
+                elif ismodule(v) or k.startswith("__"):
+                    del value[k]
+                else:
+                    value[k] = _trim(v)
+
+        return value
+
+    data = _process(data)
+    data = _trim(data)
+    return data
 
 
 def load_yaml(stream, **kwargs):

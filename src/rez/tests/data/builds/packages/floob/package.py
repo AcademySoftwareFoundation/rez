@@ -1,3 +1,7 @@
+
+# make sure imported modules don't break package installs
+import os
+
 name = 'floob'
 version = '1.2.0'
 authors = ["joe.bloggs"]
