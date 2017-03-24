@@ -114,6 +114,11 @@ if __name__ == "__main__":
              "ie, the baked script locations may still contain symlinks")
     opts, args = parser.parse_args()
 
+    if " " in os.path.realpath(__file__):
+        err_str = "\nThe absolute path of install.py cannot contain spaces due to setuptools limitation.\n" \
+                  "Please move installation files to another location or rename offending folder(s).\n"
+        parser.error(err_str)
+
     # determine install path
     if len(args) != 1:
         parser.error("expected DEST_DIR")
