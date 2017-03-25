@@ -11,6 +11,7 @@ from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, 
     ConfigurationError, PackageRepositoryError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
+from rez.utils.logging_ import print_warning
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.utils.memcached import memcached, pool_memcached_connections
@@ -20,6 +21,32 @@ from rez.vendor.version.version import Version, VersionRange
 import time
 import os.path
 import os
+
+
+#------------------------------------------------------------------------------
+# format version
+#
+# 1:
+# Initial format.
+# 2:
+# Late binding functions added.
+#------------------------------------------------------------------------------
+format_version = 2
+
+
+def check_format_version(filename, data):
+    format_version_ = data.get("format_version")
+
+    if format_version_ is not None:
+        try:
+            format_version_ = int(format_version_)
+        except:
+            return
+
+        if format_version_ > format_version:
+            print_warning(
+                "Loading from %s may fail: newer format version (%d) than current "
+                "format version (%d)" % (filename, format_version_, format_version))
 
 
 #------------------------------------------------------------------------------
@@ -141,6 +168,7 @@ class FileSystemPackageResource(PackageResourceHelper):
                 "Missing package definition file: %r" % self)
 
         data = load_from_file(self.filepath, self.file_format)
+        check_format_version(self.filepath, data)
 
         if "timestamp" not in data:  # old format support
             data_ = self._load_old_formats()
@@ -275,6 +303,7 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
     def _load(self):
         format_ = FileFormat[self.ext]
         data = load_from_file(self.filepath, format_)
+        check_format_version(self.filepath, data)
         return data
 
 
@@ -858,6 +887,9 @@ class FileSystemPackageRepository(PackageRepository):
         # add the timestamp
         overrides = overrides or {}
         overrides["timestamp"] = int(time.time())
+
+        # add the format version
+        package_data["format_version"] = format_version
 
         # apply attribute overrides
         for key, value in overrides.iteritems():

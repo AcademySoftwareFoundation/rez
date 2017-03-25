@@ -1,8 +1,10 @@
+from rez.utils._version import _rez_Version
 from rez.utils.schema import Required, schema_keys
 from rez.utils.filesystem import retain_cwd
 from rez.utils.formatting import PackageRequest
 from rez.utils.data_utils import AttrDictWrapper
 from rez.utils.logging_ import print_warning
+from rez.exceptions import PackageMetadataError
 from rez.package_resources_ import help_schema, _commands_schema, \
     _function_schema, late_bound
 from rez.package_repository import create_memory_package_repository
@@ -32,6 +34,8 @@ tests_schema = Schema({
 
 
 package_schema = Schema({
+    Optional("requires_rez_version"):   And(basestring, Use(Version)),
+
     Required("name"):                   basestring,
     Optional("base"):                   basestring,
     Optional("version"):                Or(basestring,
@@ -91,6 +95,15 @@ class PackageMaker(AttrDictWrapper):
         # get and validate package data
         package_data = self._get_data()
         package_data = package_schema.validate(package_data)
+
+        # check compatibility with rez version
+        if "requires_rez_version" in package_data:
+            ver = package_data.pop("requires_rez_version")
+
+            if _rez_Version < ver:
+                raise PackageMetadataError(
+                    "Failed reading package definition file: rez version >= %s "
+                    "needed (current version is %s)" % (ver, _rez_Version))
 
         # create a 'memory' package repository containing just this package
         version_str = package_data.get("version") or "_NO_VERSION"
