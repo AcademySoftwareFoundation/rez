@@ -1,5 +1,5 @@
 from rez.vendor.version.version import Version, AlphanumericVersionToken, \
-    VersionRange
+    VersionRange, reverse_sort_key, _ReversedComparable
 from rez.vendor.version.requirement import Requirement, RequirementList
 from rez.vendor.version.util import VersionError
 import random
@@ -53,6 +53,10 @@ class TestVersionSchema(unittest.TestCase):
             self.assertTrue(lte != gte)
             self.assertTrue(lt == lte)
             self.assertTrue(gt == gte)
+
+        if not isinstance(a, _ReversedComparable):
+            self._test_strict_weak_ordering(reverse_sort_key(a),
+                                            reverse_sort_key(b))
 
     def _test_ordered(self, items):
         def _test(fn, items_, op_str):
