@@ -35,7 +35,7 @@ format_version = 2
 
 
 def check_format_version(filename, data):
-    format_version_ = data.get("format_version")
+    format_version_ = data.pop("format_version", None)
 
     if format_version_ is not None:
         try:
@@ -809,9 +809,10 @@ class FileSystemPackageRepository(PackageRepository):
                 if value is not None:
                     release_data[key] = value
 
-            for key in ("base", "variants"):
+            for key in ("format_version", "base", "variants"):
                 data_1.pop(key, None)
                 data_2.pop(key, None)
+
             package_changed = (data_1 != data_2)
 
         # special case - installing a no-variant pkg into a no-variant pkg
