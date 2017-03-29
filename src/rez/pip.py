@@ -182,7 +182,8 @@ def create_context(pip_version=None, python_version=None):
 
 
 def pip_install_package(source_name, pip_version=None, python_version=None,
-                        mode=InstallMode.min_deps, release=False):
+                        mode=InstallMode.min_deps, release=False,
+                        install_option=None, global_option=None):
     """Install a pip-compatible python package as a rez package.
     Args:
         source_name (str): Name of package or archive/url containing the pip
@@ -196,6 +197,8 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
             managed.
         release (bool): If True, install as a released package; otherwise, it
             will be installed as a local package.
+        install_option (list[str]): List of install options to be passed to pip.
+        global_option (list[str]): List of global options to be passed to pip.
 
     Returns:
         2-tuple:
@@ -233,6 +236,14 @@ def pip_install_package(source_name, pip_version=None, python_version=None,
            "--install-option=--install-scripts=%s" % binpath,
            "--install-option=--install-headers=%s" % incpath,
            "--install-option=--install-data=%s" % datapath]
+
+    if install_option is not None:
+        for io in install_option:
+            cmd.append('--install-option=%s' % io)
+
+    if global_option is not None:
+        for go in global_option:
+            cmd.append('--global-option=%s' % go)
 
     if mode == InstallMode.no_deps:
         cmd.append("--no-deps")

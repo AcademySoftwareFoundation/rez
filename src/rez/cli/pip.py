@@ -23,6 +23,16 @@ def setup_parser(parser, completions=False):
         help="install as released package; if not set, package is installed "
         "locally only")
     parser.add_argument(
+        "--install-option", action='append',
+        help="""Extra arguments to be supplied to the setup.py install command (use like --install-option="--install-
+scripts=/usr/local/bin"). Use multiple --install-option options to pass multiple options to setup.py
+install. If you are using an option with a directory path, be sure to use absolute path.""",
+    )
+    parser.add_argument(
+        "--global-option", action='append',
+        help="Extra global options to be supplied to the setup.py call before the install command."
+    )
+    parser.add_argument(
         "PACKAGE",
         help="package to install or archive/url to install from")
 
@@ -43,7 +53,10 @@ def command(opts, parser, extra_arg_groups=None):
         opts.PACKAGE,
         pip_version=opts.pip_ver,
         python_version=opts.py_ver,
-        release=opts.release)
+        release=opts.release,
+        install_option=opts.install_option,
+        global_option=opts.global_option,
+    )
 
     # print summary
     #
