@@ -37,7 +37,7 @@ class StubReleaseVCS(ReleaseVCS):
     def get_current_revision(self):
         return self.time
 
-    def get_changelog(self, previous_revision=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None):
         if previous_revision:
             if isinstance(previous_revision, int):
                 seconds = self.time - previous_revision

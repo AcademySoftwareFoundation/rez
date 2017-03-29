@@ -170,40 +170,84 @@ def load_py(stream, filepath=None):
     return result
 
 
+class EarlyThis(object):
+    """The 'this' object for @early bound functions."""
+    def __init__(self, data):
+        self._data = data
+
+    def __getattr__(self, attr):
+        missing = object()
+        value = self._data.get(attr, missing)
+        if value is missing:
+            raise AttributeError("No such package attribute '%s'" % attr)
+
+        if isfunction(value) and (hasattr(value, "_early") or hasattr(value, "_late")):
+            raise ValueError(
+                "An early binding function cannot refer to another early or "
+                "late binding function: '%s'" % attr)
+
+        return value
+
+
 def process_python_objects(data, filepath=None):
+    """Replace certain values in the given package data dict.
 
-    _remove = object()
+    Does things like:
+    * evaluates @early decorated functions, and replaces with return value;
+    * converts functions into `SourceCode` instances so they can be serialized
+      out to installed packages, and evaluated later;
+    * strips some values (modules, __-leading variables) that are never to be
+      part of installed packages.
 
+    Returns:
+        dict: Updated dict.
+    """
     def _process(value):
         if isinstance(value, dict):
             for k, v in value.items():
-                new_value = _process(v)
-
-                if new_value is _remove:
-                    del value[k]
-                else:
-                    value[k] = new_value
+                value[k] = _process(v)
 
             return value
         elif isfunction(value):
-            if hasattr(value, "_early"):
-                # run the function now, and replace with return value
-                with add_sys_paths(config.package_definition_build_python_paths):
-                    func = value
+            func = value
 
+            if hasattr(func, "_early"):
+                # run the function now, and replace with return value
+                #
+
+                # make a copy of the func with its own globals, and add 'this'
+                import types
+                fn = types.FunctionType(func.func_code,
+                                        func.func_globals.copy(),
+                                        name=func.func_name,
+                                        argdefs=func.func_defaults,
+                                        closure=func.func_closure)
+
+                this = EarlyThis(data)
+                fn.func_globals.update({"this": this})
+
+                with add_sys_paths(config.package_definition_build_python_paths):
+                    # this 'data' arg support isn't needed anymore, but I'm
+                    # supporting it til I know nobody is using it...
+                    #
                     spec = getargspec(func)
                     args = spec.args or []
                     if len(args) not in (0, 1):
                         raise ResourceError("@early decorated function must "
                                             "take zero or one args only")
                     if args:
-                        value_ = func(data)
+                        value_ = fn(data)
                     else:
-                        value_ = func()
+                        value_ = fn()
 
                 # process again in case this is a function returning a function
                 return _process(value_)
-            else:
+
+            elif hasattr(func, "_late"):
+                return SourceCode(func=func, filepath=filepath,
+                                  eval_as_function=True)
+
+            elif func.__name__ in package_rex_keys:
                 # if a rex function, the code has to be eval'd NOT as a function,
                 # otherwise the globals dict doesn't get updated with any vars
                 # defined in the code, and that means rex code like this:
@@ -214,20 +258,37 @@ def process_python_objects(data, filepath=None):
                 # ..won't work. It was never intentional that the above work, but
                 # it does, so now we have to keep it so.
                 #
-                as_function = (value.__name__ not in package_rex_keys)
+                return SourceCode(func=func, filepath=filepath,
+                                  eval_as_function=False)
 
-                return SourceCode(func=value, filepath=filepath,
-                                  eval_as_function=as_function)
-        elif ismodule(value):
-            # modules cannot be installed as package attributes. They are present
-            # in developer packages sometimes though - it's fine for a package
-            # attribute to use an imported module at build time.
-            #
-            return _remove
+            else:
+                # a normal function. Leave unchanged, it will be stripped after
+                return func
         else:
             return value
 
-    return _process(data)
+    def _trim(value):
+        if isinstance(value, dict):
+            for k, v in value.items():
+                if isfunction(v):
+                    if v.__name__ == "preprocess":
+                        # preprocess is a special case. It has to stay intact
+                        # until the `DeveloperPackage` has a chance to apply it;
+                        # after which it gets removed from the package attributes.
+                        #
+                        pass
+                    else:
+                        del value[k]
+                elif ismodule(v) or k.startswith("__"):
+                    del value[k]
+                else:
+                    value[k] = _trim(v)
+
+        return value
+
+    data = _process(data)
+    data = _trim(data)
+    return data
 
 
 def load_yaml(stream, **kwargs):

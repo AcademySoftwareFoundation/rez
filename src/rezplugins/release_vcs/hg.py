@@ -214,7 +214,7 @@ class HgReleaseVCS(ReleaseVCS):
 
         return doc
 
-    def get_changelog(self, previous_revision=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None):
         prev_commit = None
         if previous_revision is not None:
             try:
@@ -224,13 +224,26 @@ class HgReleaseVCS(ReleaseVCS):
                     print_debug("couldn't determine previous commit from: %r"
                                 % previous_revision)
 
+        args = ["log"]
+        if max_revisions:
+            args.extend(["-l", str(max_revisions)])
         if prev_commit:
             # git behavior is to simply print the log from the last common
             # ancsestor... which is apparently desired. so we'll mimic that
-            commit_range = "ancestor(%s, .)::." % prev_commit
-            stdout = self.hg("log", "-r", commit_range)
-        else:
-            stdout = self.hg("log")
+
+            # however, we want to print in order from most recent to oldest,
+            # because:
+            #    a) if the log gets truncated, we want to cut off the
+            #       oldest commits, not the current one, and
+            #    b) this mimics the order they're printed in git
+            #    c) this mimics the order they're printed if  you have no
+            #       previous_revision, and just do "hg log"
+            #    d) if max_revisions is giving, want limiting will only take the
+            #       most recent N entries
+            commit_range = "reverse(ancestor(%s, .)::.)" % prev_commit
+            args.extend(["-r", commit_range])
+
+        stdout = self.hg(*args)
         return '\n'.join(stdout)
 
     def create_release_tag(self, tag_name, message=None):

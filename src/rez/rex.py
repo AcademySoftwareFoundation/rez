@@ -1168,16 +1168,37 @@ class RexExecutor(object):
 
         return pyc
 
-    def execute_code(self, code, filename=None):
+    def execute_code(self, code, filename=None, isolate=False):
         """Execute code within the execution context.
 
         Args:
             code (str or SourceCode): Rex code to execute.
             filename (str): Filename to report if there are syntax errors.
+            isolate (bool): If True, do not affect `self.globals` by executing
+                this code.
         """
-        self.compile_code(code=code,
-                          filename=filename,
-                          exec_namespace=self.globals)
+        def _apply():
+            self.compile_code(code=code,
+                              filename=filename,
+                              exec_namespace=self.globals)
+
+        # we want to execute the code using self.globals - if for no other
+        # reason that self.formatter is pointing at self.globals, so if we
+        # passed in a copy, we would also need to make self.formatter "look" at
+        # the same copy - but we don't want to "pollute" our namespace, because
+        # the same executor may be used to run multiple packages. Therefore,
+        # we save a copy of self.globals before execution, and restore it after
+        #
+        if isolate:
+            saved_globals = dict(self.globals)
+
+            try:
+                _apply()
+            finally:
+                self.globals.clear()
+                self.globals.update(saved_globals)
+        else:
+            _apply()
 
     def execute_function(self, func, *nargs, **kwargs):
         """

@@ -258,6 +258,10 @@ class ColorizedStreamHandler(logging.StreamHandler):
         """
         return stream_is_tty(self.stream)
 
+    @property
+    def is_colorized(self):
+        return config.get("color_enabled", False) == "force" or self.is_tty
+
     def _get_style_function_for_level(self, level):
         return self.STYLES.get(level, notset)
 
@@ -271,7 +275,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         try:
             message = self.format(record)
 
-            if not self.is_tty:
+            if not self.is_colorized:
                 self.stream.write(message)
             else:
                 style = self._get_style_function_for_level(record.levelno)
@@ -289,13 +293,14 @@ class ColorizedStreamHandler(logging.StreamHandler):
 class Printer(object):
     def __init__(self, buf=sys.stdout):
         self.buf = buf
-        self.tty = stream_is_tty(buf)
+        self.colorize = (config.get("color_enabled", False) == "force") \
+                        or stream_is_tty(buf)
 
     def __call__(self, msg='', style=None):
         print >> self.buf, self.get(msg, style)
 
     def get(self, msg, style=None):
-        if style and self.tty:
+        if style and self.colorize:
             msg = style(msg)
         return msg
 

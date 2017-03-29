@@ -2,6 +2,7 @@
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way:
+
 1) The setting is first read from this file;
 2) The setting is then overridden if it is present in another settings file
    pointed at by the $REZ_CONFIG_FILE environment variable;
@@ -28,6 +29,9 @@ The following variables are provided if you are using rezconfig.py files:
 Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
 Windows \ (unescaped) should be used.
+
+Note: The comments in this file are extracted and turned into Wiki content. Pay
+attention to the comment formatting and follow the existing syle closely.
 """
 import os
 
@@ -183,17 +187,17 @@ implicit_packages = [
 # The map supports regular expression e.g. to keep versions.
 # Please note that following examples are not necessarily recommendations.
 #
-# platform_map = {
-#     "os": {
-#         r"Scientific Linux-(.*)": r"Scientific-\1",                 # Scientific Linux-x.x -> Scientific-x.x
-#         r"Ubuntu-14.\d": r"Ubuntu-14",                              # Any Ubuntu-14.x      -> Ubuntu-14
-#         r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '  # Centos Linux-X.Y.Z -> CentOS-X.Y
-#     },
-#     "arch": {
-#         "x86_64": "64bit",                                          # Maps both x86_64 and amd64 -> 64bit
-#         "amd64": "64bit",
-#     },
-# }
+#     platform_map = {
+#         "os": {
+#             r"Scientific Linux-(.*)": r"Scientific-\1",                 # Scientific Linux-x.x -> Scientific-x.x
+#             r"Ubuntu-14.\d": r"Ubuntu-14",                              # Any Ubuntu-14.x      -> Ubuntu-14
+#             r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '  # Centos Linux-X.Y.Z -> CentOS-X.Y
+#         },
+#         "arch": {
+#             "x86_64": "64bit",                                          # Maps both x86_64 and amd64 -> 64bit
+#             "amd64": "64bit",
+#         },
+#     }
 platform_map = {}
 
 # If true, then when a resolve graph is generated during a failed solve, packages
@@ -452,6 +456,10 @@ debug_none = False
 # are left uncaught, which can be useful for debugging purposes.
 catch_rex_errors = True
 
+# Sets the maximum number of characters printed from the stdout / stderr of some
+# shell commands when they fail. If 0, then the output is not truncated
+shell_error_truncate_cap = 750
+
 
 ###############################################################################
 # Build
@@ -553,6 +561,8 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 65536
 
+# If not zero, truncates all package changelogs to only show the last N commits
+max_package_changelog_revisions = 0
 
 ###############################################################################
 # Rez-1 Compatibility
@@ -661,8 +671,16 @@ documentation_url = " http://nerdvegas.github.io/rez/"
 # style: dim, normal, bright
 
 # Enables/disables colorization globally.
-# Note: Turned off for Windows currently as there seems to be a problem with
-# the Colorama module.
+#
+# > [[media/icons/warning.png]] Note: Turned off for Windows currently as there seems
+# > to be a problem with the Colorama module.
+#
+# May also set to the string "force", which will make rez output color styling
+# information, even if the the output streams are not ttys. Useful if you are
+# piping the output of rez, but will eventually be printing to a tty later.
+# When force is used, will generally be set through an environment variable, eg:
+#
+#     echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
 color_enabled = (os.name == "posix")
 
 ### Do not move or delete this comment (__DOC_END__)

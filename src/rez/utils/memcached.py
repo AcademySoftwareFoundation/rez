@@ -353,7 +353,10 @@ def memcached(servers, key=None, from_cache=None, to_cache=None, time=0,
                     return result
         else:
             def wrapper(*nargs, **kwargs):
-                return func(*nargs, **kwargs)
+                result = func(*nargs, **kwargs)
+                if isinstance(result, DoNotCache):
+                    return result.result
+                return result
 
         def forget():
             """Forget entries in the cache.

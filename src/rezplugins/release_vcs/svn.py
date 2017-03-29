@@ -105,7 +105,7 @@ class SvnReleaseVCS(ReleaseVCS):
         self.svnc.callback_get_log_message = lambda x: (True, x)
         self.svnc.copy2([(self.this_url,)], tag_url, make_parents=True)
 
-    def get_changelog(self, previous_revision=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None):
         return "TODO"
 
     def get_tag_url(self, tag_name=None):

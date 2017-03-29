@@ -181,7 +181,7 @@ class ReleaseVCS(object):
         """
         raise NotImplementedError
 
-    def get_changelog(self, previous_revision=None):
+    def get_changelog(self, previous_revision=None, max_revisions=None):
         """Get the changelog text since the given revision.
 
         If previous_revision is not an ancestor (for example, the last release
