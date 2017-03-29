@@ -1,5 +1,5 @@
 """
-test package iteration and serialization
+test package iteration, serialization etc
 """
 from rez.packages_ import iter_package_families, iter_packages, get_package, \
     create_package, get_developer_package
@@ -38,6 +38,8 @@ ALL_PACKAGES = set([
     'single_unversioned',
     'single_versioned-3.5',
     'late_binding-1.0',
+    'timestamped-1.0.5', 'timestamped-1.0.6', 'timestamped-1.1.0', 'timestamped-1.1.1',
+    'timestamped-1.2.0', 'timestamped-2.0.0', 'timestamped-2.1.0', 'timestamped-2.1.5',
     'multi-1.0', 'multi-1.1', 'multi-1.2', 'multi-2.0'])
 
 
@@ -316,6 +318,48 @@ class TestPackages(TestBase, TempdirMixin):
 
         for req in bad_tests:
             self.assertRaises(VersionError, expand_requirement, req)
+
+    def test_9(self):
+        """test package orderers."""
+        from rez.package_order import NullPackageOrder, PerFamilyOrder, \
+            VersionSplitPackageOrder, TimestampPackageOrder, SortedOrder, \
+            to_pod, from_pod
+
+        def _test(orderer, package_name, expected_order):
+            it = iter_packages(package_name)
+            descending = sorted(it, key=lambda x: x.version, reverse=True)
+
+            pod = to_pod(orderer)
+            orderer2 = from_pod(pod)
+
+            for orderer_ in (orderer, orderer2):
+                ordered = orderer_.reorder(descending)
+                result = [str(x.version) for x in ordered]
+                self.assertEqual(result, expected_order)
+
+        null_orderer = NullPackageOrder()
+        split_orderer = VersionSplitPackageOrder(Version("2.6.0"))
+        timestamp_orderer = TimestampPackageOrder(timestamp=3001, rank=3)
+
+        expected_null_result = ["7", "6", "5"]
+        expected_split_result = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
+        expected_timestamp_result = ["1.1.1", "1.1.0", "1.0.6", "1.0.5",
+                                     "1.2.0", "2.0.0", "2.1.5", "2.1.0"]
+
+        _test(null_orderer, "pysplit", expected_null_result)
+        _test(split_orderer, "python", expected_split_result)
+        _test(timestamp_orderer, "timestamped", expected_timestamp_result)
+
+        fam_orderer = PerFamilyOrder(
+            order_dict=dict(pysplit=null_orderer,
+                            python=split_orderer,
+                            timestamped=timestamp_orderer),
+            default_order=SortedOrder(descending=False))
+
+        _test(fam_orderer, "pysplit", expected_null_result)
+        _test(fam_orderer, "python", expected_split_result)
+        _test(fam_orderer, "timestamped", expected_timestamp_result)
+        _test(fam_orderer, "pymum", ["1", "2", "3"])
 
 
 class TestMemoryPackages(TestBase):

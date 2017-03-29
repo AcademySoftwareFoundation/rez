@@ -12,6 +12,9 @@ class PackageOrder(object):
     def reorder(self, iterable, key=None):
         """Put packages into some order for consumption.
 
+        You can safely assume that the packages referred to by `iterable` are
+        all versions of the same package family.
+
         Note:
             Returning None, and an unchanged `iterable` list, are not the same
             thing. Returning None may cause rez to pass the package list to the
@@ -28,12 +31,225 @@ class PackageOrder(object):
         """
         raise NotImplementedError
 
+    def to_pod(self):
+        raise NotImplementedError
+
     @property
     def sha1(self):
         return sha1(repr(self)).hexdigest()
 
     def __repr__(self):
         return "%s(%s)" % (self.__class__.__name__, str(self))
+
+
+class NullPackageOrder(PackageOrder):
+    """An orderer that does not change the order - a no op.
+
+    This orderer is useful in cases where you want to apply some default orderer
+    to a set of packages, but may want to explicitly NOT reorder a particular
+    package. You would use a `NullPackageOrder` in a `PerFamilyOrder` to do this.
+    """
+    name = "no_order"
+
+    def reorder(self, iterable, key=None):
+        return list(iterable)
+
+    def __str__(self):
+        return "{}"
+
+    def to_pod(self):
+        """
+        Example (in yaml):
+
+            type: no_order
+        """
+        return {}
+
+    @classmethod
+    def from_pod(cls, data):
+        return cls()
+
+
+class SortedOrder(PackageOrder):
+    """An orderer that sorts wrt version.
+    """
+    name = "sorted"
+
+    def __init__(self, descending):
+        self.descending = descending
+
+    def reorder(self, iterable, key=None):
+        key = key or (lambda x: x)
+        return sorted(iterable, key=lambda x: key(x).version,
+                      reverse=self.descending)
+
+    def __str__(self):
+        return str(self.descending)
+
+    def to_pod(self):
+        """
+        Example (in yaml):
+
+            type: sorted
+            descending: true
+        """
+        return {"descending": self.descending}
+
+    @classmethod
+    def from_pod(cls, data):
+        return cls(descending=data["descending"])
+
+
+class PerFamilyOrder(PackageOrder):
+    """An orderer that applies different orderers to different package families.
+    """
+    name = "per_family"
+
+    def __init__(self, order_dict, default_order=None):
+        """Create a reorderer.
+
+        Args:
+            order_dict (dict of (str, `PackageOrder`): Orderers to apply to
+                each package family.
+            default_order (`PackageOrder`): Orderer to apply to any packages
+                not specified in `order_dict`.
+        """
+        self.order_dict = order_dict.copy()
+        self.default_order = default_order
+
+    def reorder(self, iterable, key=None):
+        try:
+            item = iter(iterable).next()
+        except:
+            return None
+
+        key = key or (lambda x: x)
+        package = key(item)
+
+        orderer = self.order_dict.get(package.name)
+        if orderer is None:
+            orderer = self.default_order
+        if orderer is None:
+            return None
+
+        return orderer.reorder(iterable, key)
+
+    def __str__(self):
+        items = sorted((x[0], str(x[1])) for x in self.order_dict.items())
+        return str((items, str(self.default_order)))
+
+    def to_pod(self):
+        """
+        Example (in yaml):
+
+            type: per_family
+            orderers:
+            - packages: ['foo', 'bah']
+              type: version_split
+              first_version: '4.0.5'
+            - packages: ['python']
+              type: sorted
+              descending: false
+            default_order:
+              type: sorted
+              descending: true
+        """
+        orderers = {}
+        packages = {}
+
+        # group package fams by orderer they use
+        for fam, orderer in self.order_dict.iteritems():
+            k = id(orderer)
+            orderers[k] = orderer
+            packages.setdefault(k, set()).add(fam)
+
+        orderlist = []
+        for k, fams in packages.iteritems():
+            orderer = orderers[k]
+            data = to_pod(orderer)
+            data["packages"] = sorted(fams)
+            orderlist.append(data)
+
+        result = {"orderers": orderlist}
+
+        if self.default_order is not None:
+            result["default_order"] = to_pod(self.default_order)
+
+        return result
+
+    @classmethod
+    def from_pod(cls, data):
+        order_dict = {}
+        default_order = None
+
+        for d in data["orderers"]:
+            d = d.copy()
+            fams = d.pop("packages")
+            orderer = from_pod(d)
+
+            for fam in fams:
+                order_dict[fam] = orderer
+
+        d = data.get("default_order")
+        if d:
+            default_order = from_pod(d)
+
+        return cls(order_dict, default_order)
+
+
+class VersionSplitPackageOrder(PackageOrder):
+    """Orders package versions <= a given version first.
+
+    For example, given the versions [5, 4, 3, 2, 1], an orderer initialized
+    with version=3 would give the order [3, 2, 1, 5, 4].
+    """
+    name = "version_split"
+
+    def __init__(self, first_version):
+        """Create a reorderer.
+
+        Args:
+            first_version (`Version`): Start with versions <= this value.
+        """
+        self.first_version = first_version
+
+    def reorder(self, iterable, key=None):
+        key = key or (lambda x: x)
+
+        # sort by version descending
+        descending = sorted(iterable, key=lambda x: key(x).version, reverse=True)
+
+        above = []
+        below = []
+        is_above = True
+
+        for item in descending:
+            if is_above:
+                package = key(item)
+                is_above = (package.version > self.first_version)
+
+            if is_above:
+                above.append(item)
+            else:
+                below.append(item)
+
+        return below + above
+
+    def __str__(self):
+        return str(self.first_version)
+
+    def to_pod(self):
+        """
+        Example (in yaml):
+
+            type: version_split
+            first_version: "3.0.0"
+        """
+        return dict(first_version=self.first_version)
+
+    @classmethod
+    def from_pod(cls, data):
+        return cls(data["first_version"])
 
 
 class TimestampPackageOrder(PackageOrder):
@@ -146,7 +362,17 @@ class TimestampPackageOrder(PackageOrder):
         after_.extend(reversed(postrank))
         return before + after_
 
+    def __str__(self):
+        return str((self.timestamp, self.rank))
+
     def to_pod(self):
+        """
+        Example (in yaml):
+
+            type: soft_timestamp
+            timestamp: 1234567
+            rank: 3
+        """
         return dict(timestamp=self.timestamp,
                     rank=self.rank)
 
@@ -155,20 +381,26 @@ class TimestampPackageOrder(PackageOrder):
         return cls(timestamp=data["timestamp"],
                    rank=data["rank"])
 
-    def __str__(self):
-        return str(self.to_pod())
-
 
 def to_pod(orderer):
-    data_ = orderer.to_pod()
-    data = (orderer.name, data_)
+    data = {"type": orderer.name}
+    data.update(orderer.to_pod())
     return data
 
 
 def from_pod(data):
-    cls_name, data_ = data
-    cls = _orderers[cls_name]
-    return cls.from_pod(data_)
+    if isinstance(data, dict):
+        cls_name = data["type"]
+        data = data.copy()
+        data.pop("type")
+
+        cls = _orderers[cls_name]
+        return cls.from_pod(data)
+    else:
+        # old-style, kept for backwards compatibility
+        cls_name, data_ = data
+        cls = _orderers[cls_name]
+        return cls.from_pod(data_)
 
 
 def register_orderer(cls):
