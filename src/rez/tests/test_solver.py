@@ -501,7 +501,6 @@ class TestSolver(TestBase):
                 "reorderable-3.1.1",
             ])
 
-
     def test_23_direct_complete(self):
         """Test setting of the version_priority in simple situations, where
         the altered package is a direct request
@@ -689,6 +688,17 @@ class TestSolver(TestBase):
                                                         "2.6.8|2.6.0"]}}])
         self._solve(["python<2.7"],
                     ["python-2.6.8[]"])
+
+    def test_31_orderer_used_for_variants(self):
+        self._solve(["pyvariants"],
+                    ["python-2.7.0[]", "pyvariants-2[0]"])
+
+        config.override("package_orderers",
+                        [{"type": "sorted",
+                          "descending": False,
+                          "packages": "python"}])
+        self._solve(["pyvariants"],
+                    ["python-2.6.8[]", "pyvariants-2[2]"])
 
 
 if __name__ == '__main__':
