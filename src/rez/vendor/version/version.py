@@ -40,13 +40,15 @@ class _ReversedComparable(_Common):
         self.value = value
 
     def __lt__(self, other):
+        if self.value == other.value:
+            return False
         return not (self.value < other.value)
 
     def __str__(self):
         return "reverse(%s)" % str(self.value)
 
     def __repr__(self):
-        return "reverse(%r)" % self.value
+        return "%s(%r)" % (self.__class__.__name__, self.value)
 
 
 class VersionToken(_Comparable):
@@ -231,25 +233,6 @@ class AlphanumericVersionToken(VersionToken):
         return subtokens
 
 
-def reverse_sort_key(comparable):
-    """Key that gives reverse sort order on versions and version ranges.
-
-    Example:
-
-        >>> Version("1.0") < Version("2.0")
-        True
-        >>> reverse_sort_key(Version("1.0")) < reverse_sort_key(Version("2.0"))
-        False
-
-    Args:
-        comparable (`Version` or `VesionRange`): Object to wrap.
-
-    Returns:
-        `_ReversedComparable`: Wrapper object that reverses comparisons.
-    """
-    return _ReversedComparable(comparable)
-
-
 class Version(_Comparable):
     """Version object.
 
@@ -347,6 +330,21 @@ class Version(_Comparable):
             ('1', '2', '12')
         """
         return tuple(map(str, self.tokens))
+
+    def reverse_sort_key(self):
+        """Get a sort key that gives reverse ordering.
+
+        Example:
+
+            >>> v1 = Version("1.0")
+            >>> v2 = Version("2.0")
+            >>> print sorted([v1, v2], key=lambda x: x.reverse_sort_key())
+            [Version("2.0"), Version("1.0")]
+
+        Returns:
+            Comparable object.
+        """
+        return _ReversedComparable(self)
 
     def __len__(self):
         return len(self.tokens or [])
@@ -1057,15 +1055,13 @@ class VersionRange(_Comparable):
         other.bounds = [bound]
         return other
 
-    # TODO have this return a new VersionRange instead - this currently breaks
-    # VersionRange immutability, and could invalidate __str__.
     def visit_versions(self, func):
         """Visit each version in the range, and apply a function to each.
 
         This is for advanced usage only.
 
-        If `func` returns a `Version`, this call will change the versions in
-        place.
+        This function returns a new VersionRange object, with versions replaced
+        with those returned by `func`.
 
         It is possible to change versions in a way that is nonsensical - for
         example setting an upper bound to a smaller version than the lower bound.
@@ -1073,20 +1069,57 @@ class VersionRange(_Comparable):
 
         Args:
             func (callable): Takes a `Version` instance arg, and is applied to
-                every version in the range. If `func` returns a `Version`, it
-                will replace the existing version, updating this `VersionRange`
-                instance in place.
+                every version in the range. The value this function returns is
+                applied to a new VersionRange copy.
+
+        Returns:
+            `VersionRange`: Potentially modified version range.
         """
+        other = VersionRange.__new__(VersionRange)
+        other._str = None
+        other.bounds = []
+
         for bound in self.bounds:
             if bound.lower is not _LowerBound.min:
                 result = func(bound.lower.version)
-                if isinstance(result, Version):
-                    bound.lower.version = result
+                lower = _LowerBound(result, bound.lower.inclusive)
+            else:
+                lower = None
 
             if bound.upper is not _UpperBound.inf:
                 result = func(bound.upper.version)
-                if isinstance(result, Version):
-                    bound.upper.version = result
+                upper = _UpperBound(result, bound.upper.inclusive)
+            else:
+                upper = None
+
+            new_bound = _Bound(lower=lower, upper=upper,
+                               invalid_bound_error=False)
+
+            other.bounds.append(bound)
+
+        return other
+
+    def sort_key(self, version_sort_key):
+        """Get a sort key for the range based on a Version sort key.
+
+        Args:
+            version_sort_key (callable): Callable that returns a sort key given
+                a `Version` instance.
+
+        Returns:
+            Comparable object.
+        """
+        def _sort_key(obj):
+            if isinstance(obj, _Bound):
+                return (_sort_key(obj.lower), _sort_key(obj.upper))
+            elif isinstance(obj, _LowerBound):
+                inclusion_key = -2 if obj.inclusive else -1
+                return (version_sort_key(obj.version), inclusion_key)
+            elif isinstance(obj, _UpperBound):
+                inclusion_key = 2 if obj.inclusive else 1
+                return (version_sort_key(obj.version), inclusion_key)
+
+        return tuple(map(_sort_key, self.bounds))
 
     def __contains__(self, version_or_range):
         if isinstance(version_or_range, Version):

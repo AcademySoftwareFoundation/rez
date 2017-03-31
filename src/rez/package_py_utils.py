@@ -39,7 +39,7 @@ def expand_requirement(request, paths=None):
 
     Args:
         request (str): Request to expand, eg 'python-2.*'
-        paths (list of str, optional): paths to search for package families,
+        paths (list of str, optional): paths to search for packages,
             defaults to `config.packages_path`.
 
     Returns:
@@ -124,7 +124,7 @@ def expand_requirement(request, paths=None):
         return version_
 
     if req.range_ is not None:
-        req.range_.visit_versions(visit_version)
+        req.range_ = req.range_.visit_versions(visit_version)
 
     result = str(req)
 
