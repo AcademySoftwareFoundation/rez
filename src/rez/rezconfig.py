@@ -297,6 +297,10 @@ package_filter = None
 # Here's an example:
 #
 #     package_orderers:
+#     - type: custom
+#       packages:
+#         gcc: ['3.7', '2.8']
+#         foo: ['2.6', '2.8']
 #     - type: soft_timestamp
 #       packages: ["gcc", "foo"]
 #       timestamp: 1429830188

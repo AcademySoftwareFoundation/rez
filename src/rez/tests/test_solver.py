@@ -502,6 +502,195 @@ class TestSolver(TestBase):
             ])
 
 
+    def test_23_direct_complete(self):
+        """Test setting of the version_priority in simple situations, where
+        the altered package is a direct request
+        """
+        # test a complete ordering
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]}}])
+        self._solve(["python"],
+                    ["python-2.6.0[]"])
+        self._solve(["python", "!python-2.6.0"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python<=2.6.0"],
+                    ["python-2.7.0[]"])
+        self._solve(["python", "!python-2.6.0", "!python-2.5.2",
+                     "!python-2.7.0"],
+                    ["python-2.6.8[]"])
+
+        # check that we can still request a lower-priority version
+        self._solve(["python-2.6.8"],
+                    ["python-2.6.8[]"])
+
+
+    def test_24_direct_single(self):
+        """check that if you specify only one version, that version is highest
+        priority, rest are normal
+        """
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.8"]}}])
+        self._solve(["python"],
+                    ["python-2.6.8[]"])
+        self._solve(["python", "!python-2.6.8"],
+                    ["python-2.7.0[]"])
+        self._solve(["python<2.6.8"],
+                    ["python-2.6.0[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+        # confirm that sorting for version ranges is still normal
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.8[]"])
+        self._solve(["python>2.6.8"],
+                    ["python-2.7.0[]"])
+
+
+    def test_25_empty_string(self):
+        """confirm that we can use empty string to match unmatched versions"""
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["", "2.7.0"]}}])
+        self._solve(["python"],
+                    ["python-2.6.8[]"])
+        self._solve(["python", "!python-2.6.8"],
+                    ["python-2.6.0[]"])
+        self._solve(["python", "!python-2.6"],
+                    ["python-2.5.2[]"])
+        self._solve(["python>2.6.8"],
+                    ["python-2.7.0[]"])
+
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", "", "2.7.0"]}}])
+        self._solve(["python"],
+                    ["python-2.6.0[]"])
+        self._solve(["python", "!python-2.6.0"],
+                    ["python-2.6.8[]"])
+        self._solve(["python", "!python-2.6"],
+                    ["python-2.5.2[]"])
+        self._solve(["python>2.6.8"],
+                    ["python-2.7.0[]"])
+
+
+    def test_26_false(self):
+        """confirm that we can use False to match unmatched versions"""
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": [False, "2.7.0"]}}])
+        self._solve(["python"],
+                    ["python-2.6.8[]"])
+        self._solve(["python", "!python-2.6.8"],
+                    ["python-2.6.0[]"])
+        self._solve(["python", "!python-2.6"],
+                    ["python-2.5.2[]"])
+        self._solve(["python>2.6.8"],
+                    ["python-2.7.0[]"])
+
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", False, "2.7.0"]}}])
+        self._solve(["python"],
+                    ["python-2.6.0[]"])
+        self._solve(["python", "!python-2.6.0"],
+                    ["python-2.6.8[]"])
+        self._solve(["python", "!python-2.6"],
+                    ["python-2.5.2[]"])
+        self._solve(["python>2.6.8"],
+                    ["python-2.7.0[]"])
+
+
+    def test_27_requirement_1_deep(self):
+        """Test setting of the version_priority for a required package 1 level
+        deep
+        """
+        # python 2.5 is preferred...
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": [2.5]}}])
+
+        # # so if we request python directly, we get 2.5...
+        self._solve(["python"],
+                    ["python-2.5.2[]"])
+
+        # ...but if we request pyfoo, IT'S version is more important, and we
+        # get 2.6
+        self._solve(["pyfoo"],
+                    ["python-2.6.8[]", "pyfoo-3.1.0[]"])
+
+        # but if we make specifically python-2.6.0 prioritized, it will be used
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0"]}}])
+        self._solve(["pyfoo"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]"])
+
+
+    def test_28_requirement_2_deep(self):
+        """Test setting of the version_priority for a required package 2
+        levels deep
+        """
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", "2.5"]}}])
+        self._solve(["pyodd"],
+                    ["python-2.5.2[]", "pybah-5[]", "pyodd-2[]"])
+        self._solve(["pyodd-2"],
+                    ["python-2.5.2[]", "pybah-5[]", "pyodd-2[]"])
+        self._solve(["pyodd-1"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]", "pyodd-1[]"])
+
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"pybah": ["4"],
+                                             "pyfoo": ["3.0.0"],
+                                             "python": ["2.6.0"]}}])
+        self._solve(["pyodd"],
+                    ["python-2.6.0[]", "pybah-4[]", "pyodd-2[]"])
+        self._solve(["pyodd-2"],
+                    ["python-2.6.0[]", "pybah-4[]", "pyodd-2[]"])
+        self._solve(["pyodd-1"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]", "pyodd-1[]"])
+
+
+    def test_29_multiple_false(self):
+        """Make sure that multiple False / empty values raises an error
+        """
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", False, False,
+                                                        "2.5"]}}])
+        self.assertRaises(ConfigurationError,
+                          self._solve, ["python"], ["python-2.6.0[]"])
+
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", "", "",
+                                                        "2.5"]}}])
+        self.assertRaises(ConfigurationError,
+                          self._solve, ["python"], ["python-2.6.0[]"])
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.6.0", "", False,
+                                                        "2.5"]}}])
+        self.assertRaises(ConfigurationError,
+                          self._solve, ["python"], ["python-2.6.0[]"])
+
+
+    def test_30_multiple_matches(self):
+        """Test that if matches more than one, higher-priority is used
+        """
+        config.override("package_orderers",
+                        [{"type": "custom",
+                          "packages": {"python": ["2.7.0|2.6.8",
+                                                        "2.5",
+                                                        "2.6.8|2.6.0"]}}])
+        self._solve(["python<2.7"],
+                    ["python-2.6.8[]"])
+
+
 if __name__ == '__main__':
     unittest.main()
 
