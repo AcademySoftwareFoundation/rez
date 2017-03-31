@@ -4,6 +4,7 @@ test dependency resolving algorithm
 from rez.vendor.version.requirement import Requirement
 from rez.solver import Solver, Cycle, SolverStatus
 from rez.config import config
+from rez.exceptions import ConfigurationError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
 import itertools
@@ -20,7 +21,7 @@ class TestSolver(TestBase):
             packages_path=cls.packages_path,
             package_filter=None)
 
-    def _create_solvers(self, reqs):
+    def _create_solvers(self, reqs, do_permutations=True):
         s1 = Solver(reqs,
                     self.packages_path,
                     optimised=True,
@@ -31,20 +32,22 @@ class TestSolver(TestBase):
                     verbosity=Solver.max_verbosity)
 
         s_perms = []
-        perms = itertools.permutations(reqs)
-        for reqs_ in perms:
-            s = Solver(reqs_,
-                       self.packages_path,
-                       optimised=True,
-                       verbosity=Solver.max_verbosity)
-            s_perms.append(s)
+        if do_permutations:
+            perms = itertools.permutations(reqs)
+            for reqs_ in perms:
+                s = Solver(reqs_,
+                           self.packages_path,
+                           optimised=True,
+                           verbosity=Solver.max_verbosity)
+                s_perms.append(s)
 
         return (s1, s2, s_perms)
 
-    def _solve(self, packages, expected_resolve):
+    def _solve(self, packages, expected_resolve, do_permutations=True):
         print
         reqs = [Requirement(x) for x in packages]
-        s1, s2, s_perms = self._create_solvers(reqs)
+        s1, s2, s_perms = self._create_solvers(reqs,
+                                               do_permutations=do_permutations)
 
         s1.solve()
         self.assertEqual(s1.status, SolverStatus.solved)
@@ -62,10 +65,11 @@ class TestSolver(TestBase):
         resolve2 = [str(x) for x in s2.resolved_packages]
         self.assertEqual(resolve2, resolve)
 
-        print "checking that permutations also succeed..."
-        for s in s_perms:
-            s.solve()
-            self.assertEqual(s.status, SolverStatus.solved)
+        if do_permutations:
+            print "checking that permutations also succeed..."
+            for s in s_perms:
+                s.solve()
+                self.assertEqual(s.status, SolverStatus.solved)
 
         return s1
 
@@ -211,6 +215,292 @@ class TestSolver(TestBase):
                     ["python-2.7.0[]", "pyvariants-2[0]"])
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
+
+    # re-prioritization tests
+
+    def test_11_reversed_str(self):
+        """Test setting a package to reversed-version sorting
+        """
+        config.override("package_orderers",
+                        [{"type": "sorted",
+                          "descending": False,
+                          "packages": "python"}])
+        self._solve(["python"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.7.0"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.5.2"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.0[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+    def test_12_reversed_list(self):
+        """Test setting a package to reversed-version sorting
+        """
+        config.override("package_orderers",
+                        [{"type": "sorted",
+                          "descending": False,
+                          "packages": ["python"]}])
+        self._solve(["python"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.7.0"],
+                    ["python-2.5.2[]"])
+        self._solve(["python", "!python-2.5.2"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6"],
+                    ["python-2.6.0[]"])
+        self._solve(["python-2.6+<2.7"],
+                    ["python-2.6.0[]"])
+        self._solve(["python<2.6"],
+                    ["python-2.5.2[]"])
+
+    def test_13_reversed_is_requirement(self):
+        """Test setting a package to reversed-version sorting, when it is a
+        requirement
+        """
+        config.override("package_orderers",
+                        [{"type": "sorted",
+                          "descending": False,
+                          "packages": "python"}])
+        self._solve(["pyfoo"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]"])
+        self._solve(["pyfoo-3.0"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.1"],
+                    ["python-2.6.0[]", "pyfoo-3.1.0[]"])
+        self._solve(["pybah"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+        self._solve(["pybah-4"],
+                    ["python-2.6.0[]", "pybah-4[]"])
+        self._solve(["pybah-5"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+
+
+    def test_14_reversed_has_requirement(self):
+        """Test setting a package to reversed-version sorting, when it has a
+        requirement
+        """
+        config.override("package_orderers",
+                        [{"type": "sorted",
+                          "descending": False,
+                          "packages": ["pyfoo", "pybah"]}])
+        self._solve(["pyfoo"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.0"],
+                    ["python-2.5.2[]", "pyfoo-3.0.0[]"])
+        self._solve(["pyfoo-3.1"],
+                    ["python-2.6.8[]", "pyfoo-3.1.0[]"])
+        self._solve(["pybah"],
+                    ["python-2.6.8[]", "pybah-4[]"])
+        self._solve(["pybah-4"],
+                    ["python-2.6.8[]", "pybah-4[]"])
+        self._solve(["pybah-5"],
+                    ["python-2.5.2[]", "pybah-5[]"])
+
+    def _test_complete_ordering(self, request, expected_order):
+        exclude = []
+        for next in expected_order:
+            self._solve(request + exclude, [next + '[]'],
+                        do_permutations=False)
+            exclude.append('!{}'.format(next))
+
+    def test_15_timestamp_no_rank_exact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728472,
+                         }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.0.5",
+                "reorderable-2.0.6",
+                "reorderable-2.1.0",
+                "reorderable-2.1.1",
+                "reorderable-2.1.5",
+                "reorderable-2.2.0",
+                "reorderable-2.2.1",
+                "reorderable-3.0.0",
+                "reorderable-3.1.1",
+            ])
+
+    def test_16_timestamp_no_rank_inexact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728473,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.0.5",
+                "reorderable-2.0.6",
+                "reorderable-2.1.0",
+                "reorderable-2.1.1",
+                "reorderable-2.1.5",
+                "reorderable-2.2.0",
+                "reorderable-2.2.1",
+            ])
+
+
+    def test_17_timestamp_rank2_exact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728474,
+                          "rank": 2,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.2.1",
+                "reorderable-2.2.0",
+                "reorderable-2.1.5",
+                "reorderable-2.1.1",
+                "reorderable-2.1.0",
+                "reorderable-2.0.6",
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-3.1.1",
+                "reorderable-3.0.0",
+            ])
+
+
+    def test_18_timestamp_rank2_inexact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728475,
+                          "rank": 2,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.2.1",
+                "reorderable-2.2.0",
+                "reorderable-2.1.5",
+                "reorderable-2.1.1",
+                "reorderable-2.1.0",
+                "reorderable-2.0.6",
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-3.1.1",
+                "reorderable-3.0.0",
+            ])
+
+    def test_19_timestamp_rank3_exact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728474,
+                          "rank": 3,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.6",
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.1.5",
+                "reorderable-2.1.1",
+                "reorderable-2.1.0",
+                "reorderable-2.2.1",
+                "reorderable-2.2.0",
+                "reorderable-3.0.0",
+                "reorderable-3.1.1",
+            ])
+
+
+    def test_20_timestamp_rank3_inexact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728475,
+                          "rank": 3,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.6",
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.1.5",
+                "reorderable-2.1.1",
+                "reorderable-2.1.0",
+                "reorderable-2.2.1",
+                "reorderable-2.2.0",
+                "reorderable-3.0.0",
+                "reorderable-3.1.1",
+            ])
+
+
+    def test_21_timestamp_rank4_exact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728474,
+                          "rank": 4,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.0.6",
+                "reorderable-2.1.0",
+                "reorderable-2.1.1",
+                "reorderable-2.1.5",
+                "reorderable-2.2.0",
+                "reorderable-2.2.1",
+                "reorderable-3.0.0",
+                "reorderable-3.1.1",
+            ])
+
+
+    def test_22_timestamp_rank4_inexact_timestamp(self):
+        config.override("package_orderers",
+                        [{"type": "soft_timestamp",
+                          "packages": ["reorderable"],
+                          "timestamp": 1470728475,
+                          "rank": 4,
+                          }])
+        self._test_complete_ordering(
+            ['reorderable'],
+            [
+                "reorderable-2.0.5",
+                "reorderable-2.0.0",
+                "reorderable-1.9.1",
+                "reorderable-1.9.0",
+                "reorderable-2.0.6",
+                "reorderable-2.1.0",
+                "reorderable-2.1.1",
+                "reorderable-2.1.5",
+                "reorderable-2.2.0",
+                "reorderable-2.2.1",
+                "reorderable-3.0.0",
+                "reorderable-3.1.1",
+            ])
+
 
 if __name__ == '__main__':
     unittest.main()

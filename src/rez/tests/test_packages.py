@@ -30,6 +30,10 @@ ALL_PACKAGES = set([
     'pysplit-5', 'pysplit-6', 'pysplit-7',
     'python-2.5.2', 'python-2.6.0', 'python-2.6.8', 'python-2.7.0',
     'pyvariants-2',
+    'reorderable-1.9.0', 'reorderable-1.9.1', 'reorderable-2.0.0',
+    'reorderable-2.0.5', 'reorderable-2.0.6', 'reorderable-2.1.0',
+    'reorderable-2.1.1', 'reorderable-2.1.5', 'reorderable-2.2.0',
+    'reorderable-2.2.1', 'reorderable-3.0.0', 'reorderable-3.1.1',
     # packages from data/packages/py_packages and .../yaml_packages
     'unversioned',
     'unversioned_py',

@@ -1782,7 +1782,7 @@ class Solver(_Common):
         """
         self.package_paths = package_paths
         self.package_filter = package_filter
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
         self.pr = _Printer(verbosity, buf=buf)
         self.optimised = optimised
         self.callback = callback

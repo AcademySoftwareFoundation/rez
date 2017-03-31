@@ -57,7 +57,7 @@ class Resolver(object):
         self.package_paths = package_paths
         self.timestamp = timestamp
         self.callback = callback
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
         self.package_load_callback = package_load_callback
         self.building = building
         self.verbosity = verbosity

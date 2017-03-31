@@ -198,7 +198,7 @@ class ResolvedContext(object):
         self.package_filter = (PackageFilterList.singleton if package_filter is None
                                else package_filter)
 
-        self.package_orderers = package_orderers
+        self.package_orderers = package_orderers or config.package_orderers
 
         # patch settings
         self.default_patch_lock = PatchLock.no_lock

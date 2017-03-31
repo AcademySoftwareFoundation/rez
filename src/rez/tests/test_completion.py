@@ -48,7 +48,7 @@ class TestCompletion(TestBase):
 
         _eq("zzz", [])
         _eq("", ["bahish", "nada", "nopy", "pybah", "pydad", "pyfoo", "pymum",
-                 "pyodd", "pyson", "pysplit", "python", "pyvariants"])
+                 "pyodd", "pyson", "pysplit", "python", "pyvariants", "reorderable"])
         _eq("py", ["pybah", "pydad", "pyfoo", "pymum", "pyodd", "pyson",
             "pysplit", "python", "pyvariants"])
         _eq("pys", ["pyson", "pysplit"])

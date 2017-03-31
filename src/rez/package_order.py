@@ -502,6 +502,9 @@ def register_orderer(cls):
 
 
 def get_orderer(package_name, orderers=None):
+    from rez.config import config
+    if orderers is None:
+        orderers = config.package_orderers
     if not orderers:
         orderers = {}
     found_orderer = orderers.get(package_name)

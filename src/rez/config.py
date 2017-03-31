@@ -223,6 +223,16 @@ class BuildThreadCount_(Setting):
             return value
 
 
+class PackageOrderers(Setting):
+    @cached_class_property
+    def schema(cls):
+        from rez.package_order import from_pod, OrdererDict
+        return Or(Schema(And([Use(from_pod)],
+                             Use(OrdererDict))), None)
+
+    _env_var_name = None
+
+
 config_schema = Schema({
     "packages_path":                                PathList,
     "plugin_path":                                  PathList,
@@ -335,6 +345,7 @@ config_schema = Schema({
     "env_var_separators":                           Dict,
     "variant_select_mode":                          VariantSelectMode_,
     "package_filter":                               OptionalDictOrDictList,
+    "package_orderers":                             PackageOrderers,
     "new_session_popen_args":                       OptionalDict,
 
     # GUI settings
