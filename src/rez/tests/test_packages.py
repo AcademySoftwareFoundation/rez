@@ -326,11 +326,24 @@ class TestPackages(TestBase, TempdirMixin):
             to_pod, from_pod
 
         def _test(orderer, package_name, expected_order):
+            from rez.vendor import simplejson
+            from rez.utils.yaml import dump_yaml
+            from rez.vendor import yaml
+
             it = iter_packages(package_name)
             descending = sorted(it, key=lambda x: x.version, reverse=True)
 
             pod = to_pod(orderer)
-            orderer2 = from_pod(pod)
+
+            # ResolvedContext.write_to_buffer will require conversion to both
+            # json and yaml, so test both
+            as_json = simplejson.dumps(pod)
+            from_json = simplejson.loads(as_json)
+            as_yaml = dump_yaml(pod)
+            from_yaml = yaml.load(as_yaml)
+            self.assertEqual(from_yaml, from_json)
+
+            orderer2 = from_pod(from_yaml)
 
             for orderer_ in (orderer, orderer2):
                 ordered = orderer_.reorder(descending)
