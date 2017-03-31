@@ -1,34 +1,35 @@
 from inspect import isclass
 from hashlib import sha1
 import collections
+from abc import ABCMeta, abstractmethod
 
 from rez.exceptions import ConfigurationError
 from rez.utils.yaml import YamlDumpable
-from rez.vendor.version.version import Version
+from rez.vendor.version.version import _Comparable, _ReversedComparable, Version
 
 DEFAULT_TOKEN = "<DEFAULT>"
 
 
 class PackageOrder(YamlDumpable):
     """Package reorderer base class."""
+    __metaclass__ = ABCMeta
+
     name = None
 
     def __init__(self):
         pass
 
-    def reorder(self, iterable, key=None):
-        """Put packages into some order for consumption.
-
-        You can safely assume that the packages referred to by `iterable` are
-        all versions of the same package family.
+    @abstractmethod
+    def sort_key(self, package_name, version):
+        """Returns a sort key usable for sorting these packages within the
+        same family
 
         Args:
-            iterable: Iterable list of packages, or objects that contain packages.
-            key (callable): Callable, where key(iterable) gives a `Package`. If
-                None, iterable is assumed to be a list of `Package` objects.
+            package_name: (str) The family name of the package we are sorting
+            verison: (Version) the version object you wish to generate a key for
 
         Returns:
-            List of `iterable` type, reordered.
+            Comparable object
         """
         raise NotImplementedError
 
@@ -56,6 +57,7 @@ class PackageOrder(YamlDumpable):
         data['type'] = self.name
         return data
 
+    @abstractmethod
     def to_pod(self):
         raise NotImplementedError
 
@@ -73,6 +75,11 @@ class PackageOrder(YamlDumpable):
     def __eq__(self, other):
         return type(self) == type(other) and str(self) == str(other)
 
+    # need to implement this to avoid infinite recursion!
+    @abstractmethod
+    def __str__(self):
+        raise NotImplementedError
+
 
 class NullPackageOrder(PackageOrder):
     """An orderer that does not change the order - a no op.
@@ -86,8 +93,10 @@ class NullPackageOrder(PackageOrder):
     def __init__(self, packages):
         self.packages = packages
 
-    def reorder(self, iterable, key=None):
-        return list(iterable)
+    def sort_key(self, package_name, version):
+        # python's sort will preserve the order of items that compare equal, so
+        # to not change anything, we just return the same object for all...
+        return 0
 
     def __str__(self):
         return str(self.packages)
@@ -117,10 +126,18 @@ class SortedOrder(PackageOrder):
         self.packages = packages
         self.descending = descending
 
-    def reorder(self, iterable, key=None):
-        key = key or (lambda x: x)
-        return sorted(iterable, key=lambda x: key(x).version,
-                      reverse=self.descending)
+    def sort_key(self, package_name, version):
+        # Note that the name "descending" can be slightly confusing - it
+        # indicates that the final ordering this Order gives should be
+        # version descending (ie, the default) - however, the sort_key itself
+        # returns it's results in "normal" ascending order (because it needs to
+        # be used "alongside" normally-sorted objects like versions).
+        # when the key is passed to sort(), though, it is always invoked with
+        # reverse=True...
+        if self.descending:
+            return version
+        else:
+            return _ReversedComparable(version)
 
     def __str__(self):
         return str((self.packages, self.descending))
@@ -173,17 +190,16 @@ class PerFamilyOrder(PackageOrder):
             default_order = NullPackageOrder(DEFAULT_TOKEN)
         self.default_order = default_order
 
-    def reorder(self, iterable, key=None):
-        try:
-            item = iter(iterable).next()
-        except:
-            return None
-
-        key = key or (lambda x: x)
-        package = key(item)
-
-        orderer = self.order_dict.get(package.name, self.default_order)
-        return orderer.reorder(iterable, key)
+    def sort_key(self, package_name, version):
+        orderer = self.order_dict.get(package_name)
+        if orderer is None:
+            if self.default_order is not None:
+                orderer = self.default_order
+            else:
+                # shouldn't get here, because applies_to should protect us...
+                raise RuntimeError("package family orderer %r does not apply to package family %r",
+                    (self, package_name))
+        return orderer.sort_key(package_name, version)
 
     @property
     def packages(self):
@@ -269,27 +285,9 @@ class VersionSplitPackageOrder(PackageOrder):
         self.packages = packages
         self.first_version = first_version
 
-    def reorder(self, iterable, key=None):
-        key = key or (lambda x: x)
-
-        # sort by version descending
-        descending = sorted(iterable, key=lambda x: key(x).version, reverse=True)
-
-        above = []
-        below = []
-        is_above = True
-
-        for item in descending:
-            if is_above:
-                package = key(item)
-                is_above = (package.version > self.first_version)
-
-            if is_above:
-                above.append(item)
-            else:
-                below.append(item)
-
-        return below + above
+    def sort_key(self, package_name, version):
+        priority_key = 1 if version <= self.first_version else 0
+        return (priority_key, version)
 
     def __str__(self):
         return str((self.packages, self.first_version))
@@ -364,65 +362,76 @@ class TimestampPackageOrder(PackageOrder):
         self.timestamp = timestamp
         self.rank = rank
 
-    def reorder(self, iterable, key=None):
-        reordered = []
+        # dictionary mapping from package family to the first-version-after
+        # the given timestamp
+        self._cached_first_after = {}
+        self._cached_sort_key = {}
+
+    def get_first_after(self, package_family):
+        first_after = self._cached_first_after.get(package_family, KeyError)
+        if first_after is KeyError:
+            first_after = self._calc_first_after(package_family)
+            self._cached_first_after[package_family] = first_after
+        return first_after
+
+    def _calc_first_after(self, package_family):
+        from rez.packages_ import iter_packages
+        descending = sorted(iter_packages(package_family),
+                             key=lambda p: p.version,
+                             reverse=True)
+
         first_after = None
-        key = key or (lambda x: x)
-
-        # sort by version descending
-        descending = sorted(iterable, key=lambda x: key(x).version, reverse=True)
-
-        for i, o in enumerate(descending):
-            package = key(o)
+        for i, package in enumerate(descending):
             if package.timestamp:
                 if package.timestamp > self.timestamp:
-                    first_after = i
+                    first_after = package.version
                 else:
-                    break
+                    if not self.rank:
+                        return first_after
+                    # if we have rank, then we need to then go back UP the
+                    # versions, until we find one whose trimmed version doesn't
+                    # match.
+                    # Note that we COULD do this by simply iterating through
+                    # an ascending sequence, in which case we wouldn't have to
+                    # "switch direction" after finding the first result after
+                    # by timestamp... but we're making the assumption that the
+                    # timestamp break will be closer to the higher end of the
+                    # version, and that we'll therefore have to check fewer
+                    # timestamps this way...
+                    trimmed_version = package.version.trim(self.rank - 1)
+                    first_after = None
+                    for after_package in reversed(descending[:i]):
+                        if after_package.version.trim(self.rank - 1) != trimmed_version:
+                            return after_package.version
+                    return first_after
+        return first_after
 
+    def _calc_sort_key(self, package_name, version):
+        first_after = self.get_first_after(package_name)
         if first_after is None:
-            # all packages are before T, just use version descending
-            return descending
-
-        before = descending[first_after + 1:]
-        after = list(reversed(descending[:first_after + 1]))
-
-        if not self.rank:  # simple case
-            return before + after
-
-        # include packages after timestamp but within rank
-        if before and after:
-            package = key(before[0])
-            first_prerank = package.version.trim(self.rank - 1)
-
-            for i, o in enumerate(after):
-                package = key(o)
-                prerank = package.version.trim(self.rank - 1)
-                if prerank != first_prerank:
-                    break
-
-            if i:
-                before = list(reversed(after[:i])) + before
-                after = after[i:]
+            # all packages are before T
+            is_before = True
+        else:
+            is_before = int(version < first_after)
 
         # ascend below rank, but descend within
-        after_ = []
-        postrank = []
-        prerank = None
-
-        for o in after:
-            package = key(o)
-            prerank_ = package.version.trim(self.rank - 1)
-
-            if prerank_ == prerank:
-                postrank.append(o)
+        if is_before:
+            return (is_before, version)
+        else:
+            if self.rank:
+                return (is_before,
+                        _ReversedComparable(version.trim(self.rank - 1)),
+                        version.tokens[self.rank - 1:])
             else:
-                after_.extend(reversed(postrank))
-                postrank = [o]
-                prerank = prerank_
+                return (is_before, _ReversedComparable(version))
 
-        after_.extend(reversed(postrank))
-        return before + after_
+    def sort_key(self, package_name, version):
+        cache_key = (package_name, str(version))
+        result = self._cached_sort_key.get(cache_key)
+        if result is None:
+            result = self._calc_sort_key(package_name, version)
+            self._cached_sort_key[cache_key] = result
+        return result
 
     def __str__(self):
         return str((self.packages, self.timestamp, self.rank))
@@ -540,24 +549,7 @@ class CustomPackageOrder(PackageOrder):
         self.packages_dict = self._packages_from_pod(packages)
         self._version_key_cache = {}
 
-    def reorder(self, iterable, key=None):
-        key = key or (lambda x: x)
-
-        def sort_key(x):
-            package = key(x)
-            return self.version_priority_key_cached(package.name,
-                                                    package.version)
-
-        return sorted(iterable, key=sort_key, reverse=True)
-
-    @property
-    def packages(self):
-        return iter(self.packages_dict)
-
-    def __str__(self):
-        return str(self.packages_dict)
-
-    def version_priority_key_cached(self, package_name, version):
+    def sort_key(self, package_name, version):
         family_cache = self._version_key_cache.setdefault(package_name, {})
         key = family_cache.get(version)
         if key is not None:
@@ -566,6 +558,13 @@ class CustomPackageOrder(PackageOrder):
         key = self.version_priority_key_uncached(package_name, version)
         family_cache[version] = key
         return key
+
+    @property
+    def packages(self):
+        return iter(self.packages_dict)
+
+    def __str__(self):
+        return str(self.packages_dict)
 
     def version_priority_key_uncached(self, package_name, version):
         version_priorities = self.packages_dict[package_name]

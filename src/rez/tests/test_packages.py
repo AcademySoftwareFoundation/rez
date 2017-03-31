@@ -350,7 +350,9 @@ class TestPackages(TestBase, TempdirMixin):
             orderer2 = from_pod(from_yaml)
 
             for orderer_ in (orderer, orderer2):
-                ordered = orderer_.reorder(descending)
+                def key(package):
+                    return orderer_.sort_key(package.name, package.version)
+                ordered = sorted(descending, key=key, reverse=True)
                 result = [str(x.version) for x in ordered]
                 self.assertEqual(result, expected_order)
 
