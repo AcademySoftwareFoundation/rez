@@ -2,13 +2,14 @@ from inspect import isclass
 from hashlib import sha1
 import collections
 
-from rez.vendor.version.version import Version
 from rez.exceptions import ConfigurationError
+from rez.utils.yaml import YamlDumpable
+from rez.vendor.version.version import Version
 
 DEFAULT_TOKEN = "<DEFAULT>"
 
 
-class PackageOrder(object):
+class PackageOrder(YamlDumpable):
     """Package reorderer base class."""
     name = None
 
@@ -49,6 +50,11 @@ class PackageOrder(object):
             self._packages = [packages]
         else:
             self._packages = sorted(packages)
+
+    def to_yaml_pod(self):
+        data = self.to_pod()
+        data['type'] = self.name
+        return data
 
     def to_pod(self):
         raise NotImplementedError
@@ -622,7 +628,7 @@ class CustomPackageOrder(PackageOrder):
         return cls(packages=data["packages"])
 
 
-class OrdererDict(collections.Mapping):
+class OrdererDict(collections.Mapping, YamlDumpable):
     def __init__(self, orderer_list):
         self.list = []
         self.by_package = {}
@@ -637,6 +643,9 @@ class OrdererDict(collections.Mapping):
                 if package in self.by_package:
                     continue
                 self.by_package[package] = orderer
+
+    def to_yaml_pod(self):
+        return self.to_pod()
 
     def to_pod(self):
         return [to_pod(x) for x in self.list]
