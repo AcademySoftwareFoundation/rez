@@ -481,6 +481,31 @@ class TestVersionSchema(unittest.TestCase):
         _confl(["foo", "~bah-5+", "bah-7..12", "bah-2"],
                "bah-7..12", "bah-2")
 
+    def test_reversed_sort_key(self):
+        # self.assertEqual(reverse_sort_key(5), reverse_sort_key(5))
+        self.assertLessEqual(reverse_sort_key(Version("1.3")),
+                             reverse_sort_key(Version("1.3")))
+        self.assertLessEqual(reverse_sort_key(VersionRange("1.2+")),
+                             reverse_sort_key(VersionRange("<0.8")))
+        self.assertGreaterEqual(reverse_sort_key(VersionRange("1+<2.4")),
+                                reverse_sort_key(VersionRange("1+<2.4")))
+        self.assertGreaterEqual(reverse_sort_key(VersionRange("1+<2.4")),
+                                reverse_sort_key(VersionRange("2.0+<3.5")))
+        l = [3, 5, 6, 2, 8, 1, 4, 7, 9, 10, 0, 4]
+        self.assertEqual(sorted(l, key=reverse_sort_key),
+                         [10, 9, 8, 7, 6, 5, 4, 4, 3, 2, 1, 0])
+        self.assertEqual(sorted(l, key=reverse_sort_key, reverse=True),
+                         [0, 1, 2, 3, 4, 4, 5, 6, 7, 8, 9, 10])
+
+        self.assertEqual(str(reverse_sort_key("foo")),
+                         "reverse(foo)")
+        self.assertEqual(repr(reverse_sort_key("foo")),
+                         "reverse('foo')")
+        self.assertEqual(str(reverse_sort_key((3, 'foo'))),
+                         "reverse((3, 'foo'))")
+        self.assertEqual(repr(reverse_sort_key((3, 'foo'))),
+                         "reverse((3, 'foo'))")
+
 
 if __name__ == '__main__':
     unittest.main()
