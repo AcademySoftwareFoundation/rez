@@ -487,6 +487,8 @@ class _PackageEntry(object):
             here as a safety measure so that sorting is guaranteed repeatable
             regardless.
         """
+        from rez.package_order import get_orderer
+
         if self.sorted:
             return
 
@@ -498,13 +500,19 @@ class _PackageEntry(object):
                 if not request.conflict:
                     req = variant.requires_list.get(request.name)
                     if req is not None:
-                        requested_key.append((-i, req.range))
+                        orderer = get_orderer(req.name,
+                                              self.solver.package_orderers or {})
+                        range_key = orderer.sort_key(req.name, req.range)
+                        requested_key.append((-i, range_key))
                         names.add(req.name)
 
             additional_key = []
             for request in variant.requires_list:
                 if not request.conflict and request.name not in names:
-                    additional_key.append((request.range, request.name))
+                    orderer = get_orderer(request.name,
+                                          self.solver.package_orderers or {})
+                    range_key = orderer.sort_key(request.name, request.range)
+                    additional_key.append((range_key, request.name))
 
             if (VariantSelectMode[config.variant_select_mode] ==
                     VariantSelectMode.version_priority):

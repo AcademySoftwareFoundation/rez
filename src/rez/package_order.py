@@ -19,8 +19,42 @@ class PackageOrder(YamlDumpable):
     def __init__(self):
         pass
 
+    def sort_key(self, package_name, version_like):
+        """Returns a sort key usable for sorting these packages within the
+        same family
+
+        Args:
+            package_name: (str) The family name of the package we are sorting
+            verison_like: (Version|_LowerBound|_UpperBound|_Bound|VersionRange)
+                the version-like object you wish to generate a key for
+
+        Returns:
+            Comparable object
+        """
+        from rez.vendor.version.version import Version, _LowerBound, _UpperBound, _Bound, VersionRange
+        if isinstance(version_like, VersionRange):
+            return tuple(self.sort_key(package_name, bound)
+                         for bound in version_like.bounds)
+        elif isinstance(version_like, _Bound):
+            return (self.sort_key(package_name, version_like.lower),
+                    self.sort_key(package_name, version_like.upper))
+        elif isinstance(version_like, _LowerBound):
+            inclusion_key = -2 if version_like.inclusive else -1
+            return (self.sort_key(package_name, version_like.version),
+                    inclusion_key)
+        elif isinstance(version_like, _UpperBound):
+            inclusion_key = 2 if version_like.inclusive else 1
+            return (self.sort_key(package_name, version_like.version),
+                    inclusion_key)
+        elif isinstance(version_like, Version):
+            # finally, the bit that we actually use the sort_key_implementation
+            # for...
+            return self.sort_key_implementation(package_name, version_like)
+        else:
+            raise TypeError(version_like)
+
     @abstractmethod
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         """Returns a sort key usable for sorting these packages within the
         same family
 
@@ -93,7 +127,7 @@ class NullPackageOrder(PackageOrder):
     def __init__(self, packages):
         self.packages = packages
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         # python's sort will preserve the order of items that compare equal, so
         # to not change anything, we just return the same object for all...
         return 0
@@ -126,7 +160,7 @@ class SortedOrder(PackageOrder):
         self.packages = packages
         self.descending = descending
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         # Note that the name "descending" can be slightly confusing - it
         # indicates that the final ordering this Order gives should be
         # version descending (ie, the default) - however, the sort_key itself
@@ -190,7 +224,7 @@ class PerFamilyOrder(PackageOrder):
             default_order = NullPackageOrder(DEFAULT_TOKEN)
         self.default_order = default_order
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         orderer = self.order_dict.get(package_name)
         if orderer is None:
             if self.default_order is not None:
@@ -199,7 +233,7 @@ class PerFamilyOrder(PackageOrder):
                 # shouldn't get here, because applies_to should protect us...
                 raise RuntimeError("package family orderer %r does not apply to package family %r",
                     (self, package_name))
-        return orderer.sort_key(package_name, version)
+        return orderer.sort_key_implementation(package_name, version)
 
     @property
     def packages(self):
@@ -285,7 +319,7 @@ class VersionSplitPackageOrder(PackageOrder):
         self.packages = packages
         self.first_version = first_version
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         priority_key = 1 if version <= self.first_version else 0
         return (priority_key, version)
 
@@ -425,7 +459,7 @@ class TimestampPackageOrder(PackageOrder):
             else:
                 return (is_before, _ReversedComparable(version))
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         cache_key = (package_name, str(version))
         result = self._cached_sort_key.get(cache_key)
         if result is None:
@@ -549,7 +583,7 @@ class CustomPackageOrder(PackageOrder):
         self.packages_dict = self._packages_from_pod(packages)
         self._version_key_cache = {}
 
-    def sort_key(self, package_name, version):
+    def sort_key_implementation(self, package_name, version):
         family_cache = self._version_key_cache.setdefault(package_name, {})
         key = family_cache.get(version)
         if key is not None:
