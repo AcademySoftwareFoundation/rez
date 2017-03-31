@@ -10,6 +10,32 @@ from rez.vendor.version.version import _Comparable, _ReversedComparable, Version
 DEFAULT_TOKEN = "<DEFAULT>"
 
 
+class FallbackComparable(_Comparable):
+    """First tries to compare objects using the main_comparable, but if that
+    fails, compares using the fallback_comparable object.
+    """
+
+    def __init__(self, main_comparable, fallback_comparable):
+        self.main_comparable = main_comparable
+        self.fallback_comparable = fallback_comparable
+
+    def __eq__(self, other):
+        try:
+            return self.main_comparable == other.main_comparable
+        except Exception:
+            return self.fallback_comparable == other.fallback_comparable
+
+    def __lt__(self, other):
+        try:
+            return self.main_comparable < other.main_comparable
+        except Exception:
+            return self.fallback_comparable < other.fallback_comparable
+
+    def __repr__(self):
+        return '%s(%r, %r)' % (type(self).__name__, self.main_comparable,
+                               self.fallback_comparable)
+
+
 class PackageOrder(YamlDumpable):
     """Package reorderer base class."""
     __metaclass__ = ABCMeta
@@ -49,7 +75,11 @@ class PackageOrder(YamlDumpable):
         elif isinstance(version_like, Version):
             # finally, the bit that we actually use the sort_key_implementation
             # for...
-            return self.sort_key_implementation(package_name, version_like)
+            # Need to use a FallbackComparable because we can compare versions
+            # of different packages...
+            return FallbackComparable(
+                self.sort_key_implementation(package_name, version_like),
+                version_like)
         else:
             raise TypeError(version_like)
 
