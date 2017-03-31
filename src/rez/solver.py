@@ -891,25 +891,18 @@ class _PackageVariantSlice(_Common):
         The order is typically descending, but package order functions can
         change this.
         """
+        from rez.package_order import get_orderer
+
         if self.sorted:
             return
 
-        for orderer in (self.solver.package_orderers or []):
-            entries = orderer.reorder(self.entries, key=lambda x: x.package)
-            if entries is not None:
-                self.entries = entries
-                self.sorted = True
-
-                if self.pr:
-                    self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
-                return
-
-        # default ordering is version descending
-        self.entries = sorted(self.entries, key=lambda x: x.version, reverse=True)
+        orderer = get_orderer(self.package_name,
+                              self.solver.package_orderers or {})
+        self.entries = orderer.reorder(self.entries, key=lambda x: x.package)
         self.sorted = True
 
         if self.pr:
-            self.pr("sorted: %s packages: version descending", self.package_name)
+            self.pr("sorted: %s packages: %s", self.package_name, repr(orderer))
 
     def dump(self):
         print self.package_name

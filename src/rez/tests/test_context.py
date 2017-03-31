@@ -65,13 +65,15 @@ class TestContext(TestBase, TempdirMixin):
 
     def test_orderer(self):
         """Test a resolve with an orderer"""
-        from rez.package_order import VersionSplitPackageOrder
+        from rez.package_order import VersionSplitPackageOrder, OrdererDict
         from rez.vendor.version.version import Version
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
         config.override("packages_path",
                         [packages_path])
-        orderers = [VersionSplitPackageOrder(first_version=Version("2.6"))]
+        orderers = OrdererDict([
+            VersionSplitPackageOrder(packages=["python"],
+                                     first_version=Version("2.6"))])
         r = ResolvedContext(["python", "!python-2.6"],
                             package_orderers=orderers)
         resolved = [x.qualified_package_name for x in r.resolved_packages]

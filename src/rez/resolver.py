@@ -50,6 +50,8 @@ class Resolver(object):
             caching: If True, cache(s) may be used to speed the resolve. If
                 False, caches will not be used.
         """
+        from rez.package_order import OrdererDict
+
         self.context = context
         self.package_requests = package_requests
         self.package_paths = package_paths
@@ -64,7 +66,7 @@ class Resolver(object):
 
         # store hash of package orderers. This is used in the memcached key
         if package_orderers:
-            sha1s = ''.join(x.sha1 for x in package_orderers)
+            sha1s = ''.join(x.sha1 for x in package_orderers.itervalues())
             self.package_orderers_hash = sha1(sha1s).hexdigest()
         else:
             self.package_orderers_hash = ''

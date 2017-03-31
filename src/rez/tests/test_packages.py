@@ -323,7 +323,7 @@ class TestPackages(TestBase, TempdirMixin):
         """test package orderers."""
         from rez.package_order import NullPackageOrder, PerFamilyOrder, \
             VersionSplitPackageOrder, TimestampPackageOrder, SortedOrder, \
-            to_pod, from_pod
+            to_pod, from_pod, get_orderer, OrdererDict
 
         def _test(orderer, package_name, expected_order):
             from rez.vendor import simplejson
@@ -350,29 +350,62 @@ class TestPackages(TestBase, TempdirMixin):
                 result = [str(x.version) for x in ordered]
                 self.assertEqual(result, expected_order)
 
-        null_orderer = NullPackageOrder()
-        split_orderer = VersionSplitPackageOrder(Version("2.6.0"))
-        timestamp_orderer = TimestampPackageOrder(timestamp=3001, rank=3)
+        null_orderer = NullPackageOrder("pysplit")
+        split1_orderer = VersionSplitPackageOrder("python", Version("2.6.0"))
+        # test when split version is between actual versions
+        # (also tests that multiple orderers of same type, but different
+        # settings, are handled correctly)
+        split2_orderer = VersionSplitPackageOrder("multi", Version("1.3"))
+        # test when split version is > all versions
+        split3_orderer = VersionSplitPackageOrder("pydad", Version("5"))
+        timestamp_orderer = TimestampPackageOrder("timestamped",
+                                                  timestamp=3001, rank=3)
+        default_orderer = SortedOrder("<DEFAULT>", descending=False)
 
         expected_null_result = ["7", "6", "5"]
-        expected_split_result = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
+        expected_split1_result = ["2.6.0", "2.5.2", "2.7.0", "2.6.8"]
+        expected_split2_result = ["1.2", "1.1", "1.0", "2.0"]
+        expected_split3_result = ["3", "2", "1"]
         expected_timestamp_result = ["1.1.1", "1.1.0", "1.0.6", "1.0.5",
                                      "1.2.0", "2.0.0", "2.1.5", "2.1.0"]
+        expected_default_result = ["1", "2", "3"]
 
         _test(null_orderer, "pysplit", expected_null_result)
-        _test(split_orderer, "python", expected_split_result)
+        _test(split1_orderer, "python", expected_split1_result)
+        _test(split2_orderer, "multi", expected_split2_result)
+        _test(split3_orderer, "pydad", expected_split3_result)
         _test(timestamp_orderer, "timestamped", expected_timestamp_result)
+        _test(default_orderer, "pymum", expected_default_result)
 
         fam_orderer = PerFamilyOrder(
             order_dict=dict(pysplit=null_orderer,
-                            python=split_orderer,
+                            python=split1_orderer,
+                            multi=split2_orderer,
+                            pydad=split3_orderer,
                             timestamped=timestamp_orderer),
-            default_order=SortedOrder(descending=False))
+            default_order=default_orderer)
 
         _test(fam_orderer, "pysplit", expected_null_result)
-        _test(fam_orderer, "python", expected_split_result)
+        _test(fam_orderer, "python", expected_split1_result)
+        _test(fam_orderer, "multi", expected_split2_result)
+        _test(fam_orderer, "pydad", expected_split3_result)
         _test(fam_orderer, "timestamped", expected_timestamp_result)
-        _test(fam_orderer, "pymum", ["1", "2", "3"])
+        _test(fam_orderer, "pymum", expected_default_result)
+
+        orderers = OrdererDict([null_orderer, split1_orderer, split2_orderer,
+                                split3_orderer, timestamp_orderer,
+                                default_orderer])
+
+        def _test_orderer_dict(orderer_dict, package_name, expected_order):
+            orderer = get_orderer(package_name, orderer_dict)
+            _test(orderer, package_name, expected_order)
+
+        _test_orderer_dict(orderers, "pysplit", expected_null_result)
+        _test_orderer_dict(orderers, "python", expected_split1_result)
+        _test_orderer_dict(orderers, "multi", expected_split2_result)
+        _test_orderer_dict(orderers, "pydad", expected_split3_result)
+        _test_orderer_dict(orderers, "timestamped", expected_timestamp_result)
+        _test_orderer_dict(orderers, "pymum", expected_default_result)
 
 
 class TestMemoryPackages(TestBase):
