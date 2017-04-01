@@ -51,7 +51,7 @@ def bind(path, version_range=None, opts=None, parser=None):
     for dirname, module_name in entries:
         success, out, err = run_python_command([
             "import %s" % module_name,
-            "print %s.__file__" % module_name])
+            "print %s.__file__" % module_name], exe=exepath)
 
         if success:
             pypath = os.path.dirname(out)
