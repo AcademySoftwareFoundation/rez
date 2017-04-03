@@ -316,6 +316,9 @@ class TaggableAlphanumericVersionToken(AlphanumericVersionToken):
         else:
             return super(TaggableAlphanumericVersionToken, self).less_than(other)
 
+    def __eq__(self, other):
+        return (self.subtokens == other.subtokens) and self.tags == other.tags
+
     def next(self):
         if not self.tags:
             return super(TaggableAlphanumericVersionToken, self).next()
