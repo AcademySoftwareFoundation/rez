@@ -647,7 +647,7 @@ class _VersionRangeParser(object):
         lower_bound = _LowerBound(version, True)
         upper_bound = _UpperBound(version.next(), False) if version else None
 
-        self.bounds.append(_Bound(lower_bound, upper_bound))
+        self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
     @action
     def _act_exact_version(self):
@@ -655,7 +655,7 @@ class _VersionRangeParser(object):
         lower_bound = _LowerBound(version, True)
         upper_bound = _UpperBound(version, True)
 
-        self.bounds.append(_Bound(lower_bound, upper_bound))
+        self.bounds.append(_Bound(lower_bound, upper_bound, self.invalid_bound_error))
 
     @action
     def _act_bound(self):
@@ -673,7 +673,7 @@ class _VersionRangeParser(object):
         exclusive = self._is_lower_bound_exclusive(self._groups['lower_bound_prefix'])
         lower_bound = _LowerBound(version, not exclusive)
 
-        self.bounds.append(_Bound(lower_bound, None))
+        self.bounds.append(_Bound(lower_bound, None, self.invalid_bound_error))
 
     @action
     def _act_upper_bound(self):
@@ -681,7 +681,7 @@ class _VersionRangeParser(object):
         exclusive = self._is_upper_bound_exclusive(self._groups['upper_bound_prefix'])
         upper_bound = _UpperBound(version, not exclusive)
 
-        self.bounds.append(_Bound(None, upper_bound))
+        self.bounds.append(_Bound(None, upper_bound, self.invalid_bound_error))
 
     @action
     def _act_lower_and_upper_bound(self):
