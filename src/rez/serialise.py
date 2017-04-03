@@ -122,6 +122,9 @@ def _load_file(filepath, format_, update_data_callback):
 
     if update_data_callback:
         result = update_data_callback(format_, result)
+
+    if format_ == FileFormat.py and result.get("DO_NOT_CACHE", False):
+        return DoNotCache(result)
     return result
 
 
