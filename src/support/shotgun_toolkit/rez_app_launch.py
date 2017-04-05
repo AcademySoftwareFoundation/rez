@@ -59,12 +59,32 @@ class AppLaunch(tank.Hook):
             # NUKE_PATH is used by tk-nuke
             # HIERO_PLUGIN_PATH is used by tk-nuke (nukestudio)
             # KATANA_RESOURCES is used by tk-katana
-            config.parent_variables = ["PYTHONPATH", "HOUDINI_PATH", "NUKE_PATH", "HIERO_PLUGIN_PATH", "KATANA_RESOURCES"]
+            parent_variables = ["PYTHONPATH", "HOUDINI_PATH", "NUKE_PATH",
+                                "HIERO_PLUGIN_PATH", "KATANA_RESOURCES"]
 
             rez_packages = extra["rez_packages"]
             context = ResolvedContext(rez_packages)
 
             use_rez = True
+
+        # Rez env callback to restore sgtk paths setup by the shotgun launcher
+        # and the individual engines.
+        def restore_sgtk_env(executor):
+            """
+            Restore the settings from the current tank environment setup
+            that happened before rez was able to run.
+            
+            """
+            for envvar in parent_variables:
+                paths = os.environ.get(envvar, '').split(';')
+                #TODO: Remove this when P:\code is removed from domain policy
+                # P:\code is normally removed by rez, but since we have to
+                # restore some of the env vars setup by tank, we need to
+                # pull out the non-tank envvars setup here, which is mostly any
+                # path on P:\code.
+                paths = [p for p in paths if r'P:\code' not in p]
+                for path in reversed(paths):
+                    getattr(executor.env, envvar).prepend(path)
 
         system = sys.platform
         shell_type = 'bash'
@@ -102,7 +122,8 @@ class AppLaunch(tank.Hook):
                 parent_environ=n_env,
                 shell=shell_type,
                 stdin=False,
-                block=False
+                block=False,
+                post_actions_callback=restore_sgtk_env,
             )
             exit_code = proc.wait()
             context.print_info(verbosity=True)
