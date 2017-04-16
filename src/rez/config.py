@@ -53,8 +53,8 @@ class Setting(object):
             return self.config.overrides[self.key]
         # next, env-var
         if not self.config.locked:
-            value = os.getenv(self._env_var_name)
-            if value is not None:
+            value = os.getenv(self._env_var_name, '')
+            if value.strip():
                 return self._parse_env_var(value)
         # next, data unchanged
         if data is not None:
