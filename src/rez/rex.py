@@ -124,6 +124,11 @@ class Error(Action):
 Error.register()
 
 
+class Stop(Action):
+    name = 'stop'
+Stop.register()
+
+
 class Command(Action):
     name = 'command'
 Command.register()
@@ -384,6 +389,10 @@ class ActionManager(object):
         value = self._format(value)
         self.actions.append(Error(value))
         self.interpreter.error(value)
+
+    def stop(self, msg, *nargs):
+        from rez.exceptions import RexStopError
+        raise RexStopError(msg % nargs)
 
     def command(self, value):
         # Note: Value is deliberately not formatted in commands

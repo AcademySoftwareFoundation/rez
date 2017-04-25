@@ -37,7 +37,7 @@ class CustomBuildSystem(BuildSystem):
         except PackageMetadataError:
             return False
 
-        return bool(getattr(package, "build_command", None))
+        return (getattr(package, "build_command", None) != None)
 
     def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
@@ -104,6 +104,11 @@ class CustomBuildSystem(BuildSystem):
 
         # get build command
         command = self.package.build_command
+
+        # False just means no build command
+        if command is False:
+            ret["success"] = True
+            return ret
 
         def expand(txt):
             root = self.package.root

@@ -243,7 +243,7 @@ class ResolvedContext(object):
 
         def _package_load_callback(package):
             if package_load_callback:
-                _package_load_callback(package)
+                package_load_callback(package)
             self.num_loaded_packages += 1
 
         request = self.requested_packages(include_implicit=True)

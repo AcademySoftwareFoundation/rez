@@ -28,7 +28,7 @@ class ResolveDialog(QtGui.QDialog, StoreSizeMixin):
         self.started = False
         self._finished = False
 
-        self.busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
+        #self.busy_cursor = QtGui.QCursor(QtCore.Qt.WaitCursor)
 
         self.edit = StreamableTextEdit()
         self.edit.setStyleSheet("font: 9pt 'Courier'")

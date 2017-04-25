@@ -108,6 +108,11 @@ class RexUndefinedVariableError(RexError):
     pass
 
 
+class RexStopError(RexError):
+    """Special error raised when a package commands uses the 'stop' command."""
+    pass
+
+
 class BuildError(RezError):
     """Base class for any build-related error."""
     pass
