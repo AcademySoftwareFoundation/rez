@@ -173,7 +173,7 @@ class CMD(Shell):
                 cmd = pre_command.strip().split()
             else:
                 cmd = pre_command
-        cmd = cmd + [self.executable, "/Q", "/K", target_file]
+        cmd = cmd + [self.executable, "/Q", "/C", target_file]
         p = subprocess.Popen(cmd, env=env, **Popen_args)
         return p
 
