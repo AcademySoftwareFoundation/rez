@@ -74,7 +74,7 @@ class PackageRepositoryResourceWrapper(ResourceWrapper, StringFormatMixin):
             return value
 
     def _eval_late_binding(self, sourcecode):
-        sourcecode.exec_late(self)
+        return sourcecode.exec_late(self)
 
 
 class PackageFamily(PackageRepositoryResourceWrapper):
