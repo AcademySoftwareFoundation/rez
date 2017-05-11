@@ -132,20 +132,23 @@ class ErrorReturnCode(Exception):
         self.stdout = stdout
         self.stderr = stderr
 
+        def truncate(output, name):
+            if not self.truncate_cap:
+                return output
+            truncated_output = output[:self.truncate_cap]
+            delta = len(output) - len(truncated_output)
+            if delta:
+                truncated_output += (
+                "... (%d more, please see e.%s)" % (delta, name)).encode()
+            return truncated_output
 
         if self.stdout is None: exc_stdout = "<redirected>"
         else:
-            exc_stdout = self.stdout[:self.truncate_cap]
-            out_delta = len(self.stdout) - len(exc_stdout)
-            if out_delta:
-                exc_stdout += ("... (%d more, please see e.stdout)" % out_delta).encode()
+            exc_stdout = truncate(self.stdout, 'stdout')
 
         if self.stderr is None: exc_stderr = "<redirected>"
         else:
-            exc_stderr = self.stderr[:self.truncate_cap]
-            err_delta = len(self.stderr) - len(exc_stderr)
-            if err_delta:
-                exc_stderr += ("... (%d more, please see e.stderr)" % err_delta).encode()
+            exc_stderr = truncate(self.stderr, 'stderr')
 
         msg = "\n\n  RAN: %r\n\n  STDOUT:\n%s\n\n  STDERR:\n%s" % \
             (full_cmd, exc_stdout.decode(DEFAULT_ENCODING, "replace"),

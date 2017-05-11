@@ -66,9 +66,18 @@ class TestCommands(TestBase):
     def _get_rextest_commands(self, pkg):
         verstr = str(pkg.version)
         base = os.path.join(self.packages_path, "rextest", verstr)
+
+        major_version = str(pkg.version[0] if len(pkg.version) >= 1 else '')
+        minor_version = str(pkg.version[1] if len(pkg.version) >= 2 else '')
+        patch_version = str(pkg.version[2] if len(pkg.version) >= 3 else '')
+
         cmds = [Setenv('REZ_REXTEST_VERSION', verstr),
+                Setenv('REZ_REXTEST_MAJOR_VERSION', major_version),
+                Setenv('REZ_REXTEST_MINOR_VERSION', minor_version),
+                Setenv('REZ_REXTEST_PATCH_VERSION', patch_version),
                 Setenv('REZ_REXTEST_BASE', base),
                 Setenv('REZ_REXTEST_ROOT', base),
+                # from package...
                 Setenv('REXTEST_ROOT', base),
                 Setenv('REXTEST_VERSION', verstr),
                 Setenv('REXTEST_MAJOR_VERSION', str(pkg.version[0])),
@@ -110,10 +119,16 @@ class TestCommands(TestBase):
                 Setenv('REZ_USED_RESOLVE', "rextest-1.3 rextest2-2"),
                 # rez's rextest vars
                 Setenv('REZ_REXTEST_VERSION', "1.3"),
+                Setenv('REZ_REXTEST_MAJOR_VERSION', '1'),
+                Setenv('REZ_REXTEST_MINOR_VERSION', '3'),
+                Setenv('REZ_REXTEST_PATCH_VERSION', ''),
                 Setenv('REZ_REXTEST_BASE', base),
                 Setenv('REZ_REXTEST_ROOT', base),
                 # rez's rextest2 vars
                 Setenv('REZ_REXTEST2_VERSION', '2'),
+                Setenv('REZ_REXTEST2_MAJOR_VERSION', '2'),
+                Setenv('REZ_REXTEST2_MINOR_VERSION', ''),
+                Setenv('REZ_REXTEST2_PATCH_VERSION', ''),
                 Setenv('REZ_REXTEST2_BASE', base2),
                 Setenv('REZ_REXTEST2_ROOT', base2),
                 # rextest's commands

@@ -4,9 +4,11 @@ Built-in simple python build system
 from rez.build_system import BuildSystem
 from rez.build_process_ import BuildType
 from rez.util import create_forwarding_script
+from rez.packages_ import get_developer_package
 from rez.resolved_context import ResolvedContext
 from rez.config import config
 from rez.utils.yaml import dump_yaml
+import functools
 import os.path
 import sys
 
@@ -32,10 +34,11 @@ class BezBuildSystem(BuildSystem):
     def is_valid_root(cls, path):
         return os.path.isfile(os.path.join(path, "rezbuild.py"))
 
-    def __init__(self, working_dir, opts=None, write_build_scripts=False,
+    def __init__(self, working_dir, opts=None, package=None, write_build_scripts=False,
                  verbose=False, build_args=[], child_build_args=[]):
         super(BezBuildSystem, self).__init__(working_dir,
                                              opts=opts,
+                                             package=package,
                                              write_build_scripts=write_build_scripts,
                                              verbose=verbose,
                                              build_args=build_args,
@@ -64,7 +67,12 @@ class BezBuildSystem(BuildSystem):
             create_forwarding_script(build_env_script,
                                      module=("build_system", "bez"),
                                      func_name="_FWD__spawn_build_shell",
-                                     build_dir=build_path)
+                                     working_dir=self.working_dir,
+                                     build_path=build_path,
+                                     variant_index=variant.index,
+                                     install=install,
+                                     install_path=install_path)
+
             ret["success"] = True
             ret["build_env_script"] = build_env_script
             return ret
@@ -74,19 +82,53 @@ class BezBuildSystem(BuildSystem):
         if install and "install" not in cmd:
             cmd.append("install")
 
+        callback = functools.partial(self._add_build_actions,
+                                     context=context,
+                                     package=self.package,
+                                     variant=variant,
+                                     build_type=build_type,
+                                     install=install,
+                                     build_path=build_path,
+                                     install_path=install_path)
+
         retcode, _, _ = context.execute_shell(command=cmd,
                                               block=True,
-                                              cwd=build_path)
+                                              cwd=build_path,
+                                              actions_callback=callback)
         ret["success"] = (not retcode)
         return ret
 
+    @classmethod
+    def _add_build_actions(cls, executor, context, package, variant,
+                           build_type, install, build_path, install_path=None):
+        cls.set_standard_vars(executor=executor,
+                              context=context,
+                              variant=variant,
+                              build_type=build_type,
+                              install=install,
+                              build_path=build_path,
+                              install_path=install_path)
 
-def _FWD__spawn_build_shell(build_dir):
+
+def _FWD__spawn_build_shell(working_dir, build_path, variant_index, install,
+                            install_path=None):
     # This spawns a shell that the user can run 'bez' in directly
-    context = ResolvedContext.load(os.path.join(build_dir, "build.rxt"))
+    context = ResolvedContext.load(os.path.join(build_path, "build.rxt"))
+    package = get_developer_package(working_dir)
+    variant = package.get_variant(variant_index)
     config.override("prompt", "BUILD>")
 
-    retcode, _, _ = context.execute_shell(block=True, cwd=build_dir)
+    callback = functools.partial(BezBuildSystem._add_build_actions,
+                                 context=context,
+                                 package=package,
+                                 variant=variant,
+                                 build_type=BuildType.local,
+                                 install=install,
+                                 build_path=build_path,
+                                 install_path=install_path)
+
+    retcode, _, _ = context.execute_shell(block=True, cwd=build_path,
+                                          actions_callback=callback)
     sys.exit(retcode)
 
 

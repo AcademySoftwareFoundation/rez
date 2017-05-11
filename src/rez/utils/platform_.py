@@ -274,7 +274,7 @@ class LinuxPlatform(_UnixPlatform):
         ed = os.getenv("EDITOR")
         if ed is None:
             from rez.util import which
-            ed = which("xdg-open", "vim", "vi")
+            ed = which("vi", "vim", "xdg-open")
         return ed
 
     def _difftool(self):

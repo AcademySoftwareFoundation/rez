@@ -4,13 +4,14 @@ Filesystem-based package repository
 from rez.package_repository import PackageRepository
 from rez.package_resources_ import PackageFamilyResource, PackageResource, \
     VariantResourceHelper, PackageResourceHelper, package_pod_schema, \
-    package_release_keys
+    package_release_keys, package_build_only_keys
 from rez.serialise import clear_file_caches, open_file_for_write
 from rez.package_serialise import dump_package_data
 from rez.exceptions import PackageMetadataError, ResourceError, RezSystemError, \
     ConfigurationError, PackageRepositoryError
 from rez.utils.formatting import is_valid_package_name, PackageRequest
 from rez.utils.resources import cached_property
+from rez.utils.logging_ import print_warning
 from rez.serialise import load_from_file, FileFormat
 from rez.config import config
 from rez.utils.memcached import memcached, pool_memcached_connections
@@ -20,6 +21,32 @@ from rez.vendor.version.version import Version, VersionRange
 import time
 import os.path
 import os
+
+
+#------------------------------------------------------------------------------
+# format version
+#
+# 1:
+# Initial format.
+# 2:
+# Late binding functions added.
+#------------------------------------------------------------------------------
+format_version = 2
+
+
+def check_format_version(filename, data):
+    format_version_ = data.pop("format_version", None)
+
+    if format_version_ is not None:
+        try:
+            format_version_ = int(format_version_)
+        except:
+            return
+
+        if format_version_ > format_version:
+            print_warning(
+                "Loading from %s may fail: newer format version (%d) than current "
+                "format version (%d)" % (filename, format_version_, format_version))
 
 
 #------------------------------------------------------------------------------
@@ -141,6 +168,7 @@ class FileSystemPackageResource(PackageResourceHelper):
                 "Missing package definition file: %r" % self)
 
         data = load_from_file(self.filepath, self.file_format)
+        check_format_version(self.filepath, data)
 
         if "timestamp" not in data:  # old format support
             data_ = self._load_old_formats()
@@ -275,6 +303,7 @@ class FileSystemCombinedPackageFamilyResource(PackageFamilyResource):
     def _load(self):
         format_ = FileFormat[self.ext]
         data = load_from_file(self.filepath, format_)
+        check_format_version(self.filepath, data)
         return data
 
 
@@ -755,12 +784,20 @@ class FileSystemPackageRepository(PackageRepository):
         existing_package_data = None
         existing_variants_data = None
         release_data = {}
+
         new_package_data = variant.parent.validated_data()
         new_package_data.pop("variants", None)
         package_changed = False
 
+        def remove_build_keys(obj):
+            for key in package_build_only_keys:
+                obj.pop(key, None)
+
+        remove_build_keys(new_package_data)
+
         if existing_package:
             existing_package_data = existing_package.validated_data()
+            remove_build_keys(existing_package_data)
 
             # detect case where new variant introduces package changes outside of variant
             data_1 = existing_package_data.copy()
@@ -772,9 +809,10 @@ class FileSystemPackageRepository(PackageRepository):
                 if value is not None:
                     release_data[key] = value
 
-            for key in ("base", "variants"):
+            for key in ("format_version", "base", "variants"):
                 data_1.pop(key, None)
                 data_2.pop(key, None)
+
             package_changed = (data_1 != data_2)
 
         # special case - installing a no-variant pkg into a no-variant pkg
@@ -850,6 +888,9 @@ class FileSystemPackageRepository(PackageRepository):
         # add the timestamp
         overrides = overrides or {}
         overrides["timestamp"] = int(time.time())
+
+        # add the format version
+        package_data["format_version"] = format_version
 
         # apply attribute overrides
         for key, value in overrides.iteritems():

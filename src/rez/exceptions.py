@@ -88,6 +88,11 @@ class PackageRequestError(RezError):
     pass
 
 
+class PackageTestError(RezError):
+    """There was a problem running a package test."""
+    pass
+
+
 class ResolvedContextError(RezError):
     """An error occurred in a resolved context."""
     pass
@@ -100,6 +105,11 @@ class RexError(RezError):
 
 class RexUndefinedVariableError(RexError):
     """There is a reference to an undefined variable."""
+    pass
+
+
+class RexStopError(RexError):
+    """Special error raised when a package commands uses the 'stop' command."""
     pass
 
 
@@ -156,6 +166,11 @@ class SuiteError(RezError):
 
 class PackageRepositoryError(RezError):
     """Base class for package repository- related errors."""
+    pass
+
+
+class InvalidPackageError(RezError):
+    """A special case exception used in package 'preprocess function'."""
     pass
 
 

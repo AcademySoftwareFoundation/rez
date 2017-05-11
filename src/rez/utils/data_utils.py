@@ -4,71 +4,52 @@ Utilities related to managing data types.
 from rez.vendor.schema.schema import Schema, Optional
 from rez.exceptions import RexError
 from collections import MutableMapping
-from inspect import getsourcelines, getargspec
 from threading import Lock
-from textwrap import dedent
 
 
 class _Missing: pass
 _missing = _Missing()
 
 
-class SourceCode(object):
-    """Very simple wrapper for python source code."""
-    def __init__(self, source):
-        self.source = source.rstrip()
+def get_dict_diff(d1, d2):
+    """Get added/removed/changed keys between two dicts.
 
-    @classmethod
-    def from_function(cls, func):
-        argspec = getargspec(func)
-        if argspec.args or argspec.varargs or argspec.keywords:
-            raise RexError('top level functions in python rez package files '
-                           'cannot take any arguments: %s' % func.__name__)
+    Each key in the return value is a list, which is the namespaced key that
+    was affected.
 
-        # now that we've verified that the func takes no args, can strip out
-        # the first line of the sourcecode, with the argspec of the func...
-        loc = getsourcelines(func)[0][1:]
-        code = dedent(''.join(loc))
+    Returns:
+        3-tuple:
+        - list of added keys;
+        - list of removed key;
+        - list of changed keys.
+    """
+    def _diff(d1_, d2_, namespace):
+        added = []
+        removed = []
+        changed = []
 
-        # align lines that start with a comment (#)
-        codelines = code.split('\n')
-        linescount = len(codelines)
-        for i, line in enumerate(codelines):
-            if line.startswith('#'):
-                nextindex = i+1 if i < linescount else i-1
-                nextline = codelines[nextindex]
-                while nextline.startswith('#'):
-                    nextline = codelines[nextindex]
-                    nextindex = nextindex+1 if nextindex < linescount else nextindex-1
-                firstchar = len(nextline)-len(nextline.lstrip())
-                codelines[i] = '%s%s' % (nextline[:firstchar], line)
+        for k1, v1 in d1_.iteritems():
+            if k1 not in d2_:
+                removed.append(namespace + [k1])
+            else:
+                v2 = d2_[k1]
+                if v2 != v1:
+                    if isinstance(v1, dict) and isinstance(v2, dict):
+                        namespace_ = namespace + [k1]
+                        added_, removed_, changed_ = _diff(v1, v2, namespace_)
+                        added.extend(added_)
+                        removed.extend(removed_)
+                        changed.extend(changed_)
+                    else:
+                        changed.append(namespace + [k1])
 
-        code = '\n'.join(codelines).rstrip()
-        code = dedent(code)
+        for k2 in d2_.iterkeys():
+            if k2 not in d1_:
+                added.append(namespace + [k2])
 
-        value = SourceCode.__new__(SourceCode)
-        value.source = code
-        return value
+        return added, removed, changed
 
-    def corrected_for_indent(self):
-        if self.source and self.source[0] in (' ', '\t'):
-            new_source = "if True:\n" + self.source
-            return SourceCode(new_source)
-        else:
-            return self
-
-    def __eq__(self, other):
-        return (isinstance(other, SourceCode)
-                and other.source == self.source)
-
-    def __ne__(self, other):
-        return not (other == self)
-
-    def __str__(self):
-        return self.source
-
-    def __repr__(self):
-        return "%s(%r)" % (self.__class__.__name__, self.source)
+    return _diff(d1, d2, [])
 
 
 class cached_property(object):
@@ -326,6 +307,10 @@ class AttributeForwardMeta(type):
     forwarding is skipped for that attribute. If the wrapped object does not
     contain an attribute, the forwarded value will be None.
 
+    If the parent class contains method '_wrap_forwarded', then forwarded values
+    are passed to this function, and the return value becomes the attribute
+    value.
+
     The class must contain:
     - keys (list of str): The attributes to be forwarded.
 
@@ -371,7 +356,12 @@ class AttributeForwardMeta(type):
     @classmethod
     def _make_forwarder(cls, key):
         def func(self):
-            return getattr(self.wrapped, key, None)
+            value = getattr(self.wrapped, key, None)
+
+            if hasattr(self, "_wrap_forwarded"):
+                value = self._wrap_forwarded(key, value)
+
+            return value
 
         return property(func)
 
@@ -424,6 +414,7 @@ class LazyAttributeMeta(type):
                                             "%r, already defined" % attr)
                     else:
                         attr = key
+
                     members[attr] = cls._make_getter(key, attr, optional, key_schema)
 
         if schema or not _defined("schema"):
@@ -474,7 +465,7 @@ class LazyAttributeMeta(type):
     @classmethod
     def _make_getter(cls, key, attribute, optional, key_schema):
         def getter(self):
-            if key not in self._data:
+            if key not in (self._data or {}):
                 if optional:
                     return None
                 raise self.schema_error("Required key is missing: %r" % key)

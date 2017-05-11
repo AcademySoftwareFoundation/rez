@@ -4,6 +4,7 @@ The main command-line entry point.
 import sys
 from rez.vendor.argparse import _StoreTrueAction, SUPPRESS
 from rez.cli._util import subcommands, LazyArgumentParser, _env_var_true
+from rez.utils.logging_ import print_error
 from rez.exceptions import RezError, RezSystemError
 from rez import __version__
 
@@ -116,10 +117,10 @@ def run(command=None):
         try:
             returncode = run_cmd()
         except (NotImplementedError, RezSystemError) as e:
-            import traceback
-            raise Exception(traceback.format_exc())
+            raise
         except exc_type as e:
-            print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
+            print_error("%s: %s" % (e.__class__.__name__, str(e)))
+            #print >> sys.stderr, "rez: %s: %s" % (e.__class__.__name__, str(e))
             sys.exit(1)
 
     sys.exit(returncode or 0)

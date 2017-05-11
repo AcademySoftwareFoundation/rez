@@ -8,7 +8,10 @@ emailer:
     # The address that post-release emails appear to come from.
     sender: '{system.user}@rez-release.com'
 
-    # List of recipients of post-release emails.
+    # List of recipients of post-release emails; OR, path to recipients config
+    # file (see emailer-recipients-example.yaml). If this is a string that
+    # contains '@' and doesn't refer to a filepath, then it's treated as an
+    # email address.
     recipients: []
 
     # Message format. Available objects for formatting are:

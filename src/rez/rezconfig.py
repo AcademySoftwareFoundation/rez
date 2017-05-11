@@ -2,6 +2,7 @@
 Rez configuration settings. Do not change this file.
 
 Settings are determined in the following way:
+
 1) The setting is first read from this file;
 2) The setting is then overridden if it is present in another settings file
    pointed at by the $REZ_CONFIG_FILE environment variable;
@@ -28,6 +29,9 @@ The following variables are provided if you are using rezconfig.py files:
 Paths should use the path separator appropriate for the operating system
 (based on Python's os.path.sep).  So for Linux paths, / should be used. On
 Windows \ (unescaped) should be used.
+
+Note: The comments in this file are extracted and turned into Wiki content. Pay
+attention to the comment formatting and follow the existing syle closely.
 """
 import os
 
@@ -58,7 +62,6 @@ release_packages_path = "~/.rez/packages/int"
 # is highly recommended that this be set to local storage, such as /tmp.
 tmpdir = None
 
-
 # Where temporary files for contexts go. Defaults to appropriate path depending
 # on your system - for example, *nix distributions will probably set this to "/tmp".
 # This is separate to 'tmpdir' because you sometimes might want to set this to an
@@ -66,6 +69,46 @@ tmpdir = None
 # to store these tempfiles in the farm queuer's designated tempdir so they're
 # cleaned up when the render completes.
 context_tmpdir = None
+
+# These are extra python paths that are added to sys.path **only during a build**.
+# This means that any of the functions in the following list can import modules
+# from these paths:
+# * The *preprocess* function;
+# * Any function decorated with @early - these get evaluated at build time.
+#
+# You can use this to provide common code to your package definition files during
+# a build. To provide common code for packages to use at resolve time instead (for
+# example, in a *commands* function) see the following
+# *package_definition_python_path* setting.
+#
+package_definition_build_python_paths = []
+
+# This is the directory from which installed packages can import modules. This
+# is a way for packages to use shared code.
+#
+# This is NOT a standard path added to sys.path. Packages that use modules from
+# within this directory need to explicitly name them. Furthermore, modules that
+# a package uses are copied into that package's install - this ensures that the
+# package remains standalone and that changes to the shared code will not break
+# or alter existing package installs.
+#
+# Consider the setting:
+#
+#     package_definition_python_path = "/src/rezutils"
+#
+# Consider also the following package *commands* function:
+#
+#     @include("utils")
+#     def commands():
+#         utils.do_some_common_thing(this)
+#
+# This package will import the code from */src/rezutils/utils.py* (or more
+# specifically, its copy of this sourcefile) and will bind it to the name *utils*.
+#
+# For further information, see
+# [here](Package-Definition-Guide#sharing-code-across-package-definition-files).
+#
+package_definition_python_path = None
 
 
 ###############################################################################
@@ -144,17 +187,17 @@ implicit_packages = [
 # The map supports regular expression e.g. to keep versions.
 # Please note that following examples are not necessarily recommendations.
 #
-# platform_map = {
-#     "os": {
-#         r"Scientific Linux-(.*)": r"Scientific-\1",                 # Scientific Linux-x.x -> Scientific-x.x
-#         r"Ubuntu-14.\d": r"Ubuntu-14",                              # Any Ubuntu-14.x      -> Ubuntu-14
-#         r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '  # Centos Linux-X.Y.Z -> CentOS-X.Y
-#     },
-#     "arch": {
-#         "x86_64": "64bit",                                          # Maps both x86_64 and amd64 -> 64bit
-#         "amd64": "64bit",
-#     },
-# }
+#     platform_map = {
+#         "os": {
+#             r"Scientific Linux-(.*)": r"Scientific-\1",                 # Scientific Linux-x.x -> Scientific-x.x
+#             r"Ubuntu-14.\d": r"Ubuntu-14",                              # Any Ubuntu-14.x      -> Ubuntu-14
+#             r'CentOS Linux-(\d+)\.(\d+)(\.(\d+))?': r'CentOS-\1.\2', '  # Centos Linux-X.Y.Z -> CentOS-X.Y
+#         },
+#         "arch": {
+#             "x86_64": "64bit",                                          # Maps both x86_64 and amd64 -> 64bit
+#             "amd64": "64bit",
+#         },
+#     }
 platform_map = {}
 
 # If true, then when a resolve graph is generated during a failed solve, packages
@@ -319,6 +362,40 @@ rez_tools_visibility = "append"
 # scripts (such as .bashrc). If False, package commands are sourced after.
 package_commands_sourced_first = True
 
+# If you define this function, it will be called as the *preprocess function*
+# on every package that does not provide its own, as part of the build process.
+# The given function must be made available by setting the value of
+# [package_definition_build_python_paths](#package_definition_build_python_paths)
+# appropriately.
+#
+# For example, consider the settings:
+#
+#     package_definition_build_python_paths = ["/src/rezutils"]
+#     package_preprocess_function = "build.validate"
+#
+# This would use the 'validate' function in the sourcefile /src/rezutils/build.py
+# to preprocess every package definition file that does not define its own
+# preprocess function.
+#
+# If the preprocess function raises an exception, an error message is printed,
+# and the preprocessing is not applied to the package. However, if the
+# *InvalidPackageError* exception is raised, the build is aborted.
+#
+# You would typically use this to perform common validation or modification of
+# packages. For example, your common preprocess function might check that the
+# package name matches a regex. Here's what that might look like:
+#
+#     # in /src/rezutils/build.py
+#     import re
+#     from rez.exceptions import InvalidPackageError
+#
+#     def validate(package, data):
+#         regex = re.compile("(a-zA-Z_)+$")
+#         if not regex.match(package.name):
+#             raise InvalidPackageError("Invalid package name.")
+#
+package_preprocess_function = None
+
 
 ###############################################################################
 # Debugging
@@ -379,6 +456,10 @@ debug_none = False
 # are left uncaught, which can be useful for debugging purposes.
 catch_rex_errors = True
 
+# Sets the maximum number of characters printed from the stdout / stderr of some
+# shell commands when they fail. If 0, then the output is not truncated
+shell_error_truncate_cap = 750
+
 
 ###############################################################################
 # Build
@@ -410,6 +491,10 @@ build_thread_count = "physical_cores"
 # listed here as well. Several built-in release hooks are available, see
 # rezplugins/release_hook.
 release_hooks = []
+
+# Prompt for release message using an editor. If set to False, there will be
+# no editor prompt.
+prompt_release_message = False
 
 
 ###############################################################################
@@ -476,6 +561,8 @@ prefix_prompt = True
 # this adversely impacts package load times.
 max_package_changelog_chars = 65536
 
+# If not zero, truncates all package changelogs to only show the last N commits
+max_package_changelog_revisions = 0
 
 ###############################################################################
 # Rez-1 Compatibility
@@ -584,8 +671,16 @@ documentation_url = " http://nerdvegas.github.io/rez/"
 # style: dim, normal, bright
 
 # Enables/disables colorization globally.
-# Note: Turned off for Windows currently as there seems to be a problem with
-# the Colorama module.
+#
+# > [[media/icons/warning.png]] Note: Turned off for Windows currently as there seems
+# > to be a problem with the Colorama module.
+#
+# May also set to the string "force", which will make rez output color styling
+# information, even if the the output streams are not ttys. Useful if you are
+# piping the output of rez, but will eventually be printing to a tty later.
+# When force is used, will generally be set through an environment variable, eg:
+#
+#     echo $(REZ_COLOR_ENABLED=force python -c "from rez.utils.colorize import Printer, local; Printer()('foo', local)")
 color_enabled = (os.name == "posix")
 
 ### Do not move or delete this comment (__DOC_END__)

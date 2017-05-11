@@ -8,7 +8,7 @@ from rez.exceptions import BuildError, BuildContextResolveError,\
     PackageFamilyNotFoundError
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase, TempdirMixin, find_file_in_path, \
-    shell_dependent, install_dependent, cmake_dependent
+    shell_dependent, install_dependent, program_dependent
 import shutil
 import os.path
 
@@ -144,12 +144,25 @@ class TestBuild(TestBase, TempdirMixin):
         self._test_build_floob()
         self._test_build_anti()
 
-    @cmake_dependent
+    @program_dependent("cmake")
     def test_build_cmake(self):
+        """Test a cmake-based package."""
         self.assertRaises(PackageFamilyNotFoundError, self._create_context,
-            "sup_world==3.8")
+                          "sup_world==3.8")
         self._test_build_translate_lib()
         self._test_build_sup_world()
+
+    @program_dependent("make", "g++")
+    def test_build_custom(self):
+        """Test a make-based package that uses the custom_build attribute."""
+        from subprocess import PIPE
+
+        self._test_build("hello", "1.0")
+        context = self._create_context("hello==1.0")
+
+        proc = context.execute_command(['hai'], stdout=PIPE)
+        stdout = proc.communicate()[0]
+        self.assertEqual('Oh hai!', stdout.strip())
 
 
 if __name__ == '__main__':

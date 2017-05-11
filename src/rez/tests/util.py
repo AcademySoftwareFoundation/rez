@@ -83,8 +83,10 @@ class TempdirMixin(object):
 
     @classmethod
     def tearDownClass(cls):
-        if os.path.exists(cls.root):
-            shutil.rmtree(cls.root)
+        if not os.getenv("REZ_KEEP_TMPDIRS"):
+            if os.path.exists(cls.root):
+                shutil.rmtree(cls.root)
+
 
 def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
     """Attempts to find the given relative path to_find in the given path
@@ -100,30 +102,44 @@ def find_file_in_path(to_find, path_str, pathsep=None, reverse=True):
             return test_path
     return None
 
-_CMAKE_EXISTS = None
 
-def cmake_exists():
-    """Tests whether cmake is available"""
-    global _CMAKE_EXISTS
-    if _CMAKE_EXISTS is None:
-        import subprocess
-        import errno
+program_tests = {
+    "cmake": ['cmake', '-h'],
+    "make": ['make', '-h'],
+    "g++": ["g++", "--help"]
+}
+
+
+def program_dependent(program_name, *program_names):
+
+    # test if program exists
+    import subprocess
+    import errno
+
+    def _test(name):
+        command = program_tests[name]
 
         with open(os.devnull, 'wb') as DEVNULL:
             try:
-                subprocess.check_call(['cmake', '-h'], stdout=DEVNULL,
-                                      stderr=DEVNULL)
+                subprocess.check_call(command, stdout=DEVNULL, stderr=DEVNULL)
             except (OSError, IOError, subprocess.CalledProcessError):
-                _CMAKE_EXISTS = False
+                return False
             else:
-                _CMAKE_EXISTS = True
-    return _CMAKE_EXISTS
+                return True
 
-def cmake_dependent(fn):
-    """Function decorator that skips the test if cmake is not available"""
-    if not cmake_exists():
-        return unittest.skip('cmake not available')(fn)
-    return fn
+    names = [program_name] + list(program_names)
+    exists = all(_test(x) for x in names)
+
+    if exists:
+        def wrapper(fn):
+            return fn
+
+    else:
+        def wrapper(fn):
+            return unittest.skip("Program(s) not available: %s" % names)(fn)
+
+    return wrapper
+
 
 def shell_dependent(exclude=None):
     """Function decorator that runs the function over all shell types."""

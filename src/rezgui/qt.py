@@ -1,6 +1,7 @@
 """
 Abstraction for PyQt/PySide import.
 """
+import os
 import sys
 from rez.config import config
 from rez.exceptions import RezGuiQTImportError

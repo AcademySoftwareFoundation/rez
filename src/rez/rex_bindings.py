@@ -103,13 +103,21 @@ class VersionBinding(Binding):
 class VariantBinding(Binding):
     """Binds a packages.Variant object."""
     def __init__(self, variant):
-        doc = dict(
-            name=variant.name,
-            version=VersionBinding(variant.version),
-            base=variant.base,
-            root=variant.root)
+        doc = dict(version=VersionBinding(variant.version))
         super(VariantBinding, self).__init__(doc)
         self.__variant = variant
+
+    # hacky, but we'll be deprecating all these bindings..
+    def __getattr__(self, attr):
+        try:
+            return super(VariantBinding, self).__getattr__(attr)
+        except:
+            missing = object()
+            value = getattr(self.__variant, attr, missing)
+            if value is missing:
+                raise
+
+            return value
 
     def _attr_error(self, attr):
         raise AttributeError("package %s has no attribute '%s'"
@@ -141,6 +149,12 @@ class RequirementsBinding(Binding):
 
     def _attr_error(self, attr):
         raise AttributeError("request does not exist: '%s'" % attr)
+
+    def __getitem__(self, name):
+        if name in self.__requirements:
+            return self.__requirements[name]
+        else:
+            self._attr_error(name)
 
     def __contains__(self, name):
         return (name in self.__requirements)
