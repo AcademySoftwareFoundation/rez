@@ -2,7 +2,7 @@
 test dependency resolving algorithm
 """
 from rez.vendor.version.requirement import Requirement
-from rez.solver import Solver, Cycle, SolverStatus
+from rez.solver import Solver, Cycle, SolverStatus, SolverCallbackReturn
 from rez.config import config
 import rez.vendor.unittest2 as unittest
 from rez.tests.util import TestBase
@@ -10,12 +10,13 @@ import itertools
 import os.path
 
 
-class TestSolver(TestBase):
+class TestSolverBase(TestBase):
     @classmethod
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages")
         cls.packages_path = [packages_path]
+        cls.callback = None
         cls.settings = dict(
             packages_path=cls.packages_path,
             package_filter=None)
@@ -24,11 +25,15 @@ class TestSolver(TestBase):
         s1 = Solver(reqs,
                     self.packages_path,
                     optimised=True,
-                    verbosity=Solver.max_verbosity)
+                    verbosity=Solver.max_verbosity,
+                    callback=self.callback
+                    )
         s2 = Solver(reqs,
                     self.packages_path,
                     optimised=False,
-                    verbosity=Solver.max_verbosity)
+                    verbosity=Solver.max_verbosity,
+                    callback=self.callback
+                    )
 
         s_perms = []
         perms = itertools.permutations(reqs)
@@ -36,7 +41,9 @@ class TestSolver(TestBase):
             s = Solver(reqs_,
                        self.packages_path,
                        optimised=True,
-                       verbosity=Solver.max_verbosity)
+                       verbosity=Solver.max_verbosity,
+                       callback=self.callback
+                       )
             s_perms.append(s)
 
         return (s1, s2, s_perms)
@@ -93,6 +100,8 @@ class TestSolver(TestBase):
 
         return s1
 
+
+class TestSolver(TestSolverBase):
     def test_01(self):
         """Extremely basic solves involving a single package."""
         self._solve([],
@@ -211,6 +220,34 @@ class TestSolver(TestBase):
                     ["python-2.7.0[]", "pyvariants-2[0]"])
         self._solve(["pyvariants", "python", "nada"],
                     ["python-2.6.8[]", "nada[]", "pyvariants-2[1]"])
+
+
+class TestSolver(TestSolverBase):
+
+    @classmethod
+    def setUpClass(cls):
+        path = os.path.dirname(__file__)
+        packages_path = os.path.join(path, "data", "solver", "packages_unsolvable")
+        print packages_path
+        cls.packages_path = [packages_path]
+        cls.callback = None
+        cls.settings = dict(
+            packages_path=cls.packages_path,
+            package_filter=None)
+
+    def test_11_split_variants(self):
+        # This test maps to github issue #422:
+        # "Infinite solve if variants can not be solved"
+
+        MAX_FAILS = 20
+
+        def _solve_callback(state):
+            if state.num_fails > MAX_FAILS:
+                self.fail("Potentially solves indefinitely.")
+            return SolverCallbackReturn.keep_going, ''
+
+        self.callback = _solve_callback
+        self._fail("anotbc", "onlybcvariants")
 
 if __name__ == '__main__':
     unittest.main()
