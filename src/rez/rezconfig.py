@@ -51,11 +51,17 @@ packages_path = [
 ]
 
 # The path that Rez will locally install packages to when rez-build is used
-local_packages_path = "~/packages"
+# This uses the package_index to identify which path to use.
+local_packages_paths = ["~/packages"]
 
 # The path that Rez will deploy packages to when rez-release is used. For
 # production use, you will probably want to change this to a site-wide location.
-release_packages_path = "~/.rez/packages/int"
+# This uses the package_index to identify which path to use.
+release_packages_paths = ["~/.rez/packages/int"]
+
+# Defines which local/release_packages_paths are enabled
+# Feel free to override this within a package to release to different locations.
+packages_index = 0
 
 # Where temporary files go. Defaults to appropriate path depending on your
 # system - for example, *nix distributions will probably set this to "/tmp". It

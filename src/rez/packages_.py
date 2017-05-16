@@ -92,9 +92,12 @@ class PackageBaseResourceWrapper(PackageRepositoryResourceWrapper):
     @cached_property
     def is_local(self):
         """Returns True if the package is in the local package repository"""
-        local_repo = package_repository_manager.get_repository(
-            self.config.local_packages_path)
-        return (self.resource._repository.uid == local_repo.uid)
+        for local_packages_path in self.config.local_packages_paths:
+            local_repo = package_repository_manager.get_repository(
+                local_packages_path)
+            if self.resource._repository.uid == local_repo.uid:
+                return True
+        return False
 
     def print_info(self, buf=None, format_=FileFormat.yaml,
                    skip_attributes=None, include_release=False):
