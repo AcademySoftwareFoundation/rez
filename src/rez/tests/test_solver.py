@@ -228,7 +228,6 @@ class TestSolver(TestSolverBase):
     def setUpClass(cls):
         path = os.path.dirname(__file__)
         packages_path = os.path.join(path, "data", "solver", "packages_unsolvable")
-        print packages_path
         cls.packages_path = [packages_path]
         cls.callback = None
         cls.settings = dict(
