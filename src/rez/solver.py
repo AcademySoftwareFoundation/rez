@@ -833,7 +833,7 @@ class _PackageVariantSlice(_Common):
             if result:
                 entry, next_entry = result
                 entries = self.entries[:i_entry] + [entry]
-                next_entries = [next_entry] + self.entries[i_entry:]
+                next_entries = [next_entry] + self.entries[i_entry + 1:]
             else:
                 entries = self.entries[:i_entry + 1]
                 next_entries = self.entries[i_entry + 1:]
